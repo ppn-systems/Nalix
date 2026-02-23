@@ -22,10 +22,10 @@ public abstract partial class TcpListenerBase
                     System.Net.Sockets.AddressFamily.InterNetworkV6,
                     System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
                 {
-                    ExclusiveAddressUse = !Config.ReuseAddress, // fast rebind combo with ReuseAddress
-                    LingerState = new System.Net.Sockets.LingerOption(false, 0),
                     Blocking = true,
-                    DualMode = true // Must set before Bind
+                    DualMode = true,                            // Must set before Bind
+                    ExclusiveAddressUse = !Config.ReuseAddress, // fast rebind combo with ReuseAddress
+                    LingerState = new System.Net.Sockets.LingerOption(false, 0)
                 };
 
                 // Reuse BEFORE bind
@@ -74,9 +74,9 @@ public abstract partial class TcpListenerBase
             System.Net.Sockets.AddressFamily.InterNetwork,
             System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
         {
+            Blocking = true,
             ExclusiveAddressUse = !Config.ReuseAddress,
-            LingerState = new System.Net.Sockets.LingerOption(false, 0),
-            Blocking = true
+            LingerState = new System.Net.Sockets.LingerOption(false, 0)
         };
 
         _listener.SetSocketOption(
