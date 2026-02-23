@@ -4,6 +4,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Connection;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Infrastructure.Connection;
 using Nalix.Framework.Configuration;
@@ -180,6 +181,7 @@ public sealed class TimingWheel : IActivatable
             work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
             options: new WorkerOptions
             {
+                IdType = SnowflakeType.System,
                 CancellationToken = linkedToken,
                 Tag = nameof(TimingWheel),
                 RetainFor = System.TimeSpan.Zero

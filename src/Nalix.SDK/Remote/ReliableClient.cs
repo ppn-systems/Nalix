@@ -3,6 +3,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Packets.Abstractions;
@@ -324,7 +325,11 @@ public sealed class ReliableClient : IReliableClient
                                                 .Warn($"[SDK.ReliableClient] Receive consumer failed: {ex.Message}");
                     }
                 },
-                new WorkerOptions { Tag = "tcp" });
+                new WorkerOptions
+                {
+                    Tag = "tcp",
+                    IdType = SnowflakeType.System,
+                });
 
             _workerId[1] = recvConsumer.Id;
 
@@ -412,7 +417,11 @@ public sealed class ReliableClient : IReliableClient
                         }
                     }
                 },
-                new WorkerOptions { Tag = "tcp" });
+                new WorkerOptions
+                {
+                    Tag = "tcp",
+                    IdType = SnowflakeType.System,
+                });
 
             _workerId[2] = senderWorker.Id;
         }

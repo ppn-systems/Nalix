@@ -10,8 +10,14 @@ namespace Nalix.Network.Dispatch.Channel;
 /// <inheritdoc/>
 public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TPacket : IPacket
 {
+    #region Fields
+
     private readonly System.Int32 _mask;
     private readonly DispatchChannel<TPacket>[] _shards;
+
+    #endregion Fields
+
+    #region Properties
 
     /// <inheritdoc/>
     public System.Int32 TotalPackets
@@ -27,6 +33,10 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
         }
     }
 
+    #endregion Properties
+
+    #region Constructors
+
     /// <inheritdoc/>
     public DispatchRouter(System.Int32 shardCount)
     {
@@ -40,6 +50,10 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
             _shards[i] = new DispatchChannel<TPacket>();
         }
     }
+
+    #endregion Constructors
+
+    #region APIs
 
     /// <inheritdoc/>
     public void Push(
@@ -67,9 +81,15 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
         return false;
     }
 
+    #endregion APIs
+
+    #region Private Methods
+
     // Use stable per-connection id / endpoint hash
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private DispatchChannel<TPacket> GET_SHARD(IConnection connection) => _shards[connection.ID.GetHashCode() & _mask];
+
+    #endregion Private Methods
 }
 
