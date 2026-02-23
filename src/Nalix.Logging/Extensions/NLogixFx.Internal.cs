@@ -8,7 +8,7 @@ public static partial class NLogixFx
 {
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static void PublishLogEntry(
+    private static void PUBLISH_LOG_ENTRY(
         LogLevel level,
         System.String message,
         System.String? sourceName,
@@ -22,7 +22,7 @@ public static partial class NLogixFx
             return;
         }
 
-        System.String fullMessage = FormatLogMessage(
+        System.String fullMessage = FORMAT_LOG_MESSAGE(
             message, sourceName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -31,21 +31,23 @@ public static partial class NLogixFx
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static System.String FormatLogMessage(
+    internal static System.String FORMAT_LOG_MESSAGE(
         System.String message,
         System.String? sourceName,
         System.Object? extendedData,
         System.String callerMemberName,
         System.String callerFilePath, System.Int32 callerLineNumber)
     {
-        return $"[Data]: {FormatExtendedData(extendedData)}" +
+        return $"[Data]: {FORMAT_EXTENDED_DATA(extendedData)}" +
                $"[Source]: {sourceName ?? "NONE"}{System.Environment.NewLine}" +
                $"[Caller]: {callerMemberName} in {callerFilePath} at line {callerLineNumber}{System.Environment.NewLine}" +
                $"[Message]: {message}{System.Environment.NewLine}";
     }
 
-    private static System.String FormatExtendedData(System.Object? extendedData)
+    private static System.String FORMAT_EXTENDED_DATA(System.Object? extendedData)
     {
+        const System.Int32 MaxLen = 200;
+
         if (extendedData is null)
         {
             return "-";
@@ -62,7 +64,6 @@ public static partial class NLogixFx
             System.String s = extendedData.ToString() ?? "-";
             // Replace new lines to keep single-line appearance and trim long payloads
             s = s.Replace("\r", " ").Replace("\n", " ");
-            const System.Int32 MaxLen = 200;
             if (s.Length > MaxLen)
             {
                 s = s[..MaxLen] + "...";
