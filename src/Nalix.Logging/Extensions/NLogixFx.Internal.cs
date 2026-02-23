@@ -38,9 +38,41 @@ public static partial class NLogixFx
         System.String callerMemberName,
         System.String callerFilePath, System.Int32 callerLineNumber)
     {
-        return $"[Message]: {message}\n" +
-               $"[Source]: {sourceName ?? "NONE"}\n" +
-               $"[Caller]: {callerMemberName} in {callerFilePath} at line {callerLineNumber}\n" +
-               $"{(extendedData != null ? $"ExtendedData: {extendedData}" : "").Trim()}";
+        return $"[Data]: {FormatExtendedData(extendedData)}" +
+               $"[Source]: {sourceName ?? "NONE"}{System.Environment.NewLine}" +
+               $"[Caller]: {callerMemberName} in {callerFilePath} at line {callerLineNumber}{System.Environment.NewLine}" +
+               $"[Message]: {message}{System.Environment.NewLine}";
+    }
+
+    private static System.String FormatExtendedData(System.Object? extendedData)
+    {
+        if (extendedData is null)
+        {
+            return "-";
+        }
+
+        try
+        {
+            if (extendedData is System.Exception ex)
+            {
+                System.String m = ex.Message ?? "";
+                return $"{ex.GetType().Name}: {m}";
+            }
+
+            System.String s = extendedData.ToString() ?? "-";
+            // Replace new lines to keep single-line appearance and trim long payloads
+            s = s.Replace("\r", " ").Replace("\n", " ");
+            const System.Int32 MaxLen = 200;
+            if (s.Length > MaxLen)
+            {
+                s = s[..MaxLen] + "...";
+            }
+
+            return s;
+        }
+        catch
+        {
+            return "-";
+        }
     }
 }
