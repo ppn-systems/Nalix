@@ -104,12 +104,12 @@ internal sealed class FRAME_READER : IDisposable
         try
         {
             ReadOnlySpan<byte> chunkBody = chunkLease.Span[FragmentHeader.WireSize..];
-            BufferLease? assembled = _fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
+            FragmentAssemblyResult? assembled = _fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
             chunkLease.Dispose();
 
             if (assembled is not null)
             {
-                this.PROCESS_NORMAL_FRAME(assembled);
+                this.PROCESS_NORMAL_FRAME(assembled.Value.Lease);
             }
         }
         catch (Exception)

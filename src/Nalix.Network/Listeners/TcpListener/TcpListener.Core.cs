@@ -181,11 +181,15 @@ public abstract partial class TcpListenerBase : IListener
 
                 _ = Interlocked.Exchange(ref self._state, (int)ListenerState.STOPPED);
 
-                s_logger?.Info("[NW.{Class}:{Action}] stopped port={Port}", nameof(TcpListenerBase), nameof(SCHEDULE_STOP), self._port);
+                s_logger?.Info(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
+                    $"stopped port={self._port}");
             }
             catch (Exception ex)
             {
-                s_logger?.Error("[NW.{Class}:{Action}] stop-error port={Port} ex={Error}", nameof(TcpListenerBase), nameof(SCHEDULE_STOP), self._port, ex.Message);
+                s_logger?.Error(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
+                    $"stop-error port={self._port} ex={ex.Message}");
             }
             finally
             {
@@ -266,7 +270,7 @@ public abstract partial class TcpListenerBase : IListener
             _lock.Dispose();
         }
 
-        s_logger?.Debug("[NW.{Class}:{Action}] disposed", nameof(TcpListenerBase), nameof(Dispose));
+        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion IDispose
