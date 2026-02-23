@@ -1,5 +1,4 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
-// Utilities for simple, manual JSON serialization without external libraries.
 
 namespace Nalix.Logging.Internal.Formatters;
 
@@ -7,7 +6,7 @@ namespace Nalix.Logging.Internal.Formatters;
 /// Minimal JSON helpers used by our manual serializer.
 /// This is intentionally small and focused on the types we need.
 /// </summary>
-internal static class Json
+internal static class JsonFormatter
 {
     /// <summary>
     /// Escapes a string for inclusion in JSON string literal.

@@ -51,7 +51,7 @@ internal sealed class WebhookEmbed
         if (!System.String.IsNullOrEmpty(Title))
         {
             sb.Append("\"title\":");
-            sb.Append(Json.Quote(Title));
+            sb.Append(JsonFormatter.Quote(Title));
             first = false;
         }
 
@@ -63,7 +63,7 @@ internal sealed class WebhookEmbed
             }
 
             sb.Append("\"description\":");
-            sb.Append(Json.Quote(Description));
+            sb.Append(JsonFormatter.Quote(Description));
             first = false;
         }
 
@@ -85,7 +85,7 @@ internal sealed class WebhookEmbed
             }
 
             sb.Append("\"timestamp\":");
-            sb.Append(Json.Quote(Json.FormatDateTime(Timestamp.Value)));
+            sb.Append(JsonFormatter.Quote(JsonFormatter.FormatDateTime(Timestamp.Value)));
             first = false;
         }
 
