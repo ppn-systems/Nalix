@@ -1,0 +1,110 @@
+flowchart TD
+  %% Listener lifecycle
+  A["1. Activate Listener"] --> A1{"Need socket init?"}
+  A1 -- Yes --> A2["Create socket<br>(IPv6 DualMode) then Bind &amp; Listen"]
+  A1 -- No --> A3["Socket already bound"]
+  A2 --> A4["Set _listener reference"]
+  A3 --> A4
+  A4 --> A5["Start Accept Workers<br>(ScheduleWorker x MaxParallel)"]
+
+  %% Accept loop: AcceptConnectionsAsync workers
+  subgraph AcceptWorkers["Accept workers (AcceptConnectionsAsync)"]
+    direction TB
+    AW1["Loop: while not cancelled"]
+    AW1 --> AW2["Create/Get PooledAcceptContext"]
+    AW2 --> AW3["Wait for accept -> context.BeginAcceptAsync(_listener)"]
+    AW3 --> AW4{"Accept completed?"}
+    AW4 -- Success --> S1["Got accepted Socket"]
+    AW4 -- Failure/Error --> S_ERR["Handle accept error / backoff"]
+    S1 --> S2["Check socket.Connected && handle valid"]
+    S2 --> S3{"ConnectionLimiter.Allow?"}
+    S3 -- No --> SCLOSE["SafeCloseSocket + Return context to pool"] --> AW1
+    S3 -- Yes --> S4["Schedule ProcessConnection worker<br>(or direct call)"]
+  end
+
+  A5 --> AcceptWorkers
+
+  %% InitializeConnection and Connection creation
+  S4 --> IC1["InitializeConnection(socket, context)"]
+  IC1 --> IC2["InitializeOptions(socket) // socket tuning"]
+  IC2 --> IC3["Create Connection object"]
+  IC3 --> IC4["Register events on connection:<br>- OnCloseEvent -> listener.HandleConnectionClose<br>- OnProcessEvent -> protocol.ProcessMessage<br>- OnPostProcessEvent -> protocol.PostProcessMessage<br>- OnCloseEvent -> ConnectionLimiter.OnConnectionClosed"]
+  IC4 --> IC5["If EnableTimeout -> TimingWheel.Register(connection)"]
+  IC5 --> IC6["Return connection to caller<br>(context returned to pool in finally)"]
+
+  %% ProcessConnection -> Protocol.OnAccept
+  S4 --> PC1["ProcessConnection(connection) worker"]
+  PC1 --> PC2["protocol.OnAccept(connection, _cancellationToken)"]
+
+  %% Protocol.OnAccept behavior
+  PC2 --> PA1{"Protocol.IsAccepting?"}
+  PA1 -- No --> PA2["Log reject -> connection.Close()"]
+  PA1 -- Yes --> PA3["ValidateConnection(connection)?"]
+  PA3 -- Fail --> PA4["Log validation-failed -> connection.Close()"]
+  PA3 -- OK --> PA5["connection.TCP.BeginReceive(cancellationToken)"]
+  PA5 --> FR1["FramedSocketChannel.ReceiveLoop starts"]
+
+  %% FramedSocketChannel receive loop
+  subgraph FramedReceive["FramedSocketChannel.RECEIVE_LOOP_ASYNC"]
+    direction TB
+    FR1 --> FR2["Read 2-byte header (UInt16 LE) -> size"]
+    FR2 --> FR3["Sanity-check size (Header <= size <= PacketSizeLimit)"]
+    FR3 --> FR4["Ensure buffer capacity: rent bigger buffer if needed"]
+    FR4 --> FR5["Read payload: size - header"]
+    FR5 --> FR6["Cache.PushIncoming(BufferLease(payload))"]
+    FR6 --> FR7["Invoke callback: OnProcessEventBridge -> Connection.OnProcessEvent"]
+  end
+
+  %% Event bridges -> Protocol.ProcessMessage
+  FR7 --> PM1["OnProcessEventBridge invoked"]
+  PM1 --> PM2["AsyncCallback.Invoke(connection._onProcessEvent,<br> connection, ConnectionEventArgs)"]
+  PM2 --> PM3["protocol.ProcessMessage(sender, args)"]
+
+  %% Protocol.ProcessMessage may enqueue or dispatch synchronized
+  PM3 --> DM1{"Processing path chosen by Protocol"}
+  DM1 -- Direct typed packet handler --> DM2["protocol.ProcessMessage deserializes to IPacket -><br>ExecutePacketHandlerAsync(packet, connection) (sync path)"]
+  DM1 -- Lease/Buffer path --> DM3["protocol.ProcessMessage calls dispatchChannel.HandlePacket(lease, connection)"]
+
+  %% DispatchChannel push path
+  DM3 --> DC1["DispatchChannel.Push(connection, lease)"]
+  DC1 --> DC2["Classify priority index by header -> enqueue in per-connection queue"]
+  DC2 --> DC3["Increment counters (per-connection + global _totalPackets)"]
+  DC3 --> DC4["If connection not in _inReady => add and enqueue to _readyByPrio[prioIndex]"]
+  DC4 --> SEM["PacketDispatchChannel._semaphore.Release()"]
+
+  %% PacketDispatchChannel workers
+  SEM --> PD1["Dispatch workers waiting on _semaphore.WaitAsync()"]
+  PD1 --> PD2["When signaled -> _dispatch.Pull(out connection, out lease)"]
+  PD2 --> PD3{"Pull succeeded?"}
+  PD3 -- No --> PD1
+  PD3 -- Yes --> PD4["Try deserialize: _catalog.TryDeserialize(lease.Span, out IPacket packet)"]
+  PD4 --> PD5{"Deserialization ok?"}
+  PD5 -- Fail --> PD6["Log warn + lease.Dispose() -> PD1"]
+  PD5 -- OK --> PD7["Create PacketContext and ExecuteHandlerAsync(descriptor, context)"]
+
+  %% ExecuteHandlerAsync (high level)
+  PD7 --> EH1["Run middleware pipeline inbound (if any)"]
+  EH1 --> EH2["Invoke handler descriptor.ExecuteAsync(context) (await)"]
+  EH2 --> EH3["If return type produces outbound -> ReturnHandler.HandleAsync -> send response to connection"]
+  EH3 --> EH4["On exception -> HandleDispatchExceptionAsync -> map exception -> send Control FAIL to client"]
+  EH3 --> POST1["After handler, call Protocol.PostProcessMessage(sender, args)"]
+
+  %% PostProcessMessage
+  POST1 --> PP1{"Protocol.KeepConnectionOpen?"}
+  PP1 -- false --> PP2["args.Connection.Disconnect() -> triggers OnCloseEventBridge"]
+  PP1 -- true --> PP3["Connection remains open"]
+
+  %% Close / cleanup flow
+  PP2 --> CL1["OnCloseEventBridge -> AsyncCallback.Invoke(_onCloseEvent,...)"]
+  CL1 --> CL2["TcpListenerBase.HandleConnectionClose(args)"]
+  CL2 --> CL3["Unsubscribe events from connection"]
+  CL3 --> CL4["connection.Dispose() -> FramedSocketChannel.Dispose -> return buffers to BufferPoolManager"]
+  CL4 --> CL5["ConnectionHub.UnregisterConnection -> remove from dictionaries -> decrement counters"]
+  CL5 --> END["Resources freed, workers continue"]
+
+  %% Error / cancellation flows (summary)
+  S_ERR --> ERR1["Log accept error, maybe small delay, continue loop"]
+  anyCancel[(cancellation requested)]:::cancel --> CLEANUP["Schedule stop / Cancel groups<br>cts.Cancel() / Close listener socket"]
+  CLEANUP --> CL2
+
+  classDef cancel fill:#fdd,stroke:#a00;
