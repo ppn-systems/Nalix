@@ -1,7 +1,8 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved. 
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved. 
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Enums;
+using Nalix.Framework.Random;
 using Nalix.Logging.Internal.Formatters;
 using Nalix.Logging.Internal.Webhook.Models;
 using Nalix.Logging.Options;
@@ -16,12 +17,10 @@ internal sealed class WebhookHttpClient : System.IDisposable
 {
     #region Fields
 
-    private readonly System.Random _random;
     private volatile System.Boolean _disposed;
     private readonly WebhookLogOptions _options;
     private readonly WebhookFormatter _formatter;
     private readonly System.Net.Http.HttpClient _httpClient;
-    private readonly System.Text.Json.JsonSerializerOptions _jsonOptions;
 
     private System.Int32 _currentWebhookIndex;
 
@@ -39,20 +38,11 @@ internal sealed class WebhookHttpClient : System.IDisposable
 
         _options = options;
         _currentWebhookIndex = 0;
-        _random = new System.Random();
         _formatter = new WebhookFormatter(_options);
         _httpClient = new System.Net.Http.HttpClient
         {
             Timeout = _options.HttpTimeout
         };
-
-        _jsonOptions = new System.Text.Json.JsonSerializerOptions
-        {
-            WriteIndented = false,
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        };
-
     }
 
     #endregion Constructors
@@ -69,14 +59,15 @@ internal sealed class WebhookHttpClient : System.IDisposable
         System.Collections.Generic.List<LogEntry> entries,
         System.Threading.CancellationToken cancellationToken)
     {
-        if (_disposed || entries.Count is 0)
+        if (_disposed || entries.Count == 0)
         {
             return false;
         }
 
         WebhookPayload payload = _formatter.Format(entries);
-        System.String json = System.Text.Json.JsonSerializer.Serialize(payload, _jsonOptions);
-        System.Net.Http.StringContent content = new(json, System.Text.Encoding.UTF8, "application/json");
+
+        // Serialize to JSON using our manual serializer
+        System.String json = payload.ToJson();
 
         // Try all webhooks if needed (for Failover strategy)
         System.Int32 startIndex = SelectWebhookIndex();
@@ -92,8 +83,11 @@ internal sealed class WebhookHttpClient : System.IDisposable
             {
                 try
                 {
+                    // Create a fresh HttpContent for each attempt to avoid reusing disposed content
+                    using System.Net.Http.StringContent content = new(json, System.Text.Encoding.UTF8, "application/json");
+
                     System.Net.Http.HttpResponseMessage response = await _httpClient.PostAsync(webhookUrl, content, cancellationToken)
-                                                                                    .ConfigureAwait(false);
+                                                                   .ConfigureAwait(false);
 
                     if (response.IsSuccessStatusCode)
                     {
@@ -101,13 +95,13 @@ internal sealed class WebhookHttpClient : System.IDisposable
                     }
 
                     // Handle rate limiting (429)
-                    if (response.StatusCode is System.Net.HttpStatusCode.TooManyRequests)
+                    if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                     {
                         System.Diagnostics.Debug.WriteLine(
                             $"[LG.WebhookHttpClient] Webhook {webhookIndex + 1}/{webhookCount} rate limited (429)");
 
                         // Try next webhook immediately if available
-                        if (_options.DispatchMode is WebhookDispatchMode.Failover
+                        if (_options.DispatchMode == WebhookDispatchMode.Failover
                             && webhookAttempt < webhookCount - 1)
                         {
                             break; // Break retry loop, try next webhook
@@ -115,7 +109,7 @@ internal sealed class WebhookHttpClient : System.IDisposable
 
                         if (attempt < _options.RetryCount)
                         {
-                            System.TimeSpan delay = _options.RetryDelay * System.Math.Pow(2, attempt);
+                            System.TimeSpan delay = System.TimeSpan.FromMilliseconds(_options.RetryDelay.TotalMilliseconds * System.Math.Pow(2, attempt));
                             await System.Threading.Tasks.Task.Delay(delay, cancellationToken)
                                                              .ConfigureAwait(false);
                             continue;
@@ -146,7 +140,7 @@ internal sealed class WebhookHttpClient : System.IDisposable
             }
 
             // If not using Failover strategy, don't try other webhooks
-            if (_options.DispatchMode is not WebhookDispatchMode.Failover)
+            if (_options.DispatchMode != WebhookDispatchMode.Failover)
             {
                 break;
             }
@@ -183,7 +177,7 @@ internal sealed class WebhookHttpClient : System.IDisposable
         return _options.DispatchMode switch
         {
             WebhookDispatchMode.Failover => 0,
-            WebhookDispatchMode.Random => SelectRandom(),
+            WebhookDispatchMode.Random => Csprng.GetInt32(_options.WebhookUrls.Count),
             WebhookDispatchMode.RoundRobin => SelectRoundRobin(),
             _ => 0
         };
@@ -198,19 +192,6 @@ internal sealed class WebhookHttpClient : System.IDisposable
     {
         System.Int32 index = System.Threading.Interlocked.Increment(ref _currentWebhookIndex);
         return System.Math.Abs(index % _options.WebhookUrls.Count);
-    }
-
-    /// <summary>
-    /// Gets a random webhook index.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Int32 SelectRandom()
-    {
-        lock (_random)
-        {
-            return _random.Next(_options.WebhookUrls.Count);
-        }
     }
 
     #endregion Private Methods
