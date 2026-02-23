@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Environment;
+namespace Nalix.Common.Infrastructure.Environment;
 
 /// <summary>
 /// Provides application directories with environment-aware defaults and hardened creation.

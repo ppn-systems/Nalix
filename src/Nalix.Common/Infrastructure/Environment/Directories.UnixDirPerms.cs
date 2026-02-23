@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-namespace Nalix.Common.Environment;
+namespace Nalix.Common.Infrastructure.Environment;
 
 public static partial class Directories
 {
@@ -211,14 +211,11 @@ public static partial class Directories
 
         System.Char sep = System.IO.Path.DirectorySeparatorChar;
         var comp = System.OperatingSystem.IsWindows() ? System.StringComparison.OrdinalIgnoreCase : System.StringComparison.Ordinal;
-        if (System.IO.Path.IsPathRooted(rel) ||
+        return System.IO.Path.IsPathRooted(rel) ||
             rel.Equals("..", comp) ||
-            rel.StartsWith(".." + sep, comp))
-        {
-            throw new System.UnauthorizedAccessException($"Path '{name}' escapes base directory.");
-        }
-
-        return full;
+            rel.StartsWith(".." + sep, comp)
+            ? throw new System.UnauthorizedAccessException($"Path '{name}' escapes base directory.")
+            : full;
     }
 
     [System.ComponentModel.EditorBrowsable(

@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Environment;
+using Nalix.Common.Infrastructure.Environment;
 using Nalix.Logging.Internal.Exceptions;
 
 #if DEBUG
