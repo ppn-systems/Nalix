@@ -263,8 +263,8 @@ Reach for `BufferConfig` when you are tuning:
 
 ## Related APIs
 
-- [Packet Dispatch](../../routing/packet-dispatch.md)
-- [Packet Context](../../routing/packet-context.md)
+- [Packet Dispatch](../../runtime/routing/packet-dispatch.md)
+- [Packet Context](../../runtime/routing/packet-context.md)
 - [Packet Registry](../packets/packet-registry.md)
 - [Pooling Options](../../network/options/pooling-options.md)
 - [Object Map and Typed Pools](./object-map-and-typed-pools.md)

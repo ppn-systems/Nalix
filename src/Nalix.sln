@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Pipeline", "N
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Hosting", "Nalix.Network.Hosting\Nalix.Network.Hosting.csproj", "{95FD7620-8809-4A71-9F79-805C21B925B7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Runtime", "Nalix.Runtime\Nalix.Runtime.csproj", "{D17F329D-430C-4502-BCB7-F80319CDFB71}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -139,6 +141,18 @@ Global
 		{95FD7620-8809-4A71-9F79-805C21B925B7}.Release|x64.Build.0 = Release|Any CPU
 		{95FD7620-8809-4A71-9F79-805C21B925B7}.Release|x86.ActiveCfg = Release|Any CPU
 		{95FD7620-8809-4A71-9F79-805C21B925B7}.Release|x86.Build.0 = Release|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Debug|x64.Build.0 = Debug|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Debug|x86.Build.0 = Debug|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Release|x64.ActiveCfg = Release|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Release|x64.Build.0 = Release|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Release|x86.ActiveCfg = Release|Any CPU
+		{D17F329D-430C-4502-BCB7-F80319CDFB71}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

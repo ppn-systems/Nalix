@@ -18,7 +18,7 @@ Nalix ships several cryptography primitives in `Nalix.Framework.Security`, but t
 |---|---|---|
 | Hashing and MAC | `Keccak256`, `Poly1305` | [Hashing and MAC](./hashing-and-mac.md) |
 | AEAD and envelope encryption | `ChaCha20Poly1305`, `Salsa20Poly1305`, `EnvelopeCipher` | [AEAD and Envelope](./aead-and-envelope.md) |
-| Handshake protocol | `ProtocolX25519`, `X25519` | [Handshake Protocol](./handshake.md) |
+| Handshake protocol | `HandshakeStage`, `X25519` | [Handshake Protocol](./handshake.md) |
 
 ## Quick guidance
 

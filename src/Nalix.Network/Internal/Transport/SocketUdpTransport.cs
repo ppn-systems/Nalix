@@ -13,10 +13,17 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
+using Nalix.Network.Options;
+
+#if DEBUG
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -24,11 +31,13 @@ namespace Nalix.Network.Internal.Transport;
 /// A high-performance UDP transport implementation utilizing <see cref="Socket"/> directly.
 /// Designed for zero-allocation transmission and efficient endpoint-bound communication.
 /// </summary>
-[DebuggerNonUserCode]
 [SkipLocalsInit]
+[DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, IDisposable
 {
+    private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+
     /// <summary>
     /// Gets an existing UDP transport instance or creates one, injecting the provided socket if available.
     /// </summary>
@@ -48,7 +57,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
             IPEndPoint ep = remoteEndPoint;
             transport.Initialize(ref ep);
-            transport.MaxUdpSize = Nalix.Network.Listeners.Udp.UdpListenerBase.Config.MaxUdpDatagramSize;
             connection.SetUdpTransport(transport);
         }
     }
@@ -58,11 +66,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     private EndPoint? _endPoint;
     private Connection? _outer;
     private Socket? _socket;
-
-    /// <summary>
-    /// The maximum safe size for a UDP datagram to avoid IP fragmentation (Standard MTU is 1500).
-    /// </summary>
-    public int MaxUdpSize { get; set; } = 1400;
 
     /// <summary>
     /// Indicates whether this transport instance owns the lifecycle of its <see cref="_socket"/>.
@@ -139,13 +142,13 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         {
             // Renting memory on the stack for small packets to avoid GC pressure.
             // Using a safe overhead (10%) for serialization margins.
-            Span<byte> buffer = stackalloc byte[packet.Length + 64];
+            Span<byte> buffer = stackalloc byte[packet.Length + (packet.Length / 10)];
             int bytesWritten = packet.Serialize(buffer);
             this.Send(buffer[..bytesWritten]);
             return;
         }
 
-        using BufferLease lease = BufferLease.Rent(packet.Length);
+        using BufferLease lease = BufferLease.Rent(packet.Length + (packet.Length / 10));
         int written = packet.Serialize(lease.SpanFull);
         lease.CommitLength(written);
         this.Send(lease.Span);
@@ -159,9 +162,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        if (message.Length > MaxUdpSize)
+        if (message.Length > s_options.MaxUdpDatagramSize)
         {
-            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {MaxUdpSize} bytes. Use TCP for large data.");
+            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {s_options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
         }
 
         try
@@ -219,9 +222,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        if (message.Length > MaxUdpSize)
+        if (message.Length > s_options.MaxUdpDatagramSize)
         {
-            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {MaxUdpSize} bytes. Use TCP for large data.");
+            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {s_options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
         }
 
         try

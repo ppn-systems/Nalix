@@ -100,7 +100,7 @@ public static class LiteSerializer
         else if (kind is TypeKind.FixedSizeSerializable)
         {
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
-            DataWriter writer = new(512);
+            DataWriter writer = new(2048);
 
             try
             {
@@ -115,7 +115,7 @@ public static class LiteSerializer
         else if (kind is TypeKind.None)
         {
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
-            DataWriter writer = new(512);
+            DataWriter writer = new(2048);
 
             try
             {

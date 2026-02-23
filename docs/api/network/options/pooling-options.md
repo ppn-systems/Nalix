@@ -36,5 +36,5 @@ options.Validate();
 
 ## Related APIs
 
-- [Timing Wheel](../runtime/timing-wheel.md)
-- [Packet Context](../../routing/packet-context.md)
+- [Timing Wheel](../timing-wheel.md)
+- [Packet Context](../../runtime/routing/packet-context.md)

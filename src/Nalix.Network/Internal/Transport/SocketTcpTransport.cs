@@ -12,10 +12,15 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 
+#if DEBUG
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Network.Internal.Transport;
 
-[DebuggerNonUserCode]
 [SkipLocalsInit]
+[DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransport
 {
@@ -102,5 +107,4 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
 
         await _outer.Socket.SendAsync(message, cancellationToken).ConfigureAwait(false);
     }
-
 }

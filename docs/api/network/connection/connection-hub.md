@@ -50,7 +50,7 @@ That means:
 | Method | Purpose |
 |---|---|
 | `RegisterConnection(connection)` | Adds a connection and subscribes the close event; throws if the hub is disposed, full, or the connection is already registered. |
-| `UnregisterConnection(connection)` | Removes the connection and event subscription; throws if the hub is disposed or the connection is not registered. |
+| `UnregisterConnection(connection)` | Removes the connection and event subscription; no-op if the connection is not registered or the hub is disposed. |
 | `GetConnection(id)` | Resolves an active connection. |
 | `ListConnections()` | Returns a snapshot of active connections. |
 | `BroadcastAsync(...)` | Sends to all active connections. |
@@ -68,7 +68,7 @@ When `MaxConnections` is reached:
 
 In both cases the hub raises `CapacityLimitReached`.
 
-`RegisterConnection(...)` no longer returns a boolean status. Admission failures now surface as `InvalidOperationException`, which keeps duplicate registrations and over-capacity cases explicit for callers.
+`RegisterConnection(...)` no longer returns a boolean status. Admission failures now surface as `InternalErrorException`, which keeps duplicate registrations and over-capacity cases explicit for callers.
 
 ### Common pitfalls
 
@@ -170,5 +170,5 @@ var username = connection.Attributes.TryGetValue("username", out var u) ? u as s
 - [Connection](./connection.md)
 - [Connection Events](./connection-events.md)
 - [Connection Hub Options](./connection-hub-options.md)
-- [UDP Listener](../runtime/udp-listener.md)
+- [UDP Listener](../udp-listener.md)
 - [Network Options](../options/options.md)

@@ -157,14 +157,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     }
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryRegisterConnection(IConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-        return this.TryRegisterCore(connection) == RegisterResult.Success;
-    }
-
-    /// <inheritdoc />
     /// <summary>
     /// Unregisters a connection from the hub.
     /// </summary>
@@ -174,14 +166,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     {
         ArgumentNullException.ThrowIfNull(connection);
         _ = this.TryUnregisterCore(connection);
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryUnregisterConnection(IConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-        return this.TryUnregisterCore(connection);
     }
 
     /// <inheritdoc />
@@ -449,7 +433,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// Generates a human-readable report of active connections and statistics.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    [SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "<Pending>")]
     public string GenerateReport()
     {
         const int Limit = 15;
@@ -566,7 +549,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Generates a key-value diagnostic summary of the connection hub and active connections.
     /// </summary>
-    [SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "<Pending>")]
     public IDictionary<string, object> GetReportData()
     {
         int total = Volatile.Read(ref _count);
@@ -1182,4 +1164,3 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 /// <param name="triggeredConnectionId">Identifier for the incoming connection that triggered the limit.</param>
 /// <param name="reason">Reason token that describes the applied action.</param>
 public delegate void CapacityLimitReachedHandler(DropPolicy dropPolicy, int currentConnections, int maxConnections, ISnowflake? triggeredConnectionId, string reason);
-

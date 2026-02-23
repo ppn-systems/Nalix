@@ -739,7 +739,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "<Pending>")]
     private void RUN_CLEANUP_ONCE()
     {
         if (Volatile.Read(ref _disposed) != 0)

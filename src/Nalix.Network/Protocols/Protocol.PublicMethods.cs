@@ -14,7 +14,9 @@ public abstract partial class Protocol
     #region Fields
 
     private int _accepting;
+
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly IConnectionHub s_hub = InstanceManager.Instance.GetOrCreateInstance<IConnectionHub>();
 
     #endregion Fields
 
@@ -74,7 +76,12 @@ public abstract partial class Protocol
             {
                 s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
 
+                // Start receiving data from the connection
                 connection.TCP.BeginReceive(cancellationToken);
+
+                // Register the connection with the hub for management
+                s_hub.RegisterConnection(connection);
+
                 return;
             }
 

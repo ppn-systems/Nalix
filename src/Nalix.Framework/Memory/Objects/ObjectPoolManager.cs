@@ -462,10 +462,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="percentage">The percentage of items to trim from each pool.</param>
     /// <param name="cancellationToken">The token used to cancel the background loop.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="interval"/> is negative or not supported by <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</exception>
-    public Task ScheduleRegularTrimming(
-        TimeSpan interval,
-        int percentage = 50,
-        CancellationToken cancellationToken = default)
+    public Task ScheduleRegularTrimming(TimeSpan interval, int percentage = 50, CancellationToken cancellationToken = default)
     {
         return Task.Run(async () =>
         {

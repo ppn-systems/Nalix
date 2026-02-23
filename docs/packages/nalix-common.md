@@ -29,7 +29,7 @@ These contracts keep SDK and server code aligned.
 public class SamplePingHandlers
 {
     [PacketOpcode(1)]
-    public IPacket HandlePing(PacketContext<IPacket> request)
+    public IPacket HandlePing(IPacketContext<IPacket> request)
         => request.Packet;
 }
 ```
@@ -40,13 +40,14 @@ Legacy handlers that take `(TPacket, IConnection[, CancellationToken])` are stil
 Metadata is built once during handler registration and later exposed through `PacketContext`.
 
 **Key Components**
-- `PacketMetadataBuilder`
-- `PacketContext<TPacket>`
-
-### Quick example
+- `PacketMetadata`
+- `IPacketContext<TPacket>`
 
 ```csharp
-PacketMetadataProviders.Register(new SampleTenantMetadataProvider());
+// Metadata attributes are applied to handlers or packets
+[PacketOpcode(1)]
+[SampleTenantMetadata("Tenant-A")]
+public IPacket HandlePing(IPacketContext<IPacket> request) => request.Packet;
 ```
 
 ### Middleware primitives
@@ -54,8 +55,8 @@ Middleware runs over packet contexts and can short-circuit outbound flows.
 
 **Key Components**
 - `IPacketMiddleware<TPacket>`
-- `PacketContext<TPacket>`
-- `PacketSender<TPacket>`
+- `IPacketContext<TPacket>`
+- `IPacketSender<TPacket>`
 
 ### Quick example
 
@@ -63,7 +64,7 @@ Middleware runs over packet contexts and can short-circuit outbound flows.
 public sealed class SamplePacketMiddleware : IPacketMiddleware<IPacket>
 {
     public async Task InvokeAsync(
-        PacketContext<IPacket> context,
+        IPacketContext<IPacket> context,
         Func<CancellationToken, Task> next)
     {
         await next(context.CancellationToken);
@@ -82,6 +83,6 @@ Enums keep policies consistent across the stack.
 
 - [Packet Contracts](../api/common/packet-contracts.md)
 - [Connection Contracts](../api/common/connection-contracts.md)
-- [Packet Attributes](../api/routing/packet-attributes.md)
-- [Packet Metadata](../api/routing/packet-metadata.md)
+- [Packet Attributes](../api/runtime/routing/packet-attributes.md)
+- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
 - [Concurrency Contracts](../api/common/concurrency-contracts.md)

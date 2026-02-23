@@ -6,13 +6,13 @@ This page summarizes the main `Nalix.Network.Options` types that shape listener 
 
 - `src/Nalix.Network/Options/NetworkSocketOptions.cs`
 - `src/Nalix.Network/Options/PoolingOptions.cs`
-- `src/Nalix.Network/Options/DispatchOptions.cs`
+- `src/Nalix.Runtime/Options/DispatchOptions.cs`
 - `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
 - `src/Nalix.Network/Options/ConnectionHubOptions.cs`
 - `src/Nalix.Network/Options/TimingWheelOptions.cs`
 - `src/Nalix.Network/Options/NetworkCallbackOptions.cs`
-- `src/Nalix.Network/Options/CompressionOptions.cs`
-- `src/Nalix.Network/Options/TokenBucketOptions.cs`
+- `src/Nalix.Framework/Options/CompressionOptions.cs`
+- `src/Nalix.Network.Pipeline/Options/TokenBucketOptions.cs`
 
 ## Core option types
 
@@ -58,7 +58,7 @@ limits.Validate();
 ## Related APIs
 
 - [Network Socket Options](./network-socket-options.md)
-- [Dispatch Options](./dispatch-options.md)
+- [Dispatch Options](../../runtime/options/dispatch-options.md)
 - [Connection Limit Options](./connection-limit-options.md)
 - [Connection Hub Options](../connection/connection-hub-options.md)
 - [Timing Wheel Options](./timing-wheel-options.md)
@@ -66,6 +66,6 @@ limits.Validate();
 - [Network Callback Options](./network-callback-options.md)
 - [Compression Options](./compression-options.md)
 - [Token Bucket Options](./token-bucket-options.md)
-- [Tcp Listener](../runtime/tcp-listener.md)
+- [Tcp Listener](../tcp-listener.md)
 - [Connection Hub](../connection/connection-hub.md)
-- [Connection Limiter](../../middleware/connection-limiter.md)
+- [Connection Limiter](../connection/connection-limiter.md)

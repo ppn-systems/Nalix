@@ -5,22 +5,22 @@ The `Nalix.SDK.Transport.Extensions` namespace enriches `IClientConnection`/`Tcp
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/DirectiveClientExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
+- `src/Nalix.SDK/Transport/Extensions/TcpSessionX25519Extensions.cs`
 
 ---
 
 ## Key capabilities
 
 - Checklist:
-  - Control helpers: `NewControl`, `PingAsync`, `AwaitControlAsync`, `SendControlAsync`.
-  - Directives: `TryHandleDirectiveAsync`, throttle/redirect/NACK/NOTICE handling.
+  - Control helpers: `NewControl`, `AwaitControlAsync`, `SendControlAsync`.
+  - Security: `HandshakeAsync` (X25519 key exchange).
   - Requests: `RequestAsync` with `RequestOptions` (timeout, retry, encrypt).
   - Subscriptions: `On`, `OnOnce`, `SubscribeTemp`, `CompositeSubscription`.
 
-- Fluent `Control` builders, PING/PONG helpers, and awaiters that use `PacketAwaiter` to avoid race conditions.
-- Directive processing (`THROTTLE`, `REDIRECT`, `NACK`, `NOTICE`) with optional callbacks and default auto-redirect nursing.
+- Fluent `Control` builders and awaiters that use `PacketAwaiter` to avoid race conditions.
+- Cryptographic handshake (`HandshakeAsync`) that performs an anonymous X25519 key exchange and enables AEAD encryption.
 - Request/response helpers (`RequestAsync`, `RequestOptions`) that send, await, optionally encrypt, and retry safely.
 - Subscription helpers (`On<T>`, `OnOnce<T>`, `SubscribeTemp`, `Subscribe`) that automatically dispose leases and log handler errors.
 
@@ -29,7 +29,7 @@ The `Nalix.SDK.Transport.Extensions` namespace enriches `IClientConnection`/`Tcp
 | Type | Public members |
 |---|---|
 | `ControlExtensions` | `NewControl(...)`, `AwaitPacketAsync(...)`, `AwaitControlAsync(...)`, `SendControlAsync(...)`, `ControlBuilder` |
-| `DirectiveClientExtensions` | `TryHandleDirectiveAsync(...)`, `IsThrottled(...)`, `SendWithThrottleAsync(...)`, `ClearThrottle(...)`, `DirectiveCallbacks`, `RedirectResolver` |
+| `TcpSessionX25519Extensions` | `HandshakeAsync(...)` |
 | `RequestExtensions` | `RequestAsync<TResponse>(...)` |
 | `TcpSessionSubscriptions` | `On<TPacket>(...)`, `On(...)`, `OnOnce<TPacket>(...)`, `SubscribeTemp<TPacket>(...)`, `Subscribe(...)` |
 | `CompositeSubscription` | `Add(...)`, `Dispose()` |
@@ -40,7 +40,6 @@ The `Nalix.SDK.Transport.Extensions` namespace enriches `IClientConnection`/`Tcp
 
 - `NewControl(opCode, ControlType, ProtocolType)` starts a fluent builder that stamps `MonoTicks`/`Timestamp` and lets you chain `.WithSeq()`, `.WithReason()`, `.WithTransport()`, then `.Build()`.
 - `AwaitPacketAsync<TPkt>` / `AwaitControlAsync` waits for a matching packet/control with timeout and cancellation.
-- `PingAsync` sends a CONTROL PING and awaits the corresponding PONG, returns `(rttMs, Control pong)` and optionally syncs the client clock with the server timestamp.
 - `SendControlAsync` materializes the builder, applies any extra configuration, and transmits the CONTROL frame.
 - All helpers use `PACKET_AWAITER` to avoid races and to ensure timeouts/reconnects are handled uniformly.
 
@@ -50,72 +49,28 @@ The `Nalix.SDK.Transport.Extensions` namespace enriches `IClientConnection`/`Tcp
 - forgetting that `ControlBuilder` is a `ref struct`, so it cannot be captured in lambdas
 - assuming `SendControlAsync(...)` is a separate transport layer instead of a convenience wrapper around `TcpSession.SendAsync(...)`
 
-### Example
-
-```csharp
-Control pong = await session.AwaitControlAsync(
-    c => c.Type == ControlType.PONG,
-    timeoutMs: 3000,
-    ct);
-
-var (rttMs, _) = await session.PingAsync(opCode: 0, timeoutMs: 3000, ct: ct);
-```
-
 ---
 
-## Directive handling (DirectiveClientExtensions)
+## Cryptographic Handshake (TcpSessionX25519Extensions)
 
-- `TryHandleDirectiveAsync` inspects an incoming `Directive` packet and handles the four protocol control types:
-  - `THROTTLE`: records the throttle window in monotonic ticks and triggers `OnThrottle` callbacks.
-  - `REDIRECT`: optionally delegates to a callback, otherwise resolves `(host, port)` from the directive args, updates `TransportOptions`, disconnects, and reconnects.
-- `NACK` / `NOTICE`: forwards to callbacks and logs the reason.
-- `IsThrottled(out TimeSpan remaining)` reports active throttle windows based on monotonic clocks.
-- `SendWithThrottleAsync` waits for the active throttle window before sending a packet, keeping the client protocol-compliant.
-- `ClearThrottle` resets any stored throttle state for the client.
-
-### DirectiveCallbacks
-
-`DirectiveCallbacks` is the optional callback bundle passed into `TryHandleDirectiveAsync`.
-
-It lets you plug custom behavior for:
-
-- `OnNotice`
-- `OnNack`
-- `OnThrottle`
-- `OnRedirectAsync`
-
-Use it when you want the SDK helpers to keep directive parsing and throttle tracking, while your app decides how UI, logging, reconnect UX, or redirect policy should behave.
+- `HandshakeAsync` performs an anonymous Elliptic Curve Diffie-Hellman (ECDH) handshake using Curve25519.
+- It generates an ephemeral key pair, exchanges public keys with the server, verifies server proofs, and derives a 32-byte shared session key.
+- Upon success, it automatically updates the session's encryption settings (`Secret`, `Algorithm`, and `EncryptionEnabled`) to enable `ChaCha20Poly1305` encryption for subsequent traffic.
 
 ### Common pitfalls
 
-- ignoring `THROTTLE` state and immediately sending again
-- assuming `REDIRECT` will always resolve cleanly without a custom resolver
-- treating callback exceptions as transport failures; the helper catches them so the receive loop stays alive
+- calling `HandshakeAsync` before the session is connected
+- neglecting the cancellation token during the multi-step handshake process
+- assuming the handshake is required for all connections; some servers may allow unencrypted signaling
 
 ### Example
 
 ```csharp
-var callbacks = new DirectiveCallbacks
-{
-    OnNotice = directive => Console.WriteLine(directive.Reason),
-    OnNack = directive => Console.WriteLine(directive.Action),
-    OnThrottle = (directive, delay) => Console.WriteLine(delay),
-    OnRedirectAsync = async (directive, ct) =>
-    {
-        await Task.Yield();
-        return false; // let the default reconnect flow continue
-    }
-};
+await session.ConnectAsync("127.0.0.1", 5000);
+await session.HandshakeAsync(ct);
 
-bool handled = await session.TryHandleDirectiveAsync(
-    directive,
-    callbacks: callbacks,
-    ct: ct);
-
-if (session.IsThrottled(out TimeSpan remaining))
-{
-    Console.WriteLine($"throttled for {remaining.TotalMilliseconds} ms");
-}
+// All subsequent sends are now encrypted
+await session.SendControlAsync(0, ControlType.NOTICE);
 ```
 
 ---
@@ -180,17 +135,16 @@ using var once = session.OnOnce<Directive>(directive =>
 
 ## Best practices
 
-Flow: connect session → perform handshake → optionally handle directives/throttle → use `PingAsync`/`RequestAsync` with awaiters → dispose subscriptions.
+Flow: connect session → perform handshake → use `RequestAsync` with awaiters → dispose subscriptions.
 
 - Always dispose the `IDisposable` returned by subscription helpers (use `using var`), especially before issuing `RequestAsync` calls.
-- When sending throttled traffic, wrap `SendWithThrottleAsync` around your packets so you never violate server directives.
 - Use `RequestOptions.WithEncrypt()` only on `TcpSession`; the concrete client exposes `SendAsync(packet, encrypt: true)` for encryption-aware transport sends.
 
 ### Quick flow
 
 1. connect the session
-2. create a control helper or request helper
-3. optionally handle directives and throttle state
+2. perform cryptographic handshake
+3. create a control helper or request helper
 4. subscribe only for the duration you need
 5. dispose subscriptions when the flow is done
 

@@ -9,6 +9,11 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking;
 
+#if DEBUG
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Network.Internal.Transport;
 
 [SkipLocalsInit]
