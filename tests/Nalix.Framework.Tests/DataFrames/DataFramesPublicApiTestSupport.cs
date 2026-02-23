@@ -82,7 +82,7 @@ public sealed partial class DataFramesPublicApiTests
         directive.Initialize(ControlType.ACK, ProtocolReason.NONE, ProtocolAdvice.NONE, 1);
         yield return [directive];
 
-        yield return [new Handshake(5, [1, 2, 3], ProtocolType.TCP)];
+        yield return [new Handshake(5, HandshakeStage.CLIENT_HELLO, [1, 2, 3], [4, 5, 6], transport: ProtocolType.TCP)];
 
         Text256 text256 = new();
         text256.Initialize("abc");
@@ -187,7 +187,7 @@ public sealed partial class DataFramesPublicApiTests
         {
             PacketRoundTripKind.Control => CreateControlPacket(),
             PacketRoundTripKind.Directive => CreateDirectivePacket(),
-            PacketRoundTripKind.Handshake => new Handshake(17, [1, 2, 3, 4], ProtocolType.UDP),
+            PacketRoundTripKind.Handshake => CreateHandshakePacket(),
             PacketRoundTripKind.Text256 => CreateText256Packet(),
             PacketRoundTripKind.Text512 => CreateText512Packet(),
             PacketRoundTripKind.Text1024 => CreateText1024Packet(),
@@ -205,6 +205,13 @@ public sealed partial class DataFramesPublicApiTests
     {
         Directive packet = new();
         packet.Initialize(91, ControlType.THROTTLE, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, ControlFlags.SLOW_DOWN, 9, 8, 7);
+        return packet;
+    }
+
+    private static Handshake CreateHandshakePacket()
+    {
+        Handshake packet = new(17, HandshakeStage.SERVER_HELLO, [1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], ProtocolType.UDP);
+        packet.UpdateTranscriptHash([13, 14, 15, 16]);
         return packet;
     }
 
@@ -266,7 +273,11 @@ public sealed partial class DataFramesPublicApiTests
                     Handshake actualHandshake = Assert.IsType<Handshake>(actual);
                     Assert.Equal(expectedHandshake.OpCode, actualHandshake.OpCode);
                     Assert.Equal(expectedHandshake.Protocol, actualHandshake.Protocol);
-                    Assert.Equal(expectedHandshake.Data, actualHandshake.Data);
+                    Assert.Equal(expectedHandshake.Stage, actualHandshake.Stage);
+                    Assert.Equal(expectedHandshake.PublicKey, actualHandshake.PublicKey);
+                    Assert.Equal(expectedHandshake.Nonce, actualHandshake.Nonce);
+                    Assert.Equal(expectedHandshake.Proof, actualHandshake.Proof);
+                    Assert.Equal(expectedHandshake.TranscriptHash, actualHandshake.TranscriptHash);
                     break;
                 }
             case PacketRoundTripKind.Text256:

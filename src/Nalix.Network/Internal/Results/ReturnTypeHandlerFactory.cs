@@ -71,7 +71,6 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         {
             [typeof(void)] = new VoidReturnHandler<TPacket>(),
             [typeof(TPacket)] = new PacketReturnHandler<TPacket>(),
-            [typeof(string)] = new StringReturnHandler<TPacket>(),
             [typeof(byte[])] = new ByteArrayReturnHandler<TPacket>(),
             [typeof(Memory<byte>)] = new MemoryReturnHandler<TPacket>(),
             [typeof(System.Threading.Tasks.Task)] = new TaskVoidReturnHandler<TPacket>(),

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
@@ -14,34 +13,12 @@ public partial interface IConnection
     /// <summary>
     /// Gets the Transmission CONTROL ProtocolType (TCP) transmission interface
     /// </summary>
-    ITcp TCP { get; }
+    ITransport TCP { get; }
 
     /// <summary>
     /// Gets the USER Datagram ProtocolType (UDP) transmission interface
     /// </summary>
-    IUdp UDP { get; }
-
-    /// <summary>
-    /// Gets an existing UDP transport instance associated with this connection,
-    /// or creates and initializes a new one if it does not already exist.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The UDP transport is lazily created on first access and cached for subsequent calls.
-    /// </para>
-    /// <para>
-    /// The caller should not dispose the returned instance directly; its lifecycle
-    /// is managed by the owning connection and the object pool.
-    /// </para>
-    /// </remarks>
-    /// <returns>
-    /// An initialized <see cref="IUdp"/> instance bound to this connection.
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown if the underlying connection does not expose a valid
-    /// <see cref="IPEndPoint"/> required for UDP initialization.
-    /// </exception>
-    IUdp GetOrCreateUDP(ref IPEndPoint iPEndPoint);
+    ITransport UDP { get; }
 
     /// <summary>
     /// Represents a transport interface for sending data packets.
@@ -81,25 +58,7 @@ public partial interface IConnection
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
         Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
-    }
 
-    /// <summary>
-    /// Represents the Transmission CONTROL ProtocolType (TCP) transmission interface
-    /// for a network connection.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This interface inherits from <see cref="ITransport"/> which defines
-    /// common send methods for sending packets or raw data synchronously
-    /// and asynchronously.
-    /// </para>
-    /// <para>
-    /// TCP is a connectionless protocol, so this interface focuses mainly
-    /// on sending data without connection state management or receive control.
-    /// </para>
-    /// </remarks>
-    interface ITcp : ITransport
-    {
         /// <summary>
         /// Starts receiving data from the connection.
         /// </summary>
@@ -110,46 +69,20 @@ public partial interface IConnection
         /// Call this method to initiate listening for incoming data on the connection.
         /// </remarks>
         void BeginReceive(CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Sends a message synchronously over the connection.
-        /// </summary>
-        /// <param name="message">The message to send.</param>
-        void Send(string message);
-
-        /// <summary>
-        /// Sends a message asynchronously over the connection.
-        /// </summary>
-        /// <param name="message">The message to send.</param>
-        /// <param name="cancellationToken">A token to cancel the sending operation.</param>
-        /// <returns>A task that represents the asynchronous sending operation.</returns>
-        /// <remarks>
-        /// If the connection has been authenticated, the data will be encrypted before sending.
-        /// </remarks>
-        Task SendAsync(string message, CancellationToken cancellationToken = default);
     }
+
+    /// <summary>
+    /// Represents the Transmission CONTROL ProtocolType (TCP) transmission interface
+    /// for a network connection.
+    /// </summary>
+    [Obsolete("Use ITransport instead. This interface will be removed in a future version.")]
+    interface ITcp : ITransport { }
 
     /// <summary>
     /// Represents the USER Datagram ProtocolType (UDP) transmission interface
     /// for a network connection.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// This interface inherits from <see cref="ITransport"/> which defines
-    /// common send methods for sending packets or raw data synchronously
-    /// and asynchronously.
-    /// </para>
-    /// <para>
-    /// UDP is a connectionless protocol, so this interface focuses mainly
-    /// on sending data without connection state management or receive control.
-    /// </para>
-    /// </remarks>
-    interface IUdp : ITransport
-    {
-        /// <summary>
-        /// Initializes the UDP transport with the specified outer <see cref="IConnection"/>.
-        /// </summary>
-        /// <param name="iPEndPoint">The outer <see cref="IConnection"/> instance to associate with this UDP transport.</param>
-        void Initialize(ref IPEndPoint iPEndPoint);
-    }
+    [Obsolete("Use ITransport instead. This interface will be removed in a future version.")]
+    interface IUdp : ITransport { }
+
 }

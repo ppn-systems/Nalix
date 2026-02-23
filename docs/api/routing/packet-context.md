@@ -36,7 +36,9 @@ Use a context-based handler when you need metadata or manual sending:
 [PacketOpcode(0x1002)]
 public async ValueTask Handle(PacketContext<Handshake> context, CancellationToken ct)
 {
-    await context.Sender.SendAsync(new Handshake(), ct);
+    await context.Sender.SendAsync(
+        new Handshake(0x1003, HandshakeStage.SERVER_FINISH, [], [], []),
+        ct);
 }
 ```
 

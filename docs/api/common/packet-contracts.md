@@ -72,7 +72,11 @@ It supports:
 ## Example
 
 ```csharp
-IPacket packet = new Handshake();
+IPacket packet = new Handshake(
+    1,
+    HandshakeStage.CLIENT_HELLO,
+    clientPublicKey,
+    clientNonce);
 IPacketSender<Handshake> sender = /* resolved sender */;
 await sender.SendAsync((Handshake)packet, ct);
 

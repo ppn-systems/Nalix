@@ -42,6 +42,8 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string ButtonDisconnect { get; set; } = "Disconnect";
 
+    public string ButtonHandshake { get; set; } = "Handshake";
+
     public string GroupPacketSelection { get; set; } = "Packet Selection";
 
     public string LabelType { get; set; } = "Type";
@@ -203,6 +205,12 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
     public string StatusConnectedFormat { get; set; } = "Connected to {0}:{1}";
 
     public string StatusDisconnected { get; set; } = "Disconnected";
+
+    public string StatusHandshakeStarted { get; set; } = "Handshake started...";
+
+    public string StatusHandshakeSuccess { get; set; } = "Handshake completed successfully. Session is now encrypted.";
+
+    public string StatusHandshakeFailedFormat { get; set; } = "Handshake failed: {0}";
 
     public string StatusTcpConnectionEstablished { get; set; } = "TCP connection established.";
 
