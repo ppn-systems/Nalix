@@ -42,9 +42,9 @@ public abstract partial class UdpListenerBase
                     options: new WorkerOptions
                     {
                         IdType = SnowflakeType.System,
+                        TryAcquireSlotImmediately = true,
                         Tag = nameof(NetTaskNames.Segments.Udp),
                         GroupConcurrencyLimit = Config.MaxGroupConcurrency,
-                        TryAcquireSlotImmediately = true,
                         CancellationToken = cancellationToken
                     });
             }
