@@ -52,7 +52,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     private System.Int32 _cancelSignaled;           // 0 = not yet, 1 = started
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private System.Byte[] _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent(256);
+    private System.Byte[] _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent();
 
     #endregion Fields
 
@@ -471,7 +471,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
                 _buffer = null; // ownership transferred
                 _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                                  .Rent(256); // prepare for next read
+                                                  .Rent(); // prepare for next read
             }
         }
         catch (System.Exception ex) when (IS_BENIGN_DISCONNECT(ex))
