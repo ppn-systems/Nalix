@@ -131,6 +131,13 @@ public sealed class TransportOptions : ConfigurationLoader
     public bool EncryptionEnabled { get; set; } = false;
 
     /// <summary>
+    /// The maximum size (in bytes) allowed for a single UDP datagram (including the 7-byte Token).
+    /// </summary>
+    [IniComment("Maximum allowed UDP datagram size in bytes (including header). Default 1400.")]
+    [Range(64, 65535, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65535.")]
+    public int MaxUdpDatagramSize { get; set; } = 1400;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="ValidationException">

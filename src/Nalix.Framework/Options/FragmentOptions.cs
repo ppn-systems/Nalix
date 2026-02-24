@@ -32,17 +32,7 @@ public class FragmentOptions : ConfigurationLoader
     /// </para>
     /// Default: 1,400 bytes (fits a single Ethernet MTU after TCP/IP overhead).
     /// </summary>
-    public int ChunkThreshold { get; set; } = 1_400;
-
-    /// <summary>
-    /// Maximum body size (in bytes) for each chunk — not including header bytes.
-    /// Typically set equal to <see cref="ChunkThreshold"/>.
-    /// <para>
-    /// <c>ChunkBodySize</c> plus 9 bytes of overhead must be less than or equal to <see cref="PacketConstants.PacketSizeLimit"/>.
-    /// </para>
-    /// Default: 1,400 bytes.
-    /// </summary>
-    public int ChunkBodySize { get; set; } = 1_400;
+    public int MaxChunkSize { get; set; } = 1_400;
 
     /// <summary>
     /// Maximum total bytes that <see cref="FragmentAssembler"/> will accumulate for a single stream.
@@ -65,35 +55,35 @@ public class FragmentOptions : ConfigurationLoader
     {
         // ChunkBodySize + 2B (frame header) + 7B (ChunkHeader) ≤ PacketSizeLimit
 
-        if (this.ChunkThreshold <= 0)
+        if (this.MaxChunkSize <= 0)
         {
-            throw new InvalidOperationException("ChunkThreshold must be > 0.");
+            throw new InvalidOperationException("MaxChunkSize must be > 0.");
         }
 
-        if (this.MaxPayloadSize < this.ChunkThreshold)
+        if (this.MaxPayloadSize < this.MaxChunkSize)
         {
             throw new InvalidOperationException(
-                $"MaxPayloadSize={this.MaxPayloadSize} must be >= ChunkThreshold={this.ChunkThreshold}.");
+                $"MaxPayloadSize={this.MaxPayloadSize} must be >= MaxChunkSize={this.MaxChunkSize}.");
         }
 
-        if (this.ChunkBodySize <= 0)
+        if (this.MaxChunkSize <= 0)
         {
-            throw new InvalidOperationException("ChunkBodySize must be > 0.");
+            throw new InvalidOperationException("MaxChunkSize must be > 0.");
         }
 
-        int maxChunkCount = (this.MaxPayloadSize + this.ChunkBodySize - 1) / this.ChunkBodySize;
+        int maxChunkCount = (this.MaxPayloadSize + this.MaxChunkSize - 1) / this.MaxChunkSize;
         if (maxChunkCount > ushort.MaxValue)
         {
             throw new InvalidOperationException(
-                $"ChunkBodySize={this.ChunkBodySize} can produce {maxChunkCount} chunks for MaxPayloadSize={this.MaxPayloadSize}, " +
+                $"MaxChunkSize={this.MaxChunkSize} can produce {maxChunkCount} chunks for MaxPayloadSize={this.MaxPayloadSize}, " +
                 $"which exceeds the {ushort.MaxValue}-chunk wire header limit.");
         }
 
-        int maxChunkFrameSize = PacketConstants.HeaderSize + FragmentHeader.WireSize + this.ChunkBodySize;
+        int maxChunkFrameSize = PacketConstants.HeaderSize + FragmentHeader.WireSize + this.MaxChunkSize;
         if (maxChunkFrameSize > ushort.MaxValue)
         {
             throw new InvalidOperationException(
-                $"ChunkBodySize={this.ChunkBodySize} produces a fragment frame of {maxChunkFrameSize} bytes, " +
+                $"MaxChunkSize={this.MaxChunkSize} produces a fragment frame of {maxChunkFrameSize} bytes, " +
                 $"which exceeds the {ushort.MaxValue}-byte wire header limit.");
         }
     }

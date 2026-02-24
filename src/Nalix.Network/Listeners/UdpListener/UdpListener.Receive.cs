@@ -12,12 +12,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Identifiers;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Options;
-using Nalix.Framework.Security.Hashing;
-using Nalix.Framework.Tasks;
-using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Transport;
 
@@ -25,246 +20,284 @@ namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
-    #region Constants
-
-    private const int NonceSize = sizeof(ulong);
-    private const long MaxReplayWindowMs = 30_000;
-    private const int TimestampSize = sizeof(long);
-    private const int AuthenticationTagSize = Poly1305.TagSize;
-    private const int AuthenticationMetadataSize = Snowflake.Size + TimestampSize + NonceSize + AuthenticationTagSize;
-
-    #endregion Constants
+    #region Datagram Layout
 
     /// <summary>
-    /// Receives UDP datagrams until cancellation and dispatches each accepted datagram for processing.
+    /// Session token size in bytes — equals <see cref="Snowflake.Size"/> (7 bytes).
+    /// The token is the connection's <see cref="ISnowflake"/> identifier issued
+    /// by the server after TCP login.
+    /// </summary>
+    /// <remarks>
+    /// Datagram layout: <c>[SessionToken (7 bytes) | Payload ...]</c>.
+    /// Security is provided by the TCP handshake that issued the token; UDP carries
+    /// only non-sensitive game-state data (movement, actions, etc.).
+    /// </remarks>
+    private const int SessionTokenSize = Snowflake.Size;
+
+    #endregion Datagram Layout
+
+    /// <summary>
+    /// Continuously receives UDP datagrams from the bound socket until cancellation,
+    /// dispatching each datagram for session resolution and processing.
     /// </summary>
     /// <param name="cancellationToken">The token that stops the receive loop.</param>
     /// <remarks>
-    /// Override this method to customize receive scheduling, batching, or diagnostics. Implementations
-    /// should preserve the cancellation semantics and ensure that inbound datagrams still flow into
-    /// <see cref="ProcessDatagram(UdpReceiveResult)"/> or an equivalent processing path.
+    /// The receive loop rents a <see cref="BufferLease"/> per iteration so the datagram
+    /// is received directly into pooled memory — no per-call <c>byte[]</c> allocation.
     /// </remarks>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected virtual async Task ReceiveDatagramsAsync(CancellationToken cancellationToken)
+    protected virtual async ValueTask ReceiveDatagramsAsync(CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(_udpClient);
+        ArgumentNullException.ThrowIfNull(_socket);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
+
+        int bufferSize = s_config.BufferSize;
 
         while (!cancellationToken.IsCancellationRequested)
         {
+            // Rent a fresh buffer from the BufferLease pool for each datagram.
+            // On success the buffer is handed off as a BufferLease (zero-copy).
+            // On error the buffer is returned to the pool immediately.
+            byte[] buffer = BufferLease.ByteArrayPool.Rent(bufferSize);
+
             try
             {
-                UdpReceiveResult result = await _udpClient.ReceiveAsync(cancellationToken)
-                                                                             .ConfigureAwait(false);
+                SocketReceiveFromResult result = await _socket.ReceiveFromAsync(
+                    new Memory<byte>(buffer, 0, bufferSize),
+                    SocketFlags.None,
+                    _anyEndPoint,
+                    cancellationToken).ConfigureAwait(false);
 
-                int next = Interlocked.Increment(ref _procSeq);
-                int idx = next & int.MaxValue;
+                // Wrap the buffer into a BufferLease — ownership is transferred,
+                // so the pool return happens when the lease is eventually disposed
+                // by ProcessDatagram or the downstream connection pipeline.
+                BufferLease lease = BufferLease.TakeOwnership(buffer, start: 0, length: result.ReceivedBytes);
 
-                _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
-                    name: $"{TaskNaming.Tags.Udp}.{TaskNaming.Tags.Accept}",
-                    group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",
-                    work: (_, __) =>
-                    {
-                        this.ProcessDatagram(result); return new ValueTask();
-                    },
-                    options: new WorkerOptions
-                    {
-                        Tag = TaskNaming.Tags.Udp,
-                        IdType = SnowflakeType.System,
-                        TryAcquireSlotImmediately = true,
-                        CancellationToken = cancellationToken,
-                        GroupConcurrencyLimit = s_config.MaxGroupConcurrency
-                    });
+                this.ProcessDatagram(lease, result.RemoteEndPoint);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                BufferLease.ByteArrayPool.Return(buffer);
                 break;
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
+                BufferLease.ByteArrayPool.Return(buffer);
                 _ = Interlocked.Increment(ref _recvErrors);
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ReceiveDatagramsAsync)}] recv-error port={_port}", ex);
 
-                await Task.Delay(50, cancellationToken)
-                                                 .ConfigureAwait(false);
+                s_logger?.Error(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ReceiveDatagramsAsync)}] " +
+                    $"recv-error port={_port}", ex);
+
+                // Brief delay to prevent tight error loops.
+                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
     /// <summary>
-    /// Processes a single received datagram, performs authentication checks, and injects accepted payloads.
+    /// Processes a single received datagram: extracts the session token, resolves
+    /// the associated connection, runs the application-level authentication hook,
+    /// and injects the payload into the connection's inbound pipeline.
     /// </summary>
-    /// <param name="result">The received UDP datagram and its remote endpoint.</param>
+    /// <param name="lease">
+    /// The pooled buffer containing the raw datagram bytes. Ownership is transferred
+    /// to the connection on success, or the lease is disposed on rejection.
+    /// </param>
+    /// <param name="remoteEndPoint">The remote endpoint that sent the datagram.</param>
     /// <remarks>
-    /// Override this method only when a derived listener needs to change the inbound datagram pipeline.
-    /// Implementations are responsible for preserving authentication, accounting, and connection injection
-    /// semantics expected by the rest of the networking stack.
+    /// <para>Datagram layout: <c>[SessionToken (7 bytes / ISnowflake) | Payload ...]</c></para>
+    /// <para>
+    /// The session token is the connection's <see cref="ISnowflake"/> ID (7 bytes)
+    /// issued during TCP login. It maps 1:1 to a <see cref="Connection"/> in the
+    /// <see cref="ConnectionHub"/>. Lightweight by design — sensitive operations
+    /// go through the TCP channel.
+    /// </para>
     /// </remarks>
-    protected virtual void ProcessDatagram(UdpReceiveResult result)
+    protected virtual void ProcessDatagram(BufferLease lease, EndPoint remoteEndPoint)
     {
-        if (result.Buffer.Length < PacketConstants.HeaderSize + AuthenticationMetadataSize)
+        // --- 1. Minimum-size gate ---
+        if (lease == null || lease.Length < SessionTokenSize)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] short-packet len={result.Buffer.Length} from={result.RemoteEndPoint}");
+            _ = Interlocked.Increment(ref _dropShort);
+            lease?.Dispose();
+
+#if DEBUG
+            s_logger?.Debug(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                $"short-packet len={lease?.Length} from={remoteEndPoint}");
+#endif
             return;
         }
 
-        byte[] buffer = result.Buffer;
-        int payloadLength = buffer.Length - AuthenticationMetadataSize;
+        ReadOnlySpan<byte> buffer = lease.Span;
+        ReadOnlySpan<byte> payload = buffer[SessionTokenSize..];
 
-        ReadOnlySpan<byte> idBytes = MemoryExtensions.AsSpan(buffer, payloadLength, Snowflake.Size);
-        ReadOnlySpan<byte> timestampBytes = MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size, TimestampSize);
-        ReadOnlySpan<byte> nonceBytes = MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size + TimestampSize, NonceSize);
-        ReadOnlySpan<byte> tagBytes = MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size + TimestampSize + NonceSize, AuthenticationTagSize);
+        // --- 2. Protocol validation gate ---
+        // Ensure the packet explicitly identifies as UDP to prevent bypasses.
+        // Transport field is at PacketHeaderOffset.Transport (index 8 in payload).
+        if (payload.Length <= (int)PacketHeaderOffset.Transport ||
+            payload[(int)PacketHeaderOffset.Transport] != (byte)Common.Networking.Protocols.ProtocolType.UDP)
+        {
+            _ = Interlocked.Increment(ref _dropShort);
+            lease.Dispose();
 
-        long timestamp = System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(timestampBytes);
-        ulong nonce = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(nonceBytes);
-        ISnowflake identifier = Snowflake.FromBytes(idBytes);
+#if DEBUG
+            s_logger?.Debug(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                $"invalid-protocol mismatch ep={remoteEndPoint}");
+#endif
+            return;
+        }
 
-        ConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<ConnectionHub>();
+        // ================================================================
+        // FAST PATH — endpoint already bound from a previous datagram.
+        // Single ConcurrentDictionary lookup, zero token parsing.
+        // ================================================================
+        if (_endpointCache.TryGetValue(remoteEndPoint, out Connection? connection))
+        {
+            // Quick liveness check — the connection may have been disposed
+            // since it was cached. If so, evict and fall through to the slow path.
+            if (!connection.IsDisposed)
+            {
+                if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
+                {
+                    _ = Interlocked.Increment(ref _dropUnauth);
+                    lease.Dispose();
+                    return;
+                }
+
+                _ = Interlocked.Increment(ref _rxPackets);
+                _ = Interlocked.Add(ref _rxBytes, lease.Length);
+
+                // Use the Protocol for processing even in the fast path
+                if (lease.ReleaseOwnership(out byte[]? fastBuffer, out int fastStart, out int fastLength))
+                {
+                    BufferLease fastPayload = BufferLease.TakeOwnership(fastBuffer!, fastStart + Snowflake.Size, fastLength - Snowflake.Size);
+                    ConnectionEventArgs fastArgs = s_pool.Get<ConnectionEventArgs>();
+                    fastArgs.Initialize(fastPayload, connection);
+
+                    try
+                    {
+                        _protocol.ProcessMessage(this, fastArgs);
+                    }
+                    catch (Exception ex)
+                    {
+                        s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] fastpath-protocol-error id={connection.ID} msg={ex.Message}");
+                        fastArgs.Dispose();
+                    }
+                }
+                else
+                {
+                    lease.Dispose();
+                }
+                return;
+            }
+
+            // Connection no longer alive — remove stale cache entry.
+            _ = _endpointCache.TryRemove(remoteEndPoint, out _);
+        }
+
+        // ================================================================
+        // SLOW PATH — first packet from this endpoint, or cache evicted.
+        // Parse session token (7-byte ISnowflake) → hub lookup → cache.
+        // ================================================================
+        ReadOnlySpan<byte> sessionToken = buffer[..SessionTokenSize];
+        ConnectionHub? hub = ConnectionHub;
 
         if (hub is null)
         {
             _ = Interlocked.Increment(ref _dropShort);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] [{nameof(ConnectionHub)}] null");
+            lease.Dispose();
+
+            s_logger?.Error(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                $"[{nameof(ConnectionHub)}] null");
             return;
         }
 
-        if (hub.GetConnection(identifier) is not Connection connection)
+        if (!this.TryResolveConnection(hub, sessionToken, out connection) || connection == null)
         {
             _ = Interlocked.Increment(ref _dropUnknown);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unknown-packet from={result.RemoteEndPoint}");
+            lease.Dispose();
+
+#if DEBUG
+            s_logger?.Debug(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                $"unknown-token from={remoteEndPoint}");
+#endif
             return;
         }
 
-        BufferLease lease = BufferLease.CopyFrom(MemoryExtensions.AsSpan(buffer)[..payloadLength]);
-
-        if (!ValidateAuthenticationToken(connection, result.RemoteEndPoint, lease.Span, idBytes, timestamp, nonce, tagBytes))
+        // Application-level authentication hook.
+        if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] auth-fail id={connection.ID} from={result.RemoteEndPoint}");
+            lease.Dispose();
+
+            s_logger?.Warn(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                $"unauth id={connection.ID} from={remoteEndPoint}");
             return;
         }
 
-        if (!this.IsAuthenticated(connection, result))
-        {
-            _ = Interlocked.Increment(ref _dropUnauth);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unauth from={result.RemoteEndPoint}");
-            return;
-        }
+        // Bind this endpoint for future fast-path lookups.
+        _ = _endpointCache.TryAdd(remoteEndPoint, connection);
+
+        // Ensure the connection has a UDP transport bound to our socket.
+        SocketUdpTransport.CreateUDP(connection, (IPEndPoint)remoteEndPoint, _socket);
 
         _ = Interlocked.Increment(ref _rxPackets);
-        _ = Interlocked.Add(ref _rxBytes, result.Buffer.Length);
+        _ = Interlocked.Add(ref _rxBytes, lease.Length);
 
-        connection.InjectIncoming(lease);
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={lease.Length}");
-    }
-
-    private static bool ValidateAuthenticationToken(
-        Connection connection,
-        EndPoint remoteEndPoint,
-        ReadOnlySpan<byte> payload,
-        ReadOnlySpan<byte> identifierBytes,
-        long timestamp,
-        ulong nonce,
-        ReadOnlySpan<byte> expectedTag)
-    {
-        if (connection.Secret is null || connection.Secret.Length < Poly1305.KeySize)
+        // Strip the 7-byte Session Token and wrap the remaining payload into a new lease.
+        // We take ownership of the underlying buffer from the original lease but only for the payload slice.
+        if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length))
         {
-            return false;
+            lease.Dispose();
+            return;
         }
 
-        long now = Clock.UnixMillisecondsNow();
-        if (Math.Abs(now - timestamp) > MaxReplayWindowMs)
-        {
-            return false;
-        }
+        // Create a new lease for the payload (7 bytes offset)
+        BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
 
-        Span<byte> remoteMeta = stackalloc byte[1 + 16 + sizeof(ushort)];
-        int remoteLength = EncodeRemoteEndpoint(remoteEndPoint, remoteMeta);
-        if (remoteLength == 0)
-        {
-            return false;
-        }
-
-        bool isValid;
-
-        Poly1305 poly = new(MemoryExtensions.AsSpan(connection.Secret, 0, Poly1305.KeySize));
+        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        args.Initialize(incomingLease, connection);
 
         try
         {
-            Span<byte> computedTag = new byte[AuthenticationTagSize];
-            poly.Update(payload);
-            poly.Update(identifierBytes);
-
-            Span<byte> timestampBytes = stackalloc byte[TimestampSize];
-            System.Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(timestampBytes, timestamp);
-            Span<byte> nonceBytes = stackalloc byte[NonceSize];
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(nonceBytes, nonce);
-
-            poly.Update(timestampBytes);
-            poly.Update(nonceBytes);
-            poly.Update(remoteMeta[..remoteLength]);
-            poly.FinalizeTag(computedTag);
-
-            isValid = FixedTimeEquals(expectedTag, computedTag);
+            // Route through Protocol for standardized processing (decryption, framing, etc.)
+            _protocol.ProcessMessage(this, args);
         }
-        finally
+        catch (Exception ex)
         {
-            poly.Clear();
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] protocol-error id={connection.ID} msg={ex.Message}");
+            args.Dispose();
         }
 
-        return isValid && ((SocketUdpTransport)connection.UDP).TryAcceptUdpNonce(nonce, timestamp, MaxReplayWindowMs);
+#if DEBUG
+        s_logger?.Trace(
+            $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+            $"bound+protocol id={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
+#endif
     }
 
+    /// <summary>
+    /// Resolves a <see cref="Connection"/> from a session token (7-byte <see cref="ISnowflake"/>).
+    /// Override in a derived class to change the token → connection mapping strategy.
+    /// </summary>
+    /// <param name="hub">The active connection hub.</param>
+    /// <param name="sessionToken">The 7-byte session token extracted from the datagram header.</param>
+    /// <param name="connection">When this method returns <c>true</c>, the resolved connection.</param>
+    /// <returns><c>true</c> if a matching connection was found; otherwise <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int EncodeRemoteEndpoint(EndPoint remoteEndPoint, Span<byte> destination)
+    protected virtual bool TryResolveConnection(ConnectionHub hub, ReadOnlySpan<byte> sessionToken, out Connection? connection)
     {
-        if (remoteEndPoint is not IPEndPoint endpoint)
-        {
-            return 0;
-        }
-
-        byte[] addressBytes = endpoint.Address.GetAddressBytes();
-        if (addressBytes.Length > 16 || destination.Length < 1 + addressBytes.Length + sizeof(ushort))
-        {
-            return 0;
-        }
-
-        destination[0] = (byte)addressBytes.Length;
-        MemoryExtensions.AsSpan(addressBytes)
-                               .CopyTo(destination
-                               .Slice(1, addressBytes.Length));
-
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination[(1 + addressBytes.Length)..], (ushort)endpoint.Port);
-
-        return 1 + addressBytes.Length + sizeof(ushort);
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool FixedTimeEquals(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right)
-    {
-        if (left.Length != right.Length)
-        {
-            return false;
-        }
-
-        int result = 0;
-
-        for (int i = 0; i < left.Length; i++)
-        {
-            result |= left[i] ^ right[i];
-        }
-
-        return result == 0;
+        // The session token IS the Snowflake ID — pass it directly to the hub
+        // which performs a sharded O(1) lookup via UInt56.
+        connection = hub?.GetConnection(sessionToken) as Connection;
+        return connection is not null;
     }
 }
