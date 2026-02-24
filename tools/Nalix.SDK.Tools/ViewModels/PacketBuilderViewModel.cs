@@ -14,6 +14,7 @@ using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Extensions;
 using Nalix.SDK.Tools.Models;
+using Nalix.SDK.Tools.Services;
 
 namespace Nalix.SDK.Tools.ViewModels;
 
@@ -23,7 +24,7 @@ namespace Nalix.SDK.Tools.ViewModels;
 public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 {
     private readonly IPacketCatalogService _catalogService;
-    private readonly ITcpClientService _tcpClientService;
+    private readonly INetworkClientService _tcpClientService;
     private readonly PacketToolTextConfig _texts;
     private readonly Action<string, string> _showHexViewer;
     private IPacket? _currentPacket;
@@ -35,6 +36,8 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     private string _currentPacketSummary;
     private string _repeatCountText = "10";
     private string _repeatDelayText = "250";
+    private string _sessionToken = string.Empty;
+    private ProtocolType _selectedTransport = ProtocolType.TCP;
     private bool _isConnected;
     private bool _currentPacketIsReadOnly;
     private bool _suppressAutoLoad;
@@ -46,7 +49,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     /// <param name="catalogService">The packet catalog service.</param>
     /// <param name="tcpClientService">The TCP client service.</param>
     /// <param name="showHexViewer">The callback used to open the shared hex viewer.</param>
-    public PacketBuilderViewModel(IPacketCatalogService catalogService, ITcpClientService tcpClientService, PacketToolTextConfig texts, Action<string, string> showHexViewer)
+    public PacketBuilderViewModel(IPacketCatalogService catalogService, INetworkClientService tcpClientService, PacketToolTextConfig texts, Action<string, string> showHexViewer)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
         _tcpClientService = tcpClientService ?? throw new ArgumentNullException(nameof(tcpClientService));
@@ -151,6 +154,41 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         set
         {
             if (this.SetProperty(ref _portText, value))
+            {
+                this.NotifyCommandStates();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the available transport protocols.
+    /// </summary>
+    public ProtocolType[] Transports { get; } = [ProtocolType.TCP, ProtocolType.UDP];
+
+    /// <summary>
+    /// Gets or sets the selected transport protocol.
+    /// </summary>
+    public ProtocolType SelectedTransport
+    {
+        get => _selectedTransport;
+        set
+        {
+            if (this.SetProperty(ref _selectedTransport, value))
+            {
+                this.NotifyCommandStates();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the UDP session token.
+    /// </summary>
+    public string SessionToken
+    {
+        get => _sessionToken;
+        set
+        {
+            if (this.SetProperty(ref _sessionToken, value))
             {
                 this.NotifyCommandStates();
             }
@@ -345,7 +383,9 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
             await _tcpClientService.ConnectAsync(new ConnectionSettings
             {
                 Host = this.Host.Trim(),
-                Port = port
+                Port = port,
+                Transport = this.SelectedTransport,
+                SessionToken = this.SessionToken.Trim()
             }).ConfigureAwait(true);
             this.IsConnected = _tcpClientService.IsConnected;
         }
@@ -374,6 +414,14 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         {
             this.RaiseStatusRequested(_texts.StatusHandshakeStarted);
             await _tcpClientService.HandshakeAsync().ConfigureAwait(true);
+            
+            // Auto-fill SessionToken if it was received (common for UDP)
+            if (_tcpClientService is NetworkClientService service && !service.SessionToken.IsEmpty)
+            {
+                this.SessionToken = service.SessionToken.ToString();
+                this.RaiseStatusRequested(_texts.StatusSessionTokenAutoFilled);
+            }
+
             this.RaiseStatusRequested(_texts.StatusHandshakeSuccess);
         }
         catch (Exception exception)

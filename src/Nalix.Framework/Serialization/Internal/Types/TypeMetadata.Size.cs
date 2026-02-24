@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
 
 namespace Nalix.Framework.Serialization.Internal.Types;
@@ -79,6 +80,15 @@ internal static partial class TypeMetadata
             if (value is null)
             {
                 size = 1;
+                return true;
+            }
+
+            // [FIX] Stack Overflow Protection
+            // If the value is a concrete packet instance (e.g. Handshake), do NOT reflect
+            // into its properties because PacketBase.Length will call back into us.
+            if (value is IPacket packet)
+            {
+                size = packet.Length;
                 return true;
             }
 

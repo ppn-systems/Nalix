@@ -3,6 +3,7 @@
 
 using System.Windows;
 using Nalix.SDK.Tools.Abstractions;
+using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Services;
 using Nalix.SDK.Tools.ViewModels;
 using Nalix.SDK.Tools.Views;
@@ -27,7 +28,7 @@ public partial class App : Application
 
         IFileDialogService fileDialogService = new FileDialogService();
         IPacketCatalogService catalogService = new PacketCatalogService();
-        ITcpClientService tcpClientService = new TcpClientService(catalogService, appConfigurationService);
+        INetworkClientService tcpClientService = new NetworkClientService(catalogService, appConfigurationService);
         MainWindowViewModel viewModel = new(catalogService, tcpClientService, appConfigurationService, themeService, fileDialogService);
 
         MainWindow window = new()

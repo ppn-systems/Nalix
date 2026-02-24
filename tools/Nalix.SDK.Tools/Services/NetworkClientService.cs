@@ -2,11 +2,16 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.DataFrames;
+using Nalix.Framework.Identifiers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Models;
@@ -16,21 +21,21 @@ using Nalix.SDK.Transport.Extensions;
 namespace Nalix.SDK.Tools.Services;
 
 /// <summary>
-/// Wraps <see cref="TcpSession"/> for MVVM-friendly application usage.
+/// Wraps <see cref="TransportSession"/> implementations for MVVM-friendly application usage.
 /// </summary>
-public sealed class TcpClientService : ITcpClientService
+public sealed class NetworkClientService : INetworkClientService
 {
     private readonly IPacketCatalogService _catalogService;
     private readonly IAppConfigurationService _configurationService;
-    private TcpSession? _session;
+    private TransportSession? _session;
     private bool _disposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TcpClientService"/> class.
+    /// Initializes a new instance of the <see cref="NetworkClientService"/> class.
     /// </summary>
     /// <param name="catalogService">The packet catalog service.</param>
     /// <param name="configurationService">The app configuration service.</param>
-    public TcpClientService(IPacketCatalogService catalogService, IAppConfigurationService configurationService)
+    public NetworkClientService(IPacketCatalogService catalogService, IAppConfigurationService configurationService)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
         _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
@@ -38,6 +43,17 @@ public sealed class TcpClientService : ITcpClientService
 
     /// <inheritdoc/>
     public bool IsConnected => _session?.IsConnected == true;
+
+    /// <inheritdoc/>
+    public ProtocolType Transport => _session switch
+    {
+        TcpSession => ProtocolType.TCP,
+        UdpSession => ProtocolType.UDP,
+        _ => ProtocolType.NONE
+    };
+
+    /// <inheritdoc/>
+    public Snowflake SessionToken => _session?.Options.SessionToken ?? Snowflake.Empty;
 
     /// <inheritdoc/>
     public event EventHandler<string>? StatusChanged;
@@ -65,14 +81,23 @@ public sealed class TcpClientService : ITcpClientService
             EncryptionEnabled = false
         };
 
-        TcpSession session = new(options, _catalogService.Catalog.Registry);
-        session.OnConnected += this.HandleConnected;
-        session.OnDisconnected += this.HandleDisconnected;
-        session.OnError += this.HandleError;
-        session.OnMessageAsync += this.HandleMessageAsync;
-        _session = session;
+        _session = settings.Transport == ProtocolType.UDP
+            ? new UdpSession(options, _catalogService.Catalog.Registry)
+            : new TcpSession(options, _catalogService.Catalog.Registry);
 
-        await session.ConnectAsync(settings.Host, settings.Port, cancellationToken).ConfigureAwait(false);
+        _session.OnMessageReceived += this.HandleMessageReceived;
+        _session.OnError += (s, e) => this.StatusChanged?.Invoke(this, $"Error: {e.Message}");
+        _session.OnDisconnected += (s, e) => {
+            this.StatusChanged?.Invoke(this, "Disconnected.");
+        };
+
+        await _session.ConnectAsync(settings.Host, settings.Port).ConfigureAwait(false);
+        
+        if (_session is UdpSession udpRef && Snowflake.TryParse(settings.SessionToken, out Snowflake token))
+        {
+            udpRef.SessionToken = token;
+        }
+
         this.RaiseStatus(string.Format(
             CultureInfo.CurrentCulture,
             _configurationService.Texts.StatusConnectedFormat,
@@ -85,17 +110,14 @@ public sealed class TcpClientService : ITcpClientService
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        TcpSession? session = _session;
+        TransportSession? session = _session;
         if (session is null)
         {
             return;
         }
 
         _session = null;
-        session.OnConnected -= this.HandleConnected;
-        session.OnDisconnected -= this.HandleDisconnected;
-        session.OnError -= this.HandleError;
-        session.OnMessageAsync -= this.HandleMessageAsync;
+        session.OnMessageReceived -= this.HandleMessageReceived;
 
         await session.DisconnectAsync().ConfigureAwait(false);
         session.Dispose();
@@ -145,7 +167,14 @@ public sealed class TcpClientService : ITcpClientService
             throw new InvalidOperationException(_configurationService.Texts.StatusTcpSessionNotConnected);
         }
 
-        await _session.HandshakeAsync(cancellationToken).ConfigureAwait(false);
+        if (_session is TcpSession tcpSession)
+        {
+            await tcpSession.HandshakeAsync(cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            throw new NotSupportedException("Cryptographic handshake is currently only supported for TCP transport in this tool.");
+        }
     }
 
     /// <inheritdoc/>
@@ -173,24 +202,16 @@ public sealed class TcpClientService : ITcpClientService
         }
     }
 
-    private void HandleConnected(object? sender, EventArgs e) => this.RaiseStatus(_configurationService.Texts.StatusTcpConnectionEstablished);
-
-    private void HandleDisconnected(object? sender, Exception exception)
-        => this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusTcpDisconnectedFormat, exception.Message));
-
-    private void HandleError(object? sender, Exception exception)
-        => this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusTcpErrorFormat, exception.Message));
-
-    private Task HandleMessageAsync(ReadOnlyMemory<byte> payload)
+    private void HandleMessageReceived(object? sender, IBufferLease lease)
     {
-        byte[] rawBytes = payload.ToArray();
+        byte[] rawBytes = lease.Memory.ToArray();
         PacketLogEntry entry;
+        DateTimeOffset timestamp = DateTimeOffset.Now;
 
         try
         {
             IPacket packet = _catalogService.Deserialize(rawBytes);
             PacketSnapshot snapshot = PacketSnapshot.FromPacket(packet);
-            DateTimeOffset timestamp = DateTimeOffset.Now;
             entry = new PacketLogEntry
             {
                 Timestamp = timestamp,
@@ -208,7 +229,6 @@ public sealed class TcpClientService : ITcpClientService
         catch (Exception exception)
         {
             PacketSnapshot snapshot = PacketCatalogService.CreateSnapshotFromRaw(rawBytes);
-            DateTimeOffset timestamp = DateTimeOffset.Now;
             entry = new PacketLogEntry
             {
                 Timestamp = timestamp,
@@ -226,7 +246,6 @@ public sealed class TcpClientService : ITcpClientService
         }
 
         this.Dispatch(() => this.PacketReceived?.Invoke(this, entry));
-        return Task.CompletedTask;
     }
 
     private void RaiseStatus(string message) => this.Dispatch(() => this.StatusChanged?.Invoke(this, message));
