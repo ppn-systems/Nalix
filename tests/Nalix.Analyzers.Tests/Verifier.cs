@@ -23,10 +23,21 @@ internal static class Verifier<TCodeFix>
     where TCodeFix : CodeFixProvider, new()
 {
     public static async Task VerifyAnalyzerAsync(string source, params string[] expectedDiagnosticIds)
+        => await VerifyAnalyzerAsync([source], expectedDiagnosticIds).ConfigureAwait(false);
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1310:Specify StringComparison for correctness", Justification = "<Pending>")]
+    public static async Task VerifyAnalyzerAsync(string[] sources, params string[] expectedDiagnosticIds)
     {
-        Document document = CreateDocument(source);
+        Project project = CreateProject(sources);
+        Document document = project.Documents.First(d => d.Name != "Prelude.cs");
         ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(document).ConfigureAwait(false);
-        string[] actual = [.. diagnostics.Select(d => d.Id).OrderBy(x => x)];
+
+        // Filter diagnostics to only those in TestX.cs files
+        string[] actual = [.. diagnostics
+            .Where(d => d.Location.SourceTree?.FilePath?.StartsWith("Test") == true)
+            .Select(d => d.Id)
+            .OrderBy(x => x)];
+
         string[] expected = [.. expectedDiagnosticIds.OrderBy(x => x)];
         Assert.Equal(expected, actual);
     }
@@ -157,24 +168,25 @@ internal static class Verifier<TCodeFix>
             "Nalix.Common.Serialization.SerializeDynamicSizeAttribute",
             "Nalix.Common.Serialization.SerializeLayout",
             "Nalix.Common.Networking.Packets.PacketHeaderOffset",
-            "Nalix.Network.Routing.PacketContext`1",
+            "Nalix.Runtime.Dispatching.PacketContext`1",
             "Nalix.Common.Networking.IConnection",
-            "Nalix.Network.Routing.PacketDispatchOptions`1",
+            "Nalix.Runtime.Dispatching.PacketDispatchOptions`1",
             "Nalix.Framework.DataFrames.PacketRegistryFactory",
             "Nalix.Common.Networking.Packets.IPacketDeserializer`1",
-            "Nalix.Network.Middleware.IPacketMiddleware`1",
-            "Nalix.Network.Middleware.INetworkBufferMiddleware",
+            "Nalix.Runtime.Middleware.IPacketMiddleware`1",
+            "Nalix.Runtime.Middleware.INetworkBufferMiddleware",
             "Nalix.Common.Serialization.SerializeOrderAttribute",
             "Nalix.Common.Middleware.MiddlewareOrderAttribute",
             "Nalix.Common.Middleware.MiddlewareStageAttribute",
             "Nalix.Common.Middleware.MiddlewareStage",
             "Nalix.Framework.Configuration.Binding.ConfigurationLoader",
             "Nalix.Common.Abstractions.ConfiguredIgnoreAttribute",
-            "Nalix.Network.Routing.IPacketMetadataProvider",
-            "Nalix.Network.Routing.PacketMetadataBuilder",
+            "Nalix.Runtime.Dispatching.IPacketMetadataProvider",
+            "Nalix.Runtime.Dispatching.PacketMetadataBuilder",
             "System.Reflection.MethodInfo",
             "Nalix.SDK.Configuration.RequestOptions",
-            "Nalix.SDK.Transport.Extensions.RequestExtensions"
+            "Nalix.SDK.Transport.Extensions.RequestExtensions",
+            "Nalix.SDK.Transport.TcpSession"
         ];
         string[] missingMetadata = [.. requiredMetadataNames.Where(name => compilation.GetTypeByMetadataName(name) is null)];
         Assert.True(missingMetadata.Length == 0, "Missing metadata: " + string.Join(", ", missingMetadata));
@@ -185,11 +197,11 @@ internal static class Verifier<TCodeFix>
         return await withAnalyzers.GetAnalyzerDiagnosticsAsync().ConfigureAwait(false);
     }
 
-    private static Document CreateDocument(string source)
+    private static Document CreateDocument(string source) => CreateProject([source]).Documents.First(d => d.Name == "Test0.cs");
+
+    private static Project CreateProject(string[] sources)
     {
         ProjectId projectId = ProjectId.CreateNewId();
-        DocumentId supportDocumentId = DocumentId.CreateNewId(projectId);
-        DocumentId documentId = DocumentId.CreateNewId(projectId);
         string[] trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES"))?
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             ?? [];
@@ -197,16 +209,20 @@ internal static class Verifier<TCodeFix>
         Solution solution = new AdhocWorkspace().CurrentSolution
             .AddProject(projectId, "TestProject", "TestProject", LanguageNames.CSharp)
             .WithProjectCompilationOptions(projectId, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
-            .WithProjectParseOptions(projectId, new CSharpParseOptions(LanguageVersion.Preview))
-            .AddDocument(supportDocumentId, "Prelude.cs", SourceText.From(TestSources.Prelude))
-            .AddDocument(documentId, "Test.cs", SourceText.From(source));
+            .WithProjectParseOptions(projectId, new CSharpParseOptions(LanguageVersion.Preview, documentationMode: DocumentationMode.Parse))
+            .AddDocument(DocumentId.CreateNewId(projectId), "Prelude.cs", SourceText.From(TestSources.Prelude));
+
+        for (int i = 0; i < sources.Length; i++)
+        {
+            solution = solution.AddDocument(DocumentId.CreateNewId(projectId), $"Test{i}.cs", SourceText.From(sources[i]));
+        }
 
         foreach (string assemblyPath in trustedAssemblies.Distinct(StringComparer.OrdinalIgnoreCase))
         {
             solution = solution.AddMetadataReference(projectId, MetadataReference.CreateFromFile(assemblyPath));
         }
 
-        return solution.GetDocument(documentId)!;
+        return solution.GetProject(projectId)!;
     }
 
     private static string Normalize(string text) => text.Replace("\r\n", "\n").Trim();

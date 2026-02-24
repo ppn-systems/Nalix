@@ -107,7 +107,7 @@ public sealed class PacketRegistryTests : IDisposable
         byte[] proof = new byte[32];
 
         Handshake original = new(
-            opCode: 0x0010,
+            0x0010,
             stage: HandshakeStage.CLIENT_HELLO,
             publicKey: publicKey,
             nonce: nonce,
@@ -154,7 +154,7 @@ public sealed class PacketRegistryTests : IDisposable
     public void HandshakeEmptyPayloadRoundTripsCorrectly()
     {
         Handshake original = new(
-            opCode: 0x0011,
+            0x0011,
             stage: HandshakeStage.CLIENT_HELLO,
             publicKey: [],
             nonce: [],
@@ -266,7 +266,7 @@ public sealed class PacketRegistryTests : IDisposable
         _ = factory.RegisterAllPackets(typeof(BrokenPacket).Assembly);
         _ = factory.IncludeNamespace(typeof(BrokenPacket).Namespace!);
 
-        InternalErrorException ex = Assert.Throws<InternalErrorException>(() => factory.CreateCatalog());
+        InternalErrorException ex = Assert.Throws<InternalErrorException>(factory.CreateCatalog);
 
         Assert.Contains(typeof(BrokenPacket).FullName!, ex.Message, StringComparison.Ordinal);
         Assert.Contains("Deserialize", ex.Message, StringComparison.Ordinal);

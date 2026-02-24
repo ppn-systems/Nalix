@@ -13,6 +13,7 @@
 
 - connects a TCP socket to the configured server endpoint
 - serializes packets into framed payloads
+- reuses shared packet framing helpers for encrypt/compress and decrypt/decompress flows
 - raises sync and async message events
 - exposes `OnConnected`, `OnDisconnected`, `OnMessageReceived`, and `OnError`
 - uses a background receive loop to process incoming frames
@@ -57,6 +58,7 @@ client.Dispose();
 - `TcpSession` is the current concrete client transport in the source tree.
 - `TransportOptions` and `IPacketRegistry` are required at construction time.
 - `SendAsync(IPacket)` serializes the packet and delegates framing and send to the internal sender pipeline.
+- the receive path uses shared packet transform helpers before the completed frame is surfaced to the application layer.
 
 ## Related APIs
 

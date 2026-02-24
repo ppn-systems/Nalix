@@ -3,6 +3,7 @@
 This guide shows how to attach your own metadata to handler methods and read it later from middleware or handlers.
 
 Use this when built-in attributes are not enough and you want your own convention.
+It works with built-in packets and custom packet types alike.
 
 ## What a metadata provider does
 
@@ -65,7 +66,7 @@ public sealed class SampleInvoiceHandlers
 {
     [PacketOpcode(0x2201)]
     [PacketTenant("billing")]
-    public ValueTask<string> GetInvoice(IPacketContext<IPacket> request)
+    public ValueTask<string> GetInvoice(PacketContext<InvoicePacket> request)
         => ValueTask.FromResult("invoice");
 }
 ```

@@ -9,11 +9,8 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.Chunks;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Nalix.SDK.Options;
@@ -59,37 +56,10 @@ internal sealed class FRAME_SENDER : IDisposable
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
     {
         // ── Transformation ──────────────────────────────────────────────────────
-        bool doEncrypt = encrypt ?? _options.EncryptionEnabled;
-        bool doCompress = _options.CompressionEnabled && payload.Length >= _options.CompressionThreshold;
-
         BufferLease current = BufferLease.CopyFrom(payload.Span);
         try
         {
-            if (doCompress)
-            {
-                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCompressedSize(current.Length) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Compress(current, next);
-                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-                    current.Dispose();
-                    current = next;
-                }
-                catch { next.Dispose(); throw; }
-            }
-
-            if (doEncrypt)
-            {
-                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCiphertextSize(_options.Algorithm, current.Length) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Encrypt(current, next, _options.Secret, _options.Algorithm);
-                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-                    current.Dispose();
-                    current = next;
-                }
-                catch { next.Dispose(); throw; }
-            }
+            current = PacketFrameTransforms.TransformOutbound(current, _options, encrypt ?? _options.EncryptionEnabled);
 
             // ── After transformation, check for fragmentation ────────────────────
             if (current.Length >= _fragmentOptions.MaxChunkSize)

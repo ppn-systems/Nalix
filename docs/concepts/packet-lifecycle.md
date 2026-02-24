@@ -39,6 +39,7 @@ Its job is to:
 - forward inbound data into `PacketDispatchChannel`
 
 At this point, the runtime still has bytes, not a packet object.
+That flow remains the same whether the eventual handler works with built-in packets or your own custom packet type.
 
 ## Step 3. Buffer middleware gets the first chance to act
 
@@ -86,6 +87,7 @@ Examples:
 ## Step 6. Packet middleware applies policy
 
 Packet middleware runs with a full `PacketContext<TPacket>`.
+`TPacket` can be a built-in packet or a custom packet type.
 
 This is where application-aware checks happen:
 

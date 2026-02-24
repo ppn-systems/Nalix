@@ -1,6 +1,7 @@
 # Packet Contracts
 
 `Nalix.Common.Networking.Packets` contains the core packet contracts shared by server and client code.
+The packet model is generic-friendly, so the same contracts work for built-in packets and custom packet types.
 
 ## Source mapping
 
@@ -61,6 +62,7 @@ It supports:
 ## IPacketContext<TPacket>
 
 `IPacketContext<TPacket>` is the handler context used when packet middleware or handlers need the current packet, connection, metadata, and sender together.
+Use the generic `TPacket` with built-in packets or your own custom packet types depending on the handler pipeline.
 
 ### Common pitfalls
 
@@ -88,9 +90,10 @@ if (registry.TryDeserialize(buffer, out IPacket? decoded))
 Typical flow:
 
 1. registry resolves raw bytes to a packet
-2. handler receives `IPacketContext<TPacket>`
+2. handler receives `IPacketContext<TPacket>` or `PacketContext<TPacket>`
 3. middleware reads metadata from `context.Attributes`
 4. handler sends through `context.Sender` when it needs packet-aware send behavior
+5. the same flow works for custom packet handlers as long as the generic packet type matches the dispatch pipeline
 
 ## Related APIs
 

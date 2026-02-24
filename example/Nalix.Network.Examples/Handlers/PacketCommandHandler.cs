@@ -3,8 +3,8 @@
 
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
+using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Network.Examples.Attributes;
-using Nalix.Network.Routing;
 
 namespace Nalix.Network.Examples.Handlers;
 
@@ -22,7 +22,7 @@ public sealed class PacketCommandHandler
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketTag("ping")]
-    public static async Task Ping(PacketContext<IPacket> context)
+    public static async Task Ping(IPacketContext<Control> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);
@@ -32,11 +32,11 @@ public sealed class PacketCommandHandler
     /// Second smoke test route.
     /// Keeping both routes separate helps users see how opcode-to-method mapping works.
     /// </summary>
-    [PacketOpcode(1)]
+    [PacketOpcode(2)]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketTag("pong")]
-    public static async Task Pong(PacketContext<IPacket> context)
+    public static async Task Pong(IPacketContext<IPacket> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);

@@ -72,7 +72,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
         const string source = """
 namespace Demo;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 
 public sealed class ExampleController
 {
@@ -99,7 +99,7 @@ public sealed class Example
         const string fixedSource = """
 namespace Demo;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 
 [PacketController]
 public sealed class ExampleController

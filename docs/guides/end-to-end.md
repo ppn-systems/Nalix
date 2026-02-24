@@ -28,11 +28,10 @@ InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 public sealed class SamplePingHandlers
 {
     [PacketOpcode(0x1001)]
-    public ValueTask<Control> Ping(PacketContext<IPacket> request)
+    public ValueTask<Control> Ping(PacketContext<Control> request)
     {
-        Control packet = (Control)request.Packet;
-        packet.Type = ControlType.PONG;
-        return ValueTask.FromResult(packet);
+        request.Packet.Type = ControlType.PONG;
+        return ValueTask.FromResult(request.Packet);
     }
 }
 ```
@@ -106,11 +105,14 @@ sequenceDiagram
     Dispatch-->>Client: serialized response
 ```
 
+The same end-to-end structure works with a custom packet type if you replace `Control` with your own packet contract in the handler and client sample.
+
 ## What to customize next
 
 - add middleware
 - add packet attributes such as timeout, permission, or rate limit
-- switch some handlers to `PacketContext<TPacket>` when you need explicit manual sending
+- switch some handlers to `PacketContext<TPacket>` when you need explicit manual sending or when you are working with custom packets
+- remember that the listener flow is `ProcessFrame(...)` first, then `ProcessMessage(...)` for the protocol bridge
 
 ## Related pages
 

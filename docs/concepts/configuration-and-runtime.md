@@ -100,7 +100,7 @@ Once dispatch is activated, the server has a working application pipeline.
 
 After dispatch exists:
 
-- `Protocol` bridges transport to dispatch
+- `Protocol` bridges transport to dispatch through `ProcessFrame(...)` and `ProcessMessage(...)`
 - the listener owns socket acceptance and receive loops
 
 You can think of it like this:
@@ -120,6 +120,8 @@ For most teams, this is the safest default:
 5. build protocol
 6. build listener
 7. activate dispatch, then start listening
+
+Custom packet handlers fit the same startup path as built-in packet handlers because the dispatch and metadata layers remain generic.
 
 That keeps startup deterministic and easier to debug.
 

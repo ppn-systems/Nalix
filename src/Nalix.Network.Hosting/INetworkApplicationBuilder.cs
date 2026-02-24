@@ -8,7 +8,9 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Routing;
+using Nalix.Network.Connections;
 using Nalix.Runtime.Dispatching;
+using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Network.Hosting;
 
@@ -32,6 +34,13 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureLogging(ILogger logger);
 
     /// <summary>
+    /// Sets the <see cref="ConnectionHub"/> instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="connectionHub">The connection hub to register into the Nalix runtime.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureConnectionHub(ConnectionHub connectionHub);
+
+    /// <summary>
     /// Configures a Nalix options object before the host starts.
     /// </summary>
     /// <typeparam name="TOptions">The configuration type to mutate.</typeparam>
@@ -48,7 +57,7 @@ public interface INetworkApplicationBuilder
     /// otherwise, all concrete packet types are considered.
     /// </param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddPacketAssemblies(Assembly assembly, bool requirePacketAttribute = false);
+    INetworkApplicationBuilder AddPacket(Assembly assembly, bool requirePacketAttribute = false);
 
     /// <summary>
     /// Adds packet types discovered from the assembly that contains <typeparamref name="TMarker"/>.
@@ -59,7 +68,7 @@ public interface INetworkApplicationBuilder
     /// otherwise, all concrete packet types are considered.
     /// </param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddPacketAssembly<TMarker>(bool requirePacketAttribute = false);
+    INetworkApplicationBuilder AddPacket<TMarker>(bool requirePacketAttribute = false);
 
     /// <summary>
     /// Adds packet controller types discovered from the specified assembly.
@@ -141,4 +150,18 @@ public interface INetworkApplicationBuilder
     /// <param name="factory">The factory used to create the protocol instance.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
+
+    /// <summary>
+    /// Explicitly registers a <see cref="BufferPoolManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseBufferPoolManager(BufferPoolManager manager);
+
+    /// <summary>
+    /// Configures and registers a <see cref="BufferPoolManager"/> using an explicit factory.
+    /// </summary>
+    /// <param name="factory">The factory used to create the buffer pool manager.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseBufferPoolManager(Func<BufferPoolManager> factory);
 }

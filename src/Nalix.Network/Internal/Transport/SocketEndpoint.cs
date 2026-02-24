@@ -8,6 +8,7 @@ using System.Diagnostics.Contracts;
 using System.Net;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking;
+using Nalix.Common.Serialization;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
@@ -17,6 +18,7 @@ using Nalix.Common.Networking;
 namespace Nalix.Network.Internal.Transport;
 
 [SkipLocalsInit]
+[SerializePackable]
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("{ToString()}")]
@@ -91,6 +93,7 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
         this.HasPort = hasPort;
     }
 
+    [SerializeIgnore]
     public string Address
     {
         [Pure]
@@ -113,6 +116,7 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
         }
     }
 
+    [SerializeIgnore]
     public int Port
     {
         [Pure]
@@ -120,6 +124,7 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
         get => this.HasPort ? _port : 0;
     }
 
+    [SerializeIgnore]
     public bool HasPort
     {
         [Pure]
@@ -127,6 +132,7 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
         get;
     }
 
+    [SerializeIgnore]
     public bool IsIPv6
     {
         [Pure]

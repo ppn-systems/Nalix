@@ -52,7 +52,7 @@ public enum HandshakeStage : byte
 /// Represents the default protocol handshake packet for key exchange and transcript verification.
 /// </summary>
 [ExcludeFromCodeCoverage]
-[SerializePackable(SerializeLayout.Explicit)]
+[SerializePackable(SerializeLayout.Sequential)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
 {
@@ -113,10 +113,6 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// Gets or sets the session token assigned by the server.
     /// Used primarily for UDP connection mapping.
     /// </summary>
-    /// <summary>
-    /// Gets or sets the session token assigned by the server.
-    /// Used primarily for UDP connection mapping.
-    /// </summary>
     [SerializeOrder(5)]
     public Snowflake SessionToken { get; set; }
 
@@ -128,39 +124,39 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <summary>
     /// Initializes a new handshake packet with the specified stage and payload components.
     /// </summary>
-    /// <param name="opCode">The opcode identifying the handler for the stage.</param>
+    /// <param name="_">The opcode identifying the handler for the stage.</param>
     /// <param name="stage">The current handshake stage.</param>
     /// <param name="publicKey">The ephemeral public key for this message.</param>
     /// <param name="nonce">The stage nonce or challenge bytes.</param>
     /// <param name="proof">Optional proof bytes for this stage.</param>
     /// <param name="transport">The transport protocol.</param>
     public Handshake(
-        ushort opCode,
+        ushort _,
         HandshakeStage stage,
         byte[] publicKey,
         byte[] nonce,
         byte[]? proof = null,
         ProtocolType transport = ProtocolType.TCP) : this()
-        => this.Initialize(opCode, stage, publicKey, nonce, proof, transport);
+        => this.Initialize((ushort)ProtocolOpCode.HANDSHAKE, stage, publicKey, nonce, proof, transport);
 
     /// <summary>
     /// Initializes the handshake packet with the supplied stage data.
     /// </summary>
-    /// <param name="opCode">The opcode identifying the handler for the stage.</param>
+    /// <param name="_">The opcode identifying the handler for the stage.</param>
     /// <param name="stage">The current handshake stage.</param>
     /// <param name="publicKey">The ephemeral public key.</param>
     /// <param name="nonce">The nonce or challenge bytes.</param>
     /// <param name="proof">Optional proof bytes.</param>
     /// <param name="transport">The transport protocol.</param>
     public void Initialize(
-        ushort opCode,
+        ushort _,
         HandshakeStage stage,
         byte[] publicKey,
         byte[] nonce,
         byte[]? proof = null,
         ProtocolType transport = ProtocolType.TCP)
     {
-        this.OpCode = opCode;
+        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = stage;
         this.Protocol = transport;
         this.Priority = PacketPriority.URGENT;
@@ -171,6 +167,12 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         this.TranscriptHash = Array.Empty<byte>();
         this.SessionToken = Snowflake.Empty;
     }
+
+    /// <summary>
+    /// Validates if a hello packet has the correct cryptographic lengths.
+    /// </summary>
+    public static bool IsValid(Handshake packet)
+        => packet?.PublicKey.Length == DynamicSize && packet.Nonce.Length == DynamicSize;
 
     /// <summary>
     /// Computes the Keccak-256 transcript hash for the provided bytes.
@@ -204,6 +206,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     {
         base.ResetForPool();
 
+        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = HandshakeStage.NONE;
         this.PublicKey = [];
         this.Nonce = [];

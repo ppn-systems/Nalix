@@ -100,7 +100,12 @@ The current runtime implementation provides:
 ## Typical startup pattern
 
 ```csharp
-ILogger logger = BuildLogger();
+using Microsoft.Extensions.Logging;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Injection;
+using Nalix.Logging;
+
+ILogger logger = NLogix.Host.Instance;
 IPacketRegistry registry = BuildPacketRegistry();
 
 InstanceManager.Instance.Register<ILogger>(logger);

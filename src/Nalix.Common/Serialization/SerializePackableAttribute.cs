@@ -9,9 +9,7 @@ namespace Nalix.Common.Serialization;
 /// Marks a type as participating in Nalix serialization and selects the layout
 /// strategy used for its fields.
 /// </summary>
-[AttributeUsage(
-    AttributeTargets.Class | AttributeTargets.Struct |
-    AttributeTargets.Interface, Inherited = true)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, Inherited = true)]
 public sealed class SerializePackableAttribute(SerializeLayout layout = SerializeLayout.Auto) : Attribute
 {
     /// <summary>

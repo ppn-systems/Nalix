@@ -17,7 +17,7 @@ Use it after the basic server shape exists and the runtime still is not behaving
 - `IPacketRegistry` is registered once in `InstanceManager`
 - your handler class is actually registered with `WithHandler(...)`
 - handler methods have the correct `[PacketOpcode(...)]`
-- `Protocol.ProcessMessage(...)` really forwards `args.Lease` into `PacketDispatchChannel`
+- `Protocol.ProcessFrame(...)` is the listener-facing entrypoint and `ProcessMessage(...)` still handles the message payload
 
 **Quick fix**
 
@@ -146,6 +146,7 @@ Start with:
 For the simplest path, return `TPacket` or `Task<TPacket>`.
 
 If you need manual control, switch to `PacketContext<TPacket>` and send through `context.Sender`.
+That recommendation applies to custom packet handlers too, not just the built-in packet set.
 
 ## Good runtime reports to call
 

@@ -3,6 +3,7 @@
 
 using System;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Serialization;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
@@ -109,7 +110,7 @@ internal sealed class QueueFormatter<
     {
         if (value is null)
         {
-            writer.Write(-1);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 

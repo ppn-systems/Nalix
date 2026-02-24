@@ -57,14 +57,19 @@ namespace Nalix.Common.Abstractions
     }
 }
 
-namespace Nalix.Network.Routing
+namespace Nalix.Runtime.Dispatching
 {
     using System.Reflection;
     using Nalix.Common.Networking.Packets;
     using Nalix.Common.Networking;
-    using Nalix.Network.Middleware;
+    using Nalix.Runtime.Middleware;
 
-    public sealed class PacketContext<TPacket> where TPacket : IPacket { }
+    public sealed class PacketContext<TPacket> : IPacketContext<TPacket> where TPacket : IPacket
+    {
+        public TPacket Packet => default!;
+        public IConnection Connection => null!;
+        public CancellationToken CancellationToken => default;
+    }
     public sealed class PacketDispatchOptions<TPacket> where TPacket : IPacket
     {
         public PacketDispatchOptions<TPacket> WithHandler<TController>() where TController : class => this;
@@ -85,24 +90,33 @@ namespace Nalix.Network.Routing
     }
 }
 
-namespace Nalix.Network.Middleware
+namespace Nalix.Runtime.Middleware
 {
     using Nalix.Common.Abstractions;
     using Nalix.Common.Networking;
     using Nalix.Common.Networking.Packets;
-    using Nalix.Network.Routing;
+    using Nalix.Runtime.Dispatching;
 
     public interface IPacketMiddleware<TPacket> where TPacket : IPacket
     {
-        Task InvokeAsync(PacketContext<TPacket> context, Func<CancellationToken, Task> next);
+        ValueTask InvokeAsync(IPacketContext<TPacket> context, Func<CancellationToken, ValueTask> next);
     }
 
     public interface INetworkBufferMiddleware
     {
-        Task<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, Task<IBufferLease?>> nextHandler, CancellationToken ct);
+        ValueTask<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, ValueTask<IBufferLease?>> nextHandler, CancellationToken ct);
     }
 }
 
+namespace Nalix.Common.Networking.Packets
+{
+    public interface IPacketContext<TPacket> where TPacket : IPacket
+    {
+        TPacket Packet { get; }
+        IConnection Connection { get; }
+        CancellationToken CancellationToken { get; }
+    }
+}
 namespace Nalix.Framework.DataFrames
 {
     using Nalix.Common.Networking.Packets;
@@ -145,7 +159,7 @@ namespace Nalix.SDK.Transport
         Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default);
     }
 
-    public abstract class TcpSessionBase : IClientConnection
+    public abstract class TcpSession : IClientConnection
     {
         public ITransportOptions Options => null!;
         public bool IsConnected => true;

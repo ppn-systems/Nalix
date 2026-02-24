@@ -16,25 +16,11 @@ This page covers the built-in public logging targets in `Nalix.Logging.Sinks`.
 
 `BatchConsoleLogTarget` buffers log entries and flushes them to the console through an internal provider.
 
-## Basic usage
-
-```csharp
-var consoleTarget = new BatchConsoleLogTarget(options =>
-{
-    options.BatchSize = 64;
-    options.EnableColors = true;
-});
-
-consoleTarget.Publish(entry);
-await consoleTarget.WriteAsync(entry);
-```
-
 ### Public surface that matters
 
 - constructor with `ConsoleLogOptions`
 - constructor with `Action<ConsoleLogOptions>`
-- `Publish(LogEntry entry)`
-- `WriteAsync(LogEntry entry)`
+- `Publish(DateTime timestampUtc, LogLevel logLevel, EventId eventId, string message, Exception? exception)`
 - `Dispose()`
 - counters: `WrittenCount`, `DroppedCount`
 
@@ -57,10 +43,10 @@ fileTarget.Dispose();
 
 ### Public surface that matters
 
-- constructor with `FileLogOptions` and `ILoggerFormatter`
+- constructor with `FileLogOptions` and `INLogixFormatter`
 - default constructor
 - constructor with `Action<FileLogOptions>`
-- `Publish(LogEntry entry)`
+- `Publish(DateTime timestampUtc, LogLevel logLevel, EventId eventId, string message, Exception? exception)`
 - `Dispose()`
 
 ## FileError
@@ -82,10 +68,24 @@ Use this type when you want to surface or recover from file-target problems with
 ## Typical integration
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Nalix.Logging;
+using Nalix.Logging.Options;
+using Nalix.Logging.Sinks;
+
 var logger = new NLogix(cfg =>
 {
-    cfg.RegisterTarget(new BatchConsoleLogTarget());
-    cfg.RegisterTarget(new BatchFileLogTarget());
+    cfg.SetMinimumLevel(LogLevel.Debug)
+       .RegisterTarget(new BatchConsoleLogTarget(options =>
+       {
+           options.BatchSize = 64;
+           options.EnableColors = true;
+       }))
+       .RegisterTarget(new BatchFileLogTarget(options =>
+       {
+           options.LogFileName = "server.log";
+           options.UsePerProcessSuffix = true;
+       }));
 });
 ```
 

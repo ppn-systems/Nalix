@@ -46,7 +46,7 @@ internal sealed class ReferenceListFormatter<
             return;
         }
 
-        ushort count = (ushort)value.Count;
+        int count = value.Count;
         writer.Write(count);
 
         ReadOnlySpan<T> span = CollectionsMarshal.AsSpan(value);
@@ -68,7 +68,7 @@ internal sealed class ReferenceListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        ushort count = reader.ReadUInt16();
+        int count = reader.ReadInt32();
 
         if (count == 0)
         {

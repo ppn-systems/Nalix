@@ -17,22 +17,22 @@ Once the handshake is complete, both sides enable symmetric encryption (typicall
 
 ## Server-side Protocol: HandshakeStage
 
-The `HandshakeStage` class implements the server-side logic within the `ProtocolPipeline`. It is an internal sealed class that manages the state machine for client hello, server hello, and final verification.
+The `HandshakeStage` class implements the server-side logic within the protocol receive path. It is an internal sealed class that manages the state machine for client hello, server hello, and final verification.
 
 ### Source Mapping
 
 - `src/Nalix.Network/Internal/Pipeline/Stages/HandshakeStage.cs`
-- `src/Nalix.Network/Internal/Pipeline/Protocol.Pipeline.cs`
+- `src/Nalix.Network/Protocols/Protocol.Core.cs`
 
 ### Usage
 
-In the modern hosting architecture, `HandshakeStage` is automatically included as the first gate in the `ProtocolPipeline`.
+In the modern hosting architecture, `HandshakeStage` runs during protocol frame processing before `ProcessMessage(...)`.
 
 ```csharp
 // Part of the internal pipeline flow
 if (!HandshakeStage.IsEstablished(connection))
 {
-    s_handshake.ProcessMessage(sender, args);
+    s_handshake.ProcessFrame(sender, args);
 }
 ```
 

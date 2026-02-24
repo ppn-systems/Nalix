@@ -37,7 +37,7 @@ internal sealed class NullableValueListFormatter<
             return;
         }
 
-        ushort count = (ushort)value.Count;
+        int count = value.Count;
         writer.Write(count);
 
         if (count == 0)
@@ -65,7 +65,7 @@ internal sealed class NullableValueListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T?> Deserialize(ref DataReader reader)
     {
-        ushort length = reader.ReadUInt16();
+        int length = reader.ReadInt32();
 
         if (length == SerializerBounds.Null)
         {

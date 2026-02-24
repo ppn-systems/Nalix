@@ -50,7 +50,7 @@ public sealed class StringFormatter : IFormatter<string>
         // Empty strings are encoded as a zero length with no UTF-8 payload.
         if (value.Length == 0)
         {
-            writer.Write((ushort)0);
+            writer.Write(0);
             return;
         }
 
@@ -62,7 +62,7 @@ public sealed class StringFormatter : IFormatter<string>
         }
 
         // Write the length first so the reader knows exactly how many bytes to consume.
-        writer.Write((ushort)byteCount);
+        writer.Write(byteCount);
 
         // Expand once and encode directly into the writer's free buffer to avoid extra copies.
         writer.Expand(byteCount);
@@ -96,7 +96,7 @@ public sealed class StringFormatter : IFormatter<string>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public string Deserialize(ref DataReader reader)
     {
-        ushort length = reader.ReadUInt16();
+        int length = reader.ReadInt32();
 
         // Zero length means an empty string, not null.
         if (length == 0)

@@ -20,8 +20,10 @@ Most commonly it is driven by metadata:
 
 ```csharp
 [PacketConcurrencyLimit(4, queue: true, queueMax: 32)]
-public async Task HandleUpload(PacketContext<IPacket> request) { }
+public async Task HandleUpload(PacketContext<Control> request) { }
 ```
+
+The same limit model applies to custom packet handlers as long as the handler uses the matching `PacketContext<TPacket>` type.
 
 Imperative usage is also possible:
 

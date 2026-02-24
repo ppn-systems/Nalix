@@ -15,6 +15,7 @@ flowchart LR
 
 ### Core contracts
 These contracts keep SDK and server code aligned.
+They cover both built-in packet types and custom packet types through the generic packet context model.
 
 **Key Components**
 - `IPacket`
@@ -29,15 +30,15 @@ These contracts keep SDK and server code aligned.
 public class SamplePingHandlers
 {
     [PacketOpcode(1)]
-    public IPacket HandlePing(IPacketContext<IPacket> request)
+    public Control HandlePing(PacketContext<Control> request)
         => request.Packet;
 }
 ```
 
-Legacy handlers that take `(TPacket, IConnection[, CancellationToken])` are still supported, but `PacketContext<TPacket>` is the preferred shape when you need context, sender, or metadata access.
+Custom packet handlers are fully supported. `PacketContext<TPacket>` is the preferred shape when you need context, sender, or metadata access, while legacy `(TPacket, IConnection[, CancellationToken])` handlers remain available for compatibility.
 
 ### Metadata and attributes
-Metadata is built once during handler registration and later exposed through `PacketContext`.
+Metadata is built once during handler registration and later exposed through `PacketContext<TPacket>`.
 
 **Key Components**
 - `PacketMetadata`
@@ -47,11 +48,12 @@ Metadata is built once during handler registration and later exposed through `Pa
 // Metadata attributes are applied to handlers or packets
 [PacketOpcode(1)]
 [SampleTenantMetadata("Tenant-A")]
-public IPacket HandlePing(IPacketContext<IPacket> request) => request.Packet;
+public Control HandlePing(PacketContext<Control> request) => request.Packet;
 ```
 
 ### Middleware primitives
 Middleware runs over packet contexts and can short-circuit outbound flows.
+The same middleware contracts work with custom packet types as long as the generic argument matches the handler pipeline.
 
 **Key Components**
 - `IPacketMiddleware<TPacket>`
@@ -64,13 +66,15 @@ Middleware runs over packet contexts and can short-circuit outbound flows.
 public sealed class SamplePacketMiddleware : IPacketMiddleware<IPacket>
 {
     public async Task InvokeAsync(
-        IPacketContext<IPacket> context,
+        PacketContext<IPacket> context,
         Func<CancellationToken, Task> next)
     {
         await next(context.CancellationToken);
     }
 }
 ```
+
+Swap `IPacket` for a custom packet type when your middleware is bound to a custom handler pipeline.
 
 ### Shared enums
 Enums keep policies consistent across the stack.

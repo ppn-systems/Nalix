@@ -28,7 +28,6 @@ public sealed partial class NLogix
             {
                 // Configure default logging outputs
                 _ = cfg.SetMinimumLevel(LogLevel.Debug)
-                       .RegisterTarget(new BatchFileLogTarget())
                        .RegisterTarget(new BatchConsoleLogTarget());
             })
         );

@@ -215,7 +215,7 @@ public abstract partial class TcpListenerBase
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
                                          .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}"));
 
-            s_hub.CloseAllConnections();
+            s_hub?.CloseAllConnections();
 
             if (s_config.EnableTimeout)
             {

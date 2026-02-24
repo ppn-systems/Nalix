@@ -45,14 +45,14 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
 
         if (packet.Length < BufferLease.StackAllocThreshold)
         {
-            Span<byte> buffer = stackalloc byte[packet.Length * 4];
+            Span<byte> buffer = stackalloc byte[packet.Length + (packet.Length / 20)];
             int bytesWritten = packet.Serialize(buffer);
             _outer.AddBytesSent(bytesWritten);
             this.Send(buffer[..bytesWritten]);
             return;
         }
 
-        using BufferLease lease = BufferLease.Rent(packet.Length * 4);
+        using BufferLease lease = BufferLease.Rent(packet.Length + (packet.Length / 20));
         int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
         lease.CommitLength(bytesWrittenHeap);
         _outer.AddBytesSent(bytesWrittenHeap);
@@ -82,14 +82,14 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
 
         if (packet.Length < BufferLease.StackAllocThreshold)
         {
-            Span<byte> buffer = stackalloc byte[packet.Length * 4];
+            Span<byte> buffer = stackalloc byte[packet.Length + (packet.Length / 20)];
             int bytesWritten = packet.Serialize(buffer);
             _outer.AddBytesSent(bytesWritten);
             await this.SendAsync(new ReadOnlyMemory<byte>(buffer[..bytesWritten].ToArray()), cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        using BufferLease lease = BufferLease.Rent(packet.Length * 4);
+        using BufferLease lease = BufferLease.Rent(packet.Length + (packet.Length / 20));
         int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
         lease.CommitLength(bytesWrittenHeap);
         _outer.AddBytesSent(bytesWrittenHeap);

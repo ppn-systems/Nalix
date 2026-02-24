@@ -2,6 +2,7 @@
 
 This library provides annotation attributes for packet handler/controller methods in .NET server backends.
 You use these attributes to declaratively control **dispatch, security, rate limiting, concurrency, timeout, and encryption** for packet handlers.
+Both built-in packets and custom packet types are supported through `PacketContext<TPacket>`.
 
 ---
 
@@ -35,7 +36,7 @@ You use these attributes to declaratively control **dispatch, security, rate lim
 [PacketOpcode(0x1802)]
 [PacketPermission(PermissionLevel.USER)]
 [PacketRateLimit(8, burst: 1.5)]
-public static Task HandleAsync(IPacketContext<IPacket> request)
+public static Task HandleAsync(PacketContext<Control> request)
 {
     return Task.CompletedTask;
 }
@@ -81,8 +82,8 @@ The compiler currently accepts these method signatures:
 
 | Style | Signature | Notes |
 |---|---|---|
-| Context | `IPacketContext<TPacket>` | Modern context-aware handler. `context.Packet`, `context.Connection`, `context.Attributes`, and `context.Sender` are available from the single parameter. |
-| Context | `IPacketContext<TPacket>, CancellationToken` | Same as above, with an explicit cancellation token parameter. |
+| Context | `PacketContext<TPacket>` / `IPacketContext<TPacket>` | Modern context-aware handler. `context.Packet`, `context.Connection`, `context.Attributes`, and `context.Sender` are available from the single parameter. |
+| Context | `PacketContext<TPacket>, CancellationToken` | Same as above, with an explicit cancellation token parameter. |
 | Legacy | `TPacket, IConnection` | Older packet+connection signature that remains supported for compatibility. |
 | Legacy | `TPacket, IConnection, CancellationToken` | Legacy signature with explicit cancellation token support. |
 
@@ -110,7 +111,7 @@ Assigns a unique OpCode to a handler method.
 
 ```csharp
 [PacketOpcode(0x1802)]
-public Task HandleLogin(PacketContext<IPacket> request) { ... }
+public Task HandleLogin(PacketContext<Control> request) { ... }
 ```
 
 - **OpCode:** `ushort` value (matches wire/protocol commands)
@@ -123,7 +124,7 @@ Sets minimum permission required for handler.
 
 ```csharp
 [PacketPermission(PermissionLevel.ADMIN)]
-public Task HandleDelete(PacketContext<IPacket> request) { ... }
+public Task HandleDelete(PacketContext<Control> request) { ... }
 ```
 
 - Enforces security policy: Only clients with level ≥ specified can invoke.
@@ -136,7 +137,7 @@ Limits concurrent execution per handler; supports queue if overflow.
 
 ```csharp
 [PacketConcurrencyLimit(4, queue: true, queueMax: 32)]
-public Task HandleExpensiveTask(PacketContext<IPacket> request) { ... }
+public Task HandleExpensiveTask(PacketContext<Control> request) { ... }
 ```
 
 - **Max:** maximum concurrent executions allowed
@@ -151,7 +152,7 @@ Limits how many requests per second can be processed (with burst support).
 
 ```csharp
 [PacketRateLimit(8, burst: 1.5)]
-public Task HandlePing(PacketContext<IPacket> request) { ... }
+public Task HandlePing(PacketContext<Control> request) { ... }
 ```
 
 - **RequestsPerSecond:** max rate allowed
@@ -165,7 +166,7 @@ Requires packets to be encrypted when sent/received; allows algorithm selection.
 
 ```csharp
 [PacketEncryption(isEncrypted: true, algorithmType: CipherSuiteType.Salsa20Poly1305)]
-public Task HandleSecret(PacketContext<IPacket> request) { ... }
+public Task HandleSecret(PacketContext<Control> request) { ... }
 ```
 
 - **IsEncrypted:** if true, encryption must be applied
@@ -179,7 +180,7 @@ Sets per-handler max processing time (in milliseconds).
 
 ```csharp
 [PacketTimeout(2000)] // 2 seconds
-public Task HandleLongTask(PacketContext<IPacket> request) { ... }
+public Task HandleLongTask(PacketContext<Control> request) { ... }
 ```
 
 - Throws timeout/fail response if exceeded
@@ -198,7 +199,7 @@ public class ExampleCtrl
     [PacketRateLimit(5, burst: 2)]
     [PacketEncryption(isEncrypted: true)]
     [PacketTimeout(8000)]
-    public async Task HandleChat(PacketContext<IPacket> request, CancellationToken ct)
+    public async Task HandleChat(PacketContext<Control> request, CancellationToken ct)
     {
         // Handler implementation...
     }

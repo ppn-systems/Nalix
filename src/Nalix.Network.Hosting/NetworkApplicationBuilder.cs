@@ -12,9 +12,12 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Network.Connections;
 using Nalix.Network.Hosting.Internal;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Handlers;
 
 namespace Nalix.Network.Hosting;
 
@@ -32,12 +35,26 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     private readonly HostingBuilderContext _state;
 
     internal NetworkApplicationBuilder(HostingBuilderContext state)
-        => _state = state ?? throw new ArgumentNullException(nameof(state));
+    {
+        _state = state ?? throw new ArgumentNullException(nameof(state));
+        _ = this.AddHandler<HandshakeHandlers>();
+    }
 
     /// <inheritdoc />
     public INetworkApplicationBuilder ConfigureLogging(ILogger logger)
     {
+        InstanceManager.Instance.Register<ILogger>(logger);
         _state.Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureConnectionHub(ConnectionHub connectionHub)
+    {
+        ArgumentNullException.ThrowIfNull(connectionHub);
+
+        InstanceManager.Instance.Register(connectionHub);
         return this;
     }
 
@@ -55,7 +72,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddPacketAssemblies(Assembly assembly, bool requirePacketAttribute = false)
+    public INetworkApplicationBuilder AddPacket(Assembly assembly, bool requirePacketAttribute = false)
     {
         ArgumentNullException.ThrowIfNull(assembly);
 
@@ -64,8 +81,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddPacketAssembly<TMarker>(bool requirePacketAttribute = false)
-        => this.AddPacketAssemblies(typeof(TMarker).Assembly, requirePacketAttribute);
+    public INetworkApplicationBuilder AddPacket<TMarker>(bool requirePacketAttribute = false)
+        => this.AddPacket(typeof(TMarker).Assembly, requirePacketAttribute);
 
     /// <inheritdoc />
     public INetworkApplicationBuilder AddHandlers(Assembly assembly)
@@ -77,8 +94,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandlers<TMarker>()
-        => this.AddHandlers(typeof(TMarker).Assembly);
+    public INetworkApplicationBuilder AddHandlers<TMarker>() => this.AddHandlers(typeof(TMarker).Assembly);
 
     /// <inheritdoc />
     public INetworkApplicationBuilder AddHandler<THandler>() where THandler : class
@@ -182,12 +198,31 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public INetworkApplicationBuilder UseBufferPoolManager(BufferPoolManager manager)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+        InstanceManager.Instance.Register<BufferPoolManager>(manager);
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder UseBufferPoolManager(Func<BufferPoolManager> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        InstanceManager.Instance.Register<BufferPoolManager>(factory());
+
+        return this;
+    }
+
+    /// <inheritdoc />
     public NetworkApplication Build()
     {
         bool metadataRegistered = false;
         void prepareCallbacks()
         {
             RegisterLogger(_state);
+            EnsureConnectionHubRegistered();
             ApplyOptions(_state);
             RegisterPacketRegistry(_state);
 
@@ -205,6 +240,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             serverFactories.Add(dispatch =>
             {
+                EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
                 TcpServerListener listener = new(protocol);
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: false);
@@ -215,6 +251,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             serverFactories.Add(dispatch =>
             {
+                EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
                 UdpServerListener listener = new(protocol);
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);
@@ -310,6 +347,16 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
 
         return handlers.Values;
+    }
+
+    private static void EnsureConnectionHubRegistered()
+    {
+        if (InstanceManager.Instance.GetExistingInstance<IConnectionHub>() is not null)
+        {
+            return;
+        }
+
+        InstanceManager.Instance.Register(new ConnectionHub());
     }
 
     private static void RegisterLogger(HostingBuilderContext state)

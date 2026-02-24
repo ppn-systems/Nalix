@@ -1,6 +1,7 @@
 # Custom Middleware End-to-End
 
 This guide shows a practical end-to-end flow for adding your own middleware to Nalix.Network.
+The same shape works for built-in packets and custom packet types.
 
 The goal is simple:
 
@@ -83,11 +84,10 @@ public sealed class SampleChatHandlers
 {
     [PacketOpcode(0x1001)]
     [PacketPermission(PermissionLevel.USER)]
-    public ValueTask<Control> Send(PacketContext<IPacket> request)
+    public ValueTask<Control> Send(PacketContext<Control> request)
     {
-        Control packet = (Control)request.Packet;
-        packet.Type = ControlType.PONG;
-        return ValueTask.FromResult(packet);
+        request.Packet.Type = ControlType.PONG;
+        return ValueTask.FromResult(request.Packet);
     }
 }
 ```
@@ -139,6 +139,9 @@ flowchart LR
     G --> H["Handler"]
     H --> I["Return handler / response"]
 ```
+
+The same middleware shape applies to custom packet types as long as the handler generic parameter stays aligned with the dispatch pipeline.
+In the listener bridge, `ProcessFrame(...)` still feeds the protocol before `ProcessMessage(...)` runs.
 
 ## Common patterns
 
