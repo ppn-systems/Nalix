@@ -3,7 +3,7 @@
 using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets.Abstractions;
 
-namespace Nalix.SDK.Remote.Extensions;
+namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
 /// Convenience subscriptions for ReliableClient to reduce boilerplate.
