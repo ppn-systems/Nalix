@@ -181,12 +181,13 @@ public static class DirectiveClientExtensions
                     }
 
                     // Apply and reconnect
-                    client.Disconnect();
-                    client.Options.Address = ep.Value.host;
+                    await client.DisconnectAsync();
+
                     client.Options.Port = ep.Value.port;
+                    client.Options.Address = ep.Value.host;
 
                     Log?.Info($"DIRECTIVE REDIRECT → {ep.Value.host}:{ep.Value.port} (SEQ={d.SequenceId})");
-                    await client.ConnectAsync(cancellationToken: ct).ConfigureAwait(false);
+                    await client.ConnectAsync(ct: ct).ConfigureAwait(false);
                     return true;
                 }
 
@@ -271,7 +272,7 @@ public static class DirectiveClientExtensions
         System.ArgumentNullException.ThrowIfNull(client);
         System.ArgumentNullException.ThrowIfNull(packet);
 
-        if (client.IsThrottled(out var wait))
+        if (client.IsThrottled(out System.TimeSpan wait))
         {
             Log?.Debug($"SendWithThrottle: waiting {(System.Int32)wait.TotalMilliseconds} ms");
             if (wait > System.TimeSpan.Zero)

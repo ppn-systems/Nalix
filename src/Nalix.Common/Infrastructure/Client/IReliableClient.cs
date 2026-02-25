@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Messaging.Packets.Abstractions;
 
 namespace Nalix.Common.Infrastructure.Client;
@@ -30,37 +31,63 @@ public interface IReliableClient : System.IDisposable
 
     #region Events
 
+    // Events
     /// <summary>
-    /// Raised after a successful connection is established.
-    /// Executed on the calling thread of ConnectAsync.
+    /// Occurs when the client has successfully connected to the remote endpoint.
     /// </summary>
-    event System.Action Connected;
+    event System.EventHandler OnConnected;
 
     /// <summary>
-    /// Raised whenever a packet is received on the background network worker.
-    /// Executed on a background thread; do not touch Unity API here.
+    /// Occurs when the client is disconnected. The <see cref="System.EventHandler{T}"/> argument
+    /// contains the exception that caused the disconnect, or <c>null</c> if it was requested.
     /// </summary>
-    event System.Action<IPacket> PacketReceived;
+    event System.EventHandler<System.Exception> OnDisconnected;
 
     /// <summary>
-    /// Raised when the connection is closed or the receive loop exits due to an error.
-    /// Executed on a background thread; ex is null for normal Dispose().
+    /// Synchronous message-received event. Subscribers receive an <see cref="IBufferLease"/>
+    /// and are responsible for disposing the lease when done.
     /// </summary>
-    event System.Action<System.Exception> Disconnected;
+    event System.EventHandler<IBufferLease> OnMessageReceived;
+
+    /// <summary>
+    /// Occurs when bytes are written to the socket. The event argument is the number of bytes sent.
+    /// </summary>
+    event System.EventHandler<System.Int64> OnBytesSent;
+
+    /// <summary>
+    /// Occurs when bytes are received from the socket. The event argument is the number of bytes (header+payload) received for that frame.
+    /// </summary>
+    event System.EventHandler<System.Int64> OnBytesReceived;
+
+    /// <summary>
+    /// Occurs when an internal error happens. Subscribers can use this for logging or diagnostics.
+    /// </summary>
+    event System.EventHandler<System.Exception> OnError;
 
     #endregion Events
 
     #region Methods
 
     /// <summary>
-    /// Asynchronously connects to the server with a specified timeout and cancellation token.
+    /// Connects to the specified host and port asynchronously.
+    /// This method stores host/port for automatic reconnects.
     /// </summary>
-    /// <param name="timeout">The maximum time, in milliseconds, to wait for the connection to be established. Default is 30,000 ms.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests. Default is none.</param>
-    /// <returns>A task representing the asynchronous connection operation.</returns>
-    System.Threading.Tasks.Task ConnectAsync(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 timeout = 30000,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default);
+    /// <param name="host">The hostname or IP address to connect to.</param>
+    /// <param name="port">The destination port.</param>
+    /// <param name="ct">A <see cref="System.Threading.CancellationToken"/> to cancel the connect attempt.</param>
+    /// <returns>A task that completes when connected.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="host"/> is null or whitespace.</exception>
+    /// <exception cref="System.ObjectDisposedException">Thrown when the client has been disposed.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown when the client is already connected.</exception>
+    System.Threading.Tasks.Task ConnectAsync(System.String host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default);
+
+    /// <summary>Disconnects the client and cancels background loops.</summary>
+    /// <returns>A completed task when disconnect work is initiated.</returns>
+    /// <remarks>
+    /// This is a best-effort, synchronous-style disconnect that cancels background loops and
+    /// disposes the underlying socket. It is safe to call multiple times.
+    /// </remarks>
+    System.Threading.Tasks.Task DisconnectAsync();
 
     /// <summary>
     /// Asynchronously sends a packet to the server.
@@ -80,11 +107,6 @@ public interface IReliableClient : System.IDisposable
     System.Threading.Tasks.Task SendAsync(
         [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default);
-
-    /// <summary>
-    /// Disconnects the client from the server and releases all associated resources.
-    /// </summary>
-    void Disconnect();
 
     #endregion Methods
 }

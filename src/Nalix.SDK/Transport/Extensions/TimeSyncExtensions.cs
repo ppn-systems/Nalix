@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
@@ -70,8 +71,10 @@ public static class TimeSyncExtensions
         // Temporary listener (auto-removed in finally)
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void OnPacket(IPacket p)
+        void OnPacket(System.Object _, IBufferLease buffer)
         {
+            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
+
             if (p is Control ctrl &&
                 ctrl.OpCode == opCode &&
                 ctrl.Protocol == ProtocolType.TCP)
@@ -82,7 +85,7 @@ public static class TimeSyncExtensions
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void OnDisconnected(System.Exception ex)
+        void OnDisconnected(System.Object _, System.Exception ex)
         {
             _ = tcs.TrySetException(
                 ex ?? new System.InvalidOperationException("Disconnected during time sync."));
