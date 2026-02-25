@@ -1,15 +1,12 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -19,7 +16,7 @@ using Nalix.Analyzers.Diagnostics;
 namespace Nalix.Analyzers.Analyzers;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
+public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 {
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         [
@@ -61,7 +58,13 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.GlobalDuplicateOpcode,
             DiagnosticDescriptors.AllocationInHotPath,
             DiagnosticDescriptors.OpCodeDocMismatch,
-            DiagnosticDescriptors.PotentialBufferLeaseLeak
+            DiagnosticDescriptors.PotentialBufferLeaseLeak,
+            DiagnosticDescriptors.NetworkHostingMissingBufferPoolManager,
+            DiagnosticDescriptors.NetworkHostingMissingConnectionHub,
+            DiagnosticDescriptors.NetworkHostingHandlerTypeInvalid,
+            DiagnosticDescriptors.NetworkHostingMetadataProviderTypeInvalid,
+            DiagnosticDescriptors.NetworkHostingMissingTcpBinding,
+            DiagnosticDescriptors.NetworkHostingUdpWithoutTcpBinding
         ];
 
     public override void Initialize(AnalysisContext context)
@@ -538,356 +541,6 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             else if (isCandidate)
             {
                 Report(context, DiagnosticDescriptors.ControllerMethodRequiresOpcode, methodSymbol, methodSymbol.Name);
-            }
-        }
-    }
-
-    private static void AnalyzeInvocation(OperationAnalysisContext context, SymbolSet symbols)
-    {
-        IInvocationOperation invocation = (IInvocationOperation)context.Operation;
-        IMethodSymbol targetMethod = invocation.TargetMethod;
-
-        AnalyzeRequestOptionsInvocation(context, invocation, symbols);
-
-        if (SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType, symbols.PacketRegistryFactoryType))
-        {
-            if (targetMethod.Name == "RegisterPacket")
-            {
-                AnalyzeRegisterPacketInvocation(context, invocation, symbols);
-            }
-
-            return;
-        }
-
-        if (!SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType.OriginalDefinition, symbols.PacketDispatchOptionsType))
-        {
-            return;
-        }
-
-        string methodName = targetMethod.Name;
-        if (methodName == "WithHandler")
-        {
-            AnalyzeWithHandlerInvocation(context, invocation, symbols);
-        }
-        else if (methodName == "WithMiddleware")
-        {
-            AnalyzeWithMiddlewareInvocation(context, invocation, symbols);
-            AnalyzeMiddlewareRegistrationDuplicateOrder(context, invocation, symbols, bufferMiddleware: false);
-        }
-        else if (methodName == "WithBufferMiddleware")
-        {
-            AnalyzeWithBufferMiddlewareInvocation(context, invocation, symbols);
-            AnalyzeMiddlewareRegistrationDuplicateOrder(context, invocation, symbols, bufferMiddleware: true);
-        }
-        else if (methodName == "RegisterPacket")
-        {
-            AnalyzeRegisterPacketInvocation(context, invocation, symbols);
-        }
-    }
-
-    private static void AnalyzeMiddlewareRegistrationDuplicateOrder(
-        OperationAnalysisContext context,
-        IInvocationOperation invocation,
-        SymbolSet symbols,
-        bool bufferMiddleware)
-    {
-        if (invocation.Arguments.Length != 1)
-        {
-            return;
-        }
-
-        IOperation? instance = invocation.Instance;
-        if (instance is not IInvocationOperation previousInvocation)
-        {
-            return;
-        }
-
-        string expectedMethodName = bufferMiddleware ? "WithBufferMiddleware" : "WithMiddleware";
-        if (previousInvocation.TargetMethod.Name != expectedMethodName
-            || previousInvocation.Arguments.Length != 1)
-        {
-            return;
-        }
-
-        ITypeSymbol? currentType = GetUnderlyingType(invocation.Arguments[0].Value);
-        ITypeSymbol? previousType = GetUnderlyingType(previousInvocation.Arguments[0].Value);
-        if (currentType is null || previousType is null)
-        {
-            return;
-        }
-
-        int? currentOrder = GetMiddlewareOrder(currentType, symbols.MiddlewareOrderAttribute);
-        int? previousOrder = GetMiddlewareOrder(previousType, symbols.MiddlewareOrderAttribute);
-        if (currentOrder is null || previousOrder is null || currentOrder != previousOrder)
-        {
-            return;
-        }
-
-        Report(
-            context,
-            DiagnosticDescriptors.MiddlewareRegistrationDuplicateOrder,
-            invocation.Syntax.GetLocation(),
-            currentType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
-            currentOrder.Value,
-            previousType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-    }
-
-    private static void AnalyzeRequestOptionsInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
-    {
-        IMethodSymbol targetMethod = invocation.TargetMethod;
-
-        if (SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType, symbols.RequestOptionsType))
-        {
-            if (targetMethod.Name == "WithRetry"
-                && invocation.Arguments.Length == 1
-                && TryGetConstantInt(invocation.Arguments[0].Value, out int retryCount)
-                && retryCount < 0)
-            {
-                Report(context, DiagnosticDescriptors.RequestOptionsRetryCountNegative, invocation.Syntax.GetLocation(), retryCount);
-            }
-
-            if (targetMethod.Name == "WithTimeout"
-                && invocation.Arguments.Length == 1
-                && TryGetConstantInt(invocation.Arguments[0].Value, out int timeoutMs)
-                && timeoutMs < 0)
-            {
-                Report(context, DiagnosticDescriptors.RequestOptionsTimeoutNegative, invocation.Syntax.GetLocation(), timeoutMs);
-            }
-
-            return;
-        }
-
-        if (!SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType, symbols.RequestExtensionsType)
-            || targetMethod.Name != "RequestAsync")
-        {
-            return;
-        }
-
-        if (invocation.Arguments.Length < 3)
-        {
-            return;
-        }
-
-        IArgumentOperation optionsArgument = invocation.Arguments[2];
-        if (optionsArgument.IsImplicit || IsNullLiteral(optionsArgument.Value))
-        {
-            return;
-        }
-
-        bool? encryptValue = TryGetEncryptValue(optionsArgument.Value, symbols);
-        if (encryptValue != true)
-        {
-            return;
-        }
-
-        ITypeSymbol clientType = GetUnderlyingType(invocation.Arguments[0].Value) ?? targetMethod.Parameters[0].Type;
-        if (!IsAssignable(clientType, symbols.TcpSessionBaseType))
-        {
-            Report(
-                context,
-                DiagnosticDescriptors.RequestEncryptRequiresTcpSession,
-                invocation.Syntax.GetLocation(),
-                clientType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-        }
-    }
-
-    private static void AnalyzeWithHandlerInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
-    {
-        if (invocation.Instance?.Type is not INamedTypeSymbol dispatchOptionsType || dispatchOptionsType.TypeArguments.Length != 1)
-        {
-            return;
-        }
-
-        ITypeSymbol dispatcherPacketType = dispatchOptionsType.TypeArguments[0];
-        if (invocation.TargetMethod.TypeArguments.Length != 1)
-        {
-            return;
-        }
-
-        if (invocation.TargetMethod.TypeArguments[0] is not INamedTypeSymbol controllerType)
-        {
-            return;
-        }
-
-        if (!HasAttribute(controllerType, symbols.ControllerAttribute))
-        {
-            Report(
-                context,
-                DiagnosticDescriptors.ControllerMissingPacketControllerAttribute,
-                invocation.Syntax.GetLocation(),
-                controllerType.Name);
-            return;
-        }
-
-        foreach (IMethodSymbol handlerMethod in controllerType.GetMembers().OfType<IMethodSymbol>())
-        {
-            if (handlerMethod.MethodKind != MethodKind.Ordinary
-                || handlerMethod.DeclaredAccessibility != Accessibility.Public
-                || !HasAttribute(handlerMethod, symbols.PacketOpcodeAttribute))
-            {
-                continue;
-            }
-
-            ITypeSymbol? packetType = GetLegacyPacketType(handlerMethod, symbols);
-            if (packetType is null)
-            {
-                if (TryGetPacketContextType(handlerMethod, symbols.PacketContextType, out ITypeSymbol? contextPacketType)
-                    && contextPacketType is not null
-                    && !SymbolEqualityComparer.Default.Equals(contextPacketType, dispatcherPacketType))
-                {
-                    Report(
-                        context,
-                        DiagnosticDescriptors.PacketContextTypeMismatch,
-                        invocation.Syntax.GetLocation(),
-                        handlerMethod.Name,
-                        contextPacketType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
-                        dispatcherPacketType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-                }
-
-                continue;
-            }
-
-            if (!IsAssignable(packetType, dispatcherPacketType))
-            {
-                Report(
-                    context,
-                    DiagnosticDescriptors.HandlerPacketTypeMismatch,
-                    invocation.Syntax.GetLocation(),
-                    controllerType.Name,
-                    handlerMethod.Name,
-                    packetType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
-                    dispatcherPacketType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-            }
-        }
-    }
-
-    private static void AnalyzeWithBufferMiddlewareInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
-    {
-        IArgumentOperation? middlewareArgument = invocation.Arguments.FirstOrDefault();
-        IOperation? valueOperation = middlewareArgument?.Value;
-        ITypeSymbol? middlewareType = valueOperation is IConversionOperation conversion
-            ? conversion.Operand.Type
-            : valueOperation?.Type;
-        if (middlewareType is null)
-        {
-            return;
-        }
-
-        if (Implements(middlewareType, symbols.NetworkBufferMiddlewareType) && HasAttribute(middlewareType, symbols.MiddlewareStageAttribute))
-        {
-            Report(
-                context,
-                DiagnosticDescriptors.BufferMiddlewareShouldNotUseStageAttribute,
-                invocation.Syntax.GetLocation(),
-                middlewareType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-        }
-        else if (!Implements(middlewareType, symbols.NetworkBufferMiddlewareType))
-        {
-            Report(
-                context,
-                DiagnosticDescriptors.BufferMiddlewareRegistrationTypeMismatch,
-                invocation.Syntax.GetLocation(),
-                middlewareType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-        }
-    }
-
-    private static void AnalyzeRegisterPacketInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
-    {
-        if (!SymbolEqualityComparer.Default.Equals(invocation.TargetMethod.ContainingType, symbols.PacketRegistryFactoryType))
-        {
-            return;
-        }
-
-        if (invocation.TargetMethod.TypeArguments.Length != 1 || invocation.TargetMethod.TypeArguments[0] is not INamedTypeSymbol packetType)
-        {
-            return;
-        }
-
-        if (packetType.IsAbstract || packetType.IsGenericType || packetType.TypeKind is not (TypeKind.Class or TypeKind.Struct))
-        {
-            Report(
-                context,
-                DiagnosticDescriptors.PacketRegistryPacketMustBeConcrete,
-                invocation.Syntax.GetLocation(),
-                packetType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-            return;
-        }
-
-        INamedTypeSymbol? expectedDeserializer = symbols.PacketDeserializerType?.Construct(packetType);
-        bool hasDeserializer = packetType.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, expectedDeserializer));
-        if (!hasDeserializer)
-        {
-            Report(
-                context,
-                DiagnosticDescriptors.PacketRegistryPacketMissingDeserializer,
-                invocation.Syntax.GetLocation(),
-                packetType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-        }
-    }
-
-    private static void AnalyzeWithMiddlewareInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
-    {
-        if (invocation.Instance?.Type is not INamedTypeSymbol dispatchOptionsType || dispatchOptionsType.TypeArguments.Length != 1)
-        {
-            return;
-        }
-
-        ITypeSymbol dispatcherPacketType = dispatchOptionsType.TypeArguments[0];
-        IArgumentOperation? middlewareArgument = invocation.Arguments.FirstOrDefault();
-        ITypeSymbol? middlewareType = middlewareArgument is null ? null : GetUnderlyingType(middlewareArgument.Value);
-        if (middlewareType is null)
-        {
-            return;
-        }
-
-        IEnumerable<INamedTypeSymbol> middlewareInterfaces = middlewareType.AllInterfaces
-            .OfType<INamedTypeSymbol>()
-            .Where(i => i.IsGenericType && SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, symbols.PacketMiddlewareType));
-
-        bool isCompatible = middlewareInterfaces.Any(i => IsAssignable(dispatcherPacketType, i.TypeArguments[0]));
-        if (!isCompatible)
-        {
-            Report(
-                context,
-                DiagnosticDescriptors.MiddlewareTypeMismatch,
-                invocation.Syntax.GetLocation(),
-                middlewareType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
-                dispatcherPacketType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-        }
-    }
-
-    private static void ReportPacketContextMismatchIfAny(SymbolAnalysisContext context, IMethodSymbol methodSymbol, SymbolSet symbols)
-    {
-        if (!TryGetPacketContextType(methodSymbol, symbols.PacketContextType, out ITypeSymbol? packetContextType)
-            || packetContextType is null)
-        {
-            return;
-        }
-
-        if (methodSymbol.ContainingType is not INamedTypeSymbol controllerType)
-        {
-            return;
-        }
-
-        IEnumerable<ITypeSymbol> legacyPacketTypes = controllerType.GetMembers()
-            .OfType<IMethodSymbol>()
-            .Where(method => !SymbolEqualityComparer.Default.Equals(method, methodSymbol))
-            .Where(method => HasAttribute(method, symbols.PacketOpcodeAttribute))
-            .Select(method => GetLegacyPacketType(method, symbols))
-            .Where(static type => type is not null)!;
-
-        foreach (ITypeSymbol legacyPacketType in legacyPacketTypes)
-        {
-            if (!SymbolEqualityComparer.Default.Equals(legacyPacketType, packetContextType))
-            {
-                Report(
-                    context,
-                    DiagnosticDescriptors.PacketContextTypeMismatch,
-                    methodSymbol,
-                    methodSymbol.Name,
-                    packetContextType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
-                    legacyPacketType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-                break;
             }
         }
     }
@@ -1436,6 +1089,33 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
+    private static bool ContainsInvocation(IOperation? operation, string methodName)
+    {
+        while (operation is not null)
+        {
+            if (operation is IInvocationOperation invocation)
+            {
+                if (invocation.TargetMethod.Name == methodName)
+                {
+                    return true;
+                }
+
+                operation = invocation.Instance;
+                continue;
+            }
+
+            if (operation is IConversionOperation conversion)
+            {
+                operation = conversion.Operand;
+                continue;
+            }
+
+            break;
+        }
+
+        return false;
+    }
+
     private static void AnalyzeOpCodeDocumentation(SymbolAnalysisContext context, IMethodSymbol method, SymbolSet symbols)
     {
         ushort? opcode = GetOpcode(method, symbols.PacketOpcodeAttribute);
@@ -1514,219 +1194,6 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                     Report(context, DiagnosticDescriptors.PotentialBufferLeaseLeak, p, name);
                 }
             }
-        }
-    }
-
-    private sealed class SymbolSet
-    {
-        private SymbolSet(
-            INamedTypeSymbol? packetOpcodeAttribute,
-            INamedTypeSymbol? controllerAttribute,
-            INamedTypeSymbol? packetInterface,
-            INamedTypeSymbol? packetBaseType,
-            INamedTypeSymbol? serializePackableAttribute,
-            INamedTypeSymbol? serializeHeaderAttribute,
-            INamedTypeSymbol? serializeOrderAttribute,
-            INamedTypeSymbol? serializeIgnoreAttribute,
-            INamedTypeSymbol? serializeDynamicSizeAttribute,
-            INamedTypeSymbol? serializeLayoutType,
-            INamedTypeSymbol? packetContextType,
-            INamedTypeSymbol? packetContextInterface,
-            INamedTypeSymbol? connectionType,
-            INamedTypeSymbol? packetDispatchOptionsType,
-            INamedTypeSymbol? packetRegistryFactoryType,
-            INamedTypeSymbol? packetDeserializerType,
-            INamedTypeSymbol? packetMiddlewareType,
-            INamedTypeSymbol? networkBufferMiddlewareType,
-            INamedTypeSymbol? middlewareOrderAttribute,
-            INamedTypeSymbol? middlewareStageAttribute,
-            INamedTypeSymbol? middlewareStageType,
-            INamedTypeSymbol? configurationLoaderType,
-            INamedTypeSymbol? configuredIgnoreAttribute,
-            INamedTypeSymbol? reservedOpcodePermittedAttribute,
-            INamedTypeSymbol? packetMetadataProviderType,
-            INamedTypeSymbol? packetMetadataBuilderType,
-            INamedTypeSymbol? methodInfoType,
-            INamedTypeSymbol? requestOptionsType,
-            INamedTypeSymbol? requestExtensionsType,
-            INamedTypeSymbol? tcpSessionBaseType,
-            INamedTypeSymbol? taskType,
-            INamedTypeSymbol? genericTaskType,
-            INamedTypeSymbol? valueTaskType,
-            INamedTypeSymbol? genericValueTaskType,
-            INamedTypeSymbol? cancellationTokenType,
-            INamedTypeSymbol? bufferLeaseType,
-            int packetHeaderRegionOffset)
-        {
-            this.PacketOpcodeAttribute = packetOpcodeAttribute;
-            this.ControllerAttribute = controllerAttribute;
-            this.PacketInterface = packetInterface;
-            this.PacketBaseType = packetBaseType;
-            this.SerializePackableAttribute = serializePackableAttribute;
-            this.SerializeHeaderAttribute = serializeHeaderAttribute;
-            this.SerializeOrderAttribute = serializeOrderAttribute;
-            this.SerializeIgnoreAttribute = serializeIgnoreAttribute;
-            this.SerializeDynamicSizeAttribute = serializeDynamicSizeAttribute;
-            this.SerializeLayoutType = serializeLayoutType;
-            this.PacketContextType = packetContextType;
-            this.PacketContextInterface = packetContextInterface;
-            this.ConnectionType = connectionType;
-            this.PacketDispatchOptionsType = packetDispatchOptionsType;
-            this.PacketRegistryFactoryType = packetRegistryFactoryType;
-            this.PacketDeserializerType = packetDeserializerType;
-            this.PacketMiddlewareType = packetMiddlewareType;
-            this.NetworkBufferMiddlewareType = networkBufferMiddlewareType;
-            this.MiddlewareOrderAttribute = middlewareOrderAttribute;
-            this.MiddlewareStageAttribute = middlewareStageAttribute;
-            this.MiddlewareStageType = middlewareStageType;
-            this.ConfigurationLoaderType = configurationLoaderType;
-            this.ConfiguredIgnoreAttribute = configuredIgnoreAttribute;
-            this.ReservedOpcodePermittedAttribute = reservedOpcodePermittedAttribute;
-            this.PacketMetadataProviderType = packetMetadataProviderType;
-            this.PacketMetadataBuilderType = packetMetadataBuilderType;
-            this.MethodInfoType = methodInfoType;
-            this.RequestOptionsType = requestOptionsType;
-            this.RequestExtensionsType = requestExtensionsType;
-            this.TcpSessionBaseType = tcpSessionBaseType;
-            this.TaskType = taskType;
-            this.GenericTaskType = genericTaskType;
-            this.ValueTaskType = valueTaskType;
-            this.GenericValueTaskType = genericValueTaskType;
-            this.CancellationTokenType = cancellationTokenType;
-            this.BufferLeaseType = bufferLeaseType;
-            this.PacketHeaderRegionOffset = packetHeaderRegionOffset;
-        }
-
-        public INamedTypeSymbol? PacketOpcodeAttribute { get; }
-        public INamedTypeSymbol? ControllerAttribute { get; }
-        public INamedTypeSymbol? PacketInterface { get; }
-        public INamedTypeSymbol? PacketBaseType { get; }
-        public INamedTypeSymbol? SerializePackableAttribute { get; }
-        public INamedTypeSymbol? SerializeHeaderAttribute { get; }
-        public INamedTypeSymbol? SerializeOrderAttribute { get; }
-        public INamedTypeSymbol? SerializeIgnoreAttribute { get; }
-        public INamedTypeSymbol? SerializeDynamicSizeAttribute { get; }
-        public INamedTypeSymbol? SerializeLayoutType { get; }
-        public INamedTypeSymbol? PacketContextType { get; }
-        public INamedTypeSymbol? PacketContextInterface { get; }
-        public INamedTypeSymbol? ConnectionType { get; }
-        public INamedTypeSymbol? PacketDispatchOptionsType { get; }
-        public INamedTypeSymbol? PacketRegistryFactoryType { get; }
-        public INamedTypeSymbol? PacketDeserializerType { get; }
-        public INamedTypeSymbol? PacketMiddlewareType { get; }
-        public INamedTypeSymbol? NetworkBufferMiddlewareType { get; }
-        public INamedTypeSymbol? MiddlewareOrderAttribute { get; }
-        public INamedTypeSymbol? MiddlewareStageAttribute { get; }
-        public INamedTypeSymbol? MiddlewareStageType { get; }
-        public INamedTypeSymbol? ConfigurationLoaderType { get; }
-        public INamedTypeSymbol? ConfiguredIgnoreAttribute { get; }
-        public INamedTypeSymbol? ReservedOpcodePermittedAttribute { get; }
-        public INamedTypeSymbol? PacketMetadataProviderType { get; }
-        public INamedTypeSymbol? PacketMetadataBuilderType { get; }
-        public INamedTypeSymbol? MethodInfoType { get; }
-        public INamedTypeSymbol? RequestOptionsType { get; }
-        public INamedTypeSymbol? RequestExtensionsType { get; }
-        public INamedTypeSymbol? TcpSessionBaseType { get; }
-        public INamedTypeSymbol? TaskType { get; }
-        public INamedTypeSymbol? GenericTaskType { get; }
-        public INamedTypeSymbol? ValueTaskType { get; }
-        public INamedTypeSymbol? GenericValueTaskType { get; }
-        public INamedTypeSymbol? CancellationTokenType { get; }
-        public INamedTypeSymbol? BufferLeaseType { get; }
-        public int PacketHeaderRegionOffset { get; }
-
-        public static SymbolSet? Create(Compilation compilation)
-        {
-            INamedTypeSymbol? packetOpcodeAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketOpcodeAttribute");
-            INamedTypeSymbol? controllerAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketControllerAttribute");
-            INamedTypeSymbol? packetInterface = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacket");
-            INamedTypeSymbol? packetBaseType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketBase`1");
-            INamedTypeSymbol? serializePackableAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializePackableAttribute");
-            INamedTypeSymbol? serializeHeaderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeHeaderAttribute");
-            INamedTypeSymbol? serializeOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeOrderAttribute");
-            INamedTypeSymbol? serializeIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeIgnoreAttribute");
-            INamedTypeSymbol? serializeDynamicSizeAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeDynamicSizeAttribute");
-            INamedTypeSymbol? serializeLayoutType = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeLayout");
-            INamedTypeSymbol? packetHeaderOffsetType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketHeaderOffset");
-            INamedTypeSymbol? packetContextType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketContext`1");
-            INamedTypeSymbol? packetContextInterface = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacketContext`1");
-            INamedTypeSymbol? connectionType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.IConnection");
-            INamedTypeSymbol? packetDispatchOptionsType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketDispatchOptions`1");
-            INamedTypeSymbol? packetRegistryFactoryType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketRegistryFactory");
-            INamedTypeSymbol? packetDeserializerType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacketDeserializer`1");
-            INamedTypeSymbol? packetMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Runtime.Middleware.IPacketMiddleware`1");
-            INamedTypeSymbol? networkBufferMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Runtime.Middleware.INetworkBufferMiddleware");
-            INamedTypeSymbol? middlewareOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareOrderAttribute");
-            INamedTypeSymbol? middlewareStageAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStageAttribute");
-            INamedTypeSymbol? middlewareStageType = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStage");
-            INamedTypeSymbol? configurationLoaderType = compilation.GetTypeByMetadataName("Nalix.Framework.Configuration.Binding.ConfigurationLoader");
-            INamedTypeSymbol? configuredIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.ConfiguredIgnoreAttribute");
-            INamedTypeSymbol? reservedOpcodePermittedAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.ReservedOpcodePermittedAttribute");
-            INamedTypeSymbol? packetMetadataProviderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketMetadataProvider");
-            INamedTypeSymbol? packetMetadataBuilderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketMetadataBuilder");
-            INamedTypeSymbol? methodInfoType = compilation.GetTypeByMetadataName("System.Reflection.MethodInfo");
-            INamedTypeSymbol? requestOptionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Configuration.RequestOptions");
-            INamedTypeSymbol? requestExtensionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Extensions.RequestExtensions");
-            INamedTypeSymbol? tcpSessionBaseType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.TcpSession");
-            INamedTypeSymbol? taskType = compilation.GetTypeByMetadataName(typeof(Task).FullName);
-            INamedTypeSymbol? genericTaskType = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
-            INamedTypeSymbol? valueTaskType = compilation.GetTypeByMetadataName(typeof(ValueTask).FullName);
-            INamedTypeSymbol? genericValueTaskType = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
-            INamedTypeSymbol? cancellationTokenType = compilation.GetTypeByMetadataName(typeof(CancellationToken).FullName);
-            INamedTypeSymbol? bufferLeaseType = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.IBufferLease");
-            int packetHeaderRegionOffset = 12;
-            if (packetHeaderOffsetType is not null)
-            {
-                foreach (ISymbol member in packetHeaderOffsetType.GetMembers())
-                {
-                    if (member is IFieldSymbol { Name: "Region", HasConstantValue: true } field)
-                    {
-                        packetHeaderRegionOffset = Convert.ToInt32(field.ConstantValue, CultureInfo.InvariantCulture);
-                        break;
-                    }
-                }
-            }
-
-            return (packetOpcodeAttribute is null || controllerAttribute is null)
-                ? null
-                : new SymbolSet(
-                    packetOpcodeAttribute,
-                    controllerAttribute,
-                    packetInterface,
-                    packetBaseType,
-                    serializePackableAttribute,
-                    serializeHeaderAttribute,
-                    serializeOrderAttribute,
-                    serializeIgnoreAttribute,
-                    serializeDynamicSizeAttribute,
-                    serializeLayoutType,
-                    packetContextType,
-                    packetContextInterface,
-                    connectionType,
-                    packetDispatchOptionsType,
-                    packetRegistryFactoryType,
-                    packetDeserializerType,
-                    packetMiddlewareType,
-                    networkBufferMiddlewareType,
-                    middlewareOrderAttribute,
-                    middlewareStageAttribute,
-                    middlewareStageType,
-                    configurationLoaderType,
-                    configuredIgnoreAttribute,
-                    reservedOpcodePermittedAttribute,
-                    packetMetadataProviderType,
-                    packetMetadataBuilderType,
-                    methodInfoType,
-                    requestOptionsType,
-                    requestExtensionsType,
-                    tcpSessionBaseType,
-                    taskType,
-                    genericTaskType,
-                    valueTaskType,
-                    genericValueTaskType,
-                    cancellationTokenType,
-                    bufferLeaseType,
-                    packetHeaderRegionOffset);
         }
     }
 }

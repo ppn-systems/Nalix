@@ -357,4 +357,59 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "IBufferLease represents a pooled resource that must be returned to the pool exactly once via Dispose() or an explicit return call.");
+
+    public static readonly DiagnosticDescriptor NetworkHostingMissingBufferPoolManager = new(
+        id: "NALIX040",
+        title: "NetworkApplicationBuilder should configure BufferPoolManager",
+        messageFormat: "NetworkApplicationBuilder.Build() is called without UseBufferPoolManager(...); configuring a BufferPoolManager can improve network allocation performance",
+        category: "Performance",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Nalix network hosting can reduce allocation pressure by registering an explicit BufferPoolManager before building the application.");
+
+    public static readonly DiagnosticDescriptor NetworkHostingMissingConnectionHub = new(
+        id: "NALIX041",
+        title: "NetworkApplicationBuilder should configure ConnectionHub",
+        messageFormat: "NetworkApplicationBuilder.Build() is called without ConfigureConnectionHub(...); configuring a ConnectionHub makes host wiring explicit",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Nalix network hosting can use an explicitly configured ConnectionHub instead of relying on the default fallback instance.");
+
+    public static readonly DiagnosticDescriptor NetworkHostingHandlerTypeInvalid = new(
+        id: "NALIX042",
+        title: "NetworkApplicationBuilder handler type is not constructible",
+        messageFormat: "AddHandler<{0}>() expects a concrete, non-abstract, non-open-generic class type",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix handler registration creates instances at runtime, so the handler type should be a concrete class.");
+
+    public static readonly DiagnosticDescriptor NetworkHostingMetadataProviderTypeInvalid = new(
+        id: "NALIX043",
+        title: "NetworkApplicationBuilder metadata provider type is not constructible",
+        messageFormat: "AddMetadataProvider<{0}>() expects a concrete, non-abstract, non-open-generic class type",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix metadata provider registration creates instances at runtime, so the provider type should be a concrete class.");
+
+    public static readonly DiagnosticDescriptor NetworkHostingMissingTcpBinding = new(
+        id: "NALIX044",
+        title: "NetworkApplicationBuilder should configure a TCP binding",
+        messageFormat: "NetworkApplicationBuilder.Build() is called without AddTcp(...); a host without TCP bindings may be incomplete",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Nalix network hosting usually needs at least one TCP binding to serve clients.");
+
+    public static readonly DiagnosticDescriptor NetworkHostingUdpWithoutTcpBinding = new(
+        id: "NALIX045",
+        title: "NetworkApplicationBuilder should configure TCP before UDP",
+        messageFormat: "NetworkApplicationBuilder.Build() configures UDP bindings without any AddTcp(...); UDP bindings are expected to run alongside TCP in this host setup",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Nalix network hosting in this package expects UDP bindings to be paired with TCP bindings.");
+
 }

@@ -7,10 +7,10 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration.Binding;
-using Nalix.Network.Routing;
-using Nalix.Network.Connections;
-using Nalix.Runtime.Dispatching;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Network.Connections;
+using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Network.Hosting;
 
@@ -39,6 +39,13 @@ public interface INetworkApplicationBuilder
     /// <param name="connectionHub">The connection hub to register into the Nalix runtime.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder ConfigureConnectionHub(ConnectionHub connectionHub);
+
+    /// <summary>
+    /// Explicitly registers a <see cref="BufferPoolManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager);
 
     /// <summary>
     /// Configures a Nalix options object before the host starts.
@@ -150,18 +157,4 @@ public interface INetworkApplicationBuilder
     /// <param name="factory">The factory used to create the protocol instance.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Explicitly registers a <see cref="BufferPoolManager"/> instance to be used by the application.
-    /// </summary>
-    /// <param name="manager">The manager instance to use.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder UseBufferPoolManager(BufferPoolManager manager);
-
-    /// <summary>
-    /// Configures and registers a <see cref="BufferPoolManager"/> using an explicit factory.
-    /// </summary>
-    /// <param name="factory">The factory used to create the buffer pool manager.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder UseBufferPoolManager(Func<BufferPoolManager> factory);
 }

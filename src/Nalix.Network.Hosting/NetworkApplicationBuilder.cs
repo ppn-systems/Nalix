@@ -198,19 +198,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder UseBufferPoolManager(BufferPoolManager manager)
+    public INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
         InstanceManager.Instance.Register<BufferPoolManager>(manager);
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder UseBufferPoolManager(Func<BufferPoolManager> factory)
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-        InstanceManager.Instance.Register<BufferPoolManager>(factory());
 
         return this;
     }
