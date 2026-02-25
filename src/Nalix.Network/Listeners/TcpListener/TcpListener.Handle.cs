@@ -15,12 +15,15 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
+using Nalix.Network.Internal.Protocols;
 using Nalix.Network.Internal.Time;
 
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
+    private const string PipelineAttributeKey = "nalix.pipeline.instance";
+
     /// <summary>
     /// Finalizes the acceptance of an incoming connection by invoking the protocol handler
     /// and recording the accepted metric.
@@ -93,7 +96,16 @@ public abstract partial class TcpListenerBase
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
-        args.Connection.OnProcessEvent -= _protocol.ProcessMessage;
+        // Unwire pipeline (instead of unwiring _protocol.ProcessMessage).
+        if (args.Connection.Attributes.TryGetValue(PipelineAttributeKey, out object? boxed) && boxed is ProtocolPipeline pipeline)
+        {
+            // Unbind the pipeline from the connection to stop processing any new messages.
+            s_pool.Return(pipeline);
+
+            _ = args.Connection.Attributes.Remove(PipelineAttributeKey);
+        }
+
+        // Keep unwiring post-process as before (if you subscribed it).
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
 
         s_logger?.Trace(
@@ -149,7 +161,7 @@ public abstract partial class TcpListenerBase
         // This pool slot will be reused for the next accept without waiting.
         s_pool.Return(context);
 
-        IConnection connection = new Connection(socket);
+        Connection connection = new(socket);
 
         // Subscribe lifecycle events.
         // WHY subscribe to _limiter.OnConnectionClosed:
@@ -157,8 +169,19 @@ public abstract partial class TcpListenerBase
         connection.OnCloseEvent += this.HandleConnectionClose;
         connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
-        // Wire protocol message handlers.
-        connection.OnProcessEvent += _protocol.ProcessMessage;
+        // 1) Create pipeline: final stage is your existing _protocol (application protocol).
+        ProtocolPipeline pipeline = s_pool.Get<ProtocolPipeline>();
+        pipeline.Initialize(connection, _protocol);
+
+        // 2) Store pipeline on connection so close handler can unbind/dispose.
+        connection.Attributes[PipelineAttributeKey] = pipeline;
+
+        // 3) Wire pipeline as the ONLY OnProcessEvent handler for inbound frames.
+        pipeline.Bind();
+
+        // Keep post-process as you already have (optional).
+        // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK
+        // as long as it depends on the same args lifecycle rules.
         connection.OnPostProcessEvent += _protocol.PostProcessMessage;
 
         if (s_config.EnableTimeout)
