@@ -4,7 +4,7 @@ using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using System.Linq;
 
-namespace Nalix.SDK.Transport;
+namespace Nalix.SDK.Transport.Dispatch;
 
 /// <summary>
 /// Thread-safe packet dispatcher.

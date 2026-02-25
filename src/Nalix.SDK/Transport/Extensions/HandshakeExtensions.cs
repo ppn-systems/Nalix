@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
@@ -77,8 +78,10 @@ public static class HandshakeExtensions
         // Temporary listener (auto-removed in finally)
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void OnPacket(IPacket p)
+        void OnMessageReceived(System.Object _, IBufferLease buffer)
         {
+            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
+
             if (p is Handshake hs &&
                 hs.OpCode == opCode &&
                 hs.Protocol == ProtocolType.TCP)
@@ -90,9 +93,9 @@ public static class HandshakeExtensions
         // Abort on disconnect
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void OnDisconnected(System.Exception ex) => _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
+        void OnDisconnected(System.Object _, System.Exception ex) => _ = tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
 
-        using System.IDisposable sub = client.SubscribeTemp(OnPacket, OnDisconnected);
+        using System.IDisposable sub = client.SubscribeTemp(OnMessageReceived, OnDisconnected);
 
         try
         {

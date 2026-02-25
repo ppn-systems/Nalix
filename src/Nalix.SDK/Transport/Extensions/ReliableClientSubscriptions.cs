@@ -1,7 +1,9 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Infrastructure.Client;
 using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Framework.Injection;
 
 namespace Nalix.SDK.Transport.Extensions;
 
@@ -23,15 +25,17 @@ public static class ReliableClientSubscriptions
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void Wrapper(IPacket p)
+        void Wrapper(System.Object _, IBufferLease buffer)
         {
+            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
+
             if (p is TPacket t)
             {
                 handler(t);
             }
         }
-        client.PacketReceived += Wrapper;
-        return new Unsub(() => client.PacketReceived -= Wrapper);
+        client.OnMessageReceived += Wrapper;
+        return new Unsub(() => client.OnMessageReceived -= Wrapper);
     }
 
     /// <summary>
@@ -47,15 +51,17 @@ public static class ReliableClientSubscriptions
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void Wrapper(IPacket p)
+        void Wrapper(System.Object _, IBufferLease buffer)
         {
+            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
+
             if (predicate(p))
             {
                 handler(p);
             }
         }
-        client.PacketReceived += Wrapper;
-        return new Unsub(() => client.PacketReceived -= Wrapper);
+        client.OnMessageReceived += Wrapper;
+        return new Unsub(() => client.OnMessageReceived -= Wrapper);
     }
 
     /// <summary>
@@ -74,8 +80,10 @@ public static class ReliableClientSubscriptions
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void Wrapper(IPacket p)
+        void Wrapper(System.Object _, IBufferLease buffer)
         {
+            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
+
             if (p is not TPacket t)
             {
                 return;
@@ -88,12 +96,12 @@ public static class ReliableClientSubscriptions
 
             if (System.Threading.Interlocked.Exchange(ref fired, 1) == 0)
             {
-                client.PacketReceived -= Wrapper; // remove first
+                client.OnMessageReceived -= Wrapper; // remove first
                 handler(t);                       // then invoke
             }
         }
-        client.PacketReceived += Wrapper;
-        return new Unsub(() => client.PacketReceived -= Wrapper);
+        client.OnMessageReceived += Wrapper;
+        return new Unsub(() => client.OnMessageReceived -= Wrapper);
     }
 
 
