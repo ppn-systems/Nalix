@@ -55,35 +55,22 @@ public sealed class UnreliableClient : IClientConnection
 
     #region Events
 
-    // Events
-    /// <summary>
-    /// Raised when the client has successfully "connected" (remote endpoint stored and receiver started).
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler OnConnected;
 
-    /// <summary>
-    /// Raised when the client is disconnected. Argument contains exception that caused disconnect, or null if requested.
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler<System.Exception> OnDisconnected;
 
-    /// <summary>
-    /// Synchronous message-received event - subscribers receive an IBufferLease and must Dispose it when done.
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler<IBufferLease> OnMessageReceived;
 
-    /// <summary>
-    /// Occur when bytes are written to the socket (argument = bytes sent).
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler<System.Int64> OnBytesSent;
 
-    /// <summary>
-    /// Occur when bytes are received from socket (argument = bytes received).
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler<System.Int64> OnBytesReceived;
 
-    /// <summary>
-    /// Internal error event.
-    /// </summary>
+    /// <inheritdoc/>
     public event System.EventHandler<System.Exception> OnError;
 
     #endregion Events
@@ -93,32 +80,23 @@ public sealed class UnreliableClient : IClientConnection
     /// <inheritdoc/>
     public readonly TransportOptions Options;
 
-    /// <summary>
-    /// Whether receive loop is active and client not disposed.
-    /// </summary>
+    /// <inheritdoc/>
+    ITransportOptions IClientConnection.Options => this.Options;
+
+    /// <inheritdoc/>
     public System.Boolean IsConnected => _udpClient != null && !_disposed;
 
-    /// <summary>
-    /// Total bytes sent.
-    /// </summary>
+    /// <inheritdoc/>
     public System.Int64 BytesSent => System.Threading.Interlocked.Read(ref _bytesSent);
 
-    /// <summary>
-    /// Total bytes received.
-    /// </summary>
+    /// <inheritdoc/>
     public System.Int64 BytesReceived => System.Threading.Interlocked.Read(ref _bytesReceived);
 
-    /// <summary>
-    /// Last measured bytes/sec sent (sampled every second).
-    /// </summary>
+    /// <inheritdoc/>
     public System.Int64 SendBytesPerSecond => System.Threading.Interlocked.Read(ref _lastSendBps);
 
-    /// <summary>
-    /// Last measured bytes/sec received (sampled every second).
-    /// </summary>
+    /// <inheritdoc/>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
-
-    ITransportOptions IClientConnection.Options => throw new System.NotImplementedException();
 
     #endregion Properties
 
@@ -165,9 +143,7 @@ public sealed class UnreliableClient : IClientConnection
 
     #region Public API
 
-    /// <summary>
-    /// "Connect" to remote UDP endpoint and start receive loop. For UDP, connect only stores the remote endpoint and starts background receive.
-    /// </summary>
+    /// <inheritdoc/>
     public async System.Threading.Tasks.Task ConnectAsync(System.String host = null, System.UInt16? port = null, System.Threading.CancellationToken cancellationToken = default)
     {
         port ??= this.Options.Port;
@@ -270,9 +246,7 @@ public sealed class UnreliableClient : IClientConnection
         }
     }
 
-    /// <summary>
-    /// Disconnect and cancel background loops.
-    /// </summary>
+    /// <inheritdoc/>
     public System.Threading.Tasks.Task DisconnectAsync()
     {
         if (_disposed)
@@ -308,51 +282,7 @@ public sealed class UnreliableClient : IClientConnection
         return System.Threading.Tasks.Task.CompletedTask;
     }
 
-    /// <summary>
-    /// Send raw payload to configured remote endpoint.
-    /// </summary>
-    public async System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken cancellationToken = default)
-    {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(UnreliableClient));
-        if (_udpClient is null)
-        {
-            throw new System.InvalidOperationException("Client not connected.");
-        }
-
-        try
-        {
-            if (payload.Length == 0)
-            {
-                await _udpClient.SendAsync([], 0, _remoteEndPoint).ConfigureAwait(false);
-                REPORT_BYTES_SENT(0);
-                return true;
-            }
-
-            // minimize allocations for small payloads
-            if (MEMORY_MARSHAL_TRY_GET_ARRAY(payload, out System.Byte[] arr))
-            {
-                await _udpClient.SendAsync(arr, arr.Length, _remoteEndPoint).ConfigureAwait(false);
-                REPORT_BYTES_SENT(arr.Length);
-                return true;
-            }
-            else
-            {
-                System.Byte[] tmp = payload.ToArray();
-                await _udpClient.SendAsync(tmp, tmp.Length, _remoteEndPoint).ConfigureAwait(false);
-                REPORT_BYTES_SENT(tmp.Length);
-                return true;
-            }
-        }
-        catch (System.Exception ex)
-        {
-            try { OnError?.Invoke(this, ex); } catch { }
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Serialize and send IPacket.
-    /// </summary>
+    /// <inheritdoc/>
     public async System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken cancellationToken = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
@@ -402,9 +332,47 @@ public sealed class UnreliableClient : IClientConnection
         }
     }
 
-    /// <summary>
-    /// Dispose the client and release resources. Idempotent.
-    /// </summary>
+    /// <inheritdoc/>
+    public async System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken cancellationToken = default)
+    {
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(UnreliableClient));
+        if (_udpClient is null)
+        {
+            throw new System.InvalidOperationException("Client not connected.");
+        }
+
+        try
+        {
+            if (payload.Length == 0)
+            {
+                await _udpClient.SendAsync([], 0, _remoteEndPoint).ConfigureAwait(false);
+                REPORT_BYTES_SENT(0);
+                return true;
+            }
+
+            // minimize allocations for small payloads
+            if (MEMORY_MARSHAL_TRY_GET_ARRAY(payload, out System.Byte[] arr))
+            {
+                await _udpClient.SendAsync(arr, arr.Length, _remoteEndPoint).ConfigureAwait(false);
+                REPORT_BYTES_SENT(arr.Length);
+                return true;
+            }
+            else
+            {
+                System.Byte[] tmp = payload.ToArray();
+                await _udpClient.SendAsync(tmp, tmp.Length, _remoteEndPoint).ConfigureAwait(false);
+                REPORT_BYTES_SENT(tmp.Length);
+                return true;
+            }
+        }
+        catch (System.Exception ex)
+        {
+            try { OnError?.Invoke(this, ex); } catch { }
+            return false;
+        }
+    }
+
+    /// <inheritdoc/>
     public void Dispose()
     {
         if (_disposed)
