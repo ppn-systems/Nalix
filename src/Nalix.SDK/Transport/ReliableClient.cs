@@ -18,7 +18,7 @@ namespace Nalix.SDK.Transport;
 /// <summary>
 /// TCP client entry point. Delegates send/receive responsibilities to internal helpers.
 /// </summary>
-public sealed class ReliableClient : IClient
+public sealed class ReliableClient : IClientConnection
 {
     #region Constants
 
@@ -135,7 +135,7 @@ public sealed class ReliableClient : IClient
     /// </summary>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
 
-    ITransportOptions IClient.Options => throw new System.NotImplementedException();
+    ITransportOptions IClientConnection.Options => throw new System.NotImplementedException();
 
     #endregion Properties
 

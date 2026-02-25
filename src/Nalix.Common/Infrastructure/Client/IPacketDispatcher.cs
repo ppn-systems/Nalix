@@ -7,7 +7,7 @@ namespace Nalix.Common.Infrastructure.Client;
 /// <summary>
 /// Simple packet dispatcher abstraction.
 /// </summary>
-public interface IReliableDispatcher : System.IDisposable
+public interface IPacketDispatcher : System.IDisposable
 {
     /// <summary>
     /// Gets a value indicating whether the dispatcher contains no registered handlers.

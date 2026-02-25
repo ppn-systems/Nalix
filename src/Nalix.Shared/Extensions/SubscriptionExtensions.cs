@@ -6,12 +6,12 @@ using Nalix.Common.Infrastructure.Client;
 namespace Nalix.Shared.Extensions;
 
 /// <summary>
-/// Provides extension methods for subscribing to <see cref="IClient"/> events with automatic unsubscription.
+/// Provides extension methods for subscribing to <see cref="IClientConnection"/> events with automatic unsubscription.
 /// </summary>
 public static class SubscriptionExtensions
 {
     /// <summary>
-    /// Subscribes to the <see cref="IClient.OnMessageReceived"/> and <see cref="IClient.OnDisconnected"/> events.
+    /// Subscribes to the <see cref="IClientConnection.OnMessageReceived"/> and <see cref="IClientConnection.OnDisconnected"/> events.
     /// Returns an <see cref="System.IDisposable"/> that unsubscribes when disposed.
     /// </summary>
     /// <param name="this">The reliable client to subscribe to.</param>
@@ -19,7 +19,7 @@ public static class SubscriptionExtensions
     /// <param name="onDisconnected">The action to invoke when the client is disconnected.</param>
     /// <returns>An <see cref="System.IDisposable"/> that unsubscribes the handlers when disposed.</returns>
     public static System.IDisposable SubscribeTemp(
-        this IClient @this,
+        this IClientConnection @this,
         System.EventHandler<IBufferLease> onMessageReceived,
         System.EventHandler<System.Exception> onDisconnected)
     {
@@ -30,7 +30,7 @@ public static class SubscriptionExtensions
     }
 
     /// <summary>
-    /// Handles unsubscription from <see cref="IClient"/> events.
+    /// Handles unsubscription from <see cref="IClientConnection"/> events.
     /// </summary>
     /// <remarks>
     /// Initializes a new instance of the <see cref="Unsubscriber"/> class.
@@ -38,9 +38,9 @@ public static class SubscriptionExtensions
     /// <param name="c">The reliable client.</param>
     /// <param name="p">The packet received handler.</param>
     /// <param name="d">The disconnected handler.</param>
-    private sealed class Unsubscriber(IClient c, System.EventHandler<IBufferLease> p, System.EventHandler<System.Exception> d) : System.IDisposable
+    private sealed class Unsubscriber(IClientConnection c, System.EventHandler<IBufferLease> p, System.EventHandler<System.Exception> d) : System.IDisposable
     {
-        private readonly IClient _client = c;
+        private readonly IClientConnection _client = c;
         private readonly System.EventHandler<IBufferLease> _messageReceived = p;
         private readonly System.EventHandler<System.Exception> _disconnect = d;
 
