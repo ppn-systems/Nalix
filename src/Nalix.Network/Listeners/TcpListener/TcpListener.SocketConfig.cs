@@ -15,10 +15,10 @@ public abstract partial class TcpListenerBase
         if (Config.EnableIPv6)
         {
             // Try IPv6 + DualMode first
-            System.Net.Sockets.Socket listener = null;
+            System.Net.Sockets.Socket sock = null;
             try
             {
-                listener = new System.Net.Sockets.Socket(
+                sock = new System.Net.Sockets.Socket(
                     System.Net.Sockets.AddressFamily.InterNetworkV6,
                     System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
                 {
@@ -29,12 +29,12 @@ public abstract partial class TcpListenerBase
                 };
 
                 // Reuse BEFORE bind
-                listener.SetSocketOption(
+                sock.SetSocketOption(
                     System.Net.Sockets.SocketOptionLevel.Socket,
                     System.Net.Sockets.SocketOptionName.ReuseAddress, Config.ReuseAddress ? 1 : 0);
 
                 // Optional: larger listen buffer (per-connection tuning is more important)
-                listener.SetSocketOption(
+                sock.SetSocketOption(
                     System.Net.Sockets.SocketOptionLevel.Socket,
                     System.Net.Sockets.SocketOptionName.ReceiveBuffer, Config.BufferSize);
 
@@ -43,29 +43,32 @@ public abstract partial class TcpListenerBase
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
 
-                listener.Bind(epV6Any);
-                listener.Listen(Config.Backlog);
+                sock.Bind(epV6Any);
+                sock.Listen(Config.Backlog);
 
-                _listener = listener;
+                _listener = sock;
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
                 return;
             }
-            catch
+            catch (System.Exception ex)
             {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
+
                 // Clean up the half-initialized IPv6 socket before falling back
                 try
                 {
-                    listener?.Close();
+                    sock?.Close();
                 }
                 catch { }
                 try
                 {
-                    listener?.Dispose();
+                    sock?.Dispose();
                 }
                 catch { }
 
-                listener = null;
+                sock = null;
             }
         }
 
