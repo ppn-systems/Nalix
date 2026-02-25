@@ -62,7 +62,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Snowflake left, Snowflake right) => left.__combined != right.__combined;
+    public static bool operator !=(Snowflake left, Snowflake right) => left._combined != right._combined;
 
     /// <summary>
     /// Determines whether one <see cref="Snowflake"/> identifier is less than another.
@@ -77,7 +77,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator <(Snowflake a, Snowflake b) => a.__combined < b.__combined;
+    public static bool operator <(Snowflake a, Snowflake b) => a._combined < b._combined;
 
     /// <summary>
     /// Determines whether one <see cref="Snowflake"/> identifier is greater than another.
@@ -92,7 +92,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator >(Snowflake a, Snowflake b) => a.__combined > b.__combined;
+    public static bool operator >(Snowflake a, Snowflake b) => a._combined > b._combined;
 
     /// <summary>
     /// Determines whether one <see cref="Snowflake"/> identifier is less than or equal to another.
@@ -107,7 +107,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator <=(Snowflake a, Snowflake b) => a.__combined <= b.__combined;
+    public static bool operator <=(Snowflake a, Snowflake b) => a._combined <= b._combined;
 
     /// <summary>
     /// Determines whether one <see cref="Snowflake"/> identifier is greater than or equal to another.
@@ -122,7 +122,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator >=(Snowflake a, Snowflake b) => a.__combined >= b.__combined;
+    public static bool operator >=(Snowflake a, Snowflake b) => a._combined >= b._combined;
 
     #endregion Operators
 
@@ -144,7 +144,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int CompareTo(Snowflake other) => __combined.CompareTo(other.__combined);
+    public int CompareTo(Snowflake other) => _combined.CompareTo(other._combined);
 
     /// <summary>
     /// Compares two <see cref="Snowflake"/> instances and returns an integer that indicates whether
@@ -177,7 +177,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Equals(Snowflake a, Snowflake b) => a.__combined == b.__combined;
+    public static bool Equals(Snowflake a, Snowflake b) => a._combined == b._combined;
 
     /// <summary>
     /// Determines whether this identifier is equal to another <see cref="Snowflake"/>.
@@ -192,7 +192,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(Snowflake other) => __combined == other.__combined;
+    public bool Equals(Snowflake other) => _combined == other._combined;
 
     /// <summary>
     /// Determines whether this identifier is equal to another <see cref="ISnowflake"/>.
@@ -208,7 +208,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(ISnowflake? other) => other is Snowflake s && __combined == s.__combined;
+    public bool Equals(ISnowflake? other) => other is Snowflake s && _combined == s._combined;
 
     #endregion Equality and Comparison Methods
 }

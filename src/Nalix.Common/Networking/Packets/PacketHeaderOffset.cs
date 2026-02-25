@@ -56,7 +56,7 @@ public enum PacketHeaderOffset
     /// Represents the end offset of the packet header fields in the serialized data.
     /// This value is equal to the offset of the last field and can be used to determine the total header size.
     /// </summary>
-    Region = Transport + sizeof(uint),
+    Region = SequenceId + sizeof(uint),
 
     /// <inheritdoc/>
     MaxValue = byte.MaxValue,

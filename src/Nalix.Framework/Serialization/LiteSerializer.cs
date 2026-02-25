@@ -100,8 +100,7 @@ public static class LiteSerializer
         else if (kind is TypeKind.FixedSizeSerializable)
         {
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
-            int capacity = GetExactLengthOrDefault(value, size > 0 ? size : 512);
-            DataWriter writer = new(capacity);
+            DataWriter writer = new(512);
 
             try
             {
@@ -116,8 +115,7 @@ public static class LiteSerializer
         else if (kind is TypeKind.None)
         {
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
-            int capacity = GetExactLengthOrDefault(value, 512);
-            DataWriter writer = new(capacity);
+            DataWriter writer = new(512);
 
             try
             {
@@ -712,20 +710,6 @@ public static class LiteSerializer
            TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out _) is not TypeKind.UnmanagedSZArray;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetExactLengthOrDefault<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value, int fallback)
-    {
-        try
-        {
-            return GetExactLengthOrThrow(value);
-        }
-        catch
-        {
-            return fallback;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetExactLengthOrThrow<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
     {
@@ -735,14 +719,14 @@ public static class LiteSerializer
                 $"Cannot serialize null reference type '{typeof(T).FullName}' without an explicit nullable wrapper.");
         }
 
-        if (value is IPacket packet)
+        if (value is IPacket p)
         {
-            return packet.Length;
+            return p.Length;
         }
 
-        if (TypeMetadata.TryGetNestedSize(value, out int length))
+        if (value is string s)
         {
-            return length;
+            return string.IsNullOrEmpty(s) ? 2 : 2 + System.Text.Encoding.UTF8.GetByteCount(s);
         }
 
         throw new SerializationFailureException(
