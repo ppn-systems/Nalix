@@ -38,11 +38,6 @@ public enum ControlType : System.Byte
     ERROR = 0x05,
 
     /// <summary>
-    /// Represents a handshake message used to initiate or negotiate a connection.
-    /// </summary>
-    HANDSHAKE = 0x06,
-
-    /// <summary>
     /// Represents a heartbeat message used to maintain an active connection.
     /// </summary>
     HEARTBEAT = 0x07,

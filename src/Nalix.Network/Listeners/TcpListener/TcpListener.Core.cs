@@ -124,9 +124,10 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     {
         System.ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 
+        _isDisposed = 0;
+
         _port = port;
         _protocol = protocol;
-        _isDisposed = 0;
         _state = (System.Int32)ListenerState.STOPPED;
 
         _acceptWorkerIds = new(Config.MaxParallel);
@@ -247,6 +248,8 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
             try
             {
+                try { _cancelReg.Dispose(); } catch { }
+
                 this._cts?.Cancel();
                 this._cts?.Dispose();
 

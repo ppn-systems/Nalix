@@ -27,13 +27,15 @@ public static class ReliableClientSubscriptions
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void Wrapper(System.Object _, IBufferLease buffer)
         {
-            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
+            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+                                    .TryDeserialize(buffer.Span, out IPacket p);
 
             if (p is TPacket t)
             {
                 handler(t);
             }
         }
+
         client.OnMessageReceived += Wrapper;
         return new Unsub(() => client.OnMessageReceived -= Wrapper);
     }
@@ -125,8 +127,8 @@ public static class ReliableClientSubscriptions
 /// </summary>
 public sealed class CompositeSubscription(params System.IDisposable[] subs) : System.IDisposable
 {
-    private System.IDisposable[] _subs = subs;
     private System.Int32 _disposed; // 0/1
+    private System.IDisposable[] _subs = subs;
 
     /// <summary>
     /// Adds a new subscription to the composite.
