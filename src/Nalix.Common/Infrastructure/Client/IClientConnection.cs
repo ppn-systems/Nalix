@@ -8,7 +8,7 @@ namespace Nalix.Common.Infrastructure.Client;
 /// <summary>
 /// Represents a reliable client connection to a server, providing events for connection lifecycle and packet reception.
 /// </summary>
-public interface IClient : System.IDisposable
+public interface IClientConnection : System.IDisposable
 {
     #region Properties
 

@@ -48,7 +48,7 @@ public static class HandshakeExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<System.Boolean> HandshakeAsync(
-        this IClient client,
+        this IClientConnection client,
         System.UInt16 opCode = 1,
         System.Int32 timeoutMs = 5_000,
         System.Func<System.Byte[], System.Boolean> validateServerPublicKey = null,

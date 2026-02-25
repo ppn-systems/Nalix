@@ -26,7 +26,7 @@ public static class ControlExtensions
 {
     /// <summary>
     /// A fluent builder for <see cref="Control"/> frames.
-    /// Use <see cref="NewControl(IClient, System.UInt16, ControlType, ProtocolType)"/> to create an instance,
+    /// Use <see cref="NewControl(IClientConnection, System.UInt16, ControlType, ProtocolType)"/> to create an instance,
     /// then chain configuration methods before calling <see cref="Build"/>.
     /// </summary>
     public readonly ref struct ControlBuilder(Control c)
@@ -90,7 +90,7 @@ public static class ControlExtensions
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ControlBuilder NewControl(this IClient _, System.UInt16 opCode, ControlType type, ProtocolType transport = ProtocolType.TCP)
+    public static ControlBuilder NewControl(this IClientConnection _, System.UInt16 opCode, ControlType type, ProtocolType transport = ProtocolType.TCP)
     {
         Control c = new();
         c.Initialize(opCode, type, sequenceId: 0, reasonCode: ProtocolReason.NONE, transport: transport);
@@ -104,7 +104,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<TPkt> AwaitPacketAsync<TPkt>(
-        this IClient client, System.Func<TPkt, System.Boolean> predicate,
+        this IClientConnection client, System.Func<TPkt, System.Boolean> predicate,
         System.Int32 timeoutMs, System.Threading.CancellationToken ct = default) where TPkt : class, IPacket
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -141,7 +141,7 @@ public static class ControlExtensions
 
         [System.Diagnostics.DebuggerStepThrough]
         static async System.Threading.Tasks.Task<TPkt> AwaitCoreAsync(
-            IClient c,
+            IClientConnection c,
             System.EventHandler<IBufferLease> pktHandler,
             System.EventHandler<System.Exception> discHandler,
             System.Threading.Tasks.Task<TPkt> task,
@@ -203,7 +203,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<(System.Double rttMs, Control pong)> PingAsync(
-        this IClient client,
+        this IClientConnection client,
         System.UInt16 opCode,
         System.UInt32? sequenceId = null,
         System.Int32 timeoutMs = 3000,
@@ -275,7 +275,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<Control> AwaitControlAsync(
-        this IClient client,
+        this IClientConnection client,
         System.Func<Control, System.Boolean> predicate,
         System.Int32 timeoutMs, System.Threading.CancellationToken ct = default)
         => await AwaitPacketAsync<Control>(client, predicate, timeoutMs, ct);
@@ -301,7 +301,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.Task SendControlAsync(
-        this IClient client,
+        this IClientConnection client,
         System.UInt16 opCode, ControlType type,
         System.Action<ControlBuilder> configure = null,
         System.Threading.CancellationToken ct = default)
@@ -335,7 +335,7 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Threading.Tasks.Task SendDisconnectAsync(
-        this IClient client, System.UInt16 opCode,
+        this IClientConnection client, System.UInt16 opCode,
         System.UInt32 seq = 0, ProtocolType tr = ProtocolType.TCP,
         System.Threading.CancellationToken ct = default)
         => client.SendControlAsync(opCode, ControlType.DISCONNECT, b => b.WithSeq(seq).WithTransport(tr).StampNow(), ct);
