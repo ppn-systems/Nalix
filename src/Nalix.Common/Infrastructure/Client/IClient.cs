@@ -8,7 +8,7 @@ namespace Nalix.Common.Infrastructure.Client;
 /// <summary>
 /// Represents a reliable client connection to a server, providing events for connection lifecycle and packet reception.
 /// </summary>
-public interface IReliableClient : System.IDisposable
+public interface IClient : System.IDisposable
 {
     #region Properties
 
@@ -21,11 +21,6 @@ public interface IReliableClient : System.IDisposable
     /// Gets a value indicating whether the client is connected to the server.
     /// </summary>
     System.Boolean IsConnected { get; }
-
-    /// <summary>
-    /// Gets a value indicating whether the client has completed the handshake process with the server.
-    /// </summary>
-    System.Boolean IsHandshaked { get; }
 
     #endregion Properties
 
@@ -104,9 +99,19 @@ public interface IReliableClient : System.IDisposable
     /// <exception cref="System.IO.IOException">
     /// Thrown if an IO error occurs while writing to the underlying stream.
     /// </exception>
-    System.Threading.Tasks.Task SendAsync(
+    System.Threading.Tasks.Task<System.Boolean> SendAsync(
         [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken ct = default);
+
+    /// <summary>
+    /// Sends a framed payload (header + payload) asynchronously.
+    /// </summary>
+    /// <param name="payload">Payload bytes to send (payload only, header is added by the protocol).</param>
+    /// <param name="ct">Cancellation token to cancel the send operation.</param>
+    /// <returns>Task that resolves to <c>true</c> if the send succeeded, otherwise <c>false</c>.</returns>
+    /// <exception cref="System.ObjectDisposedException">Thrown if the client has been disposed.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown if the client is not connected.</exception>
+    System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default);
 
     #endregion Methods
 }
