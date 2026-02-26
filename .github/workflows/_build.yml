@@ -25,6 +25,11 @@ on:
         required: false
         type: boolean
         default: false
+      trim_project:
+        description: "Executable project used for trim/self-contained publish smoke tests"
+        required: false
+        type: string
+        default: example/Nalix.Network.Examples/Nalix.Network.Examples.csproj
 
 jobs:
   check-label:
@@ -56,13 +61,15 @@ jobs:
     runs-on: ${{ inputs.os }}
 
     concurrency:
-      group: build-${{ inputs.os }}-${{ github.ref }}
+      group: build-${{ inputs.os }}-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
 
     steps:
       - name: Set environment variables
         shell: bash
-        run: echo "TEST_RESULTS_DIR=artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
+        run: |
+          echo "TEST_RESULTS_DIR=artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
+          echo "COVERAGE_REPORT_DIR=artifacts/coverage/${{ runner.os }}" >> "$GITHUB_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -95,13 +102,44 @@ jobs:
           dotnet restore "${{ inputs.project }}"
           dotnet restore "${{ inputs.test }}"
 
+      - name: Restore trim smoke project
+        if: inputs.os == 'ubuntu-latest'
+        shell: bash
+        run: dotnet restore "${{ inputs.trim_project }}" -r linux-x64
+
       - name: Build all projects
         shell: bash
-        run: dotnet build "${{ inputs.project }}" --configuration Release --no-restore -p:UseSharedCompilation=false
+        run: |
+          dotnet build "${{ inputs.project }}" --configuration Release --no-restore -p:UseSharedCompilation=false
+          dotnet build "${{ inputs.test }}" --configuration Release --no-restore -p:UseSharedCompilation=false
 
       - name: Run all tests
         shell: bash
-        run: dotnet test "${{ inputs.test }}" --configuration Release --no-restore --logger "trx;LogFileName=tests_results.trx" --results-directory "$TEST_RESULTS_DIR" -p:UseSharedCompilation=false
+        run: dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore --logger "trx" --results-directory "$TEST_RESULTS_DIR" --collect:"XPlat Code Coverage" -p:UseSharedCompilation=false
+
+      - name: Detect coverage reports
+        id: coverage_files
+        if: always()
+        shell: bash
+        run: |
+          if find "$TEST_RESULTS_DIR" -name 'coverage.cobertura.xml' -print -quit | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate coverage report
+        if: always() && steps.coverage_files.outputs.found == 'true'
+        uses: danielpalme/ReportGenerator-GitHub-Action@5
+        with:
+          reports: ${{ env.TEST_RESULTS_DIR }}/**/coverage.cobertura.xml
+          targetdir: ${{ env.COVERAGE_REPORT_DIR }}
+          reporttypes: Cobertura;MarkdownSummaryGithub
+
+      - name: Publish coverage summary
+        if: always() && steps.coverage_files.outputs.found == 'true'
+        shell: bash
+        run: cat "${COVERAGE_REPORT_DIR}/SummaryGithub.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload test results
         if: always()
@@ -110,6 +148,19 @@ jobs:
           name: test-results-${{ runner.os }}
           path: ${{ env.TEST_RESULTS_DIR }}
           if-no-files-found: warn
+
+      - name: Upload coverage report
+        if: always() && steps.coverage_files.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ runner.os }}
+          path: ${{ env.COVERAGE_REPORT_DIR }}
+          if-no-files-found: warn
+
+      - name: Publish trimmed self-contained smoke test
+        if: inputs.os == 'ubuntu-latest'
+        shell: bash
+        run: dotnet publish "${{ inputs.trim_project }}" --configuration Release --no-restore -r linux-x64 --self-contained true /p:PublishTrimmed=true -p:UseSharedCompilation=false --output ./publish-trimmed
 
       - name: Publish build output
         if: inputs.deploy

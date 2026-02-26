@@ -218,7 +218,7 @@ public sealed class NetworkApplication : IActivatableAsync
     /// <inheritdoc />
     public void Dispose()
     {
-        _ = this.DeactivateAsync(CancellationToken.None);
+        this.DeactivateAsync(CancellationToken.None).GetAwaiter().GetResult();
         GC.SuppressFinalize(this);
     }
 

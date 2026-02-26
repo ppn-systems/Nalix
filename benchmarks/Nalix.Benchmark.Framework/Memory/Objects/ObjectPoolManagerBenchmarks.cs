@@ -4,7 +4,6 @@ using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Benchmark.Framework.Memory.Objects;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class ObjectPoolManagerBenchmarks
 {

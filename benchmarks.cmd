@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 REM ============================================
 REM Configuration
 REM ============================================
-set PROJECT_PATH=.\Nalix.Benchmark.Shared\Nalix.Benchmark.Shared.csproj
+set PROJECT_PATH=.\Nalix.Benchmark.Framework\Nalix.Benchmark.Framework.csproj
 set CONFIG=Release
 
 cd benchmarks

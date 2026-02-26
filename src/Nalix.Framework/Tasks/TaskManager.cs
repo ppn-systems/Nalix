@@ -901,6 +901,16 @@ public sealed partial class TaskManager : ITaskManager
 
         try
         {
+            _cleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
+        }
+        catch (Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] cleanup-timer-stop-error msg={ex.Message}");
+        }
+
+        try
+        {
             _cleanupTimer?.Dispose();
         }
         catch (Exception ex)

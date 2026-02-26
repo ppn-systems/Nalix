@@ -3,7 +3,6 @@ using Nalix.Framework.Security.Hashing;
 
 namespace Nalix.Benchmark.Framework.Security;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class HashingBenchmarks
 {
@@ -23,8 +22,15 @@ public class HashingBenchmarks
         _tag = new byte[16];
         _hash = new byte[32];
 
-        for (int i = 0; i < _data.Length; i++) _data[i] = (byte)(i % 233);
-        for (int i = 0; i < _key.Length; i++) _key[i] = (byte)(i + 7);
+        for (int i = 0; i < _data.Length; i++)
+        {
+            _data[i] = (byte)(i % 233);
+        }
+
+        for (int i = 0; i < _key.Length; i++)
+        {
+            _key[i] = (byte)(i + 7);
+        }
 
         Poly1305.Compute(_key, _data, _tag);
     }

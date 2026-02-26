@@ -29,8 +29,7 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     #region Fields
 
     private readonly MiddlewarePipeline<TPacket> _pipeline;
-    private readonly PacketHandler<TPacket>[] _handlerTable;
-    private readonly byte[] _handlerFlags;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, PacketHandler<TPacket>> _handlerTable;
     private readonly ObjectPoolManager _objectPool;
     private int _handlerCount;
 
@@ -57,8 +56,7 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     /// </remarks>
     public PacketDispatchOptions()
     {
-        _handlerTable = new PacketHandler<TPacket>[ushort.MaxValue + 1];
-        _handlerFlags = new byte[ushort.MaxValue + 1];
+        _handlerTable = new System.Collections.Concurrent.ConcurrentDictionary<ushort, PacketHandler<TPacket>>();
         _pipeline = new MiddlewarePipeline<TPacket>();
         _objectPool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 

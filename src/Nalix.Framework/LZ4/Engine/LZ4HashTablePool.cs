@@ -30,29 +30,20 @@ internal static class LZ4HashTablePool
     /// The hash table is automatically cleared before returning.
     /// </summary>
     /// <returns>A cleared hash table ready for use.</returns>
-    public static int[] Rent()
+    public static int[] Rent(int hashBits)
     {
-        int size = MatchFinder.HashTableSize;
-
+        int size = 1 << hashBits;
         int[]? hashTable = t_hashTable;
 
-        if (hashTable is not null && hashTable.Length == size)
+        if (hashTable is not null && hashTable.Length >= size)
         {
-            new Span<int>(hashTable).Clear();
+            new Span<int>(hashTable, 0, size).Clear();
             t_hashTable = null;
             return hashTable;
         }
 
         hashTable = s_pool.Rent(size);
-
-        if (hashTable.Length != size)
-        {
-            int[] resized = new int[size];
-            s_pool.Return(hashTable);
-            hashTable = resized;
-        }
-
-        new Span<int>(hashTable).Clear();
+        new Span<int>(hashTable, 0, size).Clear();
         return hashTable;
     }
 
@@ -67,11 +58,13 @@ internal static class LZ4HashTablePool
             return;
         }
 
-        int size = MatchFinder.HashTableSize;
-
-        // Ưu tiên giữ lại cho thread hiện tại
-        if (hashTable.Length == size && t_hashTable is null)
+        // Ưu tiên giữ lại mảng có dung lượng lớn nhất cho thread hiện tại
+        if (t_hashTable is null || hashTable.Length > t_hashTable.Length)
         {
+            if (t_hashTable is not null)
+            {
+                s_pool.Return(t_hashTable);
+            }
             t_hashTable = hashTable;
             return;
         }

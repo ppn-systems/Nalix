@@ -3,6 +3,8 @@ name: "Security: Dependency review"
 on:
   pull_request:
     branches: ["master"]
+  schedule:
+    - cron: "0 3 * * 1"
 
 permissions:
   contents: read
@@ -14,6 +16,7 @@ jobs:
   # ---------------------------------------------------------------------------
   check-label:
     name: "Check: Documentation label"
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       is_document: ${{ steps.label_check.outputs.is_document }}
@@ -38,7 +41,7 @@ jobs:
   dependency-review:
     name: "Scan: Dependency vulnerabilities"
     needs: check-label
-    if: needs.check-label.outputs.is_document != 'true'
+    if: github.event_name == 'pull_request' && needs.check-label.outputs.is_document != 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -53,3 +56,71 @@ jobs:
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0
           # Post a detailed comment on the PR
           comment-summary-in-pr: always
+
+  scheduled-nuget-audit:
+    name: "Scan: Weekly NuGet vulnerability audit"
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore solution
+        run: dotnet restore src/Nalix.sln
+
+      - name: Run NuGet vulnerability audit
+        shell: bash
+        run: |
+          mkdir -p artifacts/security
+          dotnet list src/Nalix.sln package --vulnerable --include-transitive --format json > artifacts/security/nuget-vulnerability-audit.json
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          path = pathlib.Path("artifacts/security/nuget-vulnerability-audit.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+
+          findings = []
+          for project in data.get("projects", []):
+              project_name = project.get("path", "<unknown>")
+              for framework in project.get("frameworks", []):
+                  framework_name = framework.get("framework", "<unknown>")
+                  for package_group in ("topLevelPackages", "transitivePackages"):
+                      for package in framework.get(package_group, []):
+                          vulnerabilities = package.get("vulnerabilities") or []
+                          for vulnerability in vulnerabilities:
+                              findings.append(
+                                  f"{project_name} [{framework_name}] {package.get('id')} {package.get('resolvedVersion')} -> {vulnerability.get('severity', 'unknown')} {vulnerability.get('advisoryurl', '')}".strip()
+                              )
+
+          summary_path = pathlib.Path("artifacts/security/nuget-vulnerability-summary.md")
+          if findings:
+              summary_path.write_text(
+                  "## Weekly NuGet Vulnerability Audit\n\n"
+                  + "\n".join(f"- {line}" for line in findings)
+                  + "\n",
+                  encoding="utf-8",
+              )
+              print(summary_path.read_text(encoding="utf-8"))
+              sys.exit(1)
+
+          summary_path.write_text(
+              "## Weekly NuGet Vulnerability Audit\n\n- No vulnerable NuGet packages were reported.\n",
+              encoding="utf-8",
+          )
+          print(summary_path.read_text(encoding="utf-8"))
+          PY
+
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-vulnerability-audit
+          path: artifacts/security
+          if-no-files-found: warn

@@ -45,7 +45,8 @@ internal static class LZ4Encoder
         }
 #endif
 
-        int[] table = LZ4HashTablePool.Rent();
+        int hashBits = GetHashBits(input.Length);
+        int[] table = LZ4HashTablePool.Rent(hashBits);
 
         try
         {
@@ -57,7 +58,7 @@ internal static class LZ4Encoder
 
                 Span<byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
                 int compressedDataLength =
-                    LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
+                    LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable, hashBits);
 
                 if (compressedDataLength < 0)
                 {
@@ -110,6 +111,32 @@ internal static class LZ4Encoder
     {
         LZ4BlockHeader header = new(originalLength, compressedLength);
         MemOps.WriteUnaligned(output, header);
+    }
+
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetHashBits(int inputLength)
+    {
+        // Default to max dictionary size (65536 entries, 256KB) for 64KB+ inputs
+        if (inputLength >= 65536)
+        {
+            return 16;
+        }
+
+        int bits = System.Numerics.BitOperations.Log2((uint)inputLength);
+
+        // Clamp to avoid tiny hash tables handling too much traffic or huge tables for empty data
+        if (bits < 8)
+        {
+            bits = 8;
+        }
+
+        if (bits > 16)
+        {
+            bits = 16;
+        }
+
+        return bits;
     }
 
     #endregion Private Methods

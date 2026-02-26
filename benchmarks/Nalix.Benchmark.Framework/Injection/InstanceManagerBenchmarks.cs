@@ -37,7 +37,6 @@ public sealed class BenchServiceWithArgs(int value, string name)
 /// Không được gọi <c>Dispose()</c> trong <c>GlobalCleanup</c> —
 /// chỉ dùng <c>Clear(dispose: false)</c> để reset state giữa các param runs.
 /// </remarks>
-[MemoryDiagnoser]
 [Config(typeof(BenchmarkConfig))]
 public class InstanceManagerBenchmarks
 {

@@ -174,6 +174,22 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(0, assembler.OpenStreamCount);
     }
 
+    [Fact]
+    public void AddWhenEvictIntervalIsReachedAutomaticallySweepsExpiredStreams()
+    {
+        using FragmentAssembler assembler = new() { StreamTimeoutMs = 1 };
+
+        _ = assembler.Add(new FragmentHeader(40, 0, 2, false), [1], out _);
+        Thread.Sleep(100);
+
+        for (ushort streamId = 41; streamId < 41 + FragmentAssembler.EvictInterval - 1; streamId++)
+        {
+            _ = assembler.Add(new FragmentHeader(streamId, 0, 2, false), [2], out _);
+        }
+
+        Assert.Equal(FragmentAssembler.EvictInterval - 1, assembler.OpenStreamCount);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

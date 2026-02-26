@@ -20,11 +20,11 @@ namespace Nalix.SDK.Transport.Extensions;
 /// <remarks>
 /// <para>
 /// Internally delegates the subscribe -> await -> timeout -> unsubscribe cycle to
-/// <see cref="PACKET_AWAITER"/>, which handles deserialization errors, predicate
+/// <see cref="PacketAwaiter"/>, which handles deserialization errors, predicate
 /// exceptions, and disconnect guards consistently across all SDK extension methods.
 /// </para>
 /// <para>
-/// <b>Threading model:</b> callbacks are invoked on the FRAME_READER background thread.
+/// <b>Threading model:</b> callbacks are invoked on the FrameReader background thread.
 /// Marshal to the main thread before touching Unity GameObjects or WPF/MAUI UI controls.
 /// </para>
 /// <para>
@@ -137,7 +137,7 @@ public static class RequestExtensions
                 // Delegate the full subscribe -> send -> await -> timeout -> unsubscribe cycle
                 // to PACKET_AWAITER, which handles deserialization errors, predicate exceptions,
                 // and disconnect guards consistently across all SDK helpers.
-                TResponse result = await PACKET_AWAITER.AwaitAsync(
+                TResponse result = await PacketAwaiter.AwaitAsync(
                     client,
                     predicate: effectivePredicate,
                     timeoutMs: options.TimeoutMs,

@@ -1,57 +1,74 @@
 # 📚 Nalix Documentation
 
-Welcome to the complete documentation for the Nalix ecosystem.
+Welcome to the comprehensive technical documentation for the **Nalix** ecosystem — a modular, performance-oriented networking stack for modern .NET.
 
 ---
 
 ## 📑 Documentation Index
 
-| Module | Description | Documentation |
-|---------|--------------|----------------|
-| **Nalix.Common** | Shared contracts: packet/connection abstractions, protocol enums, middleware attributes, serialization. | [Read →](./docs/Nalix.Common/) |
-| **Nalix.Framework** | High-level framework providing cryptography, identity, injection, randomization, and task orchestration. | [Read →](./docs/Nalix.Framework/) |
-| **Nalix.Network** | Core networking runtime (TCP/UDP, protocols, throttling, timing). | [Read →](./docs/Nalix.Network/) |
-| **Nalix.Logging** | Asynchronous and high-performance logging system with batching and multiple sinks. | [Read →](./docs/Nalix.Logging/) |
-| **Nalix.SDK** | Client transport: `TcpSessionBase`/`TcpSession`/`IoTTcpSession`, `UnreliableClient`, plus extensions for subscriptions and directives. | [Read →](./docs/Nalix.SDK/) |
+Nalix is composed of several specialized packages. Each module is documented with its own core concepts, API references, and usage guides.
+
+### 🏗️ Foundational Abstractions
+
+Base libraries providing the shared contracts and runtime infrastructure.
+
+| Module | Description | Guide |
+| :--- | :--- | :--- |
+| **Nalix.Common** | Shared contracts: packet/connection abstractions, protocol enums, and primitives. | [Read →](./docs/packages/nalix-common.md) |
+| **Nalix.Framework** | Core utilities: cryptography, identity, DI, serialization, and task orchestration. | [Read →](./docs/packages/nalix-framework.md) |
+| **Nalix.Runtime** | Execution core: packet dispatching, middleware pipelines, and handler compilation. | [Read →](./docs/packages/nalix-runtime.md) |
+
+### 📡 Networking Core
+
+High-performance transport and application hosting layers.
+
+| Module | Description | Guide |
+| :--- | :--- | :--- |
+| **Nalix.Network** | Transport runtime: TCP/UDP listeners, connection management, and metrics. | [Read →](./docs/packages/nalix-network.md) |
+| **Nalix.Network.Hosting** | Fluent bootstrap: Microsoft-style host/builder APIs and managed lifecycle. | [Read →](./docs/packages/nalix-network-hosting.md) |
+| **Nalix.Network.Pipeline** | Middleware suite: rate limiting, traffic shaping, and time synchronization. | [Read →](./docs/packages/nalix-network-pipeline.md) |
+
+### 🛠️ Utilities & Tooling
+
+Supporting subsystems and development tools.
+
+| Module | Description | Guide |
+| :--- | :--- | :--- |
+| **Nalix.Logging** | High-throughput logging: asynchronous batching and pluggable sinks. | [Read →](./docs/packages/nalix-logging.md) |
+| **Nalix.SDK** | Client-side: transport sessions, request helpers, and control flows. | [Read →](./docs/packages/nalix-sdk.md) |
+| **Nalix.Analyzers** | Developer UX: Roslyn-based diagnostics and code fixes for Nalix best practices. | [Read →](./docs/packages/index.md#nalixanalyzers) |
 
 ---
 
-## 🌐 Overview
+## 🚀 Getting Started
 
-Nalix is a modular, real-time framework designed for efficient, secure, and scalable systems.
+If you are new to Nalix, we recommend following the documentation in this order:
 
-Each package is independently usable yet seamlessly integrated into the overall ecosystem.
-
----
-
-## 🚀 Quick Start
-
-To install Nalix packages from NuGet:
-
-```bash
-dotnet add package Nalix.Network
-dotnet add package Nalix.Logging
-dotnet add package Nalix.Framework
-```
-
-For more examples, see [docs/README.md](./docs/README.md).
+1.**[Introduction](./docs/introduction.md)** — Core concepts and architecture.
+2.**[Installation](./docs/installation.md)** — Setting up your environment.
+3.**[Quickstart](./docs/quickstart.md)** — Building your first Nalix application.
+4.**[Examples](./example/)** — Detailed sample implementations.
 
 ---
 
-## 🧱 Architecture Reference
+## 📈 Performance & Benchmarks
 
-For a deep dive into Nalix’s system architecture and design philosophy,  
-see [docs/Nalix.Network/Architecture.md](./docs/Nalix.Network/Architecture.md).
+Nalix is designed for latency-sensitive workloads. For detailed performance reports across serialization, cryptography, and networking, see:
 
----
-
-## 📎 Additional Documents
-
-- [README.md](./README.md) — Project overview and introduction  
-- [SECURITY.md](./SECURITY.md) — Reporting vulnerabilities  
-- [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — Contributor guidelines  
-- [CHANGELOG.md](./CHANGELOG.md) — Version history and release notes  
+- **[Benchmarks Overview](./docs/benchmarks/index.md)**
+- **[Benchmark Reports](./benchmarks/README.md)**
 
 ---
 
-> "Nalix empowers developers to build faster, safer, and smarter real-time systems."
+## 📎 Additional Orientation
+
+- **[README.md](./README.md)** — Project overview and introduction.
+- **[CHANGELOG.md](./CHANGELOG.md)** — Version history and release notes.
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** — Development workflow and PR guidelines.
+- **[AGENTS.md](./.github/AGENTS.md)** — Instructions for AI agents working in this repo.
+
+---
+
+<p align="center">
+  <i>"Empowering developers to build faster, safer, and smarter real-time systems."</i>
+</p>

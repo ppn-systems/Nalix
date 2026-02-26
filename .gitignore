@@ -54,3 +54,4 @@ nalix-docs
 .dotnet/
 BenchmarkDotNet.Artifacts
 site/
+.dotnethome/

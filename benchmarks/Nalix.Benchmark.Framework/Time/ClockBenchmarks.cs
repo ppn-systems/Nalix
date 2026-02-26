@@ -4,7 +4,6 @@ using Nalix.Framework.Time;
 
 namespace Nalix.Benchmark.Framework.Time;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class ClockBenchmarks
 {
