@@ -49,13 +49,13 @@ It dispatches by `CipherSuiteType` and hides whether the selected suite is:
 ```csharp
 Span<byte> ciphertext = stackalloc byte[plaintext.Length + EnvelopeCipher.HeaderSize + 32];
 
-bool encrypted = EnvelopeCipher.Encrypt(
+EnvelopeCipher.Encrypt(
     key,
     plaintext,
     ciphertext,
     aad,
     seq: null,
-    algorithm: CipherSuiteType.CHACHA20_POLY1305,
+    algorithm: CipherSuiteType.Chacha20Poly1305,
     out int written);
 ```
 
@@ -64,7 +64,7 @@ bool encrypted = EnvelopeCipher.Encrypt(
 - `GetNonceLength(...)` and `GetTagLength(...)` expose suite-dependent sizing
 - AEAD suites route into `AeadEngine`
 - non-AEAD suites route into `SymmetricEngine`
-- decryption returns `false` on parse or authentication failure instead of throwing
+- decryption throws `CipherException` on parse or authentication failure
 - AEAD encryption generates a fresh random nonce internally per call
 
 ## Related APIs

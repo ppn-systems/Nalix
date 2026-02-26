@@ -54,12 +54,24 @@ public enum HandshakeStage : byte
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Handshake : PacketBase<Handshake>
+public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
 {
     /// <summary>
     /// Default dynamic size hint used for fixed-width handshake fields.
     /// </summary>
+    [SerializeIgnore]
     public const int DynamicSize = 32;
+
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public static int Size =>
+        PacketConstants.HeaderSize +
+        sizeof(HandshakeStage) +    // Stage
+        sizeof(int) + DynamicSize + // PublicKey
+        sizeof(int) + DynamicSize + // Nonce
+        sizeof(int) + DynamicSize + // Proof
+        sizeof(int) + DynamicSize + // TranscriptHash
+        Snowflake.Size;             // SessionToken
 
     /// <summary>
     /// Gets or sets the handshake stage carried by this packet.

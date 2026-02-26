@@ -96,6 +96,6 @@ That metadata is resolved once, then reused through dispatch and middleware. Thi
 
 - [Architecture](./architecture.md)
 - [Middleware](./middleware.md)
-- [Packet Dispatch](../api/routing/packet-dispatch.md)
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
 - [TCP Request/Response](../guides/tcp-request-response.md)
 - [UDP Auth Flow](../guides/udp-auth-flow.md)

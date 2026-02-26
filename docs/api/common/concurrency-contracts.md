@@ -28,7 +28,7 @@ This page covers the shared background-work contracts in `Nalix.Common.Concurren
 | `IWorkerContext` | `Beat()`, `Advance(...)`, and worker progress/heartbeat reporting members used by the current runtime |
 | `IWorkerHandle` | worker identity, group, running state, progress, last run, next run, and cancellation/reporting helpers |
 | `IRecurringHandle` | recurring job identity, next run, running state, and cancellation/reporting helpers |
-| `IWorkerOptions` | `Tag`, `MachineId`, `IdType`, `OnCompleted`, `OnFailed`, `ExecutionTimeout`, `RetainFor`, `GroupConcurrencyLimit`, `TryAcquireSlotImmediately`, `CancellationToken` |
+| `IWorkerOptions` | `Tag`, `MachineId`, `IdType`, `Priority`, `OnCompleted`, `OnFailed`, `ExecutionTimeout`, `RetainFor`, `GroupConcurrencyLimit`, `TryAcquireSlotImmediately`, `CancellationToken` |
 | `IRecurringOptions` | `Tag`, `Jitter`, `BackoffCap`, `ExecutionTimeout`, `NonReentrant`, `FailuresBeforeBackoff` |
 
 ## ITaskManager

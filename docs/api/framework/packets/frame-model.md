@@ -19,7 +19,7 @@ This page covers the core `Nalix.Framework.DataFrames` abstractions that sit und
 | Type | Public members |
 |---|---|
 | `FrameBase` | `MagicNumber`, `OpCode`, `Flags`, `Priority`, `Protocol`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
-| `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GenerateReportData()`, `Deserialize(ReadOnlySpan<byte>)` |
+| `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GetReportData()`, `Deserialize(ReadOnlySpan<byte>)` |
 | `FrameTransformer` | `Encrypt`, `TryEncrypt`, `Decrypt`, `TryDecrypt`, `Compress`, `TryCompress`, `Decompress`, `TryDecompress`, size helpers |
 
 ## FrameBase
@@ -55,7 +55,7 @@ It adds the behavior most application packets want by default:
 - automatic `Length` calculation for fixed-size and dynamic-size payloads
 - `LiteSerializer`-based `Serialize(...)` and `Deserialize(...)`
 - pooled reset behavior that restores header defaults and packet fields
-- diagnostics through `GenerateReport()` and `GenerateReportData()`
+- diagnostics through `GenerateReport()` and `GetReportData()`
 
 ## Basic usage
 

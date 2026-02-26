@@ -28,7 +28,7 @@ flowchart LR
 
 ## Related pages
 
-- [Network Middleware](../api/middleware/pipeline.md)
-- [Concurrency Gate](../api/middleware/concurrency-gate.md)
-- [Policy Rate Limiter](../api/middleware/policy-rate-limiter.md)
-- [Token Bucket Limiter](../api/middleware/token-bucket-limiter.md)
+- [Network Middleware](../api/runtime/middleware/pipeline.md)
+- [Concurrency Gate](../api/runtime/middleware/concurrency-gate.md)
+- [Policy Rate Limiter](../api/runtime/middleware/policy-rate-limiter.md)
+- [Token Bucket Limiter](../api/runtime/middleware/token-bucket-limiter.md)

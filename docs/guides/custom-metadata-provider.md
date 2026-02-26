@@ -34,7 +34,7 @@ public sealed class PacketTenantAttribute : Attribute
 
 ```csharp
 using System.Reflection;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 
 public sealed class SampleTenantMetadataProvider : IPacketMetadataProvider
 {
@@ -65,7 +65,7 @@ public sealed class SampleInvoiceHandlers
 {
     [PacketOpcode(0x2201)]
     [PacketTenant("billing")]
-    public ValueTask<string> GetInvoice(PacketContext<IPacket> request)
+    public ValueTask<string> GetInvoice(IPacketContext<IPacket> request)
         => ValueTask.FromResult("invoice");
 }
 ```
@@ -78,9 +78,9 @@ public sealed class SampleInvoiceHandlers
 public sealed class TenantGuardMiddleware<TPacket> : IPacketMiddleware<TPacket>
     where TPacket : IPacket
 {
-    public async Task InvokeAsync(
-        PacketContext<TPacket> context,
-        Func<CancellationToken, Task> next)
+    public async ValueTask InvokeAsync(
+        IPacketContext<TPacket> context,
+        Func<CancellationToken, ValueTask> next)
     {
         PacketTenantAttribute? tenant =
             context.Attributes.GetCustomAttribute<PacketTenantAttribute>();
@@ -141,5 +141,5 @@ Best practice:
 
 ## Related pages
 
-- [Packet Metadata](../api/routing/packet-metadata.md)
+- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
 - [Custom Middleware End-to-End](./custom-middleware-end-to-end.md)

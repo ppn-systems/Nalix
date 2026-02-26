@@ -1,6 +1,6 @@
 # Architecture
 
-This page describes the current server-side shape of `Nalix.Network` as it exists in `src`.
+This page describes the high-level architecture of the Nalix server stack, which consists of `Nalix.Network`, `Nalix.Runtime`, and `Nalix.Network.Hosting`.
 
 Use it when you want the big picture before diving into the API pages.
 
@@ -113,14 +113,16 @@ The exact middleware stack depends on your configuration and metadata. Packet at
 
 ## Where other packages fit
 
-- `Nalix.Common` provides contracts and packet attributes.
-- `Nalix.Framework` provides `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, timing helpers, built-in packet types, packet registry support, and shared runtime helpers.
+- `Nalix.Common` provides shared abstractions, packet attributes, and networking primitives.
+- `Nalix.Framework` provides core utilities like `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, and serialization helpers.
+- `Nalix.Runtime` provides the dispatch pipeline, middleware, and handler compilation.
+- `Nalix.Network.Hosting` provides the standard builder and application host.
 - `Nalix.SDK` is the client-side counterpart.
 
 ## Recommended next pages
 
 - [Real-time Engine](./real-time.md)
 - [Middleware](./middleware.md)
-- [Packet Dispatch](../api/routing/packet-dispatch.md)
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
 - [Connection Hub](../api/network/connection/connection-hub.md)
 - [Server Blueprint](../guides/server-blueprint.md)

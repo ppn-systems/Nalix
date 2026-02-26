@@ -5,7 +5,6 @@ using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
-using Nalix.Network.Routing;
 
 namespace Nalix.Network.Options;
 
@@ -155,26 +154,6 @@ public sealed class PoolingOptions : ConfigurationLoader
 
     #endregion Connect Event Context — one per queued connection callback
 
-    #region Packet Context — reusable packet processing contexts
-
-    /// <summary>
-    /// Maximum number of <see cref="PacketContext{T}"/> instances retained in the pool.
-    /// </summary>
-    [IniComment("Max pooled IPacketContext instances (default 1024)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
-        ErrorMessage = "IPacketContext.Capacity must be between 1 and 1,000,000.")]
-    public int PacketContextCapacity { get; set; } = 2024;
-
-    /// <summary>
-    /// Number of <see cref="PacketContext{T}"/> instances to create at startup.
-    /// </summary>
-    [IniComment("IPacketContext instances to warm up at startup (default 16)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
-        ErrorMessage = "IPacketContext.Preallocate must be between 0 and 1,000,000.")]
-    public int PacketContextPreallocate { get; set; } = 16;
-
-    #endregion Packet Context — reusable packet processing contexts
-
     #region Process Context — reserved, currently unused
 
     /// <summary>
@@ -206,8 +185,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     public void Validate()
     {
         System.ComponentModel.DataAnnotations.ValidationContext ctx = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(
-            this, ctx, validateAllProperties: true);
+        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, ctx, validateAllProperties: true);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
             nameof(this.AcceptContextPreallocate), this.AcceptContextPreallocate,
@@ -228,10 +206,6 @@ public sealed class PoolingOptions : ConfigurationLoader
         ASSERT_PREALLOCATE_LE_CAPACITY(
             nameof(this.ConnectEventContextPreallocate), this.ConnectEventContextPreallocate,
             nameof(this.ConnectEventContextCapacity), this.ConnectEventContextCapacity);
-
-        ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(this.PacketContextPreallocate), this.PacketContextPreallocate,
-            nameof(this.PacketContextCapacity), this.PacketContextCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
             nameof(this.TcpListenerContextPreallocate), this.TcpListenerContextPreallocate,

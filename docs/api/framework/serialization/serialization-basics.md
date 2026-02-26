@@ -38,7 +38,7 @@ Use it when you want to serialize or deserialize a supported model without worki
 
 ```csharp
 byte[] bytes = LiteSerializer.Serialize(model);
-MyModel clone = LiteSerializer.Deserialize<MyModel>(bytes);
+MyModel clone = LiteSerializer.Deserialize<MyModel>(bytes, out int bytesRead);
 ```
 
 ## `FormatterProvider`

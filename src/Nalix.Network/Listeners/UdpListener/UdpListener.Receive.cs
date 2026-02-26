@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Memory.Buffers;
@@ -205,9 +206,8 @@ public abstract partial class UdpListenerBase
         // Parse session token (7-byte ISnowflake) → hub lookup → cache.
         // ================================================================
         ReadOnlySpan<byte> sessionToken = buffer[..SessionTokenSize];
-        ConnectionHub? hub = ConnectionHub;
 
-        if (hub is null)
+        if (s_hub is null)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();
@@ -218,7 +218,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        if (!this.TryResolveConnection(hub, sessionToken, out connection) || connection == null)
+        if (!this.TryResolveConnection(s_hub, sessionToken, out connection) || connection == null)
         {
             _ = Interlocked.Increment(ref _dropUnknown);
             lease.Dispose();
@@ -293,7 +293,7 @@ public abstract partial class UdpListenerBase
     /// <param name="connection">When this method returns <c>true</c>, the resolved connection.</param>
     /// <returns><c>true</c> if a matching connection was found; otherwise <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected virtual bool TryResolveConnection(ConnectionHub hub, ReadOnlySpan<byte> sessionToken, out Connection? connection)
+    protected virtual bool TryResolveConnection(IConnectionHub hub, ReadOnlySpan<byte> sessionToken, out Connection? connection)
     {
         // The session token IS the Snowflake ID — pass it directly to the hub
         // which performs a sharded O(1) lookup via UInt56.

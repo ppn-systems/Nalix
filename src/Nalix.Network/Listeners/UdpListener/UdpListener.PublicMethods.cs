@@ -16,7 +16,6 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Connections;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -39,16 +38,6 @@ namespace Nalix.Network.Listeners.Udp;
 [DebuggerDisplay("Port={_port}, State={State}")]
 public abstract partial class UdpListenerBase : IListener
 {
-    #region Lazy Singletons
-
-    /// <summary>
-    /// Lazily resolved <see cref="ConnectionHub"/> reference.
-    /// Resolved once on first access rather than on every datagram.
-    /// </summary>
-    private static ConnectionHub? ConnectionHub => InstanceManager.Instance.GetExistingInstance<ConnectionHub>();
-
-    #endregion Lazy Singletons
-
     /// <summary>
     /// Starts listening for incoming UDP datagrams and processes them using the bound protocol.
     /// </summary>

@@ -23,12 +23,8 @@ This page covers the packet catalog APIs in `Nalix.Framework.DataFrames`.
 
 The default factory now pre-registers these built-in packet types:
 
-- `Text256`
-- `Text512`
-- `Text1024`
 - `Control`
 - `Handshake`
-- `Directive`
 
 ## PacketRegistryFactory
 
@@ -126,4 +122,4 @@ bool registered = registry.IsRegistered<Handshake>();
 - [Built-in Frames](./built-in-frames.md)
 - [Packet Contracts](../../common/packet-contracts.md)
 - [SDK Overview](../../sdk/index.md)
-- [Packet Dispatch](../../routing/packet-dispatch.md)
+- [Packet Dispatch](../../runtime/routing/packet-dispatch.md)

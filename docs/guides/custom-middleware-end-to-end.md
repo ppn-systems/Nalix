@@ -199,6 +199,6 @@ public sealed class FrameGuard : INetworkBufferMiddleware
 
 ## Related pages
 
-- [Middleware Pipeline](../api/middleware/pipeline.md)
-- [Packet Metadata](../api/routing/packet-metadata.md)
-- [Packet Dispatch](../api/routing/packet-dispatch.md)
+- [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
+- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)

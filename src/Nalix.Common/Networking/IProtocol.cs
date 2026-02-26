@@ -11,22 +11,13 @@ namespace Nalix.Common.Networking;
 /// Interface representing a network protocol.
 /// BuiltInHandlers this interface to define how a network protocol handles connections and messages.
 /// </summary>
-public interface IProtocol : IDisposable, IReportable
+public interface IProtocol : IDisposable, IReportable, IProtocolStage
 {
     /// <summary>
     /// Gets a value indicating whether the protocol should keep the connection open after receiving a packet.
     /// If true, the connection will remain open after message processing.
     /// </summary>
     bool KeepConnectionOpen { get; }
-
-    /// <summary>
-    /// Processes an incoming message from the connection.
-    /// This method should implement the protocol-specific logic for handling messages.
-    /// </summary>
-    /// <param name="sender">The source of the event triggering the message processing.</param>
-    /// <param name="args">The event arguments containing connection and message data.</param>
-    /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
-    void ProcessMessage(object? sender, IConnectEventArgs args);
 
     /// <summary>
     /// Executes after a message from the connection has been processed.

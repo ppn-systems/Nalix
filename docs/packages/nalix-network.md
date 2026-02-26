@@ -1,166 +1,55 @@
 # Nalix.Network
 
-`Nalix.Network` is the runtime package for listeners, connections, protocol flow, packet dispatch, and connection guarding.
+`Nalix.Network` is the core transport layer of the Nalix framework. It handles listeners (TCP/UDP), connection management, and protocol logic.
 
-If you are building the server side of a Nalix-based system, this is the package you will use most.
-
-!!! note "This package is the server runtime core"
-    Most production server concerns in Nalix live here: listeners, dispatch, connection state, throttling, and transport-facing diagnostics.
+!!! note "This package is the networking core"
+    Concerns such as accepting socket traffic, managing the lifecycle of connections, and tracking active sessions live here.
 
 ## Runtime map
 
 ```mermaid
 flowchart LR
     A["TcpListenerBase / UdpListenerBase"] --> B["Protocol"]
-    B --> C["PacketDispatchChannel"]
-    C --> D["Packet middleware"]
-    D --> E["Handlers"]
-    E --> F["Connection / ConnectionHub"]
+    B --> C["IPacketDispatch"]
+    subgraph Nalix.Runtime
+        C --> D["Handlers"]
+    end
 ```
 
-## What it gives you
+## Core Components
 
-### Listener runtime
+### Listeners
 
-Core entry points:
+- `TcpListenerBase`: High-performance TCP listener using `SocketAsyncEventArgs`.
+- `UdpListenerBase`: High-performance UDP listener using `SocketAsyncEventArgs`.
 
-- `TcpListenerBase`
-- `UdpListenerBase`
-- `Protocol`
+### [Protocol](../api/network/protocol.md)
 
-These types let you:
+The `IProtocol` interface and `Protocol` base class define how raw network data is interpreted and passed to the dispatcher.
 
-- accept TCP or UDP traffic
-- keep connection/session state
-- bridge traffic into dispatch
+### [Connections](../api/network/connection/connection.md)
 
-### Dispatch and handlers
+- `IConnection`: Abstract representation of a client connection.
+- `SocketConnection`: Concrete implementation for socket-based transports.
+- `ConnectionHub`: Manages collections of active connections.
 
-Core entry points:
+## Relationship with Nalix.Runtime
 
-- `PacketDispatchChannel`
-- `PacketContext<TPacket>`
-- packet attributes
-- handler controllers with `[PacketController]` and `[PacketOpcode]`
+`Nalix.Network` focuses on **how** data is moved between the network and the server. It delegates **what** to do with that data to the `IPacketDispatch` interface, which is typically implemented in `Nalix.Runtime`.
 
-This is where most application logic plugs in.
+## Usage
 
-### Connection management
-
-Core entry points:
-
-- `Connection`
-- `ConnectionHub`
-- `ConnectionHubOptions`
-- `ConnectionGuard`
-
-Use these when you need:
-
-- live connection tracking
-- user/session lookup
-- forced disconnects
-- per-endpoint admission control
-
-### Middleware and safeguards
-
-Core entry points:
-
-- packet middleware
-- buffer middleware
-- `ConnectionGuard`
-
-The packet-level middleware, throttling, and time-sync helpers live in `Nalix.Network.Pipeline`.
-
-Use these to keep the server stable under real traffic.
-
-### Runtime tuning
-
-Core option types:
-
-- `NetworkSocketOptions`
-- `DispatchOptions`
-- `ConnectionLimitOptions`
-- `ConnectionHubOptions`
-- `TimingWheelOptions`
-- `PoolingOptions`
-- `NetworkCallbackOptions`
-
-## Suggested reading order
-
-If you are new to the server runtime, read in this order:
-
-1. [TCP Listener](../api/network/runtime/tcp-listener.md)
-2. [Protocol](../api/network/runtime/protocol.md)
-3. [Packet Dispatch](../api/routing/packet-dispatch.md)
-4. [Packet Context](../api/routing/packet-context.md)
-5. [Connection](../api/network/connection/connection.md)
-6. [Connection Hub](../api/network/connection/connection-hub.md)
-7. [Network Options](../api/network/options/options.md)
-
-Then continue with the guides:
-
-- [End-to-End Sample](../guides/end-to-end.md)
-- [Custom Middleware](../guides/custom-middleware-end-to-end.md)
-- [Custom Metadata Provider](../guides/custom-metadata-provider.md)
-- [TCP Request/Response](../guides/tcp-request-response.md)
-- [UDP Auth Flow](../guides/udp-auth-flow.md)
-
-## Minimal server shape
-
-### Quick example
+Typically, you don't use this package directly unless you are building a custom host. Instead, use `Nalix.Network.Hosting`.
 
 ```csharp
-PacketDispatchChannel dispatch = new(options =>
-{
-    options.WithLogging(logger)
-           .WithHandler(() => new SamplePingHandlers());
-});
-
-[PacketController("SamplePingHandlers")]
-public sealed class SamplePingHandlers
-{
-    [PacketOpcode(0x1001)]
-    public ValueTask<Control> Handle(Control request, IConnection connection)
-        => ValueTask.FromResult(new Control { Type = ControlType.PONG });
-}
-
-public sealed class SampleProtocol : Protocol
-{
-    private readonly PacketDispatchChannel _dispatch;
-
-    public SampleProtocol(PacketDispatchChannel dispatch) => _dispatch = dispatch;
-
-    public override void ProcessMessage(object sender, IConnectEventArgs args)
-        => _dispatch.HandlePacket(args.Lease, args.Connection);
-}
-
-public sealed class SampleTcpListener : TcpListenerBase
-{
-    public SampleTcpListener(ushort port, IProtocol protocol) : base(port, protocol) { }
-}
+// Example of concrete listener implementation
+var protocol = new MyProtocol(dispatcher);
+var listener = new MyTcpListener(protocol);
+listener.Activate();
 ```
 
-## Where metadata fits
+## Related Packages
 
-Packet metadata is a real part of the package design, not just decoration.
-
-It drives:
-
-- permissions
-- timeout behavior
-- rate limiting
-- concurrency limits
-- custom conventions through metadata providers
-
-## Related pages
-
-- [Architecture](../concepts/architecture.md)
-- [Real-time Engine](../concepts/real-time.md)
-
-## Key API pages
-
-- [TCP Listener](../api/network/runtime/tcp-listener.md)
-- [Protocol](../api/network/runtime/protocol.md)
-- [Packet Dispatch](../api/routing/packet-dispatch.md)
-- [Connection Hub](../api/network/connection/connection-hub.md)
-- [Network Options](../api/network/options/options.md)
+- [Nalix.Runtime](./nalix-runtime.md): The request pipeline and dispatcher.
+- [Nalix.Network.Hosting](./nalix-network-hosting.md): Standard bootstrap.
+- [Nalix.Common](./nalix-common.md): Shared primitives and attributes.

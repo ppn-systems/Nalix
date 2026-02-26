@@ -111,6 +111,6 @@ For most teams, the easiest way to reason about security is:
 
 - [UDP Auth Flow](../guides/udp-auth-flow.md)
 - [Custom Middleware End-to-End](../guides/custom-middleware-end-to-end.md)
-- [Packet Metadata](../api/routing/packet-metadata.md)
-- [Packet Attributes](../api/routing/packet-attributes.md)
+- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
+- [Packet Attributes](../api/runtime/routing/packet-attributes.md)
 - [Cryptography Overview](../api/security/cryptography.md)

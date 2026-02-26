@@ -136,6 +136,7 @@ nav:
       - Nalix.Framework: packages/nalix-framework.md
       - Nalix.Logging: packages/nalix-logging.md
       - Nalix.Network: packages/nalix-network.md
+      - Nalix.Runtime: packages/nalix-runtime.md
       - Nalix.Network.Hosting: packages/nalix-network-hosting.md
       - Nalix.Network.Pipeline: packages/nalix-network-pipeline.md
       - Nalix.SDK: packages/nalix-sdk.md
@@ -178,39 +179,39 @@ nav:
         - Hashing and MAC: api/security/hashing-and-mac.md
         - AEAD and Envelope: api/security/aead-and-envelope.md
         - Handshake Protocol: api/security/handshake.md
-      - Routing:
-        - Attributes: api/routing/packet-attributes.md
-        - Metadata: api/routing/packet-metadata.md
-        - Context: api/routing/packet-context.md
-        - Packet Sender: api/routing/packet-sender.md
-        - Dispatch Contracts: api/routing/dispatch-contracts.md
-        - Dispatch: api/routing/packet-dispatch.md
-        - Dispatch Channel and Router: api/routing/dispatch-channel-and-router.md
-        - Handler Return Types: api/routing/handler-results.md
-      - Middleware:
-        - Pipeline: api/middleware/pipeline.md
-        - Network Buffer Pipeline: api/middleware/network-buffer-pipeline.md
-        - Connection Limiter: api/middleware/connection-limiter.md
-        - Concurrency Gate: api/middleware/concurrency-gate.md
-        - Policy Rate Limiter: api/middleware/policy-rate-limiter.md
-        - Token Bucket Limiter: api/middleware/token-bucket-limiter.md
+      - Runtime:
+        - Routing:
+          - Attributes: api/runtime/routing/packet-attributes.md
+          - Metadata: api/runtime/routing/packet-metadata.md
+          - Context: api/runtime/routing/packet-context.md
+          - Packet Sender: api/runtime/routing/packet-sender.md
+          - Dispatch Contracts: api/runtime/routing/dispatch-contracts.md
+          - Dispatch: api/runtime/routing/packet-dispatch.md
+          - Dispatch Channel and Router: api/runtime/routing/dispatch-channel-and-router.md
+          - Handler Return Types: api/runtime/routing/handler-results.md
+          - Dispatch Options: api/runtime/options/dispatch-options.md
+        - Middleware:
+          - Pipeline: api/runtime/middleware/pipeline.md
+          - Network Buffer Pipeline: api/runtime/middleware/network-buffer-pipeline.md
+          - Concurrency Gate: api/runtime/middleware/concurrency-gate.md
+          - Policy Rate Limiter: api/runtime/middleware/policy-rate-limiter.md
+          - Token Bucket Limiter: api/runtime/middleware/token-bucket-limiter.md
       - Network:
-        - Hosting: api/network/runtime/network-hosting.md
-        - Protocol: api/network/runtime/protocol.md
-        - TCP Listener: api/network/runtime/tcp-listener.md
-        - UDP Listener: api/network/runtime/udp-listener.md
-        - Socket Connection: api/network/runtime/socket-connection.md
+        - Protocol: api/network/protocol.md
+        - TCP Listener: api/network/tcp-listener.md
+        - UDP Listener: api/network/udp-listener.md
+        - Socket Connection: api/network/socket-connection.md
         - Connection:
           - Overview: api/network/connection/connection.md
           - Hub: api/network/connection/connection-hub.md
           - Events: api/network/connection/connection-events.md
           - Extensions: api/network/connection/connection-extensions.md
-        - Time Synchronizer: api/network/runtime/time-synchronizer.md
-        - Timing Wheel: api/network/runtime/timing-wheel.md
+          - Limiter: api/network/connection/connection-limiter.md
+        - Time Synchronizer: api/network/time-synchronizer.md
+        - Timing Wheel: api/network/timing-wheel.md
         - Options:
           - Overview: api/network/options/options.md
           - Network Socket: api/network/options/network-socket-options.md
-          - Dispatch Options: api/network/options/dispatch-options.md
           - Connection Limit: api/network/options/connection-limit-options.md
           - Connection Hub Options: api/network/connection/connection-hub-options.md
           - Timing Wheel Options: api/network/options/timing-wheel-options.md
@@ -218,6 +219,8 @@ nav:
           - Network Callback Options: api/network/options/network-callback-options.md
           - Compression Options: api/network/options/compression-options.md
           - Token Bucket Options: api/network/options/token-bucket-options.md
+      - Hosting:
+        - Application: api/hosting/network-application.md
       - SDK:
         - Overview: api/sdk/index.md
         - TCP Session: api/sdk/tcp-session.md

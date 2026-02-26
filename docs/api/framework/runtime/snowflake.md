@@ -39,8 +39,29 @@ Snowflake id = Snowflake.NewId(12345, 7, SnowflakeType.System);
 
 - machine ID is loaded from `SnowflakeOptions`
 - generated IDs are compact and sortable enough for runtime use
+- implements `IEquatable<Snowflake>` and overrides `GetHashCode`/`Equals` for efficient set and dictionary usage
+- native support for high-performance binary serialization through `LiteSerializer`
+
+## Advanced usage
+
+### Equality comparison
+
+```csharp
+Snowflake id1 = ...;
+Snowflake id2 = ...;
+if (id1 == id2) { /* IDs are identical */ }
+```
+
+### Serialization
+
+```csharp
+byte[] buffer = ...;
+id.TryWriteBytes(buffer); // Write bytes directly to a span
+Snowflake parsed = Snowflake.FromBytes(buffer); // Read from bytes
+```
 
 ## Related APIs
 
 - [Task Manager](./task-manager.md)
 - [Connection Contracts](../../common/connection-contracts.md)
+- [Serialization Basics](../serialization/serialization-basics.md)

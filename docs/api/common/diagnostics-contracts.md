@@ -25,7 +25,7 @@ It exposes methods such as:
 - `Info(...)`
 - `Warn(...)`
 - `Error(...)`
-- `Fatal(...)`
+- `Critical(...)`
 
 ## INLogixTarget
 
