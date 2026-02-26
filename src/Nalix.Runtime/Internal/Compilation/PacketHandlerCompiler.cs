@@ -20,6 +20,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Results;
 
@@ -278,39 +279,43 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             && parms[0].ParameterType != typeof(PacketContext<TPacket>)
             && parms[0].ParameterType != typeof(IPacketContext<TPacket>);
 
-        Func<object, PacketContext<TPacket>, object> x12;
+        Func<object, PacketContext<TPacket>, ValueTask<object>> x20;
 
         if (needsContextBridge)
         {
-            x12 = BuildContextBridgeInvoker(x22, parms, kind);
-        }
-        else if (RuntimeFeature.IsDynamicCodeSupported)
-        {
-            // Normal expression-tree path — types match exactly.
-            Expression[] x09 = BuildArgExpressions(kind, parms, x01, x02, x03, x04);
-
-            Expression x10 = x22.IsStatic
-                ? Expression.Call(x22, x09)
-                : Expression.Call(
-                    Expression.Convert(x00, x22.DeclaringType
-                        ?? throw new InternalErrorException($"Handler method '{x22.Name}' is missing a declaring type.")), x22, x09);
-
-            Expression x11 = x22.ReturnType == typeof(void)
-                ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(object)))
-                : System.Linq.Expressions.Expression.Convert(x10, typeof(object));
-
-            x12 = Expression
-                    .Lambda<Func<object, PacketContext<TPacket>, object>>(x11, x00, x01)
-                    .Compile();
+            x20 = BuildContextBridgeInvoker(x22, parms, kind);
         }
         else
         {
-            // AOT fallback — build invoke args at call-time from context fields.
-            x12 = BuildAotInvoker(x22, parms, kind);
-        }
+            Func<object, PacketContext<TPacket>, object> x12;
 
-        Func<object, PacketContext<TPacket>,
-            ValueTask<object>> x20 = WrapReturnType(x12, x22.ReturnType);
+            if (RuntimeFeature.IsDynamicCodeSupported)
+            {
+                // Normal expression-tree path — types match exactly.
+                Expression[] x09 = BuildArgExpressions(kind, parms, x01, x02, x03, x04);
+
+                Expression x10 = x22.IsStatic
+                    ? Expression.Call(x22, x09)
+                    : Expression.Call(
+                        Expression.Convert(x00, x22.DeclaringType
+                            ?? throw new InternalErrorException($"Handler method '{x22.Name}' is missing a declaring type.")), x22, x09);
+
+                Expression x11 = x22.ReturnType == typeof(void)
+                    ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(object)))
+                    : System.Linq.Expressions.Expression.Convert(x10, typeof(object));
+
+                x12 = Expression
+                        .Lambda<Func<object, PacketContext<TPacket>, object>>(x11, x00, x01)
+                        .Compile();
+            }
+            else
+            {
+                // AOT fallback — build invoke args at call-time from context fields.
+                x12 = BuildAotInvoker(x22, parms, kind);
+            }
+
+            x20 = WrapReturnType(x12, x22.ReturnType);
+        }
 
         return new PacketHandlerDescriptor<TPacket>(x22, x22.ReturnType, x20);
     }
@@ -541,24 +546,21 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
-    private static Func<object, PacketContext<TPacket>, object> BuildContextBridgeInvoker(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
+    private static Func<object, PacketContext<TPacket>, ValueTask<object>> BuildContextBridgeInvoker(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
     {
-        // Capture once at compile time — zero allocation on the hot path.
-        bool isStatic = method.IsStatic;
+        // This path is only used when a dispatcher registered with a broad packet type
+        // (for example IPacket) needs to invoke a handler that declared a concrete
+        // PacketContext<TConcrete>/IPacketContext<TConcrete>.
+        Type bridgePacketType = parms[0].ParameterType.GetGenericArguments()[0];
         bool withToken = kind == SignatureKind.ContextWithToken;
+        Func<object?, ValueTask<object>> normalizer = CreateResultNormalizer(method.ReturnType);
+        MethodInfo bridgeMethod = GetRequiredMethod(
+            typeof(PacketHandlerCompiler<TController, TPacket>),
+            nameof(InvokeContextBridgeAsync),
+            BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(bridgePacketType);
 
         return (instance, context) =>
-        {
-            // MethodInfo.Invoke accepts the concrete PacketContext<T> as-is via
-            // object boxing, so no coercion operator is needed.
-            object[] args = withToken
-                ? [context, context.CancellationToken]
-                : [context];
-
-            return isStatic
-                ? method.Invoke(null, args)!
-                : method.Invoke(instance, args)!;
-        };
+            (ValueTask<object>)bridgeMethod.Invoke(null, [method, instance, context, withToken, normalizer])!;
     }
 
     /// <summary>
@@ -704,6 +706,77 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         }
 
         return (instance, context) => ValueTask.FromResult(x00(instance, context));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Func<object?, ValueTask<object>> CreateResultNormalizer(Type returnType)
+    {
+        if (returnType == typeof(Task))
+        {
+            return result => AwaitTaskVoidAsync(result!);
+        }
+
+        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
+        {
+            Type resultType = returnType.GetGenericArguments()[0];
+            Func<object, ValueTask<object>> converter = CreateTaskConverter(resultType);
+            return result => converter(result!);
+        }
+
+        if (returnType == typeof(ValueTask))
+        {
+            return result => AwaitValueTaskVoidAsync(result!);
+        }
+
+        if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
+        {
+            Type resultType = returnType.GetGenericArguments()[0];
+            Func<object, ValueTask<object>> converter = CreateValueTaskConverter(resultType);
+            return result => converter(result!);
+        }
+
+        return result => ValueTask.FromResult(result!);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static async ValueTask<object> InvokeContextBridgeAsync<TConcretePacket>(
+        MethodInfo method,
+        object instance,
+        PacketContext<TPacket> context,
+        bool withToken,
+        Func<object?, ValueTask<object>> normalizer)
+        where TConcretePacket : IPacket
+    {
+        if (context.Packet is not TConcretePacket concretePacket)
+        {
+            throw new InternalErrorException(
+                $"Handler bridge expected packet type '{typeof(TConcretePacket).Name}' but received '{context.Packet?.GetType().Name ?? "null"}'.");
+        }
+
+        ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        PacketContext<TConcretePacket> bridgedContext = pool.Get<PacketContext<TConcretePacket>>();
+
+        try
+        {
+            bridgedContext.Initialize(concretePacket, context.Connection, context.Attributes, context.CancellationToken);
+            bridgedContext.SkipOutbound = context.SkipOutbound;
+
+            object? result = withToken
+                ? method.IsStatic
+                    ? method.Invoke(null, [bridgedContext, bridgedContext.CancellationToken])
+                    : method.Invoke(instance, [bridgedContext, bridgedContext.CancellationToken])
+                : method.IsStatic
+                    ? method.Invoke(null, [bridgedContext])
+                    : method.Invoke(instance, [bridgedContext]);
+
+            object normalized = await normalizer(result).ConfigureAwait(false);
+            context.SkipOutbound = bridgedContext.SkipOutbound;
+            return normalized;
+        }
+        finally
+        {
+            bridgedContext.Return();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

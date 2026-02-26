@@ -1,129 +1,97 @@
 # Architecture
 
-This page describes the high-level architecture of the Nalix server stack, which consists of `Nalix.Network`, `Nalix.Runtime`, and `Nalix.Network.Hosting`.
+The Nalix architecture is designed for high-throughput, low-latency networking with a focus on zero-allocation data paths and shard-aware execution. It consists of four primary layers: **Transport**, **Protocol**, **Dispatch**, and **Application Logic**.
 
-Use it when you want the big picture before diving into the API pages.
+## High-Level Landscape
 
-## Runtime map
+Nalix uses a modular package architecture. Below is the System Context and Physical component layout.
 
-At a high level, a Nalix server is built from:
-
-- listeners that accept TCP or UDP traffic
-- a protocol that decides how accepted traffic is processed
-- a dispatch channel that deserializes packets and invokes handlers
-- connection services that keep session state and transport helpers alive
-- throttling and middleware that protect the runtime under load
-
+### System Context (C4 Level 1)
 ```mermaid
-flowchart LR
-    Client["Client"] --> Listener["TcpListenerBase / UdpListenerBase"]
-    Listener --> Protocol["Protocol"]
-    Protocol --> Dispatch["PacketDispatchChannel queue + worker loop"]
-    Dispatch --> Deserialize["Packet registry deserialize"]
-    Deserialize --> Metadata["Resolve handler + metadata"]
-    Metadata --> Middleware["Packet middleware"]
-    Middleware --> Handler["Handler controller / method"]
-    Handler --> Connection["Connection / ConnectionHub"]
+graph LR
+    User("External System / User") -- "TCP/UDP (Nalix Protocol)" --> Stack("Nalix Networking Stack")
+    Stack -- "Logs" --> Logging("NLogix / External SIEM")
+    Stack -- "Config" --> Config("Configuration (INI/JSON)")
 ```
 
-## Main server flow
+### Physical Component Layout
+```mermaid
+graph TD
+    Hosting["Nalix.Network.Hosting (Builder/Host)"] --> Network["Nalix.Network (Transport/Connection)"]
+    Hosting --> Runtime["Nalix.Runtime (Dispatch/Handlers)"]
+    Runtime --> Framework["Nalix.Framework (Serialization/Buffers/Identifiers)"]
+    Network --> Common["Nalix.Common (Abstractions/Contracts)"]
+    Framework --> Common
+    SDK["Nalix.SDK (Client Session)"] --> Framework
+    SDK --> Common
+    Pipeline["Nalix.Network.Pipeline (Middlewares)"] --> Network
+    Logging["Nalix.Logging"] --> Common
+```
 
-The common TCP path looks like this:
+## Mental Model: Server vs. Client
 
-1. `TcpListenerBase` accepts a socket.
-2. `ConnectionGuard` may reject the endpoint before full admission.
-3. The listener creates a `Connection` and passes it to `Protocol.OnAccept(...)`.
-4. The protocol receives framed data through `ProcessFrame(...)`, then forwards it into `PacketDispatchChannel` through `ProcessMessage(...)`.
-5. Dispatch queues the work, the worker loop deserializes the packet, resolves metadata, runs middleware, invokes the handler, and optionally sends a result back through the connection.
+Nalix enforces a clear separation of concerns between the server host and the client SDK:
 
-The UDP path follows the same broad model, but datagrams are authenticated and mapped to session state differently inside `UdpListenerBase`.
-That same architecture supports built-in packets and custom packet types once the dispatch pipeline resolves the correct `TPacket`.
+- **Server-Side (Thick Host)**: The host owns the socket listeners, connection hubs, and the shard-aware dispatch channel. It is responsible for scale and security (admission control, rate limiting).
+- **Client-Side (Thin SDK)**: The SDK focuses on session management, automated request/response correlation, and transparent encryption/compression.
+- **Shared Contracts**: Packet definitions (POCOs) should live in a shared `Contracts` assembly, annotated with `[SerializePackable]` attributes.
 
-## Core building blocks
+## The Packet Journey
 
-### Listeners
-
-- `TcpListenerBase` owns accept loops, backpressure, timing-wheel integration, and connection lifecycle.
-- `UdpListenerBase` owns datagram receive loops, auth validation, and UDP session handling.
-
-### Protocol
-
-`Protocol` is the bridge between transport and dispatch. It is where accepted connections are initialized and where incoming message buffers are handed over to application dispatch.
-
-### Dispatch
-
-`PacketDispatchChannel` is the application entry point for packets. It is responsible for:
-
-- queueing inbound work
-- running the worker loop
-- deserializing packets with the packet registry
-- resolving handler descriptors and metadata
-- running middleware
-- processing handler return values
-
-Under the hood it uses `PacketDispatchOptions<TPacket>` and shard-aware worker loops.
-
-### Connection state
-
-`Connection` and `ConnectionHub` provide:
-
-- live connection lookup
-- session/user correlation
-- send helpers for TCP and UDP
-- diagnostics and cleanup hooks
-
-### Protection and pressure control
-
-The network runtime is designed to run with pressure controls enabled, not as an afterthought.
-
-Typical pieces are:
-
-- `ConnectionGuard` for admission control
-- `TokenBucketLimiter` and `PolicyRateLimiter` for request-rate protection
-- `ConcurrencyGate` for in-flight handler limits
-- `TimingWheel` for timeout and scheduled expiry handling
-- `TimeSynchronizer` for periodic time-sync events used by the listener layer
-
-## Dispatch pipeline
-
-Conceptually, packet dispatch looks like this:
+Understanding how a packet moves through the system is critical for optimizing performance.
 
 ```mermaid
 sequenceDiagram
-    participant L as Listener
-    participant P as Protocol
-    participant D as PacketDispatchChannel
-    participant Q as DispatchQueue
-    participant W as WorkerLoop
-    participant M as Middleware
-    participant H as Handler
-    participant C as Connection
+    participant Net as Network (Socket/Buffer)
+    participant Prot as Protocol (Framing)
+    participant Disp as PacketDispatchChannel (Sharding)
+    participant Reg as PacketRegistry (Deserialization)
+    participant Pipe as Inbound Pipeline (Middleware)
+    participant Hand as Handler (Application Logic)
 
-    L->>P: accepted data / datagram
-    P->>D: handle packet
-    D->>Q: enqueue lease
-    W->>Q: pull lease
-    W->>W: deserialize + resolve metadata
-    W->>M: run inbound middleware
-    M->>H: invoke handler
-    H-->>W: return result or complete
-    W-->>C: send response if applicable
+    Net->>Prot: Raw Bytes Received
+    Prot->>Prot: Validate Frame (Length/Check)
+    Prot->>Disp: HandlePacket(IBufferLease, IConnection)
+    Note over Disp: Shard-aware Queueing
+    Disp->>Reg: TryDeserialize(MagicNumber)
+    Reg-->>Disp: TPacket instance (Poolable)
+    Disp->>Pipe: Execute Middleware (Auth/RateLimit)
+    Pipe->>Hand: Invoke Handler(IPacketContext<T>)
+    Hand-->>Disp: Return Response / Task
+    Disp->>Net: Send Result (Optional)
 ```
 
-The exact middleware stack depends on your configuration and metadata. Packet attributes such as permission, timeout, concurrency, and rate limits become runtime behavior through the metadata pipeline.
+## Core Building Blocks
 
-## Where other packages fit
+### 1. Transport & Listeners
+- **TcpServerListener**: High-concurrency listener using `SocketAsyncEventArgs` or `IOThreads`.
+- **UdpServerListener**: Session-less listener with built-in authenticated session mapping.
+- **Connection Guard**: Early-stage admission control to reject malicious endpoints at the socket level.
 
-- `Nalix.Common` provides shared abstractions, packet attributes, and networking primitives.
-- `Nalix.Framework` provides core utilities like `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, and serialization helpers.
-- `Nalix.Runtime` provides the dispatch pipeline, middleware, and handler compilation.
-- `Nalix.Network.Hosting` provides the standard builder and application host.
-- `Nalix.SDK` is the client-side counterpart.
+### 2. Protocol (The Bridge)
+The `IProtocol` interface translates raw network streams into discrete message leases. It ensures that the `PacketDispatchChannel` only receives complete, valid packet fragments.
 
-## Recommended next pages
+### 3. Shard-Aware Dispatch
+`PacketDispatchChannel` is the engine of Nalix. It utilizes:
+- **Worker Sharding**: Multiple worker loops (parallel to CPU cores) to prevent head-of-line blocking.
+- **Wake-Signaling**: A coalesced signaling mechanism using `System.Threading.Channels` to minimize thread context switching under high load.
+- **Prioritization**: Native support for `PacketPriority` (Emergency, System, High, Normal, Low).
 
+### 4. Instance Management
+Nalix uses a custom `InstanceManager` (Service Locator pattern optimized for performance) instead of standard DI to ensure allocation-free service resolution during hot-path execution.
+
+## Protection and Pressure Control
+
+The network runtime is designed to run with pressure controls enabled by default:
+
+- **TokenBucketLimiter**: Protects against request spikes.
+- **ConcurrencyGate**: Limits the number of in-flight handlers to prevent thread pool exhaustion.
+- **TimingWheel**: Handles millions of concurrent timeouts with O(1) complexity.
+
+## Recommended Next Pages
+
+- [Performance Optimizations](./performance-optimizations.md)
 - [Real-time Engine](./real-time.md)
 - [Middleware](./middleware.md)
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
-- [Connection Hub](../api/network/connection/connection-hub.md)
-- [Server Blueprint](../guides/server-blueprint.md)
+- [Production End-to-End](../guides/production-end-to-end.md)
+

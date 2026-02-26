@@ -1,63 +1,79 @@
 # Nalix
 
-Nalix is a .NET networking stack for building TCP and UDP systems with a shared packet model across server and client code.
+<p align="center">
+  <img src="assets/nalix.png" alt="Nalix Logo" width="200"/>
+</p>
 
-The docs are organized around the parts people actually use:
+<p align="center">
+  <a href="https://www.nuget.org/packages?q=Nalix"><img src="https://img.shields.io/nuget/v/Nalix.Network.svg?style=flat-square&label=NuGet" alt="NuGet version"/></a>
+  <a href="https://github.com/ppn-systems/nalix/stargazers"><img src="https://img.shields.io/github/stars/ppn-systems/nalix.svg?style=flat-square&color=yellow" alt="GitHub stars"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/nalix.svg?style=flat-square&color=blue" alt="License"/></a>
+</p>
 
-- `Nalix.Network` for listeners, connections, and transport-level protocols
-- `Nalix.Runtime` for packet dispatching, middleware pipelines, and handler compilation
-- `Nalix.Network.Hosting` for fluent application bootstrap and managed lifecycle
-- `Nalix.SDK` for client-side sessions and request/response helpers
-- `Nalix.Common` for shared contracts, attributes, and primitives
-- `Nalix.Framework` for configuration, serialization, and core utilities
+High-performance real-time networking stack for .NET. Build TCP and UDP systems with a shared packet model, zero-allocation data paths, and shard-aware dispatching.
 
-## Start here
+---
 
-If you are new to the project, read in this order:
+<p align="center">
+  <a href="./quickstart" style="font-size: 20px; font-weight: bold; background-color: #00bcd4; color: white; padding: 10px 25px; text-decoration: none; border-radius: 5px;">🚀 Get Started</a>
+</p>
 
-1. [Introduction](./introduction.md)
-2. [Installation](./installation.md)
-3. [Quickstart](./quickstart.md)
-4. [Packages Overview](./packages/index.md)
+---
 
-If you are building a server, continue with:
+## Why Nalix?
 
-- [Nalix.Network](./packages/nalix-network.md)
-- [Nalix.Runtime](./packages/nalix-runtime.md)
-- [Nalix.Network.Hosting](./packages/nalix-network-hosting.md)
-- [Architecture](./concepts/architecture.md)
-- [Server Blueprint](./guides/server-blueprint.md)
+- **Unified Model**: Share packet POCOs and attributes between Server and Client.
+- **Ultra Performance**: Zero-allocation hot paths, pooled buffers, and frozen lookups.
+- **Shard-Aware**: Multi-worker dispatch avoids head-of-line blocking.
+- **Production-Ready**: Built-in rate limiting, concurrency controls, and detailed diagnostics.
 
-If you are building a client, continue with:
+## High-Level Architecture
 
-- [Nalix.SDK](./packages/nalix-sdk.md)
-- [SDK Overview](./api/sdk/index.md)
-- [TCP Session](./api/sdk/tcp-session.md)
-
-## Core runtime idea
-
-The normal Nalix flow is:
-
-1. load typed configuration
-2. register shared services such as `ILogger` and `IPacketRegistry`
-3. build packet dispatch
-4. start a listener or connect a client session
-5. exchange packets through the same registry and metadata rules
-
-## Minimal example
+Nalix organizes networking into four clean layers.
 
 ```mermaid
-flowchart LR
-    A["Configuration"] --> B["InstanceManager"]
-    B --> C["PacketRegistry"]
-    C --> D["Dispatch or Session"]
-    D --> E["Handlers / Requests"]
+graph TD
+    subgraph Client ["Nalix.SDK"]
+        Session["TransportSession"]
+    end
+
+    subgraph Server ["Nalix.Network.Hosting"]
+        Builder["NetworkApplicationBuilder"]
+        Host["NetworkApplication"]
+    end
+
+    subgraph Runtime ["Nalix.Runtime"]
+        Dispatch["PacketDispatchChannel"]
+        Middleware["Middleware Chain"]
+    end
+
+    subgraph Base ["Nalix.Common / Framework"]
+        Registry["PacketRegistry"]
+        Pool["BufferPoolManager"]
+    end
+
+    Session -- "TCP/UDP" --> Host
+    Host --> Dispatch
+    Dispatch --> Registry
+    Dispatch --> Middleware
+    Middleware --> Handlers["Handler Logic"]
 ```
 
-## What this site tries to answer
+## Start Here
 
-- which package to install
-- how to start a server
-- how to start a client
-- how dispatch, middleware, and metadata fit together
-- which runtime options matter in production
+If you are new to the project, follow this path:
+
+1. [Introduction](./introduction.md) - The Nalix philosophy and mental model.
+2. [Installation](./installation.md) - How to choose the right packages.
+3. [Quickstart](./quickstart.md) - Run your first Ping/Pong end-to-end.
+4. [Project Setup Guide](./guides/project-setup.md) - How to structure a multi-project solution.
+
+## Core Packages
+
+- **[Nalix.Network](./packages/nalix-network.md)**: Listeners, connections, and transport protocols.
+- **[Nalix.Runtime](./packages/nalix-runtime.md)**: Dispatching, middleware, and handler compilation.
+- **[Nalix.SDK](./packages/nalix-sdk.md)**: Client-side sessions and request/response helpers.
+- **[Nalix.Framework](./packages/nalix-framework.md)**: Serialization, pooling, and identifiers.
+
+---
+*Nalix is built by [PPN Corporation](https://github.com/ppn-systems). Licensed under Apache 2.0.*

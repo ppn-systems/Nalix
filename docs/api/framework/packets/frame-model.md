@@ -68,7 +68,7 @@ It adds the behavior most application packets want by default:
 public sealed class ChatMessage : PacketBase<ChatMessage>
 {
     [SerializeDynamicSize(256)]
-    [SerializeOrder(PacketHeaderOffset.Region)]
+    [SerializeOrder(0)]
     public string Content { get; set; } = string.Empty;
 
     public void Initialize(string content) => Content = content ?? string.Empty;

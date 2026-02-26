@@ -1,24 +1,26 @@
 # Nalix.Network.Pipeline
 
-`Nalix.Network.Pipeline` provides reusable middleware, throttling, and timekeeping components for the Nalix networking stack.
+Standard middleware components and pipeline abstractions for Nalix connection management.
 
-## Install
+## Features
+
+- **Connection Guards**: IP-based admission control and session limiting.
+- **Pipeline Abstraction**: Pluggable pipeline that wraps any `IConnection` for pre-processing.
+- **Pre-built Middlewares**: Throttling, Authentication, and Audit logging implementations.
+
+## Installation
 
 ```bash
 dotnet add package Nalix.Network.Pipeline
 ```
 
-## What it includes
+## Quick Example: Adding a Connection Guard
 
-- Inbound packet middleware for permission, rate-limit, concurrency, and timeout checks
-- Throttling primitives such as `ConcurrencyGate`, `PolicyRateLimiter`, and `TokenBucketLimiter`
-- `TimeSynchronizer` and supporting options for distributed runtime coordination
-
-## Typical use
-
-Add this package when you want pipeline and throttling features without depending on the full transport runtime surface of `Nalix.Network`.
+```csharp
+var hub = new ConnectionHub(options);
+hub.AddGuard(new IpAddressLimiter(100)); // Limit 100 conns per IP
+```
 
 ## Documentation
 
-- Package docs: [Nalix.Network.Pipeline](https://ppn-systems.github.io/Nalix/packages/nalix-network-pipeline/)
-- API docs: [Middleware API](https://ppn-systems.github.io/Nalix/api/middleware/pipeline/)
+See [Middleware & Pipeline](https://ppn-systems.me/api/pipeline/index) for more details.
