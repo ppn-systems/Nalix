@@ -734,7 +734,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryEnqueue(IBufferLease lease)
+        public bool TryEnqueue([Borrowed] IBufferLease lease)
         {
             SpinWait spin = default;
 
@@ -1106,5 +1106,4 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     }
 
     #endregion Nested Types
-
 }

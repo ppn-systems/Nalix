@@ -44,7 +44,7 @@ internal sealed class EnumArrayFormatter<
             return;
         }
 
-        writer.Write((ushort)value.Length);
+        writer.Write(value.Length);
 
         if (value.Length == 0)
         {
@@ -77,7 +77,7 @@ internal sealed class EnumArrayFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] Deserialize(ref DataReader reader)
     {
-        ushort length = reader.ReadUInt16();
+        int length = reader.ReadInt32();
 
         if (length == 0)
         {

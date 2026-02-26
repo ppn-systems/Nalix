@@ -21,6 +21,13 @@ That is why a typical setup registers shared services early:
 ## Minimal example
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Injection;
+using Nalix.Logging;
+
+ILogger logger = NLogix.Host.Instance;
+
 InstanceManager.Instance.Register<ILogger>(logger);
 InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 ```

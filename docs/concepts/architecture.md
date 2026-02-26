@@ -33,10 +33,11 @@ The common TCP path looks like this:
 1. `TcpListenerBase` accepts a socket.
 2. `ConnectionGuard` may reject the endpoint before full admission.
 3. The listener creates a `Connection` and passes it to `Protocol.OnAccept(...)`.
-4. The protocol forwards framed data into `PacketDispatchChannel`.
+4. The protocol receives framed data through `ProcessFrame(...)`, then forwards it into `PacketDispatchChannel` through `ProcessMessage(...)`.
 5. Dispatch queues the work, the worker loop deserializes the packet, resolves metadata, runs middleware, invokes the handler, and optionally sends a result back through the connection.
 
 The UDP path follows the same broad model, but datagrams are authenticated and mapped to session state differently inside `UdpListenerBase`.
+That same architecture supports built-in packets and custom packet types once the dispatch pipeline resolves the correct `TPacket`.
 
 ## Core building blocks
 

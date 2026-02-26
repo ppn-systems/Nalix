@@ -1,6 +1,6 @@
 # Diagnostics Contracts
 
-`Nalix.Common.Diagnostics` defines the core logging contracts used across the stack.
+`Nalix.Common.Logging` defines the core logging contracts used across the stack.
 
 ## Source mapping
 
@@ -18,7 +18,7 @@
 
 `ILogger` is still the main Microsoft logging abstraction used by framework, network, SDK, and logging components.
 
-It exposes methods such as:
+Nalix also ships compatibility extensions in `src/Nalix.Common/Logging/NLogixExtensions.cs` so existing call sites can use helpers such as:
 
 - `Trace(...)`
 - `Debug(...)`
@@ -46,11 +46,13 @@ It supports:
 - `RegisterTarget(...)`
 - `UnregisterTarget(...)`
 - `Publish(...)`
-- `PublishAsync(...)`
 
 ## Example
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Nalix.Framework.Injection;
+
 ILogger logger = InstanceManager.Instance.Get<ILogger>();
 
 logger.Info("listener started on port {Port}", 57206);

@@ -3,6 +3,7 @@
 `PacketSender<TPacket>` is the default runtime implementation of `IPacketSender<TPacket>`.
 
 It is the explicit outbound path used by `PacketContext<TPacket>.Sender` when a handler wants to send one or more replies under the current connection and metadata rules.
+The same sender model works for built-in packets and custom packet types.
 
 ## Source mapping
 
@@ -64,7 +65,7 @@ If compression or encryption cannot complete, the sender now throws instead of r
 ## Basic usage
 
 ```csharp
-public async ValueTask Handle(IPacketContext<Handshake> context, CancellationToken ct)
+public async ValueTask Handle(PacketContext<Handshake> context, CancellationToken ct)
 {
     Handshake reply = new(
         0x1002,

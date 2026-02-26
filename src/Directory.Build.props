@@ -31,5 +31,10 @@
 		<FileVersion Condition="'$(FileVersion)' == ''">$(Version).0</FileVersion>
 		<InformationalVersion Condition="'$(InformationalVersion)' == ''">$(Version)+$(SourceRevisionId)</InformationalVersion>
 	</PropertyGroup>
+	
+	<ItemGroup Condition="'$(MSBuildProjectName)' != 'Nalix.Analyzers' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.CodeFixes' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Tests'">
+		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers\Nalix.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers.CodeFixes\Nalix.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
 
 </Project>

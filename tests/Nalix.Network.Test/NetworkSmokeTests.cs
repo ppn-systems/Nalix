@@ -78,5 +78,12 @@ public sealed class NetworkSmokeTests
         Assert.True(report.ContainsKey("Endpoints"));
     }
 
-    private sealed record TestEndpoint(string Address) : INetworkEndpoint;
+    private sealed record TestEndpoint(string Address) : INetworkEndpoint
+    {
+        public int Port => throw new System.NotImplementedException();
+
+        public bool HasPort => throw new System.NotImplementedException();
+
+        public bool IsIPv6 => throw new System.NotImplementedException();
+    }
 }

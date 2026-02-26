@@ -3,6 +3,7 @@
 
 using System;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Serialization;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
@@ -175,12 +176,12 @@ internal sealed class DictionaryFormatter<
     {
         int count = reader.ReadInt32();
 
-        if (count == -1)
+        if (count == SerializerBounds.Null)
         {
             return null;
         }
 
-        if (count < -1)
+        if (count < SerializerBounds.Null)
         {
             throw new SerializationFailureException("Dictionary count out of range.");
         }

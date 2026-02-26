@@ -9,11 +9,10 @@ using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Options;
+using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport;
 
@@ -181,7 +180,7 @@ public class UdpSession : TransportSession
         int written = packet.Serialize(src.Span);
         src.CommitLength(written);
 
-        // Step 2: Transform (Compress -> Encrypt) using the built-in packet header
+        // Step 2: Transform outbound frame through the shared packet helpers (Compress -> Encrypt).
         BufferLease transformed = this.TransformOutbound(src);
 
         try
@@ -298,7 +297,7 @@ public class UdpSession : TransportSession
                 // (Server-to-Client UDP does not include the 7-byte token)
                 BufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
 
-                // Transform (Decrypt -> Decompress)
+                // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
                 BufferLease transformed = this.TransformInbound(datagram);
 
                 try
@@ -332,98 +331,10 @@ public class UdpSession : TransportSession
     #region Transformation
 
     private BufferLease TransformOutbound(BufferLease src)
-    {
-        bool doEncrypt = this.Options.EncryptionEnabled;
-        bool doCompress = this.Options.CompressionEnabled && (src.Length - FrameTransformer.Offset) >= this.Options.CompressionThreshold;
-
-        BufferLease current = src;
-        current.Retain();
-
-        try
-        {
-            if (doCompress)
-            {
-                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCompressedSize(current.Length - FrameTransformer.Offset) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Compress(current, next);
-                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-                    current.Dispose();
-                    current = next;
-                }
-                catch { next.Dispose(); throw; }
-            }
-
-            if (doEncrypt)
-            {
-                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, current.Length - FrameTransformer.Offset) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Encrypt(current, next, this.Options.Secret, this.Options.Algorithm);
-                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-                    current.Dispose();
-                    current = next;
-                }
-                catch { next.Dispose(); throw; }
-            }
-
-            return current;
-        }
-        catch (System.Exception)
-        {
-            current.Dispose();
-            throw;
-        }
-    }
+        => PacketFrameTransforms.TransformOutbound(src, this.Options);
 
     private BufferLease TransformInbound(BufferLease lease)
-    {
-        BufferLease current = lease;
-        current.Retain();
-
-        try
-        {
-            PacketFlags flags = current.Span.ReadFlagsLE();
-
-            if (flags.HasFlag(PacketFlags.ENCRYPTED))
-            {
-                BufferLease decrypted = BufferLease.Rent(FrameTransformer.GetPlaintextLength(current.Span) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Decrypt(current, decrypted, this.Options.Secret);
-                    // Do NOT write flags back yet if we expect more transformations
-                    // The flags are part of the original header
-                    current.Dispose();
-                    current = decrypted;
-                    flags = current.Span.ReadFlagsLE();
-                }
-                catch { decrypted.Dispose(); throw; }
-            }
-
-            if (flags.HasFlag(PacketFlags.COMPRESSED))
-            {
-                BufferLease decompressed = BufferLease.Rent(FrameTransformer.GetDecompressedLength(current.Span) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Decompress(current, decompressed);
-                    current.Dispose();
-                    current = decompressed;
-                }
-                catch { decompressed.Dispose(); throw; }
-            }
-
-            return current;
-        }
-        catch (System.Exception)
-        {
-            current.Dispose();
-            throw;
-        }
-        finally
-        {
-            lease.Dispose();
-        }
-    }
+        => PacketFrameTransforms.TransformInbound(lease, this.Options.Secret);
 
     #endregion Transformation
 

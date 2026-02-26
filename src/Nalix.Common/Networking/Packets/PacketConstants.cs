@@ -18,6 +18,7 @@ public static class PacketConstants
         sizeof(byte) +    // Priority    = 1  (offset 7)
         sizeof(byte) +    // Protocol    = 1  (offset 8)
         sizeof(uint);     // SequenceId  = 4  (offset 9)
+                          // Total header size = 12 bytes (offsets 0-11)
 
     /// <summary>
     /// The default operation code value for packets.

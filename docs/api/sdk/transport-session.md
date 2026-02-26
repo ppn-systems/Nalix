@@ -1,6 +1,7 @@
 # TransportSession
 
 `TransportSession` is the abstract client transport contract in `Nalix.SDK`. It defines the shared lifecycle and event surface for concrete transports such as `TcpSession`.
+It is transport-focused and does not own packet-specific policy; packet transforms are handled by the concrete session flow and shared frame helpers.
 
 ## Source mapping
 

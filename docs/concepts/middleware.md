@@ -52,6 +52,7 @@ Use it when you need application-aware behavior:
 - tenant or product policy checks
 
 This is where `PacketContext<TPacket>` and resolved metadata become useful.
+The same model applies to built-in packets and custom packet types.
 
 ## How metadata fits in
 
@@ -110,6 +111,7 @@ In that example:
 
 - `NetworkPipeline` handles raw-frame work
 - `PacketPipeline` handles packet-aware policy
+- both pipelines can still flow into custom packet handlers when the dispatch layer resolves a non-built-in `TPacket`
 
 ## Common advice
 

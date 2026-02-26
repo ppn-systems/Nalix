@@ -13,7 +13,7 @@ flowchart LR
     A["UDP datagram"] --> B["Receive worker"]
     B --> C["Resolve session in ConnectionHub / Cache"]
     C --> D["Inject payload into connection pipeline"]
-    D --> E["Protocol.ProcessMessage(...)"]
+    D --> E["Protocol.ProcessFrame(...)"]
 ```
 
 ## Source mapping

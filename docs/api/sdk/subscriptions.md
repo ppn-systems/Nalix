@@ -1,6 +1,7 @@
 # SDK Subscriptions
 
 `TcpSessionSubscriptions` provides convenience subscriptions on top of `TransportSession` and `TcpSession`.
+The helpers are packet-aware, so they work with the same generic packet model used throughout Nalix.SDK.
 
 ## Source mapping
 
@@ -24,6 +25,7 @@
 ## Why it exists
 
 These helpers reduce message-subscription boilerplate and centralize lease ownership so subscriber code works with deserialized packets rather than raw leases.
+Use them for built-in packets or custom packet types when you want scoped receive helpers instead of raw buffer handling.
 
 ## Common pitfalls
 

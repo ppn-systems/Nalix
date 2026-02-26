@@ -3,6 +3,7 @@
 
 using System;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Serialization;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
@@ -106,7 +107,7 @@ internal sealed class StackFormatter<
     {
         if (value is null)
         {
-            writer.Write(-1);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
@@ -158,12 +159,12 @@ internal sealed class StackFormatter<
     {
         int count = reader.ReadInt32();
 
-        if (count == -1)
+        if (count == SerializerBounds.Null)
         {
             return null;
         }
 
-        if (count < -1)
+        if (count < SerializerBounds.Null)
         {
             throw new SerializationFailureException("Stack count out of range.");
         }

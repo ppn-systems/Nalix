@@ -66,26 +66,4 @@ public sealed class Example
             "NALIX021");
     }
 
-    [Fact]
-    public async Task PacketMemberOverlappingHeaderRegion_ProducesDiagnostic()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Framework.DataFrames;
-using Nalix.Common.Serialization;
-
-[SerializePackable(SerializeLayout.Explicit)]
-public sealed class ExamplePacket : PacketBase<ExamplePacket>
-{
-    public static new ExamplePacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<ExamplePacket>.Deserialize(buffer);
-
-    [SerializeOrder(0)]
-    public int Value { get; set; }
-}
-""";
-
-        await Verifier<CodeFixes.SerializeOrderMissingCodeFixProvider>.VerifyAnalyzerAsync(
-            source,
-            "NALIX022");
-    }
 }

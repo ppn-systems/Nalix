@@ -18,8 +18,10 @@
 
 ```csharp
 [PacketRateLimit(8, burst: 2.5)]
-public async Task HandleChat(PacketContext<IPacket> request) { }
+public async Task HandleChat(PacketContext<Control> request) { }
 ```
+
+Custom packet handlers can use the same rate-limit metadata shape when the generic context matches the dispatch pipeline.
 
 At runtime:
 

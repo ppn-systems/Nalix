@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Framework.Security.Primitives;
 
 /// <summary>
@@ -89,5 +91,46 @@ public static class BitwiseOperations
         }
 
         return result == 0;
+    }
+
+    /// <summary>
+    /// Checks if all bytes in the given ReadOnlySpan&lt;byte&gt; are zero, using unsafe code for maximum performance.
+    /// </summary>
+    /// <param name="value">The span of bytes to check.</param>
+    /// <returns>True if all bytes are zero, otherwise false.</returns>
+    public static unsafe bool IsZero(ReadOnlySpan<byte> value)
+    {
+        if (value.IsEmpty)
+        {
+            return true;
+        }
+
+        fixed (byte* ptr = value)
+        {
+            int len = value.Length;
+            int offset = 0;
+
+            // Process 8 bytes at a time
+            while (len - offset >= sizeof(ulong))
+            {
+                if (*(ulong*)(ptr + offset) != 0)
+                {
+                    return false;
+                }
+
+                offset += sizeof(ulong);
+            }
+            // Check remaining bytes
+            while (offset < len)
+            {
+                if (*(ptr + offset) != 0)
+                {
+                    return false;
+                }
+
+                offset++;
+            }
+        }
+        return true;
     }
 }

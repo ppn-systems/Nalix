@@ -9,6 +9,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Random;
+using Nalix.Framework.Security;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Primitives;
 using Nalix.SDK.Options;
@@ -98,29 +99,29 @@ public static class TcpSessionX25519Extensions
             using CancellationTokenRegistration reg1 = ct.Register(() => serverHelloTcs.TrySetCanceled());
             Handshake serverHello = await serverHelloTcs.Task.ConfigureAwait(false);
 
-            if (!HandshakeCrypto.IsValid(serverHello))
+            if (!Handshake.IsValid(serverHello))
             {
                 throw new NetworkException("Malformed Handshake SERVER_HELLO packet.");
             }
 
             byte[] sharedSecret = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
-            if (HandshakeCrypto.IsAllZero(sharedSecret))
+            if (BitwiseOperations.IsZero(sharedSecret))
             {
                 throw new NetworkException("Handshake key agreement failed: Shared secret is all zero.");
             }
 
             byte[] transcriptHash = Handshake.ComputeTranscriptHash(
-                HandshakeCrypto.ComposeTranscriptBuffer(clientKey.PublicKey, clientNonce, serverHello.PublicKey, serverHello.Nonce));
+                HandshakeX25519.ComposeTranscriptBuffer(clientKey.PublicKey, clientNonce, serverHello.PublicKey, serverHello.Nonce));
 
-            byte[] expectedProof = HandshakeCrypto.ComputeServerProof(sharedSecret, transcriptHash);
+            byte[] expectedProof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
             if (!BitwiseOperations.FixedTimeEquals(serverHello.Proof, expectedProof))
             {
                 throw new NetworkException("Handshake SERVER_HELLO proof is invalid.");
             }
 
-            byte[] sessionKey = HandshakeCrypto.DeriveSessionKey(sharedSecret, clientNonce, serverHello.Nonce, transcriptHash);
+            byte[] sessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, clientNonce, serverHello.Nonce, transcriptHash);
 
-            Handshake clientFinish = new(0, HandshakeStage.CLIENT_FINISH, [], [], HandshakeCrypto.ComputeClientProof(sharedSecret, transcriptHash))
+            Handshake clientFinish = new(0, HandshakeStage.CLIENT_FINISH, [], [], HandshakeX25519.ComputeClientProof(sharedSecret, transcriptHash))
             {
                 TranscriptHash = transcriptHash
             };
@@ -130,7 +131,7 @@ public static class TcpSessionX25519Extensions
             using CancellationTokenRegistration reg2 = ct.Register(() => serverFinishTcs.TrySetCanceled());
             Handshake serverFinish = await serverFinishTcs.Task.ConfigureAwait(false);
 
-            byte[] expectedFinish = HandshakeCrypto.ComputeServerFinishProof(sharedSecret, transcriptHash);
+            byte[] expectedFinish = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash);
             if (!BitwiseOperations.FixedTimeEquals(serverFinish.Proof, expectedFinish))
             {
                 throw new NetworkException("Handshake SERVER_FINISH proof is invalid.");

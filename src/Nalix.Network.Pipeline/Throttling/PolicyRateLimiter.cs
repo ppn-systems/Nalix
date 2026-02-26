@@ -192,17 +192,24 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         // Hot-path: avoid per-evaluation string allocation.
         public string Address => _inner.Address;
 
+        [Obsolete("Port is not used for rate limiting and should not be accessed.", error: true)]
+        public int Port => throw new NotImplementedException();
+
+        [Obsolete("IPv6 status is not used for rate limiting and should not be accessed.", error: true)]
+        public bool HasPort => throw new NotImplementedException();
+
+        [Obsolete("IPv6 status is not used for rate limiting and should not be accessed.", error: true)]
+        public bool IsIPv6 => throw new NotImplementedException();
+
         public override int GetHashCode() => HashCode.Combine(_op, _inner);
 
         public bool Equals(RateLimitSubject other) => _op == other._op && _inner.Equals(other._inner);
 
         public override bool Equals(object? obj) => obj is RateLimitSubject other && this.Equals(other);
 
-        public static bool operator ==(RateLimitSubject left, RateLimitSubject right)
-            => left.Equals(right);
+        public static bool operator ==(RateLimitSubject left, RateLimitSubject right) => left.Equals(right);
 
-        public static bool operator !=(RateLimitSubject left, RateLimitSubject right)
-            => !left.Equals(right);
+        public static bool operator !=(RateLimitSubject left, RateLimitSubject right) => !left.Equals(right);
 
         public override string ToString() => $"op:{_op:X4}|ep:{_inner.Address}";
     }

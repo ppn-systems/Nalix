@@ -109,7 +109,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
 
-public sealed class TcpClient : TcpSessionBase
+public sealed class TcpClient : TcpSession
 {
 }
 

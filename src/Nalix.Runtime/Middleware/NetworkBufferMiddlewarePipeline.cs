@@ -86,25 +86,25 @@ public sealed class NetworkBufferMiddlewarePipeline
     /// <summary>
     /// Executes middleware over the provided lease.
     /// </summary>
-    /// <param name="buffer">Incoming lease.</param>
+    /// <param name="lease">Incoming lease.</param>
     /// <param name="connection">Owning connection.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The transformed lease, or <see langword="null"/> if dropped.</returns>
-    public ValueTask<IBufferLease?> ExecuteAsync(IBufferLease buffer, IConnection connection, CancellationToken ct = default)
+    public ValueTask<IBufferLease?> ExecuteAsync(IBufferLease lease, IConnection connection, CancellationToken ct = default)
     {
-        if (buffer is null || connection is null)
+        if (lease is null || connection is null)
         {
-            buffer?.Dispose();
+            lease?.Dispose();
             return ValueTask.FromResult<IBufferLease?>(null);
         }
 
         INetworkBufferMiddleware[] middleware = Volatile.Read(ref _snapshot);
         if (middleware.Length == 0)
         {
-            return ValueTask.FromResult<IBufferLease?>(buffer);
+            return ValueTask.FromResult<IBufferLease?>(lease);
         }
 
-        return ExecuteAsync(middleware, buffer, connection, ct);
+        return ExecuteAsync(middleware, lease, connection, ct);
     }
 
     #endregion APIs

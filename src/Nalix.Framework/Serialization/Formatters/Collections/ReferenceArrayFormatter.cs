@@ -39,7 +39,7 @@ internal sealed class ReferenceArrayFormatter<
             return;
         }
 
-        writer.Write((ushort)value.Length);
+        writer.Write(value.Length);
 
         if (value.Length == 0)
         {
@@ -62,7 +62,7 @@ internal sealed class ReferenceArrayFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] Deserialize(ref DataReader reader)
     {
-        ushort length = reader.ReadUInt16();
+        int length = reader.ReadInt32();
 
         if (length == SerializerBounds.Null)
         {

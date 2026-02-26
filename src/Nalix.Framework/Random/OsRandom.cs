@@ -35,6 +35,7 @@ namespace Nalix.Framework.Random;
 [DebuggerStepThrough]
 [DebuggerDisplay("OsRandom (NOT CSPRNG)")]
 [EditorBrowsable(EditorBrowsableState.Never)]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
 internal static class OsRandom
 {
     #region Fields

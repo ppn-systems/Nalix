@@ -1,6 +1,5 @@
 
 using System;
-using System.Text;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;

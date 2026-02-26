@@ -2,57 +2,72 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
-using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Random;
+using Nalix.Framework.Security;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Primitives;
 
-namespace Nalix.Network.Internal.Pipeline.Stages;
+namespace Nalix.Runtime.Handlers;
 
 /// <summary>
-/// Implements the default server-side X25519 handshake protocol for Nalix.
+/// Provides handlers for the default server-side X25519 handshake protocol.
 /// </summary>
-/// <remarks>
-/// This protocol is designed to be executed inside a protocol pipeline.
-/// It does not own event subscription or disposal of event args.
-/// </remarks>
-[DebuggerDisplay("Accepting={IsAccepting}, KeepConnectionOpen={KeepConnectionOpen}")]
-internal sealed class HandshakeStage : IProtocolStage
+[PacketController("Handshake")]
+public sealed class HandshakeHandlers
 {
     internal const string StateAttributeKey = "nalix.handshake.state";
     internal const string EstablishedAttributeKey = "nalix.handshake.established";
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HandshakeStage"/> class.
+    /// Handles incoming handshake signal packets.
     /// </summary>
-    public HandshakeStage()
+    /// <param name="context">The packet context containing the handshake metadata.</param>
+    /// <returns>A responding handshake packet or null if rejected/disconnected.</returns>
+    [PacketOpcode((ushort)ProtocolOpCode.HANDSHAKE)]
+    [ReservedOpcodePermitted]
+    public Handshake? HandleHandshake(IPacketContext<Handshake> context)
     {
-    }
+        ArgumentNullException.ThrowIfNull(context);
 
-    /// <inheritdoc />
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public void ProcessMessage(object? sender, IConnectEventArgs args)
-    {
-        ArgumentNullException.ThrowIfNull(args);
+        Handshake packet = context.Packet;
+        IConnection connection = context.Connection;
 
-        if (args.Lease is null)
+        switch (packet.Stage)
         {
-            throw new InvalidOperationException("Event args must have Lease for handshake.");
-        }
+            case HandshakeStage.CLIENT_HELLO:
+                return this.HandleClientHello(connection, packet);
 
-        Handshake handshake = Handshake.Deserialize(args.Lease.Span);
-        this.HandleHandshake(args.Connection, handshake);
+            case HandshakeStage.CLIENT_FINISH:
+                return this.HandleClientFinish(connection, packet);
+
+            case HandshakeStage.ERROR:
+                connection.Disconnect("Handshake error received from peer.");
+                return null;
+
+            case HandshakeStage.NONE:
+            case HandshakeStage.SERVER_HELLO:
+            case HandshakeStage.SERVER_FINISH:
+            default:
+                this.Reject(connection, ProtocolReason.UNEXPECTED_MESSAGE);
+                return null;
+        }
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Checks if the handshake has been established for a given connection.
+    /// </summary>
     public static bool IsEstablished(IConnection connection)
     {
+        ArgumentNullException.ThrowIfNull(connection);
+
         if (connection.Attributes.TryGetValue(EstablishedAttributeKey, out object? boxed) &&
             boxed is bool established)
         {
@@ -62,55 +77,27 @@ internal sealed class HandshakeStage : IProtocolStage
         return false;
     }
 
-    private void HandleHandshake(IConnection connection, Handshake handshake)
+    private Handshake? HandleClientHello(IConnection connection, Handshake packet)
     {
-        switch (handshake.Stage)
-        {
-            case Framework.DataFrames.SignalFrames.HandshakeStage.CLIENT_HELLO:
-                this.HandleClientHello(connection, handshake);
-                return;
-
-            case Framework.DataFrames.SignalFrames.HandshakeStage.CLIENT_FINISH:
-                this.HandleClientFinish(connection, handshake);
-                return;
-
-            case Framework.DataFrames.SignalFrames.HandshakeStage.NONE:
-            case Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_HELLO:
-            case Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_FINISH:
-                this.Reject(connection, ProtocolReason.UNEXPECTED_MESSAGE);
-                return;
-
-            case Framework.DataFrames.SignalFrames.HandshakeStage.ERROR:
-                connection.Disconnect("Handshake error received from peer.");
-                return;
-
-            default:
-                this.Reject(connection, ProtocolReason.UNEXPECTED_MESSAGE);
-                return;
-        }
-    }
-
-    private void HandleClientHello(IConnection connection, Handshake packet)
-    {
-        if (!HandshakeCrypto.IsValid(packet))
+        if (!Handshake.IsValid(packet))
         {
             this.Reject(connection, ProtocolReason.MALFORMED_PACKET);
-            return;
+            return null;
         }
 
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
         byte[] sharedSecret = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
 
-        if (HandshakeCrypto.IsAllZero(sharedSecret))
+        if (BitwiseOperations.IsZero(sharedSecret))
         {
             this.Reject(connection, ProtocolReason.DECRYPTION_FAILED);
-            return;
+            return null;
         }
 
         byte[] serverNonce = Csprng.GetBytes(Handshake.DynamicSize);
 
         byte[] transcriptHash = Handshake.ComputeTranscriptHash(
-            HandshakeCrypto.ComposeTranscriptBuffer(
+            HandshakeX25519.ComposeTranscriptBuffer(
                 packet.PublicKey,
                 packet.Nonce,
                 serverKey.PublicKey,
@@ -124,51 +111,51 @@ internal sealed class HandshakeStage : IProtocolStage
             ServerNonce = serverNonce,
             ServerPublicKey = serverKey.PublicKey,
             TranscriptHash = transcriptHash,
-            SessionKey = HandshakeCrypto.DeriveSessionKey(sharedSecret, packet.Nonce, serverNonce, transcriptHash)
+            SessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, packet.Nonce, serverNonce, transcriptHash)
         };
 
         connection.Attributes[StateAttributeKey] = state;
 
         Handshake reply = new(
             packet.OpCode,
-            Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_HELLO,
+            HandshakeStage.SERVER_HELLO,
             serverKey.PublicKey,
             serverNonce,
-            HandshakeCrypto.ComputeServerProof(sharedSecret, transcriptHash),
+            HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash),
             packet.Protocol)
         {
             TranscriptHash = transcriptHash
         };
 
-        connection.TCP.Send(reply);
+        return reply;
     }
 
-    private void HandleClientFinish(IConnection connection, Handshake packet)
+    private Handshake? HandleClientFinish(IConnection connection, Handshake packet)
     {
         if (!TryGetState(connection, out HandshakeSessionState? state) || state is null)
         {
             this.Reject(connection, ProtocolReason.STATE_VIOLATION);
-            return;
+            return null;
         }
 
         if (packet.Proof.Length != Handshake.DynamicSize || packet.TranscriptHash.Length != Handshake.DynamicSize)
         {
             this.Reject(connection, ProtocolReason.MALFORMED_PACKET);
-            return;
+            return null;
         }
 
         if (!BitwiseOperations.FixedTimeEquals(packet.TranscriptHash, state.TranscriptHash))
         {
             this.Reject(connection, ProtocolReason.CHECKSUM_FAILED);
-            return;
+            return null;
         }
 
-        byte[] expectedProof = HandshakeCrypto.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
+        byte[] expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
 
         if (!BitwiseOperations.FixedTimeEquals(packet.Proof, expectedProof))
         {
             this.Reject(connection, ProtocolReason.SIGNATURE_INVALID);
-            return;
+            return null;
         }
 
         connection.Secret = state.SessionKey;
@@ -179,20 +166,17 @@ internal sealed class HandshakeStage : IProtocolStage
 
         Handshake reply = new(
             packet.OpCode,
-            Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_FINISH,
+            HandshakeStage.SERVER_FINISH,
             [],
             [],
-            HandshakeCrypto.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash),
+            HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash),
             packet.Protocol)
         {
             TranscriptHash = state.TranscriptHash,
             SessionToken = (Snowflake)connection.ID
         };
 
-        connection.TCP.Send(reply);
-
-        // Do NOT unsubscribe from events here.
-        // The protocol pipeline controls routing after establishment.
+        return reply;
     }
 
     private void Reject(IConnection connection, ProtocolReason reason)
@@ -209,7 +193,7 @@ internal sealed class HandshakeStage : IProtocolStage
         }
     }
 
-    private static bool TryGetState(IConnection connection, out HandshakeSessionState? state)
+    private static bool TryGetState(IConnection connection, [NotNullWhen(true)] out HandshakeSessionState? state)
     {
         if (connection.Attributes.TryGetValue(StateAttributeKey, out object? boxed) &&
             boxed is HandshakeSessionState typed)

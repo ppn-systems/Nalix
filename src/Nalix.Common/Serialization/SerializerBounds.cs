@@ -13,17 +13,17 @@ public static class SerializerBounds
     /// <summary>
     /// Sentinel value used to encode <see langword="null"/> where a 16-bit length is stored.
     /// </summary>
-    public const ushort Null = ushort.MaxValue;
+    public const int Null = -1;
 
     /// <summary>
     /// Maximum encodable array length when one value is reserved for <see langword="null"/>.
     /// </summary>
-    public const ushort MaxArray = ushort.MaxValue - 1;
+    public const int MaxArray = int.MaxValue - 4;
 
     /// <summary>
     /// Maximum encodable UTF-8 string length.
     /// </summary>
-    public const ushort MaxString = ushort.MaxValue - 2;
+    public const int MaxString = int.MaxValue - 4;
 
     /// <summary>
     /// Sentinel bytes used when a wire format needs to represent a null array.
