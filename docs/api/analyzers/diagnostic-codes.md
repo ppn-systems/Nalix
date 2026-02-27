@@ -60,6 +60,17 @@ This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyze
 | `NALIX028` | RequestOptions TimeoutMs should not be negative | Warning | SDK | Nalix RequestOptions timeout must be zero or greater. Use 0 to wait indefinitely. |
 | `NALIX029` | Encrypted RequestAsync requires TcpSessionBase | Warning | SDK | Nalix encrypted RequestAsync overload requires the client to be a TcpSessionBase. |
 
+## Hosting Codes (NALIX040 - NALIX045)
+
+| ID | Title | Severity | Category | Description |
+|---|---|---|---|---|
+| `NALIX040` | NetworkApplicationBuilder should configure BufferPoolManager | Info | Performance | Nalix network hosting can reduce allocation pressure by registering an explicit BufferPoolManager before building the application. |
+| `NALIX041` | NetworkApplicationBuilder should configure ConnectionHub | Info | Usage | Nalix network hosting can use an explicitly configured ConnectionHub instead of relying on the default fallback instance. |
+| `NALIX042` | NetworkApplicationBuilder handler type is not constructible | Warning | Usage | Nalix handler registration creates instances at runtime, so the handler type should be a concrete class. |
+| `NALIX043` | NetworkApplicationBuilder metadata provider type is not constructible | Warning | Usage | Nalix metadata provider registration creates instances at runtime, so the provider type should be a concrete class. |
+| `NALIX044` | NetworkApplicationBuilder should configure a TCP binding | Info | Usage | Nalix network hosting usually needs at least one TCP binding to serve clients. |
+| `NALIX045` | NetworkApplicationBuilder should configure TCP before UDP | Info | Usage | Nalix network hosting in this package expects UDP bindings to be paired with TCP bindings. |
+
 ## Source Mapping
 
 - `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`

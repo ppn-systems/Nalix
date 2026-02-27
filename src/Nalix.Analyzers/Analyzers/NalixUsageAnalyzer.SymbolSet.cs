@@ -1,0 +1,231 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+
+namespace Nalix.Analyzers.Analyzers;
+
+public sealed partial class NalixUsageAnalyzer
+{
+    private sealed class SymbolSet
+    {
+        private SymbolSet(
+            INamedTypeSymbol? packetOpcodeAttribute,
+            INamedTypeSymbol? controllerAttribute,
+            INamedTypeSymbol? packetInterface,
+            INamedTypeSymbol? packetBaseType,
+            INamedTypeSymbol? serializePackableAttribute,
+            INamedTypeSymbol? serializeHeaderAttribute,
+            INamedTypeSymbol? serializeOrderAttribute,
+            INamedTypeSymbol? serializeIgnoreAttribute,
+            INamedTypeSymbol? serializeDynamicSizeAttribute,
+            INamedTypeSymbol? serializeLayoutType,
+            INamedTypeSymbol? packetContextType,
+            INamedTypeSymbol? packetContextInterface,
+            INamedTypeSymbol? connectionType,
+            INamedTypeSymbol? packetDispatchOptionsType,
+            INamedTypeSymbol? packetRegistryFactoryType,
+            INamedTypeSymbol? packetDeserializerType,
+            INamedTypeSymbol? packetMiddlewareType,
+            INamedTypeSymbol? networkBufferMiddlewareType,
+            INamedTypeSymbol? networkApplicationBuilderType,
+            INamedTypeSymbol? middlewareOrderAttribute,
+            INamedTypeSymbol? middlewareStageAttribute,
+            INamedTypeSymbol? middlewareStageType,
+            INamedTypeSymbol? configurationLoaderType,
+            INamedTypeSymbol? configuredIgnoreAttribute,
+            INamedTypeSymbol? reservedOpcodePermittedAttribute,
+            INamedTypeSymbol? packetMetadataProviderType,
+            INamedTypeSymbol? packetMetadataBuilderType,
+            INamedTypeSymbol? methodInfoType,
+            INamedTypeSymbol? requestOptionsType,
+            INamedTypeSymbol? requestExtensionsType,
+            INamedTypeSymbol? tcpSessionBaseType,
+            INamedTypeSymbol? taskType,
+            INamedTypeSymbol? genericTaskType,
+            INamedTypeSymbol? valueTaskType,
+            INamedTypeSymbol? genericValueTaskType,
+            INamedTypeSymbol? cancellationTokenType,
+            INamedTypeSymbol? bufferLeaseType,
+            int packetHeaderRegionOffset)
+        {
+            this.PacketOpcodeAttribute = packetOpcodeAttribute;
+            this.ControllerAttribute = controllerAttribute;
+            this.PacketInterface = packetInterface;
+            this.PacketBaseType = packetBaseType;
+            this.SerializePackableAttribute = serializePackableAttribute;
+            this.SerializeHeaderAttribute = serializeHeaderAttribute;
+            this.SerializeOrderAttribute = serializeOrderAttribute;
+            this.SerializeIgnoreAttribute = serializeIgnoreAttribute;
+            this.SerializeDynamicSizeAttribute = serializeDynamicSizeAttribute;
+            this.SerializeLayoutType = serializeLayoutType;
+            this.PacketContextType = packetContextType;
+            this.PacketContextInterface = packetContextInterface;
+            this.ConnectionType = connectionType;
+            this.PacketDispatchOptionsType = packetDispatchOptionsType;
+            this.PacketRegistryFactoryType = packetRegistryFactoryType;
+            this.PacketDeserializerType = packetDeserializerType;
+            this.PacketMiddlewareType = packetMiddlewareType;
+            this.NetworkBufferMiddlewareType = networkBufferMiddlewareType;
+            this.NetworkApplicationBuilderType = networkApplicationBuilderType;
+            this.MiddlewareOrderAttribute = middlewareOrderAttribute;
+            this.MiddlewareStageAttribute = middlewareStageAttribute;
+            this.MiddlewareStageType = middlewareStageType;
+            this.ConfigurationLoaderType = configurationLoaderType;
+            this.ConfiguredIgnoreAttribute = configuredIgnoreAttribute;
+            this.ReservedOpcodePermittedAttribute = reservedOpcodePermittedAttribute;
+            this.PacketMetadataProviderType = packetMetadataProviderType;
+            this.PacketMetadataBuilderType = packetMetadataBuilderType;
+            this.MethodInfoType = methodInfoType;
+            this.RequestOptionsType = requestOptionsType;
+            this.RequestExtensionsType = requestExtensionsType;
+            this.TcpSessionBaseType = tcpSessionBaseType;
+            this.TaskType = taskType;
+            this.GenericTaskType = genericTaskType;
+            this.ValueTaskType = valueTaskType;
+            this.GenericValueTaskType = genericValueTaskType;
+            this.CancellationTokenType = cancellationTokenType;
+            this.BufferLeaseType = bufferLeaseType;
+            this.PacketHeaderRegionOffset = packetHeaderRegionOffset;
+        }
+
+        public INamedTypeSymbol? PacketOpcodeAttribute { get; }
+        public INamedTypeSymbol? ControllerAttribute { get; }
+        public INamedTypeSymbol? PacketInterface { get; }
+        public INamedTypeSymbol? PacketBaseType { get; }
+        public INamedTypeSymbol? SerializePackableAttribute { get; }
+        public INamedTypeSymbol? SerializeHeaderAttribute { get; }
+        public INamedTypeSymbol? SerializeOrderAttribute { get; }
+        public INamedTypeSymbol? SerializeIgnoreAttribute { get; }
+        public INamedTypeSymbol? SerializeDynamicSizeAttribute { get; }
+        public INamedTypeSymbol? SerializeLayoutType { get; }
+        public INamedTypeSymbol? PacketContextType { get; }
+        public INamedTypeSymbol? PacketContextInterface { get; }
+        public INamedTypeSymbol? ConnectionType { get; }
+        public INamedTypeSymbol? PacketDispatchOptionsType { get; }
+        public INamedTypeSymbol? PacketRegistryFactoryType { get; }
+        public INamedTypeSymbol? PacketDeserializerType { get; }
+        public INamedTypeSymbol? PacketMiddlewareType { get; }
+        public INamedTypeSymbol? NetworkBufferMiddlewareType { get; }
+        public INamedTypeSymbol? NetworkApplicationBuilderType { get; }
+        public INamedTypeSymbol? MiddlewareOrderAttribute { get; }
+        public INamedTypeSymbol? MiddlewareStageAttribute { get; }
+        public INamedTypeSymbol? MiddlewareStageType { get; }
+        public INamedTypeSymbol? ConfigurationLoaderType { get; }
+        public INamedTypeSymbol? ConfiguredIgnoreAttribute { get; }
+        public INamedTypeSymbol? ReservedOpcodePermittedAttribute { get; }
+        public INamedTypeSymbol? PacketMetadataProviderType { get; }
+        public INamedTypeSymbol? PacketMetadataBuilderType { get; }
+        public INamedTypeSymbol? MethodInfoType { get; }
+        public INamedTypeSymbol? RequestOptionsType { get; }
+        public INamedTypeSymbol? RequestExtensionsType { get; }
+        public INamedTypeSymbol? TcpSessionBaseType { get; }
+        public INamedTypeSymbol? TaskType { get; }
+        public INamedTypeSymbol? GenericTaskType { get; }
+        public INamedTypeSymbol? ValueTaskType { get; }
+        public INamedTypeSymbol? GenericValueTaskType { get; }
+        public INamedTypeSymbol? CancellationTokenType { get; }
+        public INamedTypeSymbol? BufferLeaseType { get; }
+        public int PacketHeaderRegionOffset { get; }
+
+        public static SymbolSet? Create(Compilation compilation)
+        {
+            INamedTypeSymbol? packetOpcodeAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketOpcodeAttribute");
+            INamedTypeSymbol? controllerAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketControllerAttribute");
+            INamedTypeSymbol? packetInterface = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacket");
+            INamedTypeSymbol? packetBaseType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketBase`1");
+            INamedTypeSymbol? serializePackableAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializePackableAttribute");
+            INamedTypeSymbol? serializeHeaderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeHeaderAttribute");
+            INamedTypeSymbol? serializeOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeOrderAttribute");
+            INamedTypeSymbol? serializeIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeIgnoreAttribute");
+            INamedTypeSymbol? serializeDynamicSizeAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeDynamicSizeAttribute");
+            INamedTypeSymbol? serializeLayoutType = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeLayout");
+            INamedTypeSymbol? packetHeaderOffsetType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketHeaderOffset");
+            INamedTypeSymbol? packetContextType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketContext`1");
+            INamedTypeSymbol? packetContextInterface = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacketContext`1");
+            INamedTypeSymbol? connectionType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.IConnection");
+            INamedTypeSymbol? packetDispatchOptionsType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketDispatchOptions`1");
+            INamedTypeSymbol? packetRegistryFactoryType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketRegistryFactory");
+            INamedTypeSymbol? packetDeserializerType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacketDeserializer`1");
+            INamedTypeSymbol? packetMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Runtime.Middleware.IPacketMiddleware`1");
+            INamedTypeSymbol? networkBufferMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Runtime.Middleware.INetworkBufferMiddleware");
+            INamedTypeSymbol? networkApplicationBuilderType = compilation.GetTypeByMetadataName("Nalix.Network.Hosting.NetworkApplicationBuilder");
+            INamedTypeSymbol? middlewareOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareOrderAttribute");
+            INamedTypeSymbol? middlewareStageAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStageAttribute");
+            INamedTypeSymbol? middlewareStageType = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStage");
+            INamedTypeSymbol? configurationLoaderType = compilation.GetTypeByMetadataName("Nalix.Framework.Configuration.Binding.ConfigurationLoader");
+            INamedTypeSymbol? configuredIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.ConfiguredIgnoreAttribute");
+            INamedTypeSymbol? reservedOpcodePermittedAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.ReservedOpcodePermittedAttribute");
+            INamedTypeSymbol? packetMetadataProviderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketMetadataProvider");
+            INamedTypeSymbol? packetMetadataBuilderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketMetadataBuilder");
+            INamedTypeSymbol? methodInfoType = compilation.GetTypeByMetadataName("System.Reflection.MethodInfo");
+            INamedTypeSymbol? requestOptionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Configuration.RequestOptions");
+            INamedTypeSymbol? requestExtensionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Extensions.RequestExtensions");
+            INamedTypeSymbol? tcpSessionBaseType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.TcpSession");
+            INamedTypeSymbol? taskType = compilation.GetTypeByMetadataName(typeof(Task).FullName);
+            INamedTypeSymbol? genericTaskType = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+            INamedTypeSymbol? valueTaskType = compilation.GetTypeByMetadataName(typeof(ValueTask).FullName);
+            INamedTypeSymbol? genericValueTaskType = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
+            INamedTypeSymbol? cancellationTokenType = compilation.GetTypeByMetadataName(typeof(CancellationToken).FullName);
+            INamedTypeSymbol? bufferLeaseType = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.IBufferLease");
+            int packetHeaderRegionOffset = 12;
+            if (packetHeaderOffsetType is not null)
+            {
+                foreach (ISymbol member in packetHeaderOffsetType.GetMembers())
+                {
+                    if (member is IFieldSymbol { Name: "Region", HasConstantValue: true } field)
+                    {
+                        packetHeaderRegionOffset = Convert.ToInt32(field.ConstantValue, CultureInfo.InvariantCulture);
+                        break;
+                    }
+                }
+            }
+
+            return (packetOpcodeAttribute is null || controllerAttribute is null)
+                ? null
+                : new SymbolSet(
+                    packetOpcodeAttribute,
+                    controllerAttribute,
+                    packetInterface,
+                    packetBaseType,
+                    serializePackableAttribute,
+                    serializeHeaderAttribute,
+                    serializeOrderAttribute,
+                    serializeIgnoreAttribute,
+                    serializeDynamicSizeAttribute,
+                    serializeLayoutType,
+                    packetContextType,
+                    packetContextInterface,
+                    connectionType,
+                    packetDispatchOptionsType,
+                    packetRegistryFactoryType,
+                    packetDeserializerType,
+                    packetMiddlewareType,
+                    networkBufferMiddlewareType,
+                    networkApplicationBuilderType,
+                    middlewareOrderAttribute,
+                    middlewareStageAttribute,
+                    middlewareStageType,
+                    configurationLoaderType,
+                    configuredIgnoreAttribute,
+                    reservedOpcodePermittedAttribute,
+                    packetMetadataProviderType,
+                    packetMetadataBuilderType,
+                    methodInfoType,
+                    requestOptionsType,
+                    requestExtensionsType,
+                    tcpSessionBaseType,
+                    taskType,
+                    genericTaskType,
+                    valueTaskType,
+                    genericValueTaskType,
+                    cancellationTokenType,
+                    bufferLeaseType,
+                    packetHeaderRegionOffset);
+        }
+    }
+}

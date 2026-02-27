@@ -27,6 +27,13 @@ flowchart LR
 - automatic UDP and TCP server listener management
 - application lifecycle activation through `ActivateAsync`, `DeactivateAsync`, and `RunAsync`
 
+## Builder notes
+
+- `ConfigureConnectionHub(...)` lets you register the `ConnectionHub` you want the host to use instead of relying on the default fallback instance.
+- `UseBufferPoolManager(...)` is available when you want to reduce allocation pressure in the hosting pipeline.
+- `AddHandler<THandler>()` and `AddMetadataProvider<TProvider>()` expect concrete, constructible classes because the host instantiates them at runtime.
+- `AddTcp<TProtocol>(...)` is the primary binding path for server startup, and `AddUdp<TProtocol>(...)` is expected to be paired with TCP bindings in this package.
+
 ## Core APIs
 
 ### `NetworkApplication`
@@ -48,6 +55,7 @@ The builder exposes fluent methods for common bootstrap concerns:
 - `AddHandlers(...)`
 - `AddMetadataProvider(...)`
 - `ConfigureDispatch(...)`
+- `UseBufferPoolManager(...)`
 - `AddTcp<TProtocol>(...)`
 - `AddUdp<TProtocol>(...)`
 
@@ -73,7 +81,7 @@ var app = NetworkApplication.CreateBuilder()
     {
         options.Port = 57206;
     })
-    .AddPacketAssembly<Handshake>()
+    .AddPacket<Handshake>()
     .AddHandlers<SampleHandlers>()
     .AddTcp<SampleProtocol>()
     .Build();

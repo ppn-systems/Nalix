@@ -25,6 +25,7 @@ The current analyzer surface covers:
 - middleware registration and middleware signature issues
 - configuration binding issues
 - SDK request option issues
+- hosting bootstrap issues such as `UseBufferPoolManager(...)`, `ConfigureConnectionHub(...)`, handler constructibility, and TCP/UDP binding coverage
 
 ## Diagnostic groups
 
@@ -73,6 +74,15 @@ The current analyzer surface covers:
 - `NALIX027` negative `RequestOptions.RetryCount`
 - `NALIX028` negative `RequestOptions.TimeoutMs`
 - `NALIX029` encrypted `RequestAsync` requires `TcpSession`
+
+### Hosting bootstrap
+
+- `NALIX040` missing `UseBufferPoolManager`
+- `NALIX041` missing `ConfigureConnectionHub`
+- `NALIX042` handler type is not constructible
+- `NALIX043` metadata provider type is not constructible
+- `NALIX044` missing `AddTcp`
+- `NALIX045` UDP configured without TCP
 
 ## Practical notes
 
