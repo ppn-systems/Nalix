@@ -18,7 +18,6 @@ namespace Nalix.Benchmark.Framework.Security;
 /// </list>
 /// Mỗi suite đo Encrypt + Decrypt ở payload nhỏ (64 B) và vừa (1024 B).
 /// </summary>
-[MemoryDiagnoser]
 [Config(typeof(BenchmarkConfig))]
 public class EnvelopeCipherBenchmarks
 {

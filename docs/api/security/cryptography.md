@@ -49,6 +49,7 @@ Use it for:
 - secure byte generation with `GetBytes(...)` or `Fill(...)`
 - nonce generation with `CreateNonce(...)`
 - unbiased integer sampling with `GetInt32(...)`
+- strict cryptographic randomness only; if the operating system CSPRNG cannot be initialized, Nalix throws instead of downgrading to a non-cryptographic fallback
 
 ### Quick example
 

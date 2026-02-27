@@ -20,7 +20,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// </para>
 /// <para>
 /// Handler exceptions are caught and logged; they are never re-thrown so that the
-/// underlying <c>FRAME_READER</c> receive loop is never faulted by subscriber code.
+/// underlying <c>FrameReader</c> receive loop is never faulted by subscriber code.
 /// </para>
 /// </remarks>
 [SkipLocalsInit]
@@ -57,7 +57,7 @@ public static class TcpSessionSubscriptions
             }
             catch (Exception)
             {
-                // Swallow handler exceptions — must not fault FRAME_READER receive loop.
+                // Swallow handler exceptions — must not fault FrameReader receive loop.
 
             }
             finally
@@ -164,7 +164,7 @@ public static class TcpSessionSubscriptions
             }
             catch (Exception)
             {
-                // Swallow — must not bubble up to FRAME_READER receive loop.
+                // Swallow — must not bubble up to FrameReader receive loop.
 
             }
             finally

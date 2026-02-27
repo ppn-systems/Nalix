@@ -16,6 +16,7 @@ using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Security.Primitives;
 using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Connections;
@@ -115,7 +116,18 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         get;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set;
+        set
+        {
+            byte[] next = value ?? [];
+            byte[]? previous = field;
+
+            if (!ReferenceEquals(previous, next) && previous is { Length: > 0 })
+            {
+                MemorySecurity.ZeroMemory(previous);
+            }
+
+            field = next;
+        }
     }
 
     /// <summary>Gets the total number of bytes sent through this connection.</summary>
@@ -235,6 +247,12 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
         try
         {
+            if (this.Secret.Length > 0)
+            {
+                MemorySecurity.ZeroMemory(this.Secret);
+                this.Secret = [];
+            }
+
             // Return pooled metadata first so the connection does not keep
             // borrowed state alive after disposal begins.
             this.Attributes.Return();

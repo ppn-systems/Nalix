@@ -45,27 +45,18 @@ internal static partial class OsCsprng
 
     #region Constructor
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
     static OsCsprng()
     {
-        try
-        {
-            s_f = OperatingSystem.IsWindows()
-                ? W
-                : System.OperatingSystem.IsLinux()
-                    ? L
-                    : System.OperatingSystem.IsMacOS() ||
-                     System.OperatingSystem.IsIOS() ||
-                     System.OperatingSystem.IsTvOS() ||
-                     System.OperatingSystem.IsWatchOS()
-                    ? A
-                    : D;
-        }
-        catch (Exception)
-        {
-            s_f = OsRandom.Fill;
-        }
+        s_f = OperatingSystem.IsWindows()
+            ? W
+            : System.OperatingSystem.IsLinux()
+                ? L
+                : System.OperatingSystem.IsMacOS() ||
+                 System.OperatingSystem.IsIOS() ||
+                 System.OperatingSystem.IsTvOS() ||
+                 System.OperatingSystem.IsWatchOS()
+                ? A
+                : D;
     }
 
     #endregion Constructor

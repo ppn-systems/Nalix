@@ -86,6 +86,7 @@ public abstract partial class UdpListenerBase : IListener
             }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
+            this.SubscribeToHubEvents();
 
             s_logger?.Info(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
@@ -107,6 +108,7 @@ public abstract partial class UdpListenerBase : IListener
         catch (OperationCanceledException)
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+            this.UnsubscribeFromHubEvents();
 
             s_logger?.Info(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
@@ -115,6 +117,7 @@ public abstract partial class UdpListenerBase : IListener
         catch (SocketException ex)
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+            this.UnsubscribeFromHubEvents();
 
             s_logger?.Critical(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
@@ -123,6 +126,7 @@ public abstract partial class UdpListenerBase : IListener
         catch (Exception ex)
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+            this.UnsubscribeFromHubEvents();
 
             s_logger?.Critical(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
@@ -175,6 +179,8 @@ public abstract partial class UdpListenerBase : IListener
 
         try
         {
+            this.UnsubscribeFromHubEvents();
+
             try { cts?.Cancel(); } catch { }
 
             try

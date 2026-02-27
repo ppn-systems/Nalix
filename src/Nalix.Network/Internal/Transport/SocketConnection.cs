@@ -67,7 +67,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
     private readonly Socket _socket = socket;
     private readonly CancellationTokenSource _cts = new();
-    private readonly FragmentAssembler _fragmentAssembler = new();
+    private FragmentAssembler? _fragmentAssembler;
 
     /// <summary>
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
@@ -412,7 +412,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                 // messages do not keep per-connection fragment state alive forever.
                 if ((++_packetCount & (FragmentAssembler.EvictInterval - 1)) == 0)
                 {
-                    int evicted = _fragmentAssembler.EvictExpired();
+                    FragmentAssembler? fragmentAssembler = _fragmentAssembler;
+                    int evicted = fragmentAssembler?.EvictExpired() ?? 0;
                     if (evicted > 0)
                     {
                         Interlocked.Add(ref _openFragmentStreams, -evicted);
@@ -465,6 +466,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
                     if (FragmentAssembler.IsFragmentedFrame(payloadSpan, out FragmentHeader header))
                     {
+                        FragmentAssembler fragmentAssembler = this.GET_OR_CREATE_FRAGMENT_ASSEMBLER();
                         ReadOnlySpan<byte> chunkBody = payloadSpan[FragmentHeader.WireSize..];
 
                         if (header.ChunkIndex == 0)
@@ -493,7 +495,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                             $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_sender?.NetworkEndpoint.Address}");
 #endif
 
-                        FragmentAssemblyResult? assembled = _fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
+                        FragmentAssemblyResult? assembled = fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
 
                         if (assembled is not null)
                         {
@@ -664,7 +666,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
             // 7. Dispose remaining resources.
             _cts.Dispose();
             _socket.Dispose();
-            _fragmentAssembler.Dispose();
+            Interlocked.Exchange(ref _fragmentAssembler, null)?.Dispose();
         }
 
 #if DEBUG
@@ -776,6 +778,26 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         {
             throw new InternalErrorException("SetCallback must be called before use");
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private FragmentAssembler GET_OR_CREATE_FRAGMENT_ASSEMBLER()
+    {
+        FragmentAssembler? assembler = _fragmentAssembler;
+        if (assembler is not null)
+        {
+            return assembler;
+        }
+
+        assembler = new FragmentAssembler();
+        FragmentAssembler? existing = Interlocked.CompareExchange(ref _fragmentAssembler, assembler, null);
+        if (existing is not null)
+        {
+            assembler.Dispose();
+            return existing;
+        }
+
+        return assembler;
     }
 
 #if DEBUG

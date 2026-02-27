@@ -15,6 +15,8 @@
 
 Nalix is a real-time server solution designed for efficient communication and data sharing. It enables instant messaging, data synchronization, and secure networking, making it ideal for applications requiring live updates.
 
+[**Explore the Docs**](DOCUMENTATION.md) • [**View Examples**](example/) • [**Benchmarks**](#-benchmarks) • [**Contributing**](CONTRIBUTING.md)
+
 ## 🛠️ Latest Builds
 
 | Environment | Status |
@@ -89,33 +91,65 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 ---
 
-> **More details:** See the `docs/Nalix.Benchmarks` folder in the repository for full data and additional test cases.
+> **More details:** See the `docs/benchmarks` folder in the repository for full data and additional test cases.
 
 ---
 
 ## 📦 Available NuGet Packages
 
-| Package ID         |Description                                                                                                        |
-|--------------------|-------------------------------------------------------------------------------------------------------------------|
-| **Nalix.SDK**      | Client-side SDK offering controllers, time sync, and localization utilities for connecting to Nalix.Network.      |
-| **Nalix.Common**   | Core abstractions, enums, and shared contracts for the Nalix ecosystem.                                           |
-| **Nalix.Logging**  | Asynchronous and high-performance logging subsystem with batching and multiple sinks.                             |
-| **Nalix.Network**  | Core networking runtime providing TCP/UDP connections, protocol pipelines, and throttling.                        |
-| **Nalix.Framework**| High-level framework providing identity, injection, randomization, and task orchestration.                        |
+Nalix is composed of several modular packages to keep your dependencies lean.
 
-### 📦 Installation
+### 🏗️ Foundation
+| Package ID | Description |
+| :--- | :--- |
+| **[Nalix.Common](src/Nalix.Common)** | Base abstractions, enums, and shared contracts for the Nalix ecosystem. |
+| **[Nalix.Framework](src/Nalix.Framework)** | High-performance core: cryptography, identity, DI, and task orchestration. |
+| **[Nalix.Runtime](src/Nalix.Runtime)** | Core packet processing, middleware pipeline, and execution infrastructure. |
 
-You can install Nalix packages individually via NuGet:
+### 📡 Networking & Hosting
+| Package ID | Description |
+| :--- | :--- |
+| **[Nalix.Network](src/Nalix.Network)** | High-performance transport runtime (TCP/UDP), connection management, and throttling. |
+| **[Nalix.Network.Hosting](src/Nalix.Network.Hosting)** | Microsoft-style host and builder APIs for quick bootstrapping. |
+| **[Nalix.Network.Pipeline](src/Nalix.Network.Pipeline)** | Reusable middleware, traffic shaping, and time-keeping primitives. |
 
-```bash
-dotnet add package Nalix.SDK
-dotnet add package Nalix.Common
-dotnet add package Nalix.Logging
-dotnet add package Nalix.Network
-dotnet add package Nalix.Framework
+### 🛠️ Utilities & Tooling
+| Package ID | Description |
+| :--- | :--- |
+| **[Nalix.Logging](src/Nalix.Logging)** | Asynchronous logging subsystem with pluggable sinks and high-throughput batching. |
+| **[Nalix.SDK](src/Nalix.SDK)** | Client-side SDK offering controllers, time sync, and localization utilities. |
+| **[Nalix.Analyzers](src/Nalix.Analyzers)** | Roslyn analyzers and code fixes to ensure best practices when using Nalix. |
+
+## 🚀 Quick Start
+
+Build a high-performance network application in minutes using the **Hosting** package:
+
+```csharp
+using Nalix.Network.Hosting;
+using Microsoft.Extensions.Logging;
+
+// Initialize the application host
+using var host = NetworkApplication.CreateBuilder()
+    .AddTcp<MyPacketProtocol>()
+    .AddHandler<MyPacketHandler>()
+    .Configure<NetworkSocketOptions>(opt => opt.Port = 8080)
+    .Build();
+
+// Run the server
+await host.RunAsync();
 ```
 
-All Nalix packages target .NET 10 with full support for C# 14 features.
+> **Note:** See the [examples](example/) directory for complete implementation details.
+
+## 📦 Installation
+
+Add the required packages to your project:
+
+```bash
+# For a full server setup:
+dotnet add package Nalix.Network.Hosting
+dotnet add package Nalix.Logging
+```
 
 ## 🛠️ Contributing
 
@@ -133,4 +167,8 @@ _Nalix is copyright &copy; PhcNguyen - Provided under the [Apache License, Versi
 
 For questions, suggestions, or support, open an issue on [GitHub](https://github.com/ppn-systems/Nalix/issues) or contact the maintainers at [ppn.system@gmail.com](mailto:ppn.system@gmail.com).
 
-Give a ⭐️ if this project helped you!
+---
+
+<p align="center">
+  Give a ⭐️ if this project helped you!
+</p>

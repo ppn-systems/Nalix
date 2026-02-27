@@ -13,8 +13,13 @@ Nalix/
 │   ├── Nalix.Common/
 │   ├── Nalix.Framework/
 │   ├── Nalix.Logging/
+│   ├── Nalix.Runtime/
 │   ├── Nalix.Network/
-│   └── Nalix.SDK/
+│   ├── Nalix.Network.Pipeline/
+│   ├── Nalix.Network.Hosting/
+│   ├── Nalix.SDK/
+│   ├── Nalix.Analyzers/
+│   └── Nalix.Analyzers.CodeFixes/
 ├── tests/
 │   ├── Nalix.Tests.sln
 │   └── (mirror of src/ project structure)
@@ -61,11 +66,10 @@ dotnet test tests/Nalix.Network.Tests/Nalix.Network.Tests.csproj --configuration
 ## 3. Project Responsibilities & Dependency Graph
 
 ```plaintext
-Nalix.Common      ← no Nalix dependencies (lowest-level)
-Nalix.Framework   ← Nalix.Common only
-Nalix.Logging     ← Nalix.Common, Nalix.Framework
-Nalix.Network     ← Nalix.Common, Nalix.Framework
-Nalix.SDK         ← Nalix.Common, Nalix.Framework
+Level 0: Nalix.Common, Nalix.Analyzers
+Level 1: Nalix.Framework (deps: Common)
+Level 2: Nalix.Logging, Nalix.Runtime, Nalix.Network, Nalix.Network.Pipeline, Nalix.SDK (deps: Common, Framework)
+Level 3: Nalix.Network.Hosting (deps: Common, Framework, Network, Runtime)
 ```
 
 **Never introduce a dependency that violates this graph. Never create circular references.**
@@ -82,9 +86,21 @@ Foundational runtime utilities: configuration, data frames, packet registry, DI/
 
 Logging subsystem: `NLogix` facade, logging engine, distributor, console/file/batch sinks, formatters, pooling helpers, logging configuration.
 
+### `Nalix.Runtime`
+
+Packet processing core: middleware pipeline orchestration, packet dispatching channels, and execution management for high-efficiency message traffic.
+
 ### `Nalix.Network`
 
-Networking runtime: TCP/UDP listeners, connection and hub management, protocol lifecycle, middleware pipelines, routing, dispatch, throttling, timing.
+Networking transport: TCP/UDP listeners, connection and hub management, protocol lifecycle, routing, transport dispatch, adaptive throttling, timing.
+
+### `Nalix.Network.Pipeline`
+
+Reusable networking components: permission middleware, rate limiting, traffic shaping, concurrency gates, and timekeeping primitives.
+
+### `Nalix.Network.Hosting`
+
+Application hosting: Microsoft-style host and builder APIs for bootstrapping packet registry, dispatch, and connection lifecycle.
 
 ### `Nalix.SDK`
 
@@ -151,13 +167,16 @@ Workflows in `.github/workflows/`:
 | `ci-linux.yml`                   | Build & test on Ubuntu via `_build.yml`              |
 | `ci-windows.yml`                 | Build & test on Windows via `_build.yml`             |
 | `_build.yml`                     | Reusable template: restore → build → test → publish  |
+| `benchmark.yml`                  | Run BenchmarkDotNet on `master`, upload artifacts, compare against the previous benchmark artifact |
 | `_codeql.yml`                    | CodeQL security analysis (C#, scheduled + PR)        |
 | `docs.yml`                       | MkDocs build and deploy to GitHub Pages              |
-| `release-please.yml`             | Bump `.csproj` versions from release-please manifest |
 | `community-welcome.yml`          | Greet first-time contributors                        |
 | `community-stale.yml`            | Mark and close stale issues/PRs                      |
 | `security-dependency-review.yml` | Scan NuGet deps for CVEs on every PR                 |
 | `repo-label-sync.yml`            | Sync labels from `.github/labels.yml`                |
+| `nuget.yml`                      | Automated NuGet packaging and versioning              |
+
+Release/versioning rules follow Conventional Commits (`fix` = patch, `feat` = minor, breaking changes = major).
 
 **Label gate**: PRs with the `documentation` label skip build and CodeQL — they only trigger `docs.yml`. Do not remove or rename this label.
 
@@ -168,7 +187,7 @@ Workflows in `.github/workflows/`:
 - Do not add projects or references outside the dependency graph above
 - Do not use `Nalix.Shared` (removed)
 - Do not disable nullable, warnings, or XML doc generation in `.csproj` files
-- Do not commit `.snk` files — the signing key `Nalix.snk` is injected by CI: `echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk`. Without this step the build will fail with `CS7027`.
+- Do not commit `.snk` files — the signing key `Nalix.snk` is injected by CI
 - Do not suggest `Debug` configuration in CI context — all CI builds use `Release`
 - Do not introduce `Thread.Sleep`, `Task.Delay` in production code without explicit justification
 - Do not use `dynamic` or suppress nullability warnings without a comment explaining why

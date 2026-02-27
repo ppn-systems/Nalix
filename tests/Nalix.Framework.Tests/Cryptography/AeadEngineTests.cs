@@ -528,6 +528,26 @@ public sealed class AeadEngineTests
             System.Text.Encoding.UTF8.GetBytes("wrong-aad"), out _));
     }
 
+    [Theory]
+    [InlineData(CipherSuiteType.Chacha20Poly1305)]
+    [InlineData(CipherSuiteType.Salsa20Poly1305)]
+    public void AeadEngineEnvelopeTamperedSequenceHeaderDecryptReturnsFalse(CipherSuiteType algorithm)
+    {
+        byte[] nonce = NonceFor(algorithm);
+        int nLen = NonceLen(algorithm);
+        byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
+        byte[] plaintext = new byte[s_plaintextShort.Length];
+
+        AeadEngine.Encrypt(
+            s_key32, s_plaintextShort, envelope, nonce,
+            s_aad, seq: 0x01020304u, algorithm, out int written);
+
+        envelope[8] ^= 0xFF;
+
+        _ = Assert.Throws<System.Security.Cryptography.CryptographicException>(() =>
+            AeadEngine.Decrypt(s_key32, envelope.AsSpan()[..written], plaintext, s_aad, out _));
+    }
+
     [Fact]
     public void AeadEngineEnvelopeEmptyEnvelopeDecryptReturnsFalse()
     {

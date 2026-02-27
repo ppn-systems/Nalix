@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Security;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Aead;
 using Nalix.Framework.Security.Internal;
@@ -93,32 +94,49 @@ public static class AeadEngine
         int ctOffset = EnvelopeFormat.HeaderSize + nonce.Length;
         System.Span<byte> ctDestination = ciphertext.Slice(ctOffset, plaintext.Length);
         System.Span<byte> tagDestination = ciphertext.Slice(ctOffset + plaintext.Length, EnvelopeFormat.TagSize);
+        System.Span<byte> header = stackalloc byte[EnvelopeFormat.HeaderSize];
+        EnvelopeHeader.Encode(header, new EnvelopeHeader(EnvelopeFormat.CurrentVersion, algorithm, 0, (byte)nonce.Length, seqVal));
 
-        switch (algorithm)
+        byte[]? rentedAad = null;
+        int authenticatedDataLength = header.Length + nonce.Length + aad.Length;
+        System.Span<byte> authenticatedData = authenticatedDataLength <= 256
+            ? stackalloc byte[authenticatedDataLength]
+            : (rentedAad = BufferLease.ByteArrayPool.Rent(authenticatedDataLength));
+
+        header.CopyTo(authenticatedData);
+        nonce.CopyTo(authenticatedData[header.Length..]);
+        aad.CopyTo(authenticatedData[(header.Length + nonce.Length)..]);
+
+        try
         {
-            case CipherSuiteType.Chacha20Poly1305:
-                _ = ChaCha20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
-                break;
+            switch (algorithm)
+            {
+                case CipherSuiteType.Chacha20Poly1305:
+                    _ = ChaCha20Poly1305.Encrypt(key, nonce, plaintext, authenticatedData, ctDestination, tagDestination);
+                    break;
 
-            case CipherSuiteType.Salsa20Poly1305:
-                _ = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
-                break;
+                case CipherSuiteType.Salsa20Poly1305:
+                    _ = Salsa20Poly1305.Encrypt(key, nonce, plaintext, authenticatedData, ctDestination, tagDestination);
+                    break;
 
-            case CipherSuiteType.Salsa20:
-            case CipherSuiteType.Chacha20:
+                case CipherSuiteType.Salsa20:
+                case CipherSuiteType.Chacha20:
 
-            default:
-                ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
-                return;
+                default:
+                    ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
+                    return;
+            }
+
+            _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctDestination, tagDestination);
+            written = total;
         }
-
-        // Write the envelope header/nonce and copy ciphertext+tag into the output span.
-        // ctDestination/tagDestination already point into ciphertext; WriteEnvelope should
-        // write header and nonce and then copy provided ct/tag into the envelope region.
-        _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctDestination, tagDestination);
-
-        // Clear sensitive temporary areas if necessary (we avoid extra temporaries here).
-        written = total;
+        finally
+        {
+            if (rentedAad is not null)
+            {
+                BufferLease.ByteArrayPool.Return(rentedAad);
+            }
+        }
     }
 
     /// <summary>
@@ -160,32 +178,51 @@ public static class AeadEngine
         }
 
         System.Span<byte> ptSlice = plaintext[..ctLen];
+        byte[]? rentedAad = null;
+        int authenticatedDataLength = env.Header.Length + env.Nonce.Length + aad.Length;
+        System.Span<byte> authenticatedData = authenticatedDataLength <= 256
+            ? stackalloc byte[authenticatedDataLength]
+            : (rentedAad = BufferLease.ByteArrayPool.Rent(authenticatedDataLength));
 
-        int result;
-        switch (env.AeadType)
+        env.Header.CopyTo(authenticatedData);
+        env.Nonce.CopyTo(authenticatedData[env.Header.Length..]);
+        aad.CopyTo(authenticatedData[(env.Header.Length + env.Nonce.Length)..]);
+
+        try
         {
-            case CipherSuiteType.Chacha20Poly1305:
-                result = ChaCha20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, aad, env.Tag, ptSlice);
-                break;
+            int result;
+            switch (env.AeadType)
+            {
+                case CipherSuiteType.Chacha20Poly1305:
+                    result = ChaCha20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, authenticatedData, env.Tag, ptSlice);
+                    break;
 
-            case CipherSuiteType.Salsa20Poly1305:
-                result = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, aad, env.Tag, ptSlice);
-                break;
+                case CipherSuiteType.Salsa20Poly1305:
+                    result = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, authenticatedData, env.Tag, ptSlice);
+                    break;
 
-            case CipherSuiteType.Salsa20:
-            case CipherSuiteType.Chacha20:
-                throw new System.NotSupportedException("Authenticated decryption is not supported for the selected non-AEAD algorithm.");
+                case CipherSuiteType.Salsa20:
+                case CipherSuiteType.Chacha20:
+                    throw new System.NotSupportedException("Authenticated decryption is not supported for the selected non-AEAD algorithm.");
 
-            default:
-                ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
-                return;
+                default:
+                    ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
+                    return;
+            }
+
+            if (result < 0)
+            {
+                throw new System.Security.Cryptography.CryptographicException("AEAD authentication failed.");
+            }
+
+            written = result;
         }
-
-        if (result < 0)
+        finally
         {
-            throw new System.Security.Cryptography.CryptographicException("AEAD authentication failed.");
+            if (rentedAad is not null)
+            {
+                BufferLease.ByteArrayPool.Return(rentedAad);
+            }
         }
-
-        written = result;
     }
 }

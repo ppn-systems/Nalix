@@ -64,8 +64,8 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 ProtocolReason.UNAUTHENTICATED, ProtocolAdvice.NONE,
                 sequenceId: context.Packet.SequenceId,
                 flags: ControlFlags.IS_TRANSIENT,
-                arg0: (byte)context.Attributes.Permission.Level,
-                arg1: (byte)context.Connection.Level,
+                arg0: 0,
+                arg1: 0,
                 arg2: context.Attributes.PacketOpcode.OpCode);
 
             using BufferLease lease = BufferLease.Rent(directive.Length + 32);

@@ -15,10 +15,10 @@ using Nalix.SDK.Options;
 namespace Nalix.SDK.Transport.Internal;
 
 /// <summary>
-/// Optimized frame recipient that handles reassembly of fragmented packets, 
+/// Optimized frame recipient that handles reassembly of fragmented packets,
 /// decryption, and decompression of raw network data.
 /// </summary>
-internal sealed class FRAME_READER : IDisposable
+internal sealed class FrameReader : IDisposable
 {
     private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
 
@@ -33,7 +33,7 @@ internal sealed class FRAME_READER : IDisposable
         StreamTimeoutMs = s_fragmentOptions.ReassemblyTimeoutMs
     };
 
-    public FRAME_READER(
+    public FrameReader(
         Func<Socket> getSocket,
         TransportOptions options,
         Action<BufferLease> onMessage,

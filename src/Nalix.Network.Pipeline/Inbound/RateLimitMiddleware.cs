@@ -61,18 +61,11 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(context);
 
-        if (context.Attributes.RateLimit is null)
-        {
-            await next(context.CancellationToken).ConfigureAwait(false);
-            return;
-        }
-
         TokenBucketLimiter.RateLimitDecision decision;
         PacketRateLimitAttribute? rl = context.Attributes.RateLimit;
 
         try
         {
-
             if (rl is not null)
             {
                 // Attribute-driven policy: use centralized policy-based limiter

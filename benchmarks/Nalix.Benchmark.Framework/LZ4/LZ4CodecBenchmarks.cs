@@ -6,7 +6,6 @@ using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Benchmark.Framework.LZ4;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class LZ4CodecBenchmarks
 {

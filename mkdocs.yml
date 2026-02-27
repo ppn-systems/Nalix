@@ -233,3 +233,11 @@ nav:
         - Options:
           - Transport Options: api/sdk/options/transport-options.md
           - Request Options: api/sdk/options/request-options.md
+  - Benchmarks:
+      - Overview: benchmarks/index.md
+      - Core Infrastructure: benchmarks/infrastructure.md
+      - Memory & Storage: benchmarks/memory.md
+      - Data Processing: benchmarks/data-processing.md
+      - Security & Cryptography: benchmarks/security.md
+      - Serialization: benchmarks/serialization.md
+      - Distributed Identifiers: benchmarks/identifiers.md

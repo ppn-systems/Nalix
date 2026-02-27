@@ -1,6 +1,7 @@
 
 using System;
 using System.Linq;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
@@ -219,5 +220,14 @@ public sealed partial class DataFramesPublicApiTests
 
         Assert.True(decrypted.Length >= packetBytes.Length);
         Assert.Equal(packetBytes, decrypted.Memory.Span[..packetBytes.Length].ToArray());
+    }
+
+    [Fact]
+    public void DecryptFrameWhenCiphertextIsTooShortThrowsCipherException()
+    {
+        byte[] key = [.. Enumerable.Range(1, 32).Select(static x => (byte)x)];
+        using BufferLease source = BufferLease.CopyFrom(new byte[FrameTransformer.Offset + 1]);
+
+        _ = Assert.Throws<CipherException>(() => PacketCipher.DecryptFrame(source, key));
     }
 }

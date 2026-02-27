@@ -8,7 +8,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 namespace Nalix.Logging;
@@ -258,22 +257,6 @@ public sealed class NLogixDistributor : INLogixDistributor
            $"- Target Operations: {this.TotalTargetInvocations:N0}" + Environment.NewLine +
            $"- Errors: {this.TotalPublishErrors:N0}" + Environment.NewLine +
            $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;
-
-    /// <summary>
-    /// Asynchronously publishes a log entry to all registered logging targets.
-    /// </summary>
-    /// <param name="timestampUtc">The UTC timestamp assigned to the log event.</param>
-    /// <param name="logLevel">The severity level of the log event.</param>
-    /// <param name="eventId">The associated event identifier.</param>
-    /// <param name="message">The rendered log message.</param>
-    /// <param name="exception">The associated exception, if any.</param>
-    /// <returns>A task representing the asynchronous publish operation.</returns>
-    public ValueTask PublishAsync(
-        DateTime timestampUtc,
-        LogLevel logLevel,
-        EventId eventId,
-        string message,
-        Exception? exception) => throw new NotImplementedException();
 
     #endregion Public Methods
 }
