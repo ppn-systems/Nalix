@@ -1,133 +1,65 @@
 # Frame Reader and Sender
 
-This page documents the internal framing helpers behind `TransportSession` and `TcpSession`.
+`FrameReader` and `FrameSender` are the internal workhorses of the `Nalix.SDK` transport layer. They manage the low-level serialization of frames, socket I/O, and payload transformations, abstracting these complexities away from the `TcpSession`.
 
-!!! note "Transport implementation details"
-    `FRAME_READER` and `FRAME_SENDER` are internal SDK helpers, not the main client abstraction.
-    Most consumers should work through `TcpSession`, but these types are useful when you need to understand send ordering, receive ownership, fragmentation, or reconnect behavior.
+## Internal Pipeline
+
+```mermaid
+graph TD
+    subgraph Outbound [Outbound Pipeline]
+        S[TcpSession.SendAsync] --> FS[FrameSender]
+        FS --> T[Transform: Encrypt/Compress]
+        T --> Q[Bounded Channel Queue]
+        Q --> D[Single Drain Loop]
+        D --> SK[Socket.SendAsync]
+    end
+    
+    subgraph Inbound [Inbound Pipeline]
+        RSK[Socket.ReceiveAsync] --> FR[FrameReader]
+        FR --> H[Read Header: 2 Bytes]
+        H --> L[Read Payload]
+        L --> FA[Fragment Reassembly]
+        FA --> IT[Inbound Transform]
+        IT --> Callback[Forward to Session]
+    end
+```
 
 ## Source mapping
 
-- `src/Nalix.SDK/Transport/Internal/FRAME_READER.cs`
-- `src/Nalix.SDK/Transport/Internal/FRAME_SENDER.cs`
+- `src/Nalix.SDK/Transport/Internal/FrameReader.cs`
+- `src/Nalix.SDK/Transport/Internal/FrameSender.cs`
 - `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
-- `src/Nalix.SDK/Transport/TransportSession.cs`
-- `src/Nalix.SDK/Transport/TcpSession.cs`
 
-## Runtime model
+## Frame Sender (`FrameSender`)
 
-```mermaid
-flowchart LR
-    A["TcpSession.SendAsync"] --> B["FRAME_SENDER"]
-    B --> C["Bounded send queue"]
-    C --> D["Single drain loop"]
-    D --> E["Socket.SendAsync"]
+The `FrameSender` provides a thread-safe, ordered outbound pipeline. It uses a `System.Threading.Channels` bounded queue to ensure that concurrent send requests never interleave their bytes on the socket.
 
-    F["Socket.ReceiveAsync"] --> G["FRAME_READER"]
-    G --> H["Header + payload read"]
-    H --> I["Fragment reassembly"]
-    I --> J["PacketFrameTransforms"]
-    J --> K["TcpSession.HandleReceiveMessage"]
-```
+- **Strict Ordering**: Guaranteed by a single-reader drain loop.
+- **Backpressure**: Prevents memory exhaustion if the network is slower than the application (via `BoundedChannelFullMode.Wait`).
+- **Automatic Fragmentation**: Large payloads are automatically split into chunks using the `FragmentHeader` and `FragmentStreamId` protocol.
+- **Pooled Memory**: Rents byte arrays for framing to minimize GC pressure during high-throughput bursts.
 
-## FRAME_SENDER
+## Frame Reader (`FrameReader`)
 
-`FRAME_SENDER` is the single-writer send pipeline used by `TcpSession.SendAsync(...)`.
+The `FrameReader` manages the long-running socket receive loop. It is responsible for reassembling the protocol frames from the raw TCP stream.
 
-Its job is to:
+- **Header Parsing**: Reads the 2-byte little-endian length prefix to determine the coming payload size.
+- **Fragment Management**: Synchronized with the server's chunking logic to reassemble fragmented payloads before delivering them upward.
+- **Transform Application**: Integrates with `PacketFrameTransforms` to decrypt and decompress payloads in-place.
+- **Ownership Handoff**: Rents a `BufferLease` for every frame. Once transformed, ownership of this lease is handed off to the session's receive event.
 
-- frame outbound payloads with the 2-byte SDK length header
-- queue concurrent sends through a bounded channel
-- ensure only one drain loop writes to the socket
-- return rented buffers after the send completes
-- report send failures back to the session
+## Ownership and Performance
 
-## Queue model
+A critical aspect of the SDK pipeline is its zero-copy (or minimized copy) architecture.
 
-Important behavior:
-
-- queue capacity is fixed by `SendQueueCapacity`
-- `BoundedChannelFullMode.Wait` applies backpressure instead of dropping frames
-- a single drain loop serializes all socket writes
-- each queued item carries the framed bytes and a `TaskCompletionSource<bool>` so callers can await completion
-
-This means concurrent callers never interleave bytes on the socket.
-
-## Fragmented send path
-
-If the payload crosses the configured fragmentation threshold, `FRAME_SENDER`:
-
-- allocates a stream ID through `FragmentStreamId`
-- slices the payload into chunk bodies
-- prepends `FragmentHeader`
-- enqueues each framed chunk in order
-
-The sender still preserves ordering because all chunks eventually pass through the same drain loop.
-
-## FRAME_READER
-
-`FRAME_READER` is the receive-side counterpart. It owns the socket read loop and converts raw bytes back into complete frames.
-
-Its job is to:
-
-- read the 2-byte SDK length header
-- rent a payload buffer
-- copy the header back into the rented frame
-- detect fragmented frames
-- reassemble full payloads through `FragmentAssembler`
-- apply shared inbound transforms after reassembly via `PacketFrameTransforms`, which wraps `PacketCipher` and `PacketCompression`
-- deliver the finished pooled lease upward
-
-## Ownership model
-
-Ownership is important on the receive path:
-
-- `FRAME_READER` creates the `BufferLease`
-- if the frame is fragmented, chunk data is copied into the assembler's pooled lease and the chunk lease is disposed immediately
-- for a complete frame, `FRAME_READER` passes the lease to the session callback
-- the upper layer becomes the sole owner and must dispose it
-
-This is why `TcpSession.HandleReceiveMessage(...)` is careful about lease copies, event dispatching, and final cleanup.
-
-## Shared transform helpers
-
-`PacketFrameTransforms` is an internal SDK helper that centralizes the send and receive transform flow.
-
-It delegates to the shared framework helpers:
-
-- `PacketCipher` for encrypt and decrypt flows
-- `PacketCompression` for compress and decompress flows
-
-This keeps the SDK transform logic in one place while still reusing the common frame APIs exposed by `Nalix.Framework`.
-
-## Interaction with TransportSession
-
-`TcpSession` wires these helpers together:
-
-- `InitializeFrame()` creates `FRAME_SENDER` and `FRAME_READER`
-- `SendAsync(ReadOnlyMemory<byte>)` and `SendAsync(IPacket)` forward into `FRAME_SENDER`
-- `HandleReceiveMessage(BufferLease)` is the normal callback target for `FRAME_READER`
-- send/receive errors are surfaced back through `HandleSendError(...)` and `HandleReceiveError(...)`
-
-`TcpSession` then layers on:
-
-- background receive scheduling
-- reconnect handling
-- heartbeat and bandwidth sampling through `SessionMonitor`
-- shared packet framing helpers for the active transport options
-
-## When clients should care
-
-You usually care about this page when you are:
-
-- debugging send ordering issues
-- tracing why fragmented payloads are delayed until complete
-- reasoning about who owns a receive buffer
-- investigating reconnects after send/receive faults
+1. **Renting**: Buffers are rented from the `ArrayPool<byte>` via the `BufferLease` abstraction.
+2. **Transformation**: LZ4 decompression and AEAD decryption are performed directly on these rented blocks.
+3. **Dispatch**: The final lease is delivered to the user's `OnMessageReceived` handler.
+4. **Cleanup**: The user **must** dispose of the lease (usually via `using var`) to return the memory to the pool.
 
 ## Related APIs
 
 - [TCP Session](./tcp-session.md)
-- [TCP Session Extensions](./tcp-session-extensions.md)
 - [Fragmentation](../framework/packets/fragmentation.md)
 - [Buffer and Pooling](../framework/memory/buffer-and-pooling.md)
+- [Session Extensions](./tcp-session-extensions.md)

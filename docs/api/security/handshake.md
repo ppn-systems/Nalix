@@ -27,6 +27,7 @@ All digests are computed using **Keccak-256** over length-prefixed segments:
 |---|---|---|
 | **Server Proof** | `nalix-handshake/server-proof` | `SharedSecret`, `TranscriptHash` |
 | **Client Proof** | `nalix-handshake/client-proof` | `SharedSecret`, `TranscriptHash` |
+| **Server Finish** | `nalix-handshake/server-finish` | `SharedSecret`, `TranscriptHash` |
 | **Session Key** | `nalix-handshake/session` | `SharedSecret`, `ClientNonce`, `ServerNonce`, `TranscriptHash` |
 
 ---
@@ -39,6 +40,12 @@ The server-side state machine is implemented in `HandshakeHandlers`. It tracks t
 - **Model**: `src/Nalix.Framework/DataFrames/SignalFrames/Handshake.cs`
 - **Logic**: `src/Nalix.Framework/Security/HandshakeX25519.cs`
 - **Handler**: `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
+
+### Cryptographic Methods (`HandshakeX25519`)
+- `ComputeServerProof`: Generates the proof for `SERVER_HELLO`.
+- `ComputeClientProof`: Generates the proof for `CLIENT_FINISH`.
+- `ComputeServerFinishProof`: Generates the final acknowledgement proof for `SERVER_FINISH`.
+- `DeriveSessionKey`: Derives the 32-byte session key from the shared secret and transcript.
 
 ### Handling Logic
 Upon `CLIENT_FINISH` verification, the handler:

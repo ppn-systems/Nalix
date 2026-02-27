@@ -1,68 +1,87 @@
-# TcpSession
+# TCP Session
 
-`TcpSession` is the concrete TCP client transport in `Nalix.SDK`. It uses `TransportSession` as the shared abstraction for connect/disconnect, packet sending, and receive events.
+`TcpSession` is the core TCP client transport in `Nalix.SDK`. It handles the full lifecycle of a client connection, including reconnection logic, packet serialization, framed transport, and asynchronous message dispatching.
+
+## Lifecycle Flow
+
+```mermaid
+sequenceDiagram
+    participant A as Application
+    participant S as TcpSession
+    participant R as FrameReader
+    participant W as FrameSender
+    participant N as Network
+    
+    A->>S: ConnectAsync()
+    S->>N: Socket.Connect()
+    S->>R: Start ReceiveLoop
+    A->>S: SendAsync(packet)
+    S->>W: SendAsync(payload)
+    W->>N: Socket.Send()
+    N-->>R: Payload Received
+    R-->>S: Frame Decoded
+    S-->>A: OnMessageReceived / OnMessageAsync
+```
 
 ## Source mapping
 
-- `src/Nalix.SDK/Transport/TransportSession.cs`
 - `src/Nalix.SDK/Transport/TcpSession.cs`
-- `src/Nalix.SDK/Transport/Internal/FRAME_READER.cs`
-- `src/Nalix.SDK/Transport/Internal/FRAME_SENDER.cs`
+- `src/Nalix.SDK/Transport/Internal/FrameReader.cs`
+- `src/Nalix.SDK/Transport/Internal/FrameSender.cs`
+- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
 
-## What it does
+## Role and Design
 
-- connects a TCP socket to the configured server endpoint
-- serializes packets into framed payloads
-- reuses shared packet framing helpers for encrypt/compress and decrypt/decompress flows
-- raises sync and async message events
-- exposes `OnConnected`, `OnDisconnected`, `OnMessageReceived`, and `OnError`
-- uses a background receive loop to process incoming frames
+`TcpSession` acts as a high-level wrapper around a raw socket, providing a packet-oriented interface. It integrates with `Nalix.Framework.Memory` to use pooled buffers, minimizing GC pressure for high-throughput clients.
 
-## Class shape
+- **Asynchronous Loop**: A background task continuously monitors the socket for incoming frames.
+- **Unified Framing**: Shared with the server to ensure consistent `MagicNumber` and `Opcode` processing.
+- **Error Handling**: Centralized `OnError` and `OnDisconnected` events for resilient client behavior.
 
-| Type | Purpose |
-| --- | --- |
-| `TransportSession` | Abstract base transport contract shared by client implementations. |
-| `TcpSession` | Concrete TCP implementation with connect, disconnect, send, and receive support. |
+## Public API
+
+### Events
+| Member | Description |
+|---|---|
+| `OnConnected` | Raised when the socket connection is successfully established. |
+| `OnDisconnected` | Raised when the connection is closed or lost. |
+| `OnMessageReceived` | Synchronous event providing an `IBufferLease` for each frame. |
+| `OnMessageAsync` | Asynchronous handler for low-latency or complex processing. |
+| `OnError` | Reports general transport or protocol errors. |
+
+### Methods
+| Member | Description |
+|---|---|
+| `ConnectAsync(...)` | Establishes a connection to the primary or override destination. |
+| `DisconnectAsync()` | Gracefully shuts down the connection. |
+| `SendAsync(IPacket)` | Serializes and sends a packet with standard framing. |
+| `SendAsync(payload)` | Sends raw binary data with required framing. |
+| `Dispose()` | Full resource cleanup and socket closure. |
 
 ## Basic usage
 
 ```csharp
-TransportOptions options = ConfigurationManager.Instance.Get<TransportOptions>();
-TcpSession client = new(options, catalog);
+var options = ConfigurationManager.Instance.Get<TransportOptions>();
+var catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
 
-client.OnMessageReceived += (_, lease) =>
+using var client = new TcpSession(options, catalog);
+
+client.OnConnected += (s, e) => Console.WriteLine("Connected!");
+client.OnMessageReceived += (s, lease) => 
 {
-    using (lease)
+    using (lease) // Ensure lease return to pool
     {
-        // Inspect the received buffer here.
+        Console.WriteLine($"Received {lease.Length} bytes");
     }
 };
 
-await client.ConnectAsync(options.Address, options.Port);
-await client.SendAsync(myPacket);
-await client.DisconnectAsync();
-client.Dispose();
+await client.ConnectAsync();
+await client.SendAsync(new LoginPacket { Username = "Ghost" });
 ```
-
-## Events
-
-- `OnConnected` is raised after a successful socket connect.
-- `OnDisconnected` is raised when the session tears down or encounters a transport error.
-- `OnMessageReceived` receives a leased buffer for each complete frame.
-- `OnMessageAsync` allows for asynchronous processing of received raw binary frames.
-- `OnError` reports connection or transport faults.
-
-## Notes
-
-- `TcpSession` is the current concrete client transport in the source tree.
-- `TransportOptions` and `IPacketRegistry` are required at construction time.
-- `SendAsync(IPacket)` serializes the packet and delegates framing and send to the internal sender pipeline.
-- the receive path uses shared packet transform helpers before the completed frame is surfaced to the application layer.
 
 ## Related APIs
 
 - [SDK Overview](./index.md)
+- [UDP Session](./udp-session.md)
 - [Transport Session](./transport-session.md)
-- [Request Options](./options/request-options.md)
 - [Transport Options](./options/transport-options.md)

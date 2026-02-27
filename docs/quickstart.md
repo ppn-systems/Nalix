@@ -1,325 +1,136 @@
 # Quickstart
 
-Run one TCP ping request end to end.
+Welcome to Nalix. This guide will walk you through building a high-performance "Ping" service from scratch using TCP. You'll learn how to define packets, implement handlers, and connect a client—all with zero-allocation efficiency.
 
-## Install
+## 🏗️ Project Setup
 
-### Shared contracts
+Nalix is composed of specialized packages. For most projects, you'll need the following:
 
+### 📄 Contracts (Shared)
 ```bash
 dotnet add package Nalix.Common
 dotnet add package Nalix.Framework
 ```
 
-### Server
-
+### 🖥️ Server
 ```bash
-dotnet add package Nalix.Common
-dotnet add package Nalix.Framework
-dotnet add package Nalix.Network
 dotnet add package Nalix.Network.Hosting
-dotnet add package Nalix.Logging
 dotnet add package Nalix.Network.Pipeline
+dotnet add package Nalix.Logging
 ```
 
-### Client
-
+### 📱 Client (SDK)
 ```bash
-dotnet add package Nalix.Common
-dotnet add package Nalix.Framework
 dotnet add package Nalix.SDK
 ```
 
-## Project Structure
+---
 
-```text
-QuickStart/
-  src/
-    QuickStart.Contracts/
-      Packets/
-        PingRequest.cs
-        PingResponse.cs
-    QuickStart.Server/
-      Handlers/PingHandlers.cs
-      Protocols/QuickStartProtocol.cs
-      Program.cs
-    QuickStart.Client/
-      Program.cs
-```
+## 1. Define Your Packets
 
-Reference `QuickStart.Contracts` from both server and client.
-
-## 1. Packets
-
-### `PingRequest.cs`
+Packets in Nalix are simple POCOs decorated with serialization metadata. Create a shared `Contracts` project so both the server and client stay in sync.
 
 ```csharp
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Serialization;
-using Nalix.Framework.DataFrames;
-
-namespace QuickStart.Contracts.Packets;
-
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class PingRequest : PacketBase<PingRequest>
 {
     public const ushort OpCodeValue = 0x1001;
 
-    [SerializeDynamicSize(64)]
     [SerializeOrder(0)]
+    [SerializeDynamicSize(64)]
     public string Message { get; set; } = string.Empty;
 
-    public PingRequest()
-    {
-        this.OpCode = OpCodeValue;
-        this.Protocol = ProtocolType.TCP;
-        this.Flags = PacketFlags.SYSTEM;
-    }
+    public PingRequest() => OpCode = OpCodeValue;
 }
-```
-
-### `PingResponse.cs`
-
-```csharp
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Serialization;
-using Nalix.Framework.DataFrames;
-
-namespace QuickStart.Contracts.Packets;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class PingResponse : PacketBase<PingResponse>
 {
     public const ushort OpCodeValue = 0x1002;
 
-    [SerializeDynamicSize(64)]
     [SerializeOrder(0)]
+    [SerializeDynamicSize(64)]
     public string Message { get; set; } = string.Empty;
 
-    public PingResponse()
-    {
-        this.OpCode = OpCodeValue;
-        this.Protocol = ProtocolType.TCP;
-        this.Flags = PacketFlags.SYSTEM;
-    }
+    public PingResponse() => OpCode = OpCodeValue;
 }
 ```
 
-## 2. Server
+## 2. Implement the Server
 
-### `PingHandlers.cs`
+The server uses the `NetworkApplication` builder to glue handlers, protocols, and hosting together.
 
+### The Handler
 ```csharp
-using Nalix.Common.Networking.Packets;
-using Nalix.Runtime.Dispatching;
-using QuickStart.Contracts.Packets;
-
-namespace QuickStart.Server.Handlers;
-
-[PacketController("PingHandlers")]
-public sealed class PingHandlers
+[PacketController("General")]
+public sealed class PingHandler
 {
     [PacketOpcode(PingRequest.OpCodeValue)]
-    public PingResponse Handle(IPacketContext<PingRequest> request)
+    public PingResponse Handle(IPacketContext<PingRequest> context)
     {
-        return new PingResponse { Message = $"pong: {request.Packet.Message}" };
+        return new PingResponse { Message = $"Pong: {context.Packet.Message}" };
     }
 }
 ```
 
-### `QuickStartProtocol.cs`
-
+### The Program
 ```csharp
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using QuickStart.Server.Protocols;
-
-namespace QuickStart.Server.Protocols;
-
-public sealed class QuickStartProtocol : Protocol
-{
-    private readonly IPacketDispatch _dispatch;
-
-    public QuickStartProtocol(IPacketDispatch dispatch)
-    {
-        _dispatch = dispatch;
-        this.SetConnectionAcceptance(true);
-    }
-
-    public override void ProcessMessage(object sender, IConnectEventArgs args)
-        => _dispatch.HandlePacket(args.Lease, args.Connection);
-}
-```
-
-### `Program.cs`
-
-```csharp
-using Microsoft.Extensions.Logging;
-using Nalix.Logging;
-using Nalix.Network.Hosting;
-using Nalix.Network.Options;
-using QuickStart.Contracts.Packets;
-using QuickStart.Server.Handlers;
-using QuickStart.Server.Protocols;
-
-const ushort Port = 57206;
-
-ILogger logger = NLogix.Host.Instance;
-
-using NetworkApplication app = NetworkApplication.CreateBuilder()
-    .ConfigureLogging(logger)
-    .Configure<NetworkSocketOptions>(options =>
-    {
-        options.Port = Port;
-        options.Backlog = 512;
-    })
-    .AddPacketAssembly<PingRequest>()
-    .AddHandlers<PingHandlers>()
-    .AddTcp<QuickStartProtocol>()
+using var app = NetworkApplication.CreateBuilder()
+    .AddHandlers<PingHandler>()
+    .AddTcp<DefaultProtocol>(options => options.Port = 5000)
     .Build();
 
-using CancellationTokenSource shutdown = new();
-
-Console.CancelKeyPress += (_, eventArgs) =>
-{
-    eventArgs.Cancel = true;
-    shutdown.Cancel();
-};
-
-Console.WriteLine($"Server running on tcp://127.0.0.1:{Port}");
-Console.WriteLine("Press Ctrl+C to stop.");
-
-await app.RunAsync(shutdown.Token);
+await app.RunAsync();
 ```
 
-## 3. Client Test
+## 3. Connect the Client
 
-### `Program.cs`
+Use the `Nalix.SDK` for a thread-safe, high-level client experience.
 
 ```csharp
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.Injection;
-using Nalix.SDK.Options;
-using Nalix.SDK.Transport;
-using Nalix.SDK.Transport.Extensions;
-using QuickStart.Contracts.Packets;
+// 1. Build the registry
+var registry = new PacketRegistryBuilder()
+    .AddPacket<PingRequest>()
+    .AddPacket<PingResponse>()
+    .Build();
 
-const ushort Port = 57206;
+// 2. Initialize session
+await using var client = new TcpSession("127.0.0.1", 5000, registry);
+await client.ConnectAsync();
 
-PacketRegistryFactory factory = new();
-factory.RegisterPacket<PingRequest>()
-       .RegisterPacket<PingResponse>();
-
-IPacketRegistry packetRegistry = factory.CreateCatalog();
-
-TransportOptions transport = new()
-{
-    Address = "127.0.0.1",
-    Port = Port
-};
-
-await using TcpSession client = new(transport, packetRegistry);
-await client.ConnectAsync(transport.Address, transport.Port);
-
-PingResponse response = await client.RequestAsync<PingResponse>(
-    new PingRequest { Message = "hello" },
-    RequestOptions.Default.WithTimeout(3_000));
-
-Console.WriteLine($"Server replied: {response.Message}");
-
-await client.DisconnectAsync();
+// 3. Request/Response
+var response = await client.RequestAsync<PingResponse>(new PingRequest { Message = "Hello Nalix!" });
+Console.WriteLine(response.Message); // Output: Pong: Hello Nalix!
 ```
 
-Run:
+---
 
-```bash
-dotnet run --project src/QuickStart.Server
-dotnet run --project src/QuickStart.Client
-```
+## 🔄 Runtime Architecture
 
-Expected output:
-
-```text
-Server replied: pong: hello
-```
-
-## Runtime Flow
+The following diagram illustrates how a packet flows from the client, through the server's priority-aware dispatch queue, and finally into your handler.
 
 ```mermaid
 sequenceDiagram
-    participant C as Client
-    participant L as TcpListener
-    participant P as Protocol
-    participant D as Dispatch
-    participant Q as Queue
-    participant W as Worker
-    participant H as PingHandlers
+    participant C as Client (SDK)
+    participant T as Transport (TCP)
+    participant D as Dispatch Channel
+    participant W as Worker Loop
+    participant H as Handler
 
-    C->>L: PingRequest
-    L->>P: ProcessFrame()
-    P->>D: HandlePacket(...)
-    D->>Q: enqueue lease
-    W->>Q: pull lease
-    W->>H: Handle(...)
-    H-->>W: PingResponse
-    W-->>C: PingResponse
+    C->>T: Serialize & Send
+    T->>D: Enqueue IBufferLease
+    Note over D: Priority Queueing
+    D->>W: Wake Signal
+    W->>H: InvokeAsync(context)
+    H-->>W: Multi-Reply or Return
+    W-->>C: Transmit Results
 ```
 
-## 4. More Examples
+## 🛡️ Next Steps
 
-### UDP Ping
-For low-latency packets, switch to UDP.
+Now that you've mastered the basics, explore the power of the Nalix runtime:
 
-```csharp
-// Server
-builder.AddUdp<QuickStartProtocol>();
-
-// Client
-await using UdpSession client = new(transport, packetRegistry);
-await client.ConnectAsync(); // Connect maps the session
-await client.SendAsync(new PingRequest { Message = "udp" });
-```
-
-### Simple Authentication
-Use `PacketPermission` metadata and a middleware to enforce roles.
-
-```csharp
-// 1. Add attribute to handler
-[PacketPermission(PermissionLevel.ADMIN)]
-public PingResponse SecretHandle(IPacketContext<PingRequest> ctx) => new();
-
-// 2. Add middleware to server
-builder.ConfigureDispatch(dispatch => {
-    dispatch.WithMiddleware(new AuthMiddleware());
-});
-```
-
-### Simple Middleware
-Intercept packets for logging or timing.
-
-```csharp
-public class MyLoggingMiddleware<T> : IPacketMiddleware<T> where T : IPacket
-{
-    public async Task InvokeAsync(PacketContext<T> ctx, Func<CancellationToken, Task> next)
-    {
-        Console.WriteLine($"Processing {typeof(T).Name}...");
-        await next(ctx.CancellationToken);
-    }
-}
-```
-
-## Quick Notes
-
-- `Nalix.Network.Hosting` wraps packet registry setup, dispatch creation, and TCP listener lifecycle for you.
-- Keep `QuickStart.Contracts` shared by both sides.
-- `SetConnectionAcceptance(true)` is required in the protocol.
-- `TcpSession` and `UdpSession` use the same `IPacketRegistry`.
-
-## Next Steps
-
-1. [Production End-to-End](./guides/production-end-to-end.md)
-2. [Project Setup Guide](./guides/starter-template.md)
-3. [Architecture](./concepts/architecture.md)
+- **[Security & Permissions](./api/runtime/routing/packet-attributes.md)**: Enforce `PermissionLevel.USER` or `SYSTEM_ADMINISTRATOR` on handlers.
+- **[Middleware Pipeline](./api/runtime/middleware/pipeline.md)**: Add logging, rate-limiting, and metric collection.
+- **[Zero-Allocation Design](./api/framework/memory/buffer-and-pooling.md)**: Learn how `BufferLease` keeps your GC overhead at near-zero.
+- **[Deployment Guides](./guides/production-end-to-end.md)**: Best practices for hosting in Linux, Windows, or Kubernetes.

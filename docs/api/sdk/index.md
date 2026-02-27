@@ -1,19 +1,33 @@
-# Nalix.SDK API Overview
+# SDK Overview
 
-`Nalix.SDK` is the client transport layer for Nalix-based applications. The current source tree includes an abstract transport contract, a reliable TCP session, a high-performance UDP session, and helper extensions for control packets, requests, subscriptions, thread dispatching, and protocol strings.
-The SDK transport path also reuses the shared packet framing helpers from `Nalix.Framework`, so built-in packets and custom packet types can follow the same client pipeline.
-
-!!! tip "Start with TcpSession unless you have a reason not to"
-    `TcpSession` is the best default for most clients because it already carries reconnect, monitoring, and helper flow that teams usually need.
+`Nalix.SDK` is the high-performance client transport layer for the Nalix ecosystem. It provides the essential building blocks for building low-latency, resilient, and secure distributed applications. 
 
 ## Client runtime shape
 
 ```mermaid
-flowchart LR
-    A["TransportOptions"] --> B["TransportSession / TcpSession"]
-    B --> C["Connect / reconnect logic"]
-    C --> D["Extensions or packet send path"]
-    D --> E["Request matching / subscriptions"]
+graph LR
+    subgraph Options
+        TO[TransportOptions]
+        RO[RequestOptions]
+    end
+    
+    subgraph Transport
+        TS[TransportSession]
+        TCP[TcpSession]
+        UDP[UdpSession]
+    end
+    
+    subgraph Logic
+        EXT[Session Extensions]
+        SUB[Subscription System]
+    end
+    
+    TO --> TS
+    RO --> EXT
+    TS --> TCP
+    TS --> UDP
+    TCP --> EXT
+    EXT --> SUB
 ```
 
 ## Source mapping
@@ -27,101 +41,48 @@ flowchart LR
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
 - `src/Nalix.SDK/IThreadDispatcher.cs`
-- `src/Nalix.SDK/InlineDispatcher.cs`
 - `src/Nalix.SDK/Extensions/ProtocolStringExtensions.cs`
 
-## Module summary
+## Module Summary
 
 | Component | Description |
 | --- | --- |
-| `TransportSession`, `TcpSession`, `UdpSession` | Shared transport contract plus concrete TCP and UDP client implementations. |
-| `TransportOptions` | Client transport configuration loaded through `ConfigurationManager`. |
-| `RequestOptions` | Timeout, retry, and encryption controls for `RequestAsync`. |
-| `Transport.Extensions` | Control, request, and subscription helpers. |
-| `IThreadDispatcher`, `InlineDispatcher` | Minimal thread dispatch abstraction and inline implementation. |
-| `ProtocolStringExtensions` | Friendly display text for `ProtocolAdvice` and `ProtocolReason`. |
+| **Transports** | Abstract `TransportSession` with concrete `TcpSession` (reliable) and `UdpSession` (datagram) implementations. |
+| **Options** | Strongly-typed configuration for socket tuning, reconnect policies, and request-specific timeouts/retries. |
+| **Extensions** | Fluent builders for `CONTROL` frames, cryptographic handshakes, and race-condition-free `RequestAsync` helpers. |
+| **Subscriptions** | Type-safe event system that handles `IBufferLease` ownership and automatic unsubscription. |
+| **Utils** | Thread dispatching abstractions for UI/Game engine integration and protocol string translation. |
 
-## Quick start
+## Quick Start
 
-Checklist:
-
-- register an `IPacketRegistry`
-- load or construct `TransportOptions`
-- create `TransportSession`-derived `TcpSession`
-- hook events you need
-- connect, send, await responses, disconnect
+1. **Load Options**: Load `TransportOptions` from your configuration source.
+2. **Initialize Session**: Create a `TcpSession` or `UdpSession`.
+3. **Secure Connection**: Perform `HandshakeAsync` if encryption is required.
+4. **Exchange Packets**: Use `SendAsync`, `RequestAsync`, or `On<T>` to interact with the server.
 
 ```csharp
-InstanceManager.Instance.Register<IPacketRegistry>(catalog);
+var options = ConfigurationManager.Instance.Get<TransportOptions>();
+var client = new TcpSession(options, catalog);
 
-TransportOptions options = ConfigurationManager.Instance.Get<TransportOptions>();
+// Secure the connection via X25519
+await client.ConnectAsync();
+await client.HandshakeAsync();
 
-var client = new TcpSession();
-client.OnConnected += (_, _) => { };
-client.OnDisconnected += (_, ex) => { };
-
-await client.ConnectAsync(options.Address, options.Port);
-await client.SendAsync(myPacket);
-await client.DisconnectAsync();
-client.Dispose();
+// Strongly-typed request with automatic retry
+var response = await client.RequestAsync<UserLoginResponse>(
+    new UserLoginPacket { Username = "NalixUser" },
+    RequestOptions.Default.WithRetry(2)
+);
 ```
 
-## What changed in the current runtime
+## Key Documentation
 
-Compared with older docs/examples, the current SDK shape is:
-
-- TCP-first and centered on a single concrete client transport
-- reconnect-aware through `TransportOptions`
-- request-safe through `PACKET_AWAITER`-backed helpers
-- able to handle control and request flows without hand-written boilerplate
-
-## ProtocolStringExtensions
-
-`ProtocolStringExtensions` converts low-level protocol enums into short user-facing strings.
-
-## Source mapping
-
-- `src/Nalix.SDK/Extensions/ProtocolStringExtensions.cs`
-
-It currently adds:
-
-- `ProtocolAdvice.ToString()`
-- `ProtocolReason.ToString()`
-
-This API is mainly useful for:
-
-- client UI messages
-- toast/error text
-- logs that should stay readable without raw enum names
-
-## Example
-
-```csharp
-string message = ProtocolReason.RATE_LIMITED.ToString();
-string action = ProtocolAdvice.BACKOFF_RETRY.ToString();
-```
-
-Use the detail pages next:
-
-- [TCP Session](./tcp-session.md)
-- [UDP Session](./udp-session.md)
-- [Transport Session](./transport-session.md)
-- [Frame Reader and Sender](./frame-reader-and-sender.md)
-- [TCP Session Extensions](./tcp-session-extensions.md)
-- [Session Diagnostics](./diagnostics.md)
-- [Thread Dispatching](./thread-dispatching.md)
-- [Protocol String Extensions](./protocol-string-extensions.md)
-
-## Related APIs
-
-- [TCP Session](./tcp-session.md)
-- [UDP Session](./udp-session.md)
-- [Transport Session](./transport-session.md)
-- [Frame Reader and Sender](./frame-reader-and-sender.md)
-- [TCP Session Extensions](./tcp-session-extensions.md)
-- [Session Diagnostics](./diagnostics.md)
-- [Thread Dispatching](./thread-dispatching.md)
-- [Protocol String Extensions](./protocol-string-extensions.md)
-- [Subscriptions](./subscriptions.md)
-- [Transport Options](./options/transport-options.md)
-- [Request Options](./options/request-options.md)
+- [TCP Session](./tcp-session.md) — Reliable, stream-oriented client.
+- [UDP Session](./udp-session.md) — Low-latency, datagram-oriented client.
+- [Transport Session](./transport-session.md) — The base transport contract.
+- [Session Extensions](./tcp-session-extensions.md) — Handshakes, Controls, and Requests.
+- [Subscriptions](./subscriptions.md) — Packet-aware event system.
+- [Transport Options](./options/transport-options.md) — Socket and connectivity settings.
+- [Request Options](./options/request-options.md) — Per-request tuning.
+- [Thread Dispatching](./thread-dispatching.md) — Marshaling work to the UI thread.
+- [Protocol Strings](./protocol-string-extensions.md) — Human-readable error codes.

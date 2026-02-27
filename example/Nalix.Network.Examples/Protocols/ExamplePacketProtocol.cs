@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking;
-using Nalix.Framework.Injection;
-using Nalix.Network.Connections;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
 
@@ -32,15 +30,7 @@ public sealed class ExamplePacketProtocol : Protocol
     /// <summary>
     /// Runs when the listener accepts a new connection.
     /// </summary>
-    public override void OnAccept(IConnection connection, CancellationToken cancellationToken = default)
-    {
-        base.OnAccept(connection, cancellationToken);
-
-        // Register the connection so other services can discover it later.
-        // This is useful for shared hubs, diagnostics, or broadcasting.
-        InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
-                                .RegisterConnection(connection);
-    }
+    public override void OnAccept(IConnection connection, CancellationToken cancellationToken = default) => base.OnAccept(connection, cancellationToken);
 
     /// <summary>
     /// Processes an inbound packet for a live connection.

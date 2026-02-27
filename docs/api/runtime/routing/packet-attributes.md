@@ -1,229 +1,104 @@
 # Packet Attributes
 
-This library provides annotation attributes for packet handler/controller methods in .NET server backends.
-You use these attributes to declaratively control **dispatch, security, rate limiting, concurrency, timeout, and encryption** for packet handlers.
-Both built-in packets and custom packet types are supported through `PacketContext<TPacket>`.
-
----
-
-## Source mapping
-
-- `src/Nalix.Common/Networking/Packets/PacketControllerAttribute.cs`
-- `src/Nalix.Common/Networking/Packets/PacketOpcodeAttribute.cs`
-- `src/Nalix.Common/Networking/Packets/PacketPermissionAttribute.cs`
-- `src/Nalix.Common/Networking/Packets/PacketConcurrencyLimitAttribute.cs`
-- `src/Nalix.Common/Networking/Packets/PacketRateLimitAttribute.cs`
-- `src/Nalix.Common/Networking/Packets/PacketEncryptionAttribute.cs`
-- `src/Nalix.Common/Networking/Packets/PacketTimeoutAttribute.cs`
+Nalix uses a declarative, attribute-based model for securing and configuring packet handlers. By annotating your controllers and methods, you can enforce high-performance security, rate limiting, and concurrency policies without polluting your business logic.
 
 ## Overview Table
 
-| Attribute                         |  Used On  | Purpose / Controls                                         |
-|-----------------------------------|-----------|------------------------------------------------------------|
-| `PacketControllerAttribute`       | class     | Declares a controller (group of handlers) and its metadata |
-| `PacketOpcodeAttribute`           | method    | Sets command/packet OpCode                                 |
-| `PacketPermissionAttribute`       | method    | Min permission required to execute                         |
-| `PacketConcurrencyLimitAttribute` | method    | Limits concurrent executions, with queue option            |
-| `PacketRateLimitAttribute`        | method    | Limits request rate, supports burst window                 |
-| `PacketEncryptionAttribute`       | method    | Requires encryption, algorithm selection                   |
-| `PacketTimeoutAttribute`          | method    | Sets max processing time (ms); triggers fail timeout       |
-
----
-
-## Basic usage
-
-```csharp
-[PacketOpcode(0x1802)]
-[PacketPermission(PermissionLevel.USER)]
-[PacketRateLimit(8, burst: 1.5)]
-public static Task HandleAsync(PacketContext<Control> request)
-{
-    return Task.CompletedTask;
-}
-```
-
-## Supported Handler Return Types
-
-Each packet handler method can use the following return types.  
-The framework will automatically select the correct result handler based on the return type:
-
-| Return Type                                      | Description                                                  |
-|--------------------------------------------------|--------------------------------------------------------------|
-| `void`                                           | Synchronous, no return value (fire-and-forget)               |
-| `Task`                                           | Asynchronous, no return value                                |
-| `ValueTask`                                      | Lightweight asynchronous, no return value                    |
-| `T` (e.g. your Packet class)                     | Returns a response packet directly                           |
-| `Task<T>`                                        | Asynchronous with response packet/data                       |
-| `ValueTask<T>`                                   | Lightweight async with response packet/data                  |
-| `byte[]`, `Memory<byte>`                   | Simple buffers—sent as-is                                    |
-| `ReadOnlyMemory<byte>`                           | For high-performance buffer return                           |
-
-- `T` is typically your packet or result type that implements `IPacket`.
-- If an unsupported return type is used, the system will throw or reject the method signature at runtime or registration.
-
----
-
-## 1. `PacketControllerAttribute`
-
-Marks a class as a *packet controller* and defines its metadata.
-
-```csharp
-[PacketController(name: "GameControl", isActive: true, version: "2.0")]
-public class GameProtocolController { ... }
-```
-
-- **name:** Friendly name for debug/logging
-- **isActive:** If false, handler is ignored
-- **version:** Version for migration/support
-
-**Supported handler shapes:**
-
-The compiler currently accepts these method signatures:
-
-| Style | Signature | Notes |
+| Attribute | Scope | Primary Purpose |
 |---|---|---|
-| Context | `PacketContext<TPacket>` / `IPacketContext<TPacket>` | Modern context-aware handler. `context.Packet`, `context.Connection`, `context.Attributes`, and `context.Sender` are available from the single parameter. |
-| Context | `PacketContext<TPacket>, CancellationToken` | Same as above, with an explicit cancellation token parameter. |
-| Legacy | `TPacket, IConnection` | Older packet+connection signature that remains supported for compatibility. |
-| Legacy | `TPacket, IConnection, CancellationToken` | Legacy signature with explicit cancellation token support. |
+| `[PacketController]` | Class | Declares a logical group of handlers with shared metadata. |
+| `[PacketOpcode]` | Method| Assigns the 16-bit Operation Code (OpCode) for dispatch. |
+| `[PacketPermission]`| Method| Enforces minimum `PermissionLevel` required for execution. |
+| `[PacketRateLimit]` | Method| Protects against spam via token-bucket rate limiting. |
+| `[PacketConcurrency]`| Method| Limits simultaneous execution to prevent resource exhaustion. |
+| `[PacketEncryption]`| Method| Forces AEAD encryption on both request and response. |
+| `[PacketTimeout]` | Method| Enforces processed-time limits and triggers client timeouts. |
 
-Return types can be:
+## 1. Dispatch Attributes
 
-| Return type | Behavior |
-|---|---|
-| `void` | No return payload. |
-| `Task` | Async handler with no return payload. |
-| `ValueTask` | Lightweight async handler with no return payload. |
-| `TPacket` | Returns a packet directly. |
-| `byte[]` | Sends the byte array payload as raw bytes. |
-| `Memory<byte>` | Sends the memory payload as raw bytes. |
-| `ReadOnlyMemory<byte>` | Sends the read-only memory payload as raw bytes. |
-| `Task<T>` | Async wrapper around any supported non-task result type. |
-| `ValueTask<T>` | Lightweight async wrapper around any supported non-task result type. |
+### `[PacketController]`
+Groups related handlers and provides identification for the dispatcher.
 
-Invalid signatures, duplicate opcodes, or mismatched context packet types are rejected during scanning/compilation.
+- **Name**: Friendly identifier for logs and telemetry.
+- **IsActive**: Allows for soft-disabling an entire module at runtime.
+- **Version**: Versioning hint for handler discovery.
 
----
-
-## 2. `PacketOpcodeAttribute`
-
-Assigns a unique OpCode to a handler method.
+### `[PacketOpcode]`
+The fundamental routing attribute. This constant maps exactly to the OpCode header in the wire protocol.
 
 ```csharp
-[PacketOpcode(0x1802)]
-public Task HandleLogin(PacketContext<Control> request) { ... }
+[PacketOpcode(0x1001)]
+public ValueTask Handle(PacketContext<LoginPacket> context) { ... }
 ```
 
-- **OpCode:** `ushort` value (matches wire/protocol commands)
+## 2. Security & Guard Attributes
 
----
+### `[PacketPermission]`
+Requires the current `IConnection.Level` to be greater than or equal to the specified value.
 
-## 3. `PacketPermissionAttribute`
-
-Sets minimum permission required for handler.
+- **Level**: One of `PermissionLevel` constants (e.g., `USER`, `SYSTEM_ADMINISTRATOR`).
 
 ```csharp
-[PacketPermission(PermissionLevel.ADMIN)]
-public Task HandleDelete(PacketContext<Control> request) { ... }
+[PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
+public void ResetServer(PacketContext<Control> context) { ... }
 ```
 
-- Enforces security policy: Only clients with level ≥ specified can invoke.
+### `[PacketEncryption]`
+Ensures that the packet is only processed if it arrives encrypted, and forces encryption on the response.
 
----
+- **IsEncrypted**: Boolean flag to enable/disable.
+- **AlgorithmType**: Optional hint for the preferred `CipherSuiteType`.
 
-## 4. `PacketConcurrencyLimitAttribute`
+## 3. Reliability & QoS Attributes
 
-Limits concurrent execution per handler; supports queue if overflow.
+### `[PacketRateLimit]`
+Implements a token-bucket limiter for the handler.
 
-```csharp
-[PacketConcurrencyLimit(4, queue: true, queueMax: 32)]
-public Task HandleExpensiveTask(PacketContext<Control> request) { ... }
-```
+- **RequestsPerSecond**: The sustained rate.
+- **Burst**: A multiplier for handling temporary spikes (default 1.0).
 
-- **Max:** maximum concurrent executions allowed
-- **Queue:** true enables waiting in a queue (instead of hard-reject)
-- **QueueMax:** cap queue length (if 0, reject when full)
+### `[PacketConcurrencyLimit]`
+Limits the number of threads currently executing this specific handler logic.
 
----
+- **Max**: The hard concurrency cap.
+- **Queue**: If true, overflowing requests wait in a FIFO queue instead of being dropped.
+- **QueueMax**: The maximum size of the waiting queue.
 
-## 5. `PacketRateLimitAttribute`
+### `[PacketTimeout]`
+The server-side equivalent of a request timeout.
 
-Limits how many requests per second can be processed (with burst support).
+- **TimeoutMilliseconds**: If the handler doesn't return within this window, the pipeline cancels the `CancellationToken` and sends a `TIMEOUT` directive.
 
-```csharp
-[PacketRateLimit(8, burst: 1.5)]
-public Task HandlePing(PacketContext<Control> request) { ... }
-```
-
-- **RequestsPerSecond:** max rate allowed
-- **Burst:** burst multiplier (defaults to 1)
-
----
-
-## 6. `PacketEncryptionAttribute`
-
-Requires packets to be encrypted when sent/received; allows algorithm selection.
+## Implementation Example
 
 ```csharp
-[PacketEncryption(isEncrypted: true, algorithmType: CipherSuiteType.Salsa20Poly1305)]
-public Task HandleSecret(PacketContext<Control> request) { ... }
-```
-
-- **IsEncrypted:** if true, encryption must be applied
-- **AlgorithmType:** select cipher suite (ChaCha, Salsa, ...)
-
----
-
-## 7. `PacketTimeoutAttribute`
-
-Sets per-handler max processing time (in milliseconds).
-
-```csharp
-[PacketTimeout(2000)] // 2 seconds
-public Task HandleLongTask(PacketContext<Control> request) { ... }
-```
-
-- Throws timeout/fail response if exceeded
-
----
-
-## Full Example Controller
-
-```csharp
-[PacketController("ExampleCtrl")]
-public class ExampleCtrl
+[PacketController("SecureChat", version: "1.2")]
+public class SecureChatController
 {
-    [PacketOpcode(0x1001)]
+    [PacketOpcode(0x3001)]
     [PacketPermission(PermissionLevel.USER)]
-    [PacketConcurrencyLimit(2, queue: true, queueMax: 8)]
-    [PacketRateLimit(5, burst: 2)]
-    [PacketEncryption(isEncrypted: true)]
-    [PacketTimeout(8000)]
-    public async Task HandleChat(PacketContext<Control> request, CancellationToken ct)
+    [PacketRateLimit(10, burst: 2.0)]
+    [PacketConcurrencyLimit(100, queue: true)]
+    [PacketEncryption(true)]
+    [PacketTimeout(5000)]
+    public async ValueTask Handle(IPacketContext<ChatPacket> context, CancellationToken ct)
     {
-        // Handler implementation...
+        // Protected, rate-limited, and encrypted handler logic
     }
 }
 ```
 
----
-
 ## Best Practices
 
-!!! tip "Quick apply"
-    - Always set `PacketOpcode` and `PacketPermission`.  
-    - Add `PacketTimeout` for long-running handlers.  
-    - Use `PacketEncryption` for PII/secret flows.  
-    - Cap concurrency and rate on public endpoints.
-
-- Always annotate with `PacketOpcode` for dispatcher to work
-- Use permission/concurrency/rate/timeout for robust production command protection
-- Encryption required for business-critical/PII
-- Timeout required for potentially long-running tasks (defensive fail)
+- **Security First**: Every public-facing handler should have a `PacketPermission` and ideally a `PacketRateLimit`.
+- **Defensive Timeouts**: Wrap potentially heavy compute or I/O tasks in a `PacketTimeout` to prevent thread-pool starvation.
+- **Low-Latency Concurrency**: For high-volume handlers, set `PacketConcurrencyLimit` to prevent a single expensive request type from overwhelming the system.
+- **OpCode Management**: Maintain a central registry of OpCodes to prevent collisions during development.
 
 ## Related APIs
 
-- [Packet Metadata](./packet-metadata.md)
 - [Packet Context](./packet-context.md)
+- [Packet Metadata](./packet-metadata.md)
+- [Permission Levels](../../security/permission-level.md)
 - [Handler Results](./handler-results.md)
 - [Middleware Pipeline](../middleware/pipeline.md)
