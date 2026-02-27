@@ -34,12 +34,11 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
     /// <param name="formatter">The log formatter used to convert log entries into string format.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="formatter"/> or <paramref name="options"/> is null.</exception>
-    public BatchFileLogTarget(FileLogOptions options, ILoggerFormatter formatter)
+    public BatchFileLogTarget(FileLogOptions? options, ILoggerFormatter formatter)
     {
-        System.ArgumentNullException.ThrowIfNull(options);
         System.ArgumentNullException.ThrowIfNull(formatter);
 
-        _provider = new FileLoggerProvider(options, formatter);
+        _provider = new FileLoggerProvider(formatter, options);
     }
 
     /// <summary>
@@ -48,7 +47,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// <remarks>
     /// Uses the default <see cref="LogFormatter"/> and <see cref="FileLogOptions"/>.
     /// </remarks>
-    public BatchFileLogTarget() : this(new FileLogOptions(), new LogFormatter(false))
+    public BatchFileLogTarget() : this(null, new LogFormatter(false))
     {
     }
 

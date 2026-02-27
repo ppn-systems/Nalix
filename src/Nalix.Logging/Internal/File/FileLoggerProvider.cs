@@ -2,6 +2,7 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Environment;
+using Nalix.Framework.Configuration;
 using Nalix.Logging.Options;
 
 #if DEBUG
@@ -54,27 +55,27 @@ internal sealed class FileLoggerProvider : System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="FileLoggerProvider"/>.
     /// </summary>
-    /// <param name="options">File logger options (reuses existing <see cref="FileLogOptions"/>).</param>
     /// <param name="formatter">The formatter used to format log messages.</param>
+    /// <param name="options">File logger options (reuses existing <see cref="FileLogOptions"/>).</param>
     /// <param name="batchSize">Max entries per batch before a flush (default: 256).</param>
     /// <param name="maxBatchDelay">Max time to wait before flushing a partial batch (default: options.FlushInterval or 1s).</param>
     /// <param name="adaptiveFlush">Enable adaptive flush based on incoming rate (default: true).</param>
     public FileLoggerProvider(
-        FileLogOptions options,
         ILoggerFormatter formatter,
+        FileLogOptions? options = null,
         System.Int32 batchSize = 256,
         System.TimeSpan? maxBatchDelay = null,
         System.Boolean adaptiveFlush = true)
     {
-        Options = options ?? throw new System.ArgumentNullException(nameof(options));
+        Options = options ?? ConfigurationManager.Instance.Get<FileLogOptions>();
 
         _cts = new();
         _formatter = formatter;
         _adaptiveFlush = adaptiveFlush;
         _batchSize = System.Math.Max(1, batchSize);
-        _blockWhenFull = options.BlockWhenQueueFull;
-        _maxBatchDelay = maxBatchDelay ?? options.FlushInterval;
-        _maxQueueSize = System.Math.Max(1, options.MaxQueueSize);
+        _blockWhenFull = Options.BlockWhenQueueFull;
+        _maxBatchDelay = maxBatchDelay ?? Options.FlushInterval;
+        _maxQueueSize = System.Math.Max(1, Options.MaxQueueSize);
 
         if (_maxBatchDelay <= System.TimeSpan.Zero)
         {

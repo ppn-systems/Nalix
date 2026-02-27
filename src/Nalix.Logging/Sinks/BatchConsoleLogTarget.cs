@@ -44,10 +44,8 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     /// <param name="options">
     /// An optional delegate to configure <see cref="ConsoleLogOptions"/> for this log target.
     /// </param>
-    public BatchConsoleLogTarget(ConsoleLogOptions options)
+    public BatchConsoleLogTarget(ConsoleLogOptions? options = null)
     {
-        System.ArgumentNullException.ThrowIfNull(options);
-
         System.Console.Title = "Nx";
         _provider = new ConsoleLoggerProvider(options);
     }
@@ -64,8 +62,10 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class with default options.
     /// </summary>
-    public BatchConsoleLogTarget() : this(new ConsoleLogOptions())
+    public BatchConsoleLogTarget()
     {
+        System.Console.Title = "Nx";
+        _provider = new ConsoleLoggerProvider(null);
     }
 
     #endregion Constructors
