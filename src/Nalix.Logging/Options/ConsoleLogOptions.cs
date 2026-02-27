@@ -1,11 +1,13 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Framework.Configuration.Binding;
+
 namespace Nalix.Logging.Options;
 
 /// <summary>
 /// Configuration options for the console logger.
 /// </summary>
-public sealed class ConsoleLogOptions
+public sealed class ConsoleLogOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets the maximum number of log entries to batch before flushing to the console.
