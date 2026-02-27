@@ -19,8 +19,8 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
 
     private readonly System.Threading.Tasks.Task _consumerTask;
     private readonly System.Threading.CancellationTokenSource _cts;
-    private readonly LogFormatter _formatter;
     private readonly System.Boolean _enableColors;
+    private readonly LogFormatter _formatter;
     private readonly System.Int32 _batchSize;
     private readonly System.Boolean _adaptiveFlush;
     private System.TimeSpan _batchDelay;
