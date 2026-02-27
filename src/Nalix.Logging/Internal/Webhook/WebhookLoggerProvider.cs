@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
+using Nalix.Framework.Configuration;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Internal.Webhook;
@@ -59,12 +60,10 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
     /// Initializes a new instance of the <see cref="WebhookLoggerProvider"/> class.
     /// </summary>
     /// <param name="options">The webhook log options. </param>
-    public WebhookLoggerProvider(WebhookLogOptions options)
+    public WebhookLoggerProvider(WebhookLogOptions? options = null)
     {
-        System.ArgumentNullException.ThrowIfNull(options);
-
-        _options = options;
-        _webhookClient = new WebhookHttpClient(options);
+        _options = options ?? ConfigurationManager.Instance.Get<WebhookLogOptions>();
+        _webhookClient = new WebhookHttpClient(_options);
 
         System.Threading.Channels.ChannelOptions channelOptions = _options.MaxQueueSize > 0
             ? new System.Threading.Channels.BoundedChannelOptions(_options.MaxQueueSize)
