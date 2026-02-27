@@ -106,7 +106,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return false;
         }
 
-        if (_options.MaxConnections.HasValue && _count >= _options.MaxConnections.Value)
+        if (_count >= _options.MaxConnections || _options.MaxConnections < 0)
         {
             this.HandleConnectionLimit(connection);
             return false;
