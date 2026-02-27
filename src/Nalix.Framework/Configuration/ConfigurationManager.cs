@@ -86,7 +86,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfigurationManager"/> class.
     /// </summary>
-    private ConfigurationManager()
+    public ConfigurationManager()
     {
         // Determine the configuration directory with validation
         System.String configDirectory = Directories.ConfigurationDirectory;

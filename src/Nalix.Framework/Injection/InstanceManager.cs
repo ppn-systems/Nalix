@@ -185,6 +185,15 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
     #endregion Properties
 
+    #region Constructors
+
+    /// <inheritdoc/>
+    public InstanceManager()
+    {
+    }
+
+    #endregion Constructors
+
     #region Public API
 
     /// <summary>
