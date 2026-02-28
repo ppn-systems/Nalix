@@ -7,6 +7,7 @@ using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Options;
 using Nalix.Shared.Extensions;
+using System.Threading;
 
 namespace Nalix.Network.Dispatch;
 
@@ -31,9 +32,8 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
     public PacketDispatch(System.Action<PacketDispatchOptions<IPacket>> options) : base(options)
     {
         _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
-                   ?? throw new System.InvalidOperationException(
-                       $"[{nameof(PacketDispatch)}] IPacketCatalog not registered in InstanceManager. " +
-                        "Make sure to build and register IPacketCatalog before starting dispatcher.");
+            ?? throw new System.InvalidOperationException(
+                "IPacketCatalog not registered in InstanceManager. Make sure to build and register IPacketCatalog before starting dispatcher.");
     }
 
     /// <inheritdoc />
@@ -90,7 +90,21 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
 
 
-    /// <inheritdoc />
-    public System.String GenerateReport() => throw new System.NotImplementedException();
+    /// <inheritdoc/>
+    public void Activate(CancellationToken cancellationToken = default)
+    {
+    }
 
+    /// <inheritdoc/>
+    public void Deactivate(CancellationToken cancellationToken = default)
+    {
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+    }
+
+    /// <inheritdoc />
+    public System.String GenerateReport() => System.String.Empty;
 }

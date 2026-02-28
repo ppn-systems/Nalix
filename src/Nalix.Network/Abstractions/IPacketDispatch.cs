@@ -16,7 +16,7 @@ namespace Nalix.Network.Abstractions;
 /// deserialized packet objects. The dispatcher determines how packets are
 /// handled based on their content and the connection from which they originate.
 /// </remarks>
-public interface IPacketDispatch : IReportable
+public interface IPacketDispatch : IActivatable, IReportable
 {
     /// <summary>
     /// Handles an incoming packet represented as a <see cref="IBufferLease"/> array.
