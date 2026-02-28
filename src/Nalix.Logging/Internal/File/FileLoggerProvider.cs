@@ -102,7 +102,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
         _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
             .ScheduleWorker(
                 name: "log.file.worker",
-                group: "log.file",
+                group: "log",
                 work: async (ctx, ct) =>
                 {
                     using var linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
