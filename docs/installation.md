@@ -3,10 +3,10 @@
 Install only the packages you need for your role.
 
 !!! info "Current package version"
-    Verified on 2026-03-24:
+    Verified on 2026-04-10:
 
-    - `Nalix.Network`: `11.8.0`
-    - `Nalix.SDK`: `11.8.0`
+    - `Nalix.Network`: `12.0.7`
+    - `Nalix.SDK`: `12.0.7`
 
 ## Minimum package sets
 

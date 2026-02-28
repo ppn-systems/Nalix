@@ -6,6 +6,12 @@ using Nalix.Network.Listeners.Tcp;
 
 namespace Nalix.Network.Hosting.Internal;
 
-internal sealed class TcpServerListener(IProtocol protocol) : TcpListenerBase(protocol)
+/// <inheritdoc />
+internal sealed class TcpServerListener : TcpListenerBase
 {
+    /// <inheritdoc />
+    public TcpServerListener(IProtocol protocol) : base(protocol) { }
+
+    /// <inheritdoc />
+    public TcpServerListener(ushort port, IProtocol protocol) : base(port, protocol) { }
 }

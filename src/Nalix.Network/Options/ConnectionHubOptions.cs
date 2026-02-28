@@ -2,14 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Abstractions;
+using Nalix.Common.Networking;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration.Binding;
-using Nalix.Network.Connections;
 
 namespace Nalix.Network.Options;
 
 /// <summary>
-/// Provides configuration options for <see cref="ConnectionHub"/>.
+/// Provides configuration options for <see cref="IConnectionHub"/>.
 /// </summary>
 [IniComment("Connection hub configuration — controls capacity, limits, concurrency, and disposal behavior")]
 public sealed class ConnectionHubOptions : ConfigurationLoader

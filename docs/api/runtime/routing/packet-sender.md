@@ -79,5 +79,5 @@ await context.Sender.SendAsync(sensitivePacket, forceEncrypt: true, ct);
 
 - [Packet Context](./packet-context.md)
 - [Packet Dispatch](./packet-dispatch.md)
-- [Compression Options](../../framework/options/compression-options.md)
+- [Compression Options](../../network/options/compression-options.md)
 - [Connection Security](../../security/handshake.md)

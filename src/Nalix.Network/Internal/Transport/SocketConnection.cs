@@ -136,7 +136,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     {
         get => Interlocked.Read(ref field);
         set => Interlocked.Exchange(ref field, value);
-    }
+    } = Clock.UnixMillisecondsNow();
 
     /// <summary>
     /// Returns the number of packets dispatched to <see cref="AsyncCallback"/>
