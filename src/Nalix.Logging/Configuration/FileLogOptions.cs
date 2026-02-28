@@ -5,7 +5,7 @@ using Nalix.Common.Infrastructure.Environment;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Logging.Internal.Exceptions;
 
-namespace Nalix.Logging.Options;
+namespace Nalix.Logging.Configuration;
 
 /// <summary>
 /// Configuration options for the file logger.

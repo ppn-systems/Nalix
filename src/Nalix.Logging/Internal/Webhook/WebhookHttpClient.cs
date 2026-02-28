@@ -3,9 +3,9 @@
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Enums;
 using Nalix.Framework.Random;
+using Nalix.Logging.Configuration;
 using Nalix.Logging.Internal.Formatters;
 using Nalix.Logging.Internal.Webhook.Models;
-using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Internal.Webhook;
 
