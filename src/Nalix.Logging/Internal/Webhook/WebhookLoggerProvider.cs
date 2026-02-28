@@ -1,7 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
+using Nalix.Framework.Tasks;
 using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Internal.Webhook;
@@ -19,8 +23,8 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
     private readonly System.Threading.Channels.ChannelReader<LogEntry> _reader;
 
     private readonly WebhookLogOptions _options;
+    private readonly IWorkerHandle? _workerHandle;
     private readonly WebhookHttpClient _webhookClient;
-    private readonly System.Threading.Tasks.Task _consumerTask;
     private readonly System.Threading.CancellationTokenSource _cts;
 
     private System.Int64 _failedCount;
@@ -91,7 +95,22 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
         _reader = _channel.Reader;
         _cts = new System.Threading.CancellationTokenSource();
 
-        _consumerTask = System.Threading.Tasks.Task.Run(ConsumeLoopAsync);
+        _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+            name: "log.webhook.worker",
+            group: "log.webhook",
+            work: async (ctx, ct) =>
+            {
+                using var linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
+                await CONSUME_LOOP_ASYNC(ctx, linkedCts.Token);
+            },
+            options: new WorkerOptions
+            {
+                Tag = "webhook-consumer",
+                GroupConcurrencyLimit = 1,
+                OnFailed = (st, ex) => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker failed: {st.Name}, {ex.Message}"),
+                OnCompleted = st => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
+            }
+        );
     }
 
     #endregion Constructors
@@ -155,12 +174,11 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
         _writer.TryComplete();
         _cts.Cancel();
 
-        try
+        if (_workerHandle != null)
         {
-            // Wait for consumer to finish processing remaining logs
-            _consumerTask.Wait(System.TimeSpan.FromSeconds(5));
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                    .CancelWorker(_workerHandle.Id);
         }
-        catch { }
 
         _webhookClient.Dispose();
         _cts.Dispose();
@@ -173,15 +191,15 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
     /// <summary>
     /// The main consumer loop that reads from the channel and sends batches to Discord.
     /// </summary>
-    private async System.Threading.Tasks.Task ConsumeLoopAsync()
+    private async System.Threading.Tasks.Task CONSUME_LOOP_ASYNC(IWorkerContext ctx, System.Threading.CancellationToken ct)
     {
         System.Collections.Generic.List<LogEntry> batch = new(_options.BatchSize);
 
         try
         {
-            while (await _reader.WaitToReadAsync(_cts.Token).ConfigureAwait(false))
+            while (await _reader.WaitToReadAsync(ct).ConfigureAwait(false))
             {
-                // Read at least one entry
+                // always fetch at least 1
                 if (!_reader.TryRead(out var first))
                 {
                     continue;
@@ -189,21 +207,24 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
 
                 batch.Add(first);
 
-                // Accumulate batch up to BatchSize
+                // Lấy thêm log đủ batch size
                 while (batch.Count < _options.BatchSize && _reader.TryRead(out var log))
                 {
                     batch.Add(log);
                 }
 
-                // Send batch to Discord
-                await DispatchLogBatchAsync(batch).ConfigureAwait(false);
+                // Gửi batch lên webhook
+                await DISPATCH_LOG_BATCH_ASYNC(batch, ct).ConfigureAwait(false);
+
+                ctx.Advance(batch.Count, "Logs sent to webhook");
+                ctx.Beat();
+
                 batch.Clear();
 
-                // Respect batch delay to avoid rate limiting
+                // Delay theo cấu hình để tránh rate limit
                 if (_options.BatchDelay > System.TimeSpan.Zero)
                 {
-                    await System.Threading.Tasks.Task.Delay(_options.BatchDelay, _cts.Token)
-                        .ConfigureAwait(false);
+                    await System.Threading.Tasks.Task.Delay(_options.BatchDelay, ct).ConfigureAwait(false);
                 }
             }
         }
@@ -213,30 +234,33 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
         }
         finally
         {
-            // Drain remaining logs
             while (_reader.TryRead(out var log))
             {
                 batch.Add(log);
-
                 if (batch.Count >= _options.BatchSize)
                 {
-                    await DispatchLogBatchAsync(batch).ConfigureAwait(false);
+                    await DISPATCH_LOG_BATCH_ASYNC(batch, ct).ConfigureAwait(false);
+                    ctx.Advance(batch.Count, "Logs sent to webhook (shutdown)");
+                    ctx.Beat();
                     batch.Clear();
                 }
             }
-
             if (batch.Count > 0)
             {
-                await DispatchLogBatchAsync(batch).ConfigureAwait(false);
+                await DISPATCH_LOG_BATCH_ASYNC(batch, ct).ConfigureAwait(false);
+                ctx.Advance(batch.Count, "Logs sent to webhook (shutdown)");
+                ctx.Beat();
             }
         }
     }
+
 
     /// <summary>
     /// Sends a batch of log entries to Discord webhook.
     /// </summary>
     /// <param name="batch">The batch of log entries to send. </param>
-    private async System.Threading.Tasks.Task DispatchLogBatchAsync(System.Collections.Generic.List<LogEntry> batch)
+    /// <param name="ct"></param>
+    private async System.Threading.Tasks.Task DISPATCH_LOG_BATCH_ASYNC(System.Collections.Generic.List<LogEntry> batch, System.Threading.CancellationToken ct)
     {
         if (batch.Count is 0)
         {
@@ -245,7 +269,7 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
 
         try
         {
-            System.Boolean success = await _webhookClient.SendAsync(batch, _cts.Token).ConfigureAwait(false);
+            System.Boolean success = await _webhookClient.SendAsync(batch, ct).ConfigureAwait(false);
 
             if (success)
             {
@@ -254,13 +278,13 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
             else
             {
                 System.Threading.Interlocked.Add(ref _failedCount, batch.Count);
-                HandleWebhookError(null, $"Failed to send {batch.Count} log(s) to Discord after all retries.");
+                HANDLE_WEBHOOK_ERROR(null, $"Failed to send {batch.Count} log(s) to Discord after all retries.");
             }
         }
         catch (System.Exception ex)
         {
             System.Threading.Interlocked.Add(ref _failedCount, batch.Count);
-            HandleWebhookError(ex, $"Exception sending {batch.Count} log(s) to Discord:  {ex.Message}");
+            HANDLE_WEBHOOK_ERROR(ex, $"Exception sending {batch.Count} log(s) to Discord: {ex.Message}");
         }
     }
 
@@ -269,7 +293,7 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
     /// </summary>
     /// <param name="exception">The exception that occurred, if any.</param>
     /// <param name="message">The error message. </param>
-    private void HandleWebhookError(System.Exception? exception, System.String message)
+    private void HANDLE_WEBHOOK_ERROR(System.Exception? exception, System.String message)
     {
         try
         {
@@ -282,7 +306,7 @@ internal sealed class WebhookLoggerProvider : System.IDisposable
             // Ignore errors in error handler
         }
 
-        System.Diagnostics.Debug.WriteLine($"[LG. ChannelWebhookLoggerProvider] {message}");
+        System.Diagnostics.Debug.WriteLine($"[LG.ChannelWebhookLoggerProvider] {message}");
     }
 
     #endregion Private Methods
