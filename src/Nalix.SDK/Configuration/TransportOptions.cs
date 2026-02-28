@@ -15,7 +15,7 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// <summary>
     /// Gets the port number for the connection.
     /// </summary>
-    public System.UInt16 Port { get; set; } = 10106;
+    public System.UInt16 Port { get; set; } = 57206;
 
     /// <summary>
     /// Gets the server address or hostname.
