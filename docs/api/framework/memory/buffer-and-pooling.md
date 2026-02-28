@@ -10,10 +10,24 @@ This page covers the shared lease and pooling APIs used across networking and di
 - `src/Nalix.Framework/Memory/Objects/ObjectPoolManager.cs`
 - `src/Nalix.Framework/Memory/Objects/TypedObjectPoolAdapter.cs`
 
+## Architecture
+
+```mermaid
+graph TD
+    A[Allocation Path] --> B{BufferPoolManager}
+    B -- Registered --> C[Custom Pooled Buckets]
+    B -- Not Registered --> D[ArrayPool.SharedFallback]
+    
+    E[Object Path] --> F[ObjectPoolManager]
+    F --> G[TypedObjectPoolAdapter]
+    G --> H[ObjectPool Buckets]
+```
+
 ## Main types
 
 - `IBufferLease`
 - `BufferLease`
+- `BufferPoolManager`
 - `ObjectPool`
 - `ObjectPoolManager`
 - `TypedObjectPoolAdapter<T>`
@@ -23,8 +37,9 @@ This page covers the shared lease and pooling APIs used across networking and di
 | Type | Public members |
 |---|---|
 | `BufferLease` | `Span`, `SpanFull`, `Memory`, `CommitLength(...)`, `Retain()`, `ReleaseOwnership(...)`, `Dispose()`, `Rent(...)`, `CopyFrom(...)`, `FromRented(...)`, `TakeOwnership(...)` |
+| `BufferPoolManager` | `Rent(...)`, `Return(...)`, `RentSegment(...)`, `RentForSaea(...)`, `ReturnFromSaea(...)`, `GenerateReport()`, `GetReportData()` |
 | `ObjectPool` | `Get<T>()`, `Return<T>(...)`, `Prealloc<T>(...)`, `SetMaxCapacity<T>(...)`, `GetTypeInfo<T>()`, `GetStatistics()`, `Clear()`, `ClearType<T>()`, `Trim(...)`, `GetMultiple<T>(...)`, `ReturnMultiple<T>(...)` |
-| `ObjectPoolManager` | `Get<T>()`, `Return<T>(...)`, `GetTypedPool<T>()`, `Prealloc<T>(...)`, `SetMaxCapacity<T>(...)`, `GetTypeInfo<T>()`, `ClearPool<T>()`, `ClearAllPools()`, `TrimAllPools(...)`, `PerformHealthCheck()`, `ResetStatistics()`, `ScheduleRegularTrimming(...)`, `GenerateReport()`, `GetDetailedStatistics()` |
+| `ObjectPoolManager` | `Get<T>()`, `Return<T>(...)`, `GetTypedPool<T>()`, `Prealloc<T>(...)`, `SetMaxCapacity<T>(...)`, `GetTypeInfo<T>()`, `ClearPool<T>()`, `ClearAllPools()`, `TrimAllPools(...)`, `PerformHealthCheck()`, `ResetStatistics()`, `ScheduleRegularTrimming(...)`, `GenerateReport()`, `GetReportData()` |
 | `TypedObjectPoolAdapter<T>` | typed get/return/prealloc/trim/clear helpers and manager-backed statistics access |
 
 ## IBufferLease and BufferLease
@@ -99,6 +114,32 @@ Useful methods:
 - holding onto a rented array after returning it
 - renting a larger buffer than your actual payload path needs
 - mixing `BufferLease` ownership with direct array ownership without a clear handoff
+
+## BufferPoolManager
+
+`BufferPoolManager` is the high-level manager for pooled byte buffers. it organizes memory into size-aligned buckets (pools) and provides diagnostic reporting, adaptive trimming, and specialized helpers for `SocketAsyncEventArgs` flows.
+
+## Source mapping
+
+- `src/Nalix.Framework/Memory/Buffers/BufferPoolManager.cs`
+
+### Role and Lifecycle
+
+`BufferPoolManager` is typically registered as a singleton in the `InstanceManager`. It monitors memory pressure and periodically trims idle buffers based on `BufferConfig`.
+
+### Public API
+
+- `Rent(minimumLength)`: Rents a buffer of at least the requested size from the most suitable bucket.
+- `Return(buffer)`: Returns a buffer to its origin bucket.
+- `RentSegment(size)`: Rents a buffer and wraps it as an `ArraySegment<byte>` with `Offset=0` and `Count=size`.
+- `RentForSaea(saea, size)`: Rents a buffer and assigns it to the `SocketAsyncEventArgs` via `SetBuffer`.
+- `ReturnFromSaea(saea)`: Detaches the buffer from the SAEA and returns it to the pool.
+- `GenerateReport()`: Produces a human-readable text report of all pool states and metrics.
+- `GetReportData()`: Produces a dictionary-based diagnostic snapshot for telemetry.
+
+### Trimming and Safety
+
+Trimming is controlled by `BufferConfig.EnableMemoryTrimming`. It uses a conservative `ShrinkSafetyPolicy` to ensure the pool does not collapse during short idle periods, maintaining a retention floor for efficiency.
 
 ## BufferPoolState
 
@@ -190,7 +231,7 @@ Useful public methods:
 - `ResetStatistics()`
 - `ScheduleRegularTrimming(interval, percentage, ct)`
 - `GenerateReport()`
-- `GetDetailedStatistics()`
+- `GetReportData()`
 
 ### Performance guidance
 

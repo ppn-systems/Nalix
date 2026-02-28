@@ -32,7 +32,7 @@ flowchart LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `Configure<TOptions>(...)`, `AddPacketAssemblies(...)`, `AddPacketAssembly<TMarker>(...)`, `AddHandlers(...)`, `AddHandlers<TMarker>(...)`, `AddHandler<THandler>(...)`, `AddMetadataProvider<TProvider>()`, `ConfigureDispatch(...)`, `AddTcp<TProtocol>(...)`, `AddUdp<TProtocol>(...)`, `Build()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `Configure<TOptions>(...)`, `AddPacket(...)`, `AddHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatch(...)`, `AddTcp(...)`, `AddUdp(...)`, `Build()` |
 
 ## `NetworkApplication`
 
@@ -54,25 +54,30 @@ The builder uses a fluent API to configure the host before it is built.
 
 - `ConfigureLogging(ILogger)`: Registers the logger into the `InstanceManager`.
 - `ConfigureConnectionHub(ConnectionHub)`: Registers the shared connection hub into the `InstanceManager`.
+- `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager.
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type. This is applied during the activation phase.
 
 ### Packet and Handler Discovery
 
-- `AddPacketAssemblies(assembly, requirePacketAttribute)`: Scans an assembly for packet types.
-- `AddPacketAssembly<TMarker>(...)`: Marker-type shortcut for scanning packets.
+- `AddPacket(assembly, requirePacketAttribute)`: Scans an assembly for packet types.
+- `AddPacket<TMarker>(...)`: Marker-type shortcut for scanning packets.
 - `AddHandlers(assembly)`: Scans an assembly for `[PacketController]` classes.
 - `AddHandlers<TMarker>()`: Marker-type shortcut for scanning handlers.
 - `AddHandler<THandler>()`: Manually registers a handler type.
+- `AddHandler<THandler>(Func<THandler> factory)`: Registers a handler type with a custom factory.
 
 ### Metadata and Dispatch
 
 - `AddMetadataProvider<TProvider>()`: Registers a packet metadata provider.
+- `AddMetadataProvider<TProvider>(Func<TProvider> factory)`: Registers a metadata provider with a custom factory.
 - `ConfigureDispatch(Action<PacketDispatchOptions<IPacket>>)`: Configures the `PacketDispatchChannel` options, including middleware and custom logic for built-in and custom packet pipelines.
 
 ### Server Bindings
 
 - `AddTcp<TProtocol>()`: Registers a TCP server for the specified protocol.
+- `AddTcp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a TCP server with a custom protocol factory.
 - `AddUdp<TProtocol>()`: Registers a UDP server for the specified protocol.
+- `AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a UDP server with a custom protocol factory.
 
 ## Basic usage
 
@@ -80,11 +85,12 @@ The builder uses a fluent API to configure the host before it is built.
 var app = NetworkApplication.CreateBuilder()
     .ConfigureLogging(logger)
     .ConfigureConnectionHub(new ConnectionHub())
+    .ConfigureBufferPoolManager(new BufferPoolManager())
     .Configure<NetworkSocketOptions>(options =>
     {
         options.Port = 57206;
     })
-    .AddPacketAssembly<Handshake>()
+    .AddPacket<Handshake>()
     .AddHandlers<SampleHandlers>()
     .AddTcp<SampleProtocol>()
     .Build();

@@ -1,53 +1,81 @@
-# UdpSession
+# UDP Session
 
-`UdpSession` is a high-performance, zero-allocation UDP client transport in `Nalix.SDK`. It extends `TransportSession` to provide datagram-oriented communication synchronized with the server's protocol layer.
+`UdpSession` is a high-performance, datagram-oriented client transport in `Nalix.SDK`. It is designed for low-latency scenarios where packet loss is acceptable but speed is critical. It uses a 7-byte session token mechanism to allow the server to multiplex thousands of concurrent UDP streams.
+
+## Datagram Architecture
+
+```mermaid
+graph TD
+    A[Nalix IPacket] --> B[Serialization]
+    B --> C[Transform Pipe: LZ4 + ChaCha20]
+    C --> D[Frame Envelope]
+    D --> E[Session Token: 7 Bytes]
+    E --> F[Network Payload]
+    F -->|Outbound| G[UDP Socket Send]
+```
 
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/UdpSession.cs`
+- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
 - `src/Nalix.Framework/DataFrames/Transforms/PacketCipher.cs`
 - `src/Nalix.Framework/DataFrames/Transforms/PacketCompression.cs`
-- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
 
-## Key Features
+## Role and Design
 
-- **High Performance**: Built with `BufferLease` and `stackalloc` to minimize GC pressure and memory allocations.
-- **Session Identification**: Uses a 7-byte `SessionToken` (Snowflake) prepended to every outbound datagram for O(1) connection mapping on the server.
-- **Integrated Transformation**: Supports optional LZ4 compression and AEAD encryption (ChaCha20-Poly1305) via shared packet transform helpers.
-- **MTU Aware**: Enforces a configurable `MaxUdpDatagramSize` (default 1400 bytes) to prevent fragmentation at the network layer.
+Unlike TCP, `UdpSession` is connectionless at the socket level but "session-aware" at the framework level. Every outbound datagram is prepended with a 7-byte `Snowflake` identifier, which the server uses to map the packet to a trusted session.
 
-## Basic Usage
+- **Zero-Allocation Receive**: Uses pooled `BufferLease` memory and direct `ReceiveAsync` to eliminate per-datagram allocations.
+- **MTU Enforcement**: Automatically prevents sending datagrams larger than `MaxUdpDatagramSize` (default: 1400 bytes) to avoid IP fragmentation.
+- **AEAD Integrated**: Automatically applies encryption if configured, utilizing the shared `PacketFrameTransforms` pipeline.
+
+## Public API
+
+### Events
+| Member | Description |
+|---|---|
+| `OnConnected` | Raised when the UDP socket is initialized and bound to the remote endpoint. |
+| `OnDisconnected` | Raised when the session is closed. |
+| `OnMessageReceived` | Surfaces decrypted and decompressed payload for each inbound datagram. |
+| `OnError` | Reports socket or transformation faults. |
+
+### Properties
+| Member | Description |
+|---|---|
+| `SessionToken` | The 7-byte identifier used to authenticate outbound datagrams. |
+| `IsConnected` | True if the socket is open and bound. |
+| `Options` | Access to transport options like `MaxUdpDatagramSize` and `Secret`. |
+
+### Methods
+| Member | Description |
+|---|---|
+| `ConnectAsync(...)` | Initializes the socket and binds to the server address. |
+| `DisconnectAsync()` | Shuts down the socket and stops the receive loop. |
+| `SendAsync(IPacket)` | Serializes, transforms (encrypts/compresses), and sends the packet. |
+
+## Basic usage
 
 ```csharp
-TransportOptions options = ConfigurationManager.Instance.Get<TransportOptions>();
-UdpSession client = new(options, catalog);
+var client = new UdpSession(options, catalog);
 
-// Essential: Set the token received during TCP login/handshake
-client.SessionToken = mySnowflakeToken;
+// Essential: must match the session identifier assigned during TCP login
+client.SessionToken = mySessionSnowflake;
 
-client.OnMessageReceived += (_, lease) =>
+client.OnMessageReceived += (s, lease) => 
 {
     using (lease)
     {
-        // Handle decrypted/decompressed payload.
+        // Handle low-latency update
     }
 };
 
-await client.ConnectAsync(options.Address, options.Port);
-await client.SendAsync(myPacket);
+await client.ConnectAsync();
+await client.SendAsync(new PlayerInputPacket { Velocity = 1.0f });
 ```
-
-## Properties
-
-| Property | Description |
-| --- | --- |
-| `SessionToken` | The 7-byte identifier used to authenticate datagrams. |
-| `Options` | Access to transport configuration (MTU, Encryption, etc.). |
 
 ## Related APIs
 
 - [SDK Overview](./index.md)
-- [Transport Session](./transport-session.md)
 - [TCP Session](./tcp-session.md)
+- [Transport Session](./transport-session.md)
 - [Transport Options](./options/transport-options.md)
-- [Frame Reader and Sender](./frame-reader-and-sender.md)

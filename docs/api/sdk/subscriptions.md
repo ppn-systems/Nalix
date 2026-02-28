@@ -1,69 +1,82 @@
 # SDK Subscriptions
 
-`TcpSessionSubscriptions` provides convenience subscriptions on top of `TransportSession` and `TcpSession`.
-The helpers are packet-aware, so they work with the same generic packet model used throughout Nalix.SDK.
+The subscription system in `Nalix.SDK` provides a high-level, packet-oriented event model. It abstracts away the complexities of `IBufferLease` management, ensuring that memory is safely returned to the pool once your handler completes.
+
+## Subscription Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Subscribed: client.On<T>(...)
+    Subscribed --> Processing: Packet Received
+    state Processing {
+        [*] --> Deserialize
+        Deserialize --> Handler: Invoke(TPacket)
+        Handler --> DisposeLease: finally
+    }
+    Processing --> Subscribed: Loop
+    Subscribed --> [*]: sub.Dispose()
+```
 
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
 
-## What it provides
+## Role and Design
 
-- `On<TPacket>(...)`
-- `On(predicate, ...)`
-- `OnOnce<TPacket>(...)`
-- `SubscribeTemp<TPacket>(...)`
-- `CompositeSubscription`
+While `TransportSession.OnMessageReceived` provides raw access to byte buffers, application logic usually prefers working with strongly-typed `IPacket` instances.
 
-## Public members at a glance
+The subscription helpers provide:
+- **Type Safety**: Automatic filtering and casting to your target packet type.
+- **Lease Ownership**: The helper owns the `IBufferLease`. It ensures the lease is disposed even if your handler throws an exception.
+- **Predicated Filtering**: Filter messages before they even reach your handler (e.g., only `PONG` controls with a specific sequence ID).
 
-| Type | Public members |
+## API Reference
+
+| Method | Description |
 |---|---|
-| `TcpSessionSubscriptions` | `On<TPacket>(...)`, `On(...)`, `OnOnce<TPacket>(...)`, `SubscribeTemp<TPacket>(...)`, `Subscribe(...)` |
-| `CompositeSubscription` | `Add(...)`, `Dispose()` |
-
-## Why it exists
-
-These helpers reduce message-subscription boilerplate and centralize lease ownership so subscriber code works with deserialized packets rather than raw leases.
-Use them for built-in packets or custom packet types when you want scoped receive helpers instead of raw buffer handling.
-
-## Common pitfalls
-
-- forgetting to dispose the returned subscription
-- assuming a subscriber can keep using the raw lease after the helper already disposed it
-- treating `CompositeSubscription` as mandatory when a single `using var` is enough
+| `On<TPacket>` | Subscribes to all incoming packets of a specific type. |
+| `OnOnce<TPacket>` | Fires exactly once for the first matching packet, then auto-unsubscribes. |
+| `SubscribeTemp` | Combines a typed message handler with an `OnDisconnected` hook—ideal for transient flows. |
+| `CompositeSubscription` | A container to group and dispose multiple subscriptions at once. |
 
 ## Basic usage
 
+### Strongly-Typed Handler
 ```csharp
-using var sub = client.On<Handshake>(packet =>
+using var sub = client.On<ChatPacket>(chat => 
 {
-    Console.WriteLine(packet.Auth.PublicKey.Length);
+    Console.WriteLine($"[{chat.Sender}]: {chat.Message}");
 });
 ```
 
-One-shot usage:
-
+### One-Shot with Predicate
 ```csharp
-using var sub = client.OnOnce<Control>(
-    p => p.Type == ControlType.PONG,
-    p => Console.WriteLine("pong"));
+using var once = client.OnOnce<Control>(
+    predicate: c => c.Type == ControlType.PONG,
+    handler: pong => Console.WriteLine("Received PONG!")
+);
 ```
 
-Temporary scoped subscription:
+### Composite Subscriptions
+Use `CompositeSubscription` when you have multiple related event listeners that should be torn down together (e.g., when a UI view is closed).
 
 ```csharp
-using var sub = client.SubscribeTemp<Control>(
-    onMessage: response => Console.WriteLine(response.Type),
-    onDisconnected: ex => Console.WriteLine(ex.Message));
+var group = new CompositeSubscription();
+
+group.Add(client.On<PlayerPos>(p => UpdatePos(p)));
+group.Add(client.On<PlayerStats>(s => UpdateStats(s)));
+
+// Later, or in Dispose():
+group.Dispose(); // Unsubscribes all
 ```
 
-## CompositeSubscription
+## Important notes
 
-`CompositeSubscription` groups several `IDisposable` subscriptions into one handle so they can be torn down together.
+- **Thread Safety**: Handlers are invoked on the background receive thread. Use a [Thread Dispatcher](./thread-dispatching.md) before updating UI state.
+- **Async Handlers**: If your handler is `async`, the lease is disposed as soon as the synchronous part of the handler finishes. Ensure you copy any data you need before the first `await`.
 
 ## Related APIs
 
-- [TCP Session Extensions](./tcp-session-extensions.md)
+- [Session Extensions](./tcp-session-extensions.md)
+- [Thread Dispatching](./thread-dispatching.md)
 - [TCP Session](./tcp-session.md)
-- [Transport Session](./transport-session.md)
