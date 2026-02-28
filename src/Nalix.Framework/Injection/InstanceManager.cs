@@ -450,8 +450,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Clear(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean dispose = true)
+    public void Clear([System.Diagnostics.CodeAnalysis.NotNull] System.Boolean dispose = true)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -489,7 +488,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _ = sb.AppendLine();
         _ = sb.AppendLine("Instances:");
         _ = sb.AppendLine("-----------------------------------------------------------------------");
-        _ = sb.AppendLine("Type                                   | Disposable | Source");
+        _ = sb.AppendLine("Type                                | Disposable    | Source");
         _ = sb.AppendLine("-----------------------------------------------------------------------");
 
         foreach (var kvp in _instanceCache)
