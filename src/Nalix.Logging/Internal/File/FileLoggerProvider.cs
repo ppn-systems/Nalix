@@ -112,7 +112,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
                 options: new WorkerOptions
                 {
                     Tag = "file-consumer",
-                    GroupConcurrencyLimit = 1,
+                    GroupConcurrencyLimit = ConfigurationManager.Instance.Get<NLogixOptions>().GroupConcurrencyLimit,
                     OnFailed = (st, ex) => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker failed: {st.Name}, {ex.Message}"),
                     OnCompleted = st => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
                 }
