@@ -1,5 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
 using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Messaging.Packets.Abstractions;
@@ -9,16 +10,13 @@ namespace Nalix.Network.Abstractions;
 /// <summary>
 /// Defines a dispatcher interface for handling incoming network packets.
 /// </summary>
-/// <typeparam name="TPacket">
-/// The packet type that implements <see cref="IPacket"/>.
-/// </typeparam>
 /// <remarks>
 /// Implementations of this interface are responsible for processing incoming
 /// packets from various representations, including raw byte buffers and fully
 /// deserialized packet objects. The dispatcher determines how packets are
 /// handled based on their content and the connection from which they originate.
 /// </remarks>
-public interface IPacketDispatch<TPacket> where TPacket : IPacket
+public interface IPacketDispatch : IReportable
 {
     /// <summary>
     /// Handles an incoming packet represented as a <see cref="IBufferLease"/> array.
@@ -43,6 +41,6 @@ public interface IPacketDispatch<TPacket> where TPacket : IPacket
     /// The connection from which the packet was received.
     /// </param>
     void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.NotNull] TPacket packet,
+        [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection);
 }

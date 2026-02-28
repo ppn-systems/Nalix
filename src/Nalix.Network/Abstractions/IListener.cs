@@ -10,7 +10,7 @@ namespace Nalix.Network.Abstractions;
 /// This interface is intended to be implemented by classes that listen for network connections
 /// and handle the initiation and termination of connection listening.
 /// </summary>
-public interface IListener : IActivatable
+public interface IListener : IActivatable, IReportable
 {
     /// <summary>
     /// Updates the listener with the current server time, provided as a Unix timestamp.

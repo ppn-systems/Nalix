@@ -629,7 +629,7 @@ public sealed partial class TaskManager : ITaskManager
 
         // Top N long-running workers
         _ = sb.AppendLine("Top Running Workers (by age):");
-        _ = sb.AppendLine("Id         | Naming                       | Group                        | Age     | Progress | LastBeat");
+        _ = sb.AppendLine("Id             | Naming                       | Group                        | Age     | Progress | LastBeat");
         System.Collections.Generic.List<WorkerState> top = [.. _workers.Values];
         top.Sort(static (a, b) => a.StartedUtc.CompareTo(b.StartedUtc)); // oldest first
         System.Int32 show = 0;
