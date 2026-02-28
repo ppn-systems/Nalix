@@ -58,6 +58,6 @@ The Nalix analyzer suite is the first line of defense for the framework's strict
 
 - [Full Diagnostic Codes](./diagnostic-codes.md)
 - [Code Fixes Reference](./code-fixes.md)
-- [Network Application Builder](../network/hosting/network-application.md)
+- [Network Application Builder](../hosting/network-application.md)
 - [Serialization Basics](../framework/serialization/serialization-basics.md)
 - [Packet Registry](../framework/packets/packet-registry.md)

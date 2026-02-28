@@ -33,7 +33,7 @@ graph TD
 ## Core Modules
 
 ### 1. Control Helpers (`ControlExtensions`)
-Facilitates the creation and awaiting of `CONTROL` frames. These are system-level packets used for signaling, keep-alives, and protocol state management.
+Facilitates the creation and awaiting of `CONTROL` frames. These are system-level packets used for signaling, keep-alive, and protocol state management.
 
 | Method | Target | Description |
 |---|---|---|

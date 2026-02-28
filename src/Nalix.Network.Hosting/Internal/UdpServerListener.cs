@@ -8,8 +8,15 @@ using Nalix.Network.Listeners.Udp;
 
 namespace Nalix.Network.Hosting.Internal;
 
-internal sealed class UdpServerListener(IProtocol protocol) : UdpListenerBase(protocol)
+/// <inheritdoc />
+internal sealed class UdpServerListener : UdpListenerBase
 {
+    /// <inheritdoc />
+    public UdpServerListener(IProtocol protocol) : base(protocol) { }
+
+    /// <inheritdoc />
+    public UdpServerListener(ushort port, IProtocol protocol) : base(port, protocol) { }
+
     /// <inheritdoc />
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0022:Use expression body for method", Justification = "<Pending>")]
     protected override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)

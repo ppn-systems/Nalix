@@ -42,29 +42,15 @@ public static class TcpSessionSubscriptions
 
         void Wrapper(object? _, IBufferLease buffer)
         {
-            // Wrapper is the sole owner of the lease; always dispose in finally.
-            try
-            {
-                IPacket p = client.Catalog.Deserialize(buffer.Span);
+            IPacket p = client.Catalog.Deserialize(buffer.Span);
 
-                if (p is not TPacket t)
-                {
-                    throw new InvalidOperationException(
-                        $"Received packet of type {p?.GetType().Name ?? "null"}, expected {typeof(TPacket).Name}");
-                }
-
-                handler(t);
-            }
-            catch (Exception)
+            if (p is not TPacket t)
             {
-                // Swallow handler exceptions — must not fault FrameReader receive loop.
+                throw new InvalidOperationException(
+                    $"Received packet of type {p?.GetType().Name ?? "null"}, expected {typeof(TPacket).Name}");
+            }
 
-            }
-            finally
-            {
-                // Guaranteed single disposal — this is the only Dispose call for the lease.
-                try { buffer.Dispose(); } catch { }
-            }
+            handler(t);
         }
 
         client.OnMessageReceived += Wrapper;
@@ -87,25 +73,14 @@ public static class TcpSessionSubscriptions
 
         void Wrapper(object? _, IBufferLease buffer)
         {
-            try
-            {
-                IPacket p = client.Catalog.Deserialize(buffer.Span);
+            IPacket p = client.Catalog.Deserialize(buffer.Span);
 
-                if (p is null || !predicate(p))
-                {
-                    return;
-                }
-
-                handler(p);
-            }
-            catch (Exception)
+            if (p is null || !predicate(p))
             {
+                return;
+            }
 
-            }
-            finally
-            {
-                try { buffer.Dispose(); } catch { }
-            }
+            handler(p);
         }
 
         client.OnMessageReceived += Wrapper;
@@ -134,44 +109,30 @@ public static class TcpSessionSubscriptions
 
         void Wrapper(object? _, IBufferLease buffer)
         {
-            // Wrapper is the sole owner of the lease — dispose in finally, always, exactly once.
-            try
+            // Deserialize — if it fails, let it bubble up to FrameReader.
+            IPacket p = client.Catalog.Deserialize(buffer.Span);
+
+            if (p is not TPacket t)
             {
-                // Deserialize — if it fails, we still fall through to finally and dispose.
-                IPacket p = client.Catalog.Deserialize(buffer.Span);
-
-                if (p is not TPacket t)
-                {
-                    return;
-                }
-
-                if (predicate is not null && !predicate(t))
-                {
-                    return;
-                }
-
-                // Atomic once-guard: only the first arriving thread proceeds.
-                if (Interlocked.Exchange(ref fired, 1) != 0)
-                {
-                    return;
-                }
-
-                // Unsubscribe before invoking handler to avoid a second delivery
-                // if the handler itself triggers another message.
-                client.OnMessageReceived -= Wrapper;
-
-                handler(t);
+                return;
             }
-            catch (Exception)
+
+            if (predicate is not null && !predicate(t))
             {
-                // Swallow — must not bubble up to FrameReader receive loop.
+                return;
+            }
 
-            }
-            finally
+            // Atomic once-guard: only the first arriving thread proceeds.
+            if (Interlocked.Exchange(ref fired, 1) != 0)
             {
-                // Sole disposal point — runs whether handler succeeded, threw, or was skipped.
-                try { buffer.Dispose(); } catch { }
+                return;
             }
+
+            // Unsubscribe before invoking handler to avoid a second delivery
+            // if the handler itself triggers another message.
+            client.OnMessageReceived -= Wrapper;
+
+            handler(t);
         }
 
         client.OnMessageReceived += Wrapper;

@@ -87,66 +87,29 @@ internal static class PacketAwaiter
         {
             return await tcs.Task.ConfigureAwait(false);
         }
-        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
-        {
-
-            throw new TimeoutException($"No {typeof(TPkt).Name} received within {timeoutMs} ms.");
-        }
         catch (TaskCanceledException) when (ct.IsCancellationRequested)
         {
-
             throw new OperationCanceledException(ct);
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException($"No {typeof(TPkt).Name} received within {timeoutMs} ms.");
         }
 
         // Local handlers
 
         void OnMessageReceived(object? _, IBufferLease buffer)
         {
-            // Ownership: caller of SubscribeTemp provides an IBufferLease; dispose after use.
-            try
+            // Try deserialize — if it fails, let it propagate to the transport.
+            IPacket p = client.Catalog.Deserialize(buffer.Span);
+
+            if (p is TPkt match)
             {
-                // Try deserialize — protect from codec exceptions.
-                IPacket p;
-                try
+                if (predicate(match))
                 {
-                    p = client.Catalog.Deserialize(buffer.Span);
+                    // Found a match; try to set the result (may race with cancellation/disconnect).
+                    _ = tcs.TrySetResult(match);
                 }
-                catch (Exception)
-                {
-
-                    // If deserialization fails repeatedly, we do not cancel the whole await — just ignore this buffer.
-                    return;
-                }
-
-                if (p is TPkt match)
-                {
-                    bool predResult = false;
-                    try
-                    {
-                        predResult = predicate(match);
-                    }
-                    catch (Exception predEx)
-                    {
-
-                        // Predicate exception is considered a handler error — set exception on TCS so caller sees it.
-                        try { _ = tcs.TrySetException(predEx); } catch { }
-                        return;
-                    }
-
-                    if (predResult)
-                    {
-                        // Found a match; try to set the result (may race with cancellation/disconnect).
-                        if (tcs.TrySetResult(match))
-                        {
-
-                        }
-                    }
-                }
-            }
-            finally
-            {
-                // Ensure lease is always disposed (SubscribeTemp contract).
-                try { buffer.Dispose(); } catch { /* swallow */ }
             }
         }
 

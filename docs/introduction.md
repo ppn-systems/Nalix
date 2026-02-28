@@ -74,7 +74,7 @@ A client usually looks like this:
 
 ## Version note
 
-Latest verified stable package version on 2026-03-24:
+Latest verified stable package version on 2026-04-10:
 
-- `Nalix.Network`: `11.8.0`
-- `Nalix.SDK`: `11.8.0`
+- `Nalix.Network`: `12.0.7`
+- `Nalix.SDK`: `12.0.7`

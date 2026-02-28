@@ -28,11 +28,6 @@ public sealed class ExamplePacketProtocol : Protocol
     }
 
     /// <summary>
-    /// Runs when the listener accepts a new connection.
-    /// </summary>
-    public override void OnAccept(IConnection connection, CancellationToken cancellationToken = default) => base.OnAccept(connection, cancellationToken);
-
-    /// <summary>
     /// Processes an inbound packet for a live connection.
     /// </summary>
     public override void ProcessMessage(object? sender, IConnectEventArgs args)

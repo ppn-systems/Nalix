@@ -50,6 +50,14 @@ public interface IConnectionHub
     void UnregisterConnection(IConnection connection);
 
     /// <summary>
+    /// Forcibly closes all connections matching the specified IP address.
+    /// </summary>
+    /// <param name="networkEndpoint">The IP address to forcefully close.</param>
+    /// <returns>Number of connections closed.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
+    int ForceClose(INetworkEndpoint networkEndpoint);
+
+    /// <summary>
     /// Closes all active client connections with an optional reason.
     /// </summary>
     /// <param name="reason">The reason for closing connections, if any. Can be <c>null</c>.</param>

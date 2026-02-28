@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
@@ -50,11 +51,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureConnectionHub(ConnectionHub connectionHub)
+    public INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub)
     {
         ArgumentNullException.ThrowIfNull(connectionHub);
 
-        InstanceManager.Instance.Register(connectionHub);
+        InstanceManager.Instance.Register<IConnectionHub>(connectionHub);
         return this;
     }
 
@@ -198,6 +199,56 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public INetworkApplicationBuilder AddTcp<TProtocol>(ushort port) where TProtocol : class, IProtocol
+    {
+        _state.TcpBindings.Add(new TcpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
+            port));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder AddTcp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)
+        where TProtocol : class, IProtocol
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+
+        _state.TcpBindings.Add(new TcpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => factory(dispatch),
+            port));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port) where TProtocol : class, IProtocol
+    {
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
+            port));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)
+        where TProtocol : class, IProtocol
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => factory(dispatch),
+            port));
+
+        return this;
+    }
+
+    /// <inheritdoc />
     public INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
@@ -214,6 +265,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             RegisterLogger(_state);
             EnsureConnectionHubRegistered();
+            EnsureBufferPoolManagerRegistered();
             ApplyOptions(_state);
             RegisterPacketRegistry(_state);
 
@@ -233,7 +285,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             {
                 EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
-                TcpServerListener listener = new(protocol);
+                TcpServerListener listener = registration.Port.HasValue
+                    ? new(registration.Port.Value, protocol)
+                    : new(protocol);
+
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: false);
             });
         }
@@ -244,12 +299,21 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             {
                 EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
-                UdpServerListener listener = new(protocol);
+                UdpServerListener listener = registration.Port.HasValue
+                    ? new(registration.Port.Value, protocol)
+                    : new(protocol);
+
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);
             });
         }
 
-        return new NetworkApplication(_state.Logger, prepareCallbacks, dispatchFactory, serverFactories);
+        List<IActivatableAsync> hostedServices = [];
+        foreach (Func<IActivatableAsync> factory in _state.HostedServices)
+        {
+            hostedServices.Add(factory());
+        }
+
+        return new NetworkApplication(_state.Logger, prepareCallbacks, dispatchFactory, serverFactories, hostedServices);
     }
 
     #region Factory Methods
@@ -347,11 +411,20 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             return;
         }
 
-        InstanceManager.Instance.Register(new ConnectionHub());
+        InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub());
     }
 
-    private static void RegisterLogger(HostingBuilderContext state)
-        => InstanceManager.Instance.Register<ILogger>(state.Logger);
+    private static void EnsureBufferPoolManagerRegistered()
+    {
+        if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is not null)
+        {
+            return;
+        }
+
+        InstanceManager.Instance.Register<BufferPoolManager>(new BufferPoolManager());
+    }
+
+    private static void RegisterLogger(HostingBuilderContext state) => InstanceManager.Instance.Register<ILogger>(state.Logger);
 
     private static void ApplyOptions(HostingBuilderContext state)
     {

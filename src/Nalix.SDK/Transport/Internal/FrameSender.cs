@@ -59,7 +59,7 @@ internal sealed class FrameSender : IDisposable
         BufferLease current = BufferLease.CopyFrom(payload.Span);
         try
         {
-            current = PacketFrameTransforms.TransformOutbound(current, _options, encrypt ?? _options.EncryptionEnabled);
+            PacketFrameTransforms.TransformOutbound(ref current, _options, encrypt ?? _options.EncryptionEnabled);
 
             // ── After transformation, check for fragmentation ────────────────────
             if (current.Length >= _fragmentOptions.MaxChunkSize)
