@@ -569,7 +569,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         _ = sb.AppendLine("Active Connections:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine("ID                                   | Username");
+        _ = sb.AppendLine("ID             | Username");
         _ = sb.AppendLine("------------------------------------------------------------");
 
         foreach (var kvp in _connections)
