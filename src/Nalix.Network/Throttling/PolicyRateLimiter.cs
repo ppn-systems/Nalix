@@ -234,24 +234,24 @@ public static class PolicyRateLimiter
         // Early exit if shutting down
         if (s_isShuttingDown)
         {
-            return CreateDeniedDecision(isHard: true);
+            return CREATE_DENIED_DECISION(isHard: true);
         }
 
         // Validate rate limit attribute
-        CheckResult validationResult = ValidateRateLimitAttribute(context);
+        CheckResult validationResult = VALIDATE_RATE_LIMIT_ATTRIBUTE(context);
         if (!validationResult.Success)
         {
             return validationResult.Decision;
         }
 
         // Extract and quantize policy
-        Policy policy = ExtractAndQuantizePolicy(context.Attributes.RateLimit!);
+        Policy policy = EXTRACT_AND_QUANTIZE_POLICY(context.Attributes.RateLimit!);
 
         // Perform rate limit check
-        CheckResult checkResult = PerformRateLimitCheck(opCode, context, policy);
+        CheckResult checkResult = PERFORM_RATE_LIMIT_CHECK(opCode, context, policy);
 
         // Opportunistic cleanup
-        TryScheduleSweep();
+        TRY_SCHEDULE_SWEEP();
 
         return checkResult.Decision;
     }
@@ -298,7 +298,7 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static CheckResult ValidateRateLimitAttribute(PacketContext<IPacket> context)
+    private static CheckResult VALIDATE_RATE_LIMIT_ATTRIBUTE(PacketContext<IPacket> context)
     {
         PacketRateLimitAttribute rl = context.Attributes.RateLimit;
 
@@ -308,7 +308,7 @@ public static class PolicyRateLimiter
             return new CheckResult
             {
                 Success = true,
-                Decision = CreateAllowedDecision()
+                Decision = CREATE_ALLOWED_DECISION()
             };
         }
 
@@ -318,7 +318,7 @@ public static class PolicyRateLimiter
             return new CheckResult
             {
                 Success = true,
-                Decision = CreateAllowedDecision()
+                Decision = CREATE_ALLOWED_DECISION()
             };
         }
 
@@ -331,7 +331,7 @@ public static class PolicyRateLimiter
             return new CheckResult
             {
                 Success = false,
-                Decision = CreateDeniedDecision(isHard: true)
+                Decision = CREATE_DENIED_DECISION(isHard: true)
             };
         }
 
@@ -347,10 +347,10 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static Policy ExtractAndQuantizePolicy(PacketRateLimitAttribute rl)
+    private static Policy EXTRACT_AND_QUANTIZE_POLICY(PacketRateLimitAttribute rl)
     {
-        System.Int32 rps = QuantizeValue(rl.RequestsPerSecond, s_rpsTiers);
-        System.Int32 burst = QuantizeValue(rl.Burst, s_burstTiers);
+        System.Int32 rps = QUANTIZE_VALUE(rl.RequestsPerSecond, s_rpsTiers);
+        System.Int32 burst = QUANTIZE_VALUE(rl.Burst, s_burstTiers);
 
         return new Policy(rps, burst);
     }
@@ -360,7 +360,7 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 QuantizeValue(System.Int32 value, System.Int32[] tiers)
+    private static System.Int32 QUANTIZE_VALUE(System.Int32 value, System.Int32[] tiers)
     {
         foreach (System.Int32 tier in tiers)
         {
@@ -377,7 +377,7 @@ public static class PolicyRateLimiter
     /// <summary>
     /// Creates token bucket options for a specific policy.
     /// </summary>
-    private static TokenBucketOptions CreateOptionsForPolicy(Policy policy)
+    private static TokenBucketOptions CREATE_OPTIONS_FOR_POLICY(Policy policy)
     {
         return new TokenBucketOptions
         {
@@ -401,10 +401,7 @@ public static class PolicyRateLimiter
     /// <summary>
     /// Performs the actual rate limit check using appropriate limiter.
     /// </summary>
-    private static CheckResult PerformRateLimitCheck(
-        System.UInt16 opCode,
-        PacketContext<IPacket> context,
-        Policy policy)
+    private static CheckResult PERFORM_RATE_LIMIT_CHECK(System.UInt16 opCode, PacketContext<IPacket> context, Policy policy)
     {
         // Validate connection endpoint
         if (context.Connection?.EndPoint is null)
@@ -415,12 +412,12 @@ public static class PolicyRateLimiter
             return new CheckResult
             {
                 Success = false,
-                Decision = CreateDeniedDecision(isHard: false)
+                Decision = CREATE_DENIED_DECISION(isHard: false)
             };
         }
 
         // Get or create limiter for policy
-        Entry entry = GetOrCreateLimiterEntry(policy);
+        Entry entry = GET_OR_CREATE_LIMITER_ENTRY(policy);
 
         // Try acquire reference for safe usage
         if (!entry.TryAcquire())
@@ -429,7 +426,7 @@ public static class PolicyRateLimiter
             return new CheckResult
             {
                 Success = false,
-                Decision = CreateDeniedDecision(isHard: false, retryAfterMs: 1000)
+                Decision = CREATE_DENIED_DECISION(isHard: false, retryAfterMs: 1000)
             };
         }
 
@@ -456,7 +453,7 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static Entry GetOrCreateLimiterEntry(Policy policy)
+    private static Entry GET_OR_CREATE_LIMITER_ENTRY(Policy policy)
     {
         // Fast path:  existing entry
         if (s_limiters.TryGetValue(policy, out Entry existingEntry))
@@ -466,9 +463,9 @@ public static class PolicyRateLimiter
         }
 
         // Check if at capacity - reuse closest policy
-        if (IsAtPolicyCapacity())
+        if (IS_AT_POLICY_CAPACITY())
         {
-            Entry reusedEntry = TryReuseClosestPolicy(policy);
+            Entry reusedEntry = TRY_REUSE_CLOSEST_POLICY(policy);
             if (reusedEntry is not null)
             {
                 return reusedEntry;
@@ -476,7 +473,7 @@ public static class PolicyRateLimiter
         }
 
         // Create new entry
-        return CreateNewLimiterEntry(policy);
+        return CREATE_NEW_LIMITER_ENTRY(policy);
     }
 
     /// <summary>
@@ -484,16 +481,16 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean IsAtPolicyCapacity() => s_limiters.Count >= MaxPolicies;
+    private static System.Boolean IS_AT_POLICY_CAPACITY() => s_limiters.Count >= MaxPolicies;
 
     /// <summary>
     /// Attempts to reuse the closest existing policy when at capacity.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static Entry TryReuseClosestPolicy(Policy wanted)
+    private static Entry TRY_REUSE_CLOSEST_POLICY(Policy wanted)
     {
-        Policy closest = FindClosestPolicy(wanted);
+        Policy closest = FIND_CLOSEST_POLICY(wanted);
 
         // ✅ FIX: Check if policy still exists (may have been removed)
         if (s_limiters.TryGetValue(closest, out Entry reused))
@@ -515,14 +512,14 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static Policy FindClosestPolicy(Policy wanted)
+    private static Policy FIND_CLOSEST_POLICY(Policy wanted)
     {
         Policy closest = default;
         System.Int32 bestDistance = System.Int32.MaxValue;
 
         foreach (Policy candidate in s_limiters.Keys)
         {
-            System.Int32 distance = CalculatePolicyDistance(candidate, wanted);
+            System.Int32 distance = CALCULATE_POLICY_DISTANCE(candidate, wanted);
 
             if (distance < bestDistance)
             {
@@ -544,14 +541,14 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 CalculatePolicyDistance(Policy a, Policy b) => System.Math.Abs(a.Rps - b.Rps) + System.Math.Abs(a.Burst - b.Burst);
+    private static System.Int32 CALCULATE_POLICY_DISTANCE(Policy a, Policy b) => System.Math.Abs(a.Rps - b.Rps) + System.Math.Abs(a.Burst - b.Burst);
 
     /// <summary>
     /// Creates a new limiter entry for policy with proper race handling.
     /// </summary>
-    private static Entry CreateNewLimiterEntry(Policy policy)
+    private static Entry CREATE_NEW_LIMITER_ENTRY(Policy policy)
     {
-        TokenBucketOptions options = CreateOptionsForPolicy(policy);
+        TokenBucketOptions options = CREATE_OPTIONS_FOR_POLICY(policy);
         Entry newEntry = new(new TokenBucketLimiter(options));
 
         // Try add - handle race condition
@@ -560,7 +557,7 @@ public static class PolicyRateLimiter
         if (ReferenceEquals(actualEntry, newEntry))
         {
             // Successfully added
-            LogLimiterCreated(policy);
+            s_logger?.Info($"[NW.{nameof(PolicyRateLimiter)}] ]created-policy-limiter rps={policy.Rps} burst={policy.Burst} total={s_limiters.Count}");
         }
         else
         {
@@ -581,7 +578,7 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static TokenBucketLimiter.RateLimitDecision CreateAllowedDecision()
+    private static TokenBucketLimiter.RateLimitDecision CREATE_ALLOWED_DECISION()
     {
         return new TokenBucketLimiter.RateLimitDecision
         {
@@ -597,7 +594,7 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static TokenBucketLimiter.RateLimitDecision CreateDeniedDecision(
+    private static TokenBucketLimiter.RateLimitDecision CREATE_DENIED_DECISION(
         System.Boolean isHard,
         System.Int32 retryAfterMs = 0)
     {
@@ -621,7 +618,7 @@ public static class PolicyRateLimiter
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void TryScheduleSweep()
+    private static void TRY_SCHEDULE_SWEEP()
     {
         // Use unchecked to allow overflow without exception
         unchecked
@@ -630,7 +627,7 @@ public static class PolicyRateLimiter
 
             if ((count & (SweepEveryNChecks - 1)) == 0)
             {
-                EvictStalePolicies();
+                EVICTS_TALE_POLICIES();
             }
         }
     }
@@ -641,7 +638,7 @@ public static class PolicyRateLimiter
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void EvictStalePolicies()
+    private static void EVICTS_TALE_POLICIES()
     {
         if (s_isShuttingDown)
         {
@@ -655,7 +652,6 @@ public static class PolicyRateLimiter
         {
             if (entry.IsStale(nowTicks, PolicyTtlSeconds))
             {
-                // ✅ FIX: Remove before disposal to prevent new usage
                 if (s_limiters.TryRemove(policy, out Entry removed))
                 {
                     removed.Dispose();
@@ -672,20 +668,4 @@ public static class PolicyRateLimiter
     }
 
     #endregion Cleanup
-
-    #region Logging
-
-    /// <summary>
-    /// Logs creation of new limiter for policy.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void LogLimiterCreated(Policy policy)
-    {
-        s_logger?.Info($"[NW.{nameof(PolicyRateLimiter)}] " +
-                      $"created-policy-limiter rps={policy.Rps} burst={policy.Burst} " +
-                      $"total={s_limiters.Count}");
-    }
-
-    #endregion Logging
 }
