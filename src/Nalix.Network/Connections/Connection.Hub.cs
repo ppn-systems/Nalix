@@ -524,7 +524,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         System.Threading.Tasks.ParallelOptions parallelOptions = new()
         {
-            MaxDegreeOfParallelism = _options.ParallelDisconnectDegree ?? -1
+            MaxDegreeOfParallelism = _options.ParallelDisconnectDegree
         };
 
         _ = System.Threading.Tasks.Parallel.ForEach(connections, parallelOptions, connection =>
