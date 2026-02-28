@@ -81,7 +81,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
 
         _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: "log.console.worker",
-            group: "log.console",
+            group: "log",
             work: async (ctx, ct) =>
             {
                 System.Threading.CancellationTokenSource linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
@@ -89,7 +89,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
             },
             options: new WorkerOptions
             {
-                Tag = "high-throughput",        // Gắn tag để report hoặc log
+                Tag = "console-consumer",       // Gắn tag để report hoặc log
                 GroupConcurrencyLimit = 1,      // Chỉ chạy duy nhất 1 log worker cho nhóm này
                 OnFailed = (st, ex) => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker failed: {st.Name}, {ex.Message}"),
                 OnCompleted = st => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
