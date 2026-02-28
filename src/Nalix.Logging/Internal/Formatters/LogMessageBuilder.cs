@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
-using Nalix.Logging.Core;
+using Nalix.Logging.Engine;
 using Nalix.Logging.Internal.Pooling;
 
 #if DEBUG

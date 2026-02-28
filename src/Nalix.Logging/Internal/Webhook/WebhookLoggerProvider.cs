@@ -6,7 +6,7 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Logging.Options;
+using Nalix.Logging.Configuration;
 
 namespace Nalix.Logging.Internal.Webhook;
 
