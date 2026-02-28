@@ -83,16 +83,6 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// </value>
     public System.Int32 BroadcastBatchSize { get; init; } = 0;
 
-    // Logging
-
-    /// <summary>
-    /// Gets or sets whether to enable trace-level logging.
-    /// </summary>
-    /// <value>
-    /// <see langword="true"/> to enable detailed trace logs; otherwise, <see langword="false"/>. Default is <see langword="false"/>.
-    /// </value>
-    public System.Boolean EnableTraceLogs { get; init; } = false;
-
     // Dispose behavior
 
     /// <summary>
@@ -102,4 +92,13 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// The delay in milliseconds to wait for OnCloseEvent before unregistering. Default is 0.
     /// </value>
     public System.Int32 UnregisterDrainMillis { get; init; } = 0;
+
+    /// <summary>
+    /// Gets a value indicating whether latency measurement is enabled.
+    /// </summary>
+    /// <remarks>
+    /// When set to <see langword="true"/>, the system will collect and report
+    /// latency information for diagnostic or performance monitoring purposes.
+    /// </remarks>
+    public System.Boolean IsEnableLatency { get; init; } = true;
 }

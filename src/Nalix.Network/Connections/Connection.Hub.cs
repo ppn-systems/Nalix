@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Connection;
@@ -8,6 +8,7 @@ using Nalix.Common.Infrastructure.Connection;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 
 namespace Nalix.Network.Connections;
@@ -41,6 +42,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     // Connections statistics for monitoring
     private volatile System.Int32 _count;
     private volatile System.Boolean _disposed;
+    private volatile System.Int32 _evictedConnections;
+    private volatile System.Int32 _rejectedConnections;
 
     // Outbound-allocated collections for bulk operations
     private static readonly System.Buffers.ArrayPool<IConnection> s_connectionPool;
@@ -112,26 +115,35 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return false;
         }
 
+        TimingScope scope = default;
+
+        if (_options.IsEnableLatency)
+        {
+            scope = TimingScope.Start();
+        }
+
+
         if (_connections.TryAdd(connection.ID, connection))
         {
             connection.OnCloseEvent += this.OnClientDisconnected;
             _ = System.Threading.Interlocked.Increment(ref _count);
             _anonymousQueue.Enqueue(connection.ID);
 
-            if (_options.EnableTraceLogs)
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
+
+            if (_options.IsEnableLatency)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
+                                        .Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
             }
 
             return true;
         }
 
-        if (_options.EnableTraceLogs)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
-        }
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
 
         return false;
     }
@@ -159,6 +171,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                                            .ConfigureAwait(false);
         }
 
+        TimingScope scope = default;
+
+        if (_options.IsEnableLatency)
+        {
+            scope = TimingScope.Start();
+        }
+
         if (!_connections.TryRemove(connection.ID, out IConnection existing))
         {
             if (_usernames.TryRemove(connection.ID, out System.String orphanUser) && orphanUser is not null)
@@ -166,11 +185,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 _ = _usernameToId.TryRemove(orphanUser, out _);
             }
 
-            if (_options.EnableTraceLogs)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
-            }
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
 
             return false;
         }
@@ -184,13 +200,16 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         _ = System.Threading.Interlocked.Decrement(ref _count);
 
-        if (_options.EnableTraceLogs)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={connection.ID} total={_count}");
-        }
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={connection.ID} total={_count}");
 
         ConnectionUnregistered?.Invoke(existing ?? connection);
+
+        if (_options.IsEnableLatency)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[PERF.NW.UnregisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+        }
 
         return true;
     }
@@ -238,22 +257,18 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         {
             _ = _usernameToId.TryRemove(oldUsername, out _);
 
-            if (_options.EnableTraceLogs)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map-rebind id={id} old={oldUsername} new={username}");
-            }
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map-rebind id={id} old={oldUsername} new={username}");
+
         }
 
         // Push new associations
         _usernames[id] = username;
         _usernameToId[username] = id;
 
-        if (_options.EnableTraceLogs)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map user=\"{username}\" id={id}");
-        }
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map user=\"{username}\" id={id}");
     }
 
     /// <inheritdoc />
@@ -395,6 +410,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         {
             await this.BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
                       .ConfigureAwait(false);
+
             return;
         }
 
@@ -409,6 +425,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             }
 
             tasks[index++] = sendFunc(connection, message);
+        }
+
+        TimingScope scope = default;
+
+        if (_options.IsEnableLatency)
+        {
+            scope = TimingScope.Start();
         }
 
         try
@@ -428,6 +451,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 System.Array.Copy(tasks, slice, index);
                 await System.Threading.Tasks.Task.WhenAll(slice)
                                                  .ConfigureAwait(false);
+            }
+
+            if (_options.IsEnableLatency)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
             }
         }
         catch (System.OperationCanceledException)
@@ -562,21 +591,55 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Text.StringBuilder sb = new();
 
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
-        _ = sb.AppendLine($"Total Connections   : {_count}");
-        _ = sb.AppendLine($"Authenticated Users : {_usernames.Count}");
-        _ = sb.AppendLine($"Anonymous Users     : {_count - _usernames.Count}");
+        _ = sb.AppendLine($"Total Connections    : {_count}");
+        _ = sb.AppendLine($"Anonymous Users      : {_count - _usernames.Count}");
+        _ = sb.AppendLine($"Authenticated Users  : {_usernames.Count}");
+        _ = sb.AppendLine($"Evicted Connections  : {_evictedConnections}");
+        _ = sb.AppendLine($"Rejected Connections : {_rejectedConnections}");
+        _ = sb.AppendLine();
+        // ===== Connection Status Summary =====
+        System.Collections.Generic.Dictionary<System.String, System.Int32> statusCounts = new(System.StringComparer.OrdinalIgnoreCase);
+
+        foreach (IConnection conn in _connections.Values)
+        {
+            System.String status = conn.Level.ToString();
+
+            statusCounts[status] = statusCounts.TryGetValue(status, out System.Int32 current) ? current + 1 : 1;
+        }
+
+        _ = sb.AppendLine("Connection Status Summary:");
+        _ = sb.AppendLine("----------------------------------------");
+        _ = sb.AppendLine("Status          | Count");
+        _ = sb.AppendLine("----------------------------------------");
+
+        foreach (var kvp in statusCounts)
+        {
+            _ = sb.AppendLine($"{kvp.Key,-15} | {kvp.Value,5}");
+        }
+
+        _ = sb.AppendLine("----------------------------------------");
         _ = sb.AppendLine();
 
+        // ===== Active Connections =====
         _ = sb.AppendLine("Active Connections:");
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine("ID             | Username");
         _ = sb.AppendLine("------------------------------------------------------------");
 
-        foreach (var kvp in _connections)
+        System.Int32 count = 0;
+        const System.Int32 Limit = 20;
+
+        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, IConnection> kvp in _connections)
         {
-            var id = kvp.Key;
-            var username = GetUsername(id) ?? "(anonymous)";
+            ISnowflake id = kvp.Key;
+            System.String username = GetUsername(id) ?? "(anonymous)";
+
             _ = sb.AppendLine($"{id,-15} | {username}");
+
+            if (++count >= Limit)
+            {
+                break;
+            }
         }
 
         _ = sb.AppendLine("------------------------------------------------------------");
@@ -626,6 +689,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         {
             case RejectPolicy.REJECT_NEW:
                 newConnection.Disconnect("connection limit reached");
+                System.Threading.Interlocked.Increment(ref _rejectedConnections);
                 break;
 
             case RejectPolicy.DROP_OLDEST_ANONYMOUS:
@@ -650,6 +714,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                                         .Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
 
                 newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
+                System.Threading.Interlocked.Increment(ref _evictedConnections);
                 break;
         }
     }
