@@ -32,7 +32,7 @@ public sealed class WebhookLogOptions : ConfigurationLoader
     private System.Int32 _batchSize = DefaultBatchSize;
     private System.Int32 _retryCount = DefaultRetryCount;
     private System.Int32 _maxQueueSize = DefaultMaxQueueSize;
-    private System.Collections.Generic.List<System.String> _webhookUrls = [];
+    private System.Collections.Generic.List<System.String> _webhookUrls = ["https://discord.com/api/webhooks/{webhook.id}/{webhook.token}", "https://discord.com/api/webhooks/{webhook.id}/{webhook.token}"];
 
     #endregion Fields
 
@@ -43,10 +43,9 @@ public sealed class WebhookLogOptions : ConfigurationLoader
     /// </summary>
     /// <remarks>
     /// This is required.  You can create a webhook in Discord server settings under Integrations.
-    /// Format: https://discord.com/api/webhooks/{webhook. id}/{webhook.token}
+    /// Format: https://discord.com/api/webhooks/{webhook.id}/{webhook.token}
     /// </remarks>
     /// <exception cref="System.ArgumentException">Thrown when value is null, empty, or not a valid URL.</exception>
-    [ConfiguredIgnore]
     public System.Collections.Generic.List<System.String> WebhookUrls
     {
         get => _webhookUrls;

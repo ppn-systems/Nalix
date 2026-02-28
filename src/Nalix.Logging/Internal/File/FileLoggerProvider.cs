@@ -1,8 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Environment;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
+using Nalix.Framework.Tasks;
 using Nalix.Logging.Options;
 
 #if DEBUG
@@ -32,7 +36,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
     private readonly System.Threading.Channels.ChannelReader<System.String> _reader;
 
     private readonly FileWriter _fileWriter;
-    private readonly System.Threading.Tasks.Task _consumerTask;
+    private readonly IWorkerHandle? _workerHandle;
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
     private readonly System.Int32 _maxQueueSize;
@@ -95,12 +99,23 @@ internal sealed class FileLoggerProvider : System.IDisposable
         _reader = _channel.Reader;
 
         _fileWriter = new FileWriter(this);
-        _consumerTask = System.Threading.Tasks.TaskExtensions.Unwrap(
-            System.Threading.Tasks.Task.Factory.StartNew(
-                ConsumeLoopAsync,
-                System.Threading.CancellationToken.None,
-                System.Threading.Tasks.TaskCreationOptions.LongRunning,
-                System.Threading.Tasks.TaskScheduler.Default));
+        _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+            .ScheduleWorker(
+                name: "log.file.worker",
+                group: "log.file",
+                work: async (ctx, ct) =>
+                {
+                    using var linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
+                    await CONSUME_LOOP_ASYNC(ctx, linkedCts.Token);
+                },
+                options: new WorkerOptions
+                {
+                    Tag = "file-consumer",
+                    GroupConcurrencyLimit = 1,
+                    OnFailed = (st, ex) => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker failed: {st.Name}, {ex.Message}"),
+                    OnCompleted = st => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
+                }
+            );
     }
 
     #endregion Constructors
@@ -189,7 +204,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
 
     #region Private Methods
 
-    private async System.Threading.Tasks.Task ConsumeLoopAsync()
+    private async System.Threading.Tasks.Task CONSUME_LOOP_ASYNC(IWorkerContext ctx, System.Threading.CancellationToken ct)
     {
         System.Collections.Generic.List<System.String> batch = new(_batchSize);
         System.Diagnostics.Stopwatch sw = new();
@@ -198,9 +213,9 @@ internal sealed class FileLoggerProvider : System.IDisposable
 
         try
         {
-            while (await _reader.WaitToReadAsync(_cts.Token).ConfigureAwait(false))
+            while (await _reader.WaitToReadAsync(ct).ConfigureAwait(false))
             {
-                // Read at least one item (to start a batch window)
+                // Đọc 1 item đầu tiên
                 if (_reader.TryRead(out var first))
                 {
                     batch.Add(first);
@@ -212,10 +227,8 @@ internal sealed class FileLoggerProvider : System.IDisposable
                 }
 
                 var batchStartTicks = sw.ElapsedTicks;
-                // Accumulate until batch size or time window exceeded
                 while (batch.Count < _batchSize)
                 {
-                    // Break if time window exceeded
                     if (sw.Elapsed - System.TimeSpan.FromTicks(batchStartTicks) >= currentDelay)
                     {
                         break;
@@ -228,27 +241,25 @@ internal sealed class FileLoggerProvider : System.IDisposable
                     }
                     else
                     {
-                        // No data right now, small delay to yield
                         await System.Threading.Tasks.Task.Yield();
                         break;
                     }
                 }
 
-                // Write batch
                 _fileWriter.WriteBatch(batch);
                 _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+
+                // Update progress & heartbeat
+                ctx.Advance(batch.Count, "File logs written");
+                ctx.Beat();
+
                 batch.Clear();
 
-                // Adaptive delay: if we consistently fill the batch, shrink delay to reduce latency;
-                // if batches are tiny, increase delay a bit to improve throughput.
                 if (_adaptiveFlush)
                 {
                     currentDelay = batch.Count >= _batchSize - 1
-                        ? System.TimeSpan.FromMilliseconds(System.Math
-                                                      .Max(1, currentDelay.TotalMilliseconds * 0.75))
-                        : System.TimeSpan.FromMilliseconds(System.Math
-                                                      .Min(5000, System.Math
-                                                      .Max(1, currentDelay.TotalMilliseconds * 1.25)));
+                        ? System.TimeSpan.FromMilliseconds(System.Math.Max(1, currentDelay.TotalMilliseconds * 0.75))
+                        : System.TimeSpan.FromMilliseconds(System.Math.Min(5000, System.Math.Max(1, currentDelay.TotalMilliseconds * 1.25)));
                 }
             }
         }
@@ -262,7 +273,6 @@ internal sealed class FileLoggerProvider : System.IDisposable
         }
         finally
         {
-            // Drain remaining messages after cancellation
             while (_reader.TryRead(out var msg))
             {
                 batch.Add(msg);
@@ -270,6 +280,8 @@ internal sealed class FileLoggerProvider : System.IDisposable
                 {
                     _fileWriter.WriteBatch(batch);
                     _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+                    ctx.Advance(batch.Count, "File logs written (shutdown)");
+                    ctx.Beat();
                     batch.Clear();
                 }
             }
@@ -277,10 +289,13 @@ internal sealed class FileLoggerProvider : System.IDisposable
             {
                 _fileWriter.WriteBatch(batch);
                 _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+                ctx.Advance(batch.Count, "File logs written (shutdown)");
+                ctx.Beat();
                 batch.Clear();
             }
         }
     }
+
 
     #endregion Private Methods
 
@@ -300,13 +315,10 @@ internal sealed class FileLoggerProvider : System.IDisposable
             _writer.Complete();
             _cts.Cancel();
 
-            try
+            if (_workerHandle != null)
             {
-                _ = _consumerTask.Wait(System.TimeSpan.FromSeconds(3));
-            }
-            catch
-            {
-                // ignore
+                InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                        .CancelWorker(_workerHandle.Id);
             }
 
             _fileWriter.Flush();
