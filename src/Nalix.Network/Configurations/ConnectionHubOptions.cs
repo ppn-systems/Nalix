@@ -71,9 +71,9 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// Gets or sets the degree of parallelism for disconnect operations.
     /// </summary>
     /// <value>
-    /// The maximum parallel tasks, or <see langword="null"/> to use ThreadPool default. Default is <see langword="null"/>.
+    /// The maximum parallel tasks, or use ThreadPool default. Default is -1.
     /// </value>
-    public System.Int32? ParallelDisconnectDegree { get; init; } = null;
+    public System.Int32 ParallelDisconnectDegree { get; init; } = -1;
 
     /// <summary>
     /// Gets or sets the batch size for broadcast operations.

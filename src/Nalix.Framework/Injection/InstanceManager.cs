@@ -1,6 +1,8 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
+using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection.DI;
 
 namespace Nalix.Framework.Injection;
@@ -173,6 +175,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     #region Properties
 
     /// <summary>
+    /// Raised to log significant events within the instance manager.
+    /// </summary>
+    public event System.EventHandler<LogEventArgs>? LogEvent;
+
+    /// <summary>
     /// Gets the ProtocolType of cached instances.
     /// </summary>
     [System.Diagnostics.Contracts.Pure]
@@ -217,7 +224,13 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         if (_instanceCache.TryGetValue(key, out var existing) && existing is System.IDisposable d1)
         {
-            try { d1.Dispose(); } catch { }
+            try { d1.Dispose(); }
+            catch (System.Exception ex)
+            {
+                LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-fail type={typeof(T).Name} ex={ex}"));
+            }
+
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-ok type={typeof(T).Name}"));
         }
 
         _instanceCache[key] = instance;
@@ -230,10 +243,17 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             for (System.Int32 i = 0; i < itfs.Length; i++)
             {
                 System.RuntimeTypeHandle itfKey = itfs[i].TypeHandle;
+
                 if (_instanceCache.TryGetValue(itfKey, out System.Object? ex) &&
                     ex is System.IDisposable d2)
                 {
-                    try { d2.Dispose(); } catch { }
+                    try { d2.Dispose(); }
+                    catch (System.Exception ex2)
+                    {
+                        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-fail iface={itfs[i].Name} ex={ex2}"));
+                    }
+
+                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-ok iface={itfs[i].Name}"));
                 }
 
                 _instanceCache[itfKey] = instance;
@@ -247,6 +267,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         {
             _ = _disposables.TryAdd(disp, 0);
         }
+
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Debug, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] registered type={typeof(T).Name}"));
     }
 
     /// <summary>
@@ -378,14 +400,20 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             if (instance is System.IDisposable d)
             {
                 _ = _disposables.TryRemove(d, out _);
-                try
+                try { d.Dispose(); }
+                catch (System.Exception ex)
                 {
-                    d.Dispose();
+                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-fail type={type.Name} ex={ex}"));
                 }
-                catch { }
+
+                LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-ok type={type.Name}"));
             }
+
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] removed type={type.Name}"));
             return true;
         }
+
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] notfound type={type.Name}"));
         return false;
     }
 
@@ -459,7 +487,15 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         {
             foreach (var d in _disposables.Keys)
             {
-                try { d.Dispose(); } catch { }
+                try
+                {
+                    d.Dispose();
+                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] dispose-ok"));
+                }
+                catch (System.Exception ex)
+                {
+                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] dispose-fail ex={ex}"));
+                }
             }
         }
 
@@ -473,6 +509,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         // Optional: clear thread L1 (best-effort)
         _tsLastKey = default;
         _tsLastValue = null;
+
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] cleared"));
     }
 
     /// <summary>
@@ -487,9 +525,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _ = sb.AppendLine($"CachedInstanceCount: {CachedInstanceCount}");
         _ = sb.AppendLine();
         _ = sb.AppendLine("Instances:");
-        _ = sb.AppendLine("-----------------------------------------------------------------------");
-        _ = sb.AppendLine("Type                                | Disposable    | Source");
-        _ = sb.AppendLine("-----------------------------------------------------------------------");
+        _ = sb.AppendLine("---------------------------------------------------------------------------");
+        _ = sb.AppendLine("Type                                          | Disposable | Source        ");
+        _ = sb.AppendLine("---------------------------------------------------------------------------");
 
         foreach (var kvp in _instanceCache)
         {
@@ -504,10 +542,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             System.Boolean isDisposable = instance is System.IDisposable;
             System.String source = _activatorCacheContains(type) ? "ActivatorCache" : "ManualRegister";
 
-            _ = sb.AppendLine($"{typeName.PadRight(35)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
+            _ = sb.AppendLine($"{typeName.PadRight(45)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
         }
 
-        _ = sb.AppendLine("-----------------------------------------------------------------------");
+        _ = sb.AppendLine("----------------------------------------------------------------------");
         return sb.ToString();
 
         System.Boolean _activatorCacheContains(System.Type t)
@@ -541,16 +579,27 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         foreach (var d in _disposables.Keys)
         {
-            try { d.Dispose(); } catch { }
+            try
+            {
+                d.Dispose();
+                LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] dispose-ok"));
+            }
+            catch (System.Exception ex)
+            {
+                LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] dispose-fail", ex));
+            }
         }
 
-        Clear(dispose: false);
+        this.Clear(dispose: false);
 
         if (_processMutexOwner && _processMutex != null)
         {
-            try { _processMutex.ReleaseMutex(); } catch { /* ignore */ }
+            try { _processMutex.ReleaseMutex(); }
+            catch (System.Exception ex) { LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warning, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex)); }
             _processMutex.Dispose();
         }
+
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] disposed"));
     }
 
     #endregion Public API
@@ -620,21 +669,32 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private System.Object GetOrCreateInstanceSlow(System.Type type, System.Object?[] args)
     {
-        // Double-checked fast path after slow creation avoids race.
-        System.RuntimeTypeHandle key = type.TypeHandle;
-        if (_instanceCache.TryGetValue(key, out System.Object? existing))
+        try
         {
-            return existing;
+            System.RuntimeTypeHandle key = type.TypeHandle;
+
+            if (_instanceCache.TryGetValue(key, out System.Object? existing))
+            {
+                return existing;
+            }
+
+            System.Object instance = CreateViaActivator(type, args);
+
+            if (instance is System.IDisposable d)
+            {
+                _ = _disposables.TryAdd(d, 0);
+            }
+
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(GetOrCreateInstanceSlow)}] created type={type.Name}"));
+
+            return _instanceCache.GetOrAdd(key, instance);
         }
-
-        System.Object instance = CreateViaActivator(type, args);
-
-        if (instance is System.IDisposable d)
+        catch (System.Exception ex)
         {
-            _ = _disposables.TryAdd(d, 0);
-        }
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(GetOrCreateInstanceSlow)}] create-fail type={type.Name}", ex));
 
-        return _instanceCache.GetOrAdd(key, instance);
+            throw new InternalErrorException($"Failed to create instance for type {type.Name}.", ex);
+        }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

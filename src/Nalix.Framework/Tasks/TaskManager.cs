@@ -584,9 +584,9 @@ public sealed partial class TaskManager : ITaskManager
 
         // Recurring summary
         _ = sb.AppendLine("Recurring:");
-        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC             | Interval | Tag");
-        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("--------------------------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC             | Interval |         Tag");
+        _ = sb.AppendLine("--------------------------------------------------------------------------------------------------------------------------------");
         foreach (System.Collections.Generic.KeyValuePair<System.String, RecurringState> kv in _recurring)
         {
             RecurringState s = kv.Value;
@@ -634,9 +634,9 @@ public sealed partial class TaskManager : ITaskManager
 
         // Top N long-running workers
         _ = sb.AppendLine("Top Running Workers (by age):");
-        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine("Id             | Naming                       | Group                        | Age     | Progress | LastBeat");
-        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Id             | Naming                       | Group                        | Age     | Progress |  LastBeat");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------------");
         System.Collections.Generic.List<WorkerState> top = [.. _workers.Values];
         top.Sort(static (a, b) => a.StartedUtc.CompareTo(b.StartedUtc)); // oldest first
         System.Int32 show = 0;
@@ -654,7 +654,7 @@ public sealed partial class TaskManager : ITaskManager
             }
         }
 
-        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------------");
         return sb.ToString();
 
         static System.String PadName(System.String s, System.Int32 width)
