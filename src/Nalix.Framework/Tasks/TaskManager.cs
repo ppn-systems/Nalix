@@ -7,6 +7,7 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
+using System.Linq;
 
 namespace Nalix.Framework.Tasks;
 
@@ -601,6 +602,17 @@ public sealed partial class TaskManager : ITaskManager
             _ = sb.AppendLine($"{nm} | {runs} | {fails} | {run.PadLeft(7)} | {last,-20} | {next,-20} | {iv} | {tag}");
         }
         _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Top Recurring Tasks with Maximum Failures:");
+        _ = sb.AppendLine("----------------------------------------------------------------------------");
+        _ = sb.AppendLine("Name                         | Fails    | LastRun            | Tag          ");
+        _ = sb.AppendLine("----------------------------------------------------------------------------");
+        foreach (RecurringState r in _recurring.Values.OrderByDescending(r => r.ConsecutiveFailures).Take(5))
+        {
+            _ = sb.AppendLine($"{PadName(r.Name, 28)} | {r.ConsecutiveFailures,8} | {r.LastRunUtc?.ToString("u"),-18} | {r.Options.Tag ?? "-"}");
+        }
+        _ = sb.AppendLine("----------------------------------------------------------------------------");
         _ = sb.AppendLine();
 
         // Workers summary by group
