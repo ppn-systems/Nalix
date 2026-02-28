@@ -67,7 +67,7 @@ public sealed class PingRequest : PacketBase<PingRequest>
     public const ushort OpCodeValue = 0x1001;
 
     [SerializeDynamicSize(64)]
-    [SerializeOrder(PacketHeaderOffset.Region)]
+    [SerializeOrder(0)]
     public string Message { get; set; } = string.Empty;
 
     public PingRequest()
@@ -95,7 +95,7 @@ public sealed class PingResponse : PacketBase<PingResponse>
     public const ushort OpCodeValue = 0x1002;
 
     [SerializeDynamicSize(64)]
-    [SerializeOrder(PacketHeaderOffset.Region)]
+    [SerializeOrder(0)]
     public string Message { get; set; } = string.Empty;
 
     public PingResponse()
@@ -268,15 +268,58 @@ sequenceDiagram
     W-->>C: PingResponse
 ```
 
+## 4. More Examples
+
+### UDP Ping
+For low-latency packets, switch to UDP.
+
+```csharp
+// Server
+builder.AddUdp<QuickStartProtocol>();
+
+// Client
+await using UdpSession client = new(transport, packetRegistry);
+await client.ConnectAsync(); // Connect maps the session
+await client.SendAsync(new PingRequest { Message = "udp" });
+```
+
+### Simple Authentication
+Use `PacketPermission` metadata and a middleware to enforce roles.
+
+```csharp
+// 1. Add attribute to handler
+[PacketPermission(PermissionLevel.ADMIN)]
+public PingResponse SecretHandle(IPacketContext<PingRequest> ctx) => new();
+
+// 2. Add middleware to server
+builder.ConfigureDispatch(dispatch => {
+    dispatch.WithMiddleware(new AuthMiddleware());
+});
+```
+
+### Simple Middleware
+Intercept packets for logging or timing.
+
+```csharp
+public class MyLoggingMiddleware<T> : IPacketMiddleware<T> where T : IPacket
+{
+    public async Task InvokeAsync(PacketContext<T> ctx, Func<CancellationToken, Task> next)
+    {
+        Console.WriteLine($"Processing {typeof(T).Name}...");
+        await next(ctx.CancellationToken);
+    }
+}
+```
+
 ## Quick Notes
 
 - `Nalix.Network.Hosting` wraps packet registry setup, dispatch creation, and TCP listener lifecycle for you.
 - Keep `QuickStart.Contracts` shared by both sides.
-- `SetConnectionAcceptance(true)` is required.
-- `TcpSession` can be created with the same packet registry used by the server.
+- `SetConnectionAcceptance(true)` is required in the protocol.
+- `TcpSession` and `UdpSession` use the same `IPacketRegistry`.
 
 ## Next Steps
 
-1. [TCP Request/Response](./guides/tcp-request-response.md)
-2. [Server Blueprint](./guides/server-blueprint.md)
-3. [Custom Middleware End-to-End](./guides/custom-middleware-end-to-end.md)
+1. [Production End-to-End](./guides/production-end-to-end.md)
+2. [Project Setup Guide](./guides/starter-template.md)
+3. [Architecture](./concepts/architecture.md)

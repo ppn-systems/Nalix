@@ -298,12 +298,19 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         Type firstParam = parms[0].ParameterType;
 
-        // Context-style handlers (class or interface) read the packet from the context object,
-        // so there is no need to record a separate concrete packet type here.
-        if (firstParam == contextType ||
-            (firstParam.IsGenericType && firstParam.GetGenericTypeDefinition() == typeof(IPacketContext<>)))
+        if (firstParam == contextType)
         {
             return null;
+        }
+
+        if (firstParam.IsGenericType)
+        {
+            Type genericDefinition = firstParam.GetGenericTypeDefinition();
+            if (genericDefinition == typeof(PacketContext<>) || genericDefinition == typeof(IPacketContext<>))
+            {
+                Type concretePacketType = firstParam.GetGenericArguments()[0];
+                return concretePacketType == typeof(TPacket) ? null : concretePacketType;
+            }
         }
 
         // Legacy-style handlers receive the packet directly, so capture the actual packet type

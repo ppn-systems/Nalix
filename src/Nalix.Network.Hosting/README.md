@@ -1,30 +1,32 @@
 # Nalix.Network.Hosting
 
-`Nalix.Network.Hosting` adds Microsoft-style host and builder APIs on top of `Nalix.Network`.
+A fluent orchestration layer to build and host Nalix applications with minimal boilerplate.
 
-## What it includes
+## Features
 
-- `NetworkApplication.CreateBuilder()`
-- fluent `NetworkApplicationBuilder` configuration
-- automatic packet registry discovery
-- packet dispatch bootstrap and runtime lifecycle
-- TCP server startup via `ActivateAsync`, `DeactivateAsync`, and `RunAsync`
+- **NetworkApplicationBuilder**: Fluent API to configure listeners, protocols, and handlers.
+- **Service Integration**: Built-in support for Microsoft.Extensions.Logging and InstanceManager.
+- **Auto-Discovery**: Automatic scanning and registration of packet contracts and controllers.
+- **Lifecycle Management**: Clean startup and shutdown orchestration for complex networking stacks.
 
-## Typical use
+## Installation
 
-```csharp
-NetworkApplication host = NetworkApplication.CreateBuilder()
-                                            .ConfigureLogging(logger)
-                                            .ConfigureConnectionHub(new ConnectionHub())
-                                            .Configure<NetworkSocketOptions>(options => options.Port = 57206)
-                                            .AddHandlers<PacketCommandHandler>()
-                                            .AddPacketAssemblies<HandshakePacket>()
-                                            .AddMetadataProvider<PacketTagMetadataProvider>()
-                                            .AddTcp<ExamplePacketProtocol>()
-                                            .AddUdp<ExamplePacketProtocol>()
-                                            .Build();
-
-await host.RunAsync();
+```bash
+dotnet add package Nalix.Network.Hosting
 ```
 
-The hosting package bridges into Nalix's current `InstanceManager` and `ConfigurationManager` runtime so existing network components can keep working without manual bootstrap code.
+## Quick Example: Modular Startup
+
+```csharp
+using var app = NetworkApplication.CreateBuilder()
+    .AddTcp<MyProtocol>(port: 8080)
+    .AddPacket<MyPacket>()
+    .AddHandlers<MyHandlers>()
+    .Build();
+
+await app.RunAsync();
+```
+
+## Documentation
+
+For full end-to-end setup guides, check the [Quickstart](https://ppn-systems.me/quickstart).
