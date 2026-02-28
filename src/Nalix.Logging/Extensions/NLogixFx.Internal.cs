@@ -6,6 +6,8 @@ namespace Nalix.Logging.Extensions;
 
 public static partial class NLogixFx
 {
+    private const System.String Sep = "================================================================================";
+
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void PUBLISH_LOG_ENTRY(
@@ -38,10 +40,13 @@ public static partial class NLogixFx
         System.String callerMemberName,
         System.String callerFilePath, System.Int32 callerLineNumber)
     {
-        return $"[Data]: {FORMAT_EXTENDED_DATA(extendedData)}" +
-               $"[Source]: {sourceName ?? "NONE"}{System.Environment.NewLine}" +
-               $"[Caller]: {callerMemberName} in {callerFilePath} at line {callerLineNumber}{System.Environment.NewLine}" +
-               $"[Message]: {message}{System.Environment.NewLine}";
+        return
+            $"{Sep}\n" +
+            $"Source     : {sourceName ?? "NONE"}\n" +
+            $"Caller     : {callerMemberName} ({callerFilePath}:{callerLineNumber})\n" +
+            $"Data       : {FORMAT_EXTENDED_DATA(extendedData)}\n" +
+            $"Message    : {message}\n" +
+            $"{Sep}\n";
     }
 
     private static System.String FORMAT_EXTENDED_DATA(System.Object? extendedData)
