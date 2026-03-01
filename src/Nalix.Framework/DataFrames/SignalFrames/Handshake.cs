@@ -157,10 +157,10 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         this.Protocol = transport;
         this.Priority = PacketPriority.URGENT;
 
-        this.PublicKey = publicKey ?? Array.Empty<byte>();
-        this.Nonce = nonce ?? Array.Empty<byte>();
-        this.Proof = proof ?? Array.Empty<byte>();
-        this.TranscriptHash = Array.Empty<byte>();
+        this.PublicKey = publicKey is { Length: > 0 } ? publicKey : new byte[DynamicSize];
+        this.Nonce = nonce is { Length: > 0 } ? nonce : new byte[DynamicSize];
+        this.Proof = proof is { Length: > 0 } ? proof : new byte[DynamicSize];
+        this.TranscriptHash = new byte[DynamicSize];
         this.SessionToken = Snowflake.Empty;
     }
 
@@ -204,10 +204,10 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
 
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = HandshakeStage.NONE;
-        this.PublicKey = [];
-        this.Nonce = [];
-        this.Proof = [];
-        this.TranscriptHash = [];
+        this.PublicKey = new byte[DynamicSize];
+        this.Nonce = new byte[DynamicSize];
+        this.Proof = new byte[DynamicSize];
+        this.TranscriptHash = new byte[DynamicSize];
         this.SessionToken = Snowflake.Empty;
         this.Priority = PacketPriority.URGENT;
     }

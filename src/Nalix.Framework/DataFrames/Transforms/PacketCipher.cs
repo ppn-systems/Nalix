@@ -35,7 +35,7 @@ public static class PacketCipher
                 $"Ciphertext frame is too short: length={src.Length}, required>={FrameTransformer.Offset + EnvelopeCipher.HeaderSize}.");
         }
 
-        IBufferLease dest = BufferLease.Rent(FrameTransformer
+        IBufferLease dest = BufferLease.Rent(FrameTransformer.Offset + FrameTransformer
                                        .GetPlaintextLength(src.Span));
         try
         {
@@ -58,7 +58,7 @@ public static class PacketCipher
     {
         ArgumentNullException.ThrowIfNull(src);
 
-        IBufferLease dest = BufferLease.Rent(FrameTransformer
+        IBufferLease dest = BufferLease.Rent(FrameTransformer.Offset + FrameTransformer
                                        .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
         try
         {

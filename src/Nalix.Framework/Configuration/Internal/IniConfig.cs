@@ -1391,14 +1391,29 @@ internal sealed class IniConfig : IDisposable
                     writer.Flush();
                 }
 
-                // Atomic file replacement
-                if (File.Exists(_path))
+                // Atomic file replacement with retry for cross-process synchronization
+                int retries = 5;
+                int delayMs = 15;
+                while (true)
                 {
-                    File.Replace(tempFileName, _path, null);
-                }
-                else
-                {
-                    File.Move(tempFileName, _path);
+                    try
+                    {
+                        if (File.Exists(_path))
+                        {
+                            File.Replace(tempFileName, _path, null);
+                        }
+                        else
+                        {
+                            File.Move(tempFileName, _path);
+                        }
+                        break;
+                    }
+                    catch (IOException) when (retries > 0)
+                    {
+                        retries--;
+                        Thread.Sleep(delayMs);
+                        delayMs *= 2;
+                    }
                 }
 
                 // Update last write time after our own modification

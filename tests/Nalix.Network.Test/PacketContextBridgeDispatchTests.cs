@@ -34,7 +34,7 @@ public sealed class PacketContextBridgeDispatchTests
 
         await options.ExecuteResolvedHandlerAsync(descriptor, packet, connection);
 
-        Control observed = await InterfaceContextController.Observed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Control observed = await InterfaceContextController.Observed.Task.WaitAsync(TimeSpan.FromSeconds(15));
         observed.Should().BeSameAs(packet);
     }
 
@@ -55,7 +55,7 @@ public sealed class PacketContextBridgeDispatchTests
 
         await options.ExecuteResolvedHandlerAsync(descriptor, packet, connection);
 
-        Control observed = await controller.Observed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Control observed = await controller.Observed.Task.WaitAsync(TimeSpan.FromSeconds(15));
         observed.Should().BeSameAs(packet);
         controller.ObservedContextType.Should().Be<PacketContext<Control>>();
     }

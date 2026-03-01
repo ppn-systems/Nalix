@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Random;
@@ -59,28 +60,35 @@ public static class TcpSessionX25519Extensions
         {
             try
             {
-                // We attempt to deserialize all incoming packets during the handshake phase
-                Handshake packet = Handshake.Deserialize(lease.Span);
+                ReadOnlySpan<byte> span = lease.Span;
+                if (span.Length < PacketConstants.HeaderSize)
+                {
+                    return;
+                }
 
+                // Handle system control packets (e.g., Handshake Rejections)
+                Handshake packet = Handshake.Deserialize(span);
                 switch (packet.Stage)
                 {
                     case HandshakeStage.SERVER_HELLO:
                         _ = serverHelloTcs.TrySetResult(packet);
                         break;
+
                     case HandshakeStage.SERVER_FINISH:
                         _ = serverFinishTcs.TrySetResult(packet);
                         break;
+
                     case HandshakeStage.ERROR:
                         _ = serverHelloTcs.TrySetException(new NetworkException("Handshake error received from server."));
                         _ = serverFinishTcs.TrySetException(new NetworkException("Handshake error received from server."));
                         break;
                     case HandshakeStage.NONE:
+                        break;
                     case HandshakeStage.CLIENT_HELLO:
+                        break;
                     case HandshakeStage.CLIENT_FINISH:
+                        break;
                     default:
-                        NetworkException unexpectedEx = new($"Unexpected handshake stage received from server: {packet.Stage}");
-                        _ = serverHelloTcs.TrySetException(unexpectedEx);
-                        _ = serverFinishTcs.TrySetException(unexpectedEx);
                         break;
                 }
             }
@@ -105,8 +113,11 @@ public static class TcpSessionX25519Extensions
             }
 
             byte[] sharedSecret = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
+            MemorySecurity.ZeroMemory(clientKey.PrivateKey);
+
             if (BitwiseOperations.IsZero(sharedSecret))
             {
+                MemorySecurity.ZeroMemory(sharedSecret);
                 throw new NetworkException("Handshake key agreement failed: Shared secret is all zero.");
             }
 
@@ -116,6 +127,7 @@ public static class TcpSessionX25519Extensions
             byte[] expectedProof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
             if (!BitwiseOperations.FixedTimeEquals(serverHello.Proof, expectedProof))
             {
+                MemorySecurity.ZeroMemory(sharedSecret);
                 throw new NetworkException("Handshake SERVER_HELLO proof is invalid.");
             }
 
@@ -134,14 +146,19 @@ public static class TcpSessionX25519Extensions
             byte[] expectedFinish = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash);
             if (!BitwiseOperations.FixedTimeEquals(serverFinish.Proof, expectedFinish))
             {
+                MemorySecurity.ZeroMemory(sharedSecret);
+                MemorySecurity.ZeroMemory(sessionKey);
                 throw new NetworkException("Handshake SERVER_FINISH proof is invalid.");
             }
 
             // Apply established connection settings
-            session.Options.Secret = sessionKey;
+            session.Options.Secret = [.. sessionKey];
             session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
             session.Options.EncryptionEnabled = true;
             session.Options.SessionToken = serverFinish.SessionToken;
+
+            MemorySecurity.ZeroMemory(sharedSecret);
+            MemorySecurity.ZeroMemory(sessionKey);
         }
         finally
         {

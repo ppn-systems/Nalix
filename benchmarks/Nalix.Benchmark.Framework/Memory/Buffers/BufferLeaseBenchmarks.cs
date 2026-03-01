@@ -1,11 +1,14 @@
 using System;
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Benchmark.Framework.Memory.Buffers;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class BufferLeaseBenchmarks
+/// <summary>
+/// Benchmarks for BufferLease lifecycle and data operations.
+/// </summary>
+public class BufferLeaseBenchmarks : NalixBenchmarkBase
 {
     private byte[] _source = null!;
 
@@ -15,24 +18,21 @@ public class BufferLeaseBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _source = new byte[this.PayloadBytes];
-        for (int i = 0; i < _source.Length; i++)
-        {
-            _source[i] = (byte)(i % 251);
-        }
+        _source = new byte[PayloadBytes];
+        Random.Shared.NextBytes(_source);
     }
 
     [Benchmark]
-    public int Rent_Commit_Dispose()
+    public int RentCommitAndDispose()
     {
-        using BufferLease lease = BufferLease.Rent(this.PayloadBytes);
-        MemoryExtensions.AsSpan(_source).CopyTo(lease.SpanFull);
+        using BufferLease lease = BufferLease.Rent(PayloadBytes);
+        _source.AsSpan().CopyTo(lease.SpanFull);
         lease.CommitLength(_source.Length);
         return lease.Length;
     }
 
     [Benchmark]
-    public int CopyFrom_Dispose()
+    public int CopyFromAndDispose()
     {
         using BufferLease lease = BufferLease.CopyFrom(_source);
         return lease.Length;

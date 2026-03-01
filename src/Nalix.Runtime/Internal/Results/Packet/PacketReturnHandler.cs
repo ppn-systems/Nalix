@@ -16,7 +16,7 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket> whe
     /// <inheritdoc/>
     public async ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
     {
-        if (result is not TPacket packet)
+        if (result is not IPacket packet)
         {
             return;
         }

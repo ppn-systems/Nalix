@@ -4,6 +4,7 @@
 using System;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
+using Nalix.Framework.Security;
 using Nalix.Framework.Security.Aead;
 using Nalix.Framework.Security.Engine;
 using Xunit;
@@ -492,7 +493,7 @@ public sealed class AeadEngineTests
 
         int ctOffset = HeaderSize + nLen;
         envelope[ctOffset] ^= 0x01;
-        _ = Assert.Throws<System.Security.Cryptography.CryptographicException>(() => AeadEngine.Decrypt(
+        _ = Assert.Throws<CipherException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _));
     }
 
@@ -509,7 +510,7 @@ public sealed class AeadEngineTests
 
         envelope[encWritten - 1] ^= 0xFF;
 
-        _ = Assert.Throws<System.Security.Cryptography.CryptographicException>(() => AeadEngine.Decrypt(
+        _ = Assert.Throws<CipherException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _));
     }
 
@@ -523,7 +524,7 @@ public sealed class AeadEngineTests
         AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
             s_aad, seq: 3u, CipherSuiteType.Chacha20Poly1305, out int encWritten);
 
-        _ = Assert.Throws<System.Security.Cryptography.CryptographicException>(() => AeadEngine.Decrypt(
+        _ = Assert.Throws<CipherException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], ptBuf,
             System.Text.Encoding.UTF8.GetBytes("wrong-aad"), out _));
     }
@@ -544,7 +545,7 @@ public sealed class AeadEngineTests
 
         envelope[8] ^= 0xFF;
 
-        _ = Assert.Throws<System.Security.Cryptography.CryptographicException>(() =>
+        _ = Assert.Throws<CipherException>(() =>
             AeadEngine.Decrypt(s_key32, envelope.AsSpan()[..written], plaintext, s_aad, out _));
     }
 
@@ -604,5 +605,21 @@ public sealed class AeadEngineTests
         byte[] ct2 = env2[ctStart..w2];
 
         Assert.NotEqual(ct1, ct2);
+    }
+    
+    [Fact]
+    public void EnvelopeCipherEncryptDecryptWithAadShouldSucceed()
+    {
+        var key = new byte[32];
+        var plaintext = new byte[100];
+        var aad = new byte[] { 1, 2, 3, 4 };
+        var ciphertext = new byte[1000];
+        
+        EnvelopeCipher.Encrypt(key, plaintext, ciphertext, aad, null, CipherSuiteType.Chacha20Poly1305, out int written);
+        
+        var decrypted = new byte[100];
+        EnvelopeCipher.Decrypt(key, ciphertext.AsSpan()[..written], decrypted, aad, out int decWritten);
+        
+        Assert.Equal(100, decWritten);
     }
 }

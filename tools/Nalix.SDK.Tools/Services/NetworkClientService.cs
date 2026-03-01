@@ -124,7 +124,7 @@ public sealed class NetworkClientService : INetworkClientService
     }
 
     /// <inheritdoc/>
-    public async Task SendPacketAsync(IPacket packet, CancellationToken cancellationToken = default)
+    public async Task SendPacketAsync(IPacket packet, bool? encrypt = null, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(packet);
@@ -134,9 +134,24 @@ public sealed class NetworkClientService : INetworkClientService
             throw new InvalidOperationException(_configurationService.Texts.StatusTcpSessionNotConnected);
         }
 
+        if (_session is TcpSession tcpSession)
+        {
+            await tcpSession.SendAsync(packet, encrypt, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await _session.SendAsync(packet, cancellationToken).ConfigureAwait(false);
+        }
+
+        this.HandlePacketSent(packet);
+
+        this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusPacketSentFormat, packet.GetType().Name, packet.OpCode));
+    }
+
+    private void HandlePacketSent(IPacket packet)
+    {
         PacketSnapshot snapshot = PacketSnapshot.FromPacket(packet);
         DateTimeOffset timestamp = DateTimeOffset.Now;
-        await _session.SendAsync(packet, cancellationToken).ConfigureAwait(false);
 
         PacketLogEntry entry = new()
         {
@@ -153,7 +168,6 @@ public sealed class NetworkClientService : INetworkClientService
         };
 
         this.Dispatch(() => this.PacketSent?.Invoke(this, entry));
-        this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusPacketSentFormat, packet.GetType().Name, packet.OpCode));
     }
 
     /// <inheritdoc/>

@@ -6,8 +6,8 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
 using Nalix.Framework.LZ4;
@@ -105,7 +105,7 @@ public static class FrameTransformer
     /// </remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="src"/> or <paramref name="dest"/> is null, or when <paramref name="key"/> is empty.</exception>
     /// <exception cref="ArgumentException">Thrown when the source or destination buffer is too small.</exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="CipherException">
     /// Thrown when the selected cipher rejects the supplied key or destination envelope.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -152,7 +152,7 @@ public static class FrameTransformer
     /// </remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="src"/> or <paramref name="dest"/> is null, or when <paramref name="key"/> is empty.</exception>
     /// <exception cref="ArgumentException">Thrown when the source or destination buffer is too small.</exception>
-    /// <exception cref="CryptographicException">Thrown when AEAD authentication fails during payload decryption.</exception>
+    /// <exception cref="CipherException">Thrown when AEAD authentication fails during payload decryption.</exception>
     /// <exception cref="NotSupportedException">Thrown when the encrypted payload declares an unsupported cipher suite.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Decrypt([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key)

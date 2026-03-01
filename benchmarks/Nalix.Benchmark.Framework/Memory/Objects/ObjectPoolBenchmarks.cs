@@ -1,48 +1,71 @@
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Memory.Pools;
 
 namespace Nalix.Benchmark.Framework.Memory.Objects;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class ObjectPoolBenchmarks
+/// <summary>
+/// Benchmarks for ObjectPool and ObjectPoolManager performance.
+/// </summary>
+public class ObjectPoolBenchmarks : NalixBenchmarkBase
 {
     private ObjectPool _pool = null!;
-    private TypedObjectPool<PooledNode> _typedPool = null!;
+    private ObjectPoolManager _manager = null!;
+    private TypedObjectPool<PooledItem> _poolTyped = null!;
+    private TypedObjectPoolAdapter<PooledItem> _managerTyped = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        _pool = new ObjectPool(128);
-        _typedPool = _pool.CreateTypedPool<PooledNode>();
-        _ = _pool.Prealloc<PooledNode>(32);
+        _pool = new ObjectPool(256);
+        _poolTyped = _pool.CreateTypedPool<PooledItem>();
+        _pool.Prealloc<PooledItem>(64);
+
+        _manager = new ObjectPoolManager();
+        _managerTyped = _manager.GetTypedPool<PooledItem>();
+        _manager.Prealloc<PooledItem>(64);
     }
 
-    [Benchmark]
-    public PooledNode Get_Return()
+    [BenchmarkCategory("ObjectPool"), Benchmark(Baseline = true)]
+    public PooledItem PoolRentReturn()
     {
-        PooledNode node = _pool.Get<PooledNode>();
-        _pool.Return(node);
-        return node;
+        PooledItem item = _pool.Get<PooledItem>();
+        _pool.Return(item);
+        return item;
     }
 
-    [Benchmark]
-    public PooledNode TypedPool_Get_Return()
+    [BenchmarkCategory("ObjectPool"), Benchmark]
+    public PooledItem PoolTypedRentReturn()
     {
-        PooledNode node = _typedPool.Get();
-        _typedPool.Return(node);
-        return node;
+        PooledItem item = _poolTyped.Get();
+        _poolTyped.Return(item);
+        return item;
     }
 
-    [Benchmark]
-    public int Prealloc()
-        => _pool.Prealloc<PooledNode>(8);
+    [BenchmarkCategory("ObjectPoolManager"), Benchmark]
+    public PooledItem ManagerRentReturn()
+    {
+        PooledItem item = _manager.Get<PooledItem>();
+        _manager.Return(item);
+        return item;
+    }
 
-    public sealed class PooledNode : IPoolable
+    [BenchmarkCategory("ObjectPoolManager"), Benchmark]
+    public PooledItem ManagerTypedRentReturn()
+    {
+        PooledItem item = _managerTyped.Get();
+        _managerTyped.Return(item);
+        return item;
+    }
+
+    [BenchmarkCategory("Management"), Benchmark]
+    public int PerformManagerHealthCheck() => _manager.PerformHealthCheck();
+
+    public sealed class PooledItem : IPoolable
     {
         public int Value { get; set; }
-
-        public void ResetForPool() => this.Value = 0;
+        public void ResetForPool() => Value = 0;
     }
 }

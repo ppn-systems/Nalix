@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
@@ -34,12 +35,15 @@ public sealed class BenchmarkConfig : ManualConfig
                 .WithStrategy(RunStrategy.Throughput)
                 .WithId("Net10"));
 
-        _ = this.AddColumnProvider(DefaultColumnProviders.Instance);
+        _ = this.AddColumnProvider(DefaultConfig.Instance.GetColumnProviders().ToArray());
         _ = this.AddColumn(StatisticColumn.P95);
+        _ = this.AddColumn(RankColumn.Arabic);
+        _ = this.AddColumn(CategoriesColumn.Default);
         _ = this.AddExporter(MarkdownExporter.GitHub);
         _ = this.AddDiagnoser(MemoryDiagnoser.Default);
         _ = this.WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest));
         _ = this.WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(32));
+        _ = this.AddLogicalGroupRule(BenchmarkDotNet.Configs.LogicalGroupRule.ByCategory);
 
         _ = this.WithArtifactsPath(artifactsPath)
                 .WithOption(ConfigOptions.DisableLogFile, true)

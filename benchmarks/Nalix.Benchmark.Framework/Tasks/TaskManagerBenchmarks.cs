@@ -1,83 +1,60 @@
 using System;
-using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
 namespace Nalix.Benchmark.Framework.Tasks;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class TaskManagerBenchmarks
+/// <summary>
+/// Benchmarks for TaskManager operations including background worker scheduling, one-time task execution, and status reporting.
+/// </summary>
+public class TaskManagerBenchmarks : NalixBenchmarkBase
 {
-    private static readonly TaskManagerOptions s_options = new()
+    private TaskManager _manager = null!;
+    private readonly Func<IWorkerContext, CancellationToken, ValueTask> _noopWorker = (_, _) => ValueTask.CompletedTask;
+    private readonly Func<CancellationToken, ValueTask> _noopTask = _ => ValueTask.CompletedTask;
+
+    [GlobalSetup]
+    public void Setup()
     {
-        CleanupInterval = TimeSpan.FromSeconds(30),
-        DynamicAdjustmentEnabled = false,
-        MaxWorkers = 8,
-        IsEnableLatency = false
-    };
-
-    [Benchmark]
-    public async Task RunOnceAsync_NoOp()
-    {
-        using TaskManager manager = new(s_options);
-        await manager.RunOnceAsync("bench.run-once", static _ => ValueTask.CompletedTask);
-    }
-
-    [Benchmark]
-    public async Task ScheduleWorker_NoOp_AndWait()
-    {
-        using TaskManager manager = new(s_options);
-        _ = manager.ScheduleWorker(
-            "bench.worker",
-            "bench",
-            static (_, _) => ValueTask.CompletedTask,
-            new WorkerOptions
-            {
-                RetainFor = TimeSpan.FromMinutes(1)
-            });
-
-        await SpinWaitAsync(() => manager.GetWorkers(runningOnly: false).Count > 0, TimeSpan.FromSeconds(2));
-        await SpinWaitAsync(
-            () => manager.GetWorkers(runningOnly: false).Any(static worker => worker.TotalRuns > 0),
-            TimeSpan.FromSeconds(2));
-    }
-
-    [Benchmark]
-    public string GenerateReport_WithTrackedEntries()
-    {
-        using TaskManager manager = new(s_options);
-        _ = manager.ScheduleWorker(
-            "bench.report.worker",
-            "bench",
-            static (_, _) => ValueTask.CompletedTask,
-            new WorkerOptions
-            {
-                RetainFor = TimeSpan.FromMinutes(1)
-            });
-
-        SpinWaitAsync(() => manager.GetWorkers(runningOnly: false).Count > 0, TimeSpan.FromSeconds(2))
-            .GetAwaiter()
-            .GetResult();
-
-        return manager.GenerateReport();
-    }
-
-    private static async Task SpinWaitAsync(Func<bool> condition, TimeSpan timeout)
-    {
-        DateTime deadline = DateTime.UtcNow.Add(timeout);
-
-        while (DateTime.UtcNow < deadline)
+        _manager = new TaskManager(new TaskManagerOptions
         {
-            if (condition())
-            {
-                return;
-            }
+            MaxWorkers = 100,
+            CleanupInterval = TimeSpan.FromMinutes(1),
+            DynamicAdjustmentEnabled = false
+        });
 
-            await Task.Delay(10).ConfigureAwait(false);
+        // Warm up with some workers to populate internal collections
+        for (int i = 0; i < 10; i++)
+        {
+            _manager.ScheduleWorker($"warmup.{i}", "warmup", _noopWorker);
         }
+    }
 
-        throw new TimeoutException("Benchmark setup timed out while waiting for TaskManager state.");
+    [GlobalCleanup]
+    public void Cleanup() => _manager.Dispose();
+
+    /// <summary>Schedules a new background worker task.</summary>
+    [BenchmarkCategory("Scheduling"), Benchmark(Baseline = true)]
+    public void ScheduleWorker()
+    {
+        _manager.ScheduleWorker("bench.worker", "bench", _noopWorker);
+    }
+
+    /// <summary>Executes a one-time task asynchronously using the manager.</summary>
+    [BenchmarkCategory("Execution"), Benchmark]
+    public async ValueTask RunOnceAsync()
+    {
+        await _manager.RunOnceAsync("bench.run-once", _noopTask);
+    }
+
+    /// <summary>Generates a full text report of the current TaskManager state.</summary>
+    [BenchmarkCategory("Diagnostics"), Benchmark]
+    public string GenerateStatusReport()
+    {
+        return _manager.GenerateReport();
     }
 }

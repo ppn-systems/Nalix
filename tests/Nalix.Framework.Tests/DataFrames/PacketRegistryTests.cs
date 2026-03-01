@@ -105,6 +105,8 @@ public sealed class PacketRegistryTests : IDisposable
         byte[] publicKey = new byte[32];
         byte[] nonce = new byte[32];
         byte[] proof = new byte[32];
+        byte[] hash = new byte[32];
+        hash[0] = 0x01; hash[1] = 0x02; hash[2] = 0x03; hash[3] = 0xDE; hash[4] = 0xAD; hash[5] = 0xBE; hash[6] = 0xEF;
 
         Handshake original = new(
             stage: HandshakeStage.CLIENT_HELLO,
@@ -112,7 +114,7 @@ public sealed class PacketRegistryTests : IDisposable
             nonce: nonce,
             proof: proof,
             transport: ProtocolType.TCP);
-        original.UpdateTranscriptHash([0x01, 0x02, 0x03, 0xDE, 0xAD, 0xBE, 0xEF]);
+        original.UpdateTranscriptHash(hash);
 
         byte[] bytes = original.Serialize();
         IPacket packet = _catalog.Deserialize(bytes);
@@ -167,10 +169,16 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.NotNull(result.Nonce);
         Assert.NotNull(result.Proof);
         Assert.NotNull(result.TranscriptHash);
-        Assert.Empty(result.PublicKey);
-        Assert.Empty(result.Nonce);
-        Assert.Empty(result.Proof);
-        Assert.Empty(result.TranscriptHash);
+        
+        Assert.Equal(32, result.PublicKey.Length);
+        Assert.Equal(32, result.Nonce.Length);
+        Assert.Equal(32, result.Proof.Length);
+        Assert.Equal(32, result.TranscriptHash.Length);
+        
+        Assert.All(result.PublicKey, b => Assert.Equal(0, b));
+        Assert.All(result.Nonce, b => Assert.Equal(0, b));
+        Assert.All(result.Proof, b => Assert.Equal(0, b));
+        Assert.All(result.TranscriptHash, b => Assert.Equal(0, b));
     }
 
     [Fact]

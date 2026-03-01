@@ -18,7 +18,7 @@ public sealed class PacketCommandHandler
     /// Minimal "smoke test" route.
     /// If this packet comes back unchanged, the routing pipeline is wired correctly.
     /// </summary>
-    [PacketOpcode(0)]
+    [PacketOpcode(1)]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketTag("ping")]
