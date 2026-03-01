@@ -26,6 +26,7 @@ public sealed partial class Connection : IConnection
     private readonly ConnectionEventArgs _evtArgs;
     private readonly FramedSocketChannel _cstream;
 
+    private UdpTransport _udp;
     private System.Byte[] _secret;
     private System.Int64 _bytesSent;
     private System.Int32 _closeSignaled;
@@ -57,13 +58,11 @@ public sealed partial class Connection : IConnection
         _cstream.Cache.SetCallback(OnProcessEventBridge, this, _evtArgs);
         _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
 
+        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.EndPoint = NetworkEndpoint.FromEndPoint(socket.RemoteEndPoint);
-        this.UDP = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                           .Get<UdpTransport>();
-        this.UDP.Initialize(this);
+
         this.TCP = new TcpTransport(this);
-        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(Connection)}] created remote={this.EndPoint} id={this.ID}");
@@ -80,7 +79,7 @@ public sealed partial class Connection : IConnection
     public IConnection.ITcp TCP { get; }
 
     /// <inheritdoc/>
-    public IConnection.IUdp UDP { get; }
+    public IConnection.IUdp UDP => _udp;
 
     /// <inheritdoc />
     public INetworkEndpoint EndPoint { get; }
@@ -180,6 +179,20 @@ public sealed partial class Connection : IConnection
     #region Methods
 
     /// <inheritdoc />
+    public IConnection.IUdp GetOrCreateUDP()
+    {
+        if (_udp == null)
+        {
+            _udp = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                           .Get<UdpTransport>();
+
+            _udp.Initialize(this);
+        }
+
+        return _udp;
+    }
+
+    /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -248,8 +261,11 @@ public sealed partial class Connection : IConnection
 
             this._cstream.Dispose();
 
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return<UdpTransport>((UdpTransport)this.UDP);
+            if (_udp != null)
+            {
+                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Return<UdpTransport>(_udp);
+            }
         }
         catch (System.Exception ex)
         {
