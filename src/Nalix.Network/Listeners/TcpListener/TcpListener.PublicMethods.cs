@@ -102,7 +102,7 @@ public abstract partial class TcpListenerBase
 
         if (Config.MaxParallel < 1)
         {
-            throw new System.InvalidOperationException($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] Config.MaxParallel must be at least 1.");
+            throw new System.InvalidOperationException("Config.MaxParallel must be at least 1.");
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -162,15 +162,15 @@ public abstract partial class TcpListenerBase
             for (System.Int32 i = 0; i < Config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                    name: NetTaskNames.TcpAcceptWorker(_port, i),
-                    group: NetTaskNames.TcpGroup(_port),
+                    name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Accept}.{i}",
+                    group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}",
                     work: async (_, ct) => await AcceptConnectionsAsync(ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
                         CancellationToken = linkedToken,
                         RetainFor = System.TimeSpan.FromSeconds(30),
                         IdType = SnowflakeType.System,
-                        Tag = NetTaskNames.Segments.Net
+                        Tag = NetTaskNames.Net
                     }
                 );
 
@@ -252,11 +252,8 @@ public abstract partial class TcpListenerBase
 
             _listener = null;
 
-            _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                        .CancelGroup(NetTaskNames.TcpGroup(_port));
-
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                         .CancelGroup(NetTaskNames.TcpProcessGroup(_port)));
+                                         .CancelGroup($"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}"));
 
             InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
                                     .CloseAllConnections();

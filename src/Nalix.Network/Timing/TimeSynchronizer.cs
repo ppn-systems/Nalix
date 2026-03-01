@@ -200,8 +200,8 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         }
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: NetTaskNames.TimeSyncWorker(Period),
-            group: NetTaskNames.TimeSyncGroup,
+            name: $"{NetTaskNames.Time}.{NetTaskNames.Sync}",
+            group: NetTaskNames.Time,
             work: async (ctx, ct) =>
             {
                 try
@@ -287,7 +287,6 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             options: new WorkerOptions
             {
                 CancellationToken = linkedToken,
-                Tag = "timesync",
                 IdType = SnowflakeType.System,
                 RetainFor = System.TimeSpan.Zero
             }
