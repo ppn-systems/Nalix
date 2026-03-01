@@ -28,10 +28,10 @@ param(
     [string]$Source = "https://api.nuget.org/v3/index.json",
 
     [Parameter(Mandatory = $false)]
-    [string]$NuGetExe = ".\tools\nuget.exe",
+    [string]$NuGetExe = ".\nugets\nuget.exe",
 
     [Parameter(Mandatory = $false)]
-    [string]$ApiKeyFile = ".\tools\nuget.key",
+    [string]$ApiKeyFile = ".\nugets\nuget.key",
 
     [Parameter(Mandatory = $false)]
     [switch]$SkipDuplicates,
