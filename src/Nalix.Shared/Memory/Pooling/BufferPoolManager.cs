@@ -67,7 +67,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     static BufferPoolManager()
     {
         _allocationPatternCache = new();
-        RecurringName = $"buf.trim.{System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(typeof(BufferPoolManager)):X8}";
+        RecurringName = "buf.trim";
     }
 
     /// <summary>
@@ -113,7 +113,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         if (_enableTrimming)
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-                name: RecurringName,
+                name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
                 interval: System.TimeSpan.FromMinutes(System.Math.Max(1, _trimIntervalMinutes)),
                 work: _ =>
                 {
@@ -122,8 +122,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
                 },
                 options: new RecurringOptions
                 {
-                    Tag = "bufpool",
                     NonReentrant = true,
+                    Tag = TaskNaming.Tags.Service,
                     Jitter = System.TimeSpan.FromSeconds(5),
                     ExecutionTimeout = System.TimeSpan.FromSeconds(5),
                     BackoffCap = System.TimeSpan.FromMinutes(1)

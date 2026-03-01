@@ -93,8 +93,8 @@ public sealed partial class TaskManager : ITaskManager
         if (_options.DynamicAdjustmentEnabled)
         {
             _ = ScheduleWorker(
-                "Dynamic Monitor",
-                "TaskManagerMonitor",
+                "task.dynamic.monitor",
+                "task",
                 async (ctx, ct) => await MONITOR_CONCURRENCY_ASYNC(ct), // Pass CancellationToken
                 new WorkerOptions
                 {

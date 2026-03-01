@@ -120,7 +120,14 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     #endregion Fields
 
+    /// <summary>
+    /// Recurring job name for cleanup task. Format: "token.bucket".
+    /// </summary>
+    public static readonly System.String RecurringName;
+
     #region Constructors
+
+    static TokenBucketLimiter() => RecurringName = "token.bucket";
 
     /// <summary>
     /// Creates a new TokenBucketLimiter with provided options.
@@ -1217,7 +1224,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     private void SCHEDULE_CLEANUP_JOB()
     {
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNaming.Recurring.CleanupJobId(nameof(TokenBucketLimiter), this.GetHashCode()),
+            name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
             interval: System.TimeSpan.FromSeconds(_cleanupIntervalSec),
             work: _ =>
             {
@@ -1226,8 +1233,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             },
             options: new RecurringOptions
             {
-                Tag = nameof(TokenBucketLimiter),
                 NonReentrant = true,
+                Tag = TaskNaming.Tags.Service,
                 Jitter = System.TimeSpan.FromMilliseconds(250),
                 ExecutionTimeout = System.TimeSpan.FromSeconds(2),
                 BackoffCap = System.TimeSpan.FromSeconds(15)
@@ -1279,7 +1286,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
                                 .CancelRecurring(TaskNaming.Recurring
-                                .CleanupJobId(nameof(TokenBucketLimiter), this
+                                .CleanupJobId(RecurringName, this
                                 .GetHashCode()));
 
         _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
