@@ -227,7 +227,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             try { d1.Dispose(); }
             catch (System.Exception ex)
             {
-                LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-fail type={typeof(T).Name} ex={ex}"));
+                LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-fail type={typeof(T).Name} ex={ex.Message}"));
             }
 
             LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-ok type={typeof(T).Name}"));
@@ -380,8 +380,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Boolean RemoveInstance(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Type type)
+    public System.Boolean RemoveInstance([System.Diagnostics.CodeAnalysis.NotNull] System.Type type)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -403,7 +402,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 try { d.Dispose(); }
                 catch (System.Exception ex)
                 {
-                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-fail type={type.Name} ex={ex}"));
+                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-fail type={type.Name} ex={ex.Message}"));
                 }
 
                 LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-ok type={type.Name}"));
@@ -426,7 +425,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public System.Boolean HasInstance<T>() => _instanceCache.ContainsKey(typeof(T).TypeHandle);
 
     /// <summary>
@@ -494,7 +492,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 }
                 catch (System.Exception ex)
                 {
-                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] dispose-fail ex={ex}"));
+                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] dispose-fail ex={ex.Message}"));
                 }
             }
         }
@@ -540,7 +538,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             }
 
             System.Boolean isDisposable = instance is System.IDisposable;
-            System.String source = _activatorCacheContains(type) ? "ActivatorCache" : "ManualRegister";
+            System.String source = ACTIVATOR_CACHE_CONTAINS(type) ? "ActivatorCache" : "ManualRegister";
 
             _ = sb.AppendLine($"{typeName.PadRight(45)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
         }
@@ -548,7 +546,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _ = sb.AppendLine("----------------------------------------------------------------------");
         return sb.ToString();
 
-        System.Boolean _activatorCacheContains(System.Type t)
+        System.Boolean ACTIVATOR_CACHE_CONTAINS(System.Type t)
         {
             // Quick scan by key prefix (Target == t) — cheap since dictionary is relatively small.
             foreach (ActivatorKey k in _activatorCache.Keys)
