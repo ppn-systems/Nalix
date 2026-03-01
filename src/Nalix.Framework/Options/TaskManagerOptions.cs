@@ -25,6 +25,40 @@ namespace Nalix.Framework.Options;
 public sealed class TaskManagerOptions : ConfigurationLoader
 {
     /// <summary>
+    /// Gets a value indicating whether latency measurement is enabled.
+    /// </summary>
+    /// <remarks>
+    /// When set to <see langword="true"/>, the system will collect and report
+    /// latency information for diagnostic or performance monitoring purposes.
+    /// </remarks>
+    public System.Boolean IsEnableLatency { get; init; } = true;
+
+    /// <summary>
+    /// Enables or disables dynamic concurrency adjustment. Default is true.
+    /// </summary>
+    public System.Boolean DynamicAdjustmentEnabled { get; init; } = true;
+
+    /// <summary>
+    /// Maximum number of workers in the entire TaskManager (global limit). Defaults to 100.
+    /// </summary>
+    public System.Int32 MaxWorkers { get; init; } = 100;
+
+    /// <summary>
+    /// High CPU utilization threshold to reduce concurrency. Default is 80%.
+    /// </summary>
+    public System.Double ThresholdHighCpu { get; init; } = 80.0;
+
+    /// <summary>
+    /// Low CPU utilization threshold to increase concurrency. Default is 40%.
+    /// </summary>
+    public System.Double ThresholdLowCpu { get; init; } = 40.0;
+
+    /// <summary>
+    /// Time interval for monitoring system load (default 5 seconds).
+    /// </summary>
+    public System.TimeSpan ObservingInterval { get; init; } = System.TimeSpan.FromSeconds(5);
+
+    /// <summary>
     /// Gets or sets the interval at which completed workers are cleaned up.
     /// Default is 30 seconds. Must be at least 1 second.
     /// </summary>
