@@ -146,8 +146,8 @@ public abstract partial class TcpListenerBase
 
                     // Process the connection
                     _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                        name: NetTaskNames.TcpProcessWorker(_port, connection.ID.ToString()),
-                        group: NetTaskNames.TcpProcessGroup(_port),
+                        name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Accept}",
+                        group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}",
                         work: async (_, _) =>
                         {
                             ProcessConnection(connection);
@@ -157,7 +157,7 @@ public abstract partial class TcpListenerBase
                         {
                             RetainFor = System.TimeSpan.Zero,
                             IdType = SnowflakeType.System,
-                            Tag = NetTaskNames.Segments.Net
+                            Tag = NetTaskNames.Net
                         }
                     );
 
@@ -342,8 +342,8 @@ public abstract partial class TcpListenerBase
                                                    .ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                    name: NetTaskNames.TcpProcessWorker(_port, connection.ID.ToString()),
-                    group: NetTaskNames.TcpProcessGroup(_port),
+                    name: $"{NetTaskNames.Tcp}/{TaskNaming.Tags.Accept}",
+                    group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}",
                     work: async (_, _) =>
                     {
                         ProcessConnection(connection);
@@ -353,7 +353,7 @@ public abstract partial class TcpListenerBase
                     {
                         RetainFor = System.TimeSpan.Zero,
                         IdType = SnowflakeType.System,
-                        Tag = NetTaskNames.Segments.Net
+                        Tag = NetTaskNames.Net
                     }
                 );
 
