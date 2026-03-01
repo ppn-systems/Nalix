@@ -164,7 +164,7 @@ public static partial class Clock
         // Sanity check: Unix timestamp should be reasonable (after year 2000 and before year 2100)
         const System.Int64 MinReasonableUnixMs = 946684800000L; // Jan 1, 2000
         const System.Int64 MaxReasonableUnixMs = 4102444800000L; // Jan 1, 2100
-        if (serverUnixMs < MinReasonableUnixMs || serverUnixMs > MaxReasonableUnixMs)
+        if (serverUnixMs is < MinReasonableUnixMs or > MaxReasonableUnixMs)
         {
             throw new System.ArgumentException("Server Unix timestamp is outside reasonable range (2000-2100)", nameof(serverUnixMs));
         }

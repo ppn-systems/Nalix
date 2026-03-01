@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Enums;
@@ -28,7 +28,7 @@ public readonly partial struct Snowflake : ISnowflake
     public const System.Byte Size = 7;
 
     private readonly UInt56 __combined;
-    private static readonly System.UInt16 __machineId = ConfigurationManager.Instance.Get<SnowflakeOptions>().MachineId;
+    private static readonly System.UInt16 __machineId = LAZY_LOAD_MACHINE_ID();
 
     private static System.UInt16 _sequence = 0;
     private static System.Int64 _lastTimestampMs = 0;
@@ -234,10 +234,9 @@ public readonly partial struct Snowflake : ISnowflake
                 if (_sequence > Snowflake.MaxSequence)
                 {
                     // Wait for next millisecond
-                    System.Threading.SpinWait sw = new();
                     do
                     {
-                        sw.SpinOnce();
+                        System.Threading.Tasks.Task.Delay(1);
                         timestampMs = Clock.UnixMillisecondsNow();
                     }
                     while (timestampMs == _lastTimestampMs);
@@ -318,4 +317,10 @@ public readonly partial struct Snowflake : ISnowflake
     }
 
     #endregion Override
+
+    #region Private Methods
+
+    private static System.UInt16 LAZY_LOAD_MACHINE_ID() => ConfigurationManager.Instance.Get<SnowflakeOptions>().MachineId;
+
+    #endregion Private Methods
 }

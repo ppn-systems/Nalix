@@ -255,12 +255,7 @@ internal sealed class IniConfig
                 out System.Collections.Generic.Dictionary<System.String, System.String>? sectionData) &&
                 sectionData.TryGetValue(key, out System.String? value))
             {
-                if (value.Equals("null", System.StringComparison.OrdinalIgnoreCase))
-                {
-                    return null!;
-                }
-
-                return value;
+                return value.Equals("null", System.StringComparison.OrdinalIgnoreCase) ? null! : value;
             }
 
             return System.String.Empty;
@@ -919,17 +914,9 @@ internal sealed class IniConfig
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     private static System.String CreateCacheKey(
-        System.String section, 
-        System.String key, 
-        System.String? typeSuffix = null)
-    {
-        if (typeSuffix == null)
-        {
-            return string.Concat(section, ":", key);
-        }
-
-        return string.Concat(section, ":", key, ":", typeSuffix);
-    }
+        System.String section,
+        System.String key,
+        System.String? typeSuffix = null) => typeSuffix == null ? System.String.Concat(section, ":", key) : System.String.Concat(section, ":", key, ":", typeSuffix);
 
     /// <summary>
     /// Formats a value for storage in the INI file.
@@ -1037,7 +1024,7 @@ internal sealed class IniConfig
                 // Process section
                 if (trimmedLine[0] == SectionStart && trimmedLine[^1] == SectionEnd)
                 {
-                    currentSection = trimmedLine.Substring(1, trimmedLine.Length - 2).Trim();
+                    currentSection = trimmedLine[1..^1].Trim();
 
                     // Validate section name
                     if (System.String.IsNullOrWhiteSpace(currentSection))
@@ -1058,8 +1045,8 @@ internal sealed class IniConfig
                     System.Int32 separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
                     if (separatorIndex > 0 && separatorIndex < trimmedLine.Length - 1)
                     {
-                        System.String key = trimmedLine.Substring(0, separatorIndex).Trim();
-                        System.String value = trimmedLine.Substring(separatorIndex + 1).Trim();
+                        System.String key = trimmedLine[..separatorIndex].Trim();
+                        System.String value = trimmedLine[(separatorIndex + 1)..].Trim();
 
                         // Skip if key is empty
                         if (System.String.IsNullOrWhiteSpace(key))
