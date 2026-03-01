@@ -1,11 +1,14 @@
 using System;
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Benchmark.Framework.Memory.Buffers;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class DataWriterBenchmarks
+/// <summary>
+/// Benchmarks for DataWriter performance and expansion strategies.
+/// </summary>
+public class DataWriterBenchmarks : NalixBenchmarkBase
 {
     private byte[] _payload = null!;
     private byte[] _fixedBuffer = null!;
@@ -16,61 +19,36 @@ public class DataWriterBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _payload = new byte[this.PayloadBytes];
-        _fixedBuffer = new byte[this.PayloadBytes * 2];
-
-        for (int i = 0; i < _payload.Length; i++)
-        {
-            _payload[i] = (byte)(i % 199);
-        }
+        _payload = new byte[PayloadBytes];
+        _fixedBuffer = new byte[PayloadBytes * 2];
+        Random.Shared.NextBytes(_payload);
     }
 
     [Benchmark]
-    public int Write_WithRentedBuffer()
+    public int WriteWithRentedBuffer()
     {
-        DataWriter writer = new(this.PayloadBytes);
-        try
-        {
-            MemoryExtensions.AsSpan(_payload).CopyTo(writer.FreeBuffer);
-            writer.Advance(_payload.Length);
-            return writer.WrittenCount;
-        }
-        finally
-        {
-            writer.Dispose();
-        }
+        using DataWriter writer = new(PayloadBytes);
+        _payload.AsSpan().CopyTo(writer.FreeBuffer);
+        writer.Advance(_payload.Length);
+        return writer.WrittenCount;
     }
 
     [Benchmark]
-    public int Expand_ThenWrite()
+    public int ExpandThenWrite()
     {
-        DataWriter writer = new(32);
-        try
-        {
-            writer.Expand(this.PayloadBytes);
-            MemoryExtensions.AsSpan(_payload).CopyTo(writer.FreeBuffer);
-            writer.Advance(_payload.Length);
-            return writer.WrittenCount;
-        }
-        finally
-        {
-            writer.Dispose();
-        }
+        using DataWriter writer = new(32);
+        writer.Expand(PayloadBytes);
+        _payload.AsSpan().CopyTo(writer.FreeBuffer);
+        writer.Advance(_payload.Length);
+        return writer.WrittenCount;
     }
 
     [Benchmark]
-    public int Write_WithFixedArray()
+    public int WriteWithFixedArray()
     {
-        DataWriter writer = new(_fixedBuffer);
-        try
-        {
-            MemoryExtensions.AsSpan(_payload).CopyTo(writer.FreeBuffer);
-            writer.Advance(_payload.Length);
-            return writer.WrittenCount;
-        }
-        finally
-        {
-            writer.Dispose();
-        }
+        using DataWriter writer = new(_fixedBuffer);
+        _payload.AsSpan().CopyTo(writer.FreeBuffer);
+        writer.Advance(_payload.Length);
+        return writer.WrittenCount;
     }
 }

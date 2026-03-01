@@ -148,7 +148,11 @@ public static class SymmetricEngine
 
         if (ciphertext.Length < total)
         {
-            throw new System.ArgumentException("The destination ciphertext buffer is too small for the generated envelope.", nameof(ciphertext));
+            throw new System.ArgumentException(
+                $"The destination ciphertext buffer is too small for the generated envelope. " +
+                $"Required: {total} bytes, Provided: {ciphertext.Length} bytes, " +
+                $"Missing: {total - ciphertext.Length} bytes.",
+                nameof(ciphertext));
         }
 
         System.Span<byte> nonceBuffer = stackalloc byte[System.Math.Max(16, resolvedNonceLength)];

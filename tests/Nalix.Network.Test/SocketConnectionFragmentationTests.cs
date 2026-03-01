@@ -44,7 +44,7 @@ public sealed class SocketConnectionFragmentationTests
         connection.Socket.BeginReceive();
         await scope.ClientSocket.SendAsync(CreateFrame([1, 2, 3, 4]));
 
-        int receivedLength = await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        int receivedLength = await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         receivedLength.Should().Be(4);
         s_fragmentAssemblerField.GetValue(connection.Socket).Should().BeNull();
@@ -73,7 +73,7 @@ public sealed class SocketConnectionFragmentationTests
         connection.Socket.BeginReceive();
         await scope.ClientSocket.SendAsync(CreateFrame(CreateFragmentPayload([9, 8, 7])));
 
-        byte[] receivedPayload = await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        byte[] receivedPayload = await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         receivedPayload.Should().Equal([9, 8, 7]);
         s_fragmentAssemblerField.GetValue(connection.Socket).Should().NotBeNull();

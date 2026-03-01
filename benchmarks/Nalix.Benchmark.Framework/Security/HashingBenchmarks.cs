@@ -1,10 +1,13 @@
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Security.Hashing;
 
 namespace Nalix.Benchmark.Framework.Security;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class HashingBenchmarks
+/// <summary>
+/// Benchmarks for Keccak256 and Poly1305 hashing performance.
+/// </summary>
+public class HashingBenchmarks : NalixBenchmarkBase
 {
     private byte[] _data = null!;
     private byte[] _key = null!;
@@ -17,37 +20,26 @@ public class HashingBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _data = new byte[this.PayloadBytes];
+        _data = new byte[PayloadBytes];
         _key = new byte[32];
         _tag = new byte[16];
         _hash = new byte[32];
 
-        for (int i = 0; i < _data.Length; i++)
-        {
-            _data[i] = (byte)(i % 233);
-        }
-
-        for (int i = 0; i < _key.Length; i++)
-        {
-            _key[i] = (byte)(i + 7);
-        }
+        Random.Shared.NextBytes(_data);
+        Random.Shared.NextBytes(_key);
 
         Poly1305.Compute(_key, _data, _tag);
     }
 
-    [Benchmark]
-    public void Keccak256_HashToSpan()
-        => Keccak256.HashData(_data, _hash);
+    [BenchmarkCategory("Keccak256"), Benchmark(Baseline = true)]
+    public void Keccak256Hash() => Keccak256.HashData(_data, _hash);
 
-    [Benchmark]
-    public bool Keccak256_TryHashData()
-        => Keccak256.TryHashData(_data, _hash);
+    [BenchmarkCategory("Keccak256"), Benchmark]
+    public bool Keccak256TryHash() => Keccak256.TryHashData(_data, _hash);
 
-    [Benchmark]
-    public void Poly1305_Compute()
-        => Poly1305.Compute(_key, _data, _tag);
+    [BenchmarkCategory("Poly1305"), Benchmark]
+    public void Poly1305Compute() => Poly1305.Compute(_key, _data, _tag);
 
-    [Benchmark]
-    public bool Poly1305_Verify()
-        => Poly1305.Verify(_key, _data, _tag);
+    [BenchmarkCategory("Poly1305"), Benchmark]
+    public bool Poly1305Verify() => Poly1305.Verify(_key, _data, _tag);
 }

@@ -1,11 +1,14 @@
 using System;
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Benchmark.Framework.Memory.Buffers;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class BufferPoolBenchmarks
+/// <summary>
+/// Benchmarks for BufferPoolManager performance.
+/// </summary>
+public class BufferPoolBenchmarks : NalixBenchmarkBase
 {
     private BufferPoolManager _manager = null!;
 
@@ -20,7 +23,7 @@ public class BufferPoolBenchmarks
             EnableMemoryTrimming = false,
             EnableAnalytics = false,
             FallbackToArrayPool = true,
-            TotalBuffers = 128
+            TotalBuffers = 1024
         });
     }
 
@@ -28,22 +31,21 @@ public class BufferPoolBenchmarks
     public void Cleanup() => _manager.Dispose();
 
     [Benchmark]
-    public byte[] Rent_Return_Array()
+    public byte[] RentAndReturnArray()
     {
-        byte[] buffer = _manager.Rent(this.BufferSize);
+        byte[] buffer = _manager.Rent(BufferSize);
         _manager.Return(buffer);
         return buffer;
     }
 
     [Benchmark]
-    public ArraySegment<byte> Rent_Return_Segment()
+    public ArraySegment<byte> RentAndReturnSegment()
     {
-        ArraySegment<byte> segment = _manager.RentSegment(this.BufferSize);
+        ArraySegment<byte> segment = _manager.RentSegment(BufferSize);
         _manager.Return(segment);
         return segment;
     }
 
     [Benchmark]
-    public double GetAllocationForSize()
-        => _manager.GetAllocationForSize(this.BufferSize);
+    public double QueryAllocationRate() => _manager.GetAllocationForSize(BufferSize);
 }

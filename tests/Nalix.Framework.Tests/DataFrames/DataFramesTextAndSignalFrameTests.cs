@@ -105,10 +105,15 @@ public sealed partial class DataFramesPublicApiTests
         Assert.NotNull(packet.Nonce);
         Assert.NotNull(packet.Proof);
         Assert.NotNull(packet.TranscriptHash);
-        Assert.Empty(packet.PublicKey);
-        Assert.Empty(packet.Nonce);
-        Assert.Empty(packet.Proof);
-        Assert.Empty(packet.TranscriptHash);
+        Assert.Equal(Handshake.DynamicSize, packet.PublicKey.Length);
+        Assert.Equal(Handshake.DynamicSize, packet.Nonce.Length);
+        Assert.Equal(Handshake.DynamicSize, packet.Proof.Length);
+        Assert.Equal(Handshake.DynamicSize, packet.TranscriptHash.Length);
+        
+        Assert.All(packet.PublicKey, b => Assert.Equal(0, b));
+        Assert.All(packet.Nonce, b => Assert.Equal(0, b));
+        Assert.All(packet.Proof, b => Assert.Equal(0, b));
+        Assert.All(packet.TranscriptHash, b => Assert.Equal(0, b));
         Assert.Equal(HandshakeStage.NONE, packet.Stage);
         Assert.Equal(PacketFlags.NONE, packet.Flags);
         Assert.Equal(PacketPriority.URGENT, packet.Priority);

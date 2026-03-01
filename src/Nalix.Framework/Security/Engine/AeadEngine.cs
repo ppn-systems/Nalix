@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Random;
@@ -86,7 +87,11 @@ public static class AeadEngine
 
         if (ciphertext.Length < total)
         {
-            throw new System.ArgumentException("The destination ciphertext buffer is too small for the generated envelope.", nameof(ciphertext));
+            throw new System.ArgumentException(
+                $"The destination ciphertext buffer is too small for the generated envelope. " +
+                $"Required: {total} bytes, Provided: {ciphertext.Length} bytes, " +
+                $"Missing: {total - ciphertext.Length} bytes.",
+                nameof(ciphertext));
         }
 
         // Instead of renting a temporary buffer, encrypt directly into the destination
@@ -152,7 +157,7 @@ public static class AeadEngine
     /// <param name="aad">Optional associated data to be authenticated (not encrypted).</param>
     /// <param name="written">Number of plaintext bytes written on success.</param>
     /// <exception cref="System.ArgumentException">Thrown when the envelope is invalid or the destination buffer is too small.</exception>
-    /// <exception cref="System.Security.Cryptography.CryptographicException">Thrown when authentication fails.</exception>
+    /// <exception cref="CipherException">Thrown when authentication fails.</exception>
     /// <exception cref="System.NotSupportedException">Thrown when the envelope algorithm is not supported.</exception>
     /// <remarks>
     /// The same AAD convention is used as in <see cref="Encrypt"/>:
@@ -212,7 +217,7 @@ public static class AeadEngine
 
             if (result < 0)
             {
-                throw new System.Security.Cryptography.CryptographicException("AEAD authentication failed.");
+                throw new CipherException("AEAD authentication failed.");
             }
 
             written = result;
