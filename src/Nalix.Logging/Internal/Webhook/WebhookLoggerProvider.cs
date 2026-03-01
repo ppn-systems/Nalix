@@ -8,6 +8,11 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Logging.Configuration;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+#endif
+
 namespace Nalix.Logging.Internal.Webhook;
 
 /// <summary>
