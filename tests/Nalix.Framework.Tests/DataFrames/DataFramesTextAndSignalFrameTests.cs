@@ -97,7 +97,7 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void ResetForPoolWhenHandshakeContainsDataClearsPayload()
     {
-        Handshake packet = new(12, HandshakeStage.CLIENT_HELLO, new byte[32], new byte[32], transport: ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.CLIENT_HELLO, new byte[32], new byte[32], transport: ProtocolType.UDP);
 
         packet.ResetForPool();
 
@@ -151,7 +151,7 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void HandshakeLengthWhenHandshakePayloadExistsMatchesActualSerializedBytes()
     {
-        Handshake packet = new(12, HandshakeStage.SERVER_HELLO, new byte[32], new byte[32], new byte[32], ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, new byte[32], new byte[32], new byte[32], ProtocolType.UDP);
         packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
 
         byte[] bytes = packet.Serialize();
@@ -162,7 +162,7 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void HandshakeSerializeIntoLengthSizedBufferWhenHandshakePayloadExistsSucceeds()
     {
-        Handshake packet = new(12, HandshakeStage.SERVER_HELLO, new byte[32], new byte[32], new byte[32], ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, new byte[32], new byte[32], new byte[32], ProtocolType.UDP);
         packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
 
         byte[] buffer = new byte[packet.Length];

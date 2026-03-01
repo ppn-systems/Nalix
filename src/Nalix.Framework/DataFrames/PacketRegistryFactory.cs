@@ -320,8 +320,8 @@ public sealed class PacketRegistryFactory
                 type, StaticPublic,
                 nameof(IPacketDeserializer<>.Deserialize),
                 [typeof(ReadOnlySpan<byte>)]) ?? throw new InternalErrorException(
-                    $"Packet type {type.FullName} does not implement " +
-                    $"the required static Deserialize(ReadOnlySpan<byte>) method.");
+                    $"Packet type {type.FullName} does not implement the required static Deserialize(ReadOnlySpan<byte>) method.");
+
             if (deserializers.ContainsKey(key))
             {
                 Type existingType = magicTypes[key];

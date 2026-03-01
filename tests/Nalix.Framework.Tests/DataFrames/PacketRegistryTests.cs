@@ -107,7 +107,6 @@ public sealed class PacketRegistryTests : IDisposable
         byte[] proof = new byte[32];
 
         Handshake original = new(
-            0x0010,
             stage: HandshakeStage.CLIENT_HELLO,
             publicKey: publicKey,
             nonce: nonce,
@@ -154,7 +153,6 @@ public sealed class PacketRegistryTests : IDisposable
     public void HandshakeEmptyPayloadRoundTripsCorrectly()
     {
         Handshake original = new(
-            0x0011,
             stage: HandshakeStage.CLIENT_HELLO,
             publicKey: [],
             nonce: [],
