@@ -31,11 +31,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     private readonly System.Collections.Concurrent.ConcurrentQueue<ISnowflake> _anonymousQueue;
 
     // Separate dictionaries for better cache locality and reduced contention
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> _connections;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, System.String> _usernames;
 
     // Username-to-ID reverse lookup for fast user-based operations
     private readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, ISnowflake> _usernameToId;
+
+    private readonly System.Int32 _shardCount;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection>> _shards;
 
     private readonly ConnectionHubOptions _options;
 
@@ -80,10 +82,17 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     {
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
 
+        _shardCount = System.Environment.ProcessorCount;
         System.Int32 concurrencyLevel = System.Environment.ProcessorCount * 2;
 
+        _shards = new();
+
+        for (System.Int32 i = 0; i < _shardCount; i++)
+        {
+            _shards[i] = new System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection>();
+        }
+
         _usernames = new(concurrencyLevel, _options.InitialUsernameCapacity);
-        _connections = new(concurrencyLevel, _options.InitialConnectionCapacity);
         _anonymousQueue = new System.Collections.Concurrent.ConcurrentQueue<ISnowflake>();
         _usernameToId = new(concurrencyLevel, _options.InitialUsernameCapacity, System.StringComparer.OrdinalIgnoreCase);
     }
@@ -122,8 +131,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             scope = TimingScope.Start();
         }
 
+        System.Int32 shardIndex = GetShardIndex(connection.ID);
+        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
-        if (_connections.TryAdd(connection.ID, connection))
+        if (shard.TryAdd(connection.ID, connection))
         {
             connection.OnCloseEvent += this.OnClientDisconnected;
             _ = System.Threading.Interlocked.Increment(ref _count);
@@ -178,7 +189,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             scope = TimingScope.Start();
         }
 
-        if (!_connections.TryRemove(connection.ID, out IConnection existing))
+        System.Int32 shardIndex = GetShardIndex(connection.ID);
+        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+
+        if (!shard.TryRemove(connection.ID, out IConnection existing))
         {
             if (_usernames.TryRemove(connection.ID, out System.String orphanUser) && orphanUser is not null)
             {
@@ -284,7 +298,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
     {
         IConnection connection;
-        return this._connections.TryGetValue(id, out connection) ? connection : null;
+        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(id);
+
+        return shard.TryGetValue(id, out connection) ? connection : null;
     }
 
     /// <summary>
@@ -298,8 +314,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
     public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> id)
     {
+        ISnowflake snowflake = Snowflake.FromBytes(id);
+
         IConnection connection;
-        return this._connections.TryGetValue(Snowflake.FromBytes(id), out connection) ? connection : null;
+        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(snowflake);
+
+        return shard.TryGetValue(snowflake, out connection) ? connection : null;
     }
 
     /// <summary>
@@ -342,35 +362,54 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public System.Collections.Generic.IReadOnlyCollection<IConnection> ListConnections()
     {
-        System.Int32 count = _count;
-        if (count == 0)
+        if (_disposed || _count == 0)
         {
-            return [];
+            return System.Array.Empty<IConnection>();
         }
 
-        IConnection[] connections = s_connectionPool.Rent(count + 16); // Small buffer for race conditions
+        if (_count < 10000)
+        {
+            System.Collections.Generic.List<IConnection> connections = [];
+
+            foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+            {
+                connections.AddRange(shard.Values);
+            }
+
+            return connections.AsReadOnly();
+        }
+
+        System.Int32 estimatedCount = _count;
+        IConnection[] buffer = s_connectionPool.Rent(estimatedCount);
+
         try
         {
             System.Int32 index = 0;
-            foreach (IConnection connection in _connections.Values)
-            {
-                if (index >= connections.Length)
-                {
-                    break;
-                }
 
-                connections[index++] = connection;
+            foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+            {
+                foreach (IConnection connection in shard.Values)
+                {
+                    if (index >= buffer.Length)
+                    {
+                        break;
+                    }
+
+                    buffer[index++] = connection;
+                }
             }
 
             IConnection[] result = new IConnection[index];
-            System.Array.Copy(connections, result, index);
+            System.Array.Copy(buffer, result, index);
+
             return result;
         }
         finally
         {
-            s_connectionPool.Return(connections, clearArray: true);
+            s_connectionPool.Return(buffer, clearArray: true);
         }
     }
 
@@ -397,6 +436,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return;
         }
 
+        if (_disposed)
+        {
+            return;
+        }
+
         System.Collections.Generic.IReadOnlyCollection<IConnection> connections = this.ListConnections();
         if (connections is null || connections.Count == 0)
         {
@@ -414,19 +458,6 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return;
         }
 
-        System.Threading.Tasks.Task[] tasks = new System.Threading.Tasks.Task[connections.Count];
-        System.Int32 index = 0;
-
-        foreach (IConnection connection in connections)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-
-            tasks[index++] = sendFunc(connection, message);
-        }
-
         TimingScope scope = default;
 
         if (_options.IsEnableLatency)
@@ -434,35 +465,49 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             scope = TimingScope.Start();
         }
 
+        System.Collections.Concurrent.OrderablePartitioner<IConnection> partitioner = System.Collections.Concurrent.Partitioner.Create(
+            connections, System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering);
+
+        System.Collections.Generic.List<System.Threading.Tasks.Task> tasks = [];
+        foreach (System.Collections.Generic.IEnumerator<IConnection> partition in partitioner.GetPartitions(_shardCount))
+        {
+            tasks.Add(
+                System.Threading.Tasks.Task.Run(async () =>
+                {
+                    using (partition)
+                    {
+                        while (partition.MoveNext())
+                        {
+                            if (cancellationToken.IsCancellationRequested)
+                            {
+                                break;
+                            }
+
+                            try
+                            {
+                                await sendFunc(partition.Current, message).ConfigureAwait(false);
+                            }
+                            catch (System.Exception ex)
+                            {
+                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                        .Error($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] send-failure id={partition.Current.ID}", ex);
+                            }
+                        }
+                    }
+                }, cancellationToken));
+        }
+
         try
         {
-            if (index == 0)
-            {
-                return;
-            }
-
-            if (index == tasks.Length)
-            {
-                await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
-            }
-            else
-            {
-                System.Threading.Tasks.Task[] slice = new System.Threading.Tasks.Task[index];
-                System.Array.Copy(tasks, slice, index);
-                await System.Threading.Tasks.Task.WhenAll(slice)
-                                                 .ConfigureAwait(false);
-            }
-
+            await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
+        }
+        finally
+        {
             if (_options.IsEnableLatency)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
             }
-        }
-        catch (System.OperationCanceledException)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-cancel");
         }
     }
 
@@ -491,11 +536,15 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         }
 
         System.Collections.Generic.List<IConnection> filteredConnections = [];
-        foreach (IConnection connection in _connections.Values)
+
+        foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shared in _shards.Values)
         {
-            if (predicate(connection))
+            foreach (IConnection connection in shared.Values)
             {
-                filteredConnections.Add(connection);
+                if (predicate(connection))
+                {
+                    filteredConnections.Add(connection);
+                }
             }
         }
 
@@ -570,9 +619,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         });
 
         // Dispose all dictionaries
-        _connections.Clear();
+        _shards.Clear();
         _usernames.Clear();
         _usernameToId.Clear();
+        _anonymousQueue.Clear();
         _ = System.Threading.Interlocked.Exchange(ref _count, 0);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -604,30 +654,33 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = sb.AppendLine($"Evicted Connections  : {_evictedConnections}");
         _ = sb.AppendLine($"Rejected Connections : {_rejectedConnections}");
 
-        foreach (IConnection conn in _connections.Values)
+        foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
         {
-            // Bytes sent
-            sumBytesSent += conn.BytesSent;
-
-            // Uptime
-            System.Int64 up = conn.UpTime;
-            sumUptime += up;
-
-            if (up > maxUptime)
+            foreach (IConnection conn in shard.Values)
             {
-                maxUptime = up;
+                // Bytes sent
+                sumBytesSent += conn.BytesSent;
+
+                // Uptime
+                System.Int64 up = conn.UpTime;
+                sumUptime += up;
+
+                if (up > maxUptime)
+                {
+                    maxUptime = up;
+                }
+
+                if (up < minUptime)
+                {
+                    minUptime = up;
+                }
+
+                System.String status = conn.Level.ToString();
+                System.String algo = conn.Algorithm.ToString();
+
+                algoCounts[algo] = algoCounts.TryGetValue(algo, out System.Int32 n) ? n + 1 : 1;
+                statusCounts[status] = statusCounts.TryGetValue(status, out System.Int32 current) ? current + 1 : 1;
             }
-
-            if (up < minUptime)
-            {
-                minUptime = up;
-            }
-
-            System.String status = conn.Level.ToString();
-            System.String algo = conn.Algorithm.ToString();
-
-            algoCounts[algo] = algoCounts.TryGetValue(algo, out System.Int32 n) ? n + 1 : 1;
-            statusCounts[status] = statusCounts.TryGetValue(status, out System.Int32 current) ? current + 1 : 1;
         }
 
         sb.AppendLine($"Total Bytes Sent   : {sumBytesSent:N0}");
@@ -668,14 +721,22 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = sb.AppendLine("ID             | Username");
         _ = sb.AppendLine("------------------------------------------------------------");
 
-        foreach (System.Collections.Generic.KeyValuePair<ISnowflake, IConnection> kvp in _connections)
+        foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
         {
-            ISnowflake id = kvp.Key;
-            System.String username = GetUsername(id) ?? "(anonymous)";
+            foreach (System.Collections.Generic.KeyValuePair<ISnowflake, IConnection> kvp in shard)
+            {
+                ISnowflake id = kvp.Key;
+                System.String username = GetUsername(id) ?? "(anonymous)";
 
-            _ = sb.AppendLine($"{id,-15} | {username}");
+                _ = sb.AppendLine($"{id,-15} | {username}");
 
-            if (++count >= Limit)
+                if (++count >= Limit)
+                {
+                    break;
+                }
+            }
+
+            if (count >= Limit)
             {
                 break;
             }
@@ -711,6 +772,18 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
     #region Private Methods
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Int32 GetShardIndex(ISnowflake id) => (id.GetHashCode() & 0x7FFFFFFF) % _shardCount;
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> GetShard(ISnowflake id)
+    {
+        System.Int32 index = GetShardIndex(id);
+        return _shards[index];
+    }
+
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -735,8 +808,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 // Efficient eviction: use queue of anonymous IDs and dequeue until we find a valid anonymous to evict.
                 while (_anonymousQueue.TryDequeue(out ISnowflake oldestId))
                 {
+                    System.Int32 shardIndex = GetShardIndex(oldestId);
+                    System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+
                     // if the ID is still present and still anonymous (no username mapped) -> evict
-                    if (_connections.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
+                    if (shard.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
