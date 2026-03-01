@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
@@ -56,7 +57,7 @@ internal sealed class FrameSender : IDisposable
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
     {
         // ── Transformation ──────────────────────────────────────────────────────
-        BufferLease current = BufferLease.CopyFrom(payload.Span);
+        IBufferLease current = BufferLease.CopyFrom(payload.Span);
         try
         {
             PacketFrameTransforms.TransformOutbound(ref current, _options, encrypt ?? _options.EncryptionEnabled);

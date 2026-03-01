@@ -1,6 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+#pragma warning disable IDE0079
+#pragma warning disable CA1859
+
 using System;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;

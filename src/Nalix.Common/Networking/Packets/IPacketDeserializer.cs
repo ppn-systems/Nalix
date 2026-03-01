@@ -18,6 +18,10 @@ public interface IPacketDeserializer<TPacket> where TPacket : IPacket
     /// <returns>A new <typeparamref name="TPacket"/> instance.</returns>
     static abstract TPacket Deserialize(ReadOnlySpan<byte> buffer);
 
-    // (Optional) If your design needs it, you can add the opposite direction:
-    // static abstract void Serialize(in TPacket packet, SYSTEM.Span<byte> destination);
+    /// <summary>
+    /// Deserializes a packet instance from the specified byte buffer.
+    /// </summary>
+    /// <param name="buffer">A read-only span containing the serialized packet bytes.</param>
+    /// <param name="value">An existing packet instance to populate with deserialized data.</param>
+    static abstract TPacket Deserialize(ReadOnlyMemory<byte> buffer, ref TPacket value);
 }

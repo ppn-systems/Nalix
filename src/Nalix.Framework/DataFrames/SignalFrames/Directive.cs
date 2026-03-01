@@ -71,9 +71,9 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// </summary>
     public Directive()
     {
+        this.OpCode = 0;
         this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.URGENT;
-        this.OpCode = PacketConstants.OpcodeDefault;
     }
 
     /// <summary>Initializes the directive payload.</summary>
