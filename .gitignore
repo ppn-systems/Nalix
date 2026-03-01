@@ -44,4 +44,5 @@ bld/
 *.snk
 nuget.key
 appsettings.json
+nugets/
 artifacts/
