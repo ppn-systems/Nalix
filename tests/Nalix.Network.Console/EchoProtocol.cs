@@ -1,7 +1,11 @@
-﻿using Nalix.Common.Infrastructure.Connection;
+﻿using Nalix.Common.Connection;
+using Nalix.Common.Infrastructure.Connection;
+using Nalix.Framework.Injection;
+using Nalix.Network.Connections;
 using Nalix.Network.Protocols;
 using System;
 using System.Text;
+using System.Threading;
 
 public class EchoProtocol : Protocol
 {
@@ -10,6 +14,14 @@ public class EchoProtocol : Protocol
         KeepConnectionOpen = true;
         IsAccepting = true;
     }
+
+    public override void OnAccept(IConnection connection, CancellationToken cancellationToken = default)
+    {
+        base.OnAccept(connection, cancellationToken);
+        InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
+                                .RegisterConnection(connection);
+    }
+
 
     /// <summary>
     /// Dùng để xử lý message nhận được từ client.
