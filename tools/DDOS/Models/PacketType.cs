@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
-namespace DDOS.Models;
+namespace DDoS.Models;
 
 /// <summary>
 /// Định nghĩa các loại packet có thể gửi

@@ -9,18 +9,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Reference Include="Nalix.SDK">
-	    <HintPath>..\..\build\bin\Release\net10.0\Nalix.SDK.dll</HintPath>
-	  </Reference>
-		<Reference Include="Nalix.Common">
-			<HintPath>..\..\build\bin\Release\net10.0\Nalix.Common.dll</HintPath>
-		</Reference>
-		<Reference Include="Nalix.Shared">
-			<HintPath>..\..\build\bin\Release\net10.0\Nalix.Shared.dll</HintPath>
-		</Reference>
-		<Reference Include="Nalix.Framework">
-			<HintPath>..\..\build\bin\Release\net10.0\Nalix.Framework.dll</HintPath>
-		</Reference>
+	  <PackageReference Include="Nalix.Common" Version="10.5.5" />
+	  <PackageReference Include="Nalix.Framework" Version="10.5.5" />
+	  <PackageReference Include="Nalix.Logging" Version="10.5.5" />
+	  <PackageReference Include="Nalix.SDK" Version="10.5.5" />
+	  <PackageReference Include="Nalix.Shared" Version="10.5.5" />
 	</ItemGroup>
-
+	
 </Project>

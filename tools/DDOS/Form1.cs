@@ -1,11 +1,11 @@
-using DDOS.Helpers;
-using DDOS.Models;
+using DDoS.Helpers;
+using DDoS.Models;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.SDK.Transport;
 using Nalix.Shared.Messaging.Controls;
 
-namespace DDOS;
+namespace DDoS;
 
 /// <summary>
 /// Main form for DDOS application. This class handles only UI tasks; networking logic is managed by external services.
@@ -50,8 +50,8 @@ public partial class Form1 : Form
     private void InitializeMainUI()
     {
         this.BackColor = Color.FromArgb(150, 150, 150);
-        this.Text = "DDOS Tool - Packet Sender";
-        this.Size = new Size(800, 600);
+        this.Text = "DDoS Tool - Packet Sender";
+        this.Size = new Size(750, 500);
 
         var tabControl = new TabControl
         {
@@ -75,8 +75,8 @@ public partial class Form1 : Form
         };
 
         // Giữ nguyên code TCP Flood như cũ
-        txtTcpIp = new() { Location = new Point(120, 10), Width = 120 };
-        txtTcpPort = new() { Location = new Point(120, 40), Width = 80 };
+        txtTcpIp = new() { Location = new Point(120, 10), Width = 120, Text = "127.0.0.1" };
+        txtTcpPort = new() { Location = new Point(120, 40), Width = 80, Text = "57206" };
         txtTcpConn = new() { Location = new Point(120, 70), Width = 60 };
 
         btnTcpStart = new() { Text = "Start TCP Flood", Location = new Point(10, 110), Width = 120 };
@@ -126,7 +126,7 @@ public partial class Form1 : Form
             Height = 60,
             Multiline = true,
             ScrollBars = ScrollBars.Vertical,
-            Text = "Hello from DDOS Tool!"
+            Text = "Hello from DDoS Tool!"
         };
 
         // Sequence ID for Control/Directive packets
