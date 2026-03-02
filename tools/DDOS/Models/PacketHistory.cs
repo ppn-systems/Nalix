@@ -1,6 +1,6 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
-namespace DDOS.Models;
+namespace DDoS.Models;
 
 /// <summary>
 /// Lưu trữ thông tin về packet đã gửi để hiển thị trong history

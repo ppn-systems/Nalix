@@ -2,7 +2,7 @@ using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Messaging.Catalog;
 
-namespace DDOS;
+namespace DDoS;
 
 internal static class Program
 {
