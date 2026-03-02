@@ -29,6 +29,7 @@ public sealed partial class Connection : IConnection
     private UdpTransport _udp;
     private System.Byte[] _secret;
     private System.Int64 _bytesSent;
+    private System.Int32 _errorCount;
     private System.Int32 _closeSignaled;
 
     private volatile System.Boolean _disposed;
@@ -83,6 +84,9 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     public INetworkEndpoint EndPoint { get; }
+
+    /// <inheritdoc />
+    public System.Int32 ErrorCount => _errorCount;
 
     /// <inheritdoc />
     public System.Net.EndPoint RemoteEndPoint { get; }
@@ -177,6 +181,9 @@ public sealed partial class Connection : IConnection
     #endregion Events
 
     #region Methods
+
+    /// <inheritdoc />
+    public void IncrementErrorCount() => System.Threading.Interlocked.Increment(ref _errorCount);
 
     /// <inheritdoc />
     public IConnection.IUdp GetOrCreateUDP()

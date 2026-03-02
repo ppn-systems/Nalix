@@ -118,7 +118,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return false;
         }
 
-        if (_count >= _options.MaxConnections || _options.MaxConnections < 0)
+        if (_options.MaxConnections > 0 && _count >= _options.MaxConnections)
         {
             this.HandleConnectionLimit(connection);
             return false;
@@ -582,6 +582,62 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         {
             System.Buffers.ArrayPool<System.Threading.Tasks.Task>.Shared.Return(tasks, clearArray: true);
         }
+    }
+
+    /// <summary>
+    /// Forcibly closes all connections matching the specified IP address.
+    /// </summary>
+    /// <param name="networkEndpoint">The IP address to forcefully close.</param>
+    /// <returns>Number of connections closed.</returns>
+    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public System.Int32 ForceClose([System.Diagnostics.CodeAnalysis.NotNull] INetworkEndpoint networkEndpoint)
+    {
+        System.ArgumentNullException.ThrowIfNull(networkEndpoint);
+
+        if (_disposed)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] called on disposed instance.");
+            return 0;
+        }
+
+        System.Int32 closedCount = 0;
+        System.String targetAddress = networkEndpoint.Address;
+
+        foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+        {
+            foreach (IConnection conn in shard.Values)
+            {
+                System.String connAddress = conn?.EndPoint?.Address ?? "null";
+
+                if (connAddress != targetAddress)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    conn.Disconnect("Force disconnected by IP.");
+                    closedCount++;
+                }
+                catch (System.Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn?.ID}", ex);
+                }
+            }
+        }
+
+        if (closedCount > 0)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] closed={closedCount} ip={targetAddress}");
+        }
+
+        return closedCount;
     }
 
     /// <summary>
