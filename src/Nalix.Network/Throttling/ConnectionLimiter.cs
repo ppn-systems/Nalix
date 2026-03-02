@@ -66,7 +66,18 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
     #endregion Fields
 
+    #region Properties
+
+    /// <summary>
+    /// Gets the recurring name used for buffer trimming operations.
+    /// </summary>
+    public static readonly System.String RecurringName;
+
+    #endregion Properties
+
     #region Constructors
+
+    static ConnectionLimiter() => RecurringName = "conn.limit";
 
     /// <summary>
     /// Initializes a new <see cref="ConnectionLimiter"/> with optional configuration.
@@ -672,7 +683,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     private void SCHEDULE_CLEANUP_JOB()
     {
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNaming.Recurring.CleanupJobId(nameof(ConnectionLimiter), this.GetHashCode()),
+            name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
             interval: _cleanupInterval,
             work: _ =>
             {
@@ -681,8 +692,8 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
             },
             options: new RecurringOptions
             {
-                Tag = nameof(ConnectionLimiter),
                 NonReentrant = true,
+                Tag = TaskNaming.Tags.Service,
                 Jitter = System.TimeSpan.FromMilliseconds(250),
                 ExecutionTimeout = System.TimeSpan.FromSeconds(2),
                 BackoffCap = System.TimeSpan.FromSeconds(15)
@@ -707,7 +718,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         {
             _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
                                         .CancelRecurring(TaskNaming.Recurring
-                                        .CleanupJobId(nameof(ConnectionLimiter), this
+                                        .CleanupJobId(RecurringName, this
                                         .GetHashCode()));
 
             _map.Clear();

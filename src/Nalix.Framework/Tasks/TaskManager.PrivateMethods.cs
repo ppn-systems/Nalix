@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Abstractions;
+using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
@@ -320,7 +321,7 @@ public partial class TaskManager
         }
     }
 
-    private async System.Threading.Tasks.Task MONITOR_CONCURRENCY_ASYNC(System.Threading.CancellationToken ct)
+    private async System.Threading.Tasks.Task MONITOR_CONCURRENCY_ASYNC(IWorkerContext ctx, System.Threading.CancellationToken ct)
     {
         TaskManagerOptions options = _options;
 
@@ -342,6 +343,9 @@ public partial class TaskManager
                     System.Int32 newLimit = System.Math.Min(_options.MaxWorkers, _currentConcurrencyLimit + 1);
                     ADJUST_CONCURRENCY(newLimit);
                 }
+
+                ctx.Beat();
+                ctx.Advance(1);
 
                 await System.Threading.Tasks.Task.Delay(options.ObservingInterval, ct);
             }
