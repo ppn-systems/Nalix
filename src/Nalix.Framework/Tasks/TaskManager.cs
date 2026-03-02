@@ -93,9 +93,9 @@ public sealed partial class TaskManager : ITaskManager
         if (_options.DynamicAdjustmentEnabled)
         {
             _ = ScheduleWorker(
-                "task.dynamic.monitor",
+                "task.monitor",
                 "task",
-                async (ctx, ct) => await MONITOR_CONCURRENCY_ASYNC(ct), // Pass CancellationToken
+                async (ctx, ct) => await MONITOR_CONCURRENCY_ASYNC(ctx, ct), // Pass CancellationToken
                 new WorkerOptions
                 {
                     RetainFor = System.TimeSpan.FromMinutes(10) // Cho phép giữ Monitor lâu hơn sau khi chạy xong
@@ -694,9 +694,9 @@ public sealed partial class TaskManager : ITaskManager
 
         // Recurring summary
         _ = sb.AppendLine("Recurring:");
-        _ = sb.AppendLine("--------------------------------------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC             | Interval |         Tag");
-        _ = sb.AppendLine("--------------------------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("---------------------------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC             |  Interval | Tag        ");
+        _ = sb.AppendLine("---------------------------------------------------------------------------------------------------------------------------------");
         foreach (System.Collections.Generic.KeyValuePair<System.String, RecurringState> kv in _recurring)
         {
             RecurringState s = kv.Value;
@@ -706,20 +706,20 @@ public sealed partial class TaskManager : ITaskManager
             System.String run = s.IsRunning ? "yes" : " no";
             System.String last = s.LastRunUtc?.ToString("u") ?? "-";
             System.String next = s.NextRunUtc?.ToString("u") ?? "-";
-            System.String iv = $"{s.Interval.TotalMilliseconds:F0}ms".PadLeft(8);
+            System.String iv = $"{s.Interval.TotalMilliseconds:F0}ms".PadLeft(9);
             System.String tag = s.Options.Tag ?? "-";
             _ = sb.AppendLine($"{nm} | {runs} | {fails} | {run.PadLeft(7)} | {last,-20} | {next,-20} | {iv} | {tag}");
         }
-        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("---------------------------------------------------------------------------------------------------------------------------------");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Top Recurring Tasks with Maximum Failures:");
-        _ = sb.AppendLine("----------------------------------------------------------------------------");
-        _ = sb.AppendLine("Name                         | Fails    | LastRun            | Tag          ");
-        _ = sb.AppendLine("----------------------------------------------------------------------------");
+        _ = sb.AppendLine("------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Name                         | Fails    | LastRun              | Tag          ");
+        _ = sb.AppendLine("------------------------------------------------------------------------------");
         foreach (RecurringState r in _recurring.Values.OrderByDescending(r => r.ConsecutiveFailures).Take(5))
         {
-            _ = sb.AppendLine($"{PadName(r.Name, 28)} | {r.ConsecutiveFailures,8} | {r.LastRunUtc?.ToString("u"),-18} | {r.Options.Tag ?? "-"}");
+            _ = sb.AppendLine($"{PadName(r.Name, 28)} | {r.ConsecutiveFailures,8} | {r.LastRunUtc?.ToString("u"),-20} | {r.Options.Tag ?? "-"}");
         }
         _ = sb.AppendLine("----------------------------------------------------------------------------");
         _ = sb.AppendLine();
