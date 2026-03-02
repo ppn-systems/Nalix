@@ -29,6 +29,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
 
     private readonly LogFormatter _formatter;
     private readonly System.Int32 _batchSize;
+    private readonly System.Boolean _enableFlush;
     private readonly IWorkerHandle? _workerHandle;
     private readonly System.Boolean _enableColors;
     private readonly System.Boolean _adaptiveFlush;
@@ -203,8 +204,8 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
                 WRITE_BATCH(batch);
 
                 // **Update progress & heartbeat**
-                ctx.Advance(batch.Count, "Logs written");
                 ctx.Beat();
+                ctx.Advance(batch.Count, "Logs written");
 
                 batch.Clear();
 
@@ -259,6 +260,11 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
             {
                 System.Threading.Interlocked.Increment(ref _droppedCount);
             }
+        }
+
+        if (_enableFlush)
+        {
+            System.Console.Out.Flush();
         }
     }
 

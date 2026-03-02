@@ -1,8 +1,5 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Logging.Configuration;
@@ -31,6 +28,12 @@ public sealed class ConsoleLogOptions : ConfigurationLoader
     /// Gets or sets a value indicating whether to block when the queue is full.
     /// </summary>
     public System.Boolean BlockWhenQueueFull { get; set; } = false;
+
+    /// <summary>
+    /// Enables or disables flushing the console output after each batch is written.
+    /// Enabling this may reduce performance but ensures that log messages are immediately visible in the console.
+    /// </summary>
+    public System.Boolean EnableFlush { get; set; } = false;
 
     /// <summary>
     /// Gets or sets a value indicating whether colored output is enabled.
