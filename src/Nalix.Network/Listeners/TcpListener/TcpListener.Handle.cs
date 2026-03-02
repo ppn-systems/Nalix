@@ -150,7 +150,7 @@ public abstract partial class TcpListenerBase
         // This pool slot will be reused for the next accept without waiting.
         s_pool.Return(context);
 
-        Connection connection = new(socket);
+        Connection connection = new(socket, s_logger);
 
         // Subscribe lifecycle events.
         // WHY subscribe to _limiter.OnConnectionClosed:
@@ -203,9 +203,7 @@ public abstract partial class TcpListenerBase
         {
             // Log in Trace (not Error) because this is expected failure in error-recovery path.
             // WHY not rethrow: Currently in cleanup path -> the second exception will obscure the original exception.
-            s_logger?.Trace(
-                $"[NW.{nameof(TcpListenerBase)}:Internal] " +
-                $"accept-error ex={ex.Message}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:Internal] accept-error ex={ex.Message}");
         }
     }
 
@@ -261,8 +259,7 @@ public abstract partial class TcpListenerBase
                 // SocketError check first — cheapest path, no pattern match required.
                 // This is an early exit for all OS-level errors (Interrupted, OperationAborted, etc.)
                 s_logger?.Warn(
-                    $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
-                    $"accept-failed={args.SocketError}");
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-failed={args.SocketError}");
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
                 return;
@@ -274,8 +271,7 @@ public abstract partial class TcpListenerBase
                 // usually due to a race between Close() and Completed callbacks.
                 // No socket to log endpoint, logging warning is sufficient.
                 s_logger?.Warn(
-                    $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
-                    $"accept-socket-null port={_port}");
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-socket-null port={_port}");
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
                 return;
@@ -314,9 +310,7 @@ public abstract partial class TcpListenerBase
             {
                 this.Metrics.RECORD_ERROR();
                 s_logger?.Error(
-                    ex,
-                    $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
-                    $"accept-error port={_port}");
+                    ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}");
 
                 SafeCloseSocket(socket);
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);

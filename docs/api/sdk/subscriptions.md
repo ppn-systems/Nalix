@@ -78,5 +78,6 @@ group.Dispose(); // Unsubscribes all
 ## Related APIs
 
 - [Session Extensions](./tcp-session-extensions.md)
+- [Handshake Extensions](./handshake-extensions.md)
 - [Thread Dispatching](./thread-dispatching.md)
 - [TCP Session](./tcp-session.md)

@@ -86,4 +86,4 @@ client.OnMessageReceived += (s, lease) =>
 
 - [SDK Overview](./index.md)
 - [TCP Session](./tcp-session.md)
-- [Session Extensions](./tcp-session-extensions.md)
+- [Handshake Extensions](./handshake-extensions.md)

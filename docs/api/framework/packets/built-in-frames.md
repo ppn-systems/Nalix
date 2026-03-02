@@ -70,5 +70,5 @@ Use the lease-based API when you want the packet to return itself to the pool au
 - [Frame Model](./frame-model.md)
 - [Packet Registry](./packet-registry.md)
 - [Packet Pooling](./packet-pooling.md)
-- [SDK Extensions](../../sdk/tcp-session-extensions.md)
+- [Session Extensions](../../sdk/tcp-session-extensions.md)
 - [Handler Return Types](../../runtime/routing/handler-results.md)

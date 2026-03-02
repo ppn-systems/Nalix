@@ -38,7 +38,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     internal NetworkApplicationBuilder(HostingBuilderContext state)
     {
         _state = state ?? throw new ArgumentNullException(nameof(state));
-        _ = this.AddHandler<HandshakeHandlers>();
+        _ = this.AddHandler<HandshakeHandlers>()
+                .AddHandler<SystemControlHandlers>();
     }
 
     /// <inheritdoc />
@@ -264,10 +265,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         void prepareCallbacks()
         {
             RegisterLogger(_state);
-            EnsureConnectionHubRegistered();
-            EnsureBufferPoolManagerRegistered();
             ApplyOptions(_state);
             RegisterPacketRegistry(_state);
+
+            this.EnsureConnectionHubRegistered();
+            this.EnsureBufferPoolManagerRegistered();
 
             if (!metadataRegistered)
             {
@@ -283,7 +285,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             serverFactories.Add(dispatch =>
             {
-                EnsureConnectionHubRegistered();
+                this.EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
                 TcpServerListener listener = registration.Port.HasValue
                     ? new(registration.Port.Value, protocol)
@@ -297,7 +299,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             serverFactories.Add(dispatch =>
             {
-                EnsureConnectionHubRegistered();
+                this.EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
                 UdpServerListener listener = registration.Port.HasValue
                     ? new(registration.Port.Value, protocol)
@@ -404,24 +406,24 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return handlers.Values;
     }
 
-    private static void EnsureConnectionHubRegistered()
+    private void EnsureConnectionHubRegistered()
     {
         if (InstanceManager.Instance.GetExistingInstance<IConnectionHub>() is not null)
         {
             return;
         }
 
-        InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub());
+        InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub(_state.Logger));
     }
 
-    private static void EnsureBufferPoolManagerRegistered()
+    private void EnsureBufferPoolManagerRegistered()
     {
         if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is not null)
         {
             return;
         }
 
-        InstanceManager.Instance.Register<BufferPoolManager>(new BufferPoolManager());
+        InstanceManager.Instance.Register<BufferPoolManager>(new BufferPoolManager(_state.Logger));
     }
 
     private static void RegisterLogger(HostingBuilderContext state) => InstanceManager.Instance.Register<ILogger>(state.Logger);

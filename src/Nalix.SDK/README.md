@@ -8,6 +8,7 @@ A high-level client SDK for building Nalix-compatible client applications with e
 - **Request / Response**: Correlated request-response pattern out-of-the-box.
 - **Buffer Management**: Transparently handles buffer pooling for outgoing and incoming packets.
 - **Encryption Support**: Built-in support for encrypted packet flows.
+- **Session Extensions**: Handshake helpers, control helpers, and cipher switching on live TCP sessions.
 
 ## Installation
 
