@@ -18,10 +18,10 @@
 		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
 
 		<!-- Versions -->
-		<Version>10.5.5</Version>
-		<FileVersion>10.5.5.0</FileVersion>
-		<PackageVersion>10.5.5</PackageVersion>
-		<InformationalVersion>10.5.5+$(SourceRevisionId)</InformationalVersion>
+		<Version>10.6.0</Version>
+		<FileVersion>10.6.0.0</FileVersion>
+		<PackageVersion>10.6.0</PackageVersion>
+		<InformationalVersion>10.6.0+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
 Nalix.SDK provides the client-side development kit for the Nalix ecosystem,

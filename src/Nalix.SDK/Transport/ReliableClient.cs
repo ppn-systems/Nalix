@@ -131,14 +131,14 @@ public sealed class ReliableClient : IClientConnection
         {
             Options = new TransportOptions
             {
-                ConnectTimeoutMillis = 5000,
-                ReconnectEnabled = true,
-                ReconnectMaxAttempts = 0,
-                ReconnectBaseDelayMillis = 500,
-                ReconnectMaxDelayMillis = 30000,
-                KeepAliveIntervalMillis = 0,
                 NoDelay = true,
                 BufferSize = 8192,
+                ReconnectEnabled = true,
+                ReconnectMaxAttempts = 0,
+                ConnectTimeoutMillis = 5000,
+                KeepAliveIntervalMillis = 0,
+                ReconnectBaseDelayMillis = 500,
+                ReconnectMaxDelayMillis = 30000,
                 MaxPacketSize = PacketConstants.PacketSizeLimit
             };
         }
