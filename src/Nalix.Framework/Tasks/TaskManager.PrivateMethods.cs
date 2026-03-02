@@ -6,6 +6,7 @@ using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Random;
+using Nalix.Framework.Time;
 
 namespace Nalix.Framework.Tasks;
 
@@ -29,53 +30,39 @@ public partial class TaskManager
             return;
         }
 
-        try
+        System.DateTimeOffset now = System.DateTimeOffset.UtcNow;
+        foreach (var kv in _workers)
         {
-            System.DateTimeOffset now = System.DateTimeOffset.UtcNow;
-            foreach (var kv in _workers)
+            WorkerState st = kv.Value;
+            System.TimeSpan? keep = st.Options.RetainFor;
+
+            if (keep is null || keep <= System.TimeSpan.Zero)
             {
-                WorkerState st = kv.Value;
-                System.TimeSpan? keep = st.Options.RetainFor;
+                continue;
+            }
 
-                if (keep is null || keep <= System.TimeSpan.Zero)
+            if (st.IsRunning)
+            {
+                continue;
+            }
+
+            if (now - st.CompletedUtc < keep.Value)
+            {
+                continue;
+            }
+
+            if (_workers.TryRemove(st.Id, out _))
+            {
+                try
                 {
-                    continue;
+                    st.Cts.Dispose();
                 }
-
-                if (st.IsRunning)
+                catch (System.Exception ex)
                 {
-                    continue;
-                }
-
-                System.DateTimeOffset? completed = st.CompletedUtc;
-                if (completed is null)
-                {
-                    continue;
-                }
-
-                if (now - completed.Value < keep.Value)
-                {
-                    continue;
-                }
-
-                if (_workers.TryRemove(st.Id, out _))
-                {
-                    try
-                    {
-                        st.Cts.Dispose();
-                    }
-                    catch (System.Exception ex)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Warn($"[FW.{nameof(TaskManager)}] cleanup-cts-dispose-error id={st.Id} msg={ex.Message}");
-                    }
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}] cleanup-cts-dispose-error id={st.Id} msg={ex.Message}");
                 }
             }
-        }
-        catch (System.Exception ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[FW.{nameof(TaskManager)}] cleanup-error msg={ex.Message}");
         }
     }
 
@@ -129,7 +116,7 @@ public partial class TaskManager
         {
             try
             {
-                System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
+                System.Int64 now = Clock.MonoTicksNow();
                 System.Int64 delayTicks = next - now;
 
                 if (delayTicks > 0)
@@ -143,7 +130,8 @@ public partial class TaskManager
                     else
                     {
                         System.TimeSpan ts = System.TimeSpan.FromSeconds(delaySeconds);
-                        await System.Threading.Tasks.Task.Delay(ts, ct).ConfigureAwait(false);
+                        await System.Threading.Tasks.Task.Delay(ts, ct)
+                                                         .ConfigureAwait(false);
                     }
                 }
                 else
@@ -368,12 +356,27 @@ public partial class TaskManager
         _currentConcurrencyLimit = newLimit;
         System.Int32 delta = newLimit - previousLimit;
 
-        if (delta > 0)
+        try
         {
-            _globalConcurrencyGate.Release(delta); // Increase available slots
-        }
+            if (delta > 0)
+            {
+                _globalConcurrencyGate.Release(delta);
+            }
+            else if (delta < 0)
+            {
+                for (System.Int32 i = 0; i < -delta; i++)
+                {
+                    _globalConcurrencyGate.Wait();
+                }
+            }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}] concurrency-adjusted=[{previousLimit} -> {newLimit}]");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{newLimit}]");
+        }
+        catch (System.Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[FW.TaskManager.Internal] failed-adjust-concurrency", ex);
+        }
     }
 }

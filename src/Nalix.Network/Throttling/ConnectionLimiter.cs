@@ -27,6 +27,7 @@ namespace Nalix.Network.Throttling;
 public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposable, IReportable
 {
     #region Constants
+
     private const System.Int32 MinReportCapacity = 128;
     private const System.Int32 MaxReportCapacity = 4096;
     private const System.Int32 MaxCleanupKeysPerRun = 1000;
