@@ -34,10 +34,10 @@ public class CipherEngineBenchmarks : NalixBenchmarkBase
         _plaintext = new byte[PayloadBytes];
         _output = new byte[PayloadBytes + 128];
 
-        Random.Shared.NextBytes(_key);
-        Random.Shared.NextBytes(_nonce12);
-        Random.Shared.NextBytes(_aad);
-        Random.Shared.NextBytes(_plaintext);
+        System.Random.Shared.NextBytes(_key);
+        System.Random.Shared.NextBytes(_nonce12);
+        System.Random.Shared.NextBytes(_aad);
+        System.Random.Shared.NextBytes(_plaintext);
 
         _symEnvelope = new byte[PayloadBytes + 64];
         SymmetricEngine.Encrypt(_key, _plaintext, _symEnvelope, _nonce12, 7u, CipherSuiteType.Chacha20, out _symWritten);

@@ -25,8 +25,8 @@ public class HashingBenchmarks : NalixBenchmarkBase
         _tag = new byte[16];
         _hash = new byte[32];
 
-        Random.Shared.NextBytes(_data);
-        Random.Shared.NextBytes(_key);
+        System.Random.Shared.NextBytes(_data);
+        System.Random.Shared.NextBytes(_key);
 
         Poly1305.Compute(_key, _data, _tag);
     }
