@@ -59,6 +59,7 @@ jobs:
           if_no_artifact_found: ignore
 
       - name: Compare with previous benchmark run
+        if: always()
         shell: bash
         run: |
           python - <<'PY'

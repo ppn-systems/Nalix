@@ -43,10 +43,10 @@ public class EnvelopeCipherBenchmarks : NalixBenchmarkBase
         _ciphertext1024 = new byte[1024 + EnvelopeOverhead];
         _decryptOut = new byte[1024 + EnvelopeOverhead];
 
-        Random.Shared.NextBytes(_key);
-        Random.Shared.NextBytes(_aad);
-        Random.Shared.NextBytes(_plaintext64);
-        Random.Shared.NextBytes(_plaintext1024);
+        System.Random.Shared.NextBytes(_key);
+        System.Random.Shared.NextBytes(_aad);
+        System.Random.Shared.NextBytes(_plaintext64);
+        System.Random.Shared.NextBytes(_plaintext1024);
 
         _envelope64_chacha20 = EncryptHelper(64, CipherSuiteType.Chacha20, false);
         _envelope64_chacha20poly1305 = EncryptHelper(64, CipherSuiteType.Chacha20Poly1305, true);
@@ -80,26 +80,26 @@ public class EnvelopeCipherBenchmarks : NalixBenchmarkBase
     };
 
     [BenchmarkCategory("Encrypt"), Benchmark(Description = "Encrypt (ChaCha20)")]
-    public int EncryptChaCha20() => EnvelopeCipher.Encrypt(_key, Plaintext, CiphertextBuf, null, CipherSuiteType.Chacha20, out int written) ? written : 0;
+    public int EncryptChaCha20() { EnvelopeCipher.Encrypt(_key, Plaintext, CiphertextBuf, null, CipherSuiteType.Chacha20, out int written); return written; }
 
     [BenchmarkCategory("Encrypt"), Benchmark(Description = "Encrypt (ChaCha20-Poly1305)")]
-    public int EncryptChaCha20Poly1305() => EnvelopeCipher.Encrypt(_key, Plaintext, CiphertextBuf, _aad, null, CipherSuiteType.Chacha20Poly1305, out int written) ? written : 0;
+    public int EncryptChaCha20Poly1305() { EnvelopeCipher.Encrypt(_key, Plaintext, CiphertextBuf, _aad, null, CipherSuiteType.Chacha20Poly1305, out int written); return written; }
 
     [BenchmarkCategory("Encrypt"), Benchmark(Description = "Encrypt (Salsa20)")]
-    public int EncryptSalsa20() => EnvelopeCipher.Encrypt(_key, Plaintext, CiphertextBuf, null, CipherSuiteType.Salsa20, out int written) ? written : 0;
+    public int EncryptSalsa20() { EnvelopeCipher.Encrypt(_key, Plaintext, CiphertextBuf, null, CipherSuiteType.Salsa20, out int written); return written; }
 
     [BenchmarkCategory("Encrypt"), Benchmark(Description = "Encrypt (Salsa20-Poly1305)")]
-    public int EncryptSalsa20Poly1305() => EnvelopeCipher.Encrypt(_key, Plaintext, CiphertextBuf, _aad, null, CipherSuiteType.Salsa20Poly1305, out int written) ? written : 0;
+    public int EncryptSalsa20Poly1305() { EnvelopeCipher.Encrypt(_key, Plaintext, CiphertextBuf, _aad, null, CipherSuiteType.Salsa20Poly1305, out int written); return written; }
 
     [BenchmarkCategory("Decrypt"), Benchmark(Description = "Decrypt (ChaCha20)")]
-    public int DecryptChaCha20() => EnvelopeCipher.Decrypt(_key, GetEnvelope(CipherSuiteType.Chacha20), _decryptOut, out int written) ? written : 0;
+    public int DecryptChaCha20() { EnvelopeCipher.Decrypt(_key, GetEnvelope(CipherSuiteType.Chacha20), _decryptOut, out int written); return written; }
 
     [BenchmarkCategory("Decrypt"), Benchmark(Description = "Decrypt (ChaCha20-Poly1305)")]
-    public int DecryptChaCha20Poly1305() => EnvelopeCipher.Decrypt(_key, GetEnvelope(CipherSuiteType.Chacha20Poly1305), _decryptOut, _aad, out int written) ? written : 0;
+    public int DecryptChaCha20Poly1305() { EnvelopeCipher.Decrypt(_key, GetEnvelope(CipherSuiteType.Chacha20Poly1305), _decryptOut, _aad, out int written); return written; }
 
     [BenchmarkCategory("Decrypt"), Benchmark(Description = "Decrypt (Salsa20)")]
-    public int DecryptSalsa20() => EnvelopeCipher.Decrypt(_key, GetEnvelope(CipherSuiteType.Salsa20), _decryptOut, out int written) ? written : 0;
+    public int DecryptSalsa20() { EnvelopeCipher.Decrypt(_key, GetEnvelope(CipherSuiteType.Salsa20), _decryptOut, out int written); return written; }
 
     [BenchmarkCategory("Decrypt"), Benchmark(Description = "Decrypt (Salsa20-Poly1305)")]
-    public int DecryptSalsa20Poly1305() => EnvelopeCipher.Decrypt(_key, GetEnvelope(CipherSuiteType.Salsa20Poly1305), _decryptOut, _aad, out int written) ? written : 0;
+    public int DecryptSalsa20Poly1305() { EnvelopeCipher.Decrypt(_key, GetEnvelope(CipherSuiteType.Salsa20Poly1305), _decryptOut, _aad, out int written); return written; }
 }
