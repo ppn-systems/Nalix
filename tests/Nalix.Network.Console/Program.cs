@@ -1,6 +1,7 @@
 ﻿using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
 using Nalix.Logging;
+using Nalix.Shared.Memory.Pooling;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ internal static class Program
     public static async Task Main(String[] args)
     {
         InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
+        InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
 
         Console.WriteLine("Starting Custom TCP Listener...");
         const UInt16 port = 8080;
