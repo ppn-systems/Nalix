@@ -1,6 +1,7 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Enums;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Packets.Attributes;
@@ -20,13 +21,20 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly TokenBucketLimiter _global;
+    private readonly ILogger s_logger;
+    private readonly TokenBucketLimiter s_Global;
+    private readonly PolicyRateLimiter s_PolicyRateLimiter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RateLimitMiddleware"/> class
     /// using rate limit options retrieved from the global configuration store.
     /// </summary>
-    public RateLimitMiddleware() => _global = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
+    public RateLimitMiddleware()
+    {
+        s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        s_Global = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
+        s_PolicyRateLimiter = InstanceManager.Instance.GetOrCreateInstance<PolicyRateLimiter>();
+    }
 
     /// <summary>
     /// Invokes the rate limiting middleware for inbound packets. Checks if the packet exceeds the configured rate limit for the remote IP address.
@@ -45,15 +53,27 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         System.ArgumentNullException.ThrowIfNull(context);
         PacketRateLimitAttribute rl = context.Attributes.RateLimit;
 
-        if (rl is not null)
+        try
         {
-            // Attribute-driven policy: use centralized policy-based limiter
-            decision = PolicyRateLimiter.Check(context.Packet.OpCode, context);
+
+            if (rl is not null)
+            {
+                // Attribute-driven policy: use centralized policy-based limiter
+                decision = s_PolicyRateLimiter.Check(context.Packet.OpCode, context);
+            }
+            else
+            {
+                // No attribute: fallback to a global per-endpoint limiter
+                decision = s_Global.Check(context.Connection.EndPoint);
+            }
         }
-        else
+        catch (System.ObjectDisposedException)
         {
-            // No attribute: fallback to a global per-endpoint limiter
-            decision = _global.Check(context.Connection.EndPoint);
+            // If the limiter has been disposed (e.g., during shutdown), allow the packet to proceed
+            s_logger.Debug($"[NW.{nameof(RateLimitMiddleware)}:Invoke] rate-limiter-disposed request-allowed");
+
+            await next(context.CancellationToken).ConfigureAwait(false);
+            return;
         }
 
         if (!decision.Allowed)

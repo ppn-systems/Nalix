@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Diagnostics;
@@ -16,10 +16,49 @@ namespace Nalix.Network.Middleware.Outbound;
 /// <summary>
 /// Middleware that wraps a packet with compression and encryption as needed before dispatch.
 /// </summary>
-[MiddlewareOrder(100)] // Execute last in outbound
+[MiddlewareOrder(100)]
 [MiddlewareStage(MiddlewareStage.Outbound)]
 public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly IPacketCatalog s_catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
+
+    /// <summary>
+    /// Determines whether the specified packet should be compressed before transmission.
+    /// </summary>
+    /// <param name="packet">
+    /// The packet to evaluate for compression eligibility.
+    /// </param>
+    /// <returns>
+    /// <c>true</c> if the packet meets the compression criteria; otherwise, <c>false</c>.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// Compression decisions are based on the packet protocol and effective payload size.
+    /// </para>
+    /// <para>
+    /// For <see cref="ProtocolType.TCP"/>, packets are compressed when the payload size
+    /// exceeds the configured compression threshold.
+    /// </para>
+    /// <para>
+    /// For <see cref="ProtocolType.UDP"/>, compression is applied only when the payload size
+    /// falls within a bounded range to avoid fragmentation and excessive overhead.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="packet"/> is <c>null</c>.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public virtual System.Boolean ShouldCompress(IPacket packet)
+    {
+        System.Int32 payloadSize = packet.Length - PacketConstants.CompressionThreshold;
+
+        return packet.Protocol == ProtocolType.TCP
+            ? payloadSize > PacketConstants.CompressionThreshold
+            : packet.Protocol == ProtocolType.UDP && payloadSize is > 600 and < 1200;
+    }
+
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
@@ -28,7 +67,7 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
         IPacket current = context.Packet;
 
         System.Boolean needEncrypt = context.Attributes.Encryption?.IsEncrypted ?? false;
-        System.Boolean needCompress = SHOULD_COMPRESS(context);
+        System.Boolean needCompress = ShouldCompress(current);
 
         if (!needEncrypt && !needCompress)
         {
@@ -36,97 +75,44 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
+        if (s_catalog is null)
+        {
+            s_logger?.Fatal($"[NW.{nameof(WrapPacketMiddleware)}] missing-catalog");
+            await SEND_ERROR_RESPONSE(context, ProtocolReason.INTERNAL_ERROR, ControlFlags.NONE).ConfigureAwait(false);
+            return;
+        }
+
+        if (!s_catalog.TryGetTransformer(current.GetType(), out PacketTransformer transformer))
+        {
+            s_logger?.Error($"[NW.{nameof(WrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
+            await SEND_ERROR_RESPONSE(context, ProtocolReason.UNSUPPORTED_PACKET, ControlFlags.NONE).ConfigureAwait(false);
+            return;
+        }
+
         try
         {
-            IPacketCatalog catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
-            if (catalog is null)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Fatal($"[NW.{nameof(WrapPacketMiddleware)}] missing-catalog");
-
-                System.UInt32 sequenceId1 = context.Packet is IPacketSequenced sequenced1
-                    ? sequenced1.SequenceId
-                    : 0;
-
-                await context.Connection.SendAsync(
-                      controlType: ControlType.FAIL,
-                      reason: ProtocolReason.INTERNAL_ERROR,
-                      action: ProtocolAdvice.NONE,
-                      sequenceId: sequenceId1,
-                      flags: ControlFlags.NONE,
-                      arg0: context.Attributes.OpCode.OpCode,
-                      arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
-
-                return;
-            }
-
-            if (!catalog.TryGetTransformer(current.GetType(), out PacketTransformer t))
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(WrapPacketMiddleware)}] no-transformer type={current.GetType().Name}");
-
-                System.UInt32 sequenceId2 = context.Packet is IPacketSequenced sequenced2 ? sequenced2.SequenceId : 0;
-
-                await context.Connection.SendAsync(
-                      controlType: ControlType.FAIL,
-                      reason: ProtocolReason.UNSUPPORTED_PACKET,
-                      action: ProtocolAdvice.NONE,
-                      sequenceId: sequenceId2,
-                      flags: ControlFlags.NONE,
-                      arg0: context.Attributes.OpCode.OpCode,
-                      arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
-
-                return;
-            }
-
             if (needCompress)
             {
-                if (!t.HasCompress)
+                if (!transformer.HasCompress)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(WrapPacketMiddleware)}] no-compress type={current.GetType().Name}");
-
-                    System.UInt32 sequenceId3 = context.Packet is IPacketSequenced sequenced3
-                        ? sequenced3.SequenceId
-                        : 0;
-
-                    await context.Connection.SendAsync(
-                          controlType: ControlType.FAIL,
-                          reason: ProtocolReason.COMPRESSION_UNSUPPORTED,
-                          action: ProtocolAdvice.NONE,
-                          sequenceId: sequenceId3,
-                          flags: ControlFlags.NONE,
-                          arg0: context.Attributes.OpCode.OpCode,
-                          arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
-
+                    s_logger?.Error($"[NW.{nameof(WrapPacketMiddleware)}] no-compress type={current.GetType().Name}");
+                    await SEND_ERROR_RESPONSE(context, ProtocolReason.COMPRESSION_UNSUPPORTED, ControlFlags.NONE).ConfigureAwait(false);
                     return;
                 }
-                current = t.Compress(current);
+
+                current = transformer.Compress(current);
             }
 
             if (needEncrypt)
             {
-                if (!t.HasEncrypt)
+                if (!transformer.HasEncrypt)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(WrapPacketMiddleware)}] no-encrypt type={current.GetType().Name}");
-
-                    System.UInt32 sequenceId4 = context.Packet is IPacketSequenced sequenced4
-                        ? sequenced4.SequenceId
-                        : 0;
-
-                    await context.Connection.SendAsync(
-                          controlType: ControlType.FAIL,
-                          reason: ProtocolReason.CRYPTO_UNSUPPORTED,
-                          action: ProtocolAdvice.NONE,
-                          sequenceId: sequenceId4,
-                          flags: ControlFlags.NONE,
-                          arg0: context.Attributes.OpCode.OpCode,
-                          arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
-
+                    s_logger?.Error($"[NW.{nameof(WrapPacketMiddleware)}] no-encrypt type={current.GetType().Name}");
+                    await SEND_ERROR_RESPONSE(context, ProtocolReason.CRYPTO_UNSUPPORTED, ControlFlags.NONE).ConfigureAwait(false);
                     return;
                 }
-                current = t.Encrypt(current, context.Connection.Secret, context.Connection.Algorithm);
+
+                current = transformer.Encrypt(current, context.Connection.Secret, context.Connection.Algorithm);
             }
 
             if (!ReferenceEquals(current, context.Packet))
@@ -134,32 +120,42 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
                 context.AssignPacket(current);
             }
         }
-        catch (System.Exception)
+        catch (System.IO.InvalidDataException ex)
         {
-            System.UInt32 sequenceId5 = context.Packet is IPacketSequenced sequenced5
-                ? sequenced5.SequenceId
-                : 0;
-
-            await context.Connection.SendAsync(
-                  controlType: ControlType.FAIL,
-                  reason: ProtocolReason.TRANSFORM_FAILED,
-                  action: ProtocolAdvice.RETRY,
-                  sequenceId: sequenceId5,
-                  flags: ControlFlags.IS_TRANSIENT,
-                  arg0: context.Attributes.OpCode.OpCode,
-                  arg1: (System.UInt32)current.Flags, arg2: 0).ConfigureAwait(false);
-
+            s_logger?.Warn($"[NW.{nameof(WrapPacketMiddleware)}] compress-failed type={current.GetType().Name}", ex);
+            await SEND_ERROR_RESPONSE(context, ProtocolReason.COMPRESSION_FAILED, ControlFlags.NONE).ConfigureAwait(false);
+            return;
+        }
+        catch (System.Exception ex)
+        {
+            s_logger?.Warn($"[NW.{nameof(WrapPacketMiddleware)}] transform-failed type={current.GetType().Name}", ex);
+            await SEND_ERROR_RESPONSE(context, ProtocolReason.TRANSFORM_FAILED, ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
             return;
         }
 
         await next(context.CancellationToken).ConfigureAwait(false);
     }
 
-    private static System.Boolean SHOULD_COMPRESS(in PacketContext<IPacket> context)
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static async System.Threading.Tasks.Task SEND_ERROR_RESPONSE(PacketContext<IPacket> context, ProtocolReason reason, ControlFlags flags)
     {
-        return context.Packet.Protocol == ProtocolType.TCP
-            ? context.Packet.Length - PacketConstants.CompressionThreshold > PacketConstants.CompressionThreshold
-            : context.Packet.Protocol == ProtocolType.UDP &&
-              context.Packet.Length - PacketConstants.CompressionThreshold is > 600 and < 1200;
+        System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
+
+        try
+        {
+            await context.Connection.SendAsync(
+                controlType: ControlType.FAIL,
+                reason: reason,
+                action: ProtocolAdvice.NONE,
+                sequenceId: sequenceId,
+                flags: flags,
+                arg0: context.Attributes.OpCode.OpCode,
+                arg1: (System.UInt32)context.Packet.Flags,
+                arg2: 0).ConfigureAwait(false);
+        }
+        catch (System.Exception ex)
+        {
+            s_logger?.Error($"[NW.{nameof(WrapPacketMiddleware)}] send-error-failed reason={reason}", ex);
+        }
     }
 }

@@ -20,7 +20,7 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 {
-    private static readonly ConcurrencyGate s_ConcurrencyGate = InstanceManager.Instance.GetOrCreateInstance<ConcurrencyGate>();
+    private readonly ConcurrencyGate s_ConcurrencyGate = InstanceManager.Instance.GetOrCreateInstance<ConcurrencyGate>();
 
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.
