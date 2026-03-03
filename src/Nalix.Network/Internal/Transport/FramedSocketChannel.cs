@@ -38,7 +38,6 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     #region Fields
 
     private readonly System.Net.Sockets.Socket _socket = socket;
-    private readonly System.String _epText = FORMAT_ENDPOINT(socket);
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
     [System.Diagnostics.CodeAnalysis.AllowNull] private IConnection _sender;
@@ -52,7 +51,10 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     private System.Int32 _cancelSignaled;           // 0 = not yet, 1 = started
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private System.Byte[] _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent();
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private System.Byte[] s_buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().Rent();
 
     #endregion Fields
 
@@ -110,8 +112,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
 
 #if DEBUG
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(BeginReceive)}] receive-loop started ep={_socket.RemoteEndPoint}");
+        s_logger.Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(BeginReceive)}] receive-loop started ep={_socket.RemoteEndPoint}");
 #endif
 
         System.Threading.CancellationTokenSource linked =
@@ -126,7 +127,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             }
 
             link.Dispose();
-        }, (InstanceManager.Instance.GetExistingInstance<ILogger>(), linked));
+        }, (s_logger, linked));
     }
 
     /// <summary>
@@ -162,8 +163,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             try
             {
 #if DEBUG
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-stackalloc len={data.Length}");
+                s_logger.Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-stackalloc len={data.Length}");
 #endif
 
                 System.Span<System.Byte> bufferS = stackalloc System.Byte[totalLength];
@@ -187,8 +187,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             }
             catch (System.Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-stackalloc-error", ex);
+                s_logger.Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-stackalloc-error ip={_sender.EndPoint.Address}", ex);
+
                 return false;
             }
         }
@@ -199,8 +199,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         try
         {
 #if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-pooled len={data.Length} id={_sender?.ID}");
+            s_logger.Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-pooled len={data.Length} ip={_sender.EndPoint.Address}");
 #endif
 
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(System.MemoryExtensions
@@ -226,8 +225,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-pooled-error id={_sender?.ID}", ex);
+            s_logger.Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(Send)}] send-pooled-error ip={_sender.EndPoint.Address}", ex);
+
             return false;
         }
         finally
@@ -271,8 +270,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             WRITE_FRAME_HEADER(System.MemoryExtensions.AsSpan(buffer), totalLength, data.Span);
 
 #if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(SendAsync)}] send-async len={data.Length} id={_sender?.ID}");
+            s_logger.Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(SendAsync)}] send-async len={data.Length} ip={_sender.EndPoint.Address}");
 #endif
 
             System.Int32 sent = 0;
@@ -298,8 +296,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(SendAsync)}] send-async-error id={_sender?.ID}", ex);
+            s_logger.Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(SendAsync)}] send-async-error ip={_sender.EndPoint.Address}", ex);
+
             return false;
         }
         finally
@@ -426,15 +424,14 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             {
                 // 1) Read 2-byte header (little-endian length)
                 await this.RECEIVE_EXACTLY_ASYNC(System.MemoryExtensions
-                          .AsMemory(_buffer, 0, HeaderSize), token)
+                          .AsMemory(s_buffer, 0, HeaderSize), token)
                           .ConfigureAwait(false);
 
                 System.UInt16 size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(System.MemoryExtensions
-                                                                           .AsSpan(_buffer, 0, HeaderSize));
+                                                                           .AsSpan(s_buffer, 0, HeaderSize));
 
 #if DEBUG
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Meta($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] recv-header size(le)={size}");
+                s_logger.Meta($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] recv-header size(le)={size} ip={_sender.EndPoint.Address}");
 #endif
 
                 if (!IS_VALID_PACKET_SIZE(size))
@@ -444,9 +441,9 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 }
 
                 // 2) Ensure capacity
-                if (size > _buffer.Length)
+                if (size > s_buffer.Length)
                 {
-                    System.Byte[] oldBuffer = _buffer;
+                    System.Byte[] oldBuffer = s_buffer;
                     System.Byte[] newBuffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
                                                                       .Rent(size);
 
@@ -456,7 +453,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                                            .AsSpan(newBuffer));
 
                     // Atomic swap
-                    System.Byte[] swapped = System.Threading.Interlocked.Exchange(ref _buffer, newBuffer);
+                    System.Byte[] swapped = System.Threading.Interlocked.Exchange(ref s_buffer, newBuffer);
 
                     if (swapped is not null && swapped != newBuffer)
                     {
@@ -468,17 +465,16 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                 // 3) Read payload
                 System.Int32 payload = size - HeaderSize;
                 await this.RECEIVE_EXACTLY_ASYNC(System.MemoryExtensions
-                          .AsMemory(_buffer, HeaderSize, payload), token)
+                          .AsMemory(s_buffer, HeaderSize, payload), token)
                           .ConfigureAwait(false);
 
 #if DEBUG
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] " +
-                                               $"recv-frame size={size} payload={payload} ep={_epText}");
+                s_logger.Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] " +
+                               $"recv-frame size={size} payload={payload} ip={_sender.EndPoint.Address}");
 #endif
 
                 // 4) Handoff to session cache
-                System.Byte[] currentBuffer = System.Threading.Interlocked.Exchange(ref _buffer, null);
+                System.Byte[] currentBuffer = System.Threading.Interlocked.Exchange(ref s_buffer, null);
 
                 if (currentBuffer is not null)
                 {
@@ -487,25 +483,22 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
                               .TakeOwnership(currentBuffer, HeaderSize, payload));
                 }
 
-                _buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
+                s_buffer = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
                                                   .Rent(); // prepare for next read
             }
         }
         catch (System.Exception ex) when (IS_BENIGN_DISCONNECT(ex))
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] receive-loop ended (peer closed/shutdown) ep={_epText}");
+            s_logger.Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] receive-loop ended (peer closed/shutdown) ip={_sender.EndPoint.Address}");
         }
         catch (System.OperationCanceledException)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] receive-loop cancelled");
+            s_logger.Trace($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] receive-loop cancelled");
         }
         catch (System.Exception ex)
         {
-            var e = (ex as System.AggregateException)?.Flatten() ?? ex;
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] receive-loop faulted", e);
+            System.Exception e = (ex as System.AggregateException)?.Flatten() ?? ex;
+            s_logger.Error($"[NW.{nameof(FramedSocketChannel)}:{nameof(RECEIVE_LOOP_ASYNC)}] receive-loop faulted", e);
         }
         finally
         {
@@ -547,7 +540,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             catch { /* ignore */ }
 
             // 4. Return buffer using Interlocked to avoid race
-            System.Byte[] bufferToReturn = System.Threading.Interlocked.Exchange(ref _buffer, null);
+            System.Byte[] bufferToReturn = System.Threading.Interlocked.Exchange(ref s_buffer, null);
             if (bufferToReturn is not null)
             {
                 InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
@@ -566,8 +559,7 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         }
 
 #if DEBUG
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-            .Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Dispose)}] disposed");
+        s_logger.Debug($"[NW.{nameof(FramedSocketChannel)}:{nameof(Dispose)}] disposed");
 #endif
     }
 

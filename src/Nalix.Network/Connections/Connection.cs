@@ -26,6 +26,9 @@ public sealed partial class Connection : IConnection
     private readonly ConnectionEventArgs _evtArgs;
     private readonly FramedSocketChannel _cstream;
 
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     private UdpTransport _udp;
     private System.Byte[] _secret;
     private System.Int64 _bytesSent;
@@ -65,8 +68,7 @@ public sealed partial class Connection : IConnection
 
         this.TCP = new TcpTransport(this);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(Connection)}] created remote={this.EndPoint} id={this.ID}");
+        s_logger.Debug($"[NW.{nameof(Connection)}] created remote={this.EndPoint} id={this.ID}");
     }
 
     #endregion Constructor
@@ -214,8 +216,7 @@ public sealed partial class Connection : IConnection
         _cstream.Cache.PushIncoming(BufferLease.CopyFrom(bytes));
 
 #if DEBUG
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(FramedSocketChannel)}:{InjectIncoming}] inject-bytes len={bytes.Length}");
+        s_logger.Debug($"[NW.{nameof(FramedSocketChannel)}:{InjectIncoming}] inject-bytes len={bytes.Length}");
 #endif
     }
 
@@ -232,8 +233,7 @@ public sealed partial class Connection : IConnection
         this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
 #if DEBUG
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.EndPoint}");
+        s_logger.Debug($"[NW.{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.EndPoint}");
 #endif
     }
 
@@ -276,8 +276,7 @@ public sealed partial class Connection : IConnection
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(Connection)}:{Dispose}] dispose-error msg={ex.Message}");
+            s_logger.Error($"[NW.{nameof(Connection)}:{Dispose}] dispose-error msg={ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);

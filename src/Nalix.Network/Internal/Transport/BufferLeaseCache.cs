@@ -97,7 +97,7 @@ internal sealed class BufferLeaseCache : System.IDisposable
         IConnection sender,
         IConnectEventArgs args)
     {
-        this.ThrowIfDisposed();
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(BufferLeaseCache));
 
         System.ArgumentNullException.ThrowIfNull(callback);
         System.ArgumentNullException.ThrowIfNull(sender);
@@ -133,7 +133,7 @@ internal sealed class BufferLeaseCache : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PushIncoming(BufferLease data)
     {
-        this.ThrowIfDisposed();
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(BufferLeaseCache));
 
         System.ArgumentNullException.ThrowIfNull(data);
 
@@ -209,28 +209,10 @@ internal sealed class BufferLeaseCache : System.IDisposable
         }
 
 #if DEBUG
-        Nalix.Framework.Injection.InstanceManager.Instance
-            .GetExistingInstance<Nalix.Common.Diagnostics.ILogger>()?
-            .Debug($"[BufferLeaseCache] Disposed. Total dropped packets: {_droppedPackets}");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[BufferLeaseCache] Disposed total-dropped-packets={_droppedPackets}");
 #endif
     }
 
     #endregion Public Methods
-
-    #region Private Methods
-
-    /// <summary>
-    /// Throws <see cref="System.ObjectDisposedException"/> if the cache is disposed.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void ThrowIfDisposed()
-    {
-        if (System.Threading.Volatile.Read(ref _disposed) != 0)
-        {
-            throw new System.ObjectDisposedException(nameof(BufferLeaseCache));
-        }
-    }
-
-    #endregion Private Methods
 }

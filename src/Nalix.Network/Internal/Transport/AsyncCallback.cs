@@ -89,7 +89,7 @@ internal static class AsyncCallback
         {
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback is null, skipping");
+                                    .Trace($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-null skipping");
 #endif
             return false;
         }
@@ -102,8 +102,8 @@ internal static class AsyncCallback
             System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] backpressure limit reached, " +
-                       $"dropped callback (pending={pending}, dropped={s_droppedCallbacks})");
+                                    .Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] backpressure-limit-reached " +
+                                           $"dropped-callback (pending={pending}, dropped={s_droppedCallbacks})");
 
             return false;
         }
@@ -136,7 +136,7 @@ internal static class AsyncCallback
             System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] failed to queue work item");
+                                    .Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] failed-queue-work-item");
 
             // Return to pool
             wrapper.Clear();
