@@ -1,255 +1,327 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Enums;
-using Nalix.Common.Exceptions;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch;
 
 namespace Nalix.Network.Middleware;
 
 /// <summary>
-/// Represents a middleware pipeline for processing packets.
-/// Allows chaining multiple middleware components to handle a packet context.
-/// Middlewares are automatically sorted by their <see cref="MiddlewareOrderAttribute"/>.
+/// Represents a thread-safe middleware pipeline responsible for processing
+/// packets through inbound and outbound stages with configurable error handling.
 /// </summary>
-/// <typeparam name="TPacket">The type of packet being processed in the pipeline.</typeparam>
+/// <typeparam name="TPacket">
+/// The packet type being processed by the middleware pipeline.
+/// </typeparam>
+/// <remarks>
+/// <para>
+/// The pipeline supports three execution stages:
+/// <list type="bullet">
+/// <item><description><b>Inbound</b>: Executed before the main packet handler.</description></item>
+/// <item><description><b>Outbound</b>: Executed after the handler, in reverse order.</description></item>
+/// <item><description><b>OutboundAlways</b>: Executed after the handler regardless of cancellation or errors.</description></item>
+/// </list>
+/// </para>
+/// <para>
+/// Middleware ordering is controlled via attributes and cached for performance.
+/// The pipeline creates immutable execution snapshots to avoid locking during execution.
+/// </para>
+/// </remarks>
 public class MiddlewarePipeline<TPacket>
 {
     #region Fields
 
+    private readonly System.Threading.Lock _lock = new();
     private readonly System.Collections.Generic.List<MiddlewareEntry> _inbound = [];
     private readonly System.Collections.Generic.List<MiddlewareEntry> _outbound = [];
     private readonly System.Collections.Generic.List<MiddlewareEntry> _outboundAlways = [];
+    private readonly System.Collections.Generic.HashSet<IPacketMiddleware<TPacket>> _registeredMiddlewares = [];
 
-    private System.Boolean _isSorted;
+    private volatile System.Boolean _isSorted;
+    private System.Boolean _continueOnError;
+    private System.Action<System.Exception, System.Type> _errorHandler;
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, MiddlewareMetadata>
+        s_metadataCache = new();
 
     #endregion Fields
 
     #region Properties
 
     /// <summary>
-    /// Gets a value indicating whether the middleware pipeline contains no middleware components.
+    /// Gets a value indicating whether the pipeline contains no registered middleware.
     /// </summary>
-    public System.Boolean IsEmpty => _inbound.Count == 0 && _outbound.Count == 0 && _outboundAlways.Count == 0;
+    /// <value>
+    /// <see langword="true"/> if no inbound or outbound middleware is registered;
+    /// otherwise, <see langword="false"/>.
+    /// </value>
+    public System.Boolean IsEmpty
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _inbound.Count == 0 && _outbound.Count == 0 && _outboundAlways.Count == 0;
+            }
+        }
+    }
 
     #endregion Properties
 
     #region Public Methods
 
     /// <summary>
-    /// Executes the pipeline asynchronously using the provided packet context and terminal handler.
-    /// Middlewares are invoked in the order specified by their <see cref="MiddlewareOrderAttribute"/>.
+    /// Configures how the pipeline handles exceptions thrown by middleware.
     /// </summary>
+    /// <param name="continueOnError">
+    /// A value indicating whether execution should continue
+    /// after a middleware throws an exception.
+    /// </param>
+    /// <param name="errorHandler">
+    /// An optional callback invoked when an exception occurs,
+    /// providing the exception and the middleware type.
+    /// </param>
+    public void ConfigureErrorHandling(
+        System.Boolean continueOnError,
+        System.Action<System.Exception, System.Type> errorHandler = null)
+    {
+        lock (_lock)
+        {
+            _continueOnError = continueOnError;
+            _errorHandler = errorHandler;
+        }
+    }
+
+    /// <summary>
+    /// Executes the middleware pipeline for the specified packet context.
+    /// </summary>
+    /// <param name="context">
+    /// The packet execution context shared across middleware.
+    /// </param>
+    /// <param name="handler">
+    /// The final handler invoked after inbound middleware execution.
+    /// </param>
+    /// <param name="ct">
+    /// A cancellation token used to cancel pipeline execution.
+    /// </param>
+    /// <returns>
+    /// A task that represents the asynchronous execution of the pipeline.
+    /// </returns>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="context"/> or <paramref name="handler"/> is <see langword="null"/>.
+    /// </exception>
     public System.Threading.Tasks.Task ExecuteAsync(
         PacketContext<TPacket> context,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> handler,
         System.Threading.CancellationToken ct = default)
     {
-        ENSURE_SORTED();
+        System.ArgumentNullException.ThrowIfNull(context);
+        System.ArgumentNullException.ThrowIfNull(handler);
+
+        // Create immutable snapshots
+        System.Collections.Generic.List<MiddlewareEntry> inboundSnapshot;
+        System.Collections.Generic.List<MiddlewareEntry> outboundSnapshot;
+        System.Collections.Generic.List<MiddlewareEntry> outboundAlwaysSnapshot;
+        System.Boolean continueOnError;
+        System.Action<System.Exception, System.Type> errorHandler;
+
+        lock (_lock)
+        {
+            ENSURE_SORTED_UNSAFE();
+            inboundSnapshot = [.. _inbound];
+            outboundSnapshot = [.. _outbound];
+            outboundAlwaysSnapshot = [.. _outboundAlways];
+            continueOnError = _continueOnError;
+            errorHandler = _errorHandler;
+        }
 
         return INVOKE_PIPELINE_ASYNC(
-            _inbound, context,
-            async (downstreamCt) =>
+            inboundSnapshot, context,
+            async (inboundCt) =>
             {
-                await handler(downstreamCt).ConfigureAwait(false);
+                using var handlerCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(inboundCt, ct);
+
+                try
+                {
+                    await handler(handlerCts.Token).ConfigureAwait(false);
+                }
+                catch (System.OperationCanceledException)
+                {
+                    // Continue to outbound-always even if cancelled
+                }
 
                 await INVOKE_PIPELINE_ASYNC(
-                    _outboundAlways, context,
+                    outboundAlwaysSnapshot, context,
                     (ct) =>
                     {
                         ct.ThrowIfCancellationRequested();
                         return System.Threading.Tasks.Task.CompletedTask;
                     },
-                    downstreamCt
+                    ct,
+                    continueOnError,
+                    errorHandler
                 ).ConfigureAwait(false);
 
-                if (!context.SkipOutbound)
+                if (!context.SkipOutbound && !handlerCts.Token.IsCancellationRequested)
                 {
                     await INVOKE_PIPELINE_ASYNC(
-                        _outbound, context,
+                        outboundSnapshot, context,
                         (ct) =>
                         {
                             ct.ThrowIfCancellationRequested();
                             return System.Threading.Tasks.Task.CompletedTask;
                         },
-                        downstreamCt
+                        inboundCt,
+                        continueOnError,
+                        errorHandler
                     ).ConfigureAwait(false);
                 }
             },
-            ct
+            ct,
+            continueOnError,
+            errorHandler
         );
     }
 
     /// <summary>
-    /// Adds a middleware component automatically to the appropriate stage based on its attributes.
+    /// Registers a middleware instance into the pipeline.
     /// </summary>
-    /// <param name="middleware">The middleware to add.</param>
+    /// <param name="middleware">
+    /// The middleware instance to register.
+    /// </param>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="middleware"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown when the middleware instance has already been registered.
+    /// </exception>
     public void Use(IPacketMiddleware<TPacket> middleware)
     {
-        System.Type type = middleware.GetType();
-        System.Int32 order = GET_MIDDLEWARE_ORDER(type);
-        MiddlewareStage stage = GET_MIDDLEWARE_STAGE(type);
-        System.Boolean alwaysExecute = GET_ALWAYS_EXECUTE(type);
+        System.ArgumentNullException.ThrowIfNull(middleware);
 
-        MiddlewareEntry entry = new(middleware, order);
-
-        switch (stage)
+        lock (_lock)
         {
-            case MiddlewareStage.Inbound:
-                _inbound.Add(entry);
-                break;
+            if (!_registeredMiddlewares.Add(middleware))
+            {
+                throw new System.InvalidOperationException(
+                    $"Middleware '{middleware.GetType().FullName}' already registered");
+            }
 
-            case MiddlewareStage.Outbound:
-                if (alwaysExecute)
-                {
-                    _outboundAlways.Add(entry);
-                }
-                else
-                {
-                    _outbound.Add(entry);
-                }
-                break;
+            MiddlewareMetadata metadata = GET_MIDDLEWARE_METADATA(middleware.GetType());
+            MiddlewareEntry entry = new(middleware, metadata.Order);
 
-            case MiddlewareStage.Both:
-                _inbound.Add(entry);
-                if (alwaysExecute)
-                {
-                    _outboundAlways.Add(entry);
-                }
-                else
-                {
-                    _outbound.Add(entry);
-                }
-                break;
+            switch (metadata.Stage)
+            {
+                case MiddlewareStage.Inbound:
+                    _inbound.Add(entry);
+                    break;
+                case MiddlewareStage.Outbound:
+                    (metadata.AlwaysExecute ? _outboundAlways : _outbound).Add(entry);
+                    break;
+                case MiddlewareStage.Both:
+                    _inbound.Add(entry);
+                    (metadata.AlwaysExecute ? _outboundAlways : _outbound).Add(entry);
+                    break;
+                default:
+                    throw new System.ArgumentOutOfRangeException();
+            }
+
+            _isSorted = false;
         }
-
-        _isSorted = false;
     }
 
     /// <summary>
-    /// Adds a middleware component to be executed before the main handler.
+    /// Removes all registered middleware from the pipeline.
     /// </summary>
-    public void UseInbound(IPacketMiddleware<TPacket> middleware)
+    /// <remarks>
+    /// After calling this method, the pipeline will be empty
+    /// and require middleware to be registered again.
+    /// </remarks>
+    public void Clear()
     {
-        System.Int32 order = GET_MIDDLEWARE_ORDER(middleware.GetType());
-        _inbound.Add(new MiddlewareEntry(middleware, order));
-        _isSorted = false;
-    }
-
-    /// <summary>
-    /// Adds a middleware component to be executed after the main handler.
-    /// </summary>
-    public void UseOutbound(IPacketMiddleware<TPacket> middleware)
-    {
-        System.Int32 order = GET_MIDDLEWARE_ORDER(middleware.GetType());
-        _outbound.Add(new MiddlewareEntry(middleware, order));
-        _isSorted = false;
-    }
-
-    /// <summary>
-    /// Adds a middleware component to be executed after the main handler, regardless of outbound skipping.
-    /// </summary>
-    public void UseOutboundAlways(IPacketMiddleware<TPacket> middleware)
-    {
-        System.Int32 order = GET_MIDDLEWARE_ORDER(middleware.GetType());
-        _outboundAlways.Add(new MiddlewareEntry(middleware, order));
-        _isSorted = false;
+        lock (_lock)
+        {
+            _inbound.Clear();
+            _outbound.Clear();
+            _outboundAlways.Clear();
+            _registeredMiddlewares.Clear();
+            _isSorted = false;
+        }
     }
 
     #endregion Public Methods
 
     #region Private Methods
 
-    private void ENSURE_SORTED()
+    private void ENSURE_SORTED_UNSAFE()
     {
         if (_isSorted)
         {
             return;
         }
 
-        // Sort by order ascending (lower values execute first)
         _inbound.Sort((a, b) => a.Order.CompareTo(b.Order));
-
-        // For outbound, reverse order (higher values execute first in outbound)
         _outbound.Sort((a, b) => b.Order.CompareTo(a.Order));
         _outboundAlways.Sort((a, b) => b.Order.CompareTo(a.Order));
 
         _isSorted = true;
     }
 
-    private static System.Int32 GET_MIDDLEWARE_ORDER(System.Type middlewareType)
+    private static MiddlewareMetadata GET_MIDDLEWARE_METADATA(System.Type middlewareType)
     {
         System.ArgumentNullException.ThrowIfNull(middlewareType);
 
-        System.Object[] attributes = middlewareType.GetCustomAttributes(typeof(MiddlewareOrderAttribute), true);
-
-        if (attributes.Length == 0)
+        return s_metadataCache.GetOrAdd(middlewareType, static type =>
         {
-            return 0; // Default order
-        }
+            System.Int32 order = 0;
+            MiddlewareStage stage = MiddlewareStage.Inbound;
+            System.Boolean alwaysExecute = false;
 
-        return attributes[0] is not MiddlewareOrderAttribute attr
-            ? throw new InternalErrorException(
-                $"Attribute retrieval failed for type '{middlewareType.FullName}'.",
-                $"Expected '{nameof(MiddlewareOrderAttribute)}' but got '{attributes[0]?.GetType().FullName ?? "null"}'."
-            )
-            : attr.Order;
-    }
+            if (System.Attribute.GetCustomAttribute(type, typeof(MiddlewareOrderAttribute))
+                is MiddlewareOrderAttribute orderAttr)
+            {
+                order = orderAttr.Order;
+            }
 
-    private static MiddlewareStage GET_MIDDLEWARE_STAGE(System.Type middlewareType)
-    {
-        System.ArgumentNullException.ThrowIfNull(middlewareType);
+            if (System.Attribute.GetCustomAttribute(type, typeof(MiddlewareStageAttribute))
+                is MiddlewareStageAttribute stageAttr)
+            {
+                stage = stageAttr.Stage;
+                alwaysExecute = stageAttr.AlwaysExecute;
+            }
 
-        System.Object[] attributes = middlewareType.GetCustomAttributes(typeof(MiddlewareStageAttribute), true);
-
-        if (attributes.Length == 0)
-        {
-            return MiddlewareStage.Inbound; // Default stage
-        }
-
-        return attributes[0] is not MiddlewareStageAttribute attr
-            ? throw new InternalErrorException(
-                $"Attribute retrieval failed for type '{middlewareType.FullName}'.",
-                $"Expected '{nameof(MiddlewareStageAttribute)}' but got '{attributes[0]?.GetType().FullName ?? "null"}'."
-            )
-            : attr.Stage;
-    }
-
-    private static System.Boolean GET_ALWAYS_EXECUTE(System.Type middlewareType)
-    {
-        System.ArgumentNullException.ThrowIfNull(middlewareType);
-
-        System.Object[] attributes = middlewareType.GetCustomAttributes(typeof(MiddlewareStageAttribute), true);
-
-        if (attributes.Length == 0)
-        {
-            return false; // Default: not always execute
-        }
-
-        return attributes[0] is not MiddlewareStageAttribute attr
-            ? throw new InternalErrorException(
-                $"Attribute retrieval failed for type '{middlewareType.FullName}'.",
-                $"Expected '{nameof(MiddlewareStageAttribute)}' but got '{attributes[0]?.GetType().FullName ?? "null"}'."
-            )
-            : attr.AlwaysExecute;
+            return new MiddlewareMetadata(order, stage, alwaysExecute);
+        });
     }
 
     private static System.Threading.Tasks.Task INVOKE_PIPELINE_ASYNC(
-        System.Collections.Generic.List<MiddlewareEntry> middlewares, PacketContext<TPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> final, System.Threading.CancellationToken startToken)
+        System.Collections.Generic.List<MiddlewareEntry> middlewares,
+        PacketContext<TPacket> context,
+        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> final,
+        System.Threading.CancellationToken startToken,
+        System.Boolean continueOnError = false,
+        System.Action<System.Exception, System.Type> errorHandler = null)
     {
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "Token may be used by middleware")]
         static System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> CreateWrapper(
             PacketContext<TPacket> context,
             IPacketMiddleware<TPacket> middleware,
-            System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
+            System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
+            System.Boolean continueOnError,
+            System.Action<System.Exception, System.Type> errorHandler)
         {
-            return token =>
-                middleware.InvokeAsync(
-                    context,
-                    downstreamToken => next(downstreamToken)
-                );
+            return async token =>
+            {
+                try
+                {
+                    await middleware.InvokeAsync(context, next).ConfigureAwait(false);
+                }
+                catch (System.Exception ex) when (continueOnError)
+                {
+                    errorHandler?.Invoke(ex, middleware.GetType());
+                    await next(token).ConfigureAwait(false);
+                }
+            };
         }
 
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next = final;
@@ -258,17 +330,24 @@ public class MiddlewarePipeline<TPacket>
         {
             IPacketMiddleware<TPacket> current = middlewares[i].Middleware;
             System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> localNext = next;
-            next = CreateWrapper(context, current, localNext);
+            next = CreateWrapper(context, current, localNext, continueOnError, errorHandler);
         }
 
         return next(startToken);
     }
+
+    internal static void ClearMetadataCache() => s_metadataCache.Clear();
 
     #endregion Private Methods
 
     #region Nested Types
 
     private readonly record struct MiddlewareEntry(IPacketMiddleware<TPacket> Middleware, System.Int32 Order);
+
+    private readonly record struct MiddlewareMetadata(
+        System.Int32 Order,
+        MiddlewareStage Stage,
+        System.Boolean AlwaysExecute);
 
     #endregion Nested Types
 }

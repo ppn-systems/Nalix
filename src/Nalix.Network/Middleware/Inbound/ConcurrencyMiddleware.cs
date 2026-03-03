@@ -1,10 +1,11 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
 using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
+using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Connections;
 using Nalix.Network.Dispatch;
@@ -19,6 +20,8 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 {
+    private static readonly ConcurrencyGate s_ConcurrencyGate = InstanceManager.Instance.GetOrCreateInstance<ConcurrencyGate>();
+
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.
     /// </summary>
@@ -42,13 +45,13 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
         {
             if (context.Attributes.ConcurrencyLimit.Queue)
             {
-                lease = await ConcurrencyGate.EnterAsync(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, context.CancellationToken)
-                                             .ConfigureAwait(false);
+                lease = await s_ConcurrencyGate.EnterAsync(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, context.CancellationToken)
+                                              .ConfigureAwait(false);
                 acquired = true;
             }
             else
             {
-                acquired = ConcurrencyGate.TryEnter(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, out lease);
+                acquired = s_ConcurrencyGate.TryEnter(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, out lease);
 
                 if (!acquired)
                 {
