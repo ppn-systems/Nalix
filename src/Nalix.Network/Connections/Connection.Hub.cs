@@ -784,7 +784,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 ISnowflake id = kvp.Key;
                 System.String username = GetUsername(id) ?? "(anonymous)";
 
-                _ = sb.AppendLine($"{id,-15} | {username}");
+                _ = sb.AppendLine($"{id,-14} | {username}");
 
                 if (++count >= Limit)
                 {

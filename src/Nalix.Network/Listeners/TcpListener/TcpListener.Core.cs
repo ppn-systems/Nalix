@@ -9,6 +9,7 @@ using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
+using Nalix.Network.Throttling;
 using Nalix.Network.Timing;
 using Nalix.Shared.Memory.Pooling;
 
@@ -27,6 +28,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     #region Fields
 
     internal static readonly NetworkSocketOptions Config;
+    internal static readonly ConnectionLimiter Limiter;
 
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
@@ -98,6 +100,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     static TcpListenerBase()
     {
         Config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+        Limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>();
 
         if (System.OperatingSystem.IsWindows() && Config.TuneThreadPool)
         {
