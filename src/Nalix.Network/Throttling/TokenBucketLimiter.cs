@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved. 
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved. 
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
@@ -120,10 +120,14 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     #endregion Fields
 
+    #region Properties
+
     /// <summary>
     /// Recurring job name for cleanup task. Format: "token.bucket".
     /// </summary>
     public static readonly System.String RecurringName;
+
+    #endregion Properties
 
     #region Constructors
 
@@ -194,7 +198,17 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public RateLimitDecision Check([System.Diagnostics.CodeAnalysis.NotNull] INetworkEndpoint key)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(TokenBucketLimiter));
+        if (_disposed)
+        {
+            return new RateLimitDecision
+            {
+                Allowed = false,
+                RetryAfterMs = 0,
+                Credit = 0,
+                Reason = RateLimitReason.HardLockout
+            };
+        }
+
         VALIDATE_ENDPOINT(key);
 
         System.Int64 now = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -286,13 +300,14 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             };
         }
 
-        System.Int32 newCount = System.Threading.Interlocked.Increment(ref _totalEndpointCount);
         EndpointState newState = CREATE_INITIAL_ENDPOINT_STATE(now);
+        System.Int32 newCount = System.Threading.Interlocked.Increment(ref _totalEndpointCount);
 
         if (!shard.Map.TryAdd(key, newState))
         {
             // Lost the race - another thread added it first
             _ = System.Threading.Interlocked.Decrement(ref _totalEndpointCount);
+
             return new EndpointStateResult
             {
                 State = shard.Map[key],
@@ -345,7 +360,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             return false;
         }
 
-        System.Int32 currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
+        System.Int32 currentCount = System.Threading.Volatile.Read(ref _totalEndpointCount);
         return currentCount >= _opt.MaxTrackedEndpoints;
     }
 
@@ -571,47 +586,47 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             return;
         }
 
-        // ALWAYS update to prevent dt accumulation (Bug Fix #1)
+        // This prevents time drift and ensures consistent refill intervals
         state.LastRefillSwTicks = now;
 
-        // Check for potential overflow
+        // Check for potential overflow before multiplication
         if (dt > System.Int64.MaxValue / _refillPerSecMicro)
         {
+            // Extreme case: very long dt or high refill rate → cap at full
             state.AccumulatedMicro = 0;
             state.MicroBalance = _capacityMicro;
-
             return;
         }
 
-        // Only calculate refill if bucket is not already full
-        if (state.MicroBalance < _capacityMicro)
+        // Early exit if already at capacity (optimization)
+        if (state.MicroBalance >= _capacityMicro)
         {
-            // ✅ FIX: Use high-precision calculation with accumulator
-            System.Int64 totalMicro = (dt * _refillPerSecMicro) + state.AccumulatedMicro;
-            System.Int64 microToAdd = totalMicro / (System.Int64)_swFreq;
-            System.Int64 remainder = totalMicro % (System.Int64)_swFreq;
-
-            // Store remainder for next refill
-            state.AccumulatedMicro = remainder;
-
-            if (microToAdd > 0)
-            {
-                System.Int64 newBalance = state.MicroBalance + microToAdd;
-                state.MicroBalance = newBalance >= _capacityMicro
-                    ? _capacityMicro
-                    : newBalance;
-
-                // ✅ If capped at capacity, reset accumulator
-                if (state.MicroBalance >= _capacityMicro)
-                {
-                    state.AccumulatedMicro = 0;
-                }
-            }
+            state.AccumulatedMicro = 0; // Reset accumulator when full
+            return;
         }
-        else
+
+        // Formula: (dt * refillRate) + accumulated = whole_tokens * frequency + remainder
+        System.Int64 totalMicro = (dt * _refillPerSecMicro) + state.AccumulatedMicro;
+        System.Int64 microToAdd = totalMicro / (System.Int64)_swFreq;
+        System.Int64 remainder = totalMicro % (System.Int64)_swFreq;
+
+        // Store remainder for next refill (prevents precision loss)
+        state.AccumulatedMicro = remainder;
+
+        if (microToAdd > 0)
         {
-            // Bucket full - reset accumulator
-            state.AccumulatedMicro = 0;
+            System.Int64 newBalance = state.MicroBalance + microToAdd;
+
+            // Clamp to capacity
+            state.MicroBalance = newBalance >= _capacityMicro
+                ? _capacityMicro
+                : newBalance;
+
+            // Reset accumulator if capped (prevents unbounded growth)
+            if (state.MicroBalance >= _capacityMicro)
+            {
+                state.AccumulatedMicro = 0;
+            }
         }
     }
 
@@ -628,18 +643,33 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         if (_refillPerSecMicro <= 0)
         {
-            return 0;
+            return 0; // No refill configured
         }
 
-        // ✅ FIX: Protect against overflow (Bug Fix #2)
+        if (microNeeded <= 0)
+        {
+            return 0; // No tokens needed
+        }
+
+        // Check for potential overflow BEFORE calculation
+        if (microNeeded > (System.Int64.MaxValue / 1000))
+        {
+            // Would overflow in multiplication
+            return System.Int32.MaxValue;
+        }
+
+        // Safe calculation with double precision
         System.Double delayMs = microNeeded * 1000.0 / _refillPerSecMicro;
 
-        if (delayMs >= MaxDelayMs)
+        // Clamp to maximum safe value
+        if (delayMs >= MaxDelayMs || System.Double.IsInfinity(delayMs) || System.Double.IsNaN(delayMs))
         {
             return System.Int32.MaxValue;
         }
 
         System.Int32 ms = (System.Int32)System.Math.Ceiling(delayMs);
+
+        // Clamp to [0, Int32.MaxValue]
         return ms < 0 ? 0 : ms;
     }
 
@@ -652,22 +682,28 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         if (untilSw <= now)
         {
-            return 0;
+            return 0; // Already passed
         }
 
         System.Int64 dtTicks = untilSw - now;
-        System.Double sec = dtTicks / _swFreq;
 
-        // Protect against overflow
-        System.Double delayMs = (sec * 1000.0) +
-                               ((dtTicks - ((System.Int64)sec * (System.Int64)_swFreq)) * 1000.0 / _swFreq);
-
-        if (delayMs >= MaxDelayMs)
+        if (dtTicks is < 0 or > (System.Int64.MaxValue / 1000))
         {
             return System.Int32.MaxValue;
         }
 
-        System.Int32 ms = (System.Int32)(delayMs + 0.999); // ceil
+        System.Double sec = dtTicks / _swFreq;
+        System.Int64 wholeTicks = (System.Int64)(sec * _swFreq);
+        System.Int64 remainderTicks = dtTicks - wholeTicks;
+        System.Double delayMs = (sec * 1000.0) + (remainderTicks * 1000.0 / _swFreq);
+
+        if (delayMs >= MaxDelayMs || System.Double.IsInfinity(delayMs) || System.Double.IsNaN(delayMs))
+        {
+            return System.Int32.MaxValue;
+        }
+
+        System.Int32 ms = (System.Int32)System.Math.Ceiling(delayMs);
+
         return ms < 0 ? 0 : ms;
     }
 
