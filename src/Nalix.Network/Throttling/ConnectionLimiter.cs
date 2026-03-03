@@ -2,6 +2,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Infrastructure.Connection;
 using Nalix.Framework.Configuration;
@@ -11,6 +12,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal;
 using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Throttling;
@@ -113,7 +115,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(ConnectionLimiter));
         VALIDATE_ENDPOINT(endPoint);
 
-        _ = System.Threading.Interlocked.Increment(ref _totalConnectionAttempts);
+        SAFE_INCREMENT(ref _totalConnectionAttempts);
 
         System.DateTime now = Clock.NowUtc();
         INetworkEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
@@ -311,19 +313,31 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         // GetOrAdd is atomic w.r.t. insertion; the returned entry is always the canonical one.
         ConnectionLimitEntry entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
 
-        // Trim expired timestamps (lock-free – ConcurrentQueue is thread-safe).
-        TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
 
         System.Int64 bannedUntil = System.Threading.Interlocked.Read(ref entry.BannedUntilTicks);
         if (bannedUntil > now.Ticks)
         {
             LOG_BANNED_THROTTLED(entry, key, new System.DateTime(bannedUntil, System.DateTimeKind.Utc));
-            return new ConnectionAllowResult { Allowed = false, CurrentConnections = entry.Info.CurrentConnections };
+
+            System.Int32 currentConns;
+            lock (entry)
+            {
+                currentConns = entry.Info.CurrentConnections;
+            }
+
+            return new ConnectionAllowResult
+            {
+                Allowed = false,
+                CurrentConnections = currentConns
+            };
         }
 
         // Lock the entry to safely mutate Info and enqueue timestamp atomically.
         lock (entry)
         {
+            // Trim expired timestamps (lock-free – ConcurrentQueue is thread-safe).
+            TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
+
             // Re-check rate window under lock (could have changed between outer check and lock).
             if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
             {
@@ -332,18 +346,29 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
                 LOG_DDOS_DETECTED_THROTTLED(entry, key);
 
-                InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
-                                        .ForceClose(key);
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                    name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
+                    group: $"{TaskNaming.Tags.Worker}/",
+                    work: async (_, _) =>
+                    {
+                        InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
+                                                .ForceClose(key);
+                    },
+                    options: new WorkerOptions
+                    {
+                        Tag = NetTaskNames.Net,
+                        IdType = SnowflakeType.System,
+                        RetainFor = System.TimeSpan.Zero,
+                    }
+                );
 
                 _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
 
-                return new ConnectionAllowResult { Allowed = false, CurrentConnections = entry.Info.CurrentConnections };
-            }
-
-            // Concurrent-connection limit check.
-            if (entry.Info.CurrentConnections >= _maxPerEndpoint)
-            {
-                return new ConnectionAllowResult { Allowed = false, CurrentConnections = entry.Info.CurrentConnections };
+                return new ConnectionAllowResult
+                {
+                    Allowed = false,
+                    CurrentConnections = entry.Info.CurrentConnections
+                };
             }
 
             System.Int32 newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now.Date);
@@ -366,17 +391,45 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         System.Collections.Concurrent.ConcurrentQueue<System.DateTime> timestamps,
         System.DateTime now)
     {
-        while (timestamps.TryPeek(out System.DateTime oldest) &&
-               now - oldest > _config.ConnectionRateWindow)
+        System.DateTime cutoff = now - _config.ConnectionRateWindow;
+
+        while (timestamps.TryPeek(out System.DateTime oldest) && oldest < cutoff)
         {
-            timestamps.TryDequeue(out _);
+            // Check TryDequeue result to handle race
+            if (!timestamps.TryDequeue(out System.DateTime dequeued))
+            {
+                break; // Another thread dequeued it
+            }
+
+            // Double-check dequeued value is still old
+            if (dequeued >= cutoff)
+            {
+                // Race: someone enqueued between peek and dequeue
+                // Re-enqueue it (FIFO order maintained)
+                timestamps.Enqueue(dequeued);
+                break;
+            }
         }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Int32 CALCULATE_TOTAL_CONNECTIONS_TODAY(ConnectionLimitInfo info, System.DateTime today)
-        => today > info.LastConnectionTime.Date ? 1 : info.TotalConnectionsToday + 1;
+    {
+        if (info.LastConnectionTime == default)
+        {
+            return 1;
+        }
+
+        // Use Date comparison to avoid timezone issues
+        if (info.LastConnectionTime.Date < today)
+        {
+            return 1; // New day, reset counter
+        }
+
+        // Prevent overflow
+        return info.TotalConnectionsToday >= System.Int32.MaxValue - 1 ? System.Int32.MaxValue : info.TotalConnectionsToday + 1;
+    }
 
     /// <summary>
     /// Releases a connection slot for the given endpoint.
@@ -390,11 +443,28 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
         lock (entry)
         {
+            // Decrement with underflow protection
+            System.Int32 newCount = System.Math.Max(0, entry.Info.CurrentConnections - 1);
+
             entry.Info = entry.Info with
             {
-                CurrentConnections = System.Math.Max(0, entry.Info.CurrentConnections - 1),
+                CurrentConnections = newCount,
                 LastConnectionTime = now
             };
+
+            // Trim queue when releasing to prevent unbounded growth
+            if (newCount == 0)
+            {
+                TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
+
+                // Clear queue if no connections and queue is large
+                if (entry.RecentConnectionTimestamps.Count > _config.MaxConnectionsPerWindow * 2)
+                {
+                    entry.RecentConnectionTimestamps.Clear();
+
+                    _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleared-queue ip={key.Address} reason=oversized");
+                }
+            }
         }
 
         return true;
@@ -664,10 +734,11 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
         try
         {
-            System.DateTime cutoff = System.DateTime.UtcNow - _inactivityThreshold;
-
+            System.DateTime cutoff = Clock.NowUtc() - _inactivityThreshold;
             System.Int32 scanned = 0;
             System.Int32 removed = 0;
+
+            var keysToRemove = new System.Collections.Generic.List<INetworkEndpoint>(MaxCleanupKeysPerRun);
 
             foreach (var kvp in _map)
             {
@@ -676,24 +747,42 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                     break;
                 }
 
-                if (SHOULD_REMOVE_ENTRY(kvp.Value, cutoff))
+                System.Boolean shouldRemove;
+                lock (kvp.Value)
                 {
-                    if (_map.TryRemove(kvp.Key, out _))
+                    shouldRemove = SHOULD_REMOVE_ENTRY(kvp.Value, cutoff);
+                }
+
+                if (shouldRemove)
+                {
+                    keysToRemove.Add(kvp.Key);
+                }
+            }
+
+            // Remove in separate pass to avoid holding locks
+            foreach (var key in keysToRemove)
+            {
+                if (_map.TryRemove(key, out ConnectionLimitEntry removedEntry))
+                {
+                    // Dispose resources
+                    lock (removedEntry)
                     {
-                        removed++;
-                        _ = System.Threading.Interlocked.Increment(ref _totalCleanedEntries);
+                        removedEntry.RecentConnectionTimestamps.Clear();
                     }
+
+                    removed++;
+                    System.Threading.Interlocked.Increment(ref _totalCleanedEntries);
                 }
             }
 
             if (removed > 0)
             {
-                _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}:Internal] cleanup scanned={scanned} removed={removed}");
+                _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed} remaining={_map.Count}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
-            _logger?.Error($"[NW.{nameof(ConnectionLimiter)}:Internal] cleanup-error msg={ex.Message}");
+            _logger?.Error($"[NW.{nameof(ConnectionLimiter)}] cleanup-error", ex);
         }
     }
 
@@ -710,6 +799,35 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         // Read Info without lock — approximate check is fine for cleanup decisions.
         ConnectionLimitInfo info = entry.Info;
         return info.CurrentConnections <= 0 && info.LastConnectionTime < cutoff;
+    }
+
+    /// <summary>
+    /// Safely increments a counter with overflow protection.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Int64 SAFE_INCREMENT(ref System.Int64 counter)
+    {
+        while (true)
+        {
+            System.Int64 current = System.Threading.Interlocked.Read(ref counter);
+
+            if (current >= System.Int64.MaxValue - 1)
+            {
+                // Reset to reasonable value instead of wrapping
+                System.Threading.Interlocked.CompareExchange(ref counter, 1_000_000, current);
+                return 1_000_000;
+            }
+
+            System.Int64 next = current + 1;
+            if (System.Threading.Interlocked.CompareExchange(ref counter, next, current) == current)
+            {
+                return next;
+            }
+
+            // Retry on race
+            System.Threading.Thread.SpinWait(1);
+        }
     }
 
     #endregion Cleanup
