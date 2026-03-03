@@ -37,7 +37,7 @@ public sealed class HandshakeHandlers
     /// <returns>A responding handshake packet or null if rejected/disconnected.</returns>
     [PacketOpcode((ushort)ProtocolOpCode.HANDSHAKE)]
     [ReservedOpcodePermitted]
-    public Handshake? HandleHandshake(IPacketContext<Handshake> context)
+    public Handshake? Handle(IPacketContext<Handshake> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 

@@ -7,8 +7,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
-using System.Runtime.ExceptionServices;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,6 +31,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 {
     #region Fields & Constants
 
+    private readonly ILogger? _logger;
     private readonly BufferConfig _config;
 
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
@@ -143,16 +144,32 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     static BufferPoolManager() => RecurringName = "buf.trim";
 
-    /// <summary>Initializes a new instance of the <see cref="BufferPoolManager"/> class.</summary>
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class.
+    /// </summary>
     public BufferPoolManager() : this(bufferConfig: null) { }
 
-    /// <summary>Initializes a new instance of the <see cref="BufferPoolManager"/> class.</summary>
-    /// <param name="bufferConfig">The buffer configuration to use. If <see langword="null"/>, the default configuration is loaded.</param>
-    public BufferPoolManager(BufferConfig? bufferConfig = null)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class.
+    /// </summary>
+    /// <param name="logger">Optional logger for emitting internal events and diagnostics.</param>
+    public BufferPoolManager(ILogger logger) : this(bufferConfig: null, logger) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class.
+    /// </summary>
+    /// <param name="bufferConfig">
+    /// The buffer configuration to use. If <see langword="null"/>, the default configuration is loaded.
+    /// </param>
+    /// <param name="logger">
+    /// Optional logger for emitting internal events and diagnostics.
+    /// </param>
+    public BufferPoolManager(BufferConfig? bufferConfig = null, ILogger? logger = null)
     {
         BufferConfig config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferConfig>();
         config.Validate();
 
+        _logger = logger;
         _config = config;
 
         _suitablePoolSizeCache = new();
@@ -493,8 +510,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (_config.EnableAnalytics)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(BufferPoolManager)}:Internal] rent-fast minimumLength={size}");
+            _logger?.Trace($"[{nameof(BufferPoolManager)}:Internal] rent-fast minimumLength={size}");
         }
 
         this.CACHE_SUITABLE_POOL_SIZE(size, buffer.Length);
@@ -537,14 +553,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             // If fallback is enabled, return a shared ArrayPool buffer instead of
             // failing the operation outright.
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
+            _logger?.Warn($"[SH.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
 
             return _fallbackArrayPool.Rent(size);
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error($"[SH.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}", ex);
+        _logger?.Error($"[SH.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}", ex);
         ExceptionDispatchInfo.Capture(ex).Throw();
         throw new InvalidOperationException("Unreachable");
     }
@@ -563,8 +577,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (_config.EnableAnalytics)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] return minimumLength={buffer.Length}");
+            _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] return minimumLength={buffer.Length}");
         }
     }
 
@@ -579,8 +592,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void HANDLE_RETURN_FAILURE(byte[] buffer, ArgumentException ex)
     {
-        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
         if (_config.FallbackToArrayPool)
         {
             if (_config.SecureClear)
@@ -590,14 +601,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             }
 
             _fallbackArrayPool.Return(buffer, clearArray: false);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
+            _logger?.Debug($"[SH.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
 
             return;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] return-fail minimumLength={buffer.Length} msg={ex.Message}");
+        _logger?.Warn($"[SH.{nameof(BufferPoolManager)}:Internal] return-fail minimumLength={buffer.Length} msg={ex.Message}");
     }
 
     #endregion Private: Rent / Return helpers
@@ -620,8 +629,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
         _isInitialized = true;
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(BufferPoolManager)}:Internal] " +
+        _logger?.Info($"[SH.{nameof(BufferPoolManager)}:Internal] " +
                                       $"init-ok total={_config.TotalBuffers} pools={_bufferAllocations.Length} min={this.MinBufferSize} max={this.MaxBufferSize}");
     }
 
@@ -632,8 +640,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         int cycle = Interlocked.Increment(ref _trimCycleCount);
         bool deepTrim = this.SHOULD_RUN_DEEP_TRIM(cycle);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-run deep={deepTrim}");
+        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-run deep={deepTrim}");
 
         // Compute memory budget once per cycle (cache it)
         (long targetBudget, long currentUsage, bool overBudget) = this.COMPUTE_MEMORY_BUDGET();
@@ -791,8 +798,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[info.BufferSize] = metrics;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
+        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
                                        $"trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}% " +
                                        $"remain={info.TotalBuffers - shrinkStep}");
     }
@@ -843,8 +849,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[poolInfo.BufferSize] = m;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={latest.BufferSize} by={buffersToShrink}");
+        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={latest.BufferSize} by={buffersToShrink}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -890,8 +895,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (this.IS_OVER_MEMORY_BUDGET())
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] skip-increase minimumLength={poolInfo.BufferSize} over budget");
+            _logger?.Warn($"[SH.{nameof(BufferPoolManager)}:Internal] skip-increase minimumLength={poolInfo.BufferSize} over budget");
             return;
         }
 
@@ -909,8 +913,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[poolInfo.BufferSize] = metrics;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
+        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
                                        $"increase minimumLength={poolInfo.BufferSize} by={increaseStep} usage={usage:F2}% miss={missRatio:F2}%");
     }
 
@@ -1061,8 +1064,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                                     .CleanupJobId(RecurringName, this.GetHashCode()));
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(BufferPoolManager)}:{nameof(Dispose)}] disposed");
+        _logger?.Info($"[SH.{nameof(BufferPoolManager)}:{nameof(Dispose)}] disposed");
 
         GC.SuppressFinalize(this);
     }

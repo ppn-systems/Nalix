@@ -13,4 +13,9 @@ public enum ProtocolOpCode : ushort
     /// The default handshake protocol packet for key exchange and transcript verification.
     /// </summary>
     HANDSHAKE = 0x0000,
+
+    /// <summary>
+    /// Used for system-level control packets like PING, PONG, ERROR, DISCONNECT.
+    /// </summary>
+    SYSTEM_CONTROL = 0x0001,
 }
