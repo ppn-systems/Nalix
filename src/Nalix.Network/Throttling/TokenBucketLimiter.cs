@@ -114,7 +114,8 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     private readonly System.Int64 _initialBalanceMicro;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private readonly ILogger _logger;
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     private System.Int32 _totalEndpointCount;
     private volatile System.Boolean _disposed;
 
@@ -147,7 +148,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         _shards = new Shard[_opt.ShardCount];
         _swFreq = System.Diagnostics.Stopwatch.Frequency;
         _cleanupIntervalSec = _opt.CleanupIntervalSeconds;
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         _capacityMicro = (System.Int64)_opt.CapacityTokens * _opt.TokenScale;
         _refillPerSecMicro = (System.Int64)System.Math.Round(_opt.RefillTokensPerSecond * _opt.TokenScale);
 
@@ -164,7 +165,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             ? "full"
             : _opt.InitialTokens.ToString();
 
-        _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] init " +
+        s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] init " +
                        $"initial={initialDesc} " +
                        $"scale={_opt.TokenScale} " +
                        $"shards={_opt.ShardCount} " +
@@ -292,7 +293,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         // Pre-check limit before allocation
         if (IS_ENDPOINT_LIMIT_REACHED())
         {
-            _logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_opt.MaxTrackedEndpoints}");
+            s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_opt.MaxTrackedEndpoints}");
 
             return new EndpointStateResult
             {
@@ -325,7 +326,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             };
         }
 
-        _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
+        s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
 
         return new EndpointStateResult { State = newState, IsNew = true };
     }
@@ -445,7 +446,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         if (state.HardBlockedUntilSw > now)
         {
             System.Int32 retryMs = CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
-            _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
+            s_logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
 
             decision = new RateLimitDecision
             {
@@ -482,7 +483,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         if (credit <= 1)
         {
-            _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] allow credit={credit}");
+            s_logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] allow credit={credit}");
         }
 
         return new RateLimitDecision
@@ -556,7 +557,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         state.SoftViolations = 0;
 
         System.Int32 retryMs = CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
-        _logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] escalate-to-hard-lock " +
+        s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] escalate-to-hard-lock " +
                      $"endpoint={key.Address} retry_ms={retryMs}");
 
         return new RateLimitDecision
@@ -1037,17 +1038,17 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
             if (removed > 0)
             {
-                _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] " +
+                s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] " +
                                $"Cleanup removed={removed}");
             }
         }
         catch (System.OperationCanceledException)
         {
-            _logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] Cleanup was cancelled due to timeout");
+            s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] Cleanup was cancelled due to timeout");
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
-            _logger?.Error($"[NW.{nameof(TokenBucketLimiter)}:Internal] cleanup-error msg={ex.Message}");
+            s_logger?.Error($"[NW.{nameof(TokenBucketLimiter)}:Internal] cleanup-error msg={ex.Message}");
         }
     }
 
@@ -1144,7 +1145,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         if (removed > 0)
         {
-            _logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] " +
+            s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] " +
                          $"Evicted {removed} endpoints to enforce MaxTrackedEndpoints limit");
         }
 
@@ -1325,7 +1326,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
                                 .CleanupJobId(RecurringName, this
                                 .GetHashCode()));
 
-        _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
+        s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
     }
 
     /// <inheritdoc />
