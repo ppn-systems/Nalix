@@ -187,6 +187,7 @@ nav:
         - Hashing and MAC: api/security/hashing-and-mac.md
         - AEAD and Envelope: api/security/aead-and-envelope.md
         - Handshake Protocol: api/security/handshake.md
+        - Session Resume: api/security/session-resume.md
         - Permission Levels: api/security/permission-level.md
       - Runtime:
         - Overview: api/runtime/index.md
@@ -241,6 +242,7 @@ nav:
         - TCP Session: api/sdk/tcp-session.md
         - UDP Session: api/sdk/udp-session.md
         - Handshake Extensions: api/sdk/handshake-extensions.md
+        - Resume Extensions: api/sdk/resume-extensions.md
         - Session Extensions: api/sdk/tcp-session-extensions.md
         - Cipher Updates: api/sdk/cipher-extensions.md
         - Session Diagnostics: api/sdk/diagnostics.md
