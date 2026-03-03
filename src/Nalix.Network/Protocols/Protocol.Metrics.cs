@@ -39,7 +39,7 @@ public abstract partial class Protocol : IReportable
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public virtual System.String GenerateReport()
     {
-        System.Text.StringBuilder sb = new();
+        System.Text.StringBuilder sb = new(128);
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Protocol Status:");
         _ = sb.AppendLine("--------------------------------------------");
         _ = sb.AppendLine($"Is Disposed             : {_isDisposed}");

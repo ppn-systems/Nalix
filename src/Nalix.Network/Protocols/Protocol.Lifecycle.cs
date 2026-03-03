@@ -1,8 +1,5 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Diagnostics;
-using Nalix.Framework.Injection;
-
 namespace Nalix.Network.Protocols;
 
 public abstract partial class Protocol
@@ -45,8 +42,7 @@ public abstract partial class Protocol
     {
         this.Dispose(true);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
+        s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
 
         System.GC.SuppressFinalize(this);
     }
