@@ -295,9 +295,7 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected virtual bool TryResolveConnection(IConnectionHub hub, ReadOnlySpan<byte> sessionToken, out Connection? connection)
     {
-        // The session token IS the Snowflake ID — pass it directly to the hub
-        // which performs a sharded O(1) lookup via UInt56.
-        connection = hub?.GetConnection(sessionToken) as Connection;
+        connection = hub?.GetConnection(sessionToken[..Snowflake.Size]) as Connection;
         return connection is not null;
     }
 }

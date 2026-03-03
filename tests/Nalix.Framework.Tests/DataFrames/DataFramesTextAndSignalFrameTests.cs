@@ -23,7 +23,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(42u, packet.SequenceId);
         Assert.Equal(ProtocolReason.TIMEOUT, packet.Reason);
         Assert.Equal(ProtocolType.UDP, packet.Protocol);
-        Assert.Equal(PacketPriority.URGENT, packet.Priority);
+        Assert.Equal(PacketPriority.HIGH, packet.Priority);
         Assert.NotEqual(0L, packet.Timestamp);
         Assert.NotEqual(0L, packet.MonoTicks);
     }
@@ -42,7 +42,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(0u, packet.SequenceId);
         Assert.Equal(0L, packet.Timestamp);
         Assert.Equal(0L, packet.MonoTicks);
-        Assert.Equal(PacketPriority.URGENT, packet.Priority);
+        Assert.Equal(PacketPriority.HIGH, packet.Priority);
         Assert.Equal(PacketFlags.NONE, packet.Flags);
         Assert.Equal(ProtocolType.NONE, packet.Protocol);
     }
@@ -90,7 +90,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(1000u, packet.Arg0);
         Assert.Equal(2000u, packet.Arg1);
         Assert.Equal((ushort)33, packet.Arg2);
-        Assert.Equal(PacketPriority.URGENT, packet.Priority);
+        Assert.Equal(PacketPriority.HIGH, packet.Priority);
         Assert.Equal(ProtocolType.TCP, packet.Protocol);
     }
 

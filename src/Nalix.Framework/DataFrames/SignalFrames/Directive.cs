@@ -73,7 +73,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     {
         this.OpCode = 0;
         this.Protocol = ProtocolType.TCP;
-        this.Priority = PacketPriority.URGENT;
+        this.Priority = PacketPriority.HIGH;
     }
 
     /// <summary>Initializes the directive payload.</summary>
@@ -100,7 +100,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
         this.SequenceId = sequenceId;
 
         this.Protocol = ProtocolType.TCP;
-        this.Priority = PacketPriority.URGENT;
+        this.Priority = PacketPriority.HIGH;
     }
 
     /// <summary>Initializes the directive payload with a custom opcode.</summary>
@@ -130,7 +130,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
         this.SequenceId = sequenceId;
 
         this.Protocol = ProtocolType.TCP;
-        this.Priority = PacketPriority.URGENT;
+        this.Priority = PacketPriority.HIGH;
     }
 
     /// <summary>
