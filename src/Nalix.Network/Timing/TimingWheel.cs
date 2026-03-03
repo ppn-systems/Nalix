@@ -61,32 +61,30 @@ public sealed class TimingWheel : IActivatable
 {
     #region Fields
 
-    private static readonly TimingWheelOptions TimingWheelOptions =
-        ConfigurationManager.Instance.Get<TimingWheelOptions>();
+    private static readonly TimingWheelOptions s_options = ConfigurationManager.Instance.Get<TimingWheelOptions>();
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ObjectPoolManager s_poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
-    private readonly System.Int32 TickMs;
-    private readonly System.Int32 WheelSize;
-    private readonly System.Int32 IdleTimeoutMs;
+    private readonly System.Int32 _tickMs;
+    private readonly System.Int32 _wheelSize;
+    private readonly System.Int32 _idleTimeoutMs;
 
     // Mask is used only when WheelSize is a power of two.
     private readonly System.Int32 _mask;
     private readonly System.Boolean _useMask;
 
     // One queue per bucket (MPSC; producers = Register/reschedules, consumer = RunLoop).
-    private readonly System.Collections.Concurrent.ConcurrentQueue<TimeoutTask>[] Wheel;
+    private readonly System.Collections.Concurrent.ConcurrentQueue<TimeoutTask>[] _wheel;
 
     /// <summary>
     /// Tracks currently active connections and their single live <see cref="TimeoutTask"/>.
     /// Prevents acting on closed/unregistered connections and eliminates duplicate handlers.
     /// </summary>
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<IConnection, TimeoutTask> Active =
-        new(System.Environment.ProcessorCount * 2, 1024);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IConnection, TimeoutTask> _active;
 
-    // Tick advances by 1 each timer period.
     private System.Int64 _tick;
-
-    // Lifecycle
-    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Threading.CancellationTokenSource _cts; // null when not running
+    private System.Int32 _disposed;
+    private System.Threading.CancellationTokenSource _cts;
 
     #endregion Fields
 
@@ -128,21 +126,26 @@ public sealed class TimingWheel : IActivatable
     /// </remarks>
     public TimingWheel()
     {
-        TimingWheelOptions.Validate();
+        s_options.Validate();
 
-        WheelSize = TimingWheelOptions.BucketCount;
-        TickMs = TimingWheelOptions.TickDuration;
-        IdleTimeoutMs = TimingWheelOptions.TcpIdleTimeout;
+        _wheelSize = s_options.BucketCount;
+        _tickMs = s_options.TickDuration;
+        _idleTimeoutMs = s_options.TcpIdleTimeout;
 
-        // Prefer mask if power-of-two wheel size.
-        _useMask = (WheelSize & (WheelSize - 1)) == 0 && WheelSize > 0;
-        _mask = _useMask ? (WheelSize - 1) : 0;
+        _useMask = (_wheelSize & (_wheelSize - 1)) == 0 && _wheelSize > 0;
+        _mask = _useMask ? (_wheelSize - 1) : 0;
 
-        Wheel = new System.Collections.Concurrent.ConcurrentQueue<TimeoutTask>[WheelSize];
-        for (System.Int32 i = 0; i < WheelSize; i++)
+        _wheel = new System.Collections.Concurrent.ConcurrentQueue<TimeoutTask>[_wheelSize];
+        for (System.Int32 i = 0; i < _wheelSize; i++)
         {
-            Wheel[i] = new System.Collections.Concurrent.ConcurrentQueue<TimeoutTask>();
+            _wheel[i] = new System.Collections.Concurrent.ConcurrentQueue<TimeoutTask>();
         }
+
+        _active = new System.Collections.Concurrent.ConcurrentDictionary<IConnection, TimeoutTask>(
+            System.Environment.ProcessorCount * 2,
+            1024);
+
+        _disposed = 0;
     }
 
     #endregion Ctor
@@ -156,41 +159,39 @@ public sealed class TimingWheel : IActivatable
     /// This method is idempotent. Subsequent calls have no effect while the timer is active.
     /// A dedicated long-running task is used to minimize scheduling jitter.
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
-        // If already running, skip.
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(TimingWheel));
+
         if (_cts is { IsCancellationRequested: false })
         {
             return;
         }
 
         System.Threading.CancellationTokenSource linkedCts = cancellationToken.CanBeCanceled
-                    ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
-                    : new System.Threading.CancellationTokenSource();
+            ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+            : new System.Threading.CancellationTokenSource();
 
         _cts = linkedCts;
-        System.Threading.CancellationToken linkedToken = linkedCts.Token;
 
-        // Prefer a dedicated thread to reduce pool jitter.
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: $"{NetTaskNames.Time}.{NetTaskNames.Wheel}",
             group: NetTaskNames.Time,
-            work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
+            work: async (ctx, ct) => await RUN_LOOP(ctx, ct).ConfigureAwait(false),
             options: new WorkerOptions
             {
                 Tag = NetTaskNames.Wheel,
                 IdType = SnowflakeType.System,
-                CancellationToken = linkedToken,
+                CancellationToken = linkedCts.Token,
                 RetainFor = System.TimeSpan.Zero
             }
         );
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activate " +
-                                      $"wheelsize={WheelSize} tick={TickMs}ms idle={IdleTimeoutMs}ms mask={_useMask}");
+        s_logger?.Info(
+            $"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activated " +
+            $"wheelsize={_wheelSize} tick={_tickMs}ms idle={_idleTimeoutMs}ms mask={_useMask}");
     }
 
     /// <summary>
@@ -200,7 +201,6 @@ public sealed class TimingWheel : IActivatable
     /// The method waits briefly for the loop to finish (<c>~2s</c>) and then drains all buckets
     /// to release pooled items early.
     /// </remarks>
-    [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
@@ -214,10 +214,9 @@ public sealed class TimingWheel : IActivatable
         try { cts.Cancel(); } catch { }
         try { cts.Dispose(); } catch { }
 
-        DrainAndReleaseAllBuckets();
+        DRAIN_AND_RELEASE_ALL_BUCKETS();
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivate");
+        s_logger?.Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
     }
 
     #endregion IActivatable
@@ -236,34 +235,38 @@ public sealed class TimingWheel : IActivatable
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Register(IConnection connection)
     {
-        // Add to Active; only attach event once (on first registration).
-        if (Active.ContainsKey(connection))
+        System.ArgumentNullException.ThrowIfNull(connection);
+
+        if (System.Threading.Volatile.Read(ref _disposed) != 0)
         {
             return;
         }
 
-        TimeoutTask task = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                   .Get<TimeoutTask>();
+        if (_active.ContainsKey(connection))
+        {
+            return;
+        }
+
+        TimeoutTask task = s_poolManager.Get<TimeoutTask>();
         task.Conn = connection;
 
         System.Int64 baseTick = System.Threading.Interlocked.Read(ref _tick);
-        System.Int64 ticks = System.Math.Max(1, IdleTimeoutMs / (System.Int64)TickMs);
+        System.Int64 ticks = System.Math.Max(1, _idleTimeoutMs / (System.Int64)_tickMs);
 
         System.Int32 bucket = _useMask
             ? (System.Int32)((baseTick + ticks) & _mask)
-            : (System.Int32)((baseTick + ticks) % WheelSize);
+            : (System.Int32)((baseTick + ticks) % _wheelSize);
 
-        task.Rounds = (System.Int32)(ticks / WheelSize);
+        task.Rounds = (System.Int32)(ticks / _wheelSize);
 
-        if (Active.TryAdd(connection, task))
+        if (_active.TryAdd(connection, task))
         {
             connection.OnCloseEvent += OnConnectionClosed;
-            Wheel[bucket].Enqueue(task);
+            _wheel[bucket].Enqueue(task);
         }
         else
         {
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return(task);
+            s_poolManager.Return(task);
         }
     }
 
@@ -278,9 +281,13 @@ public sealed class TimingWheel : IActivatable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Unregister(IConnection connection)
     {
-        if (Active.TryRemove(connection, out _))
+        if (connection is null)
         {
-            // Detach handler only if we previously attached.
+            return;
+        }
+
+        if (_active.TryRemove(connection, out _))
+        {
             connection.OnCloseEvent -= OnConnectionClosed;
         }
     }
@@ -291,90 +298,102 @@ public sealed class TimingWheel : IActivatable
     /// <remarks>
     /// Equivalent to calling <see cref="Deactivate"/>. Safe to call multiple times.
     /// </remarks>
-    public void Dispose() => Deactivate();
+    public void Dispose()
+    {
+        if (System.Threading.Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+        {
+            return;
+        }
+
+        Deactivate();
+
+        _active.Clear();
+    }
 
     #endregion Public APIs
 
     #region Loop
 
-    // Private loop; not part of the public API surface.
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private async System.Threading.Tasks.Task RunLoop(
-        [System.Diagnostics.CodeAnalysis.AllowNull] IWorkerContext ctx = null,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Threading.CancellationToken ct = default)
+    private async System.Threading.Tasks.Task RUN_LOOP(
+        IWorkerContext ctx,
+        System.Threading.CancellationToken ct)
     {
-        _ = System.Threading.Interlocked.Exchange(ref _tick, 0);
+        System.Threading.Interlocked.Exchange(ref _tick, 0);
 
         try
         {
-            using var timer = new System.Threading.PeriodicTimer(System.TimeSpan.FromMilliseconds(TickMs));
+            using var timer = new System.Threading.PeriodicTimer(System.TimeSpan.FromMilliseconds(_tickMs));
 
             while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
             {
                 System.Int64 tickSnapshot = System.Threading.Interlocked.Read(ref _tick);
                 System.Int32 bucketIndex = _useMask
                     ? (System.Int32)(tickSnapshot & _mask)
-                    : (System.Int32)(tickSnapshot % WheelSize);
+                    : (System.Int32)(tickSnapshot % _wheelSize);
 
-                var q = Wheel[bucketIndex];
+                var queue = _wheel[bucketIndex];
 
-                while (q.TryDequeue(out TimeoutTask task))
+                while (queue.TryDequeue(out TimeoutTask task))
                 {
-                    if (!Active.TryGetValue(task.Conn, out var live) || !ReferenceEquals(task, live))
+                    if (!_active.TryGetValue(task.Conn, out var liveTask) || !ReferenceEquals(task, liveTask))
                     {
-                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(task);
+                        s_poolManager.Return(task);
                         continue;
                     }
 
                     if (task.Rounds > 0)
                     {
                         task.Rounds--;
-                        q.Enqueue(task);
+                        queue.Enqueue(task);
                         continue;
                     }
 
                     System.Int64 idleMs = Clock.UnixMillisecondsNow() - task.Conn.LastPingTime;
 
-                    if (idleMs >= IdleTimeoutMs)
+                    if (idleMs >= _idleTimeoutMs)
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[NW.{nameof(TimingWheel)}:Internal] timeout remote={task.Conn.EndPoint}, idle={idleMs}ms");
+                        s_logger?.Debug($"[NW.{nameof(TimingWheel)}] timeout remote={task.Conn.EndPoint?.Address} idle={idleMs}ms");
 
-                        try { task.Conn.Close(force: true); }
+                        try
+                        {
+                            task.Conn.Close(force: true);
+                        }
                         catch (System.Exception ex)
                         {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[NW.{nameof(TimingWheel)}:Internal] close-error remote={task.Conn.EndPoint} ex={ex.Message}");
+                            s_logger?.Warn($"[NW.{nameof(TimingWheel)}] close-error remote={task.Conn.EndPoint?.Address}", ex);
                         }
 
-                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(task);
+                        s_poolManager.Return(task);
                         continue;
                     }
 
-                    System.Int64 remainingMs = IdleTimeoutMs - idleMs;
-                    System.Int64 ticksMore = System.Math.Max(1, remainingMs / TickMs);
+                    System.Int64 remainingMs = _idleTimeoutMs - idleMs;
+                    System.Int64 ticksMore = System.Math.Max(1, remainingMs / _tickMs);
 
-                    task.Rounds = (System.Int32)(ticksMore / WheelSize);
+                    task.Rounds = (System.Int32)(ticksMore / _wheelSize);
 
                     System.Int32 nextBucket = _useMask
                         ? (System.Int32)((tickSnapshot + ticksMore) & _mask)
-                        : (System.Int32)((tickSnapshot + ticksMore) % WheelSize);
+                        : (System.Int32)((tickSnapshot + ticksMore) % _wheelSize);
 
-                    Wheel[nextBucket].Enqueue(task);
+                    _wheel[nextBucket].Enqueue(task);
                 }
 
-                _ = System.Threading.Interlocked.Increment(ref _tick);
+                System.Threading.Interlocked.Increment(ref _tick);
 
-                ctx.Beat();
-                ctx.Advance(1);
+                ctx?.Beat();
+                ctx?.Advance(1);
             }
         }
-        catch (System.OperationCanceledException) { }
+        catch (System.OperationCanceledException)
+        {
+            // Expected during shutdown
+        }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(TimingWheel)}:Internal] loop-error", ex);
+            s_logger?.Error($"[NW.{nameof(TimingWheel)}] loop-error", ex);
         }
     }
 
@@ -382,32 +401,24 @@ public sealed class TimingWheel : IActivatable
 
     #region Helpers
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private void OnConnectionClosed(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] IConnectEventArgs args)
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void OnConnectionClosed(System.Object sender, IConnectEventArgs args)
     {
-        if (args.Connection is null)
+        if (args?.Connection is not null)
         {
-            return;
+            Unregister(args.Connection);
         }
-
-        Unregister(args.Connection);
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    private void DrainAndReleaseAllBuckets()
+    private void DRAIN_AND_RELEASE_ALL_BUCKETS()
     {
-        for (System.Int32 i = 0; i < Wheel.Length; i++)
+        for (System.Int32 i = 0; i < _wheel.Length; i++)
         {
-            var q = Wheel[i];
-            while (q.TryDequeue(out TimeoutTask t))
+            var queue = _wheel[i];
+            while (queue.TryDequeue(out TimeoutTask task))
             {
-                t.ResetForPool();
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return(t);
+                task.ResetForPool();
+                s_poolManager.Return(task);
             }
         }
     }
