@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Connection;
 using Nalix.Common.Diagnostics;
@@ -47,6 +47,7 @@ public abstract partial class Protocol
     /// <param name="cancellationToken">Identifier for cancellation</param>
     /// <exception cref="System.ArgumentNullException">Thrown when connection is null.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
+    [System.Obsolete]
     public virtual void OnAccept(
         IConnection connection,
         System.Threading.CancellationToken cancellationToken = default)
@@ -57,14 +58,15 @@ public abstract partial class Protocol
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
 
+            connection?.Close();
             return;
         }
 
-        // CheckLimit cancellation
-        cancellationToken.ThrowIfCancellationRequested();
-
         System.ArgumentNullException.ThrowIfNull(connection);
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
+
+        // CheckLimit cancellation
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -120,6 +122,7 @@ public abstract partial class Protocol
     /// </summary>
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if the connection is valid, false otherwise.</returns>
+    [System.Obsolete("Override ValidateConnection to implement connection validation. Default accepts ALL connections.", false)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     protected virtual System.Boolean ValidateConnection(IConnection connection) => true;
 
