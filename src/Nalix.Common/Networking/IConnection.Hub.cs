@@ -96,4 +96,11 @@ public interface IConnectionHub
     /// <param name="session">When this method returns, contains the resumed session entry if successful; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if the session was successfully resumed; otherwise, <c>false</c>.</returns>
     bool TryResumeSession(UInt56 sessionToken, IConnection newConnection, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SessionEntry? session);
+
+    /// <summary>
+    /// Synchronizes the current connection state to its associated session.
+    /// </summary>
+    /// <param name="connection">The connection whose state should be persisted.</param>
+    /// <returns><c>true</c> if the session was found and updated; otherwise, <c>false</c>.</returns>
+    bool UpdateSession(IConnection connection);
 }
