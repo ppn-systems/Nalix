@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
@@ -18,7 +18,7 @@ namespace Nalix.Network.Listeners.Tcp;
 /// This class manages the process of accepting incoming network connections
 /// and handling the associated protocol processing.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay("Port={_port}, State={State}")]
+[System.Diagnostics.DebuggerDisplay("Port={_port}, StateWrapper={StateWrapper}")]
 public abstract partial class TcpListenerBase
 {
     /// <summary>
@@ -36,7 +36,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
         _ = sb.AppendLine($"Port                : {_port}");
-        _ = sb.AppendLine($"State               : {State}");
+        _ = sb.AppendLine($"StateWrapper               : {State}");
         _ = sb.AppendLine($"Disposed            : {_isDisposed}");
         _ = sb.AppendLine();
 

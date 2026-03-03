@@ -56,6 +56,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
     {
         options ??= ConfigurationManager.Instance.Get<ConsoleLogOptions>();
 
+        _enableFlush = options.EnableFlush;
         _enableColors = options.EnableColors;
         _adaptiveFlush = options.AdaptiveFlush;
         _batchSize = System.Math.Max(1, options.BatchSize);

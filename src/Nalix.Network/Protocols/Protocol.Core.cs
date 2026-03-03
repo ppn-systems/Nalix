@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Connection;
@@ -44,11 +44,11 @@ public abstract partial class Protocol : IProtocol
         System.ArgumentNullException.ThrowIfNull(args);
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
 
-        _ = System.Threading.Interlocked.Increment(ref this._totalMessages);
 
         try
         {
             this.OnPostProcess(args);
+            _ = System.Threading.Interlocked.Increment(ref this._totalMessages);
 
             if (!this.KeepConnectionOpen)
             {
@@ -60,8 +60,10 @@ public abstract partial class Protocol : IProtocol
         }
         catch (System.Exception ex)
         {
+            _ = System.Threading.Interlocked.Increment(ref this._totalErrors);
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(Protocol)}{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
+                                    .Error($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
             // Notify protocol-level error handler
             this.OnConnectionError(args.Connection, ex);
@@ -79,9 +81,9 @@ public abstract partial class Protocol : IProtocol
     public void SetConnectionAcceptance(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean isEnabled)
     {
+        System.Threading.Interlocked.Exchange(ref _accepting, isEnabled ? 1 : 0);
+
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[NW.{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
-
-        _accepting = isEnabled ? 1 : 0;
     }
 }
