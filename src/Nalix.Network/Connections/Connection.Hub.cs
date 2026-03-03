@@ -41,6 +41,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
     private readonly ConnectionHubOptions _options;
 
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     // Connections statistics for monitoring
     private volatile System.Int32 _count;
     private volatile System.Boolean _disposed;
@@ -141,20 +144,17 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             _anonymousQueue.Enqueue(connection.ID);
 
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
+            s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
 
             if (_options.IsEnableLatency)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+                s_logger.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
             }
 
             return true;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
+        s_logger.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
 
         return false;
     }
@@ -199,8 +199,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 _ = _usernameToId.TryRemove(orphanUser, out _);
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
+            s_logger.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
 
             return false;
         }
@@ -214,15 +213,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         _ = System.Threading.Interlocked.Decrement(ref _count);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={connection.ID} total={_count}");
+        s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={connection.ID} total={_count}");
 
         ConnectionUnregistered?.Invoke(existing ?? connection);
 
         if (_options.IsEnableLatency)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[PERF.NW.UnregisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            s_logger.Info($"[PERF.NW.UnregisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
         }
 
         return true;
@@ -272,8 +269,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             _ = _usernameToId.TryRemove(oldUsername, out _);
 
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map-rebind id={id} old={oldUsername} new={username}");
+            s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map-rebind id={id} old={oldUsername} new={username}");
 
         }
 
@@ -281,8 +277,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _usernames[id] = username;
         _usernameToId[username] = id;
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map user=\"{username}\" id={id}");
+        s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map user=\"{username}\" id={id}");
     }
 
     /// <inheritdoc />
@@ -444,8 +439,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Collections.Generic.IReadOnlyCollection<IConnection> connections = this.ListConnections();
         if (connections is null || connections.Count == 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
+            s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
+
             return;
         }
 
@@ -489,8 +484,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                             }
                             catch (System.Exception ex)
                             {
-                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                        .Error($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] send-failure id={partition.Current.ID}", ex);
+                                s_logger.Error($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] send-failure id={partition.Current.ID}", ex);
                             }
                         }
                     }
@@ -505,8 +499,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         {
             if (_options.IsEnableLatency)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
+                s_logger.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
             }
         }
     }
@@ -575,8 +568,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         }
         catch (System.OperationCanceledException)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastWhereAsync)}] broadcast-cancel");
+            s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastWhereAsync)}] broadcast-cancel");
         }
         finally
         {
@@ -599,8 +591,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         if (_disposed)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] called on disposed instance.");
+            s_logger.Warn($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] called on disposed instance.");
+
             return 0;
         }
 
@@ -625,16 +617,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 }
                 catch (System.Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn?.ID}", ex);
+                    s_logger.Error($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn?.ID}", ex);
                 }
             }
         }
 
         if (closedCount > 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] closed={closedCount} ip={targetAddress}");
+            s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] closed={closedCount} ip={targetAddress}");
         }
 
         return closedCount;
@@ -669,8 +659,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             }
             catch (System.Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-error id={connection.ID}", ex);
+                s_logger.Error($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-error id={connection.ID}", ex);
             }
         });
 
@@ -681,8 +670,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _anonymousQueue.Clear();
         _ = System.Threading.Interlocked.Exchange(ref _count, 0);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Count}");
+        s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Count}");
     }
 
     /// <summary>
@@ -820,8 +808,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _disposed = true;
         this.CloseAllConnections("disposed");
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
+        s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion APIs
@@ -850,8 +837,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     [System.Diagnostics.StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)
     {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] connection-limit-reached policy={_options.RejectPolicy} max={_options.MaxConnections}");
+        s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] connection-limit-reached policy={_options.RejectPolicy} max={_options.MaxConnections}");
 
         switch (_options.RejectPolicy)
         {
@@ -870,8 +856,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                     // if the ID is still present and still anonymous (no username mapped) -> evict
                     if (shard.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
+                        s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
 
                         oldestConn.Disconnect("evicted to make room for new connection");
                         return;
@@ -881,8 +866,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 }
 
                 // No anonymous connections found, reject new connection instead
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
+                s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
 
                 newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
                 System.Threading.Interlocked.Increment(ref _evictedConnections);
