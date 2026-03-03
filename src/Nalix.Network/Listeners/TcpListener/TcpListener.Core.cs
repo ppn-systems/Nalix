@@ -43,6 +43,9 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     private System.Threading.CancellationToken _cancellationToken;
     private System.Threading.CancellationTokenRegistration _cancelReg;
 
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     #endregion Fields
 
     #region Properties
@@ -74,8 +77,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled = value;
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(TcpListenerBase)}] timesync={value}");
+            s_logger.Info($"[NW.{nameof(TcpListenerBase)}] timesync={value}");
         }
     }
 
@@ -279,8 +281,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             this._lock.Dispose();
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
+        s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion IDispose

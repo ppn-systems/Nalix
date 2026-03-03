@@ -26,15 +26,14 @@ public abstract partial class TcpListenerBase
     {
         try
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.EndPoint}");
+            s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.EndPoint}");
 
             _protocol.OnAccept(connection, _cancellationToken);
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.EndPoint}", ex);
+            s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.EndPoint}", ex);
+
             connection.Close();
         }
     }
@@ -49,8 +48,7 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] close={args.Connection.EndPoint}");
+        s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] close={args.Connection.EndPoint}");
 
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
@@ -165,8 +163,7 @@ public abstract partial class TcpListenerBase
                 }
                 catch (System.ObjectDisposedException)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] disposed-during-accept remote={socket.RemoteEndPoint}");
+                    s_logger.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] disposed-during-accept remote={socket.RemoteEndPoint}");
 
                     SafeCloseSocket(socket);
                     if (args is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
@@ -183,8 +180,7 @@ public abstract partial class TcpListenerBase
                 }
                 catch (System.Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
+                    s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
 
                     try
                     {
@@ -202,8 +198,7 @@ public abstract partial class TcpListenerBase
             }
             else
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-failed={args.SocketError}");
+                s_logger.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-failed={args.SocketError}");
 
                 if (args is PooledSocketAsyncEventArgs pooled)
                 {
@@ -308,8 +303,7 @@ public abstract partial class TcpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error port={_port}", ex);
+                s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error port={_port}", ex);
 
                 // Brief delay to prevent CPU spinning on repeated errors
                 System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
@@ -380,8 +374,7 @@ public abstract partial class TcpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
+                s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
 
                 // Brief delay to prevent CPU spinning on repeated errors
                 await System.Threading.Tasks.Task.Delay(50, cancellationToken)
