@@ -21,23 +21,24 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
 {
     #region Constants
 
-    /// <summary>Target period for ~60 FPS cadence.</summary>
+    /// <summary>
+    /// Target period for ~60 FPS cadence.
+    /// </summary>
     public static readonly System.TimeSpan DefaultPeriod = System.TimeSpan.FromMilliseconds(16);
 
     #endregion
 
     #region Fields
 
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     private System.TimeSpan _period = DefaultPeriod;
     private readonly System.Threading.Lock _gate = new();
-    [System.Diagnostics.CodeAnalysis.AllowNull] private System.Threading.CancellationTokenSource _cts;
+    private System.Threading.CancellationTokenSource _cts;
 
-    // Use int flags for thread-safe state (0 = false, 1 = true)
-    private System.Int32 _isRunning;    // loop running flag
-    private System.Int32 _isDisposed;   // disposal flag
-    private System.Int32 _enabled;      // enabled flag
-
-    // Optional: fire-and-forget post to ThreadPool to avoid blocking tick loop
+    private System.Int32 _isRunning;
+    private System.Int32 _isDisposed;
+    private System.Int32 _enabled;
     private volatile System.Boolean _fireAndForget;
 
     #endregion
@@ -54,10 +55,14 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
 
     #region Properties
 
-    /// <summary>True if the background loop is currently running.</summary>
+    /// <summary>
+    /// True if the background loop is currently running.
+    /// </summary>
     public System.Boolean IsRunning => System.Threading.Volatile.Read(ref _isRunning) == 1;
 
-    /// <summary>True if synchronization is enabled (and the loop should run).</summary>
+    /// <summary>
+    /// True if synchronization is enabled (and the loop should run).
+    /// </summary>
     public System.Boolean IsTimeSyncEnabled
     {
         [System.Runtime.CompilerServices.MethodImpl(
@@ -125,11 +130,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
     /// <summary>
     /// Initializes a new instance of the <see cref="TimeSynchronizer"/> class.
     /// </summary>
-    public TimeSynchronizer()
-    {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(TimeSynchronizer)}] init");
-    }
+    public TimeSynchronizer() => s_logger?.Debug($"[NW.{nameof(TimeSynchronizer)}] initialized");
 
     /// <summary>
     /// Enables synchronization and ensures the loop is running.
@@ -138,13 +139,14 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
-        if (System.Threading.Volatile.Read(ref _enabled) == 1)
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, nameof(TimeSynchronizer));
+
+        if (System.Threading.Interlocked.CompareExchange(ref _enabled, 1, 0) == 1)
         {
             return;
         }
 
-        System.Threading.Volatile.Write(ref _enabled, 1);
-        InitializeSyncLoop();
+        INITIALIZE_SYNC_LOOP();
     }
 
     /// <summary>
@@ -154,18 +156,18 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Deactivate(System.Threading.CancellationToken cancellationToken = default)
     {
-        if (System.Threading.Volatile.Read(ref _enabled) == 0)
+        if (System.Threading.Interlocked.CompareExchange(ref _enabled, 0, 1) == 0)
         {
             return;
         }
 
-        System.Threading.Volatile.Write(ref _enabled, 0);
-        TerminateSyncLoop();
+        TERMINATE_SYNC_LOOP();
     }
 
-    /// <summary>Starts or restarts the loop to apply new settings.</summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    /// <summary>
+    /// Starts or restarts the loop to apply new settings.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Restart()
     {
         if (!IsTimeSyncEnabled)
@@ -173,14 +175,40 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
             return;
         }
 
-        TerminateSyncLoop();
-        InitializeSyncLoop();
+        TERMINATE_SYNC_LOOP();
+
+        System.Threading.Thread.Sleep(50);
+
+        INITIALIZE_SYNC_LOOP();
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void InitializeSyncLoop()
+    #endregion APIs
+
+    #region Dispose
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (System.Threading.Interlocked.CompareExchange(ref _isDisposed, 1, 0) == 1)
+        {
+            return;
+        }
+
+        Deactivate();
+
+        TimeSynchronized = null;
+
+        System.GC.SuppressFinalize(this);
+
+        s_logger?.Debug($"[NW.{nameof(TimeSynchronizer)}] disposed");
+    }
+
+    #endregion Dispose
+
+    #region Private Methods
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void INITIALIZE_SYNC_LOOP()
     {
         if (System.Threading.Interlocked.CompareExchange(ref _isRunning, 1, 0) == 1)
         {
@@ -192,6 +220,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         {
             if (_cts is not null)
             {
+                System.Threading.Volatile.Write(ref _isRunning, 0);
                 return;
             }
 
@@ -207,8 +236,8 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                 try
                 {
                     using System.Threading.PeriodicTimer timer = new(_period);
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[{nameof(TimeSynchronizer)}:Internal] start period={_period.TotalMilliseconds:0.#}ms");
+
+                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] started period={_period.TotalMilliseconds:0.#}ms");
 
                     while (!ct.IsCancellationRequested)
                     {
@@ -222,7 +251,7 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                             continue;
                         }
 
-                        System.Int64 t0 = Clock.UnixMillisecondsNow();
+                        System.Int64 timestamp = Clock.UnixMillisecondsNow();
                         System.Action<System.Int64> handler = TimeSynchronized;
 
                         if (handler is not null)
@@ -238,69 +267,62 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
                                     }
                                     catch (System.Exception ex)
                                     {
-                                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                                .Error($"[NW.{nameof(TimeSynchronizer)}:Internal] handler-error", ex);
+                                        s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
                                     }
-                                }, (handler, t0), preferLocal: false);
+                                }, (handler, timestamp), preferLocal: false);
                             }
                             else
                             {
                                 try
                                 {
-                                    handler(t0);
+                                    handler(timestamp);
                                 }
                                 catch (System.Exception ex)
                                 {
-                                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                            .Error($"[NW.{nameof(TimeSynchronizer)}:Internal] handler-error", ex);
+                                    s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
                                 }
                             }
                         }
 
-                        System.Int64 elapsed = Clock.UnixMillisecondsNow() - t0;
+                        System.Int64 elapsed = Clock.UnixMillisecondsNow() - timestamp;
                         if (elapsed > _period.TotalMilliseconds * 1.5)
                         {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[NW.{nameof(TimeSynchronizer)}:Internal] overrun elapsed={elapsed}ms period={_period.TotalMilliseconds:0.#}ms");
+                            s_logger?.Warn(
+                                $"[NW.{nameof(TimeSynchronizer)}] tick overrun " +
+                                $"elapsed={elapsed}ms period={_period.TotalMilliseconds:0.#}ms");
                         }
 
-                        ctx.Beat();
+                        ctx?.Beat();
                     }
                 }
                 catch (System.OperationCanceledException)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[NW.{nameof(TimeSynchronizer)}:Internal] cancelled");
+                    // Expected during shutdown
                 }
                 catch (System.Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(TimeSynchronizer)}:Internal] loop-error", ex);
+                    s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] loop-error", ex);
                 }
                 finally
                 {
                     System.Threading.Volatile.Write(ref _isRunning, 0);
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[NW.{nameof(TimeSynchronizer):Internal}] stop");
+                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] stopped");
                 }
             },
             options: new WorkerOptions
             {
                 CancellationToken = linkedToken,
                 IdType = SnowflakeType.System,
-                RetainFor = System.TimeSpan.Zero
+                RetainFor = System.TimeSpan.Zero,
+                Tag = NetTaskNames.Sync
             }
         );
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void TerminateSyncLoop()
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void TERMINATE_SYNC_LOOP()
     {
-        if (System.Threading.Interlocked.Exchange(ref _isRunning, 0) == 0)
-        {
-        }
+        System.Threading.Interlocked.Exchange(ref _isRunning, 0);
 
         System.Threading.CancellationTokenSource toCancel;
         lock (_gate)
@@ -313,26 +335,5 @@ public sealed class TimeSynchronizer : System.IDisposable, IActivatable
         try { toCancel?.Dispose(); } catch { }
     }
 
-    #endregion APIs
-
-    #region Dispose
-
-    /// <inheritdoc/>
-    [System.Diagnostics.StackTraceHidden]
-    public void Dispose()
-    {
-        if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) == 1)
-        {
-            return;
-        }
-
-        Deactivate(); // stops loop and disposes CTS
-        TimeSynchronized = null;
-        System.GC.SuppressFinalize(this);
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[NW.{nameof(TimeSynchronizer)}:{nameof(Dispose)}] disposed");
-    }
-
-    #endregion
+    #endregion Private Methods
 }
