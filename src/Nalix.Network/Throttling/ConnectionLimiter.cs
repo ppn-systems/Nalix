@@ -45,7 +45,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private readonly ILogger _logger;
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private System.Int32 _disposed;
 
@@ -82,12 +82,11 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         _inactivityThreshold = _config.InactivityThreshold;
 
         _map = new System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry>();
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         INITIALIZE_METRICS();
         SCHEDULE_CLEANUP_JOB();
 
-        _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] init " +
+        s_logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] init " +
                        $"maxPerEndpoint={_maxPerEndpoint} " +
                        $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
                        $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
@@ -140,7 +139,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                 {
                     System.String suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : System.String.Empty;
 
-                    _logger?.Info(
+                    s_logger?.Info(
                         $"[NW.{nameof(ConnectionLimiter)}] reject endpoint={endPoint} " +
                         $"current={result.CurrentConnections} limit={_maxPerEndpoint}{suffix}");
                 }
@@ -148,7 +147,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         }
         else
         {
-            _logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] allow endpoint={endPoint} current={result.CurrentConnections} limit={_maxPerEndpoint}");
+            s_logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] allow endpoint={endPoint} current={result.CurrentConnections} limit={_maxPerEndpoint}");
         }
 
         return result.Allowed;
@@ -173,7 +172,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
         if (endPoint is not System.Net.IPEndPoint ipEndPoint)
         {
-            _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] received non-IPEndPoint ({endPoint.GetType().Name}) - rejecting");
+            s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] received non-IPEndPoint ({endPoint.GetType().Name}) - rejecting");
             return false;
         }
 
@@ -201,13 +200,13 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
         if (args?.Connection?.EndPoint is null)
         {
-            _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-null args/connection/endpoint");
+            s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-null args/connection/endpoint");
             return;
         }
 
         if (System.String.IsNullOrWhiteSpace(args.Connection.EndPoint.Address))
         {
-            _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-empty-address");
+            s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-empty-address");
             return;
         }
 
@@ -233,7 +232,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                 {
                     System.String suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : System.String.Empty;
 
-                    _logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] closed endpoint={key.Address}{suffix}");
+                    s_logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] closed endpoint={key.Address}{suffix}");
                 }
             }
         }
@@ -367,7 +366,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                     }
                 );
 
-                _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
+                s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
 
                 return new ConnectionAllowResult
                 {
@@ -467,7 +466,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
                 {
                     entry.RecentConnectionTimestamps.Clear();
 
-                    _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleared-queue ip={key.Address} reason=oversized");
+                    s_logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleared-queue ip={key.Address} reason=oversized");
                 }
             }
         }
@@ -502,13 +501,13 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
         if (suppressed > 0)
         {
-            _logger?.Warn(
+            s_logger?.Warn(
                 $"[NW.{nameof(ConnectionLimiter)}] DDoS-detected ip={key.Address} " +
                 $"(+{suppressed} suppressed-in-last={_config.DDoSLogSuppressWindow.TotalSeconds:F0}s)");
         }
         else
         {
-            _logger?.Warn(
+            s_logger?.Warn(
                 $"[NW.{nameof(ConnectionLimiter)}] DDoS-detected ip={key.Address}");
         }
     }
@@ -571,7 +570,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         {
             System.String suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : System.String.Empty;
 
-            _logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] banned-reject ip={key.Address} " +
+            s_logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] banned-reject ip={key.Address} " +
                            $"until={bannedUntil:HH:mm:ss}{suffix}");
         }
     }
@@ -789,12 +788,12 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
             if (removed > 0)
             {
-                _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed} remaining={_map.Count}");
+                s_logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed} remaining={_map.Count}");
             }
         }
         catch (System.Exception ex) when (ex is not System.ObjectDisposedException)
         {
-            _logger?.Error($"[NW.{nameof(ConnectionLimiter)}] cleanup-error", ex);
+            s_logger?.Error($"[NW.{nameof(ConnectionLimiter)}] cleanup-error", ex);
         }
     }
 
@@ -897,11 +896,11 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
             _map.Clear();
 
-            _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}:{nameof(Dispose)}] disposed");
+            s_logger?.Debug($"[NW.{nameof(ConnectionLimiter)}:{nameof(Dispose)}] disposed");
         }
         catch (System.Exception ex)
         {
-            _logger?.Error($"[NW.{nameof(ConnectionLimiter)}:{nameof(Dispose)}] dispose-error msg={ex.Message}");
+            s_logger?.Error($"[NW.{nameof(ConnectionLimiter)}:{nameof(Dispose)}] dispose-error msg={ex.Message}");
         }
 
         System.GC.SuppressFinalize(this);
