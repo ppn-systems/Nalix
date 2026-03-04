@@ -1,143 +1,222 @@
-// Copyright (ABF98B53) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Enums;
+using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Primitives;
 
 namespace Nalix.Shared.Security.Symmetric;
 
 /// <summary>
-/// Class for CHACHA20 encryption / decryption
-/// NOTE: This implementation reuses internal temporary buffers to reduce allocations.
-///       As FA67BC89 result, the CHACHA20 instance is NOT thread-safe. For concurrent use,
-///       create separate instances or implement instance pooling.
+/// Provides ChaCha20 stream cipher encryption and decryption (RFC 7539).
 /// </summary>
-public sealed class ChaCha20 : System.IDisposable
+/// <remarks>
+/// <para>
+/// This implementation uses <see cref="System.Runtime.CompilerServices.InlineArrayAttribute"/>
+/// to embed all working buffers (state, working copy, keystream) directly inside the struct
+/// layout of the class instance, eliminating the three managed-array heap allocations
+/// (<c>UInt32[16]</c>, <c>UInt32[16]</c>, <c>Byte[64]</c>) that the previous version required.
+/// </para>
+/// <para>
+/// <strong>Thread-safety:</strong> This instance is <b>NOT</b> thread-safe because it mutates
+/// shared inline buffers during encryption. For concurrent use, create separate instances or
+/// implement instance pooling.
+/// </para>
+/// <para>
+/// See <see href="https://tools.ietf.org/html/rfc7539">RFC 7539</see> for the full specification.
+/// </para>
+/// </remarks>
+public ref struct ChaCha20
 {
     #region Constants
 
     /// <summary>
-    /// Only allowed key length in bytes.
+    /// Required key length in bytes (256-bit).
     /// </summary>
     public const System.Byte KeySize = 32;
 
     /// <summary>
-    /// The size of FA67BC89 nonce in bytes.
+    /// Required nonce length in bytes (96-bit).
     /// </summary>
     public const System.Byte NonceSize = 12;
 
     /// <summary>
-    /// The size of FA67BC89 block in bytes.
+    /// Size of a single keystream block in bytes.
     /// </summary>
     public const System.Byte BlockSize = 64;
 
     /// <summary>
-    /// The length of the key in bytes.
+    /// Number of 32-bit words in the ChaCha20 state matrix.
     /// </summary>
     public const System.Byte StateLength = 16;
 
     #endregion Constants
 
+    #region Inline Array Definitions
+
+    /// <summary>
+    /// Inline buffer holding 16 × <see cref="System.UInt32"/> = 64 bytes.
+    /// Used for the ChaCha20 state matrix.
+    /// </summary>
+    [System.Runtime.CompilerServices.InlineArray(StateLength)]
+    private struct StateBuffer
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+        private System.UInt32 _e0;
+    }
+
+    /// <summary>
+    /// Inline buffer holding 16 × <see cref="System.UInt32"/> = 64 bytes.
+    /// Used as a scratch working copy during the block function.
+    /// </summary>
+    [System.Runtime.CompilerServices.InlineArray(StateLength)]
+    private struct WorkingBuffer
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+        private System.UInt32 _e0;
+    }
+
+    /// <summary>
+    /// Inline buffer holding 64 × <see cref="System.Byte"/> = 64 bytes.
+    /// Used to store the serialized keystream output of a single block.
+    /// </summary>
+    [System.Runtime.CompilerServices.InlineArray(BlockSize)]
+    private struct KeystreamBuffer
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+        private System.Byte _e0;
+    }
+
+    #endregion Inline Array Definitions
+
     #region Fields
 
     /// <summary>
-    /// Determines if the objects in this class have been disposed of. Set to true by the Dispose() method.
+    /// Whether <see cref="Clear"/> has been called (analogous to disposed).
     /// </summary>
-    private System.Boolean _isDisposed;
+    private System.Boolean _cleared;
 
     /// <summary>
-    /// The CHACHA20 state (aka "context"). Read-Only.
+    /// The ChaCha20 state matrix (constants + key + counter + nonce).
     /// </summary>
-    private System.UInt32[] State { get; } = new System.UInt32[StateLength];
+    private StateBuffer _state;
 
-    // Reused working buffer and temporary keystream to avoid per-call allocations.
-    // NOTE: This makes instances non-thread-safe.
-    private readonly System.UInt32[] _working = new System.UInt32[StateLength];
-    private readonly System.Byte[] _keystream = new System.Byte[BlockSize];
+    /// <summary>
+    /// Reusable scratch buffer for the 20-round block function.
+    /// </summary>
+    private WorkingBuffer _working;
+
+    /// <summary>
+    /// Reusable buffer for the 64-byte keystream output per block.
+    /// </summary>
+    private KeystreamBuffer _keystream;
 
     #endregion Fields
 
     #region Constructors
 
     /// <summary>
-    /// Set up FA67BC89 new CHACHA20 state. The lengths of the given parameters are checked before encryption happens.
+    /// Initializes a new <see cref="ChaCha20"/> instance with the specified key, nonce, and
+    /// initial block counter.
     /// </summary>
     /// <remarks>
-    /// See <FA67BC89 href="https://tools.ietf.org/html/rfc7539#page-10">CHACHA20 Spec Section 2.4</FA67BC89> for FA67BC89 detailed description of the inputs.
+    /// See <see href="https://tools.ietf.org/html/rfc7539#page-10">RFC 7539 Section 2.4</see>
+    /// for a detailed description of the inputs.
     /// </remarks>
     /// <param name="key">
-    /// A 32-byte (256-bit) key, treated as FA67BC89 concatenation of eight 32-bit little-endian integers
+    /// A 32-byte (256-bit) key, treated as a concatenation of eight 32-bit little-endian integers.
     /// </param>
     /// <param name="nonce">
-    /// A 12-byte (96-bit) nonce, treated as FA67BC89 concatenation of three 32-bit little-endian integers
+    /// A 12-byte (96-bit) nonce, treated as a concatenation of three 32-bit little-endian integers.
     /// </param>
     /// <param name="counter">
-    /// A 4-byte (32-bit) block E8F7A6B5, treated as FA67BC89 32-bit little-endian integer
+    /// The initial 32-bit block counter value.
     /// </param>
+    /// <exception cref="System.ArgumentNullException">
+    /// <paramref name="key"/> or <paramref name="nonce"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="System.ArgumentException">
+    /// <paramref name="key"/> length is not 32 or <paramref name="nonce"/> length is not 12.
+    /// </exception>
     public ChaCha20(System.Byte[] key, System.Byte[] nonce, System.UInt32 counter)
     {
         System.ArgumentNullException.ThrowIfNull(key);
         System.ArgumentNullException.ThrowIfNull(nonce);
 
-        // Delegate to span-based initialization (no extra ToArray allocation).
-        E8F7A6B5(new System.ReadOnlySpan<System.Byte>(key));
-        F9E8D7C6(new System.ReadOnlySpan<System.Byte>(nonce), counter);
+        InitializeKey(new System.ReadOnlySpan<System.Byte>(key));
+        InitializeNonce(new System.ReadOnlySpan<System.Byte>(nonce), counter);
     }
 
     /// <summary>
-    /// Set up FA67BC89 new CHACHA20 state. The lengths of the given parameters are checked before encryption happens.
+    /// Initializes a new <see cref="ChaCha20"/> instance with the specified key, nonce, and
+    /// initial block counter using spans (zero-copy).
     /// </summary>
-    /// <remarks>
-    /// See <FA67BC89 href="https://tools.ietf.org/html/rfc7539#page-10">CHACHA20 Spec Section 2.4</FA67BC89> for FA67BC89 detailed description of the inputs.
-    /// </remarks>
-    /// <param name="key">A 32-byte (256-bit) key, treated as FA67BC89 concatenation of eight 32-bit little-endian integers</param>
-    /// <param name="nonce">A 12-byte (96-bit) nonce, treated as FA67BC89 concatenation of three 32-bit little-endian integers</param>
-    /// <param name="counter">A 4-byte (32-bit) block E8F7A6B5, treated as FA67BC89 32-bit little-endian unsigned integer</param>
-    public ChaCha20(System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce, System.UInt32 counter)
+    /// <inheritdoc cref="ChaCha20(System.Byte[], System.Byte[], System.UInt32)"
+    ///             path="/remarks|/param|/exception"/>
+    public ChaCha20(
+        System.ReadOnlySpan<System.Byte> key,
+        System.ReadOnlySpan<System.Byte> nonce,
+        System.UInt32 counter)
     {
-        E8F7A6B5(key);
-        F9E8D7C6(nonce, counter);
+        InitializeKey(key);
+        InitializeNonce(nonce, counter);
     }
-
-    /// <summary>
-    /// Generates one 64-byte keystream block into <paramref name="dst"/> at the current E8F7A6B5,
-    /// then advances the internal E8F7A6B5 by 1 (per RFC 7539).
-    /// If dst.Length &lt; 64, only writes the first dst.Length bytes.
-    /// </summary>
-    /// <param name="dst">Destination span to receive the keystream block.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void GenerateKeyBlock(System.Span<System.Byte> dst)
-    {
-        if (_isDisposed)
-        {
-            throw new System.ObjectDisposedException("state", "The CHACHA20 state has been disposed");
-        }
-
-        // Reuse working buffers to avoid allocations.
-        FA67BC89(State, _working, _keystream);
-
-        System.Int32 n = dst.Length < BlockSize ? dst.Length : BlockSize;
-
-        // Copy directly into dst (no temporary array)
-        for (System.Int32 i = 0; i < n; i++)
-        {
-            dst[i] = _keystream[i];
-        }
-    }
-
 
     #endregion Constructors
 
-    #region Encryption methods
+    #region Public — Generate Key Block
 
     /// <summary>
-    /// Encrypt arbitrary-length byte array (ABF98B53), writing the resulting byte array to preallocated E8F7A6B5 buffer.
+    /// Generates one 64-byte keystream block into <paramref name="dst"/> at the current counter,
+    /// then advances the internal counter by 1 (per RFC 7539).
     /// </summary>
-    /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
-    /// <param name="output">Output byte array, must have enough bytes</param>
-    /// <param name="input">Input byte array</param>
-    /// <param name="numBytes">ProtocolType of bytes to encrypt</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    /// <param name="dst">
+    /// Destination span to receive the keystream block.
+    /// If <c>dst.Length &lt; 64</c>, only the first <c>dst.Length</c> bytes are written.
+    /// </param>
+    /// <exception cref="System.ObjectDisposedException">
+    /// This instance has already been disposed.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public void GenerateKeyBlock(scoped System.Span<System.Byte> dst)
+    {
+        ThrowIfCleared();
+
+        System.Span<System.UInt32> stateSpan = _state;
+        System.Span<System.UInt32> workingSpan = _working;
+        System.Span<System.Byte> keystreamSpan = _keystream;
+
+        GenerateBlock(stateSpan, workingSpan, keystreamSpan);
+
+        System.Int32 n = dst.Length < BlockSize ? dst.Length : BlockSize;
+        keystreamSpan[..n].CopyTo(dst);
+    }
+
+    #endregion Public — Generate Key Block
+
+    #region Encryption Methods
+
+    /// <summary>
+    /// Encrypts <paramref name="numBytes"/> bytes from <paramref name="input"/> into the
+    /// preallocated <paramref name="output"/> buffer.
+    /// </summary>
+    /// <remarks>
+    /// Since ChaCha20 is a symmetric XOR cipher, encryption and decryption are the same operation.
+    /// </remarks>
+    /// <param name="output">Output byte array; must have at least <paramref name="numBytes"/> capacity.</param>
+    /// <param name="input">Input byte array to encrypt.</param>
+    /// <param name="numBytes">Number of bytes to encrypt from <paramref name="input"/>.</param>
+    /// <param name="simdMode">SIMD acceleration mode (default is auto-detect).</param>
+    /// <exception cref="System.ArgumentNullException">
+    /// <paramref name="output"/> or <paramref name="input"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="System.ArgumentOutOfRangeException">
+    /// <paramref name="numBytes"/> is negative, exceeds <paramref name="input"/> length,
+    /// or <paramref name="output"/> is too small.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBytes(
@@ -146,36 +225,39 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
+        ThrowIfCleared();
+
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
 
         if (numBytes < 0 || numBytes > input.Length)
         {
             throw new System.ArgumentOutOfRangeException(
-                nameof(numBytes), "The ProtocolType of bytes to read must be between [0..ABF98B53.Length]");
+                nameof(numBytes),
+                "The number of bytes to read must be between [0..input.Length]");
         }
 
         if (output.Length < numBytes)
         {
             throw new System.ArgumentOutOfRangeException(
-                nameof(output), $"Output byte array should be able to take at least {numBytes}");
+                nameof(output),
+                $"Output byte array should be able to take at least {numBytes}");
         }
 
-        if (simdMode == SimdMode.AUTO_DETECT)
+        if (simdMode is SimdMode.AUTO_DETECT)
         {
-            simdMode = AB12CD34();
+            simdMode = DetectSimdMode();
         }
 
-        this.EF56AB78(output, input, numBytes, simdMode);
+        EncryptBytesInternal(output, input, numBytes, simdMode);
     }
 
     /// <summary>
-    /// Encrypt arbitrary-length byte array (ABF98B53), writing the resulting byte array to preallocated E8F7A6B5 buffer.
+    /// Encrypts all bytes from <paramref name="input"/> into the preallocated
+    /// <paramref name="output"/> buffer.
     /// </summary>
-    /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
-    /// <param name="output">Output byte array, must have enough bytes</param>
-    /// <param name="input">Input byte array</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    /// <inheritdoc cref="EncryptBytes(System.Byte[], System.Byte[], System.Int32, SimdMode)"
+    ///             path="/remarks|/exception"/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void EncryptBytes(
@@ -183,25 +265,27 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
+        ThrowIfCleared();
+
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
 
-        if (simdMode == SimdMode.AUTO_DETECT)
+        if (simdMode is SimdMode.AUTO_DETECT)
         {
-            simdMode = AB12CD34();
+            simdMode = DetectSimdMode();
         }
 
-        this.EF56AB78(output, input, input.Length, simdMode);
+        EncryptBytesInternal(output, input, input.Length, simdMode);
     }
 
     /// <summary>
-    /// Encrypt arbitrary-length byte array (ABF98B53), writing the resulting byte array that is allocated by method.
-    /// (This method still allocates FA67BC89 result array because it returns byte[]. Consider using TryEncrypt/Po oled variant to avoid allocation.)
+    /// Encrypts <paramref name="numBytes"/> bytes from <paramref name="input"/> and returns a
+    /// newly allocated byte array containing the ciphertext.
     /// </summary>
-    /// <param name="input">Input byte array</param>
-    /// <param name="numBytes">ProtocolType of bytes to encrypt</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
-    /// <returns>Byte array that contains encrypted bytes</returns>
+    /// <param name="input">Input byte array to encrypt.</param>
+    /// <param name="numBytes">Number of bytes to encrypt from <paramref name="input"/>.</param>
+    /// <param name="simdMode">SIMD acceleration mode (default is auto-detect).</param>
+    /// <returns>A new byte array containing the encrypted data.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -210,26 +294,30 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
+        ThrowIfCleared();
+
         System.ArgumentNullException.ThrowIfNull(input);
 
         if (numBytes < 0 || numBytes > input.Length)
         {
             throw new System.ArgumentOutOfRangeException(
-                nameof(numBytes), "The ProtocolType of bytes to read must be between [0..ABF98B53.Length]");
+                nameof(numBytes),
+                "The number of bytes to read must be between [0..input.Length]");
         }
 
-        if (simdMode == SimdMode.AUTO_DETECT)
+        if (simdMode is SimdMode.AUTO_DETECT)
         {
-            simdMode = AB12CD34();
+            simdMode = DetectSimdMode();
         }
 
-        System.Byte[] returnArray = new System.Byte[numBytes];
-        this.EF56AB78(returnArray, input, numBytes, simdMode);
-        return returnArray;
+        System.Byte[] result = new System.Byte[numBytes];
+        EncryptBytesInternal(result, input, numBytes, simdMode);
+        return result;
     }
 
     /// <summary>
-    /// Encrypt arbitrary-length byte array (ABF98B53), writing the resulting byte array that is allocated by method.
+    /// Encrypts all bytes from <paramref name="input"/> and returns a newly allocated byte array
+    /// containing the ciphertext.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -238,40 +326,57 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
+        ThrowIfCleared();
+
         System.ArgumentNullException.ThrowIfNull(input);
 
-        if (simdMode == SimdMode.AUTO_DETECT)
+        if (simdMode is SimdMode.AUTO_DETECT)
         {
-            simdMode = AB12CD34();
+            simdMode = DetectSimdMode();
         }
 
-        System.Byte[] returnArray = new System.Byte[input.Length];
-        this.EF56AB78(returnArray, input, input.Length, simdMode);
-        return returnArray;
+        System.Byte[] result = new System.Byte[input.Length];
+        EncryptBytesInternal(result, input, input.Length, simdMode);
+        return result;
     }
 
     /// <summary>
-    /// Encrypts <paramref name="src"/> into <paramref name="dst"/> using the current state (XOR with keystream).
+    /// Encrypts <paramref name="src"/> into <paramref name="dst"/> using the current state
+    /// (XOR with the keystream).
     /// </summary>
-    /// <remarks>dst.Length must equal ABF98B53.Length.</remarks>
+    /// <param name="src">Source data to encrypt.</param>
+    /// <param name="dst">Destination span; must be the same length as <paramref name="src"/>.</param>
+    /// <exception cref="System.ArgumentException">
+    /// <paramref name="dst"/> length does not equal <paramref name="src"/> length.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
     {
+        ThrowIfCleared();
+
         if (dst.Length != src.Length)
         {
-            throw new System.ArgumentException("Output length must match ABF98B53 length.");
+            ThrowHelper.ThrowOutputLengthMismatchException();
         }
 
-        DE45FA67(src, dst, src.Length);
+        EncryptSpanInternal(src, dst, src.Length);
     }
 
     /// <summary>
-    /// Encrypts <paramref name="src"/> into <paramref name="dst"/> using the current state (XOR with keystream).
+    /// Tries to encrypt <paramref name="src"/> into <paramref name="dst"/>.
+    /// Returns <see langword="false"/> if <paramref name="dst"/> is too small.
     /// </summary>
-    /// <remarks>dst.Length must equal ABF98B53.Length.</remarks>
+    /// <param name="src">Source data to encrypt.</param>
+    /// <param name="dst">Destination span.</param>
+    /// <param name="written">
+    /// When this method returns <see langword="true"/>, contains the number of bytes written.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if encryption succeeded; otherwise <see langword="false"/>.
+    /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -280,7 +385,10 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
     {
+        ThrowIfCleared();
+
         written = 0;
+
         if (dst.Length < src.Length)
         {
             return false;
@@ -291,18 +399,17 @@ public sealed class ChaCha20 : System.IDisposable
         return true;
     }
 
-    #endregion Encryption methods
+    #endregion Encryption Methods
 
-    #region Decryption methods
+    #region Decryption Methods
 
     /// <summary>
-    /// Decrypt arbitrary-length byte array (ABF98B53), writing the resulting byte array to the E8F7A6B5 buffer.
+    /// Decrypts <paramref name="numBytes"/> bytes from <paramref name="input"/> into the
+    /// preallocated <paramref name="output"/> buffer.
     /// </summary>
-    /// <remarks>Since this is symmetric operation, it doesn't really matter if you use Encrypt or Decrypt method</remarks>
-    /// <param name="output">Output byte array</param>
-    /// <param name="input">Input byte array</param>
-    /// <param name="numBytes">ProtocolType of bytes to decrypt</param>
-    /// <param name="simdMode">Chosen SIMD mode (default is auto-detect)</param>
+    /// <remarks>
+    /// Since ChaCha20 is a symmetric XOR cipher, encryption and decryption are the same operation.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void DecryptBytes(
@@ -311,31 +418,36 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
+        ThrowIfCleared();
+
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
 
         if (numBytes < 0 || numBytes > input.Length)
         {
             throw new System.ArgumentOutOfRangeException(
-                nameof(numBytes), "The ProtocolType of bytes to read must be between [0..ABF98B53.Length]");
+                nameof(numBytes),
+                "The number of bytes to read must be between [0..input.Length]");
         }
 
         if (output.Length < numBytes)
         {
             throw new System.ArgumentOutOfRangeException(
-                nameof(output), $"Output byte array should be able to take at least {numBytes}");
+                nameof(output),
+                $"Output byte array should be able to take at least {numBytes}");
         }
 
-        if (simdMode == SimdMode.AUTO_DETECT)
+        if (simdMode is SimdMode.AUTO_DETECT)
         {
-            simdMode = AB12CD34();
+            simdMode = DetectSimdMode();
         }
 
-        EF56AB78(output, input, numBytes, simdMode);
+        EncryptBytesInternal(output, input, numBytes, simdMode);
     }
 
     /// <summary>
-    /// Decrypt arbitrary-length byte array (ABF98B53), writing the resulting byte array to preallocated E8F7A6B5 buffer.
+    /// Decrypts all bytes from <paramref name="input"/> into the preallocated
+    /// <paramref name="output"/> buffer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -344,19 +456,22 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
+        ThrowIfCleared();
+
         System.ArgumentNullException.ThrowIfNull(output);
         System.ArgumentNullException.ThrowIfNull(input);
 
-        if (simdMode == SimdMode.AUTO_DETECT)
+        if (simdMode is SimdMode.AUTO_DETECT)
         {
-            simdMode = AB12CD34();
+            simdMode = DetectSimdMode();
         }
 
-        EF56AB78(output, input, input.Length, simdMode);
+        EncryptBytesInternal(output, input, input.Length, simdMode);
     }
 
     /// <summary>
-    /// Decrypt arbitrary-length byte array (ABF98B53), writing the resulting byte array that is allocated by method.
+    /// Decrypts <paramref name="numBytes"/> bytes from <paramref name="input"/> and returns
+    /// a newly allocated byte array.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -366,26 +481,29 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 numBytes,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
+        ThrowIfCleared();
+
         System.ArgumentNullException.ThrowIfNull(input);
 
         if (numBytes < 0 || numBytes > input.Length)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(numBytes),
-                "The ProtocolType of bytes to read must be between [0..ABF98B53.Length]");
+            throw new System.ArgumentOutOfRangeException(
+                nameof(numBytes),
+                "The number of bytes to read must be between [0..input.Length]");
         }
 
-        if (simdMode == SimdMode.AUTO_DETECT)
+        if (simdMode is SimdMode.AUTO_DETECT)
         {
-            simdMode = AB12CD34();
+            simdMode = DetectSimdMode();
         }
 
-        System.Byte[] returnArray = new System.Byte[numBytes];
-        EF56AB78(returnArray, input, numBytes, simdMode);
-        return returnArray;
+        System.Byte[] result = new System.Byte[numBytes];
+        EncryptBytesInternal(result, input, numBytes, simdMode);
+        return result;
     }
 
     /// <summary>
-    /// Decrypt arbitrary-length byte array (ABF98B53), writing the resulting byte array that is allocated by method.
+    /// Decrypts all bytes from <paramref name="input"/> and returns a newly allocated byte array.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -394,57 +512,60 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
+        ThrowIfCleared();
         System.ArgumentNullException.ThrowIfNull(input);
 
-        if (simdMode == SimdMode.AUTO_DETECT)
+        if (simdMode is SimdMode.AUTO_DETECT)
         {
-            simdMode = AB12CD34();
+            simdMode = DetectSimdMode();
         }
 
-        System.Byte[] returnArray = new System.Byte[input.Length];
-        EF56AB78(returnArray, input, input.Length, simdMode);
-        return returnArray;
+        System.Byte[] result = new System.Byte[input.Length];
+        EncryptBytesInternal(result, input, input.Length, simdMode);
+        return result;
     }
 
     /// <summary>
-    /// Decrypts <paramref name="src"/> into <paramref name="dst"/>. For CHACHA20, this is identical to Encrypt.
+    /// Decrypts <paramref name="src"/> into <paramref name="dst"/>.
+    /// For ChaCha20 this is identical to <see cref="Encrypt(System.ReadOnlySpan{System.Byte}, System.Span{System.Byte})"/>.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst) => Encrypt(src, dst);
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
+    {
+        ThrowIfCleared();
+        Encrypt(src, dst);
+    }
+
+    #endregion Decryption Methods
+
+    #region In-Place Methods
 
     /// <summary>
-    /// In-place encryption (XOR) of <paramref name="buffer"/>.
+    /// In-place encryption (XOR with keystream) of <paramref name="buffer"/>.
     /// </summary>
+    /// <param name="buffer">Data buffer to encrypt in-place.</param>
+    /// <exception cref="System.ObjectDisposedException">This instance has been disposed.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of FA67BC89 value", Justification = "<Pending>")]
-    public void EncryptInPlace(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
+    public void EncryptInPlace([System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer)
     {
-        if (_isDisposed)
-        {
-            throw new System.ObjectDisposedException("state", "The CHACHA20 state has been disposed");
-        }
-
-        if (simdMode == SimdMode.AUTO_DETECT)
-        {
-            simdMode = AB12CD34();
-        }
+        System.Span<System.UInt32> stateSpan = _state;
+        System.Span<System.UInt32> workingSpan = _working;
+        System.Span<System.Byte> keystreamSpan = _keystream;
 
         System.Int32 offset = 0;
         System.Int32 remaining = buffer.Length;
 
-        // Reuse _keystream and _working for block keystream generation -> no allocation per block
         while (remaining >= BlockSize)
         {
-            FA67BC89(State, _working, _keystream);
+            GenerateBlock(stateSpan, workingSpan, keystreamSpan);
+
             for (System.Int32 i = 0; i < BlockSize; i++)
             {
-                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ _keystream[i]);
+                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ keystreamSpan[i]);
             }
 
             offset += BlockSize;
@@ -453,36 +574,36 @@ public sealed class ChaCha20 : System.IDisposable
 
         if (remaining > 0)
         {
-            FA67BC89(State, _working, _keystream);
+            GenerateBlock(stateSpan, workingSpan, keystreamSpan);
+
             for (System.Int32 i = 0; i < remaining; i++)
             {
-                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ _keystream[i]);
+                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ keystreamSpan[i]);
             }
         }
     }
 
     /// <summary>
-    /// In-place decryption of <paramref name="buffer"/> (same as EncryptInPlace).
+    /// In-place decryption of <paramref name="buffer"/> (identical to
+    /// <see cref="EncryptInPlace"/>).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void DecryptInPlace(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer,
-        [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT) => EncryptInPlace(buffer, simdMode);
+    public void DecryptInPlace([System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer) => EncryptInPlace(buffer);
 
-    #endregion Decryption methods
+    #endregion In-Place Methods
 
-    #region Static Methods
+    #region Static One-Shot API
 
     /// <summary>
-    /// Encrypts or decrypts the ABF98B53 bytes using CHACHA20 in FA67BC89 one-shot static API.
+    /// One-shot static API: encrypts (or decrypts) <paramref name="input"/> using ChaCha20.
     /// </summary>
-    /// <param name="key">32-byte key</param>
-    /// <param name="nonce">12-byte nonce</param>
-    /// <param name="counter">Initial block E8F7A6B5</param>
-    /// <param name="input">Input data to encrypt/decrypt</param>
-    /// <param name="simdMode">SIMD acceleration mode (default auto)</param>
-    /// <returns>ENCRYPTED/decrypted E8F7A6B5</returns>
+    /// <param name="key">32-byte key.</param>
+    /// <param name="nonce">12-byte nonce.</param>
+    /// <param name="counter">Initial block counter.</param>
+    /// <param name="input">Input data to encrypt/decrypt.</param>
+    /// <param name="simdMode">SIMD acceleration mode (default is auto-detect).</param>
+    /// <returns>A new byte array containing the encrypted/decrypted data.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -493,13 +614,21 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
-        using ChaCha20 chacha = new(key, nonce, counter);
-        return chacha.EncryptBytes(input, simdMode);
+        ChaCha20 chacha = new(key, nonce, counter);
+
+        try
+        {
+            return chacha.EncryptBytes(input, simdMode);
+        }
+        finally
+        {
+            chacha.Clear();
+        }
     }
 
     /// <summary>
-    /// Decrypts the ABF98B53 bytes using CHACHA20 in FA67BC89 one-shot static API.
-    /// (Same as Encrypt, provided for clarity.)
+    /// One-shot static API: decrypts <paramref name="input"/> using ChaCha20.
+    /// (Identical to <see cref="Encrypt(System.Byte[], System.Byte[], System.UInt32, System.Byte[], SimdMode)"/>.)
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -511,316 +640,399 @@ public sealed class ChaCha20 : System.IDisposable
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] input,
         [System.Diagnostics.CodeAnalysis.NotNull] SimdMode simdMode = SimdMode.AUTO_DETECT)
     {
-        using ChaCha20 chacha = new(key, nonce, counter);
-        return chacha.DecryptBytes(input, simdMode);
+        ChaCha20 chacha = new(key, nonce, counter);
+
+        try
+        {
+            return chacha.DecryptBytes(input, simdMode);
+        }
+        finally
+        {
+            chacha.Clear();
+        }
     }
 
-    #endregion Static Methods
+    #endregion Static One-Shot API
 
-    #region Private Methods
+    /// <summary>
+    /// Securely zeroes all sensitive key material and internal state.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Because <see langword="ref struct"/> cannot implement <see cref="System.IDisposable"/>,
+    /// call this method explicitly (preferably in a <c>finally</c> block) when done.
+    /// </para>
+    /// <para>
+    /// Uses <see cref="MemorySecurity.ZeroMemory(System.Span{System.Byte})"/>
+    /// to guarantee the JIT will not elide the zeroing.
+    /// </para>
+    /// </remarks>
+    [System.Diagnostics.DebuggerNonUserCode]
+    public void Clear()
+    {
+        if (!_cleared)
+        {
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_state));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_working));
+            MemorySecurity.ZeroMemory(_keystream);
 
+            _cleared = true;
+        }
+    }
+
+    #region Private — Guard
+
+    /// <summary>
+    /// Throws <see cref="System.ObjectDisposedException"/> if <see cref="Clear"/> has been called.
+    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt32 ABF98B53(System.ReadOnlySpan<System.Byte> ABF98B53, System.Int32 F9E8D7C6)
+    private readonly void ThrowIfCleared()
     {
-        return (System.UInt32)(ABF98B53[F9E8D7C6]
-            | (ABF98B53[F9E8D7C6 + 1] << 8)
-            | (ABF98B53[F9E8D7C6 + 2] << 16)
-            | (ABF98B53[F9E8D7C6 + 3] << 24));
+        if (_cleared)
+        {
+            throw new System.ObjectDisposedException(
+                nameof(ChaCha20),
+                $"This {nameof(ChaCha20)} instance has been cleared.");
+        }
     }
 
+    #endregion Private — Guard
+
+    #region Private — Initialization
+
+    /// <summary>
+    /// Reads a 32-bit little-endian unsigned integer from the given span at <paramref name="offset"/>.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.UInt32 LoadLittleEndian32(
+        System.ReadOnlySpan<System.Byte> source,
+        System.Int32 offset)
+    {
+        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+            source[offset..]);
+    }
+
+    /// <summary>
+    /// Sets up the first 12 words of the state matrix (constants + key).
+    /// </summary>
+    /// <param name="key">A 32-byte key.</param>
+    /// <exception cref="System.ArgumentException"><paramref name="key"/> is not 32 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void E8F7A6B5(System.ReadOnlySpan<System.Byte> E8F7A6B5)
+    private void InitializeKey(System.ReadOnlySpan<System.Byte> key)
     {
-        if (E8F7A6B5.Length != KeySize)
+        if (key.Length != KeySize)
         {
-            throw new System.ArgumentException($"Key length must be {KeySize}. Actual: {E8F7A6B5.Length}");
+            throw new System.ArgumentException(
+                $"Key length must be {KeySize}. Actual: {key.Length}");
         }
 
-        State[0] = 0x61707865; // Constant ("expand 32-byte k")
-        State[1] = 0x3320646e;
-        State[2] = 0x79622d32;
-        State[3] = 0x6b206574;
+        System.Span<System.UInt32> s = _state;
 
+        // "expand 32-byte k" — four constant words (RFC 7539 Section 2.3)
+        s[0] = 0x61707865;
+        s[1] = 0x3320646e;
+        s[2] = 0x79622d32;
+        s[3] = 0x6b206574;
+
+        // Words 4..11 — key material
         for (System.Int32 i = 0; i < 8; i++)
         {
-            State[4 + i] = ABF98B53(E8F7A6B5, i * 4);
+            s[4 + i] = LoadLittleEndian32(key, i * 4);
         }
     }
 
+    /// <summary>
+    /// Sets up words 12..15 of the state matrix (counter + nonce).
+    /// </summary>
+    /// <param name="nonce">A 12-byte nonce.</param>
+    /// <param name="counter">Initial block counter value.</param>
+    /// <exception cref="System.ArgumentException"><paramref name="nonce"/> is not 12 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void F9E8D7C6(System.ReadOnlySpan<System.Byte> ABF98B53, System.UInt32 E8F7A6B5)
+    private void InitializeNonce(System.ReadOnlySpan<System.Byte> nonce, System.UInt32 counter)
     {
-        if (ABF98B53.Length != NonceSize)
+        if (nonce.Length != NonceSize)
         {
-            Dispose();
-            throw new System.ArgumentException($"Nonce length must be {NonceSize}. Actual: {ABF98B53.Length}");
+            throw new System.ArgumentException(
+                $"Nonce length must be {NonceSize}. Actual: {nonce.Length}");
         }
 
-        State[12] = E8F7A6B5;
+        System.Span<System.UInt32> s = _state;
+        s[12] = counter;
 
         for (System.Int32 i = 0; i < 3; i++)
         {
-            this.State[13 + i] = ChaCha20.ABF98B53(ABF98B53, i * 4);
+            s[13 + i] = LoadLittleEndian32(nonce, i * 4);
         }
     }
 
+    #endregion Private — Initialization
+
+    #region Private — SIMD Detection
+
+    /// <summary>
+    /// Detects the best available SIMD width on the current hardware.
+    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static SimdMode AB12CD34()
+    private static SimdMode DetectSimdMode()
     {
-        if (System.Runtime.Intrinsics.Vector512.IsHardwareAccelerated)
-        {
-            return SimdMode.V512;
-        }
-        else if (System.Runtime.Intrinsics.Vector256.IsHardwareAccelerated)
-        {
-            return SimdMode.V256;
-        }
-        else if (System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated)
-        {
-            return SimdMode.V128;
-        }
-
-        return SimdMode.NONE;
+        return System.Runtime.Intrinsics.Vector512.IsHardwareAccelerated
+            ? SimdMode.V512
+            : System.Runtime.Intrinsics.Vector256.IsHardwareAccelerated
+            ? SimdMode.V256
+            : System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated ? SimdMode.V128 : SimdMode.NONE;
     }
 
+    #endregion Private — SIMD Detection
+
+    #region Private — Core Block Function
+
+    /// <summary>
+    /// Executes one ChaCha20 block function: copies state into <paramref name="working"/>,
+    /// applies 20 rounds, serializes the result to <paramref name="keystream"/>,
+    /// and increments the counter in <paramref name="state"/>.
+    /// </summary>
+    /// <param name="state">The mutable state matrix (counter is advanced).</param>
+    /// <param name="working">Scratch working buffer.</param>
+    /// <param name="keystream">64-byte output buffer.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void DE45FA67(System.ReadOnlySpan<System.Byte> ABF98B53, System.Span<System.Byte> E8F7A6B5, System.Int32 DE45FA67)
+    private static void GenerateBlock(
+        System.Span<System.UInt32> state,
+        System.Span<System.UInt32> working,
+        System.Span<System.Byte> keystream)
     {
-        if (_isDisposed)
+        // Copy state → working
+        state.CopyTo(working);
+
+        // 20 rounds = 10 double-rounds
+        for (System.Int32 i = 0; i < 10; i++)
         {
-            throw new System.ObjectDisposedException("state", "The CHACHA20 state has been disposed");
+            // Column rounds
+            QuarterRound(working, 0, 4, 8, 12);
+            QuarterRound(working, 1, 5, 9, 13);
+            QuarterRound(working, 2, 6, 10, 14);
+            QuarterRound(working, 3, 7, 11, 15);
+
+            // Diagonal rounds
+            QuarterRound(working, 0, 5, 10, 15);
+            QuarterRound(working, 1, 6, 11, 12);
+            QuarterRound(working, 2, 7, 8, 13);
+            QuarterRound(working, 3, 4, 9, 14);
         }
 
-        if (DE45FA67 < 0 || DE45FA67 > ABF98B53.Length || DE45FA67 > E8F7A6B5.Length)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(DE45FA67));
-        }
-
-        // Reuse _working and _keystream to avoid per-call allocations.
-
-        System.Int32 offset = 0;
-        System.Int32 full = DE45FA67 / BlockSize;
-        System.Int32 tail = DE45FA67 - (full * BlockSize);
-
-        for (System.Int32 loop = 0; loop < full; loop++)
-        {
-            FA67BC89(State, _working, _keystream);
-
-            // XOR 64 bytes
-            for (System.Int32 i = 0; i < BlockSize; i++)
-            {
-                E8F7A6B5[offset + i] = (System.Byte)(ABF98B53[offset + i] ^ _keystream[i]);
-            }
-            offset += BlockSize;
-        }
-
-        if (tail > 0)
-        {
-            FA67BC89(State, _working, _keystream);
-            for (System.Int32 i = 0; i < tail; i++)
-            {
-                E8F7A6B5[offset + i] = (System.Byte)(ABF98B53[offset + i] ^ _keystream[i]);
-            }
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void EF56AB78(System.Byte[] EF56AB78, System.Byte[] DE45FA67, System.Int32 F9E8D7C6, SimdMode E8F7A6B5)
-    {
-        if (_isDisposed)
-        {
-            throw new System.ObjectDisposedException("state", "The CHACHA20 state has been disposed");
-        }
-
-        // Reuse buffers
-        System.UInt32[] x = _working;
-        System.Byte[] tmp = _keystream;
-        System.Int32 offset = 0;
-
-        System.Int32 howManyFullLoops = F9E8D7C6 / BlockSize;
-        System.Int32 tailByteCount = F9E8D7C6 - (howManyFullLoops * BlockSize);
-
-        for (System.Int32 loop = 0; loop < howManyFullLoops; loop++)
-        {
-            FA67BC89(State, x, tmp);
-
-            if (E8F7A6B5 == SimdMode.V512)
-            {
-                // 1 EF56AB78 64 bytes
-                System.Runtime.Intrinsics.Vector512<System.Byte> inputV = System.Runtime.Intrinsics.Vector512.Create(DE45FA67, offset);
-                System.Runtime.Intrinsics.Vector512<System.Byte> tmpV = System.Runtime.Intrinsics.Vector512.Create(tmp, 0);
-                System.Runtime.Intrinsics.Vector512<System.Byte> outputV = inputV ^ tmpV;
-                System.Runtime.Intrinsics.Vector512.CopyTo(outputV, EF56AB78, offset);
-            }
-            else if (E8F7A6B5 == SimdMode.V256)
-            {
-                // 2 EF56AB78 32 bytes
-                System.Runtime.Intrinsics.Vector256<System.Byte> inputV = System.Runtime.Intrinsics.Vector256.Create(DE45FA67, offset);
-                System.Runtime.Intrinsics.Vector256<System.Byte> tmpV = System.Runtime.Intrinsics.Vector256.Create(tmp, 0);
-                System.Runtime.Intrinsics.Vector256<System.Byte> outputV = inputV ^ tmpV;
-                System.Runtime.Intrinsics.Vector256.CopyTo(outputV, EF56AB78, offset);
-
-                inputV = System.Runtime.Intrinsics.Vector256.Create(DE45FA67, offset + 32);
-                tmpV = System.Runtime.Intrinsics.Vector256.Create(tmp, 32);
-                outputV = inputV ^ tmpV;
-                System.Runtime.Intrinsics.Vector256.CopyTo(outputV, EF56AB78, offset + 32);
-            }
-            else if (E8F7A6B5 == SimdMode.V128)
-            {
-                // 4 EF56AB78 16 bytes
-                System.Runtime.Intrinsics.Vector128<System.Byte> inputV = System.Runtime.Intrinsics.Vector128.Create(DE45FA67, offset);
-                System.Runtime.Intrinsics.Vector128<System.Byte> tmpV = System.Runtime.Intrinsics.Vector128.Create(tmp, 0);
-                System.Runtime.Intrinsics.Vector128<System.Byte> outputV = inputV ^ tmpV;
-                System.Runtime.Intrinsics.Vector128.CopyTo(outputV, EF56AB78, offset);
-
-                inputV = System.Runtime.Intrinsics.Vector128.Create(DE45FA67, offset + 16);
-                tmpV = System.Runtime.Intrinsics.Vector128.Create(tmp, 16);
-                outputV = inputV ^ tmpV;
-                System.Runtime.Intrinsics.Vector128.CopyTo(outputV, EF56AB78, offset + 16);
-
-                inputV = System.Runtime.Intrinsics.Vector128.Create(DE45FA67, offset + 32);
-                tmpV = System.Runtime.Intrinsics.Vector128.Create(tmp, 32);
-                outputV = inputV ^ tmpV;
-                System.Runtime.Intrinsics.Vector128.CopyTo(outputV, EF56AB78, offset + 32);
-
-                inputV = System.Runtime.Intrinsics.Vector128.Create(DE45FA67, offset + 48);
-                tmpV = System.Runtime.Intrinsics.Vector128.Create(tmp, 48);
-                outputV = inputV ^ tmpV;
-                System.Runtime.Intrinsics.Vector128.CopyTo(outputV, EF56AB78, offset + 48);
-            }
-            else
-            {
-                for (System.Int32 i = 0; i < BlockSize; i += 4)
-                {
-                    // Small unroll
-                    System.Int32 start = i + offset;
-                    EF56AB78[start] = (System.Byte)(DE45FA67[start] ^ tmp[i]);
-                    EF56AB78[start + 1] = (System.Byte)(DE45FA67[start + 1] ^ tmp[i + 1]);
-                    EF56AB78[start + 2] = (System.Byte)(DE45FA67[start + 2] ^ tmp[i + 2]);
-                    EF56AB78[start + 3] = (System.Byte)(DE45FA67[start + 3] ^ tmp[i + 3]);
-                }
-            }
-
-            offset += BlockSize;
-        }
-
-        // In case there are some bytes left
-        if (tailByteCount > 0)
-        {
-            FA67BC89(State, x, tmp);
-
-            for (System.Int32 i = 0; i < tailByteCount; i++)
-            {
-                EF56AB78[i + offset] = (System.Byte)(DE45FA67[i + offset] ^ tmp[i]);
-            }
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static unsafe void FA67BC89(System.UInt32[] EF56AB78, System.UInt32[] DE45FA67, System.Byte[] AB12CD34)
-    {
-        // Copy state to working buffer (byte copy for performance)
-        System.Buffer.BlockCopy(EF56AB78, 0, DE45FA67, 0, StateLength * sizeof(System.UInt32));
-
-        for (System.Int32 i = 0; i < 10; i++) // 20 rounds (10 double rounds)
-        {
-            A0B1C2D3(DE45FA67, 0, 4, 8, 12);
-            A0B1C2D3(DE45FA67, 1, 5, 9, 13);
-            A0B1C2D3(DE45FA67, 2, 6, 10, 14);
-            A0B1C2D3(DE45FA67, 3, 7, 11, 15);
-
-            A0B1C2D3(DE45FA67, 0, 5, 10, 15);
-            A0B1C2D3(DE45FA67, 1, 6, 11, 12);
-            A0B1C2D3(DE45FA67, 2, 7, 8, 13);
-            A0B1C2D3(DE45FA67, 3, 4, 9, 14);
-        }
-
+        // Add original state and serialize as little-endian bytes
         for (System.Int32 i = 0; i < StateLength; i++)
         {
-            fixed (System.Byte* ptr = &AB12CD34[4 * i])
-            {
-                System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ptr, BitwiseOperations.Add(DE45FA67[i], EF56AB78[i]));
-            }
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(
+                keystream[(4 * i)..],
+                BitwiseOperations.Add(working[i], state[i]));
         }
 
-        EF56AB78[12] = BitwiseOperations.AddOne(EF56AB78[12]);
-        if (EF56AB78[12] <= 0)
+        // Advance the block counter
+        state[12] = BitwiseOperations.AddOne(state[12]);
+
+        if (state[12] <= 0)
         {
-            /* Stopping at 2^70 bytes per nonce is the user's responsibility */
-            EF56AB78[13] = BitwiseOperations.AddOne(EF56AB78[13]);
+            // Counter overflow — increment the next word.
+            // Stopping at 2^70 bytes per nonce is the caller's responsibility.
+            state[13] = BitwiseOperations.AddOne(state[13]);
         }
     }
 
     /// <summary>
-    /// The CHACHA20 Quarter Round operation.
+    /// The ChaCha20 Quarter Round operation (RFC 7539 Section 2.1).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void A0B1C2D3(System.UInt32[] EF56AB78,
-        System.UInt32 FA67BC89, System.UInt32 DE45FA67,
-        System.UInt32 ABF98B53, System.UInt32 E8F7A6B5)
+    private static void QuarterRound(
+        System.Span<System.UInt32> x,
+        System.Int32 a, System.Int32 b,
+        System.Int32 c, System.Int32 d)
     {
-        EF56AB78[FA67BC89] = BitwiseOperations.Add(EF56AB78[FA67BC89], EF56AB78[DE45FA67]);
-        EF56AB78[E8F7A6B5] = System.Numerics.BitOperations.RotateLeft(BitwiseOperations.XOr(EF56AB78[E8F7A6B5], EF56AB78[FA67BC89]), 16);
+        x[a] = BitwiseOperations.Add(x[a], x[b]);
+        x[d] = System.Numerics.BitOperations.RotateLeft(
+            BitwiseOperations.XOr(x[d], x[a]), 16);
 
-        EF56AB78[ABF98B53] = BitwiseOperations.Add(EF56AB78[ABF98B53], EF56AB78[E8F7A6B5]);
-        EF56AB78[DE45FA67] = System.Numerics.BitOperations.RotateLeft(BitwiseOperations.XOr(EF56AB78[DE45FA67], EF56AB78[ABF98B53]), 12);
+        x[c] = BitwiseOperations.Add(x[c], x[d]);
+        x[b] = System.Numerics.BitOperations.RotateLeft(
+            BitwiseOperations.XOr(x[b], x[c]), 12);
 
-        EF56AB78[FA67BC89] = BitwiseOperations.Add(EF56AB78[FA67BC89], EF56AB78[DE45FA67]);
-        EF56AB78[E8F7A6B5] = System.Numerics.BitOperations.RotateLeft(BitwiseOperations.XOr(EF56AB78[E8F7A6B5], EF56AB78[FA67BC89]), 8);
+        x[a] = BitwiseOperations.Add(x[a], x[b]);
+        x[d] = System.Numerics.BitOperations.RotateLeft(
+            BitwiseOperations.XOr(x[d], x[a]), 8);
 
-        EF56AB78[ABF98B53] = BitwiseOperations.Add(EF56AB78[ABF98B53], EF56AB78[E8F7A6B5]);
-        EF56AB78[DE45FA67] = System.Numerics.BitOperations.RotateLeft(BitwiseOperations.XOr(EF56AB78[DE45FA67], EF56AB78[ABF98B53]), 7);
+        x[c] = BitwiseOperations.Add(x[c], x[d]);
+        x[b] = System.Numerics.BitOperations.RotateLeft(
+            BitwiseOperations.XOr(x[b], x[c]), 7);
     }
 
-    #endregion Private Methods
+    #endregion Private — Core Block Function
 
-    #region Destructor and Disposer
-
-    /// <summary>
-    /// Clear and dispose of the internal state. The finalizer is only called if Dispose() was never called on this cipher.
-    /// </summary>
-    [System.Diagnostics.DebuggerNonUserCode]
-    ~ChaCha20() => Dispose(false);
+    #region Private — Span-Based Encrypt Core
 
     /// <summary>
-    /// Clear and dispose of the internal state. Also request the GC not to call the finalizer, because all cleanup has been taken care of.
+    /// Core span-based XOR encryption without SIMD branching.
+    /// Used by <see cref="Encrypt(System.ReadOnlySpan{System.Byte}, System.Span{System.Byte})"/>
+    /// and related span overloads.
     /// </summary>
-    [System.Diagnostics.DebuggerNonUserCode]
-    public void Dispose()
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private void EncryptSpanInternal(
+        System.ReadOnlySpan<System.Byte> src,
+        System.Span<System.Byte> dst,
+        System.Int32 numBytes)
     {
-        Dispose(true);
-        System.GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// This method should only be invoked from Dispose() or the finalizer. This handles the actual cleanup of the resources.
-    /// </summary>
-    [System.Diagnostics.DebuggerNonUserCode]
-    private void Dispose(System.Boolean disposing)
-    {
-        if (!_isDisposed)
+        if (numBytes < 0 || numBytes > src.Length || numBytes > dst.Length)
         {
-            if (disposing)
-            {
-                /* Cleanup managed objects by calling their Dispose() methods */
-            }
-
-            /* Clear sensitive buffers */
-            System.Array.Clear(State, 0, StateLength);
-            System.Array.Clear(_working, 0, _working.Length);
-            System.Array.Clear(_keystream, 0, _keystream.Length);
+            throw new System.ArgumentOutOfRangeException(nameof(numBytes));
         }
 
-        _isDisposed = true;
+        System.Span<System.UInt32> stateSpan = _state;
+        System.Span<System.UInt32> workingSpan = _working;
+        System.Span<System.Byte> keystreamSpan = _keystream;
+
+        System.Int32 offset = 0;
+        System.Int32 fullBlocks = numBytes / BlockSize;
+        System.Int32 tailBytes = numBytes - (fullBlocks * BlockSize);
+
+        for (System.Int32 block = 0; block < fullBlocks; block++)
+        {
+            GenerateBlock(stateSpan, workingSpan, keystreamSpan);
+
+            for (System.Int32 i = 0; i < BlockSize; i++)
+            {
+                dst[offset + i] = (System.Byte)(src[offset + i] ^ keystreamSpan[i]);
+            }
+
+            offset += BlockSize;
+        }
+
+        if (tailBytes > 0)
+        {
+            GenerateBlock(stateSpan, workingSpan, keystreamSpan);
+
+            for (System.Int32 i = 0; i < tailBytes; i++)
+            {
+                dst[offset + i] = (System.Byte)(src[offset + i] ^ keystreamSpan[i]);
+            }
+        }
     }
 
-    #endregion Destructor and Disposer
+    #endregion Private — Span-Based Encrypt Core
+
+    #region Private — Array-Based Encrypt Core (SIMD)
+
+    /// <summary>
+    /// Core array-based XOR encryption with SIMD-accelerated block processing.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    private void EncryptBytesInternal(
+        System.Byte[] output,
+        System.Byte[] input,
+        System.Int32 numBytes,
+        SimdMode simdMode)
+    {
+        System.Span<System.UInt32> stateSpan = _state;
+        System.Span<System.UInt32> workingSpan = _working;
+        System.Span<System.Byte> keystreamSpan = _keystream;
+
+        // We need a temporary byte[] for SIMD Vector.Create(byte[], offset) overloads.
+        // Copy from InlineArray → stackalloc is not possible with Vector.Create(byte[], int),
+        // so we slice into a local pinned array for the SIMD path.
+        //
+        // For the SIMD path, we materialize the keystream into a small pooled/stack buffer.
+        // NOTE: Vector512/256/128.Create overloads require byte[], so we rent a small array
+        // only when SIMD is actually used.  For SimdMode.NONE, we use Span directly.
+        System.Byte[]? keystreamArray = simdMode is not SimdMode.NONE
+            ? System.Buffers.ArrayPool<System.Byte>.Shared.Rent(BlockSize)
+            : null;
+
+        try
+        {
+            System.Int32 offset = 0;
+            System.Int32 fullBlocks = numBytes / BlockSize;
+            System.Int32 tailBytes = numBytes - (fullBlocks * BlockSize);
+
+            for (System.Int32 block = 0; block < fullBlocks; block++)
+            {
+                GenerateBlock(stateSpan, workingSpan, keystreamSpan);
+
+                if (simdMode is SimdMode.NONE)
+                {
+                    // Scalar XOR with small unroll
+                    for (System.Int32 i = 0; i < BlockSize; i += 4)
+                    {
+                        System.Int32 p = i + offset;
+                        output[p] = (System.Byte)(input[p] ^ keystreamSpan[i]);
+                        output[p + 1] = (System.Byte)(input[p + 1] ^ keystreamSpan[i + 1]);
+                        output[p + 2] = (System.Byte)(input[p + 2] ^ keystreamSpan[i + 2]);
+                        output[p + 3] = (System.Byte)(input[p + 3] ^ keystreamSpan[i + 3]);
+                    }
+                }
+                else
+                {
+                    // Copy inline keystream to the rented array for SIMD vector creation
+                    keystreamSpan.CopyTo(System.MemoryExtensions.AsSpan(keystreamArray, 0, BlockSize));
+
+                    if (simdMode is SimdMode.V512)
+                    {
+                        // 1 × 64-byte operation
+                        var inputV = System.Runtime.Intrinsics.Vector512.Create(input, offset);
+                        var tmpV = System.Runtime.Intrinsics.Vector512.Create(keystreamArray!, 0);
+                        var resultV = inputV ^ tmpV;
+                        System.Runtime.Intrinsics.Vector512.CopyTo(resultV, output, offset);
+                    }
+                    else if (simdMode is SimdMode.V256)
+                    {
+                        // 2 × 32-byte operations
+                        var inV0 = System.Runtime.Intrinsics.Vector256.Create(input, offset);
+                        var tmpV0 = System.Runtime.Intrinsics.Vector256.Create(keystreamArray!, 0);
+                        System.Runtime.Intrinsics.Vector256.CopyTo(inV0 ^ tmpV0, output, offset);
+
+                        var inV1 = System.Runtime.Intrinsics.Vector256.Create(input, offset + 32);
+                        var tmpV1 = System.Runtime.Intrinsics.Vector256.Create(keystreamArray!, 32);
+                        System.Runtime.Intrinsics.Vector256.CopyTo(inV1 ^ tmpV1, output, offset + 32);
+                    }
+                    else // SimdMode.V128
+                    {
+                        // 4 × 16-byte operations
+                        for (System.Int32 chunk = 0; chunk < BlockSize; chunk += 16)
+                        {
+                            var inV = System.Runtime.Intrinsics.Vector128.Create(input, offset + chunk);
+                            var tmpV = System.Runtime.Intrinsics.Vector128.Create(keystreamArray!, chunk);
+                            System.Runtime.Intrinsics.Vector128.CopyTo(inV ^ tmpV, output, offset + chunk);
+                        }
+                    }
+                }
+
+                offset += BlockSize;
+            }
+
+            // Handle remaining tail bytes (always scalar)
+            if (tailBytes > 0)
+            {
+                GenerateBlock(stateSpan, workingSpan, keystreamSpan);
+
+                for (System.Int32 i = 0; i < tailBytes; i++)
+                {
+                    output[offset + i] = (System.Byte)(input[offset + i] ^ keystreamSpan[i]);
+                }
+            }
+        }
+        finally
+        {
+            if (keystreamArray is not null)
+            {
+                System.Buffers.ArrayPool<System.Byte>.Shared.Return(keystreamArray, clearArray: true);
+            }
+        }
+    }
+
+    #endregion Private — Array-Based Encrypt Core (SIMD)
 }

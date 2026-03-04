@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
@@ -65,16 +65,24 @@ public static class SpeckPoly1305
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstCiphertext,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> tag)
     {
-        ValidateKeyNonce(key, nonce);
+        if (key.Length != KEY32)
+        {
+            ThrowHelper.ThrowInvalidKeyLengthException();
+        }
+
+        if (nonce.Length != NONCE16)
+        {
+            ThrowHelper.ThrowInvalidNonceLengthException();
+        }
 
         if (dstCiphertext.Length != plaintext.Length)
         {
-            ThrowHelper.OutputLenMismatch();
+            ThrowHelper.ThrowOutputLengthMismatchException();
         }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelper.BadTagLen();
+            ThrowHelper.ThrowInvalidTagLengthException();
         }
 
         System.Span<System.Byte> otk = stackalloc System.Byte[32]; // Poly1305 one-time key
@@ -87,7 +95,7 @@ public static class SpeckPoly1305
             CtrXor(key, nonce, startCounter: 2UL, plaintext, dstCiphertext);
 
             // 3) MAC transcript
-            using Poly1305 poly = new(otk);
+            Poly1305 poly = new(otk);
             BuildTranscriptAndFinalize(poly, aad, dstCiphertext, tag);
         }
         finally
@@ -117,16 +125,24 @@ public static class SpeckPoly1305
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> tag,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstPlaintext)
     {
-        ValidateKeyNonce(key, nonce);
+        if (key.Length != KEY32)
+        {
+            ThrowHelper.ThrowInvalidKeyLengthException();
+        }
+
+        if (nonce.Length != NONCE16)
+        {
+            ThrowHelper.ThrowInvalidNonceLengthException();
+        }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelper.BadTagLen();
+            ThrowHelper.ThrowInvalidTagLengthException();
         }
 
         if (dstPlaintext.Length != ciphertext.Length)
         {
-            ThrowHelper.OutputLenMismatch();
+            ThrowHelper.ThrowOutputLengthMismatchException();
         }
 
         System.Span<System.Byte> otk = stackalloc System.Byte[32];
@@ -138,10 +154,8 @@ public static class SpeckPoly1305
             FillPolyKeyCtr(key, nonce, otk);
 
             // 2) Compute expected tag
-            using (Poly1305 poly = new(otk))
-            {
-                BuildTranscriptAndFinalize(poly, aad, ciphertext, computed);
-            }
+            Poly1305 poly = new(otk);
+            BuildTranscriptAndFinalize(poly, aad, ciphertext, computed);
 
             // 3) Constant-time compare
             if (!BitwiseOperations.FixedTimeEquals(computed, tag))
@@ -178,22 +192,26 @@ public static class SpeckPoly1305
     {
         if (key is null || key.Length != KEY32)
         {
-            ThrowHelper.BadKeyLen();
+            ThrowHelper.ThrowInvalidKeyLengthException();
         }
 
         if (nonce is null || nonce.Length != NONCE16)
         {
-            ThrowHelper.BadNonceLen();
+            ThrowHelper.ThrowInvalidNonceLengthException();
         }
 
-        System.Byte[] ct = new System.Byte[plaintext.Length];
-        System.Byte[] tag = new System.Byte[TagSize];
+        System.Byte[] result = new System.Byte[plaintext.Length + TagSize];
+        System.Span<System.Byte> ctSpan = System.MemoryExtensions.AsSpan(result, 0, plaintext.Length);
+        System.Span<System.Byte> tagSpan = System.MemoryExtensions.AsSpan(result, plaintext.Length, TagSize);
 
-        Encrypt(key, nonce, plaintext, aad ?? System.ReadOnlySpan<System.Byte>.Empty, ct, tag);
+        Encrypt(
+            key,
+            nonce,
+            plaintext,
+            aad ?? System.ReadOnlySpan<System.Byte>.Empty,
+            ctSpan,
+            tagSpan);
 
-        System.Byte[] result = new System.Byte[ct.Length + TagSize];
-        System.MemoryExtensions.AsSpan(ct).CopyTo(result);
-        System.MemoryExtensions.AsSpan(tag).CopyTo(System.MemoryExtensions.AsSpan(result, ct.Length));
         return result;
     }
 
@@ -211,32 +229,28 @@ public static class SpeckPoly1305
     {
         if (key is null || key.Length != KEY32)
         {
-            ThrowHelper.BadKeyLen();
+            ThrowHelper.ThrowInvalidKeyLengthException();
         }
 
         if (nonce is null || nonce.Length != NONCE16)
         {
-            ThrowHelper.BadNonceLen();
+            ThrowHelper.ThrowInvalidNonceLengthException();
         }
 
         if (cipherWithTag is null || cipherWithTag.Length < TagSize)
         {
-            ThrowHelper.CtPlusTagTooShort();
+            ThrowHelper.ThrowCiphertextTooShortException();
         }
 
         System.Int32 ctLen = cipherWithTag.Length - TagSize;
-        var pt = new System.Byte[ctLen];
 
-        var ctSpan = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
-        var tagSpan = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
+        System.Byte[] pt = new System.Byte[ctLen];
+
+        System.ReadOnlySpan<System.Byte> ctSpan = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
+        System.ReadOnlySpan<System.Byte> tagSpan = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
 
         System.Boolean ok = Decrypt(key, nonce, ctSpan, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tagSpan, pt);
-        if (!ok)
-        {
-            throw new System.InvalidOperationException("Authentication failed.");
-        }
-
-        return pt;
+        return !ok ? throw new System.InvalidOperationException("Authentication failed.") : pt;
     }
 
     #endregion
@@ -252,10 +266,12 @@ public static class SpeckPoly1305
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> nonce, System.Span<System.Byte> oneTimeKey32)
     {
+        Speck speck = new(key);
+
         // block 0
-        GenKeystreamBlock(key, nonce, 0UL, oneTimeKey32[..BLOCK16]);
+        GenKeystreamBlock(speck, nonce, 0UL, oneTimeKey32[..BLOCK16]);
         // block 1
-        GenKeystreamBlock(key, nonce, 1UL, oneTimeKey32.Slice(BLOCK16, BLOCK16));
+        GenKeystreamBlock(speck, nonce, 1UL, oneTimeKey32.Slice(BLOCK16, BLOCK16));
     }
 
     /// <summary>
@@ -270,11 +286,11 @@ public static class SpeckPoly1305
         System.UInt64 ctr = startCounter;
         System.Span<System.Byte> ks = stackalloc System.Byte[BLOCK16];
 
-        // Preexpand SPECK instance once for all blocks
         Speck speck = new(key);
 
         while (offset < src.Length)
         {
+            ks.Clear();
             GenKeystreamBlock(speck, nonce, ctr, ks);
             System.Int32 take = System.Math.Min(BLOCK16, src.Length - offset);
 
@@ -320,22 +336,10 @@ public static class SpeckPoly1305
     }
 
     /// <summary>
-    /// Generates one 16-byte CTR keystream block using a temporary SPECK instance (for short one-off calls).
+    /// Updates Poly1305 with AEAD transcript and writes the final tag.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void GenKeystreamBlock(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter, System.Span<System.Byte> out16)
-    {
-        Speck speck = new(key);
-        GenKeystreamBlock(speck, nonce, counter, out16);
-    }
-
-    /// <summary>
-    /// Updates Poly1305 with AEAD transcript and writes the final tag.
-    /// </summary>
     private static void BuildTranscriptAndFinalize(
         Poly1305 mac, System.ReadOnlySpan<System.Byte> aad,
         System.ReadOnlySpan<System.Byte> ciphertext, System.Span<System.Byte> tagOut16)
@@ -355,10 +359,13 @@ public static class SpeckPoly1305
         Pad16(mac, ciphertext.Length);
 
         System.Span<System.Byte> lens = stackalloc System.Byte[16];
-        WriteUInt64LEPair(lens, 0, (System.UInt64)aad.Length, (System.UInt64)ciphertext.Length);
-        mac.Update(lens);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(lens, (System.UInt64)aad.Length);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(lens[8..], (System.UInt64)ciphertext.Length);
 
+        mac.Update(lens);
         mac.FinalizeTag(tagOut16);
+
+        mac.Clear();
         MemorySecurity.ZeroMemory(lens);
     }
 
@@ -374,77 +381,8 @@ public static class SpeckPoly1305
         }
 
         System.Span<System.Byte> pad = stackalloc System.Byte[16];
-        MemorySecurity.ZeroMemory(pad[..(16 - rem)]);
+        pad.Clear();
         mac.Update(pad[..(16 - rem)]);
-    }
-
-    /// <summary>Writes two little-endian UInt64 values into destination at offset.</summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void WriteUInt64LEPair(System.Span<System.Byte> dest, System.Int32 offset, System.UInt64 a, System.UInt64 b)
-    {
-        if ((System.UInt32)offset > (System.UInt32)(dest.Length - 16))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(offset), "Need at least 16 bytes from offset.");
-        }
-
-        if (!System.BitConverter.IsLittleEndian)
-        {
-            a = ReverseBytes(a);
-            b = ReverseBytes(b);
-        }
-
-        fixed (System.Byte* p = &dest.GetPinnableReference())
-        {
-            *(System.UInt64*)(p + offset) = a;
-            *(System.UInt64*)(p + offset + 8) = b;
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt64 ReverseBytes(System.UInt64 v)
-    {
-        v = ((v & 0x00FF00FF00FF00FFUL) << 8) | ((v & 0xFF00FF00FF00FF00UL) >> 8);
-        v = ((v & 0x0000FFFF0000FFFFUL) << 16) | ((v & 0xFFFF0000FFFF0000UL) >> 16);
-        v = (v << 32) | (v >> 32);
-        return v;
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void ValidateKeyNonce(System.ReadOnlySpan<System.Byte> key, System.ReadOnlySpan<System.Byte> nonce)
-    {
-        if (key.Length != KEY32)
-        {
-            ThrowHelper.BadKeyLen();
-        }
-
-        if (nonce.Length != NONCE16)
-        {
-            ThrowHelper.BadNonceLen();
-        }
-    }
-
-    /// <summary>Centralized throw helpers (style aligned with your AEAD classes).</summary>
-    [System.Diagnostics.StackTraceHidden]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    private static class ThrowHelper
-    {
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLen() => throw new System.ArgumentException("Key must be 32 bytes (SPECK 128/256).", "key");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadNonceLen() => throw new System.ArgumentException("Nonce must be 16 bytes.", "nonce");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadTagLen() => throw new System.ArgumentException("Tag must be 16 bytes.", "tag");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void OutputLenMismatch() => throw new System.ArgumentException("Output length must match input length.");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void CtPlusTagTooShort() => throw new System.ArgumentException("Ciphertext+Tag is too short.", "cipherWithTag");
     }
 
     #endregion

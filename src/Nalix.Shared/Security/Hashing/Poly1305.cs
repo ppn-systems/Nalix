@@ -1,127 +1,263 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
+using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Primitives;
 
 namespace Nalix.Shared.Security.Hashing;
 
 /// <summary>
-/// High-performance implementation of the Poly1305 message authentication code (MAC) algorithm.
+/// High-performance, zero-allocation implementation of the Poly1305 message authentication code
+/// (MAC) algorithm as a <see langword="ref struct"/>.
 /// </summary>
 /// <remarks>
 /// <para>
 /// Poly1305 is a cryptographically strong MAC algorithm designed by Daniel J. Bernstein.
-/// It's used in various cryptographic protocols including CHACHA20-Poly1305 cipher suite in TLS.
+/// It is used in various cryptographic protocols including the ChaCha20-Poly1305 AEAD
+/// cipher suite in TLS 1.3.
 /// </para>
 /// <para>
-/// This implementation follows RFC 8439 and provides both heap allocation optimized and
-/// constant-time operations for enhanced security.
+/// This implementation follows RFC 8439 and provides constant-time operations for
+/// enhanced security. All internal buffers use <c>InlineArray</c> structs, so the
+/// entire instance lives on the stack with <b>zero heap allocations</b>.
+/// </para>
+/// <para>
+/// Because this is a <see langword="ref struct"/>, it cannot be boxed, captured by async
+/// methods, or stored in fields of reference types. Use the static one-shot APIs
+/// (<see cref="Compute(System.ReadOnlySpan{System.Byte}, System.ReadOnlySpan{System.Byte}, System.Span{System.Byte})"/>
+/// and <see cref="Verify"/>) when possible; use the incremental
+/// (<see cref="Update"/>/<see cref="FinalizeTag(System.Span{System.Byte})"/>) API when
+/// message data arrives in chunks.
+/// </para>
+/// <para>
+/// <strong>Lifetime:</strong> Call <see cref="Clear"/> when finished to securely zero all
+/// sensitive key material. Since <c>ref struct</c> cannot implement
+/// <see cref="System.IDisposable"/>, <c>using</c> statements are not available; prefer
+/// a <c>try/finally</c> block instead.
 /// </para>
 /// </remarks>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
-public sealed class Poly1305 : System.IDisposable
+public ref struct Poly1305
 {
     #region Constants
 
     /// <summary>
-    /// The size, in bytes, of the Poly1305 key (32 bytes).
+    /// The size, in bytes, of the Poly1305 key (32 bytes = 256 bits).
     /// </summary>
     public const System.Byte KeySize = 32;
 
     /// <summary>
-    /// The size of the authentication tag produced by Poly1305 (16 bytes).
+    /// The size, in bytes, of the authentication tag produced by Poly1305 (16 bytes = 128 bits).
     /// </summary>
     public const System.Byte TagSize = 16;
 
+    /// <summary>
+    /// Number of 32-bit words in the accumulator / r / prime representation (130 bits → 5 words).
+    /// </summary>
+    private const System.Byte WordCount = 5;
+
+    /// <summary>
+    /// Number of 32-bit words in the s part of the key (128 bits → 4 words).
+    /// </summary>
+    private const System.Byte SWordCount = 4;
+
+    /// <summary>
+    /// Block size in bytes for Poly1305 message processing.
+    /// </summary>
+    private const System.Byte BlockBytes = 16;
+
+    /// <summary>
+    /// Block size + 1 byte for the 0x01 padding sentinel.
+    /// </summary>
+    private const System.Byte PaddedBlockBytes = 17;
+
     #endregion Constants
+
+    #region Inline Array Definitions
+
+    /// <summary>
+    /// Inline buffer: 5 × <see cref="System.UInt32"/> = 20 bytes.
+    /// Used for the accumulator, r key part, and arithmetic scratch space.
+    /// </summary>
+    [System.Runtime.CompilerServices.InlineArray(WordCount)]
+    private struct UInt32x5
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+        private System.UInt32 _e0;
+    }
+
+    /// <summary>
+    /// Inline buffer: 4 × <see cref="System.UInt32"/> = 16 bytes.
+    /// Used for the s key part.
+    /// </summary>
+    [System.Runtime.CompilerServices.InlineArray(SWordCount)]
+    private struct UInt32x4
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+        private System.UInt32 _e0;
+    }
+
+    /// <summary>
+    /// Inline buffer: 10 × <see cref="System.UInt32"/> = 40 bytes.
+    /// Used as scratch space during 130-bit multiplication.
+    /// </summary>
+    [System.Runtime.CompilerServices.InlineArray(10)]
+    private struct UInt32x10
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+        private System.UInt32 _e0;
+    }
+
+    /// <summary>
+    /// Inline buffer: 16 × <see cref="System.Byte"/> = 16 bytes.
+    /// Used to hold a pending partial message block (0–16 bytes).
+    /// </summary>
+    [System.Runtime.CompilerServices.InlineArray(BlockBytes)]
+    private struct ByteBlock16
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+        private System.Byte _e0;
+    }
+
+    /// <summary>
+    /// Inline buffer: 17 × <see cref="System.Byte"/> = 17 bytes.
+    /// Used to hold a padded message block (16 data bytes + 0x01 sentinel).
+    /// </summary>
+    [System.Runtime.CompilerServices.InlineArray(PaddedBlockBytes)]
+    private struct ByteBlock17
+    {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1169:Make field read-only", Justification = "<Pending>")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+        private System.Byte _e0;
+    }
+
+    #endregion Inline Array Definitions
+
+    #region Static Read-Only
+
+    /// <summary>
+    /// The prime number p = 2¹³⁰ − 5, represented as five 32-bit little-endian words.
+    /// </summary>
+    private static readonly UInt32x5 s_prime = CreatePrime();
+
+    /// <summary>
+    /// Initializes the compile-time constant for the Poly1305 prime.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static UInt32x5 CreatePrime()
+    {
+        UInt32x5 p = default;
+        System.Span<System.UInt32> span = p;
+        span[0] = 0xFFFF_FFFB;
+        span[1] = 0xFFFF_FFFF;
+        span[2] = 0xFFFF_FFFF;
+        span[3] = 0xFFFF_FFFF;
+        span[4] = 0x0000_0003;
+        return p;
+    }
+
+    #endregion Static Read-Only
 
     #region Fields
 
     /// <summary>
-    /// The prime ProtocolType (2^130 - 5) used in Poly1305 algorithm.
+    /// The clamped r part of the key (5 words, 130-bit representation).
     /// </summary>
-    private static readonly System.UInt32[] s_prime = [0xFFFFFFFB, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000003];
+    private UInt32x5 _r;
 
     /// <summary>
-    /// Represents the r part of the key (clamped).
+    /// The s part of the key (4 words, 128-bit).
     /// </summary>
-    private System.UInt32[]? _r;
+    private UInt32x4 _s;
 
     /// <summary>
-    /// Represents the s part of the key.
+    /// The running accumulator h (5 words, 130-bit).
     /// </summary>
-    private System.UInt32[]? _s;
+    private UInt32x5 _acc;
 
     /// <summary>
-    /// Flag indicating if this instance has been disposed.
+    /// Buffer holding a partial (not-yet-full) message block between <see cref="Update"/> calls.
     /// </summary>
-    private System.Boolean _disposed;
+    private ByteBlock16 _pending;
 
     /// <summary>
-    /// Internal accumulator for incremental API (h[0..4]).
-    /// </summary>
-    private readonly System.UInt32[] _acc = new System.UInt32[5];
-
-    /// <summary>
-    /// Pending partial block buffer (up to 16 bytes).
-    /// </summary>
-    private readonly System.Byte[] _pending = new System.Byte[16];
-
-    /// <summary>
-    /// Current length (0..16) of the pending partial block.
+    /// Number of valid bytes in <see cref="_pending"/> (0–16).
     /// </summary>
     private System.Int32 _pendingLen;
 
     /// <summary>
-    /// Whether FinalizeTag(...) has been called.
+    /// Whether <see cref="FinalizeTag(System.Span{System.Byte})"/> has already been called.
     /// </summary>
     private System.Boolean _finalized;
+
+    /// <summary>
+    /// Whether <see cref="Clear"/> has been called (analogous to disposed).
+    /// </summary>
+    private System.Boolean _cleared;
 
     #endregion Fields
 
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Poly1305"/> class using a 32-byte key.
+    /// Initializes a new <see cref="Poly1305"/> instance using a 32-byte key.
     /// </summary>
-    /// <param name="key">A 32-byte key. The first 16 bytes are used for r (after clamping),
-    /// and the last 16 bytes are used as s.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when key is null.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when key length is not 32 bytes.</exception>
+    /// <param name="key">
+    /// A 32-byte key. The first 16 bytes are clamped and used as <c>r</c>;
+    /// the last 16 bytes are used as <c>s</c>.
+    /// </param>
+    /// <exception cref="System.ArgumentException">
+    /// <paramref name="key"/> length is not <see cref="KeySize"/> (32) bytes.
+    /// </exception>
     public Poly1305(System.ReadOnlySpan<System.Byte> key)
     {
         if (key.Length != KeySize)
         {
-            throw new System.ArgumentException($"Key must be {KeySize} bytes.", nameof(key));
+            throw new System.ArgumentException(
+                $"Key must be {KeySize} bytes.", nameof(key));
         }
 
-        _r = new System.UInt32[5];
-        _s = new System.UInt32[4];
+        _acc = default;
+        _pending = default;
+        _pendingLen = 0;
+        _finalized = false;
+        _cleared = false;
 
-        // Extract and clamp r (first 16 bytes) according to RFC 8439
-        System.ReadOnlySpan<System.Byte> rBytes = key[..16];
-        ClampR(rBytes, _r);
+        // Extract and clamp r (first 16 bytes) per RFC 8439 §2.5
+        ClampR(key[..16], _r);
 
-        // Extract s (last 16 bytes) - stored as 4 uint words
+        // Extract s (last 16 bytes) as four little-endian 32-bit words
         System.ReadOnlySpan<System.Byte> sBytes = key.Slice(16, 16);
-        for (System.Byte i = 0; i < 4; i++)
+        System.Span<System.UInt32> sSpan = _s;
+
+        for (System.Int32 i = 0; i < SWordCount; i++)
         {
-            _s[i] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(sBytes.Slice(i * 4, 4));
+            sSpan[i] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(
+                sBytes.Slice(i * 4, 4));
         }
     }
 
     #endregion Constructors
 
-    #region Public Methods
+    #region Public — Static One-Shot API
 
     /// <summary>
-    /// Computes the Poly1305 MAC for a message using the specified key.
+    /// Computes the Poly1305 MAC for <paramref name="message"/> using <paramref name="key"/>
+    /// and writes the 16-byte tag into <paramref name="destination"/>.
     /// </summary>
     /// <param name="key">A 32-byte key.</param>
     /// <param name="message">The message to authenticate.</param>
-    /// <param name="destination">The span to which the MAC will be written (must be at least 16 bytes).</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when key or message is null.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when key length is not 32 bytes or destination size is less than 16 bytes.</exception>
+    /// <param name="destination">
+    /// Destination span; must be at least <see cref="TagSize"/> (16) bytes.
+    /// </param>
+    /// <exception cref="System.ArgumentException">
+    /// <paramref name="key"/> is not 32 bytes or <paramref name="destination"/> is too small.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Compute(
@@ -131,7 +267,8 @@ public sealed class Poly1305 : System.IDisposable
     {
         if (key.Length != KeySize)
         {
-            throw new System.ArgumentException($"Key must be {KeySize} bytes.", nameof(key));
+            throw new System.ArgumentException(
+                $"Key must be {KeySize} bytes.", nameof(key));
         }
 
         if (destination.Length < TagSize)
@@ -140,18 +277,24 @@ public sealed class Poly1305 : System.IDisposable
                 $"Destination buffer must be at least {TagSize} bytes.", nameof(destination));
         }
 
-        using Poly1305 poly = new(key);
-        poly.ComputeTag(message, destination);
+        Poly1305 poly = new(key);
+
+        try
+        {
+            poly.ComputeTag(message, destination);
+        }
+        finally
+        {
+            poly.Clear();
+        }
     }
 
     /// <summary>
-    /// Computes the Poly1305 MAC for a message and returns it as a new byte array.
+    /// Computes the Poly1305 MAC and returns a new 16-byte array.
     /// </summary>
     /// <param name="key">A 32-byte key.</param>
     /// <param name="message">The message to authenticate.</param>
     /// <returns>A 16-byte authentication tag.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when key or message is null.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when key length is not 32 bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] Compute(
@@ -164,13 +307,14 @@ public sealed class Poly1305 : System.IDisposable
     }
 
     /// <summary>
-    /// Computes the Poly1305 MAC for a message and returns it as a new byte array.
+    /// Computes the Poly1305 MAC and returns a new 16-byte array (array overload).
     /// </summary>
     /// <param name="key">A 32-byte key.</param>
     /// <param name="message">The message to authenticate.</param>
     /// <returns>A 16-byte authentication tag.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when key or message is null.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when key length is not 32 bytes.</exception>
+    /// <exception cref="System.ArgumentNullException">
+    /// <paramref name="key"/> or <paramref name="message"/> is <see langword="null"/>.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] Compute(System.Byte[] key, System.Byte[] message)
@@ -178,18 +322,24 @@ public sealed class Poly1305 : System.IDisposable
         System.ArgumentNullException.ThrowIfNull(key);
         System.ArgumentNullException.ThrowIfNull(message);
 
-        return Compute(System.MemoryExtensions.AsSpan(key), System.MemoryExtensions.AsSpan(message));
+        return Compute(
+            System.MemoryExtensions.AsSpan(key),
+            System.MemoryExtensions.AsSpan(message));
     }
 
     /// <summary>
     /// Verifies a Poly1305 MAC against a message using the specified key.
+    /// Uses constant-time comparison to prevent timing side-channel attacks.
     /// </summary>
     /// <param name="key">A 32-byte key.</param>
     /// <param name="message">The message to verify.</param>
-    /// <param name="tag">The authentication tag to verify against.</param>
-    /// <returns>True if the tag is valid for the message, false otherwise.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when key, message, or tag is null.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when key length is not 32 bytes or tag length is not 16 bytes.</exception>
+    /// <param name="tag">The 16-byte authentication tag to verify against.</param>
+    /// <returns>
+    /// <see langword="true"/> if <paramref name="tag"/> is valid; otherwise <see langword="false"/>.
+    /// </returns>
+    /// <exception cref="System.ArgumentException">
+    /// <paramref name="tag"/> is not <see cref="TagSize"/> (16) bytes.
+    /// </exception>
     public static System.Boolean Verify(
         System.ReadOnlySpan<System.Byte> key,
         System.ReadOnlySpan<System.Byte> message,
@@ -197,7 +347,8 @@ public sealed class Poly1305 : System.IDisposable
     {
         if (tag.Length != TagSize)
         {
-            throw new System.ArgumentException($"Tag must be {TagSize} bytes.", nameof(tag));
+            throw new System.ArgumentException(
+                $"Tag must be {TagSize} bytes.", nameof(tag));
         }
 
         System.Span<System.Byte> computedTag = stackalloc System.Byte[TagSize];
@@ -206,18 +357,27 @@ public sealed class Poly1305 : System.IDisposable
         return BitwiseOperations.FixedTimeEquals(tag, computedTag);
     }
 
+    #endregion Public — Static One-Shot API
+
+    #region Public — Instance One-Shot
+
     /// <summary>
-    /// Computes the Poly1305 MAC for a message.
+    /// Computes the Poly1305 MAC for <paramref name="message"/> and writes the 16-byte tag
+    /// into <paramref name="destination"/>.
     /// </summary>
     /// <param name="message">The message to authenticate.</param>
-    /// <param name="destination">The span where the MAC will be written.</param>
-    /// <exception cref="System.ObjectDisposedException">Thrown when the object has been disposed.</exception>
-    public void ComputeTag(
+    /// <param name="destination">
+    /// Destination span; must be at least <see cref="TagSize"/> (16) bytes.
+    /// </param>
+    /// <exception cref="System.ObjectDisposedException">This instance has been cleared.</exception>
+    /// <exception cref="System.ArgumentException">
+    /// <paramref name="destination"/> is too small.
+    /// </exception>
+    public readonly void ComputeTag(
         System.ReadOnlySpan<System.Byte> message,
         System.Span<System.Byte> destination)
     {
-        System.ObjectDisposedException.ThrowIf(
-            _disposed, $"This {nameof(Poly1305)} instance has been disposed.");
+        ThrowIfCleared();
 
         if (destination.Length < TagSize)
         {
@@ -225,159 +385,176 @@ public sealed class Poly1305 : System.IDisposable
                 $"Destination buffer must be at least {TagSize} bytes.", nameof(destination));
         }
 
-        // A1B2C3D4 accumulator
-        System.Span<System.UInt32> accumulator = stackalloc System.UInt32[5];
+        // Fresh accumulator for the one-shot path
+        UInt32x5 accumulator = default;
 
-        // Process message in blocks
         System.Int32 offset = 0;
         System.Int32 messageLength = message.Length;
-        System.Span<System.Byte> block = stackalloc System.Byte[17]; // 16 bytes + 1 byte for the padding
+
+        // Scratch block (17 bytes: 16 data + 0x01 padding)
+        ByteBlock17 block17 = default;
 
         while (offset < messageLength)
         {
-            // Clear the block to ensure we don't leave any sensitive data
-            block.Clear();
+            // Clear block to avoid stale data from the previous iteration
+            ((System.Span<System.Byte>)block17).Clear();
 
-            // Determine block size (final block may be shorter than 16 bytes)
-            System.Int32 blockSize = System.Math.Min(16, messageLength - offset);
+            // Determine block size (final block may be < 16 bytes)
+            System.Int32 blockSize = System.Math.Min(BlockBytes, messageLength - offset);
 
-            // Copy message block
-            message.Slice(offset, blockSize).CopyTo(block);
+            // Copy message slice into the block
+            message.Slice(offset, blockSize).CopyTo(block17);
 
-            // Append padding byte (0x01) after the message block
-            block[blockSize] = 0x01;
+            // Append 0x01 padding byte after the data
+            ((System.Span<System.Byte>)block17)[blockSize] = 0x01;
 
-            // Push this block to the accumulator
-            AddBlock(accumulator, block[..(blockSize + 1)], blockSize < 16);
+            // Absorb: isFinalBlock = true only when blockSize < 16 (last partial block)
+            AddBlock(accumulator, ((System.ReadOnlySpan<System.Byte>)block17)[..(blockSize + 1)], blockSize < BlockBytes);
 
             offset += blockSize;
         }
 
-        // Finish the tag
-        FinalizeTag(accumulator, destination);
+        // Produce the tag
+        FinalizeTagCore(accumulator, destination);
     }
 
+    #endregion Public — Instance One-Shot
+
+    #region Public — Incremental API
+
     /// <summary>
-    /// Incrementally absorb message data.
-    /// You may call Update multiple times before calling <see cref="FinalizeTag(System.Span{System.Byte})"/>.
+    /// Incrementally absorbs message data. May be called multiple times before
+    /// <see cref="FinalizeTag(System.Span{System.Byte})"/>.
     /// </summary>
     /// <param name="data">Next chunk of the message.</param>
-    /// <exception cref="System.ObjectDisposedException">If the instance is disposed.</exception>
-    /// <exception cref="System.InvalidOperationException">If called after FinalizeTag.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2014:Do not use stackalloc in loops", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    public void Update(System.ReadOnlySpan<System.Byte> data)
+    /// <exception cref="System.ObjectDisposedException">This instance has been cleared.</exception>
+    /// <exception cref="System.InvalidOperationException">
+    /// Called after <see cref="FinalizeTag(System.Span{System.Byte})"/>.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Update(scoped System.ReadOnlySpan<System.Byte> data)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, $"This {nameof(Poly1305)} instance has been disposed.");
+        ThrowIfCleared();
+
         if (_finalized)
         {
-            throw new System.InvalidOperationException("Poly1305 has already been finalized.");
+            throw new System.InvalidOperationException(
+                "Poly1305 has already been finalized.");
         }
 
-        // If there is pending data, try to fill to 16 bytes first.
+        ByteBlock17 block17 = default;
+        System.Span<System.Byte> block17Span = block17;
+        System.Span<System.Byte> pendingSpan = _pending;
+
+        // ── Try to fill the pending buffer to a full 16-byte block ──
         if (_pendingLen > 0)
         {
-            System.Int32 need = 16 - _pendingLen;
+            System.Int32 need = BlockBytes - _pendingLen;
             System.Int32 take = data.Length < need ? data.Length : need;
+
             if (take > 0)
             {
-                data[..take].CopyTo(System.MemoryExtensions.AsSpan(_pending, _pendingLen));
+                data[..take].CopyTo(pendingSpan[_pendingLen..]);
                 _pendingLen += take;
                 data = data[take..];
             }
 
-            if (_pendingLen == 16)
+            if (_pendingLen is BlockBytes)
             {
-                // Process a full 16-byte block as 17 bytes with trailing 0x01 (n[4] = 1).
-                System.Span<System.Byte> block17 = stackalloc System.Byte[17];
-                System.MemoryExtensions.AsSpan(_pending).CopyTo(block17);
-                block17[16] = 0x01;
+                // Full block ready — absorb it
+                pendingSpan.CopyTo(block17Span);
+                block17Span[BlockBytes] = 0x01;
 
-                // Full block => isFinalBlock = false (there IS the 17th byte)
-                AddBlock(_acc, block17, isFinalBlock: false);
-
-                // Reduce after each block (keeps values bounded)
-                // Multiply() already followed by Modulo() inside AddBlock path, so nothing extra here.
+                AddBlock(_acc, ((System.ReadOnlySpan<System.Byte>)block17)[..PaddedBlockBytes], isFinalBlock: false);
 
                 _pendingLen = 0;
             }
         }
 
-        // Now data length is multiple of 16 possibly; process as many full blocks as possible
-        while (data.Length >= 16)
+        // ── Process as many full 16-byte blocks as possible ──
+        while (data.Length >= BlockBytes)
         {
-            // Take exactly 16 -> treat as 17-byte with block[16] = 0x01
-            System.Span<System.Byte> block17 = stackalloc System.Byte[17];
-            data[..16].CopyTo(block17);
-            block17[16] = 0x01;
+            block17Span.Clear();
+            data[..BlockBytes].CopyTo(block17Span);
+            block17Span[BlockBytes] = 0x01;
 
-            AddBlock(_acc, block17, isFinalBlock: false);
-            data = data[16..];
+            AddBlock(_acc, ((System.ReadOnlySpan<System.Byte>)block17)[..PaddedBlockBytes], isFinalBlock: false);
+
+            data = data[BlockBytes..];
         }
 
-        // Stash the tail (<16) into pending
+        // ── Stash remaining tail (< 16 bytes) ──
         if (!data.IsEmpty)
         {
-            data.CopyTo(System.MemoryExtensions.AsSpan(_pending, _pendingLen));
+            data.CopyTo(pendingSpan[_pendingLen..]);
             _pendingLen += data.Length;
         }
     }
 
     /// <summary>
     /// Finalizes the MAC computation and writes the 16-byte tag into <paramref name="tag16"/>.
-    /// After finalization, the instance rejects further <see cref="Update"/> calls.
+    /// After finalization, further <see cref="Update"/> calls will throw.
     /// </summary>
-    /// <param name="tag16">Destination span for the 16-byte tag.</param>
-    /// <exception cref="System.ObjectDisposedException">If the instance is disposed.</exception>
-    /// <exception cref="System.ArgumentException">If <paramref name="tag16"/> is shorter than 16 bytes.</exception>
-    /// <exception cref="System.InvalidOperationException">If already finalized.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <param name="tag16">
+    /// Destination span; must be at least <see cref="TagSize"/> (16) bytes.
+    /// </param>
+    /// <exception cref="System.ObjectDisposedException">This instance has been cleared.</exception>
+    /// <exception cref="System.ArgumentException">
+    /// <paramref name="tag16"/> is shorter than 16 bytes.
+    /// </exception>
+    /// <exception cref="System.InvalidOperationException">Already finalized.</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void FinalizeTag(System.Span<System.Byte> tag16)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, $"This {nameof(Poly1305)} instance has been disposed.");
+        ThrowIfCleared();
+
         if (tag16.Length < TagSize)
         {
-            throw new System.ArgumentException($"Tag buffer must be {TagSize} bytes.", nameof(tag16));
+            throw new System.ArgumentException(
+                $"Tag buffer must be {TagSize} bytes.", nameof(tag16));
         }
 
         if (_finalized)
         {
-            throw new System.InvalidOperationException("Poly1305 has already been finalized.");
+            throw new System.InvalidOperationException(
+                "Poly1305 has already been finalized.");
         }
 
-        // If there is a remaining partial block (<16), we pad with 0x01 **inside** the 16 bytes (no 17th byte),
-        // i.e., block length = partialLen + 1 <= 16, and isFinalBlock = true.
+        // ── Absorb any remaining partial block ──
         if (_pendingLen > 0)
         {
-            System.Span<System.Byte> block = stackalloc System.Byte[17]; // we will pass length = (_pendingLen + 1) (<=16)
-            block.Clear();
-            System.MemoryExtensions.AsSpan(_pending, 0, _pendingLen).CopyTo(block);
-            block[_pendingLen] = 0x01;
+            ByteBlock17 block = default;
+            System.Span<System.Byte> blockSpan = block;
+            blockSpan.Clear();
 
-            // Final block (<16+1), isFinalBlock = true, so AddBlock will set n[4] = 0.
-            AddBlock(_acc, block[..(_pendingLen + 1)], isFinalBlock: true);
-            System.MemoryExtensions.AsSpan(_pending).Clear();
+            ((System.ReadOnlySpan<System.Byte>)_pending)[.._pendingLen].CopyTo(blockSpan);
+            blockSpan[_pendingLen] = 0x01;
+
+            // Partial final block: isFinalBlock = true → n[4] = 0
+            AddBlock(
+                _acc,
+                ((System.ReadOnlySpan<System.Byte>)block)[..(_pendingLen + 1)],
+                isFinalBlock: true);
+
+            ((System.Span<System.Byte>)_pending).Clear();
             _pendingLen = 0;
         }
 
-        // Produce the tag = (acc mod p) + s (little-endian 16 bytes)
-        FinalizeTag(_acc, tag16);
+        // ── Produce the tag = (accumulator mod p) + s ──
+        FinalizeTagCore(_acc, tag16);
 
-        // Wipe and lock
         _finalized = true;
 
-        // Clear sensitive state
-        System.MemoryExtensions.AsSpan(_acc).Clear();
+        // Clear the accumulator (sensitive state)
+        ((System.Span<System.UInt32>)_acc).Clear();
     }
 
-    //
-    // Optional helpers (convenience overloads).
-    //
-
     /// <summary>
-    /// Computes tag for the data fed via <see cref="Update"/> and returns a new 16-byte array.
+    /// Finalizes the MAC computation and returns a new 16-byte array containing the tag.
     /// </summary>
+    /// <returns>A 16-byte authentication tag.</returns>
     public System.Byte[] FinalizeTag()
     {
         System.Byte[] tag = new System.Byte[TagSize];
@@ -386,24 +563,63 @@ public sealed class Poly1305 : System.IDisposable
     }
 
     /// <summary>
-    /// One-shot helper compatible with incremental: Update(data); FinalizeTag(tag16);
-    /// (Đã có Compute/ComputeTag one-shot ở trên, hàm này chỉ để thuận tiện khi code đã gọi Update trước đó.)
+    /// Convenience method: absorbs <paramref name="message"/> via <see cref="Update"/> and then
+    /// finalizes via <see cref="FinalizeTag(System.Span{System.Byte})"/>.
     /// </summary>
-    public void ComputeTagIncremental(System.ReadOnlySpan<System.Byte> message, System.Span<System.Byte> destination)
+    /// <param name="message">The full message to authenticate.</param>
+    /// <param name="destination">
+    /// Destination span; must be at least <see cref="TagSize"/> (16) bytes.
+    /// </param>
+    public void ComputeTagIncremental(
+        System.ReadOnlySpan<System.Byte> message,
+        System.Span<System.Byte> destination)
     {
         Update(message);
         FinalizeTag(destination);
     }
 
-    #endregion Public Methods
+    #endregion Public — Incremental API
 
-    #region Private Methods
+    #region Public — Clear (replaces Dispose)
 
     /// <summary>
-    /// Clamps the r value according to RFC 8439.
+    /// Securely zeroes all sensitive key material and internal state.
     /// </summary>
-    /// <param name="rBytes">The r portion of the key (16 bytes).</param>
-    /// <param name="r">Array to store the clamped r value.</param>
+    /// <remarks>
+    /// <para>
+    /// Because <see langword="ref struct"/> cannot implement <see cref="System.IDisposable"/>,
+    /// call this method explicitly (preferably in a <c>finally</c> block) when done.
+    /// </para>
+    /// <para>
+    /// Uses <see cref="MemorySecurity.ZeroMemory(System.Span{System.Byte})"/>
+    /// to guarantee the JIT will not elide the zeroing.
+    /// </para>
+    /// </remarks>
+    [System.Diagnostics.DebuggerNonUserCode]
+    public void Clear()
+    {
+        if (!_cleared)
+        {
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_r));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_s));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_acc));
+            MemorySecurity.ZeroMemory(_pending);
+
+            _pendingLen = 0;
+            _cleared = true;
+        }
+    }
+
+    #endregion Public — Clear (replaces Dispose)
+
+    #region Private — Initialization
+
+    /// <summary>
+    /// Clamps the r value according to RFC 8439 §2.5.
+    /// Certain bits of r are cleared to ensure that multiplication stays within bounds.
+    /// </summary>
+    /// <param name="rBytes">The first 16 bytes of the key.</param>
+    /// <param name="r">Destination: 5-word clamped r value.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void ClampR(
@@ -411,9 +627,8 @@ public sealed class Poly1305 : System.IDisposable
         System.Span<System.UInt32> r)
     {
         System.Diagnostics.Debug.Assert(rBytes.Length >= 16);
-        System.Diagnostics.Debug.Assert(r.Length >= 5);
+        System.Diagnostics.Debug.Assert(r.Length >= WordCount);
 
-        // Convert to uint array (little-endian)
         r[0] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes[..4]) & 0x0FFF_FFFC;
         r[1] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(4, 4)) & 0x0FFF_FFFC;
         r[2] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(8, 4)) & 0x0FFF_FFFC;
@@ -421,169 +636,206 @@ public sealed class Poly1305 : System.IDisposable
         r[4] = 0;
     }
 
+    #endregion Private — Initialization
+
+    #region Private — Guard
+
     /// <summary>
-    /// Adds a message block to the accumulator.
+    /// Throws <see cref="System.ObjectDisposedException"/> if <see cref="Clear"/> has been called.
     /// </summary>
-    /// <param name="accumulator">The current accumulator value.</param>
-    /// <param name="block">The block data to add (already padded).</param>
-    /// <param name="isFinalBlock">Whether this is the final block.</param>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private readonly void ThrowIfCleared()
+    {
+        if (_cleared)
+        {
+            throw new System.ObjectDisposedException(
+                nameof(Poly1305),
+                $"This {nameof(Poly1305)} instance has been cleared.");
+        }
+    }
+
+    #endregion Private — Guard
+
+    #region Private — Block Processing
+
+    /// <summary>
+    /// Adds a (possibly partial) padded message block to the accumulator, multiplies by r,
+    /// and reduces modulo 2¹³⁰ − 5.
+    /// </summary>
+    /// <param name="accumulator">The running accumulator (modified in-place).</param>
+    /// <param name="block">
+    /// Padded block data: up to 17 bytes (16 message + 0x01 sentinel).
+    /// </param>
+    /// <param name="isFinalBlock">
+    /// <see langword="true"/> for the last (possibly short) block — the high word is set to 0
+    /// instead of reading the 17th byte.
+    /// </param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void AddBlock(
-        System.Span<System.UInt32> accumulator,
-        System.ReadOnlySpan<System.Byte> block, System.Boolean isFinalBlock)
+    private readonly void AddBlock(
+        scoped System.Span<System.UInt32> accumulator,
+        scoped System.ReadOnlySpan<System.Byte> block,
+        System.Boolean isFinalBlock)
     {
-        // Convert block to uint array with proper little-endian handling
-        System.Span<System.UInt32> n =
-        [
-            // i = 0 (offset = 0)
-            isFinalBlock && block.Length < 4
-                ? GetUInt32OrZero(block, 0)
-                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block[..4]),
-            // i = 1 (offset = 4)
-            isFinalBlock && block.Length < 8
-                ? GetUInt32OrZero(block, 4)
-                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(4, 4)),
-            // i = 2 (offset = 8)
-            isFinalBlock && block.Length < 12
-                ? GetUInt32OrZero(block, 8)
-                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(8, 4)),
-            // i = 3 (offset = 12)
-            isFinalBlock && block.Length < 16
-                ? GetUInt32OrZero(block, 12)
-                : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(12, 4)),
-            // i = 4 (offset = 16)
-            (System.UInt32)(isFinalBlock && block.Length <= 16 ? 0 : block[16]),
-        ];
+        UInt32x5 nBuf = default;
+        System.Span<System.UInt32> n = nBuf;
 
-        // Push the message block to the accumulator
-        Add(accumulator, n);
+        n[0] = isFinalBlock && block.Length < 4
+            ? ReadPartialUInt32(block, 0)
+            : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block[..4]);
 
-        // Multiply by r
+        n[1] = isFinalBlock && block.Length < 8
+            ? ReadPartialUInt32(block, 4)
+            : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(4, 4));
+
+        n[2] = isFinalBlock && block.Length < 12
+            ? ReadPartialUInt32(block, 8)
+            : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(8, 4));
+
+        n[3] = isFinalBlock && block.Length < 16
+            ? ReadPartialUInt32(block, 12)
+            : System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(block.Slice(12, 4));
+
+        n[4] = (System.UInt32)(isFinalBlock && block.Length <= 16 ? 0 : block[16]);
+
+        // accumulator += n
+        Add(accumulator, nBuf);
+
+        // accumulator *= r
         Multiply(accumulator, _r);
 
-        // Reduce modulo 2^130 - 5
+        // accumulator %= p
         Modulo(accumulator);
     }
 
     /// <summary>
-    /// Safely reads a UInt32 from a span that might be too short, returning 0 for out of bounds access.
+    /// Reads up to 4 bytes starting at <paramref name="offset"/> from <paramref name="data"/>,
+    /// returning them as a little-endian <see cref="System.UInt32"/>.
+    /// Out-of-range bytes are treated as zero.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.UInt32 GetUInt32OrZero(System.ReadOnlySpan<System.Byte> data, System.Int32 offset)
+    private static System.UInt32 ReadPartialUInt32(
+        System.ReadOnlySpan<System.Byte> data,
+        System.Int32 offset)
     {
         System.UInt32 result = 0;
-        System.Int32 bytesAvailable = System.Math.Min(4, System.Math.Max(0, data.Length - offset));
+        System.Int32 available = System.Math.Min(4, System.Math.Max(0, data.Length - offset));
 
-        for (System.Int32 i = 0; i < bytesAvailable; i++)
+        for (System.Int32 i = 0; i < available; i++)
         {
-            result |= (System.UInt32)data[offset + i] << 8 * i;
+            result |= (System.UInt32)data[offset + i] << (8 * i);
         }
 
         return result;
     }
 
+    #endregion Private — Block Processing
+
+    #region Private — 130-bit Arithmetic
+
     /// <summary>
-    /// Adds two 130-bit integers represented as uint arrays.
+    /// Adds two 130-bit integers: <c>a += b</c>.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void Add(System.Span<System.UInt32> a, System.ReadOnlySpan<System.UInt32> b)
+    private static void Add(
+        System.Span<System.UInt32> a,
+        System.ReadOnlySpan<System.UInt32> b)
     {
-        System.Diagnostics.Debug.Assert(a.Length >= 5, "Span a must have at least 5 elements");
-        System.Diagnostics.Debug.Assert(b.Length >= 5, "Span b must have at least 5 elements");
+        System.Diagnostics.Debug.Assert(a.Length >= WordCount);
+        System.Diagnostics.Debug.Assert(b.Length >= WordCount);
 
         System.UInt64 carry = 0;
 
-        // i = 0
         carry += (System.UInt64)a[0] + b[0];
         a[0] = (System.UInt32)carry;
         carry >>= 32;
 
-        // i = 1
         carry += (System.UInt64)a[1] + b[1];
         a[1] = (System.UInt32)carry;
         carry >>= 32;
 
-        // i = 2
         carry += (System.UInt64)a[2] + b[2];
         a[2] = (System.UInt32)carry;
         carry >>= 32;
 
-        // i = 3
         carry += (System.UInt64)a[3] + b[3];
         a[3] = (System.UInt32)carry;
         carry >>= 32;
 
-        // i = 4
         carry += (System.UInt64)a[4] + b[4];
         a[4] = (System.UInt32)carry;
     }
 
     /// <summary>
-    /// Multiplies a 130-bit integer by another 130-bit integer.
+    /// Multiplies two 130-bit integers: <c>a = a × b mod p</c>.
+    /// Uses a 10-word intermediate product buffer (inline array, stack-allocated).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void Multiply(System.Span<System.UInt32> a, System.ReadOnlySpan<System.UInt32> b)
+    private static void Multiply(
+        System.Span<System.UInt32> a,
+        System.ReadOnlySpan<System.UInt32> b)
     {
-        System.Span<System.UInt32> product = stackalloc System.UInt32[10];
-
-        // Clean state
+        UInt32x10 productBuf = default;
+        System.Span<System.UInt32> product = productBuf;
         product.Clear();
 
-        // Multiply each component
+        // Schoolbook multiplication: 5 × 5 → 10 words
         MultiplyRow(a, b, product, 0);
         MultiplyRow(a, b, product, 1);
         MultiplyRow(a, b, product, 2);
         MultiplyRow(a, b, product, 3);
         MultiplyRow(a, b, product, 4);
 
-        // Reduce modulo 2^130 - 5
-        ReduceProduct(a, product);
+        // Reduce the 260-bit product modulo p = 2¹³⁰ − 5
+        ReduceProduct(a, productBuf);
     }
 
-
+    /// <summary>
+    /// Computes one row of the schoolbook multiplication:
+    /// <c>product[row..row+5] += a[row] × b[0..4]</c>.
+    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void MultiplyRow(
         System.ReadOnlySpan<System.UInt32> a,
         System.ReadOnlySpan<System.UInt32> b,
-        System.Span<System.UInt32> product, System.Int32 row)
+        System.Span<System.UInt32> product,
+        System.Int32 row)
     {
         System.UInt64 carry = 0;
-        System.UInt32 aValue = a[row];
-
-        // Unroll inner loop cho performance
+        System.UInt32 aVal = a[row];
 
         // j = 0
-        System.UInt64 t = (System.UInt64)aValue * b[0] + product[row] + carry;
+        System.UInt64 t = ((System.UInt64)aVal * b[0]) + product[row] + carry;
         product[row] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 1
-        t = (System.UInt64)aValue * b[1] + product[row + 1] + carry;
+        t = ((System.UInt64)aVal * b[1]) + product[row + 1] + carry;
         product[row + 1] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 2
-        t = (System.UInt64)aValue * b[2] + product[row + 2] + carry;
+        t = ((System.UInt64)aVal * b[2]) + product[row + 2] + carry;
         product[row + 2] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 3
-        t = (System.UInt64)aValue * b[3] + product[row + 3] + carry;
+        t = ((System.UInt64)aVal * b[3]) + product[row + 3] + carry;
         product[row + 3] = (System.UInt32)t;
         carry = t >> 32;
 
         // j = 4
-        t = (System.UInt64)aValue * b[4] + product[row + 4] + carry;
+        t = ((System.UInt64)aVal * b[4]) + product[row + 4] + carry;
         product[row + 4] = (System.UInt32)t;
         carry = t >> 32;
 
-        // Store final carry
+        // Store the final carry into the next word (if within bounds)
         if (row + 5 < 10)
         {
             product[row + 5] = (System.UInt32)carry;
@@ -591,7 +843,8 @@ public sealed class Poly1305 : System.IDisposable
     }
 
     /// <summary>
-    /// Reduces a 260-bit product modulo 2^130 - 5 to a 130-bit result.
+    /// Reduces a 260-bit product modulo p = 2¹³⁰ − 5.
+    /// Since 2¹³⁰ ≡ 5 (mod p), the high 130 bits are multiplied by 5 and added to the low 130 bits.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -599,57 +852,48 @@ public sealed class Poly1305 : System.IDisposable
         System.Span<System.UInt32> result,
         System.ReadOnlySpan<System.UInt32> product)
     {
-        // Copy the low 130 bits
-        product[..5].CopyTo(result);
+        // Copy low 130 bits (words 0–4)
+        product[..WordCount].CopyTo(result);
 
-        // Multiply the high 130 bits by 5 (because 2^130 ≡ 5 (mod 2^130 - 5))
-        // and add to the result
-
-        // i = 0
-        System.UInt64 t = (System.UInt64)product[5] * 5 + result[0];
+        // High words [5..9] × 5, added to result
+        System.UInt64 t = ((System.UInt64)product[5] * 5) + result[0];
         result[0] = (System.UInt32)t;
         System.UInt32 carry = (System.UInt32)(t >> 32);
 
-        // i = 1
-        t = (System.UInt64)product[6] * 5 + result[1] + carry;
+        t = ((System.UInt64)product[6] * 5) + result[1] + carry;
         result[1] = (System.UInt32)t;
         carry = (System.UInt32)(t >> 32);
 
-        // i = 2
-        t = (System.UInt64)product[7] * 5 + result[2] + carry;
+        t = ((System.UInt64)product[7] * 5) + result[2] + carry;
         result[2] = (System.UInt32)t;
         carry = (System.UInt32)(t >> 32);
 
-        // i = 3
-        t = (System.UInt64)product[8] * 5 + result[3] + carry;
+        t = ((System.UInt64)product[8] * 5) + result[3] + carry;
         result[3] = (System.UInt32)t;
         carry = (System.UInt32)(t >> 32);
 
-        // i = 4
-        t = (System.UInt64)product[9] * 5 + result[4] + carry;
+        t = ((System.UInt64)product[9] * 5) + result[4] + carry;
         result[4] = (System.UInt32)t;
 
-        // Final reduction if needed (result might be >= 2^130 - 5)
+        // One final conditional reduction
         Modulo(result);
     }
 
     /// <summary>
-    /// Reduces a value modulo 2^130 - 5.
+    /// Conditionally subtracts p if <paramref name="value"/> ≥ p.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void Modulo(System.Span<System.UInt32> value)
     {
-        // Check if the value needs reduction
         if (IsGreaterOrEqual(value, s_prime))
         {
-            // Subtract the prime
             Subtract(value, s_prime);
         }
     }
 
     /// <summary>
-    /// Determines if one ProtocolType is greater than or equal to another.
+    /// Determines if <paramref name="a"/> ≥ <paramref name="b"/> (unsigned, most-significant-first).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -657,63 +901,27 @@ public sealed class Poly1305 : System.IDisposable
         System.ReadOnlySpan<System.UInt32> a,
         System.ReadOnlySpan<System.UInt32> b)
     {
-        // Compare from most significant word down
-        if (a[4] > b[4])
+        // Compare from most significant word (index 4) down to least (index 0).
+        for (System.Int32 i = WordCount - 1; i >= 0; i--)
         {
-            return true;
+            if (a[i] > b[i])
+            {
+                return true;
+            }
+
+            if (a[i] < b[i])
+            {
+                return false;
+            }
         }
 
-        if (a[4] < b[4])
-        {
-            return false;
-        }
-
-        if (a[3] > b[3])
-        {
-            return true;
-        }
-
-        if (a[3] < b[3])
-        {
-            return false;
-        }
-
-        if (a[2] > b[2])
-        {
-            return true;
-        }
-
-        if (a[2] < b[2])
-        {
-            return false;
-        }
-
-        if (a[1] > b[1])
-        {
-            return true;
-        }
-
-        if (a[1] < b[1])
-        {
-            return false;
-        }
-
-        if (a[0] > b[0])
-        {
-            return true;
-        }
-
-        if (a[0] < b[0])
-        {
-            return false;
-        }
-
-        // All words are equal
+        // All words equal → a == b → a ≥ b is true.
         return true;
     }
 
     /// <summary>
-    /// Subtracts one ProtocolType from another.
+    /// Subtracts <paramref name="b"/> from <paramref name="a"/>: <c>a -= b</c>.
+    /// Assumes a ≥ b (no underflow).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -721,92 +929,77 @@ public sealed class Poly1305 : System.IDisposable
         System.Span<System.UInt32> a,
         System.ReadOnlySpan<System.UInt32> b)
     {
-        System.UInt64 diff = (System.UInt64)a[0] - b[0];
+        System.UInt64 borrow = 0;
+
+        // i = 0
+        System.UInt64 diff = (System.UInt64)a[0] - b[0] - borrow;
         a[0] = (System.UInt32)diff;
-        System.UInt32 borrow = diff >> 63 == 1 ? 1u : 0u;
+        borrow = (diff >> 63) & 1;
+
+        // i = 1
         diff = (System.UInt64)a[1] - b[1] - borrow;
         a[1] = (System.UInt32)diff;
-        borrow = (System.UInt64)a[1] + borrow > a[1] ? 1u : 0u; // or: (diff >> 63)==1 ? 1u : 0u
+        borrow = (diff >> 63) & 1;
 
+        // i = 2
         diff = (System.UInt64)a[2] - b[2] - borrow;
         a[2] = (System.UInt32)diff;
-        borrow = diff >> 63 == 1 ? 1u : 0u;
+        borrow = (diff >> 63) & 1;
 
+        // i = 3
         diff = (System.UInt64)a[3] - b[3] - borrow;
         a[3] = (System.UInt32)diff;
-        borrow = diff >> 63 == 1 ? 1u : 0u;
+        borrow = (diff >> 63) & 1;
 
+        // i = 4
         diff = (System.UInt64)a[4] - b[4] - borrow;
         a[4] = (System.UInt32)diff;
     }
 
+    #endregion Private — 130-bit Arithmetic
+
+    #region Private — Tag Finalization
+
     /// <summary>
-    /// Finalizes the authentication tag by adding s and ensuring it's exactly 16 bytes.
+    /// Produces the final 16-byte tag: <c>tag = (accumulator mod p) + s</c>, serialized as
+    /// four little-endian 32-bit words. The 5th accumulator word (bits 128–129) is discarded
+    /// after the addition because the tag is only 128 bits.
     /// </summary>
-    /// <param name="accumulator">The current accumulator value.</param>
-    /// <param name="tag">The span where the tag will be written.</param>
+    /// <param name="accumulator">The fully-reduced 130-bit accumulator.</param>
+    /// <param name="tag">Destination for the 16-byte tag.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void FinalizeTag(
+    private readonly void FinalizeTagCore(
         System.ReadOnlySpan<System.UInt32> accumulator,
         System.Span<System.Byte> tag)
     {
         System.Diagnostics.Debug.Assert(tag.Length >= TagSize);
 
-        // CAFEBABE a copy of the accumulator for the final operations
-        System.Span<System.UInt32> result = stackalloc System.UInt32[5];
+        // Copy accumulator for final operations
+        UInt32x5 resultBuf = default;
+        System.Span<System.UInt32> result = resultBuf;
         accumulator.CopyTo(result);
 
-        // Ensure the result is fully reduced modulo 2^130 - 5
+        // Ensure fully reduced modulo p
         Modulo(result);
 
-        // Push s
-        System.Span<System.UInt32> finalResult = stackalloc System.UInt32[4];
+        // Add s (128-bit addition — only 4 words)
+        System.ReadOnlySpan<System.UInt32> sSpan = _s;
         System.UInt64 carry = 0;
-        for (System.Byte i = 0; i < 4; i++)
+
+        for (System.Int32 i = 0; i < SWordCount; i++)
         {
-            carry += (System.UInt64)result[i] + _s![i];
-            finalResult[i] = (System.UInt32)carry;
+            carry += (System.UInt64)result[i] + sSpan[i];
+            result[i] = (System.UInt32)carry;
             carry >>= 32;
         }
 
-        // Convert to bytes (little-endian)
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag[..4], finalResult[0]);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag.Slice(4, 4), finalResult[1]);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag.Slice(8, 4), finalResult[2]);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag.Slice(12, 4), finalResult[3]);
+        // Serialize the low 4 words (128 bits) as little-endian bytes
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag[..4], result[0]);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag.Slice(4, 4), result[1]);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag.Slice(8, 4), result[2]);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(tag.Slice(12, 4), result[3]);
     }
 
-    #endregion Private Methods
-
-    #region IDisposable
-
-    /// <summary>
-    /// Securely clears sensitive data when the object is disposed.
-    /// </summary>
-    [System.Diagnostics.DebuggerNonUserCode]
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            // Clear sensitive key material
-            if (_r != null)
-            {
-                System.Array.Clear(_r, 0, _r.Length);
-                _r = null;
-            }
-
-            if (_s != null)
-            {
-                System.Array.Clear(_s, 0, _s.Length);
-                _s = null;
-            }
-
-            _disposed = true;
-        }
-
-        System.GC.SuppressFinalize(this);
-    }
-
-    #endregion IDisposable
+    #endregion Private — Tag Finalization
 }

@@ -38,7 +38,6 @@ namespace Nalix.Shared.Security.Engine;
 /// <list type="bullet">
 /// <item><description>Callers must supply a unique nonce per key for the chosen algorithm,
 /// except where <see cref="Encrypt"/> auto-generates a random nonce.</description></item>
-/// <item><description>For <c>XTEA</c>, if a 32-byte key is provided, it is deterministically reduced to 16 bytes via <see cref="U32ToU16"/>.</description></item>
 /// <item><description>This engine favors Span-first patterns and clears temporary sensitive buffers when possible.</description></item>
 /// </list>
 /// </para>
@@ -109,21 +108,33 @@ public static class AeadEngine
 
         EnvelopeHeader.Encode(header, headerStruct);
 
-        // Build combined AAD = header || nonce || userAAD
+        // OPT-A: Allocate the final envelope buffer FIRST, then slice ct/tag directly into it.
+        // Eliminates two intermediate allocations (ct[] and tag[]) that were only created
+        // to be immediately copied into outBuf and discarded.
+        //
+        // Envelope layout: | header | nonce | ciphertext | tag |
+        System.Int32 total = EnvelopeFormat.HeaderSize + nonceLen + plaintext.Length + EnvelopeFormat.TagSize;
+        System.Byte[] outBuf = System.GC.AllocateUninitializedArray<System.Byte>(total);
+        header.CopyTo(outBuf);
+        nonce.CopyTo(System.MemoryExtensions.AsSpan(outBuf, EnvelopeFormat.HeaderSize, nonceLen));
+        System.Span<System.Byte> ctSlice = System.MemoryExtensions.AsSpan(outBuf, EnvelopeFormat.HeaderSize + nonceLen, plaintext.Length);
+        System.Span<System.Byte> tagSlice = System.MemoryExtensions.AsSpan(outBuf, EnvelopeFormat.HeaderSize + nonceLen + plaintext.Length, EnvelopeFormat.TagSize);
+
+        // OPT-B: stackalloc combinedAad when it fits (≤ 256 B covers all typical usage).
+        // Falls back to ArrayPool for large user-supplied AAD.
         System.Int32 combinedAadLen = header.Length + nonce.Length + aad.Length;
-        System.Byte[] combinedAad = System.GC.AllocateUninitializedArray<System.Byte>(combinedAadLen);
+        const System.Int32 StackAllocThreshold = 256;
+        System.Byte[]? rentedAad = null;
+        System.Span<System.Byte> combinedAad = combinedAadLen <= StackAllocThreshold
+            ? stackalloc System.Byte[combinedAadLen]
+            : System.MemoryExtensions.AsSpan(rentedAad = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(combinedAadLen), 0, combinedAadLen);
 
         try
         {
             header.CopyTo(combinedAad);
-            nonce.CopyTo(System.MemoryExtensions.AsSpan(combinedAad, header.Length, nonce.Length));
-            aad.CopyTo(System.MemoryExtensions.AsSpan(combinedAad, header.Length + nonce.Length, aad.Length));
+            nonce.CopyTo(combinedAad[header.Length..]);
+            aad.CopyTo(combinedAad[(header.Length + nonce.Length)..]);
 
-            // Allocate ciphertext & tag
-            var ct = new System.Byte[plaintext.Length];
-            var tag = new System.Byte[EnvelopeFormat.TagSize];
-
-            // Dispatch
             switch (algorithm)
             {
                 case CipherSuiteType.CHACHA20_POLY1305:
@@ -132,7 +143,7 @@ public static class AeadEngine
                         ThrowHelper.BadKeyLen32();
                     }
 
-                    ChaCha20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ct, tag);
+                    ChaCha20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ctSlice, tagSlice);
                     break;
 
                 case CipherSuiteType.SALSA20_POLY1305:
@@ -141,7 +152,7 @@ public static class AeadEngine
                         ThrowHelper.BadKeyLenSalsa();
                     }
 
-                    Salsa20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ct, tag);
+                    Salsa20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ctSlice, tagSlice);
                     break;
 
                 case CipherSuiteType.SPECK_POLY1305:
@@ -150,45 +161,24 @@ public static class AeadEngine
                         ThrowHelper.BadKeyLenSpeck();
                     }
 
-                    SpeckPoly1305.Encrypt(key, nonce, plaintext, combinedAad, ct, tag);
+                    SpeckPoly1305.Encrypt(key, nonce, plaintext, combinedAad, ctSlice, tagSlice);
                     break;
-
-                case CipherSuiteType.XTEA_POLY1305:
-                    {
-                        System.Span<System.Byte> k16 = stackalloc System.Byte[16];
-                        if (key.Length == 32)
-                        {
-                            U32ToU16(key, k16);
-                        }
-                        else if (key.Length == 16)
-                        {
-                            key.CopyTo(k16);
-                        }
-                        else
-                        {
-                            ThrowHelper.BadKeyLenXtea();
-                        }
-
-                        XteaPoly1305.Encrypt(k16, nonce, plaintext, combinedAad, ct, tag);
-                        MemorySecurity.ZeroMemory(k16);
-                        break;
-                    }
 
                 default:
                     ThrowHelper.UnsupportedAlg();
                     break;
             }
 
-            // Compose envelope
-            System.Int32 total = EnvelopeFormat.HeaderSize + nonceLen + ct.Length + tag.Length;
-            var outBuf = new System.Byte[total];
-            _ = EnvelopeFormat.WriteEnvelope(outBuf, algorithm, flags: 0, seqVal, nonce, ct, tag);
             return outBuf;
         }
         finally
         {
             MemorySecurity.ZeroMemory(combinedAad);
             MemorySecurity.ZeroMemory(nonce);
+            if (rentedAad is not null)
+            {
+                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rentedAad);
+            }
         }
     }
 
@@ -224,15 +214,19 @@ public static class AeadEngine
             return false;
         }
 
-        // Reconstruct AAD: header || nonce || userAAD
+        // OPT-B: stackalloc combinedAad when small (≤ 256 B), ArrayPool fallback for large AAD
         System.Int32 combinedLen = env.Header.Length + env.Nonce.Length + aad.Length;
-        System.Byte[] combinedAad = System.GC.AllocateUninitializedArray<System.Byte>(combinedLen);
+        const System.Int32 StackAllocThreshold = 256;
+        System.Byte[]? rentedAad = null;
+        System.Span<System.Byte> combinedAad = combinedLen <= StackAllocThreshold
+            ? stackalloc System.Byte[combinedLen]
+            : System.MemoryExtensions.AsSpan(rentedAad = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(combinedLen), 0, combinedLen);
 
         try
         {
             env.Header.CopyTo(combinedAad);
-            env.Nonce.CopyTo(System.MemoryExtensions.AsSpan(combinedAad, env.Header.Length, env.Nonce.Length));
-            aad.CopyTo(System.MemoryExtensions.AsSpan(combinedAad, env.Header.Length + env.Nonce.Length, aad.Length));
+            env.Nonce.CopyTo(combinedAad[env.Header.Length..]);
+            aad.CopyTo(combinedAad[(env.Header.Length + env.Nonce.Length)..]);
 
             var pt = new System.Byte[env.Ciphertext.Length];
             System.Boolean ok = false;
@@ -266,27 +260,6 @@ public static class AeadEngine
                     ok = SpeckPoly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
                     break;
 
-                case CipherSuiteType.XTEA_POLY1305:
-                    {
-                        System.Span<System.Byte> k16 = stackalloc System.Byte[16];
-                        if (key.Length == 32)
-                        {
-                            U32ToU16(key, k16);
-                        }
-                        else if (key.Length == 16)
-                        {
-                            key.CopyTo(k16);
-                        }
-                        else
-                        {
-                            ThrowHelper.BadKeyLenXtea();
-                        }
-
-                        ok = XteaPoly1305.Decrypt(k16, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
-                        MemorySecurity.ZeroMemory(k16);
-                        break;
-                    }
-
                 default:
                     ThrowHelper.UnsupportedAlg();
                     break;
@@ -304,37 +277,10 @@ public static class AeadEngine
         finally
         {
             MemorySecurity.ZeroMemory(combinedAad);
-        }
-    }
-
-    /// <summary>
-    /// Reduces a 32-byte key into a 16-byte XTEA key deterministically by XOR-ing halves:
-    /// <c>out[i] = bytes32[i] XOR bytes32[i + 16]</c>.
-    /// </summary>
-    /// <param name="bytes32">Source 32-byte key.</param>
-    /// <param name="out16">Destination span (must be at least 16 bytes).</param>
-    /// <exception cref="System.ArgumentException">Thrown if <paramref name="bytes32"/> is not 32 bytes or <paramref name="out16"/> is too small.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static void U32ToU16(
-    [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> bytes32,
-    [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> out16)
-    {
-        if (bytes32.Length != 32)
-        {
-            ThrowHelper.BadKeyLen32();
-        }
-
-        if (out16.Length < 16)
-        {
-            // Use the exact param-name string the tests expect.
-            throw new System.ArgumentException("bytes16 must be at least 16 bytes", "bytes16");
-        }
-
-        for (System.Int32 i = 0; i < 16; i++)
-        {
-            out16[i] = (System.Byte)(bytes32[i] ^ bytes32[i + 16]);
+            if (rentedAad is not null)
+            {
+                System.Buffers.ArrayPool<System.Byte>.Shared.Return(rentedAad);
+            }
         }
     }
 
@@ -349,7 +295,6 @@ public static class AeadEngine
             CipherSuiteType.CHACHA20_POLY1305 => 12,
             CipherSuiteType.SALSA20_POLY1305 => 8,
             CipherSuiteType.SPECK_POLY1305 => 16,
-            CipherSuiteType.XTEA_POLY1305 => 8,
             _ => throw new System.ArgumentOutOfRangeException(nameof(type))
         };
     }

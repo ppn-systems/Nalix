@@ -53,9 +53,6 @@ public static class SymmetricEngine
             case CipherSuiteType.SPECK:
                 SpeckCtrPath(key, nonce, counter, src, dst);
                 break;
-            case CipherSuiteType.XTEA:
-                XteaCtrPath(key, nonce, counter, src, dst);
-                break;
             default:
                 ThrowHelper.UnsupportedAlg();
                 break;
@@ -220,8 +217,9 @@ public static class SymmetricEngine
             ThrowHelper.BadNonceLenChaCha();
         }
 
-        using ChaCha20 chacha = new(key.ToArray(), nonce.ToArray(), counter);
+        ChaCha20 chacha = new(key.ToArray(), nonce.ToArray(), counter);
         chacha.Encrypt(src, dst);
+        chacha.Clear();
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -304,67 +302,6 @@ public static class SymmetricEngine
         }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void XteaCtrPath(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 startCounter,
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst)
-    {
-        System.Span<System.Byte> key16 = stackalloc System.Byte[Xtea.KeySize];
-        if (key.Length == Xtea.KeySize)
-        {
-            key.CopyTo(key16);
-        }
-        else if (key.Length == 32)
-        {
-            ConvertKeyToXtea(key, key16);
-        }
-        else
-        {
-            ThrowHelper.BadKeyLenXtea();
-        }
-
-        if (nonce.Length != 8)
-        {
-            ThrowHelper.BadNonceLenXtea();
-        }
-
-        System.Int32 offset = 0;
-        System.UInt64 ctr = startCounter;
-        System.Span<System.Byte> in8 = stackalloc System.Byte[8];
-        System.Span<System.Byte> ks = stackalloc System.Byte[8];
-        System.Span<System.Byte> tmpOut = stackalloc System.Byte[8];
-
-        while (offset < src.Length)
-        {
-            System.UInt64 iv = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(nonce);
-            System.UInt64 input64 = unchecked(iv + ctr);
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(in8, input64);
-
-            _ = Xtea.Encrypt(in8, key16, tmpOut, Xtea.DefaultRounds);
-
-            tmpOut.CopyTo(ks);
-
-            System.Int32 take = System.Math.Min(8, src.Length - offset);
-            for (System.Int32 i = 0; i < take; i++)
-            {
-                dst[offset + i] = (System.Byte)(src[offset + i] ^ ks[i]);
-            }
-
-            offset += take;
-            ctr++;
-        }
-
-
-        MemorySecurity.ZeroMemory(ks);
-        MemorySecurity.ZeroMemory(in8);
-        MemorySecurity.ZeroMemory(key16);
-        MemorySecurity.ZeroMemory(tmpOut);
-    }
-
     #endregion Paths
 
     #region Helpers
@@ -401,7 +338,6 @@ public static class SymmetricEngine
         CipherSuiteType.CHACHA20 => ChaCha20.NonceSize,
         CipherSuiteType.SALSA20 => 8,
         CipherSuiteType.SPECK => 16,
-        CipherSuiteType.XTEA => 8,
         _ => throw new System.ArgumentException("Unsupported cipher type", nameof(type))
     };
 
