@@ -92,7 +92,7 @@ public static partial class Directories
     // ---------- Path Resolution ----------
 
     /// <summary>Base path resolution with ENV and platform-aware fallbacks.</summary>
-    private static readonly Lazy<string> BasePathLazy = new(() =>
+    private static Lazy<string> BasePathLazy = new(() =>
     {
         // 1) Explicit test override
         if (!string.IsNullOrEmpty(_basePathOverride))
@@ -151,23 +151,23 @@ public static partial class Directories
 
     // ---------- Lazies for each directory ----------
 
-    private static readonly Lazy<string> DataPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DATA_PATH", "/data", "data")));
+    private static Lazy<string> DataPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DATA_PATH", "/data", "data")));
 
-    private static readonly Lazy<string> LogsPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_LOGS_PATH", "/logs", "logs"), UnixDirPerms.WorldReadable));
+    private static Lazy<string> LogsPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_LOGS_PATH", "/logs", "logs"), UnixDirPerms.WorldReadable));
 
-    private static readonly Lazy<string> ConfigPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_CONFIG_PATH", "/config", "config"), UnixDirPerms.Private700));
+    private static Lazy<string> ConfigPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_CONFIG_PATH", "/config", "config"), UnixDirPerms.Private700));
 
-    private static readonly Lazy<string> StoragePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_STORAGE_PATH", "/storage", "storage"), UnixDirPerms.Shared750));
+    private static Lazy<string> StoragePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_STORAGE_PATH", "/storage", "storage"), UnixDirPerms.Shared750));
 
-    private static readonly Lazy<string> DatabasePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DB_PATH", "/db", "db"), UnixDirPerms.Private700));
+    private static Lazy<string> DatabasePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DB_PATH", "/db", "db"), UnixDirPerms.Private700));
 
-    private static readonly Lazy<string> CachesPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "caches")));
+    private static Lazy<string> CachesPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "caches")));
 
-    private static readonly Lazy<string> UploadsPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "uploads"), UnixDirPerms.Shared750));
+    private static Lazy<string> UploadsPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "uploads"), UnixDirPerms.Shared750));
 
-    private static readonly Lazy<string> BackupsPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "backups"), UnixDirPerms.Private700));
+    private static Lazy<string> BackupsPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "backups"), UnixDirPerms.Private700));
 
-    private static readonly Lazy<string> TempPathLazy = new(() =>
+    private static Lazy<string> TempPathLazy = new(() =>
     {
         string path = RESOLVE_OR_ENV("NALIX_TEMP_PATH", "/tmp", Path.Join("data", "tmp"));
         _ = ENSURE_AND_HARDEN(path, UnixDirPerms.Private700);
@@ -182,6 +182,70 @@ public static partial class Directories
         _ = DeleteOldFiles(path, TimeSpan.FromDays(days));
         return path ?? string.Empty;
     });
+
+    /// <summary>
+    /// Re-initialises all internal <see cref="Lazy{T}"/> instances.
+    /// Used when the base path is overridden to ensure already-evaluated paths are updated.
+    /// </summary>
+    private static void RESET_LAZIES()
+    {
+        DirectoryLock.EnterWriteLock();
+        try
+        {
+            BasePathLazy = new(() =>
+            {
+                if (!string.IsNullOrEmpty(_basePathOverride))
+                {
+                    return Path.GetFullPath(_basePathOverride);
+                }
+                string? env = GET_ENV("NALIX_BASE_PATH");
+                if (!string.IsNullOrEmpty(env))
+                {
+                    return Path.GetFullPath(env);
+                }
+                if (IsContainerLazy.Value)
+                {
+                    return "/data";
+                }
+                if (OperatingSystem.IsWindows())
+                {
+                    string root = System.Environment.GetFolderPath(System.Environment.SpecialFolder.CommonApplicationData);
+                    return Path.Join(root, "Nalix");
+                }
+                string? xdg = GET_ENV("XDG_DATA_HOME");
+                string dataHome = !string.IsNullOrEmpty(xdg) ? xdg : Path.Join(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".local", "share");
+                return Path.Join(dataHome, "Nalix");
+            });
+
+            DataPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DATA_PATH", "/data", "data")));
+            LogsPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_LOGS_PATH", "/logs", "logs"), UnixDirPerms.WorldReadable));
+            ConfigPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_CONFIG_PATH", "/config", "config"), UnixDirPerms.Private700));
+            StoragePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_STORAGE_PATH", "/storage", "storage"), UnixDirPerms.Shared750));
+            DatabasePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DB_PATH", "/db", "db"), UnixDirPerms.Private700));
+
+            CachesPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "caches")));
+            UploadsPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "uploads"), UnixDirPerms.Shared750));
+            BackupsPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "backups"), UnixDirPerms.Private700));
+
+            TempPathLazy = new(() =>
+            {
+                string path = RESOLVE_OR_ENV("NALIX_TEMP_PATH", "/tmp", Path.Join("data", "tmp"));
+                _ = ENSURE_AND_HARDEN(path, UnixDirPerms.Private700);
+                int days = 7;
+                string? envDaysStr = GET_ENV("NALIX_TEMP_RETENTION_DAYS");
+                if (!string.IsNullOrEmpty(envDaysStr) && int.TryParse(envDaysStr, out int envDaysParsed) && envDaysParsed > 0)
+                {
+                    days = envDaysParsed;
+                }
+                _ = DeleteOldFiles(path, TimeSpan.FromDays(days));
+                return path ?? string.Empty;
+            });
+        }
+        finally
+        {
+            DirectoryLock.ExitWriteLock();
+        }
+    }
 
     #endregion Private Properties
 }

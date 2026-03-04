@@ -1292,22 +1292,11 @@ internal sealed class IniConfig : IDisposable
                     }
                 }
 
-                // Write to a temporary file first to prevent corruption
-                tempFileName = _path + ".tmp";
+                // Write to a temporary file first to prevent corruption.
+                // Use a unique name to avoid collisions between multiple processes
+                // attempting to write to the same logical configuration file.
+                tempFileName = $"{_path}.{Guid.NewGuid():N}.tmp";
 
-                // Delete temp file if it exists from a previous failed operation
-                if (File.Exists(tempFileName))
-                {
-                    try
-                    {
-                        File.Delete(tempFileName);
-                    }
-                    catch (IOException)
-                    {
-                        // If we can't delete the temp file, try with a different name
-                        tempFileName = $"{_path}.{Guid.NewGuid():N}.tmp";
-                    }
-                }
 
                 using (StreamWriter writer = new(
                     tempFileName, false, Encoding.UTF8, DefaultBufferSize))
@@ -1400,7 +1389,16 @@ internal sealed class IniConfig : IDisposable
                     {
                         if (File.Exists(_path))
                         {
-                            File.Replace(tempFileName, _path, null);
+                            try
+                            {
+                                File.Replace(tempFileName, _path, null);
+                            }
+                            catch (FileNotFoundException)
+                            {
+                                // Race condition: destination file was deleted between File.Exists and File.Replace.
+                                // Fall back to Move.
+                                File.Move(tempFileName, _path);
+                            }
                         }
                         else
                         {
