@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 //
 // High-level AEAD engine that emits/consumes AeadFormat envelopes.
 // - Uses AeadFormat (magic 4 bytes "NALX").
@@ -11,7 +11,6 @@ using Nalix.Common.Enums;
 using Nalix.Framework.Random;
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Aead;
-using Nalix.Shared.Security.Symmetric;
 
 namespace Nalix.Shared.Security.Engine;
 
@@ -73,8 +72,6 @@ public static class AeadEngine
     /// <list type="bullet">
     /// <item><description><c>CHACHA20-Poly1305</c>: 32 bytes</description></item>
     /// <item><description><c>SALSA20-Poly1305</c>: 16 or 32 bytes</description></item>
-    /// <item><description><c>SPECK-Poly1305</c>: <see cref="Speck.KeySizeBytes"/> bytes</description></item>
-    /// <item><description><c>XTEA-Poly1305</c>: 16 bytes (or 32 bytes will be reduced to 16 bytes)</description></item>
     /// </list>
     /// </para>
     /// </remarks>
@@ -153,15 +150,6 @@ public static class AeadEngine
                     }
 
                     Salsa20Poly1305.Encrypt(key, nonce, plaintext, combinedAad, ctSlice, tagSlice);
-                    break;
-
-                case CipherSuiteType.SPECK_POLY1305:
-                    if (key.Length != Speck.KeySizeBytes)
-                    {
-                        ThrowHelper.BadKeyLenSpeck();
-                    }
-
-                    SpeckPoly1305.Encrypt(key, nonce, plaintext, combinedAad, ctSlice, tagSlice);
                     break;
 
                 default:
@@ -251,15 +239,6 @@ public static class AeadEngine
                     ok = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
                     break;
 
-                case CipherSuiteType.SPECK_POLY1305:
-                    if (key.Length != Speck.KeySizeBytes)
-                    {
-                        ThrowHelper.BadKeyLenSpeck();
-                    }
-
-                    ok = SpeckPoly1305.Decrypt(key, env.Nonce, env.Ciphertext, combinedAad, env.Tag, pt);
-                    break;
-
                 default:
                     ThrowHelper.UnsupportedAlg();
                     break;
@@ -294,7 +273,6 @@ public static class AeadEngine
         {
             CipherSuiteType.CHACHA20_POLY1305 => 12,
             CipherSuiteType.SALSA20_POLY1305 => 8,
-            CipherSuiteType.SPECK_POLY1305 => 16,
             _ => throw new System.ArgumentOutOfRangeException(nameof(type))
         };
     }
@@ -321,14 +299,6 @@ public static class AeadEngine
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadKeyLenSalsa() =>
             throw new System.ArgumentException("Key must be 16 or 32 bytes for SALSA20", "key");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLenSpeck() =>
-            throw new System.ArgumentException($"Key must be {Speck.KeySizeBytes} bytes (SPECK)", "key");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLenXtea() =>
-            throw new System.ArgumentException("Key must be 16 bytes (or 32 bytes will be reduced) for XTEA", "key");
     }
 
     #endregion

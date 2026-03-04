@@ -375,10 +375,8 @@ public static class EnvelopeEncryptor
         {
             CipherSuiteType.CHACHA20_POLY1305 => key.Length == 32,
             CipherSuiteType.SALSA20_POLY1305 => key.Length is 16 or 32,
-            CipherSuiteType.SPECK_POLY1305 => key.Length == 32,
             CipherSuiteType.CHACHA20 => key.Length == 32,
             CipherSuiteType.SALSA20 => key.Length is 16 or 32,
-            CipherSuiteType.SPECK => key.Length == 32,
             _ => throw new System.ArgumentException($"Unsupported algorithm: {algorithm}", nameof(algorithm))
         };
 
@@ -396,7 +394,6 @@ public static class EnvelopeEncryptor
     private static System.String GetExpectedKeyLengthDescription(CipherSuiteType algorithm) => algorithm switch
     {
         CipherSuiteType.CHACHA20_POLY1305 or CipherSuiteType.CHACHA20 or
-        CipherSuiteType.SPECK_POLY1305 or CipherSuiteType.SPECK => "32 bytes",
         CipherSuiteType.SALSA20_POLY1305 or CipherSuiteType.SALSA20 => "16 or 32 bytes",
         _ => "unknown"
     };

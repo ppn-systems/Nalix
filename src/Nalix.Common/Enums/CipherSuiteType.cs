@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 namespace Nalix.Common.Enums;
 
@@ -40,35 +40,6 @@ public enum CipherSuiteType : System.Byte
     // ────────────────────────────────
 
     /// <summary>
-    /// SPECK lightweight block cipher.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <strong>⚠️ Security and compliance notice:</strong>
-    /// </para>
-    /// <para>
-    /// SPECK is a lightweight block cipher designed by the
-    /// :contentReference[oaicite:0]{index=0} (NSA)
-    /// for constrained environments.
-    /// </para>
-    /// <para>
-    /// While no practical cryptographic breaks are currently known,
-    /// SPECK is <strong>not standardized</strong> by NIST or any major
-    /// international standards body and is <strong>not recommended for
-    /// production use</strong> in security-sensitive or compliance-driven systems.
-    /// </para>
-    /// <para>
-    /// This algorithm is retained strictly for:
-    /// <list type="bullet">
-    /// <item><description>Research and academic evaluation</description></item>
-    /// <item><description>Internal benchmarking and comparison</description></item>
-    /// <item><description>Legacy or isolated experimental systems</description></item>
-    /// </list>
-    /// </para>
-    /// </remarks>
-    SPECK = 2,
-
-    /// <summary>
     /// SALSA20 stream cipher.
     /// <para>
     /// A fast and simple stream cipher by Daniel J. Bernstein,
@@ -104,30 +75,6 @@ public enum CipherSuiteType : System.Byte
     // ────────────────────────────────
     // AEAD cipher suites (cipher + Poly1305)
     // ────────────────────────────────
-
-    /// <summary>
-    /// SPECK cipher combined with Poly1305 MAC (<c>SPECK-Poly1305</c>).
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// <strong>⚠️ Experimental AEAD construction:</strong>
-    /// </para>
-    /// <para>
-    /// This AEAD suite combines the SPECK block cipher with the Poly1305
-    /// message authentication code to provide confidentiality and integrity.
-    /// </para>
-    /// <para>
-    /// Due to the non-standardized status of SPECK and limited
-    /// independent cryptographic review, this construction is
-    /// <strong>not suitable for production deployments</strong>,
-    /// especially in environments requiring regulatory compliance,
-    /// formal certification, or long-term cryptographic assurance.
-    /// </para>
-    /// <para>
-    /// Intended exclusively for controlled internal testing and benchmarking.
-    /// </para>
-    /// </remarks>
-    SPECK_POLY1305 = 6,
 
     /// <summary>
     /// SALSA20 cipher combined with Poly1305 MAC (<c>SALSA20-Poly1305</c>).
