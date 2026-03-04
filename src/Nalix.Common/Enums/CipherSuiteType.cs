@@ -41,21 +41,54 @@ public enum CipherSuiteType : System.Byte
 
     /// <summary>
     /// XTEA (Extended Tiny Encryption Algorithm) block cipher.
-    /// <para>
-    /// A lightweight 64-bit block cipher with a 128-bit key.
-    /// Commonly used in embedded or resource-constrained environments.
-    /// </para>
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>⚠️ Legacy cipher warning:</strong>
+    /// </para>
+    /// <para>
+    /// XTEA is a lightweight 64-bit block cipher with a 128-bit key,
+    /// designed for simplicity and minimal code size.
+    /// </para>
+    /// <para>
+    /// Due to its small block size and age, XTEA is vulnerable to
+    /// block collision risks when encrypting large volumes of data
+    /// and is <strong>not recommended for modern cryptographic systems</strong>.
+    /// </para>
+    /// <para>
+    /// Suitable only for low-volume data, legacy compatibility,
+    /// or constrained environments with clearly defined threat models.
+    /// </para>
+    /// </remarks>
     XTEA = 1,
 
     /// <summary>
     /// SPECK lightweight block cipher.
-    /// <para>
-    /// Designed by the NSA for efficiency on constrained hardware.
-    /// Although not standardized, it remains useful for internal testing
-    /// and benchmarking scenarios.
-    /// </para>
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>⚠️ Security and compliance notice:</strong>
+    /// </para>
+    /// <para>
+    /// SPECK is a lightweight block cipher designed by the
+    /// :contentReference[oaicite:0]{index=0} (NSA)
+    /// for constrained environments.
+    /// </para>
+    /// <para>
+    /// While no practical cryptographic breaks are currently known,
+    /// SPECK is <strong>not standardized</strong> by NIST or any major
+    /// international standards body and is <strong>not recommended for
+    /// production use</strong> in security-sensitive or compliance-driven systems.
+    /// </para>
+    /// <para>
+    /// This algorithm is retained strictly for:
+    /// <list type="bullet">
+    /// <item><description>Research and academic evaluation</description></item>
+    /// <item><description>Internal benchmarking and comparison</description></item>
+    /// <item><description>Legacy or isolated experimental systems</description></item>
+    /// </list>
+    /// </para>
+    /// </remarks>
     SPECK = 2,
 
     /// <summary>
@@ -66,6 +99,20 @@ public enum CipherSuiteType : System.Byte
     /// Serves as the predecessor of <c>CHACHA20</c>.
     /// </para>
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>ℹ️ Superseded algorithm notice:</strong>
+    /// </para>
+    /// <para>
+    /// SALSA20 is a well-studied and secure stream cipher designed by
+    /// Daniel J. Bernstein. While still considered cryptographically sound,
+    /// it has largely been superseded by <c>CHACHA20</c>, which offers
+    /// improved diffusion and wider standardization.
+    /// </para>
+    /// <para>
+    /// Prefer <c>CHACHA20</c> for new designs.
+    /// </para>
+    /// </remarks>
     SALSA20 = 3,
 
     /// <summary>
@@ -83,22 +130,45 @@ public enum CipherSuiteType : System.Byte
 
     /// <summary>
     /// XTEA cipher combined with Poly1305 MAC (<c>XTEA-Poly1305</c>).
-    /// <para>
-    /// Provides authenticated encryption using the XTEA block cipher
-    /// with a Poly1305 one-time authenticator.
-    /// Intended for low-resource systems requiring integrity assurance.
-    /// </para>
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>⚠️ Limited-security AEAD construction:</strong>
+    /// </para>
+    /// <para>
+    /// While Poly1305 provides strong message authentication,
+    /// the overall security of this AEAD suite remains constrained
+    /// by the underlying XTEA block cipher.
+    /// </para>
+    /// <para>
+    /// This construction should not be used for encrypting
+    /// large data streams or in high-assurance security contexts.
+    /// </para>
+    /// </remarks>
     XTEA_POLY1305 = 5,
 
     /// <summary>
     /// SPECK cipher combined with Poly1305 MAC (<c>SPECK-Poly1305</c>).
-    /// <para>
-    /// Constructs an AEAD mode based on the SPECK cipher with
-    /// a Poly1305 authenticator for message integrity.
-    /// Used for research and controlled internal cryptographic evaluations.
-    /// </para>
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>⚠️ Experimental AEAD construction:</strong>
+    /// </para>
+    /// <para>
+    /// This AEAD suite combines the SPECK block cipher with the Poly1305
+    /// message authentication code to provide confidentiality and integrity.
+    /// </para>
+    /// <para>
+    /// Due to the non-standardized status of SPECK and limited
+    /// independent cryptographic review, this construction is
+    /// <strong>not suitable for production deployments</strong>,
+    /// especially in environments requiring regulatory compliance,
+    /// formal certification, or long-term cryptographic assurance.
+    /// </para>
+    /// <para>
+    /// Intended exclusively for controlled internal testing and benchmarking.
+    /// </para>
+    /// </remarks>
     SPECK_POLY1305 = 6,
 
     /// <summary>

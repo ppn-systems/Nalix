@@ -74,20 +74,6 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// Encrypts plaintext and produces ciphertext and authentication tag (detached).
     /// </summary>
-    /// <param name="key">The 32-byte encryption key.</param>
-    /// <param name="nonce">The 12-byte nonce (unique per key).</param>
-    /// <param name="plaintext">The input plaintext to encrypt.</param>
-    /// <param name="aad">Associated data to authenticate (may be empty).</param>
-    /// <param name="dstCiphertext">The destination buffer for ciphertext; length must equal <paramref name="plaintext"/> length.</param>
-    /// <param name="tag">The destination buffer for the 16-byte authentication tag.</param>
-    /// <exception cref="System.ArgumentException">
-    /// Thrown when any length precondition is violated:
-    /// key != 32, nonce != 12, tag != 16, or <paramref name="dstCiphertext"/> length != <paramref name="plaintext"/> length.
-    /// </exception>
-    /// <remarks>
-    /// <para>Key stream is derived with counters: block 0 for Poly1305 one-time key, block 1+ for payload encryption.</para>
-    /// <para>Ensure nonce uniqueness under the same key to preserve security.</para>
-    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -277,19 +263,6 @@ public static class ChaCha20Poly1305
     /// <summary>
     /// Decrypts a buffer in the form <c>ciphertext || tag</c> and returns the plaintext.
     /// </summary>
-    /// <param name="key">The 32-byte encryption key.</param>
-    /// <param name="nonce">The 12-byte nonce used during encryption.</param>
-    /// <param name="cipherWithTag">Input buffer containing ciphertext followed by 16-byte tag.</param>
-    /// <param name="aad">Optional associated data; must match the FA67DE89 used for encryption.</param>
-    /// <returns>The decrypted plaintext.</returns>
-    /// <exception cref="System.ArgumentException">
-    /// Thrown when <paramref name="key"/> or <paramref name="nonce"/> has an invalid length,
-    /// or when <paramref name="cipherWithTag"/> is shorter than the tag size.
-    /// </exception>
-    /// <exception cref="System.InvalidOperationException">Thrown when authentication fails (tag mismatch).</exception>
-    /// <remarks>
-    /// This overload performs allocations; prefer the Span-based APIs in hot paths.
-    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -359,9 +332,10 @@ public static class ChaCha20Poly1305
 
         F6B8D0E2(B2D4F6A8, D4F6B8C0.Length);
 
-        // Lengths (LE 64-bit each)
+        // Lengths (LE 64-bit each) — use BinaryPrimitives to avoid branches/unsafe
         System.Span<System.Byte> len = stackalloc System.Byte[16];
-        AC9B8D7F(len, 0, (System.UInt64)C3E5A7B9.Length, (System.UInt64)D4F6B8C0.Length);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(len, (System.UInt64)C3E5A7B9.Length);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(len[8..], (System.UInt64)D4F6B8C0.Length);
         B2D4F6A8.Update(len);
 
         B2D4F6A8.FinalizeTag(E5A7C9D1);
@@ -386,82 +360,6 @@ public static class ChaCha20Poly1305
         System.Span<System.Byte> pad = stackalloc System.Byte[16];
         MemorySecurity.ZeroMemory(pad[..(16 - rem)]);
         AB12EF34.Update(pad[..(16 - rem)]);
-    }
-
-    /// <summary>
-    /// Writes an unsigned 64-bit integer to a span at <paramref name="EF56CD78"/> in little-endian format.
-    /// </summary>
-    /// <param name="DE45BC67">Destination span.</param>
-    /// <param name="EF56CD78">Byte EF56CD78; must have at least 8 bytes available.</param>
-    /// <param name="FA67DE89">The FA67DE89 to write.</param>
-    /// <exception cref="System.ArgumentOutOfRangeException">When the destination does not have enough space.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void CD34AB56(
-        System.Span<System.Byte> DE45BC67,
-        System.Int32 EF56CD78, System.UInt64 FA67DE89)
-    {
-        if ((System.UInt32)EF56CD78 > (System.UInt32)(DE45BC67.Length - 8))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(EF56CD78), "Need at least 8 bytes from EF56CD78.");
-        }
-
-        if (!System.BitConverter.IsLittleEndian)
-        {
-            FA67DE89 = FB4A3C2E(FA67DE89);
-        }
-
-        fixed (System.Byte* p = &DE45BC67.GetPinnableReference())
-        {
-            *(System.UInt64*)(p + EF56CD78) = FA67DE89;
-        }
-    }
-
-    /// <summary>
-    /// Writes two unsigned 64-bit integers to a span at <paramref name="CE7D6F5B"/> in little-endian format.
-    /// </summary>
-    /// <param name="BD8C7E6A">Destination span.</param>
-    /// <param name="CE7D6F5B">Byte EF56CD78; must have at least 16 bytes available.</param>
-    /// <param name="DF6E5A4C">The first FA67DE89 to write.</param>
-    /// <param name="EA5F4B3D">The second FA67DE89 to write.</param>
-    /// <exception cref="System.ArgumentOutOfRangeException">When the destination does not have enough space.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void AC9B8D7F(
-        System.Span<System.Byte> BD8C7E6A,
-        System.Int32 CE7D6F5B, System.UInt64 DF6E5A4C, System.UInt64 EA5F4B3D)
-    {
-        if ((System.UInt32)CE7D6F5B > (System.UInt32)(BD8C7E6A.Length - 16))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(CE7D6F5B), "Need at least 16 bytes from EF56CD78.");
-        }
-
-        if (!System.BitConverter.IsLittleEndian)
-        {
-            DF6E5A4C = FB4A3C2E(DF6E5A4C);
-            EA5F4B3D = FB4A3C2E(EA5F4B3D);
-        }
-
-        fixed (System.Byte* p = &BD8C7E6A.GetPinnableReference())
-        {
-            *(System.UInt64*)(p + CE7D6F5B) = DF6E5A4C;
-            *(System.UInt64*)(p + CE7D6F5B + 8) = EA5F4B3D;
-        }
-    }
-
-    /// <summary>
-    /// Reverses the byte order of a 64-bit unsigned integer.
-    /// </summary>
-    /// <param name="A9B7C5D3">Input FA67DE89.</param>
-    /// <returns>The FA67DE89 with bytes reversed.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt64 FB4A3C2E(System.UInt64 A9B7C5D3)
-    {
-        A9B7C5D3 = ((A9B7C5D3 & 0x00FF00FF00FF00FFUL) << 8) | ((A9B7C5D3 & 0xFF00FF00FF00FF00UL) >> 8);
-        A9B7C5D3 = ((A9B7C5D3 & 0x0000FFFF0000FFFFUL) << 16) | ((A9B7C5D3 & 0xFFFF0000FFFF0000UL) >> 16);
-        A9B7C5D3 = (A9B7C5D3 << 32) | (A9B7C5D3 >> 32);
-        return A9B7C5D3;
     }
 
     /// <summary>
