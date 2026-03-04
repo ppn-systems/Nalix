@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 //
 // Unified, span-first symmetric cipher engine for Nalix.
 // Supports: CHACHA20 (nonce 12, counter u32), SALSA20 (nonce 8, counter u64),
@@ -49,9 +49,6 @@ public static class SymmetricEngine
                 break;
             case CipherSuiteType.SALSA20:
                 SalsaPath(key, nonce, counter, src, dst);
-                break;
-            case CipherSuiteType.SPECK:
-                SpeckCtrPath(key, nonce, counter, src, dst);
                 break;
             default:
                 ThrowHelper.UnsupportedAlg();
@@ -244,92 +241,9 @@ public static class SymmetricEngine
         _ = Salsa20.Encrypt(key, nonce, counter, src, dst);
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void SpeckCtrPath(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 startCounter,
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst)
-    {
-        if (key.Length != Speck.KeySizeBytes)
-        {
-            ThrowHelper.BadKeyLenSpeck();
-        }
-
-        if (nonce.Length != 16)
-        {
-            ThrowHelper.BadNonceLenSpeck();
-        }
-
-        System.Int32 offset = 0;
-        System.UInt64 ctr = startCounter;
-        System.Span<System.Byte> ks = stackalloc System.Byte[Speck.BlockSizeBytes];
-        Speck speck = new(key);
-
-        try
-        {
-            while (offset < src.Length)
-            {
-                System.UInt64 n0 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(nonce[..8]);
-                System.UInt64 n1 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(nonce.Slice(8, 8));
-
-                System.UInt64 ctrLow = n0 + ctr;
-                System.UInt64 carry = ctrLow < n0 ? 1UL : 0UL;
-                System.UInt64 ctrHigh = n1 + carry;
-
-                System.UInt64 x = ctrLow;
-                System.UInt64 y = ctrHigh;
-                speck.EncryptBlock(ref x, ref y);
-
-                System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(ks[..8], x);
-                System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(ks.Slice(8, 8), y);
-
-                System.Int32 take = System.Math.Min(Speck.BlockSizeBytes, src.Length - offset);
-                for (System.Int32 i = 0; i < take; i++)
-                {
-                    dst[offset + i] = (System.Byte)(src[offset + i] ^ ks[i]);
-                }
-
-                offset += take;
-                ctr++;
-            }
-        }
-        finally
-        {
-            MemorySecurity.ZeroMemory(ks);
-        }
-    }
-
     #endregion Paths
 
     #region Helpers
-
-    /// <summary>
-    /// Reduces a 32-byte key into a 16-byte XTEA key deterministically by XOR-ing halves:
-    /// out[i] = key32[i] XOR key32[i + 16].
-    /// Public to match AeadEngine API.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void ConvertKeyToXtea(System.ReadOnlySpan<System.Byte> key32, System.Span<System.Byte> out16)
-    {
-        if (key32.Length != 32)
-        {
-            ThrowHelper.BadKeyLen32();
-        }
-
-        if (out16.Length < 16)
-        {
-            throw new System.ArgumentException("out16 must be at least 16 bytes", nameof(out16));
-        }
-
-        for (System.Int32 i = 0; i < 16; i++)
-        {
-            out16[i] = (System.Byte)(key32[i] ^ key32[i + 16]);
-        }
-    }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -337,7 +251,6 @@ public static class SymmetricEngine
     {
         CipherSuiteType.CHACHA20 => ChaCha20.NonceSize,
         CipherSuiteType.SALSA20 => 8,
-        CipherSuiteType.SPECK => 16,
         _ => throw new System.ArgumentException("Unsupported cipher type", nameof(type))
     };
 
@@ -366,23 +279,11 @@ public static class SymmetricEngine
         public static void BadKeyLenSalsa() => throw new System.ArgumentException("Key must be 16 or 32 bytes for SALSA20", "key");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLenSpeck() => throw new System.ArgumentException($"Key must be {Speck.KeySizeBytes} bytes (SPECK)", "key");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLenXtea() => throw new System.ArgumentException("Key must be 16 bytes (or 32 bytes will be reduced) for XTEA", "key");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadNonceLenChaCha()
             => throw new System.ArgumentException($"Nonce must be {ChaCha20.NonceSize} bytes for CHACHA20", "nonce");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void BadNonceLenSalsa() => throw new System.ArgumentException("Nonce must be 8 bytes for SALSA20", "nonce");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadNonceLenSpeck() => throw new System.ArgumentException("Nonce must be 16 bytes for SPECK CTR", "nonce");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadNonceLenXtea() => throw new System.ArgumentException("Nonce must be 8 bytes for XTEA CTR", "nonce");
 
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void OutputLenMismatch() => throw new System.ArgumentException("Output length must match input length.");

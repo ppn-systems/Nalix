@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Enums;
 using Nalix.Shared.Security.Engine;
@@ -101,10 +101,8 @@ public static class EnvelopeCipher
     {
         return algorithm switch
         {
-            CipherSuiteType.SPECK or
             CipherSuiteType.SALSA20 or
             CipherSuiteType.CHACHA20 => SymmetricEngine.Encrypt(key, plaintext, algorithm, default, seq),
-            CipherSuiteType.SPECK_POLY1305 or
             CipherSuiteType.SALSA20_POLY1305 or
             CipherSuiteType.CHACHA20_POLY1305 => AeadEngine.Encrypt(key, plaintext, algorithm, aad, seq),
             _ => throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm))
@@ -156,10 +154,8 @@ public static class EnvelopeCipher
         // Quick parse to determine which engine to route to
         return EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env) && env.AeadType switch
         {
-            CipherSuiteType.SPECK or
             CipherSuiteType.SALSA20 or
             CipherSuiteType.CHACHA20 => SymmetricEngine.Decrypt(key, envelope, out plaintext),
-            CipherSuiteType.SPECK_POLY1305 or
             CipherSuiteType.SALSA20_POLY1305 or
             CipherSuiteType.CHACHA20_POLY1305 => AeadEngine.Decrypt(key, envelope, out plaintext, aad),
             _ => false

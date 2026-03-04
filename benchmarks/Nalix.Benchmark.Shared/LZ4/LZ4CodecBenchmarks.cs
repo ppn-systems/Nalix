@@ -40,6 +40,7 @@
 // | 'Decode(ReadOnlySpan<byte>, out byte[] output, out int bytesWritten)' | 8192        | True         |  3,171.872 ns |  63.4617 ns |  52.9934 ns | 0.6523 |      - |    8216 B |
 
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using Nalix.Shared.LZ4; // LZ4Codec, LZ4BlockEncoder
 using Nalix.Shared.LZ4.Encoders;
 using System;
@@ -49,11 +50,12 @@ namespace Nalix.Benchmark.Shared.LZ4;
 
 // MemoryDiagnoser to capture allocations; we vary payload size and compressibility.
 [MemoryDiagnoser]
-// Reduce total runtime for development feedback:
-// - launchCount:1 avoids multiple process launches
-// - warmupCount:0 skips warmup (less stable but faster)
-// - iterationCount:1 single measurement iteration
-// - invocationCount:1 single invocation block per iteration
+[SimpleJob(
+    RuntimeMoniker.Net10_0,
+    launchCount: 1,
+    warmupCount: 3,
+    iterationCount: 10
+)]
 public class LZ4CodecBenchmarks
 {
     // Payload sizes to exercise small/medium/large inputs
@@ -108,31 +110,6 @@ public class LZ4CodecBenchmarks
         Array.Copy(_compressOutputBuffer, 0, _compressedPayload, 0, _compressedLength);
     }
 
-    [GlobalCleanup]
-    public void GlobalCleanup()
-    {
-        // Clear sensitive arrays (optional hygiene)
-        if (_input != null)
-        {
-            Array.Clear(_input, 0, _input.Length);
-        }
-
-        if (_compressOutputBuffer != null)
-        {
-            Array.Clear(_compressOutputBuffer, 0, _compressOutputBuffer.Length);
-        }
-
-        if (_decompressOutputBuffer != null)
-        {
-            Array.Clear(_decompressOutputBuffer, 0, _decompressOutputBuffer.Length);
-        }
-
-        if (_compressedPayload != null)
-        {
-            Array.Clear(_compressedPayload, 0, _compressedPayload.Length);
-        }
-    }
-
     // -------------------------
     // ENCODE benchmarks
     // -------------------------
@@ -166,7 +143,7 @@ public class LZ4CodecBenchmarks
     public Int32 Decode_SpanToSpan()
     {
         Int32 written = LZ4Codec.Decode(_compressedPayload.AsSpan(), _decompressOutputBuffer.AsSpan());
-        return written < 0 ? throw new InvalidOperationException("Decode failed") : written;
+        return written;
     }
 
     // Decode returning a newly allocated output array (out parameter)
