@@ -266,13 +266,12 @@ public static class Ed25519
     {
         // Incremental hashing to avoid building a temporary buffer:
         // H(prefix || message)
-        using Keccak256 sha3 = new();
-        sha3.Update(prefix);
-        sha3.Update(message);
+        Keccak256.Sponge sponge = new();
+        sponge.Absorb(prefix);
+        sponge.Absorb(message);
 
-        // Write 32-byte digest directly into a stack buffer (no heap allocation)
         System.Span<System.Byte> digest = stackalloc System.Byte[32];
-        sha3.Finish(digest);
+        sponge.PadAndSqueeze(digest);
 
         // Little-endian!
         return new System.Numerics.BigInteger(digest, isUnsigned: true, isBigEndian: false) % L;
