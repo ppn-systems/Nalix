@@ -4,7 +4,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -33,9 +32,9 @@ public static class CipherExtensions
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     /// <exception cref="NetworkException">Thrown if the session is not connected.</exception>
     public static async Task UpdateCipherAsync(
-        this TcpSession session, 
-        CipherSuiteType cipherSuite, 
-        int timeoutMs = 5000, 
+        this TcpSession session,
+        CipherSuiteType cipherSuite,
+        int timeoutMs = 5000,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -60,7 +59,7 @@ public static class CipherExtensions
             session,
             predicate: p => p.Type == ControlType.CIPHER_UPDATE_ACK && p.SequenceId == seq,
             timeoutMs: timeoutMs,
-            sendAsync: async token => 
+            sendAsync: async token =>
             {
                 await session.SendAsync(req, token).ConfigureAwait(false);
                 session.Options.Algorithm = cipherSuite;
