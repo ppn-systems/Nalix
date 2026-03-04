@@ -1,11 +1,12 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
 using Nalix.Framework.Random;
 
 namespace Nalix.Shared.Security.Asymmetric;
 
 /// <summary>
-/// Provides methods for generating and using X25519 key pairs for elliptic curve cryptography based on Curve25519.
+/// Provides methods for generating and using X25519 key pairs for elliptic curve Diffie–Hellman
+/// based on Curve25519 (RFC 7748).
 /// </summary>
 public static class X25519
 {
@@ -15,78 +16,47 @@ public static class X25519
     [System.Runtime.CompilerServices.SkipLocalsInit]
     public struct X25519KeyPair
     {
-        /// <summary>
-        /// The private key as a byte array of length 32.
-        /// </summary>
+        /// <summary>The private key (32 bytes).</summary>
         public System.Byte[] PrivateKey;
 
-        /// <summary>
-        /// The public key as a byte array of length 32.
-        /// </summary>
+        /// <summary>The public key (32 bytes).</summary>
         public System.Byte[] PublicKey;
     }
 
     /// <summary>
-    /// Generates a new X25519 key pair with a random private key and its corresponding public key.
+    /// Generates a new X25519 key pair with a cryptographically random private key.
     /// </summary>
-    /// <returns>An <see cref="X25519KeyPair"/> containing the generated private key and public key.</returns>
-    /// <remarks>
-    /// The private key is generated using a secure random number generator and modified according to the X25519 specification
-    /// (see <see href="https://cr.yp.to/ecdh.html"/>). The public key is computed using scalar multiplication with the Curve25519 basepoint.
-    /// </remarks>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static X25519KeyPair GenerateKeyPair()
     {
-        // at first generate the private key
-        X25519KeyPair key = new()
-        {
-            PrivateKey = new System.Byte[32]
-        };
-
+        X25519KeyPair key = new() { PrivateKey = new System.Byte[32] };
         Csprng.Fill(key.PrivateKey);
 
-        // as defined in https://cr.yp.to/ecdh.html do these operation to finalize the private key
+        // Clamp per https://cr.yp.to/ecdh.html
         key.PrivateKey[0] &= 248;
         key.PrivateKey[31] &= 127;
         key.PrivateKey[31] |= 64;
-        // compute the public key
+
         key.PublicKey = Curve25519.ScalarMultiplication(key.PrivateKey, Curve25519.Basepoint);
         return key;
     }
 
     /// <summary>
-    /// Generates an X25519 key pair from a provided private key.
+    /// Derives the public key from a provided 32-byte private key.
     /// </summary>
-    /// <param name="privateKey">A byte array of length 32 representing the private key.</param>
-    /// <returns>An <see cref="X25519KeyPair"/> containing the provided private key and its corresponding public key.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="privateKey"/> is <c>null</c>.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when <paramref name="privateKey"/> is not 32 bytes in length.</exception>
-    /// <remarks>
-    /// The public key is computed using scalar multiplication of the provided private key with the Curve25519 basepoint.
-    /// </remarks>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static X25519KeyPair GenerateKeyFromPrivateKey([System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] privateKey)
+    public static X25519KeyPair GenerateKeyFromPrivateKey(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] privateKey)
     {
-        X25519KeyPair key = new()
-        {
-            PrivateKey = privateKey
-        };
+        X25519KeyPair key = new() { PrivateKey = privateKey };
         key.PublicKey = Curve25519.ScalarMultiplication(key.PrivateKey, Curve25519.Basepoint);
         return key;
     }
 
     /// <summary>
-    /// Computes a shared secret using the X25519 key agreement protocol.
+    /// Computes a shared secret via X25519 scalar multiplication
+    /// (<paramref name="myPrivateKey"/> × <paramref name="otherPublicKey"/>).
     /// </summary>
-    /// <param name="myPrivateKey">A byte array of length 32 representing the local private key.</param>
-    /// <param name="otherPublicKey">A byte array of length 32 representing the remote public key.</param>
-    /// <returns>A byte array of length 32 containing the shared secret.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="myPrivateKey"/> or <paramref name="otherPublicKey"/> is <c>null</c>.</exception>
-    /// <exception cref="System.ArgumentException">Thrown when <paramref name="myPrivateKey"/> or <paramref name="otherPublicKey"/> is not 32 bytes in length.</exception>
-    /// <remarks>
-    /// The shared secret is computed by performing scalar multiplication of the local private key with the remote public key
-    /// using the Curve25519 algorithm.
-    /// </remarks>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Agreement(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] myPrivateKey,
@@ -97,66 +67,70 @@ public static class X25519
 [System.Diagnostics.StackTraceHidden]
 internal static class Curve25519
 {
-    /// <summary>
-    /// The base point that is x = 9
-    /// </summary>
+    /// <summary>The Curve25519 base point u = 9.</summary>
     public static readonly System.Byte[] Basepoint =
     [
         9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     ];
 
+    // ── Core Montgomery ladder ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Performs the raw scalar multiplication on Curve25519.
+    /// All <see cref="FieldElement"/> values live on the stack (struct, no heap).
+    /// The only heap allocation is the 32-byte <paramref name="output"/> array
+    /// written via <see cref="FieldElement.ToBytes"/>.
+    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Byte[] ScalarMult(System.Byte[] input, System.Byte[] baseIn)
+    private static void ScalarMult(
+        System.ReadOnlySpan<System.Byte> scalar,
+        System.ReadOnlySpan<System.Byte> baseIn,
+        System.Span<System.Byte> output)
     {
-        var e = new System.Byte[32];
-
-        System.Array.Copy(input, e, 32); //copy(e[:], input[:])
+        // Clamp a copy of the scalar.
+        System.Span<System.Byte> e = stackalloc System.Byte[32];
+        scalar.CopyTo(e);
         e[0] &= 248;
         e[31] &= 127;
         e[31] |= 64;
 
-        FieldElement x1, x2, z2, x3, z3, tmp0, tmp1;
-        z2 = new FieldElement();
-        // feFromBytes(&x1, base)
-        x1 = new FieldElement(baseIn); //SECOND NUMBER
-        //feOne(&x2)
-        x2 = new FieldElement();
-        x2.One();
-        //feCopy(&x3, &x1)
-        x3 = new FieldElement();
-        FieldElement.Copy(ref x3, x1);
-        //feOne(&z3)
-        z3 = new FieldElement();
-        z3.One();
+        // All FieldElement locals live on the stack — struct semantics, zero heap.
+        FieldElement x1 = new(baseIn);
+        FieldElement x2 = default; x2.One();
+        FieldElement z2 = default;          // zero-initialized by default
+        FieldElement x3 = default; FieldElement.Copy(ref x3, x1);
+        FieldElement z3 = default; z3.One();
+        FieldElement tmp0, tmp1;
 
         System.Int32 swap = 0;
+
         for (System.Int32 pos = 254; pos >= 0; pos--)
         {
-            System.Byte b = System.Convert.ToByte(e[pos / 8] >> (pos & 7));
+            System.Byte b = (System.Byte)(e[pos / 8] >> (pos & 7));
             b &= 1;
             swap ^= b;
             FieldElement.CSwap(ref x2, ref x3, swap);
             FieldElement.CSwap(ref z2, ref z3, swap);
             swap = b;
 
-            tmp0 = x3 - z3; //feSub(&tmp0, &x3, &z3)
-            tmp1 = x2 - z2; //feSub(&tmp1, &x2, &z2)
-            x2 += z2; //feAdd(&x2, &x2, &z2)
-            z2 = x3 + z3; //feAdd(&z2, &x3, &z3)
+            tmp0 = x3 - z3;
+            tmp1 = x2 - z2;
+            x2 += z2;
+            z2 = x3 + z3;
             z3 = tmp0.Multiply(x2);
             z2 = z2.Multiply(tmp1);
             tmp0 = tmp1.Square();
             tmp1 = x2.Square();
-            x3 = z3 + z2; //feAdd(&x3, &z3, &z2)
-            z2 = z3 - z2; //feSub(&z2, &z3, &z2)
+            x3 = z3 + z2;
+            z2 = z3 - z2;
             x2 = tmp1.Multiply(tmp0);
-            tmp1 -= tmp0;//feSub(&tmp1, &tmp1, &tmp0)
+            tmp1 -= tmp0;
             z2 = z2.Square();
             z3 = tmp1.Mul121666();
             x3 = x3.Square();
-            tmp0 += z3; //feAdd(&tmp0, &tmp0, &z3)
+            tmp0 += z3;
             z3 = x1.Multiply(z2);
             z2 = tmp1.Multiply(tmp0);
         }
@@ -166,23 +140,22 @@ internal static class Curve25519
 
         z2 = z2.Invert();
         x2 = x2.Multiply(z2);
-        return x2.ToBytes();
+
+        // Write result directly into caller-supplied span — no extra byte[] alloc.
+        x2.ToBytes(output);
     }
 
+    // ── Public API ────────────────────────────────────────────────────────────
+
     /// <summary>
-    /// <para>
-    /// X25519 returns the result of the scalar multiplication (scalar * point),
-    /// according to RFC 7748, Section 5. scalar, point and the return value are
-    /// slices of 32 bytes.
-    /// </para>
-    /// <para>
-    /// If point is Basepoint (but not if it's a different slice with the same
-    /// contents) a precomputed implementation might be used for performance.
-    /// </para>
+    /// X25519 scalar multiplication (scalar × point) per RFC 7748 §5.
+    /// Both inputs must be 32-byte arrays; the return value is a new 32-byte array.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Byte[] ScalarMultiplication(System.Byte[] scalar, System.Byte[] point)
+    public static System.Byte[] ScalarMultiplication(
+        System.Byte[] scalar,
+        System.Byte[] point)
     {
         if (scalar.Length != 32)
         {
@@ -194,22 +167,20 @@ internal static class Curve25519
             throw new System.ArgumentException("Length of point must be 32", nameof(point));
         }
 
-        System.Byte[] zero = new System.Byte[32];
-        System.Byte[] result = ScalarMult(scalar, point);
-        // here IEndpointKey  tried to make something like subtle.ConstantTimeCompare
-        if (result.Length != zero.Length)
-        {
-            throw new System.Exception("This should not happen. Because result is always 32 bytes");
-        }
+        // Exactly one heap allocation: the 32-byte result array.
+        System.Byte[] result = System.GC.AllocateUninitializedArray<System.Byte>(32);
+        ScalarMult(scalar, point, result);
 
+        // Constant-time low-order-point check (equivalent to subtle.ConstantTimeCompare).
         System.Byte v = 0;
-        for (System.Int32 i = 0; i < result.Length; i++)
+        for (System.Int32 i = 0; i < 32; i++)
         {
-            v = (System.Byte)(v | (zero[i] ^ result[i]));
+            v |= result[i];
         }
 
+        // If all bytes are zero the input was a low-order point.
         return (System.Int32)(((System.UInt32)(v ^ 0) - 1) >> 31) == 1
-            ? throw new System.Exception("bad input point: low order point")
+            ? throw new System.InvalidOperationException("Bad input point: low order point")
             : result;
     }
 }

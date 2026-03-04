@@ -26,6 +26,7 @@ namespace Nalix.Benchmark.Shared.Security.Asymmetric;
 
 // Measure allocations and time for keygen and agreement operations.
 [MemoryDiagnoser]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class X25519Benchmarks
 {
     // Number of pre-generated keypairs used for Agreement benchmark permutations.
