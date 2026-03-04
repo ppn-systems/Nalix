@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Nalix.Benchmark.Shared.LZ4.LZ4CodecBenchmarks-20260304-233856</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.7840/25H2/2025Update/HudsonValley2)
+13th Gen Intel Core i7-13620H 2.40GHz, 1 CPU, 16 logical and 10 physical cores
+.NET SDK 10.0.103
+  [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+  Job-BMPORG : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>Runtime=.NET 10.0  IterationCount=10  LaunchCount=1  
+WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method                                                         </th><th>PayloadSize</th><th>Compressible</th><th>Mean   </th><th>Error  </th><th>StdDev </th><th>Gen0</th><th>Gen1</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>128</td><td>False</td><td>3,498.206 ns</td><td>20.4183 ns</td><td>13.5054 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(byte[] input, byte[] output)&#39;</td><td>128</td><td>False</td><td>3,451.587 ns</td><td>4.6055 ns</td><td>2.7406 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;) -&gt; new byte[]&#39;</td><td>128</td><td>False</td><td>3,487.464 ns</td><td>7.7008 ns</td><td>5.0936 ns</td><td>0.0267</td><td>-</td><td>344 B</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>128</td><td>False</td><td>6.538 ns</td><td>0.3443 ns</td><td>0.2278 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, out byte[] output, out int bytesWritten)&#39;</td><td>128</td><td>False</td><td>13.868 ns</td><td>0.4960 ns</td><td>0.2594 ns</td><td>0.0121</td><td>-</td><td>152 B</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>128</td><td>True</td><td>3,314.322 ns</td><td>11.2781 ns</td><td>7.4598 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(byte[] input, byte[] output)&#39;</td><td>128</td><td>True</td><td>3,313.669 ns</td><td>21.0856 ns</td><td>12.5477 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;) -&gt; new byte[]&#39;</td><td>128</td><td>True</td><td>6,866.739 ns</td><td>2,525.4376 ns</td><td>1,670.4206 ns</td><td>0.0191</td><td>-</td><td>240 B</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>128</td><td>True</td><td>89.795 ns</td><td>9.0044 ns</td><td>5.9558 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, out byte[] output, out int bytesWritten)&#39;</td><td>128</td><td>True</td><td>106.293 ns</td><td>13.6529 ns</td><td>9.0305 ns</td><td>0.0120</td><td>-</td><td>152 B</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>1024</td><td>False</td><td>10,580.632 ns</td><td>3,429.8667 ns</td><td>2,268.6445 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(byte[] input, byte[] output)&#39;</td><td>1024</td><td>False</td><td>11,014.391 ns</td><td>641.9419 ns</td><td>424.6048 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;) -&gt; new byte[]&#39;</td><td>1024</td><td>False</td><td>11,400.355 ns</td><td>825.8842 ns</td><td>546.2713 ns</td><td>0.1678</td><td>-</td><td>2144 B</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>1024</td><td>False</td><td>26.823 ns</td><td>1.9004 ns</td><td>1.2570 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, out byte[] output, out int bytesWritten)&#39;</td><td>1024</td><td>False</td><td>95.183 ns</td><td>20.8661 ns</td><td>13.8016 ns</td><td>0.0835</td><td>-</td><td>1048 B</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>1024</td><td>True</td><td>7,602.290 ns</td><td>602.3673 ns</td><td>398.4287 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(byte[] input, byte[] output)&#39;</td><td>1024</td><td>True</td><td>7,634.366 ns</td><td>821.3027 ns</td><td>543.2409 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;) -&gt; new byte[]&#39;</td><td>1024</td><td>True</td><td>8,084.855 ns</td><td>580.0928 ns</td><td>383.6955 ns</td><td>0.0877</td><td>-</td><td>1144 B</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>1024</td><td>True</td><td>622.944 ns</td><td>41.1959 ns</td><td>24.5150 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, out byte[] output, out int bytesWritten)&#39;</td><td>1024</td><td>True</td><td>466.416 ns</td><td>73.1566 ns</td><td>38.2623 ns</td><td>0.0834</td><td>-</td><td>1048 B</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>8192</td><td>False</td><td>16,080.583 ns</td><td>895.1339 ns</td><td>592.0756 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(byte[] input, byte[] output)&#39;</td><td>8192</td><td>False</td><td>16,401.620 ns</td><td>852.8654 ns</td><td>564.1177 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;) -&gt; new byte[]&#39;</td><td>8192</td><td>False</td><td>16,562.127 ns</td><td>130.3020 ns</td><td>68.1505 ns</td><td>1.3123</td><td>0.0305</td><td>16536 B</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>8192</td><td>False</td><td>67.311 ns</td><td>3.3687 ns</td><td>2.2282 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, out byte[] output, out int bytesWritten)&#39;</td><td>8192</td><td>False</td><td>275.909 ns</td><td>7.0558 ns</td><td>4.1988 ns</td><td>0.6542</td><td>-</td><td>8216 B</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>8192</td><td>True</td><td>3,451.976 ns</td><td>10.6515 ns</td><td>7.0453 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(byte[] input, byte[] output)&#39;</td><td>8192</td><td>True</td><td>3,446.299 ns</td><td>13.0148 ns</td><td>8.6085 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Encode(ReadOnlySpan&lt;byte&gt;) -&gt; new byte[]&#39;</td><td>8192</td><td>True</td><td>3,732.389 ns</td><td>20.8665 ns</td><td>10.9136 ns</td><td>0.6638</td><td>-</td><td>8368 B</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)&#39;</td><td>8192</td><td>True</td><td>2,997.614 ns</td><td>107.9584 ns</td><td>71.4078 ns</td><td>-</td><td>-</td><td>-</td>
+</tr><tr><td>&#39;Decode(ReadOnlySpan&lt;byte&gt;, out byte[] output, out int bytesWritten)&#39;</td><td>8192</td><td>True</td><td>3,393.047 ns</td><td>131.3537 ns</td><td>86.8823 ns</td><td>0.6523</td><td>-</td><td>8216 B</td>
+</tr></tbody></table>
+</body>
+</html>
