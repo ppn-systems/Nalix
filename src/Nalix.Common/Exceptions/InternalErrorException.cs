@@ -11,7 +11,6 @@ namespace Nalix.Common.Exceptions;
 /// <para>It is typically raised when a self-check or internal validation detects an invalid
 /// state, configuration, or logic error within the system.</para>
 /// </remarks>
-[System.Serializable]
 public class InternalErrorException : BaseException
 {
     /// <summary>

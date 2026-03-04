@@ -9,7 +9,6 @@ namespace Nalix.Common.Exceptions;
 /// This exception is typically thrown when a cryptographic process fails due to invalid data,
 /// unsupported algorithms, or incorrect keys.
 /// </remarks>
-[System.Serializable]
 public class CryptoException : BaseException
 {
     /// <summary>

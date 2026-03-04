@@ -1,15 +1,11 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 
 using Nalix.Common.Attributes;
-using Nalix.Common.Infrastructure.Caching;
 using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Messaging.Controls;
 
@@ -18,23 +14,10 @@ namespace Nalix.Shared.Messaging.Controls;
 /// </summary>
 [PipelineManagedTransform]
 [MagicNumber(ProtocolMagic.CONTROL)]
-[SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("CONTROL OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
-public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketReasoned, IPacketSequenced, IPacketDeserializer<Control>
+[System.Diagnostics.DebuggerDisplay("CONTROL OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}")]
+public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned, IPacketSequenced
 {
-    /// <summary>
-    /// Gets the total length of the serialized packet in bytes, including header and content.
-    /// </summary>
-    [SerializeIgnore]
-    public override System.UInt16 Length =>
-        PacketConstants.HeaderSize
-        + sizeof(ControlType)    // ControlType
-        + sizeof(System.Int64)   // Timestamp
-        + sizeof(System.Int64)   // MonoTicks
-        + sizeof(System.UInt32)  // SequenceId
-        + sizeof(ProtocolReason);  // Reason
-
     /// <summary>
     /// Gets or sets the sequence identifier for this packet.
     /// </summary>
@@ -66,19 +49,11 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
     public System.Int64 MonoTicks { get; set; }
 
     /// <summary>
-    /// Initializes a new <see cref="Control"/> with empty content.
+    /// Initializes a new instance of the Control class with default metadata values.
     /// </summary>
     public Control()
     {
-        this.Reason = 0;
-        this.Timestamp = 0;
-        this.MonoTicks = 0;
-        this.SequenceId = 0;
-        this.Type = ControlType.NONE;
-        this.Flags = PacketFlags.NONE;
-        this.Protocol = ProtocolType.NONE;
-        this.Priority = PacketPriority.URGENT;
-        this.OpCode = PacketConstants.OPCODE_DEFAULT;
+        ResetForPool();
         this.MagicNumber = (System.UInt32)ProtocolMagic.CONTROL;
     }
 
@@ -113,61 +88,19 @@ public sealed class Control : FrameBase, IPoolable, IPacketTimestamped, IPacketR
         System.UInt16 opCode, ControlType type, System.UInt32 sequenceId = 0,
         ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
     {
-        this.Type = type;
         this.OpCode = opCode;
-        this.Reason = reasonCode;
-        this.Protocol = transport;
-        this.SequenceId = sequenceId;
-        this.MonoTicks = Clock.MonoTicksNow();
-        this.Timestamp = Clock.UnixMillisecondsNow();
-    }
-
-    /// <summary>
-    /// Initializes the packet with binary data and a transport protocol.
-    /// </summary>
-    /// <param name="type">Binary content of the packet.</param>
-    /// <param name="transport">The target transport protocol.</param>
-    public void Initialize(ControlType type, ProtocolType transport = ProtocolType.TCP) => Initialize(type, 0, 0, transport);
-
-    /// <summary>
-    /// Deserializes a <see cref="Control"/> from the specified buffer.
-    /// </summary>
-    /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="Control"/> instance.</returns>
-    public static Control Deserialize(System.ReadOnlySpan<System.Byte> buffer)
-    {
-        Control packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                 .Get<Control>();
-
-        System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
-        if (bytesRead == 0)
-        {
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return(packet);
-            throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.");
-        }
-
-        return packet;
+        Initialize(type, sequenceId, reasonCode, transport);
     }
 
     /// <inheritdoc/>
-    public override System.Byte[] Serialize() => LiteSerializer.Serialize(this);
-
-    /// <inheritdoc/>
-    public override System.Int32 Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
-
-    /// <summary>
-    /// Resets this instance to its default state for pooling reuse.
-    /// </summary>
     public override void ResetForPool()
     {
+        base.ResetForPool();
         this.Reason = 0;
         this.Timestamp = 0;
         this.MonoTicks = 0;
         this.SequenceId = 0;
         this.Type = ControlType.NONE;
-        this.Flags = PacketFlags.NONE;
-        this.Protocol = ProtocolType.NONE;
         this.Priority = PacketPriority.URGENT;
     }
 

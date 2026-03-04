@@ -9,7 +9,6 @@ namespace Nalix.Common.Exceptions;
 /// This exception is typically thrown when converting objects to or from a serialized format fails,
 /// such as JSON, binary, or custom protocol formats.
 /// </remarks>
-[System.Serializable]
 public class SerializationException : BaseException
 {
     /// <summary>
