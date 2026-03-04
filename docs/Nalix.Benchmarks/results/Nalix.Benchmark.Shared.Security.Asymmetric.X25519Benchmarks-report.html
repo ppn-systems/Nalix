@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>Nalix.Benchmark.Shared.Security.Asymmetric.X25519Benchmarks-20260304-213924</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.7840/25H2/2025Update/HudsonValley2)
+13th Gen Intel Core i7-13620H 2.40GHz, 1 CPU, 16 logical and 10 physical cores
+.NET SDK 10.0.103
+  [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+  DefaultJob : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code></code></pre>
+
+<table>
+<thead><tr><th>Method                                         </th><th>KeyPairCount</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Allocated</th>
+</tr>
+</thead><tbody><tr><td>&#39;X25519.GenerateKeyPair (CSPRNG + scalar mult)&#39;</td><td>1</td><td>65.36 &mu;s</td><td>1.058 &mu;s</td><td>0.989 &mu;s</td><td>112 B</td>
+</tr><tr><td>&#39;X25519.GenerateKeyFromPrivateKey (scalar mult only)&#39;</td><td>1</td><td>67.35 &mu;s</td><td>1.294 &mu;s</td><td>1.147 &mu;s</td><td>112 B</td>
+</tr><tr><td>&#39;X25519.Agreement (shared secret)&#39;</td><td>1</td><td>66.59 &mu;s</td><td>1.321 &mu;s</td><td>1.622 &mu;s</td><td>56 B</td>
+</tr><tr><td>&#39;X25519.GenerateKeyPair (CSPRNG + scalar mult)&#39;</td><td>4</td><td>65.76 &mu;s</td><td>1.310 &mu;s</td><td>1.609 &mu;s</td><td>112 B</td>
+</tr><tr><td>&#39;X25519.GenerateKeyFromPrivateKey (scalar mult only)&#39;</td><td>4</td><td>65.96 &mu;s</td><td>1.301 &mu;s</td><td>1.336 &mu;s</td><td>112 B</td>
+</tr><tr><td>&#39;X25519.Agreement (shared secret)&#39;</td><td>4</td><td>65.95 &mu;s</td><td>1.297 &mu;s</td><td>1.543 &mu;s</td><td>56 B</td>
+</tr><tr><td>&#39;X25519.GenerateKeyPair (CSPRNG + scalar mult)&#39;</td><td>16</td><td>67.09 &mu;s</td><td>1.329 &mu;s</td><td>1.422 &mu;s</td><td>112 B</td>
+</tr><tr><td>&#39;X25519.GenerateKeyFromPrivateKey (scalar mult only)&#39;</td><td>16</td><td>66.36 &mu;s</td><td>1.276 &mu;s</td><td>1.566 &mu;s</td><td>112 B</td>
+</tr><tr><td>&#39;X25519.Agreement (shared secret)&#39;</td><td>16</td><td>66.34 &mu;s</td><td>1.309 &mu;s</td><td>1.747 &mu;s</td><td>56 B</td>
+</tr></tbody></table>
+</body>
+</html>

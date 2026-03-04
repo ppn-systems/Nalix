@@ -1,16 +1,24 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
-//13th Gen Intel Core i7-13620H 2.40GHz, 1 CPU, 16 logical and 10 physical cores
-//.NET SDK 10.0.103
-//  [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3 [AttachedDebugger]
-//Job - CNUJVU : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+// 13th Gen Intel Core i7-13620H 2.40GHz, 1 CPU, 16 logical and 10 physical cores
+// .NET SDK 10.0.103
+//   [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+//   Job-WCSQUR : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
 
-//InvocationCount=1  UnrollFactor=1
-
-//| Method                    | Mean     | Error    | StdDev     | Allocated  |
-//|-------------------------- |---------:| ---------:| ---------:| ----------:|
-//| EnvelopeEncryptor.Encrypt | 52.85 us | 1.052 us | 1.729 us   | 18.2 KB    |
-//| EnvelopeEncryptor.Decrypt | 37.01 us | 0.679 us | 0.697 us   | 14.13 KB   |
+// | Method                    | Algorithm         | Mean     | Error    | StdDev   | Median   | Code Size | Allocated |
+// |-------------------------- |------------------ |---------:|---------:|---------:|---------:|----------:|----------:|
+// | EnvelopeEncryptor.Encrypt | SPECK             | 36.36 us | 0.868 us | 2.519 us | 35.60 us |   1,879 B |  17.05 KB |
+// | EnvelopeEncryptor.Decrypt | SPECK             | 26.37 us | 0.525 us | 0.919 us | 26.30 us |   3,238 B |   8.53 KB |
+// | EnvelopeEncryptor.Encrypt | SALSA20           | 51.30 us | 1.022 us | 2.349 us | 51.05 us |   1,879 B |  12.86 KB |
+// | EnvelopeEncryptor.Decrypt | SALSA20           | 27.98 us | 0.562 us | 1.325 us | 27.60 us |   3,238 B |   4.78 KB |
+// | EnvelopeEncryptor.Encrypt | CHACHA20          | 37.55 us | 1.017 us | 2.934 us | 37.55 us |   1,879 B |  14.26 KB |
+// | EnvelopeEncryptor.Decrypt | CHACHA20          | 26.46 us | 0.517 us | 0.708 us | 26.30 us |   3,238 B |   5.91 KB |
+// | EnvelopeEncryptor.Encrypt | SPECK_POLY1305    | 54.46 us | 1.092 us | 2.698 us | 53.70 us |   1,879 B |  19.07 KB |
+// | EnvelopeEncryptor.Decrypt | SPECK_POLY1305    | 47.46 us | 0.940 us | 1.596 us | 47.10 us |   3,238 B |  12.28 KB |
+// | EnvelopeEncryptor.Encrypt | SALSA20_POLY1305  | 45.25 us | 0.902 us | 1.862 us | 44.60 us |   1,879 B |   11.2 KB |
+// | EnvelopeEncryptor.Decrypt | SALSA20_POLY1305  | 38.97 us | 0.727 us | 0.607 us | 38.80 us |   3,238 B |   4.78 KB |
+// | EnvelopeEncryptor.Encrypt | CHACHA20_POLY1305 | 56.17 us | 1.466 us | 4.254 us | 55.35 us |   1,879 B |  11.45 KB |
+// | EnvelopeEncryptor.Decrypt | CHACHA20_POLY1305 | 48.75 us | 1.022 us | 2.883 us | 47.70 us |   3,238 B |   4.78 KB |
 
 using BenchmarkDotNet.Attributes;
 using Nalix.Common.Attributes;
@@ -24,12 +32,16 @@ namespace Nalix.Benchmark.Shared.Security;
 
 // Memory diagnoser to capture allocations; tune job/runtime as needed.
 [MemoryDiagnoser]
+[DisassemblyDiagnoser]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class EnvelopeEncryptorBenchmarks
 {
     private Byte[] _key = Array.Empty<Byte>();
     private readonly Byte[] _aad = Array.Empty<Byte>();
-    private readonly CipherSuiteType _algorithm = CipherSuiteType.CHACHA20_POLY1305;
+
+    [Params(CipherSuiteType.SPECK, CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
+            CipherSuiteType.SPECK_POLY1305, CipherSuiteType.SALSA20_POLY1305, CipherSuiteType.CHACHA20_POLY1305)]
+    public CipherSuiteType Algorithm;
 
     // Instances used for each benchmark iteration.
     private SampleModel _plainInstance = null!;
@@ -56,14 +68,14 @@ public class EnvelopeEncryptorBenchmarks
     public void SetupForDecrypt()
     {
         _instanceToDecrypt = CreateSample();
-        EnvelopeEncryptor.Encrypt(_instanceToDecrypt, _key, _algorithm, _aad);
+        EnvelopeEncryptor.Encrypt(_instanceToDecrypt, _key, Algorithm, _aad);
     }
 
     // Benchmark: Encrypt a populated object graph
     [Benchmark(Description = "EnvelopeEncryptor.Encrypt")]
     public void EncryptObject() =>
         // Encrypt in-place; EnvelopeEncryptor mutates object and may set IPacket flags etc.
-        EnvelopeEncryptor.Encrypt(_plainInstance, _key, _algorithm, _aad);
+        EnvelopeEncryptor.Encrypt(_plainInstance, _key, Algorithm, _aad);
 
     // Benchmark: Decrypt the previously encrypted object graph
     [Benchmark(Description = "EnvelopeEncryptor.Decrypt")]

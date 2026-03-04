@@ -1,42 +1,41 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
-//13th Gen Intel Core i7-13620H 2.40GHz, 1 CPU, 16 logical and 10 physical cores
-//.NET SDK 10.0.103
-//  [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3 [AttachedDebugger]
-//Job - HEMQOV : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+// 13th Gen Intel Core i7-13620H 2.40GHz, 1 CPU, 16 logical and 10 physical cores
+// .NET SDK 10.0.103
+//   [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+//   Job-FCUYYQ : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
 
-//InvocationCount=1  IterationCount=1  LaunchCount=1
-//RunStrategy=Throughput  UnrollFactor=1  WarmupCount=0
+// IterationCount=20  LaunchCount=3  WarmupCount=5
 
-//| Method                                                     | ArrayLength | Mean          | Error | Allocated |
-//|----------------------------------------------------------- |------------ |--------------:| -----:| ---------:|
-//| 'Serialize<int> -> byte[]'                                 | 1           | 3.906 ns      | NA    | -         |
-//| 'Deserialize<int> <- ReadOnlySpan<byte> (ref)'             | 1           | 10.547 ns     | NA    | -         |
-//| 'Serialize<LargeStruct> -> byte[]'                         | 1           | 7.812 ns      | NA    | 1 B       |
-//| 'Serialize<LargeStruct> -> existing byte[] buffer'         | 1           | 13.281 ns     | NA    | -         |
-//| 'Deserialize<LargeStruct> <- ReadOnlySpan<byte> (ref)'     | 1           | 26.562 ns     | NA    | 1 B       |
-//| 'Serialize<int[]> -> byte[]'                               | 1           | 100.000 ns    | NA    | 2 B       |
-//| 'Serialize<int[]> -> BufferLease (rent)'                   | 1           | 13,850.000 ns | NA    | 48 B      |
-//| 'Deserialize<int[]> <- ReadOnlySpan<byte> (out bytesRead)' | 1           | 2,450.000 ns  | NA    | 32 B      |
-//| 'Deserialize<int[]> <- BufferLease'                        | 1           | 9,550.000 ns  | NA    | 32 B      |
-//| 'Serialize<int> -> byte[]'                                 | 256         | 3.906 ns      | NA    | -         |
-//| 'Deserialize<int> <- ReadOnlySpan<byte> (ref)'             | 256         | 10.156 ns     | NA    | -         |
-//| 'Serialize<LargeStruct> -> byte[]'                         | 256         | 10.156 ns     | NA    | 1 B       |
-//| 'Serialize<LargeStruct> -> existing byte[] buffer'         | 256         | 18.750 ns     | NA    | -         |
-//| 'Deserialize<LargeStruct> <- ReadOnlySpan<byte> (ref)'     | 256         | 22.656 ns     | NA    | 1 B       |
-//| 'Serialize<int[]> -> byte[]'                               | 256         | 100.000 ns    | NA    | 66 B      |
-//| 'Serialize<int[]> -> BufferLease (rent)'                   | 256         | 14,100.000 ns | NA    | 48 B      |
-//| 'Deserialize<int[]> <- ReadOnlySpan<byte> (out bytesRead)' | 256         | 8,200.000 ns  | NA    | 1048 B    |
-//| 'Deserialize<int[]> <- BufferLease'                        | 256         | 8,300.000 ns  | NA    | 1048 B    |
-//| 'Serialize<int> -> byte[]'                                 | 2048        | 5.469 ns      | NA    | -         |
-//| 'Deserialize<int> <- ReadOnlySpan<byte> (ref)'             | 2048        | 11.719 ns     | NA    | -         |
-//| 'Serialize<LargeStruct> -> byte[]'                         | 2048        | 15.625 ns     | NA    | 1 B       |
-//| 'Serialize<LargeStruct> -> existing byte[] buffer'         | 2048        | 17.188 ns     | NA    | -         |
-//| 'Deserialize<LargeStruct> <- ReadOnlySpan<byte> (ref)'     | 2048        | 18.750 ns     | NA    | 1 B       |
-//| 'Serialize<int[]> -> byte[]'                               | 2048        | 650.000 ns    | NA    | 514 B     |
-//| 'Serialize<int[]> -> BufferLease (rent)'                   | 2048        | 19,000.000 ns | NA    | 48 B      |
-//| 'Deserialize<int[]> <- ReadOnlySpan<byte> (out bytesRead)' | 2048        | 15,900.000 ns | NA    | 8216 B    |
-//| 'Deserialize<int[]> <- BufferLease'                        | 2048        | 12,700.000 ns | NA    | 8216 B    |
+// | Method                                                     | ArrayLength | Mean        | Error      | StdDev     | Median      | Code Size | Gen0   | Allocated |
+// |----------------------------------------------------------- |------------ |------------:|-----------:|-----------:|------------:|----------:|-------:|----------:|
+// | 'Serialize<int> -> byte[]'                                 | 1           |   0.0470 ns |  0.0014 ns |  0.0031 ns |   0.0476 ns |   9,058 B | 0.0000 |         - |
+// | 'Deserialize<int> <- ReadOnlySpan<byte> (ref)'             | 1           |   0.0806 ns |  0.0017 ns |  0.0039 ns |   0.0801 ns |  16,120 B | 0.0000 |         - |
+// | 'Serialize<LargeStruct> -> byte[]'                         | 1           |   0.1222 ns |  0.0019 ns |  0.0042 ns |   0.1225 ns |   9,144 B | 0.0001 |       1 B |
+// | 'Serialize<LargeStruct> -> existing byte[] buffer'         | 1           |   0.0400 ns |  0.0015 ns |  0.0034 ns |   0.0390 ns |   8,202 B |      - |         - |
+// | 'Deserialize<LargeStruct> <- ReadOnlySpan<byte> (ref)'     | 1           |   0.2077 ns |  0.0029 ns |  0.0064 ns |   0.2073 ns |  16,319 B | 0.0001 |       1 B |
+// | 'Serialize<int[]> -> byte[]'                               | 1           |   0.5838 ns |  0.0084 ns |  0.0187 ns |   0.5862 ns |   2,232 B | 0.0002 |       2 B |
+// | 'Serialize<int[]> -> BufferLease (rent)'                   | 1           |  80.5400 ns |  0.8299 ns |  1.8562 ns |  81.1356 ns |   7,872 B | 0.0038 |      48 B |
+// | 'Deserialize<int[]> <- ReadOnlySpan<byte> (out bytesRead)' | 1           |  32.1597 ns |  0.4613 ns |  1.0317 ns |  32.3540 ns |   3,394 B | 0.0025 |      32 B |
+// | 'Deserialize<int[]> <- BufferLease'                        | 1           |  32.8753 ns |  0.4733 ns |  1.0586 ns |  32.7878 ns |   3,527 B | 0.0025 |      32 B |
+// | 'Serialize<int> -> byte[]'                                 | 256         |   0.0476 ns |  0.0010 ns |  0.0022 ns |   0.0481 ns |   9,058 B | 0.0000 |         - |
+// | 'Deserialize<int> <- ReadOnlySpan<byte> (ref)'             | 256         |   0.1097 ns |  0.0119 ns |  0.0267 ns |   0.1271 ns |  16,120 B | 0.0000 |         - |
+// | 'Serialize<LargeStruct> -> byte[]'                         | 256         |   0.1244 ns |  0.0015 ns |  0.0034 ns |   0.1240 ns |   9,144 B | 0.0001 |       1 B |
+// | 'Serialize<LargeStruct> -> existing byte[] buffer'         | 256         |   0.0413 ns |  0.0006 ns |  0.0014 ns |   0.0412 ns |   8,202 B |      - |         - |
+// | 'Deserialize<LargeStruct> <- ReadOnlySpan<byte> (ref)'     | 256         |   0.2114 ns |  0.0020 ns |  0.0045 ns |   0.2109 ns |  16,319 B | 0.0001 |       1 B |
+// | 'Serialize<int[]> -> byte[]'                               | 256         |   3.0885 ns |  0.0880 ns |  0.1969 ns |   3.1674 ns |   2,232 B | 0.0053 |      66 B |
+// | 'Serialize<int[]> -> BufferLease (rent)'                   | 256         |  90.0919 ns |  1.6972 ns |  3.7610 ns |  89.1577 ns |   7,872 B | 0.0038 |      48 B |
+// | 'Deserialize<int[]> <- ReadOnlySpan<byte> (out bytesRead)' | 256         |  82.3285 ns |  4.0289 ns |  9.0113 ns |  86.2776 ns |   3,394 B | 0.0834 |    1048 B |
+// | 'Deserialize<int[]> <- BufferLease'                        | 256         |  84.5338 ns |  3.8384 ns |  8.5851 ns |  89.3952 ns |   3,527 B | 0.0834 |    1048 B |
+// | 'Serialize<int> -> byte[]'                                 | 2048        |   0.0501 ns |  0.0009 ns |  0.0019 ns |   0.0504 ns |   9,058 B | 0.0000 |         - |
+// | 'Deserialize<int> <- ReadOnlySpan<byte> (ref)'             | 2048        |   0.0842 ns |  0.0015 ns |  0.0033 ns |   0.0848 ns |  16,120 B | 0.0000 |         - |
+// | 'Serialize<LargeStruct> -> byte[]'                         | 2048        |   0.1231 ns |  0.0020 ns |  0.0045 ns |   0.1230 ns |   9,144 B | 0.0001 |       1 B |
+// | 'Serialize<LargeStruct> -> existing byte[] buffer'         | 2048        |   0.0396 ns |  0.0017 ns |  0.0038 ns |   0.0408 ns |   8,202 B |      - |         - |
+// | 'Deserialize<LargeStruct> <- ReadOnlySpan<byte> (ref)'     | 2048        |   0.2274 ns |  0.0060 ns |  0.0134 ns |   0.2250 ns |  16,319 B | 0.0001 |       1 B |
+// | 'Serialize<int[]> -> byte[]'                               | 2048        |  16.2017 ns |  0.2650 ns |  0.5928 ns |  16.2173 ns |   2,232 B | 0.0408 |     514 B |
+// | 'Serialize<int[]> -> BufferLease (rent)'                   | 2048        | 195.4992 ns |  2.5629 ns |  5.6255 ns | 196.2699 ns |   7,874 B | 0.0038 |      48 B |
+// | 'Deserialize<int[]> <- ReadOnlySpan<byte> (out bytesRead)' | 2048        | 313.2143 ns |  5.4935 ns | 12.1732 ns | 312.2344 ns |   3,394 B | 0.6542 |    8216 B |
+// | 'Deserialize<int[]> <- BufferLease'                        | 2048        | 330.9719 ns | 13.5564 ns | 30.0401 ns | 317.8686 ns |   3,527 B | 0.6542 |    8216 B |
 
 using BenchmarkDotNet.Attributes;
 using Nalix.Shared.Memory.Buffers;
@@ -47,17 +46,16 @@ using System.Buffers;
 namespace Nalix.Benchmark.Shared.Serialization;
 
 [MemoryDiagnoser]
+[DisassemblyDiagnoser]
+[SimpleJob(
+    launchCount: 3,
+    warmupCount: 5,
+    iterationCount: 20)]
 // Reduce total runtime for development feedback:
 // - launchCount:1 avoids multiple process launches
 // - warmupCount:0 skips warmup (less stable but faster)
 // - iterationCount:1 single measurement iteration
 // - invocationCount:1 single invocation block per iteration
-[SimpleJob(
-    BenchmarkDotNet.Engines.RunStrategy.Throughput,
-    warmupCount: 0,
-    iterationCount: 1,
-    invocationCount: 1,
-    launchCount: 1)]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class LiteSerializerBenchmarks
 {
