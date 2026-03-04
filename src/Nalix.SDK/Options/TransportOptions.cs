@@ -145,6 +145,25 @@ public sealed class TransportOptions : ConfigurationLoader
     public Snowflake SessionToken { get; set; }
 
     /// <summary>
+    /// Gets or sets whether the SDK should attempt a session resume before performing a new handshake.
+    /// </summary>
+    [IniComment("Attempt session resume before doing a fresh handshake")]
+    public bool ResumeEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the resume request timeout in milliseconds.
+    /// </summary>
+    [IniComment("Timeout in milliseconds for session resume requests")]
+    [Range(100, int.MaxValue, ErrorMessage = "ResumeTimeoutMillis must be at least 100.")]
+    public int ResumeTimeoutMillis { get; set; } = 3000;
+
+    /// <summary>
+    /// Gets or sets whether a failed resume should fall back to a fresh handshake.
+    /// </summary>
+    [IniComment("Fall back to a full handshake when resume fails")]
+    public bool ResumeFallbackToHandshake { get; set; } = true;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="ValidationException">
@@ -163,6 +182,10 @@ public sealed class TransportOptions : ConfigurationLoader
         if (this.MaxPacketSize is < 512 or > 65536)
         {
             throw new ValidationException("MaxPacketSize must be between 512 and 65536 bytes.");
+        }
+        if (this.ResumeTimeoutMillis < 100)
+        {
+            throw new ValidationException("ResumeTimeoutMillis must be at least 100.");
         }
     }
 }

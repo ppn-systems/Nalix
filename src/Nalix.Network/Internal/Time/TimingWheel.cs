@@ -66,7 +66,7 @@ namespace Nalix.Network.Internal.Time;
 /// <seealso cref="IActivatable"/>
 [SkipLocalsInit]
 [DebuggerNonUserCode]
-public sealed class TimingWheel : IActivatable
+internal sealed class TimingWheel : IActivatable
 {
     #region Fields
 

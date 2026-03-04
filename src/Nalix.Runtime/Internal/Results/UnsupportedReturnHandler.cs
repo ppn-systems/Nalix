@@ -4,9 +4,7 @@
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
 using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Runtime.Internal.Results;
@@ -15,17 +13,6 @@ namespace Nalix.Runtime.Internal.Results;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class UnsupportedReturnHandler<TPacket>(Type returnType) : IReturnHandler<TPacket> where TPacket : IPacket
 {
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> s_loggedTypes = new();
-
     /// <inheritdoc/>
-    public ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
-    {
-        if (s_loggedTypes.TryAdd(returnType, true))
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"Unsupported return type: type={returnType.FullName}");
-        }
-
-        throw new InvalidOperationException($"Unsupported return type: type={returnType.FullName}.");
-    }
+    public ValueTask HandleAsync(object? result, PacketContext<TPacket> context) => throw new InvalidOperationException($"Unsupported return type: type={returnType.FullName}.");
 }

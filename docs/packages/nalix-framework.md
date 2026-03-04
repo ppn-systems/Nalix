@@ -119,6 +119,7 @@ flowchart LR
 - `PacketRegistryFactory` — scans packet types and binds deserialize function pointers.
 - `PacketRegistry` — frozen catalog of deserializers/transformers.
 - `Handshake` — default handshake frame used to exchange ephemeral keys, nonces, proofs, and transcript hash.
+- `SessionResume` / `SessionResumeAck` — dedicated resume packets for reconnecting clients.
 - `Control` — built-in frame type.
 - `PacketPool<TPacket>` / `PacketLease<TPacket>` — packet pooling helpers for reusable packet instances.
 - `FragmentHeader` / `FragmentAssembler` / `FragmentOptions` — chunk large payloads and reassemble them safely.

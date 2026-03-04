@@ -23,7 +23,7 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
         if (packet.Protocol == ProtocolType.TCP)
         {
-            await context.Connection.TCP.SendAsync(packet).ConfigureAwait(false);
+            await context.Sender.SendAsync((TPacket)packet).ConfigureAwait(false);
             return;
         }
 
