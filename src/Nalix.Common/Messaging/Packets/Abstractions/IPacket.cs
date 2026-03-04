@@ -1,6 +1,5 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Common.Serialization;
 
@@ -28,31 +27,31 @@ public interface IPacket
     /// Gets the magic number that uniquely identifies the packet format or protocol.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.MAGIC_NUMBER)]
-    System.UInt32 MagicNumber { get; }
+    System.UInt32 MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) that specifies the command or type of the packet.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.OP_CODE)]
-    System.UInt16 OpCode { get; }
+    System.UInt16 OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with the packet, indicating its state or processing options.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.FLAGS)]
-    PacketFlags Flags { get; }
+    PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the priority level of the packet for processing or transmission.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.PRIORITY)]
-    PacketPriority Priority { get; }
+    PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (for example, TCP or UDP) used to transmit the packet.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.TRANSPORT)]
-    ProtocolType Protocol { get; }
+    ProtocolType Protocol { get; set; }
 
     #endregion Metadata
 

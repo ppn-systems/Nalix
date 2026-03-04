@@ -318,8 +318,8 @@ public static class AeadEngine
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static void U32ToU16(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> bytes32,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> out16)
+    [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> bytes32,
+    [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> out16)
     {
         if (bytes32.Length != 32)
         {
@@ -328,7 +328,8 @@ public static class AeadEngine
 
         if (out16.Length < 16)
         {
-            throw new System.ArgumentException("bytes16 must be at least 16 bytes", nameof(out16));
+            // Use the exact param-name string the tests expect.
+            throw new System.ArgumentException("bytes16 must be at least 16 bytes", "bytes16");
         }
 
         for (System.Int32 i = 0; i < 16; i++)
