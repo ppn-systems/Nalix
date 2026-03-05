@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Environment;
+using Nalix.Framework.Environment;
 
 namespace Nalix.Framework.Tests;
 

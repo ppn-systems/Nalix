@@ -16,9 +16,9 @@ namespace Nalix.Framework.Tests.DataFrames;
 
 public sealed class PacketTransformTests
 {
-    private static readonly byte[] TestKey = new byte[32];
+    private static readonly byte[] s_testKey = new byte[32];
 
-    static PacketTransformTests() => Csprng.NextBytes(TestKey);
+    static PacketTransformTests() => Csprng.NextBytes(s_testKey);
 
     [Fact]
     public void PacketCipher_Roundtrip_ShouldSucceed()
@@ -38,14 +38,14 @@ public sealed class PacketTransformTests
         originalPayload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
         // 2. Encrypt
-        using IBufferLease encrypted = PacketCipher.EncryptFrame(src, TestKey, CipherSuiteType.Chacha20Poly1305);
+        using IBufferLease encrypted = PacketCipher.EncryptFrame(src, s_testKey, CipherSuiteType.Chacha20Poly1305);
 
         Assert.True(encrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
         Assert.NotEqual(0, encrypted.Length);
         Assert.True(encrypted.Length >= FrameTransformer.Offset + EnvelopeCipher.HeaderSize);
 
         // 3. Decrypt
-        using IBufferLease decrypted = PacketCipher.DecryptFrame(encrypted, TestKey);
+        using IBufferLease decrypted = PacketCipher.DecryptFrame(encrypted, s_testKey);
 
         Assert.False(decrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
         Assert.Equal(src.Length, decrypted.Length);
@@ -98,7 +98,7 @@ public sealed class PacketTransformTests
         originalPayload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
         // 2. Encrypt then Compress
-        using IBufferLease encrypted = PacketCipher.EncryptFrame(src, TestKey, CipherSuiteType.Chacha20Poly1305);
+        using IBufferLease encrypted = PacketCipher.EncryptFrame(src, s_testKey, CipherSuiteType.Chacha20Poly1305);
         using IBufferLease compressed = PacketCompression.CompressFrame(encrypted);
 
         Assert.True(compressed.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
@@ -106,7 +106,7 @@ public sealed class PacketTransformTests
 
         // 3. Decompress then Decrypt
         using IBufferLease decompressed = PacketCompression.DecompressFrame(compressed);
-        using IBufferLease decrypted = PacketCipher.DecryptFrame(decompressed, TestKey);
+        using IBufferLease decrypted = PacketCipher.DecryptFrame(decompressed, s_testKey);
 
         Assert.False(decrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
         Assert.False(decrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.COMPRESSED));

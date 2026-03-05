@@ -4,7 +4,7 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Nalix.Common.Environment;
+namespace Nalix.Framework.Environment;
 
 /// <summary>
 /// Provides application directories with environment-aware defaults and hardened creation.

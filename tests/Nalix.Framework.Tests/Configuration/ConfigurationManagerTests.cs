@@ -3,10 +3,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Nalix.Common.Environment;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Configuration.Binding;
+using Nalix.Framework.Environment;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Configuration;
@@ -393,7 +393,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     private string WriteConfigFile(string fileName, string content)
     {
         string filePath = Path.Combine(_testDirectory, fileName);
-        File.WriteAllText(filePath, content.ReplaceLineEndings(Environment.NewLine));
+        File.WriteAllText(filePath, content.ReplaceLineEndings(System.Environment.NewLine));
         return filePath;
     }
 

@@ -11,10 +11,10 @@ using System.Runtime.CompilerServices;
 using System.Security;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Environment;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Configuration.Internal;
+using Nalix.Framework.Environment;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Injection.DI;
 
