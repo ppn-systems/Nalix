@@ -30,8 +30,6 @@ namespace Nalix.Benchmark.Shared.Security;
 // Memory diagnoser to capture allocations; tune job/runtime as needed.
 [RankColumn]
 [MemoryDiagnoser]
-[ExceptionDiagnoser]
-[ThreadingDiagnoser]
 [DisassemblyDiagnoser]
 [HardwareCounters(
     HardwareCounter.BranchInstructions,

@@ -309,12 +309,26 @@ public sealed class PacketCatalogFactory
         foreach (System.Type type in candidates)
         {
             // Magic number
-            var magicAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<MagicNumberAttribute>(type, inherit: false);
+            System.UInt32 key;
+            MagicNumberAttribute? magicAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<MagicNumberAttribute>(type, inherit: false);
             if (magicAttr is null)
             {
+                if (type == null)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[SH.{nameof(PacketCatalogFactory)}] skip reason=no-magic");
+
+                    continue;
+                }
+
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[SH.{nameof(PacketCatalogFactory)}] skip reason=no-magic type={type?.Name}");
-                continue;
+                                        .Trace($"[SH.{nameof(PacketCatalogFactory)}] use key-hash");
+
+                key = Compute(type);
+            }
+            else
+            {
+                key = magicAttr.MagicNumber;
             }
 
             // Pipeline-managed?
@@ -359,10 +373,10 @@ public sealed class PacketCatalogFactory
             // ---- Deserializer binding (required if magic exists) ----
             if (miDeserialize is not null)
             {
-                if (deserializers.ContainsKey(magicAttr.MagicNumber))
+                if (deserializers.ContainsKey(key))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Fatal($"[SH.{nameof(PacketCatalogFactory)}] dup-magic val=0x{magicAttr.MagicNumber:X8} type={type?.Name}");
+                                            .Fatal($"[SH.{nameof(PacketCatalogFactory)}] dup-magic val=0x{key:X8} type={type?.Name}");
                 }
 
                 // Assign FromBytes pointer into Fn<TPacket>
@@ -375,7 +389,7 @@ public sealed class PacketCatalogFactory
                 // Create an actual delegate instance once (no reflection in hot path)
                 PacketDeserializer deserFacade = (PacketDeserializer)System.Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
 
-                deserializers[magicAttr.MagicNumber] = deserFacade;
+                deserializers[key] = deserFacade;
             }
             else
             {
@@ -490,6 +504,27 @@ public sealed class PacketCatalogFactory
         }
 
         return this;
+    }
+
+    /// <summary>
+    /// Computes a stable, deterministic 32-bit key from the type's full name
+    /// using FNV-1a. Consistent across machines, processes, and .NET versions
+    /// as long as the type name does not change.
+    /// </summary>
+    public static System.UInt32 Compute(System.Type type)
+    {
+        // Use AssemblyQualifiedName for maximum uniqueness,
+        // or FullName if you want assembly-agnostic keys.
+        System.ReadOnlySpan<System.Char> name = System.MemoryExtensions.AsSpan(type.FullName);
+
+        // FNV-1a 32-bit
+        System.UInt32 hash = 2166136261u; // FNV offset basis
+        foreach (System.Char c in name)
+        {
+            hash ^= c;
+            hash *= 16777619u;   // FNV prime
+        }
+        return hash;
     }
 
     #endregion API
