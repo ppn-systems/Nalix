@@ -40,7 +40,6 @@
 // | 'Decode(ReadOnlySpan<byte>, out byte[] output, out int bytesWritten)' | 8192        | True         |  3,171.872 ns |  63.4617 ns |  52.9934 ns | 0.6523 |      - |    8216 B |
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using Nalix.Shared.LZ4; // LZ4Codec, LZ4BlockEncoder
 using Nalix.Shared.LZ4.Encoders;
 using System;
@@ -50,12 +49,9 @@ namespace Nalix.Benchmark.Shared.LZ4;
 
 // MemoryDiagnoser to capture allocations; we vary payload size and compressibility.
 [MemoryDiagnoser]
-[SimpleJob(
-    RuntimeMoniker.Net10_0,
-    launchCount: 1,
-    warmupCount: 3,
-    iterationCount: 10
-)]
+[ThreadingDiagnoser]
+[DisassemblyDiagnoser]
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class LZ4CodecBenchmarks
 {
     // Payload sizes to exercise small/medium/large inputs
