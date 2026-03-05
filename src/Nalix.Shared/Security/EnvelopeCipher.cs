@@ -67,19 +67,42 @@ public static class EnvelopeCipher
     /// Computed as <c>EnvelopeFormat.TagSize + EnvelopeFormat.HeaderSize</c>.
     /// This is an estimate and may be conservative depending on the concrete cipher suite implementation.
     /// </remarks>
-    public const System.Int32 EncryptionOverheadBytes = EnvelopeFormat.TagSize + EnvelopeFormat.HeaderSize;
+    public const System.Int32 HeaderSize = EnvelopeFormat.HeaderSize;
 
     /// <summary>
-    /// Estimated number of additional bytes produced by the envelope encryption format.
+    /// Gets the nonce length in bytes required by the specified cipher suite.
     /// </summary>
-    /// <value>
-    /// This value includes the authentication tag length and any envelope header bytes (for example, nonce or metadata).
-    /// Use this constant when sizing destination buffers for ciphertext to avoid buffer truncation.
-    /// </value>
+    /// <param name="type">
+    /// The <see cref="CipherSuiteType"/> identifying the symmetric encryption algorithm.
+    /// </param>
+    /// <returns>
+    /// The size of the nonce in bytes required by the cipher suite.
+    /// </returns>
     /// <remarks>
-    /// Computed as <c>EnvelopeFormat.TagSize + EnvelopeFormat.HeaderSize</c>.
-    /// This is an estimate and may be conservative depending on the concrete cipher suite implementation.
+    /// The nonce (number used once) is a unique value required for stream ciphers
+    /// and AEAD constructions to ensure cryptographic security.
+    /// <para/>
+    /// For example:
+    /// <list type="bullet">
+    /// <item>
+    /// <description>
+    /// <see cref="CipherSuiteType.CHACHA20"/> and
+    /// <see cref="CipherSuiteType.CHACHA20_POLY1305"/> use a nonce size defined by <see cref="ChaCha20.NonceSize"/>.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <see cref="CipherSuiteType.SALSA20"/> and
+    /// <see cref="CipherSuiteType.SALSA20_POLY1305"/> use a nonce size defined by <see cref="Salsa20.NonceSize"/>.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// The returned value can be used when allocating buffers or generating nonces
+    /// for encryption operations.
     /// </remarks>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when the specified cipher suite is not supported.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 GetNonceLength(CipherSuiteType type) => type switch
@@ -88,6 +111,54 @@ public static class EnvelopeCipher
         CipherSuiteType.CHACHA20_POLY1305 => ChaCha20.NonceSize,
         CipherSuiteType.SALSA20 => Salsa20.NonceSize,
         CipherSuiteType.SALSA20_POLY1305 => Salsa20.NonceSize,
+        _ => throw new System.ArgumentException("Unsupported symmetric algorithm", nameof(type))
+    };
+
+
+    /// <summary>
+    /// Gets the authentication tag length in bytes produced by the specified cipher suite.
+    /// </summary>
+    /// <param name="type">
+    /// The <see cref="CipherSuiteType"/> identifying the symmetric encryption algorithm.
+    /// </param>
+    /// <returns>
+    /// The size of the authentication tag in bytes.
+    /// Returns <c>0</c> for cipher suites that do not provide built-in authentication.
+    /// </returns>
+    /// <remarks>
+    /// Authentication tags are produced by AEAD (Authenticated Encryption with Associated Data)
+    /// algorithms to guarantee ciphertext integrity and authenticity.
+    /// <para/>
+    /// <list type="bullet">
+    /// <item>
+    /// <description>
+    /// <see cref="CipherSuiteType.CHACHA20_POLY1305"/> and
+    /// <see cref="CipherSuiteType.SALSA20_POLY1305"/> produce an authentication tag
+    /// with size <see cref="EnvelopeFormat.TagSize"/>.
+    /// </description>
+    /// </item>
+    /// <item>
+    /// <description>
+    /// <see cref="CipherSuiteType.CHACHA20"/> and
+    /// <see cref="CipherSuiteType.SALSA20"/> are stream ciphers without authentication,
+    /// therefore the tag length is <c>0</c>.
+    /// </description>
+    /// </item>
+    /// </list>
+    /// This value is typically used when calculating the final ciphertext buffer size
+    /// or parsing envelope encryption formats.
+    /// </remarks>
+    /// <exception cref="System.ArgumentException">
+    /// Thrown when the specified cipher suite is not supported.
+    /// </exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int32 GetTagLength(CipherSuiteType type) => type switch
+    {
+        CipherSuiteType.CHACHA20 => 0,
+        CipherSuiteType.CHACHA20_POLY1305 => EnvelopeFormat.TagSize,
+        CipherSuiteType.SALSA20 => 0,
+        CipherSuiteType.SALSA20_POLY1305 => EnvelopeFormat.TagSize,
         _ => throw new System.ArgumentException("Unsupported symmetric algorithm", nameof(type))
     };
 

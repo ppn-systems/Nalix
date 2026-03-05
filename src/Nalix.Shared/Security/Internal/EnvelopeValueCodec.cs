@@ -83,8 +83,7 @@ internal static class EnvelopeValueCodec
             // fixed-size span that we pass to DataWriter directly.
 
             // Use a dedicated stack/pooled buffer and wrap DataWriter around it for zero-copy:
-            System.Int32 estimatedCipherCapacity = plaintextLen + EnvelopeCipher.EncryptionOverheadBytes + EnvelopeCipher.GetNonceLength(algorithm);
-            System.Diagnostics.Debug.WriteLine($"EnvelopeValueCodec.Serialize: plaintext {plaintextLen} bytes, estimated cipher capacity {estimatedCipherCapacity} bytes.");
+            System.Int32 estimatedCipherCapacity = plaintextLen + EnvelopeCipher.HeaderSize + EnvelopeCipher.GetNonceLength(algorithm) + EnvelopeCipher.GetTagLength(algorithm);
 
             if (estimatedCipherCapacity <= BufferLease.StackAllocThreshold)
             {
@@ -100,7 +99,6 @@ internal static class EnvelopeValueCodec
                 CopyWrittenBytes(ref writer, ptStack, plaintextLen);
 
                 EnvelopeCipher.Encrypt(key, ptStack, cipherStack, aad, null, algorithm, out System.Int32 written);
-                System.Diagnostics.Debug.WriteLine($"EnvelopeValueCodec.Serialize: actual cipher length {written} bytes.");
 
                 System.String result = System.Convert.ToBase64String(cipherStack[..written]);
                 // Defense-in-depth: zero sensitive bytes before stack frame unwinds.
