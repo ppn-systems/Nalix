@@ -1,4 +1,5 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
 //
 // Span-first envelope serializer/parser for Nalix envelopes.
 // Supports both AEAD (header || nonce || ciphertext || tag16)
