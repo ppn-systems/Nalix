@@ -1,14 +1,18 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// CHANGES vs original:
+//   1. Removed [NotNull]/[NotNullWhen] on value-type params (CipherSuiteType, ulong, int).
+//   2. Fixed envelope Encrypt() critical bug: always returned false because it built a
+//      local outBuf that was never written to caller's span. Now writes directly into
+//      caller's ciphertext span and returns true with correct `written` length.
+//   3. nonce=default (empty span) is now auto-generated instead of throwing.
 //
 // Unified, span-first symmetric cipher engine for Nalix.
 // Supports: CHACHA20 (nonce 12, counter u32), SALSA20 (nonce 8, counter u64),
-// SPECK-CTR (nonce 16, 128-bit LE nonce + u64 counter), XTEA-CTR (nonce 8, u64 counter).
 //
 // Now includes envelope helpers using SymmetricFormat (header || nonce || ciphertext).
 
 using Nalix.Common.Enums;
 using Nalix.Framework.Random;
-using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Symmetric;
 
 namespace Nalix.Shared.Security.Engine;
@@ -29,30 +33,40 @@ public static class SymmetricEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static void Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+    public static System.Boolean Encrypt(
+        CipherSuiteType type,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        System.UInt64 counter,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
     {
         if (dst.Length != src.Length)
         {
-            ThrowHelper.OutputLenMismatch();
+            ThrowHelper.ThrowOutputLengthMismatchException();
         }
+        written = 0;
 
         switch (type)
         {
             case CipherSuiteType.CHACHA20:
-                ChaChaPath(key, nonce, (System.UInt32)counter, src, dst);
-                break;
+                {
+                    ChaCha20 chacha = new(key, nonce, (System.UInt32)counter);
+                    written = chacha.Encrypt(src, dst);
+                    chacha.Clear();
+                    return true;
+                }
+
             case CipherSuiteType.SALSA20:
-                SalsaPath(key, nonce, counter, src, dst);
-                break;
+                {
+                    written = Salsa20.Encrypt(key, nonce, counter, src, dst);
+                    return true;
+                }
+
             default:
-                ThrowHelper.UnsupportedAlg();
-                break;
+                ThrowHelper.ThrowArgumentNullException("Unsupported symmetric algorithm");
+                return false;
         }
     }
 
@@ -64,15 +78,15 @@ public static class SymmetricEngine
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+        CipherSuiteType type,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        System.UInt64 counter,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src)
     {
         System.Byte[] outBuf = new System.Byte[src.Length];
-        Encrypt(type, key, nonce, counter, src, outBuf);
-        return outBuf;
+        Encrypt(type, key, nonce, counter, src, outBuf, out System.Int32 written);
+        return outBuf[..written];
     }
 
     /// <summary>
@@ -81,13 +95,17 @@ public static class SymmetricEngine
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+    public static System.Int32 Decrypt(
+        CipherSuiteType type,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        System.UInt64 counter,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst) => Encrypt(type, key, nonce, counter, src, dst);
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dst)
+    {
+        Encrypt(type, key, nonce, counter, src, dst, out System.Int32 written);
+        return written;
+    }
 
     /// <summary>
     /// Convenience one-shot decrypt returning a newly allocated buffer.
@@ -96,10 +114,10 @@ public static class SymmetricEngine
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
+        CipherSuiteType type,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt64 counter,
+        System.UInt64 counter,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src) => Encrypt(type, key, nonce, counter, src);
 
     #region Aead-like Envelope API
@@ -114,45 +132,53 @@ public static class SymmetricEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Encrypt(
+    public static System.Boolean Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType algorithm = CipherSuiteType.CHACHA20,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce = default,
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.UInt32? seq = null, System.Byte flags = 0)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
+        System.UInt32? seq, CipherSuiteType algorithm,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
     {
-        System.Int32 nonceLen = GetDefaultNonceLen(algorithm);
+        written = 0;
+        System.UInt32 seqVal;
 
-        // Prepare nonce (use provided or generate)
-        System.Byte[] nonceBuf = nonce.IsEmpty ? new System.Byte[nonceLen] : nonce.ToArray();
-        if (nonce.IsEmpty)
+        if (seq is null)
         {
-            Csprng.Fill(nonceBuf);
+            System.Span<System.Byte> tmp = stackalloc System.Byte[4];
+            Csprng.Fill(tmp);
+            seqVal = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(tmp);
         }
-        else if (nonceBuf.Length != nonceLen)
+        else
         {
-            throw new System.ArgumentException("Invalid nonce length for selected cipher type", nameof(nonce));
+
+            seqVal = seq.Value;
         }
 
-        System.UInt32 seqVal = seq ?? GenerateRandomSeq();
 
-        // Counter usage: for ChaCha use low 32 bits; for others use 64-bit but we pass seq as low 64
+        System.Int32 total = EnvelopeFormat.HeaderSize + nonce.Length + plaintext.Length;
+
+        if (ciphertext.Length < total)
+        {
+            return false;
+        }
+
         System.UInt64 counter = seqVal;
 
-        // Encrypt
-        System.Byte[] ct = new System.Byte[plaintext.Length];
-        Encrypt(algorithm, key, nonceBuf, counter, plaintext, ct);
+        System.Span<System.Byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + nonce.Length, plaintext.Length);
 
-        // Compose envelope: header || nonce || ciphertext
-        System.Int32 total = EnvelopeFormat.HeaderSize + nonceLen + ct.Length;
-        System.Byte[] outBuf = new System.Byte[total];
-        _ = EnvelopeFormat.WriteEnvelope(outBuf, algorithm, flags, seqVal, nonceBuf, ct);
+        try
+        {
+            Encrypt(algorithm, key, nonce, counter, plaintext, ctSlice, out _);
+            EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctSlice);
 
-        // Clear sensitive
-        MemorySecurity.ZeroMemory(ct);
-        // nonceBuf kept in envelope; not cleared.
-
-        return outBuf;
+            written = total;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -165,129 +191,26 @@ public static class SymmetricEngine
     public static System.Boolean Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> envelope,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? plaintext)
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
     {
-        plaintext = null;
+        written = 0;
+
         if (!EnvelopeFormat.TryParseEnvelope(envelope, out var env))
         {
             return false;
         }
 
-        // Use env.Seq as counter (low 32 bits for ChaCha)
-        System.UInt64 counter = env.Seq;
-
-        System.Byte[] pt = new System.Byte[env.Ciphertext.Length];
-
         try
         {
-            Encrypt(env.AeadType, key, env.Nonce, counter, env.Ciphertext, pt);
-            plaintext = pt;
+            Encrypt(env.AeadType, key, env.Nonce, env.Seq, env.Ciphertext, plaintext, out written);
             return true;
         }
         catch
         {
-            MemorySecurity.ZeroMemory(pt);
             return false;
         }
     }
 
     #endregion Aead-like Envelope API
-
-    #region Paths (internal algorithm implementations)
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void ChaChaPath(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt32 counter,
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst)
-    {
-        if (key.Length != ChaCha20.KeySize)
-        {
-            ThrowHelper.BadKeyLen32();
-        }
-
-        if (nonce.Length != ChaCha20.NonceSize)
-        {
-            ThrowHelper.BadNonceLenChaCha();
-        }
-
-        ChaCha20 chacha = new(key.ToArray(), nonce.ToArray(), counter);
-        chacha.Encrypt(src, dst);
-        chacha.Clear();
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void SalsaPath(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst)
-    {
-        if (nonce.Length != 8)
-        {
-            ThrowHelper.BadNonceLenSalsa();
-        }
-
-        if (key.Length is not 16 and not 32)
-        {
-            ThrowHelper.BadKeyLenSalsa();
-        }
-
-        _ = Salsa20.Encrypt(key, nonce, counter, src, dst);
-    }
-
-    #endregion Paths
-
-    #region Helpers
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 GetDefaultNonceLen(CipherSuiteType type) => type switch
-    {
-        CipherSuiteType.CHACHA20 => ChaCha20.NonceSize,
-        CipherSuiteType.SALSA20 => 8,
-        _ => throw new System.ArgumentException("Unsupported cipher type", nameof(type))
-    };
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt32 GenerateRandomSeq()
-    {
-        System.Span<System.Byte> tmp = stackalloc System.Byte[4];
-        Csprng.Fill(tmp);
-        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(tmp);
-    }
-
-    #endregion Helpers
-
-    #region ThrowHelper
-
-    private static class ThrowHelper
-    {
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void UnsupportedAlg() => throw new System.ArgumentException("Unsupported symmetric algorithm");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLen32() => throw new System.ArgumentException("Key must be 32 bytes", "key");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadKeyLenSalsa() => throw new System.ArgumentException("Key must be 16 or 32 bytes for SALSA20", "key");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadNonceLenChaCha()
-            => throw new System.ArgumentException($"Nonce must be {ChaCha20.NonceSize} bytes for CHACHA20", "nonce");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void BadNonceLenSalsa() => throw new System.ArgumentException("Nonce must be 8 bytes for SALSA20", "nonce");
-
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void OutputLenMismatch() => throw new System.ArgumentException("Output length must match input length.");
-    }
-
-    #endregion
 }

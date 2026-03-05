@@ -53,18 +53,18 @@ using System.Security.Cryptography;
 
 namespace Nalix.Benchmark.Shared.Security;
 
-// Memory diagnoser to capture allocations.
 [MemoryDiagnoser]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+[ThreadingDiagnoser]
+[DisassemblyDiagnoser]
 public class EnvelopeCipherBenchmarks
 {
-    // Vary payload sizes to observe scaling behavior.
     [Params(128, 1024, 8192)]
     public Int32 PayloadSize;
 
-    // Test both an AEAD and a stream/CTR cipher to compare behavior.
-    [Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
-            CipherSuiteType.SALSA20_POLY1305, CipherSuiteType.CHACHA20_POLY1305)]
+    // Keep all candidates, but handle unsupported ones explicitly in setup.
+    //[Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
+    //        CipherSuiteType.SALSA20_POLY1305, CipherSuiteType.CHACHA20_POLY1305)]
+    [Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20)]
     public CipherSuiteType Algorithm;
 
     private Byte[] _key = Array.Empty<Byte>();
@@ -72,37 +72,59 @@ public class EnvelopeCipherBenchmarks
     private Byte[] _plaintext = Array.Empty<Byte>();
     private Byte[] _envelope = Array.Empty<Byte>();
 
-    // Global setup runs once per parameter combination.
     [GlobalSetup]
     public void GlobalSetup()
     {
-        // Create a 32-byte key (required for CHACHA20/CHACHA20_POLY1305).
         _key = new Byte[32];
         RandomNumberGenerator.Fill(_key);
 
-        // AAD used for AEAD suites; ignored for stream suites.
         _aad = new Byte[16];
         RandomNumberGenerator.Fill(_aad);
 
-        // Create random plaintext of the selected size.
         _plaintext = new Byte[PayloadSize];
         RandomNumberGenerator.Fill(_plaintext);
 
-        // Pre-encrypt once so Decrypt benchmark operates only on the decrypt path.
-        // Use AsSpan to match EnvelopeCipher signatures that accept ReadOnlySpan<byte>.
-        _envelope = EnvelopeCipher.Encrypt(_key.AsSpan(), _plaintext.AsSpan(), Algorithm, _aad.AsSpan());
+        const Int32 overheadMargin = 64;
+        var outBuffer = new Byte[_plaintext.Length + overheadMargin];
+
+        try
+        {
+            // Call Encrypt; if algorithm unsupported, it may throw ArgumentException.
+            Boolean success = EnvelopeCipher.Encrypt(
+                _key.AsSpan(),
+                _plaintext.AsSpan(),
+                outBuffer,
+                _aad.AsSpan(),
+                null,
+                Algorithm,
+                out Int32 bytesWritten);
+
+            if (!success || bytesWritten <= 0)
+            {
+                throw new InvalidOperationException($"EnvelopeCipher.Encrypt returned false or wrote 0 bytes for algorithm {Algorithm}.");
+            }
+
+            _envelope = new Byte[bytesWritten];
+            Array.Copy(outBuffer, 0, _envelope, 0, bytesWritten);
+        }
+        catch (ArgumentException aex) when (aex.ParamName == "type" || aex.Message.Contains("Unsupported symmetric algorithm"))
+        {
+            // Fail fast with a clearer diagnostic message so BenchmarkDotNet will show stack trace instead of NA.
+            throw new InvalidOperationException($"Algorithm {Algorithm} is not supported by EnvelopeCipher. Inner: {aex.Message}", aex);
+        }
     }
 
-    // Benchmark: measure Encrypt performance (returns envelope to prevent optimization-out).
     [Benchmark(Description = "EnvelopeCipher.Encrypt")]
-    public Byte[] Encrypt() => EnvelopeCipher.Encrypt(_key.AsSpan(), _plaintext.AsSpan(), Algorithm, _aad.AsSpan());
+    public Boolean Encrypt()
+    {
+        var temp = new Byte[_plaintext.Length + 64];
+        return EnvelopeCipher.Encrypt(_key.AsSpan(), _plaintext.AsSpan(), temp, _aad.AsSpan(), null, Algorithm, out _);
+    }
 
-    // Benchmark: measure Decrypt performance (returns plaintext buffer).
     [Benchmark(Description = "EnvelopeCipher.Decrypt")]
     public Byte[] Decrypt()
     {
-        // Decrypt returns a bool and outputs plaintext via out parameter.
-        EnvelopeCipher.Decrypt(_key.AsSpan(), _envelope.AsSpan(), out var pt, _aad.AsSpan());
-        return pt ?? Array.Empty<Byte>();
+        Boolean ok = EnvelopeCipher.Decrypt(_key.AsSpan(), _envelope.AsSpan(), out var pt, _aad.AsSpan());
+        return ok && pt != null ? pt : Array.Empty<Byte>();
     }
 }

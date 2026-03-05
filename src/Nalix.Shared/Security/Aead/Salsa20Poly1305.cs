@@ -67,7 +67,7 @@ public static class Salsa20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static void Encrypt(
+    public static System.Int32 Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
@@ -94,21 +94,30 @@ public static class Salsa20Poly1305
             ThrowHelper.ThrowInvalidTagLengthException();
         }
 
+        System.Int32 written = 0;
+        System.Span<System.Byte> zeros = stackalloc System.Byte[32];
         System.Span<System.Byte> polyKey = stackalloc System.Byte[32];
+
         try
         {
-            // 1) Derive 32-byte Poly1305 one-time key from SALSA20 counter=0
-            //    Obtain raw keystream by "encrypting" zero bytes.
-            System.Span<System.Byte> zeros = stackalloc System.Byte[32];
             zeros.Clear();
-            _ = Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey); // fill polyKey
+            // 1) Derive 32-byte Poly1305 one-time key from Salsa20 counter=0
+            // Fill polyKey with keystream (encrypting zero block)
+            written = Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey); // typically writes 32
 
             // 2) Encrypt payload with counter=1+
-            _ = Salsa20.Encrypt(key, nonce, counter: 1UL, plaintext, dstCiphertext);
+            // If Salsa20.Encrypt returns written bytes, capture it; otherwise assume plaintext.Length.
+            written = Salsa20.Encrypt(key, nonce, counter: 1UL, plaintext, dstCiphertext);
 
             // 3) MAC transcript (AAD || pad16 || CT || pad16 || lenAAD || lenCT)
             Poly1305 poly = new(polyKey);
-            BuildTranscriptAndFinalize(poly, aad, dstCiphertext, tag);
+
+            // Use only the written portion of dstCiphertext for MAC
+            BUILD_TRANSCRIPT_AND_FINALIZE(poly, aad, dstCiphertext[..written], tag);
+
+            try { poly.Clear(); } catch { } // best effort to clear any internal state if Clear throws (e.g. if already cleared)
+
+            return written;
         }
         finally
         {
@@ -135,7 +144,7 @@ public static class Salsa20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean Decrypt(
+    public static System.Int32 Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
@@ -174,17 +183,16 @@ public static class Salsa20Poly1305
 
             // 2) Compute expected tag over AAD + CT
             Poly1305 poly = new(polyKey);
-            BuildTranscriptAndFinalize(poly, aad, ciphertext, computed);
+            BUILD_TRANSCRIPT_AND_FINALIZE(poly, aad, ciphertext, computed);
 
             // 3) Constant-time compare
             if (!BitwiseOperations.FixedTimeEquals(computed, tag))
             {
-                return false;
+                return 0;
             }
 
             // 4) Decrypt with counter=1+
-            _ = Salsa20.Decrypt(key, nonce, counter: 1UL, ciphertext, dstPlaintext);
-            return true;
+            return Salsa20.Decrypt(key, nonce, counter: 1UL, ciphertext, dstPlaintext);
         }
         finally
         {
@@ -204,10 +212,10 @@ public static class Salsa20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] plaintext,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.Byte[] plaintext,
+        System.Byte[]? aad = null)
     {
         if (key is null || (key.Length != KEY16 && key.Length != KEY32))
         {
@@ -235,10 +243,10 @@ public static class Salsa20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Byte[] Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] cipherWithTag,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? aad = null)
+        System.Byte[] key,
+        System.Byte[] nonce,
+        System.Byte[] cipherWithTag,
+        System.Byte[]? aad = null)
     {
         if (key is null || (key.Length != KEY16 && key.Length != KEY32))
         {
@@ -259,8 +267,8 @@ public static class Salsa20Poly1305
         System.Span<System.Byte> ctSpan = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
         System.Span<System.Byte> tagSpan = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
 
-        System.Boolean ok = Decrypt(key, nonce, ctSpan, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tagSpan, pt);
-        return !ok ? throw new System.InvalidOperationException("Authentication failed.") : pt;
+        System.Int32 ok = Decrypt(key, nonce, ctSpan, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tagSpan, pt);
+        return ok == 0 ? throw new System.InvalidOperationException("Authentication failed.") : pt;
     }
 
     #endregion
@@ -272,7 +280,7 @@ public static class Salsa20Poly1305
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void BuildTranscriptAndFinalize(
+    private static void BUILD_TRANSCRIPT_AND_FINALIZE(
         Poly1305 mac, System.ReadOnlySpan<System.Byte> aad,
         System.ReadOnlySpan<System.Byte> ciphertext, System.Span<System.Byte> tagOut16)
     {

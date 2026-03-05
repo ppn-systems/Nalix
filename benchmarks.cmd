@@ -14,8 +14,12 @@ echo.
 
 dotnet run ^
   --project "%PROJECT_PATH%" ^
-  -c %CONFIG% 
-
+  -c %CONFIG% ^
+  -- ^
+  --exporters html ^
+  --stopOnFirstError true ^
+  --runtimes net10.0
+  
 echo.
 echo Done.
 pause
