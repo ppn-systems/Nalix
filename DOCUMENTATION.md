@@ -28,9 +28,9 @@ Each package is independently usable yet seamlessly integrated into the overall 
 To install Nalix packages from NuGet:
 
 ```bash
-dotnet add package Nalix.Framework
 dotnet add package Nalix.Network
 dotnet add package Nalix.Logging
+dotnet add package Nalix.Framework
 ```
 
 For more examples, see [docs/README.md](./docs/README.md).
