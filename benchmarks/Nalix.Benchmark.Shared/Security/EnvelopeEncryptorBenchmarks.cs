@@ -32,7 +32,6 @@ namespace Nalix.Benchmark.Shared.Security;
 
 // Memory diagnoser to capture allocations; tune job/runtime as needed.
 [MemoryDiagnoser]
-[ThreadingDiagnoser]
 [DisassemblyDiagnoser]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class EnvelopeEncryptorBenchmarks

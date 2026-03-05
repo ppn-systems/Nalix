@@ -49,7 +49,6 @@ namespace Nalix.Benchmark.Shared.LZ4;
 
 // MemoryDiagnoser to capture allocations; we vary payload size and compressibility.
 [MemoryDiagnoser]
-[ThreadingDiagnoser]
 [DisassemblyDiagnoser]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class LZ4CodecBenchmarks
