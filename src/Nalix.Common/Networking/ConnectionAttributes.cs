@@ -17,4 +17,9 @@ public static class ConnectionAttributes
     /// Key for the handshake context state stored during the negotiation process.
     /// </summary>
     public const string HandshakeState = "nalix.handshake.state";
+
+    /// <summary>
+    /// Key for the session token associated with the connection, if any.
+    /// </summary>
+    public const string SessionToken = "nalix.session.token";
 }

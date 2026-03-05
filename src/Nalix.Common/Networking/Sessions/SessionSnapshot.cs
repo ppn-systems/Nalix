@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 
@@ -46,5 +47,14 @@ public sealed class SessionSnapshot
     /// <summary>
     /// Gets or sets the whitelisted connection attributes copied during resume.
     /// </summary>
-    public IReadOnlyDictionary<string, object> Attributes { get; init; } = new Dictionary<string, object>(StringComparer.Ordinal);
+    public IObjectMap<string, object>? Attributes { get; set; }
+
+    /// <summary>
+    /// Returns the session attributes to the object pool.
+    /// </summary>
+    public void Return()
+    {
+        this.Attributes?.Return();
+        this.Attributes = null;
+    }
 }

@@ -12,9 +12,9 @@ namespace Nalix.Common.Networking.Sessions;
 public sealed class SessionEntry
 {
     /// <summary>
-    /// Gets the session snapshot.
+    /// Gets or sets the session snapshot.
     /// </summary>
-    public SessionSnapshot Snapshot { get; init; }
+    public SessionSnapshot Snapshot { get; set; }
 
     /// <summary>
     /// Gets or sets the current identifier of the connection associated with this session.
@@ -31,4 +31,9 @@ public sealed class SessionEntry
         this.Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
         this.ConnectionId = connectionId;
     }
+
+    /// <summary>
+    /// Returns the session resources to the object pool.
+    /// </summary>
+    public void Return() => this.Snapshot.Return();
 }
