@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Nalix.Benchmark.Shared.Security.EnvelopeEncryptorBenchmarks-20260305-213910</title>
+<title>Nalix.Benchmark.Shared.Security.EnvelopeEncryptorBenchmarks-20260305-231445</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -24,10 +24,16 @@ InvocationCount=1  UnrollFactor=1
 </code></pre>
 
 <table>
-<thead><tr><th>Method             </th><th>Algorithm</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Code Size</th><th>Allocated</th>
+<thead><tr><th>Method             </th><th>Algorithm  </th><th>Mean</th><th>Error</th><th>StdDev</th><th>Code Size</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20</td><td>31.38 &mu;s</td><td>0.821 &mu;s</td><td>2.355 &mu;s</td><td>515 B</td><td>4.49 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>SALSA20</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td>
+</thead><tbody><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20</td><td>33.08 &mu;s</td><td>0.809 &mu;s</td><td>2.348 &mu;s</td><td>515 B</td><td>4.49 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>SALSA20</td><td>22.29 &mu;s</td><td>0.435 &mu;s</td><td>0.580 &mu;s</td><td>718 B</td><td>2.27 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>CHACHA20</td><td>39.70 &mu;s</td><td>0.787 &mu;s</td><td>1.823 &mu;s</td><td>515 B</td><td>4.63 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>CHACHA20</td><td>29.12 &mu;s</td><td>0.561 &mu;s</td><td>1.333 &mu;s</td><td>718 B</td><td>2.7 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20_POLY1305</td><td>36.39 &mu;s</td><td>0.687 &mu;s</td><td>1.028 &mu;s</td><td>515 B</td><td>5.01 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>SALSA20_POLY1305</td><td>29.86 &mu;s</td><td>0.560 &mu;s</td><td>0.575 &mu;s</td><td>718 B</td><td>2.27 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>CHACHA20_POLY1305</td><td>48.06 &mu;s</td><td>0.945 &mu;s</td><td>1.552 &mu;s</td><td>515 B</td><td>5.13 KB</td>
+</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>CHACHA20_POLY1305</td><td>42.19 &mu;s</td><td>0.980 &mu;s</td><td>2.811 &mu;s</td><td>718 B</td><td>2.27 KB</td>
 </tr></tbody></table>
 </body>
 </html>
