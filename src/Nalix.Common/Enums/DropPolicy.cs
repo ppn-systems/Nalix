@@ -1,4 +1,5 @@
-﻿namespace Nalix.Common.Enums;
+namespace Nalix.Common.Enums;
+// Licensed under the Apache License, Version 2.0.
 
 /// <summary>
 /// Behavior when a per-connection queue is full.

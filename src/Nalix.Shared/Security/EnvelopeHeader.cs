@@ -1,4 +1,5 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
 //
 // Represents the fixed AEAD envelope header and provides span-first
 // serialize / parse helpers.

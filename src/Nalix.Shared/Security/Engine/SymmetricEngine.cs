@@ -1,4 +1,5 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
 //
 // Unified, span-first symmetric cipher engine for Nalix.
 // Supports: CHACHA20 (nonce 12 bytes, counter uint32), SALSA20 (nonce 8 bytes, counter uint64).
