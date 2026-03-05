@@ -57,6 +57,41 @@ namespace Nalix.Shared.Security;
 public static class EnvelopeCipher
 {
     /// <summary>
+    /// Estimated number of additional bytes produced by the envelope encryption format.
+    /// </summary>
+    /// <value>
+    /// This value includes the authentication tag length and any envelope header bytes (for example, nonce or metadata).
+    /// Use this constant when sizing destination buffers for ciphertext to avoid buffer truncation.
+    /// </value>
+    /// <remarks>
+    /// Computed as <c>EnvelopeFormat.TagSize + EnvelopeFormat.HeaderSize</c>.
+    /// This is an estimate and may be conservative depending on the concrete cipher suite implementation.
+    /// </remarks>
+    public const System.Int32 EncryptionOverheadBytes = EnvelopeFormat.TagSize + EnvelopeFormat.HeaderSize;
+
+    /// <summary>
+    /// Estimated number of additional bytes produced by the envelope encryption format.
+    /// </summary>
+    /// <value>
+    /// This value includes the authentication tag length and any envelope header bytes (for example, nonce or metadata).
+    /// Use this constant when sizing destination buffers for ciphertext to avoid buffer truncation.
+    /// </value>
+    /// <remarks>
+    /// Computed as <c>EnvelopeFormat.TagSize + EnvelopeFormat.HeaderSize</c>.
+    /// This is an estimate and may be conservative depending on the concrete cipher suite implementation.
+    /// </remarks>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int32 GetNonceLength(CipherSuiteType type) => type switch
+    {
+        CipherSuiteType.CHACHA20 => ChaCha20.NonceSize,
+        CipherSuiteType.CHACHA20_POLY1305 => ChaCha20.NonceSize,
+        CipherSuiteType.SALSA20 => Salsa20.NonceSize,
+        CipherSuiteType.SALSA20_POLY1305 => Salsa20.NonceSize,
+        _ => throw new System.ArgumentException("Unsupported symmetric algorithm", nameof(type))
+    };
+
+    /// <summary>
     /// Encrypts <paramref name="plaintext"/> using the selected <paramref name="algorithm"/>,
     /// returning a newly allocated envelope buffer.
     /// </summary>
@@ -105,7 +140,7 @@ public static class EnvelopeCipher
     {
         written = 0;
 
-        System.Int32 nonceLength = GET_NONCE_LENGTH(algorithm);
+        System.Int32 nonceLength = GetNonceLength(algorithm);
         System.Span<System.Byte> nonceStack = stackalloc System.Byte[System.Math.Max(16, nonceLength)];
         System.Span<System.Byte> nonce = nonceStack[..nonceLength];
         Csprng.Fill(nonce);
@@ -132,17 +167,6 @@ public static class EnvelopeCipher
         }
 
         return true;
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        static System.Int32 GET_NONCE_LENGTH(CipherSuiteType type) => type switch
-        {
-            CipherSuiteType.CHACHA20 => ChaCha20.NonceSize,
-            CipherSuiteType.CHACHA20_POLY1305 => ChaCha20.NonceSize,
-            CipherSuiteType.SALSA20 => Salsa20.NonceSize,
-            CipherSuiteType.SALSA20_POLY1305 => Salsa20.NonceSize,
-            _ => throw new System.ArgumentException("Unsupported symmetric algorithm", nameof(type))
-        };
     }
 
     /// <summary>
@@ -202,7 +226,6 @@ public static class EnvelopeCipher
                     // Assume SymmetricEngine.Encrypt uses an out parameter for written
                     if (SymmetricEngine.Decrypt(key, envelope, plaintext, out written))
                     {
-
                         return true;
                     }
 

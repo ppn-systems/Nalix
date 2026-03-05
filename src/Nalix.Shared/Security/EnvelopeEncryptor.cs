@@ -464,7 +464,7 @@ public static class EnvelopeEncryptor
     private static void DecryptNestedObject(System.Object obj, System.Byte[] key, System.Byte[] aad)
     {
         NestedEncryptorDelegates delegates = EnvelopeDelegateStore.GetNestedDelegates(obj.GetType());
-        delegates.DecryptAction(obj, key);
+        delegates.DecryptAction(obj, key, aad);
     }
 
     #endregion Private Helpers

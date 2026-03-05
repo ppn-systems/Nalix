@@ -37,5 +37,5 @@ internal sealed class NestedEncryptorDelegates
     /// <summary>
     /// Calls <c>EnvelopeEncryptor.Decrypt&lt;T&gt;</c> on a boxed object instance.
     /// </summary>
-    public required System.Action<System.Object, System.Byte[]> DecryptAction { get; init; }
+    public required System.Action<System.Object, System.Byte[], System.Byte[]> DecryptAction { get; init; }
 }

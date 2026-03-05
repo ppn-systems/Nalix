@@ -28,8 +28,9 @@ public static class StringCipherExtensions
 
         System.Int32 written;
         System.Byte[] utf8 = System.Text.Encoding.UTF8.GetBytes(@this);
+        System.Int32 need = EnvelopeCipher.EncryptionOverheadBytes + EnvelopeCipher.GetNonceLength(algorithm);
 
-        if (utf8.Length < BufferLease.StackAllocThreshold)
+        if (utf8.Length + need < BufferLease.StackAllocThreshold)
         {
             System.Span<System.Byte> cipher = stackalloc System.Byte[BufferLease.StackAllocThreshold];
             EnvelopeCipher.Encrypt(key, utf8, cipher, aad, 0, algorithm, out written);
@@ -37,11 +38,9 @@ public static class StringCipherExtensions
             return System.Convert.ToBase64String(cipher[..written]);
         }
 
-        // For larger inputs rent a buffer from the BufferLease pool to avoid large allocations.
-        // Choose capacity = plaintext length + estimated overhead (if any). Adjust as needed.
-        System.Int32 capacity = utf8.Length + 32;
+        System.Int32 required = utf8.Length + need;
 
-        BufferLease lease = BufferLease.Rent(capacity);
+        BufferLease lease = BufferLease.Rent(required);
         try
         {
             // Use the full capacity span for encryption
@@ -78,93 +77,73 @@ public static class StringCipherExtensions
         // Upper bound for Base64 decode
         System.Int32 maxDecodeLen = (@this.Length + 3) / 4 * 3;
 
-        if (maxDecodeLen * 2 <= BufferLease.StackAllocThreshold)
+        if (maxDecodeLen <= BufferLease.StackAllocThreshold / 2)
         {
             // Use stackalloc for both buffers (fast path for small inputs).
-            System.Span<System.Byte> cipherStack = stackalloc System.Byte[maxDecodeLen];
-            System.Span<System.Byte> plainStack = stackalloc System.Byte[maxDecodeLen];
+            System.Span<System.Byte> s_plain = stackalloc System.Byte[maxDecodeLen];
+            System.Span<System.Byte> s_cipher = stackalloc System.Byte[maxDecodeLen];
 
             // Try decode Base64 directly into rented cipher buffer
-            if (!System.Convert.TryFromBase64String(@this, cipherStack, out System.Int32 cipherLen))
+            if (!System.Convert.TryFromBase64String(@this, s_cipher, out System.Int32 s_cipherLen))
             {
                 // Clear any possibly written sensitive data before throwing
-                cipherStack[..System.Math.Min(cipherLen, cipherStack.Length)].Clear();
+                s_cipher[..System.Math.Min(s_cipherLen, s_cipher.Length)].Clear();
                 throw new System.InvalidOperationException("Invalid Base64 input.");
             }
 
-            System.ReadOnlySpan<System.Byte> envelopeSpan = cipherStack[..cipherLen];
-            System.Span<System.Byte> plaintextSpan = plainStack[..maxDecodeLen];
+            System.Span<System.Byte> s_plaintextSpan = s_plain[..maxDecodeLen];
+            System.ReadOnlySpan<System.Byte> s_envelopeSpan = s_cipher[..s_cipherLen];
 
             // Decrypt into the plaintext stack buffer
-            if (!EnvelopeCipher.Decrypt(key, envelopeSpan, plaintextSpan, out System.Int32 written))
+            if (!EnvelopeCipher.Decrypt(key, s_envelopeSpan, s_plaintextSpan, add, out System.Int32 s_written))
             {
                 // Clear plaintext buffer before throwing — sensitive cipher data hygiene
-                plaintextSpan.Clear();
+                s_plaintextSpan.Clear();
                 throw new System.InvalidOperationException("Decryption failed.");
             }
 
+            System.Console.WriteLine($"s_written: {s_written}");
+
             // Convert plaintext bytes to string before clearing the plaintext buffer.
-            System.String result = System.Text.Encoding.UTF8.GetString(plaintextSpan[..written]);
+            System.String s_result = System.Text.Encoding.UTF8.GetString(s_plaintextSpan[..s_written]);
 
             // Clear only the used plaintext and cipher bytes (defense-in-depth).
-            plaintextSpan[..written].Clear();
-            cipherStack[..cipherLen].Clear();
+            s_plaintextSpan[..s_written].Clear();
+            s_cipher[..s_cipherLen].Clear();
 
-            return result;
+            return s_result;
         }
 
         // Rent buffers from BufferLease to avoid large allocations and to ensure buffers are cleared on dispose.
-        BufferLease plainLease = BufferLease.Rent(maxDecodeLen);
-        BufferLease cipherLease = BufferLease.Rent(maxDecodeLen);
+        using BufferLease plainLease = BufferLease.Rent(maxDecodeLen);
+        using BufferLease cipherLease = BufferLease.Rent(maxDecodeLen);
 
-        try
+        System.Span<System.Byte> plainFull = plainLease.SpanFull;
+        System.Span<System.Byte> cipherFull = cipherLease.SpanFull;
+
+        // Try decode Base64 directly into rented cipher buffer
+        if (!System.Convert.TryFromBase64String(@this, cipherFull, out System.Int32 cipherLen))
         {
-            System.Span<System.Byte> plainFull = plainLease.SpanFull;
-            System.Span<System.Byte> cipherFull = cipherLease.SpanFull;
-
-            // Try decode Base64 directly into rented cipher buffer
-            if (!System.Convert.TryFromBase64String(@this, cipherFull, out System.Int32 cipherLen))
-            {
-                // Clear any possibly written sensitive data before throwing
-                cipherFull[..System.Math.Min(cipherLen, cipherFull.Length)].Clear();
-                throw new System.InvalidOperationException("Invalid Base64 input.");
-            }
-
-            System.Span<System.Byte> plaintextSpan = plainFull[..];
-            System.ReadOnlySpan<System.Byte> envelopeSpan = cipherFull[..cipherLen];
-
-            // Decrypt into the rented plaintext span
-            if (!EnvelopeCipher.Decrypt(key, envelopeSpan, plaintextSpan, add, out System.Int32 written))
-            {
-                // Clear plaintext buffer before throwing — sensitive cipher data hygiene
-                plaintextSpan.Clear();
-                throw new System.InvalidOperationException("Decryption failed.");
-            }
-
-            // Convert plaintext bytes to string before clearing the plaintext buffer.
-            System.String result = System.Text.Encoding.UTF8.GetString(plaintextSpan[..written]);
-
-            // Clear only the used plaintext bytes (defense-in-depth).
-            plaintextSpan[..written].Clear();
-
-            return result;
+            // Clear any possibly written sensitive data before throwing
+            cipherFull[..System.Math.Min(cipherLen, cipherFull.Length)].Clear();
+            throw new System.InvalidOperationException("Invalid Base64 input.");
         }
-        finally
+
+        System.ReadOnlySpan<System.Byte> envelopeSpan = cipherFull[..cipherLen];
+
+        // Decrypt into the rented plaintext span
+        if (!EnvelopeCipher.Decrypt(key, envelopeSpan, plainFull, add, out System.Int32 written))
         {
-            // Ensure we clear and return buffers. BufferLease.Dispose is expected to clear sensitive data,
-            // but clear again as defense-in-depth before disposing.
-            try
-            {
-                cipherLease.SpanFull.Clear();
-                plainLease.SpanFull.Clear();
-            }
-            catch
-            {
-                // Ignore any clearing errors; still attempt dispose in finally.
-            }
-
-            cipherLease.Dispose();
-            plainLease.Dispose();
+            // Clear plaintext buffer before throwing — sensitive cipher data hygiene
+            plainFull.Clear();
+            throw new System.InvalidOperationException("Decryption failed.");
         }
+
+        // Convert plaintext bytes to string before clearing the plaintext buffer.
+        System.String result = System.Text.Encoding.UTF8.GetString(plainFull[..written]);
+        plainFull[..written].Clear();
+        cipherFull[..cipherLen].Clear();
+
+        return result;
     }
 }

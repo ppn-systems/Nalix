@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 
+using Nalix.Common.Exceptions;
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
 using Nalix.Shared.Security.Primitives;
@@ -84,7 +85,7 @@ public static class Salsa20Poly1305
             ThrowHelper.ThrowInvalidNonceLengthException();
         }
 
-        if (dstCiphertext.Length != plaintext.Length)
+        if (dstCiphertext.Length < plaintext.Length)
         {
             ThrowHelper.ThrowOutputLengthMismatchException();
         }
@@ -166,7 +167,7 @@ public static class Salsa20Poly1305
             ThrowHelper.ThrowInvalidTagLengthException();
         }
 
-        if (dstPlaintext.Length != ciphertext.Length)
+        if (dstPlaintext.Length < ciphertext.Length)
         {
             ThrowHelper.ThrowOutputLengthMismatchException();
         }
@@ -188,7 +189,7 @@ public static class Salsa20Poly1305
             // 3) Constant-time compare
             if (!BitwiseOperations.FixedTimeEquals(computed, tag))
             {
-                return 0;
+                return -1;
             }
 
             // 4) Decrypt with counter=1+
@@ -231,8 +232,6 @@ public static class Salsa20Poly1305
         System.Span<System.Byte> tag = System.MemoryExtensions.AsSpan(result, plaintext.Length, TagSize);
         Encrypt(key, nonce, plaintext, aad, ct, tag);
 
-        ct.CopyTo(result);
-        tag.CopyTo(System.MemoryExtensions.AsSpan(result, ct.Length));
         return result;
     }
 
@@ -264,11 +263,11 @@ public static class Salsa20Poly1305
         System.Int32 ctLen = cipherWithTag.Length - TagSize;
         System.Byte[] pt = new System.Byte[ctLen];
 
-        System.Span<System.Byte> ctSpan = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
-        System.Span<System.Byte> tagSpan = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
+        System.Span<System.Byte> ct = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
+        System.Span<System.Byte> tag = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
 
-        System.Int32 ok = Decrypt(key, nonce, ctSpan, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tagSpan, pt);
-        return ok == 0 ? throw new System.InvalidOperationException("Authentication failed.") : pt;
+        System.Int32 ok = Decrypt(key, nonce, ct, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tag, pt);
+        return ok < 0 ? throw new CryptoException("Authentication failed") : pt;
     }
 
     #endregion

@@ -103,7 +103,7 @@ internal static class EnvelopeDelegateStore
 
         void EncryptAction(System.Object o, System.Byte[] k, CipherSuiteType alg, System.Byte[] a) => encryptMethod.Invoke(null, [o, k, alg, a]);
 
-        void DecryptAction(System.Object o, System.Byte[] k) => decryptMethod.Invoke(null, [o, k, null]);
+        void DecryptAction(System.Object o, System.Byte[] k, System.Byte[] a) => decryptMethod.Invoke(null, [o, k, a]);
 
         return new NestedEncryptorDelegates
         {

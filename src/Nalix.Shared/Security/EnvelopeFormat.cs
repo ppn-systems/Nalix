@@ -55,7 +55,7 @@ internal static class EnvelopeFormat
             return false;
         }
 
-        if (blob.Length < HeaderSize + nonceLen)
+        if (blob.Length < HeaderSize + nonceLen + TagSize)
         {
             return false;
         }
