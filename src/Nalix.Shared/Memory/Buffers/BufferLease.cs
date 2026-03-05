@@ -19,7 +19,7 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Gets the shared <see cref="BufferPoolManager"/> instance used for buffer pooling.
     /// </summary>
-    internal static readonly BufferPoolManager Pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
+    internal static readonly BufferPoolManager BufferPool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
 
     /// <summary>
     /// Maximum buffer size for stack allocation in <see cref="CopyFrom"/>. Larger buffers will be heap-allocated.
@@ -57,12 +57,13 @@ public sealed class BufferLease : IBufferLease
             throw new System.ArgumentOutOfRangeException(nameof(length));
         }
 
-        _buffer = buffer;
-        _start = start;
-        Length = length;
-        ZeroOnDispose = zeroOnDispose;
         _refCount = 1;
         _detached = 0;
+        _start = start;
+        _buffer = buffer;
+
+        this.Length = length;
+        this.ZeroOnDispose = zeroOnDispose;
     }
 
     #region Properties
@@ -88,27 +89,21 @@ public sealed class BufferLease : IBufferLease
     public System.Boolean ZeroOnDispose { get; set; }
 
     /// <summary>
-    /// The raw array (may be null after dispose/detach). Prefer using <see cref="Span"/>/<see cref="Memory"/>.
-    /// </summary>
-    public System.Byte[]? RawArray => _buffer;
-
-    /// <summary>
-    /// Read-only view of the valid payload slice.
-    /// </summary>
-    public System.ReadOnlyMemory<System.Byte> Memory
-        => _buffer is null ? System.ReadOnlyMemory<System.Byte>.Empty : new System.ReadOnlyMemory<System.Byte>(_buffer, _start, Length);
-
-    /// <summary>
     /// Writable span over the valid payload slice.
     /// </summary>
-    public System.Span<System.Byte> Span
-        => _buffer is null ? [] : new System.Span<System.Byte>(_buffer, _start, Length);
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    public System.Span<System.Byte> Span => _buffer is null ? System.Span<System.Byte>.Empty : new System.Span<System.Byte>(_buffer, _start, Length);
 
     /// <summary>
     /// Writable span over the full owned slice (capacity).
     /// </summary>
-    public System.Span<System.Byte> SpanFull
-        => _buffer is null ? [] : new System.Span<System.Byte>(_buffer, _start, Capacity);
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    public System.Span<System.Byte> SpanFull => _buffer is null ? System.Span<System.Byte>.Empty : new System.Span<System.Byte>(_buffer, _start, Capacity);
+
+    /// <summary>
+    /// Read-only view of the valid payload slice.
+    /// </summary>
+    public System.ReadOnlyMemory<System.Byte> Memory => _buffer is null ? System.ReadOnlyMemory<System.Byte>.Empty : new System.ReadOnlyMemory<System.Byte>(_buffer, _start, Length);
 
     #endregion Properties
 
@@ -171,10 +166,6 @@ public sealed class BufferLease : IBufferLease
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
-        if (EnablePoisonOnDispose && _buffer != null)
-        {
-            System.MemoryExtensions.AsSpan(_buffer).Fill(PoisonByte);
-        }
         System.Int32 newValue = System.Threading.Interlocked.Decrement(ref _refCount);
 
         if (newValue < 0)
@@ -199,6 +190,7 @@ public sealed class BufferLease : IBufferLease
         System.Byte[]? buf = System.Threading.Interlocked.Exchange(ref _buffer, null);
         System.Int32 start = _start;
         System.Int32 len = this.Length;
+
         _start = 0;
         this.Length = 0;
 
@@ -222,7 +214,7 @@ public sealed class BufferLease : IBufferLease
 #endif
             }
 
-            Pool.Return(buf);
+            BufferPool.Return(buf);
         }
     }
 
@@ -275,7 +267,7 @@ public sealed class BufferLease : IBufferLease
         [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 capacity,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean zeroOnDispose = false)
     {
-        System.Byte[] arr = Pool.Rent(capacity);
+        System.Byte[] arr = BufferPool.Rent(capacity);
         return new BufferLease(arr, start: 0, length: 0, zeroOnDispose: zeroOnDispose);
     }
 
@@ -287,7 +279,7 @@ public sealed class BufferLease : IBufferLease
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> src,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean zeroOnDispose = false)
     {
-        System.Byte[] arr = Pool.Rent(src.Length);
+        System.Byte[] arr = BufferPool.Rent(src.Length);
         src.CopyTo(System.MemoryExtensions.AsSpan(arr, 0, src.Length));
         return new BufferLease(arr, start: 0, length: src.Length, zeroOnDispose: zeroOnDispose);
     }

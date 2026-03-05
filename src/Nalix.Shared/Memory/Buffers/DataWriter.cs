@@ -42,7 +42,7 @@ public ref struct DataWriter
         }
 
         _rent = true;
-        _owner = BufferLease.Pool.Rent(size);
+        _owner = BufferLease.BufferPool.Rent(size);
         System.Diagnostics.Debug.Assert(_owner.Length >= size, "ArrayPool returned insufficient buffer");
         _span = System.MemoryExtensions.AsSpan(_owner);
 
@@ -192,7 +192,7 @@ public ref struct DataWriter
         System.Int32 needed = this.WrittenCount + minimumSize;
         System.Int32 newSize = current <= 0 ? needed : System.Math.Max(current * 2, needed);
 
-        System.Byte[] newOwner = BufferLease.Pool.Rent(newSize);
+        System.Byte[] newOwner = BufferLease.BufferPool.Rent(newSize);
         if (this.WrittenCount > 0)
         {
             if (current <= 128)
@@ -212,7 +212,7 @@ public ref struct DataWriter
 
         if (oldOwner is not null)
         {
-            BufferLease.Pool.Return(oldOwner);
+            BufferLease.BufferPool.Return(oldOwner);
         }
     }
 
@@ -247,7 +247,7 @@ public ref struct DataWriter
         {
             if (_rent)
             {
-                BufferLease.Pool.Return(_owner);
+                BufferLease.BufferPool.Return(_owner);
             }
 
             _owner = null;
