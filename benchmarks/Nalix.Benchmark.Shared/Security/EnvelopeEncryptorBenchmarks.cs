@@ -7,32 +7,39 @@
 
 // | Method                    | Algorithm         | Mean     | Error    | StdDev   | Median   | Code Size | Allocated |
 // |-------------------------- |------------------ |---------:|---------:|---------:|---------:|----------:|----------:|
-// | EnvelopeEncryptor.Encrypt | SPECK             | 36.36 us | 0.868 us | 2.519 us | 35.60 us |   1,879 B |  17.05 KB |
-// | EnvelopeEncryptor.Decrypt | SPECK             | 26.37 us | 0.525 us | 0.919 us | 26.30 us |   3,238 B |   8.53 KB |
 // | EnvelopeEncryptor.Encrypt | SALSA20           | 51.30 us | 1.022 us | 2.349 us | 51.05 us |   1,879 B |  12.86 KB |
 // | EnvelopeEncryptor.Decrypt | SALSA20           | 27.98 us | 0.562 us | 1.325 us | 27.60 us |   3,238 B |   4.78 KB |
 // | EnvelopeEncryptor.Encrypt | CHACHA20          | 37.55 us | 1.017 us | 2.934 us | 37.55 us |   1,879 B |  14.26 KB |
 // | EnvelopeEncryptor.Decrypt | CHACHA20          | 26.46 us | 0.517 us | 0.708 us | 26.30 us |   3,238 B |   5.91 KB |
-// | EnvelopeEncryptor.Encrypt | SPECK_POLY1305    | 54.46 us | 1.092 us | 2.698 us | 53.70 us |   1,879 B |  19.07 KB |
-// | EnvelopeEncryptor.Decrypt | SPECK_POLY1305    | 47.46 us | 0.940 us | 1.596 us | 47.10 us |   3,238 B |  12.28 KB |
 // | EnvelopeEncryptor.Encrypt | SALSA20_POLY1305  | 45.25 us | 0.902 us | 1.862 us | 44.60 us |   1,879 B |   11.2 KB |
 // | EnvelopeEncryptor.Decrypt | SALSA20_POLY1305  | 38.97 us | 0.727 us | 0.607 us | 38.80 us |   3,238 B |   4.78 KB |
 // | EnvelopeEncryptor.Encrypt | CHACHA20_POLY1305 | 56.17 us | 1.466 us | 4.254 us | 55.35 us |   1,879 B |  11.45 KB |
 // | EnvelopeEncryptor.Decrypt | CHACHA20_POLY1305 | 48.75 us | 1.022 us | 2.883 us | 47.70 us |   3,238 B |   4.78 KB |
 
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Order;
 using Nalix.Common.Attributes;
 using Nalix.Common.Enums;
 using Nalix.Shared.Security;
 using System;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 
 namespace Nalix.Benchmark.Shared.Security;
 
 // Memory diagnoser to capture allocations; tune job/runtime as needed.
+[RankColumn]
 [MemoryDiagnoser]
+[ExceptionDiagnoser]
+[ThreadingDiagnoser]
 [DisassemblyDiagnoser]
+[HardwareCounters(
+    HardwareCounter.BranchInstructions,
+    HardwareCounter.BranchMispredictions,
+    HardwareCounter.CacheMisses,
+    HardwareCounter.InstructionRetired)]
+[MinColumn, MaxColumn]
+[Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
 public class EnvelopeEncryptorBenchmarks
 {
@@ -53,7 +60,7 @@ public class EnvelopeEncryptorBenchmarks
     {
         // Create a key of the required length for the chosen algorithm (32 bytes for CHACHA20_POLY1305)
         _key = new Byte[32];
-        RandomNumberGenerator.Fill(_key);
+        Array.Fill(_key, (Byte)0x42);
 
         _plainInstance = CreateSample();
     }
@@ -90,7 +97,7 @@ public class EnvelopeEncryptorBenchmarks
     {
         var root = new SampleModel
         {
-            Id = Guid.NewGuid(),
+            Id = default,
             PublicInfo = "This is public",
             SensitiveString = "Very sensitive text that should be encrypted",
             SensitiveNumber = 42,
