@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>Nalix.Benchmark.Shared.Security.EnvelopeEncryptorBenchmarks-20260305-094009</title>
+<title>Nalix.Benchmark.Shared.Security.EnvelopeEncryptorBenchmarks-20260305-213910</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -16,23 +16,18 @@
 BenchmarkDotNet v0.15.8, Windows 11 (10.0.26200.7840/25H2/2025Update/HudsonValley2)
 13th Gen Intel Core i7-13620H 2.40GHz, 1 CPU, 16 logical and 10 physical cores
 .NET SDK 10.0.103
-  [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
-  Job-CNUJVU : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+  [Host]    : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
+  .NET 10.0 : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
 </code></pre>
-<pre><code>InvocationCount=1  UnrollFactor=1  
+<pre><code>Job=.NET 10.0  Runtime=.NET 10.0  Toolchain=net10.0  
+InvocationCount=1  UnrollFactor=1  
 </code></pre>
 
 <table>
-<thead><tr><th>Method             </th><th>Algorithm  </th><th>Mean</th><th>Error</th><th>StdDev</th><th>Code Size</th><th>Allocated</th>
+<thead><tr><th>Method             </th><th>Algorithm</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Code Size</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td>
+</thead><tbody><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20</td><td>31.38 &mu;s</td><td>0.821 &mu;s</td><td>2.355 &mu;s</td><td>515 B</td><td>4.49 KB</td>
 </tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>SALSA20</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td>
-</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>CHACHA20</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td>
-</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>CHACHA20</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td>
-</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>SALSA20_POLY1305</td><td>37.45 &mu;s</td><td>1.905 &mu;s</td><td>5.617 &mu;s</td><td>1,879 B</td><td>2.66 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>SALSA20_POLY1305</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td>
-</tr><tr><td>EnvelopeEncryptor.Encrypt</td><td>CHACHA20_POLY1305</td><td>41.05 &mu;s</td><td>1.853 &mu;s</td><td>5.257 &mu;s</td><td>1,879 B</td><td>3.16 KB</td>
-</tr><tr><td>EnvelopeEncryptor.Decrypt</td><td>CHACHA20_POLY1305</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td>
 </tr></tbody></table>
 </body>
 </html>

@@ -54,7 +54,6 @@ using System.Security.Cryptography;
 namespace Nalix.Benchmark.Shared.Security;
 
 [MemoryDiagnoser]
-[ThreadingDiagnoser]
 [DisassemblyDiagnoser]
 public class EnvelopeCipherBenchmarks
 {
@@ -62,15 +61,17 @@ public class EnvelopeCipherBenchmarks
     public Int32 PayloadSize;
 
     // Keep all candidates, but handle unsupported ones explicitly in setup.
-    //[Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
-    //        CipherSuiteType.SALSA20_POLY1305, CipherSuiteType.CHACHA20_POLY1305)]
-    [Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20)]
+    [Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
+            CipherSuiteType.SALSA20_POLY1305, CipherSuiteType.CHACHA20_POLY1305)]
+    //[Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20)]
     public CipherSuiteType Algorithm;
 
     private Byte[] _key = Array.Empty<Byte>();
     private Byte[] _aad = Array.Empty<Byte>();
     private Byte[] _plaintext = Array.Empty<Byte>();
     private Byte[] _envelope = Array.Empty<Byte>();
+    private Byte[] _encryptBuffer = Array.Empty<Byte>();
+    private Byte[] _decryptBuffer = Array.Empty<Byte>();
 
     [GlobalSetup]
     public void GlobalSetup()
@@ -83,6 +84,9 @@ public class EnvelopeCipherBenchmarks
 
         _plaintext = new Byte[PayloadSize];
         RandomNumberGenerator.Fill(_plaintext);
+
+        _encryptBuffer = new Byte[_plaintext.Length + 64];
+        _decryptBuffer = new Byte[_plaintext.Length + 64];
 
         const Int32 overheadMargin = 64;
         var outBuffer = new Byte[_plaintext.Length + overheadMargin];
@@ -117,14 +121,23 @@ public class EnvelopeCipherBenchmarks
     [Benchmark(Description = "EnvelopeCipher.Encrypt")]
     public Boolean Encrypt()
     {
-        var temp = new Byte[_plaintext.Length + 64];
-        return EnvelopeCipher.Encrypt(_key.AsSpan(), _plaintext.AsSpan(), temp, _aad.AsSpan(), null, Algorithm, out _);
+        return EnvelopeCipher.Encrypt(
+            _key.AsSpan(),
+            _plaintext.AsSpan(),
+            _encryptBuffer,
+            _aad.AsSpan(),
+            null,
+            Algorithm,
+            out _);
     }
 
     [Benchmark(Description = "EnvelopeCipher.Decrypt")]
-    public Byte[] Decrypt()
+    public Boolean Decrypt()
     {
-        Boolean ok = EnvelopeCipher.Decrypt(_key.AsSpan(), _envelope.AsSpan(), out var pt, _aad.AsSpan());
-        return ok && pt != null ? pt : Array.Empty<Byte>();
+        return EnvelopeCipher.Decrypt(
+            _key.AsSpan(),
+            _envelope.AsSpan(),
+            _decryptBuffer,
+            out _);
     }
 }
