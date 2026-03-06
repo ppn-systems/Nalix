@@ -243,7 +243,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         Snowflake sessionToken = Snowflake.NewId(SnowflakeType.Session);
         long now = Clock.UnixMillisecondsNow();
 
-        IObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
+        ObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
         foreach (KeyValuePair<string, object> item in connection.Attributes)
         {
             attributes[item.Key] = item.Value;
@@ -352,7 +352,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return false;
         }
 
-        IObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
+        ObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
         foreach (KeyValuePair<string, object> item in connection.Attributes)
         {
             // Skip temporary handshake state

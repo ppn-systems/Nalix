@@ -436,7 +436,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         }
 
         List<T> result = new(count);
-        Type type = typeof(T);
+        _ = typeof(T);
 
         for (int i = 0; i < count; i++)
         {

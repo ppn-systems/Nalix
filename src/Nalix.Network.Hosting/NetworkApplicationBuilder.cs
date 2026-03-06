@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Sessions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.DataFrames;
