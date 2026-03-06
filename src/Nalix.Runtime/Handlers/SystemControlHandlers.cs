@@ -2,11 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
+using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 
 namespace Nalix.Runtime.Handlers;
@@ -26,45 +28,53 @@ public sealed class SystemControlHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode((ushort)ProtocolOpCode.SYSTEM_CONTROL)]
-    public static Control? Handle(IPacketContext<Control> context)
+    public static async ValueTask HandleAsync(IPacketContext<Control> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         Control packet = context.Packet;
-        return packet.Type switch
+        switch (packet.Type)
         {
-            ControlType.PING => HandlePing(packet),
-            ControlType.TIMESYNCREQUEST => HandleTimeSyncRequest(packet),
-            ControlType.DISCONNECT => HandleDisconnect(context.Connection, packet),
-            ControlType.CIPHER_UPDATE => HandleCipherUpdate(context.Connection, packet),
-
+            case ControlType.DISCONNECT:
+                HandleDisconnect(context.Connection, packet);
+                break;
+            case ControlType.PING:
+                await HandlePing(context.Connection, packet).ConfigureAwait(false);
+                break;
+            case ControlType.CIPHER_UPDATE:
+                await HandleCipherUpdate(context.Connection, packet).ConfigureAwait(false);
+                break;
+            case ControlType.TIMESYNCREQUEST:
+                await HandleTimeSyncRequest(context.Connection, packet).ConfigureAwait(false);
+                break;
             // Server generally does not need to send back automatic replies for these
-            ControlType.HEARTBEAT => null, // Transport layer might track last-seen
-            ControlType.PONG => null, // PONG received if Server pings Client
-            ControlType.CIPHER_UPDATE_ACK => null, // Client ACK (if Server inititated)
-            ControlType.ERROR => null,
-            ControlType.FAIL => null,
-            ControlType.NOTICE => null,
-            ControlType.SHUTDOWN => null, // Ignored by default unless admin system handles it
+            case ControlType.HEARTBEAT:         // Transport layer might track last-seen
+            case ControlType.PONG:              // PONG received if Server pings Client
+            case ControlType.CIPHER_UPDATE_ACK: // Client ACK (if Server inititated)
+            case ControlType.ERROR:
+            case ControlType.FAIL:
+            case ControlType.NOTICE:
+            case ControlType.SHUTDOWN:          // Ignored by default unless admin system handles it
 
             // Unused or reserved types return null
-            ControlType.NONE => null,
-            ControlType.ACK => null,
-            ControlType.NACK => null,
-            ControlType.RESUME => null,
-            ControlType.REDIRECT => null,
-            ControlType.THROTTLE => null,
-            ControlType.TIMEOUT => null,
-            ControlType.TIMESYNCRESPONSE => null,
-            ControlType.RESERVED1 => null,
-            ControlType.RESERVED2 => null,
-            _ => null,
-        };
+            case ControlType.NONE:
+            case ControlType.ACK:
+            case ControlType.NACK:
+            case ControlType.RESUME:
+            case ControlType.REDIRECT:
+            case ControlType.THROTTLE:
+            case ControlType.TIMEOUT:
+            case ControlType.TIMESYNCRESPONSE:
+            case ControlType.RESERVED1:
+            case ControlType.RESERVED2:
+            default:
+                break;
+        }
     }
 
     #region Private Methods
 
-    private static Control? HandleCipherUpdate(IConnection connection, Control packet)
+    private static async ValueTask HandleCipherUpdate(IConnection connection, Control packet)
     {
         // HACK: Payload Overloading.
         // Since we reused the 'Control' packet to avoid defining a new packet structure,
@@ -72,32 +82,30 @@ public sealed class SystemControlHandlers
         // Here we safely extract it back into the proper CipherSuiteType.
         connection.Algorithm = (CipherSuiteType)(byte)packet.Reason;
 
-        Control ack = new();
+        using PacketLease<Control> lease = PacketPool<Control>.Rent();
+        Control ack = lease.Value;
         ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Reason, packet.Protocol);
-        return ack;
+        await connection.TCP.SendAsync(ack).ConfigureAwait(false);
     }
 
-    private static Control HandlePing(Control ping)
+    private static async ValueTask HandlePing(IConnection connection, Control ping)
     {
-        Control pong = new();
+        using PacketLease<Control> lease = PacketPool<Control>.Rent();
+        Control pong = lease.Value;
         pong.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PONG, ping.SequenceId, ProtocolReason.NONE, ping.Protocol);
-        return pong;
+        await connection.TCP.SendAsync(pong).ConfigureAwait(false);
     }
 
-    private static Control? HandleTimeSyncRequest(Control req)
+    private static async ValueTask HandleTimeSyncRequest(IConnection connection, Control req)
     {
-        Control res = new();
+        using PacketLease<Control> lease = PacketPool<Control>.Rent();
+        Control res = lease.Value;
         res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, ProtocolReason.NONE, req.Protocol);
-
-        return res;
+        await connection.TCP.SendAsync(res).ConfigureAwait(false);
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
-    private static Control? HandleDisconnect(IConnection connection, Control packet)
-    {
-        connection.Disconnect("Client requested disconnect via Control frame.");
-        return null; // Do not send a reply
-    }
+    private static void HandleDisconnect(IConnection connection, Control _)
+        => connection.Disconnect("Client requested disconnect via Control frame.");
 
     #endregion Private Methods
 }

@@ -3,12 +3,14 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Security;
+using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
@@ -36,7 +38,7 @@ public sealed class HandshakeHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode((ushort)ProtocolOpCode.HANDSHAKE)]
-    public Handshake? Handle(IPacketContext<Handshake> context)
+    public static async ValueTask HandleAsync(IPacketContext<Handshake> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -46,32 +48,34 @@ public sealed class HandshakeHandlers
         switch (packet.Stage)
         {
             case HandshakeStage.CLIENT_HELLO:
-                return this.HandleClientHello(connection, packet);
+                await HandleClientHelloAsync(connection, packet).ConfigureAwait(false);
+                break;
 
             case HandshakeStage.CLIENT_FINISH:
-                return this.HandleClientFinish(connection, packet);
+                await HandleClientFinishAsync(connection, packet).ConfigureAwait(false);
+                break;
 
             case HandshakeStage.ERROR:
                 connection.Disconnect("Handshake error received from peer.");
-                return null;
+                break;
 
             case HandshakeStage.NONE:
             case HandshakeStage.SERVER_HELLO:
             case HandshakeStage.SERVER_FINISH:
             default:
-                this.RejectHandshake(connection, ProtocolReason.UNEXPECTED_MESSAGE);
-                return null;
+                await RejectHandshakeAsync(connection, ProtocolReason.UNEXPECTED_MESSAGE).ConfigureAwait(false);
+                break;
         }
     }
 
     #region Private Methods
 
-    private Handshake? HandleClientHello(IConnection connection, Handshake packet)
+    private static async ValueTask HandleClientHelloAsync(IConnection connection, Handshake packet)
     {
         if (!Handshake.IsValid(packet) || packet.PublicKey.Length != X25519.KeySize)
         {
-            this.RejectHandshake(connection, ProtocolReason.MALFORMED_PACKET);
-            return null;
+            await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
+            return;
         }
 
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
@@ -81,8 +85,8 @@ public sealed class HandshakeHandlers
         {
             MemorySecurity.ZeroMemory(sharedSecret);
             MemorySecurity.ZeroMemory(serverKey.PrivateKey);
-            this.RejectHandshake(connection, ProtocolReason.DECRYPTION_FAILED);
-            return null;
+            await RejectHandshakeAsync(connection, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            return;
         }
 
         byte[] serverNonce = Csprng.GetBytes(Handshake.DynamicSize);
@@ -107,43 +111,45 @@ public sealed class HandshakeHandlers
 
         connection.Attributes[ConnectionAttributes.HandshakeState] = state;
 
-        Handshake reply = new(
-            HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce,
-            HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash), packet.Protocol)
-        {
-            TranscriptHash = transcriptHash
-        };
+        using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
+        Handshake reply = lease.Value;
+        reply.Stage = HandshakeStage.SERVER_HELLO;
+        reply.PublicKey = serverKey.PublicKey;
+        reply.Nonce = serverNonce;
+        reply.Proof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
+        reply.Protocol = packet.Protocol;
+        reply.TranscriptHash = transcriptHash;
 
         MemorySecurity.ZeroMemory(serverKey.PrivateKey);
-        return reply;
+        await connection.TCP.SendAsync(reply).ConfigureAwait(false);
     }
 
-    private Handshake? HandleClientFinish(IConnection connection, Handshake packet)
+    private static async ValueTask HandleClientFinishAsync(IConnection connection, Handshake packet)
     {
         if (!TryGetState(connection, out HandshakeContext? state) || state is null)
         {
-            this.RejectHandshake(connection, ProtocolReason.STATE_VIOLATION);
-            return null;
+            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
         }
 
         if (packet.Proof.Length != Handshake.DynamicSize || packet.TranscriptHash.Length != Handshake.DynamicSize)
         {
-            this.RejectHandshake(connection, ProtocolReason.MALFORMED_PACKET);
-            return null;
+            await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
+            return;
         }
 
         if (!BitwiseOperations.FixedTimeEquals(packet.TranscriptHash, state.TranscriptHash))
         {
-            this.RejectHandshake(connection, ProtocolReason.CHECKSUM_FAILED);
-            return null;
+            await RejectHandshakeAsync(connection, ProtocolReason.CHECKSUM_FAILED).ConfigureAwait(false);
+            return;
         }
 
         byte[] expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
         if (!BitwiseOperations.FixedTimeEquals(packet.Proof, expectedProof))
         {
             MemorySecurity.ZeroMemory(expectedProof);
-            this.RejectHandshake(connection, ProtocolReason.SIGNATURE_INVALID);
-            return null;
+            await RejectHandshakeAsync(connection, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
+            return;
         }
 
         MemorySecurity.ZeroMemory(expectedProof);
@@ -151,26 +157,27 @@ public sealed class HandshakeHandlers
         connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
-
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
         SessionEntry? session = Hub?.CreateSession(connection);
 
-        Handshake reply = new(
-            HandshakeStage.SERVER_FINISH, [], [],
-            HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash), packet.Protocol)
-        {
-            TranscriptHash = state.TranscriptHash,
-            SessionToken = session is not null ? Snowflake.NewId(session.Snapshot.SessionToken) : (Snowflake)connection.ID
-        };
+        using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
+        Handshake reply = lease.Value;
+        reply.Stage = HandshakeStage.SERVER_FINISH;
+        reply.PublicKey = Array.Empty<byte>();
+        reply.Nonce = Array.Empty<byte>();
+        reply.Proof = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
+        reply.Protocol = packet.Protocol;
+        reply.TranscriptHash = state.TranscriptHash;
+        reply.SessionToken = session is not null ? Snowflake.NewId(session.Snapshot.SessionToken) : (Snowflake)connection.ID;
 
         MemorySecurity.ZeroMemory(state.SessionKey);
         MemorySecurity.ZeroMemory(state.SharedSecret);
 
-        return reply;
+        await connection.TCP.SendAsync(reply).ConfigureAwait(false);
     }
 
-    private void RejectHandshake(IConnection connection, ProtocolReason reason)
+    private static async ValueTask RejectHandshakeAsync(IConnection connection, ProtocolReason reason)
     {
         if (TryGetState(connection, out HandshakeContext? state) && state is not null)
         {
@@ -181,9 +188,10 @@ public sealed class HandshakeHandlers
 
         try
         {
-            Control control = new();
+            using PacketLease<Control> lease = PacketPool<Control>.Rent();
+            Control control = lease.Value;
             control.Initialize(opCode: 0, type: ControlType.ERROR, reasonCode: reason, transport: ProtocolType.TCP);
-            connection.TCP.Send(control);
+            await connection.TCP.SendAsync(control).ConfigureAwait(false);
         }
         finally
         {
