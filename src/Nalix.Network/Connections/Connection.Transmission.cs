@@ -310,16 +310,7 @@ public sealed partial class Connection : IConnection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public System.Boolean Send(System.ReadOnlySpan<System.Byte> message)
-        {
-            if (_outer._cstream.Send(message))
-            {
-                _outer._onPostProcessEvent?.Invoke(this, _outer._evtArgs);
-                return true;
-            }
-
-            return false;
-        }
+        public System.Boolean Send(System.ReadOnlySpan<System.Byte> message) => _outer._cstream.Send(message);
 
         /// <inheritdoc/>
         [System.Diagnostics.StackTraceHidden]
@@ -444,15 +435,7 @@ public sealed partial class Connection : IConnection
         public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
             System.ReadOnlyMemory<System.Byte> message,
             System.Threading.CancellationToken cancellationToken = default)
-        {
-            if (await _outer._cstream.SendAsync(message, cancellationToken).ConfigureAwait(false))
-            {
-                _outer._onPostProcessEvent?.Invoke(this, _outer._evtArgs);
-                return true;
-            }
-
-            return false;
-        }
+            => await _outer._cstream.SendAsync(message, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>
         [System.Diagnostics.StackTraceHidden]
