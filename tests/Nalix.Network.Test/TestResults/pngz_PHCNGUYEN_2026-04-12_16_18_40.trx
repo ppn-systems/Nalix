@@ -1,0 +1,184 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="65634a2a-b53c-4b82-9c52-e9c7249cc81c" name="pngz@PHCNGUYEN 2026-04-12 16:18:40" runUser="PHCNGUYEN\pngz" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-04-12T16:18:40.7984918+07:00" queuing="2026-04-12T16:18:40.7984919+07:00" start="2026-04-12T16:18:38.3446589+07:00" finish="2026-04-12T16:18:41.6310032+07:00" />
+  <TestSettings name="default" id="74b00bff-d782-4aa8-b8e1-ae0f4cedf955">
+    <Deployment runDeploymentRoot="pngz_PHCNGUYEN_2026-04-12_16_18_40" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="f13c36ca-63dc-47e4-aab8-2b61d7130186" testId="0037f558-8826-1675-fd16-3383b0e7ede3" testName="Nalix.Network.Tests.ConnectionHubSessionTests.CreateSession_CapturesConnectionState" computerName="PHCNGUYEN" duration="00:00:00.0558324" startTime="2026-04-12T16:18:40.7147658+07:00" endTime="2026-04-12T16:18:40.7828806+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f13c36ca-63dc-47e4-aab8-2b61d7130186" />
+    <UnitTestResult executionId="80b6f867-10e5-4159-83f9-8edff41627f7" testId="49f6a5bd-9158-40e5-c05f-b7a4396451b0" testName="Nalix.Network.Tests.NetworkSmokeTests.NetworkEndpointInterfaceProperties_RemainAccessibleThroughInterface" computerName="PHCNGUYEN" duration="00:00:00.0048674" startTime="2026-04-12T16:18:40.7803303+07:00" endTime="2026-04-12T16:18:40.7808428+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="80b6f867-10e5-4159-83f9-8edff41627f7" />
+    <UnitTestResult executionId="ec74d183-d175-476b-823b-de22c6aa4946" testId="6befbf29-f2c5-4e94-a816-b0d622f112b4" testName="Nalix.Network.Tests.UdpListenerTests.ProcessDatagram_ShortPacket_IncrementsDropShort" computerName="PHCNGUYEN" duration="00:00:00.0002941" startTime="2026-04-12T16:18:40.7627507+07:00" endTime="2026-04-12T16:18:40.7627871+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="ec74d183-d175-476b-823b-de22c6aa4946" />
+    <UnitTestResult executionId="3587a8d0-9277-4f70-b3f9-f05664f76ea4" testId="17fd0c88-f8fe-ecfc-b762-862ebf29208f" testName="Nalix.Network.Tests.NetworkSmokeTests.Evaluate_DisposedLimiter_ReturnsHardLockoutDecision" computerName="PHCNGUYEN" duration="00:00:00.0030240" startTime="2026-04-12T16:18:40.7824443+07:00" endTime="2026-04-12T16:18:40.7849639+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3587a8d0-9277-4f70-b3f9-f05664f76ea4" />
+    <UnitTestResult executionId="be2c4855-17e4-41d3-a855-c10ef5b01a86" testId="39933f5d-1dce-d469-4dd9-a4bdf21d37cc" testName="Nalix.Network.Tests.PolicyRateLimiterTests.Evaluate_UsesSeparateBucketsPerOpcode" computerName="PHCNGUYEN" duration="00:00:00.0552118" startTime="2026-04-12T16:18:40.7147861+07:00" endTime="2026-04-12T16:18:40.7824878+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="be2c4855-17e4-41d3-a855-c10ef5b01a86" />
+    <UnitTestResult executionId="c3fbe58f-87ca-41b8-86a4-602c293f70ff" testId="8cbc8efd-1051-eaf4-cabc-50a915bb1d2e" testName="Nalix.Network.Tests.NetworkSmokeTests.GetReportData_AfterEvaluation_ContainsTrackedEndpointSummary" computerName="PHCNGUYEN" duration="00:00:00.0492676" startTime="2026-04-12T16:18:40.7146877+07:00" endTime="2026-04-12T16:18:40.7797759+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c3fbe58f-87ca-41b8-86a4-602c293f70ff" />
+    <UnitTestResult executionId="db9a751e-a80d-4658-ae4e-94d704b955ff" testId="8742b74a-307e-f5c5-5f14-f6981bd8f9b9" testName="Nalix.Network.Tests.UdpListenerTests.ConnectionUnregistered_PrunesEndpointCache" computerName="PHCNGUYEN" duration="00:00:00.0159301" startTime="2026-04-12T16:18:40.7791669+07:00" endTime="2026-04-12T16:18:40.7866055+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="db9a751e-a80d-4658-ae4e-94d704b955ff" />
+    <UnitTestResult executionId="9b7887de-1b20-41b3-bfa5-140d17aced2c" testId="ae5cff37-9bd8-c194-7927-c7b58a3bd1c3" testName="Nalix.Network.Tests.ConnectionHubSessionTests.TryResumeSession_RestoresState_AndFailsIfOldConnectionActive" computerName="PHCNGUYEN" duration="00:00:00.0051893" startTime="2026-04-12T16:18:40.7832642+07:00" endTime="2026-04-12T16:18:40.7861190+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9b7887de-1b20-41b3-bfa5-140d17aced2c" />
+    <UnitTestResult executionId="998a3f4a-712a-4044-8400-4ad76fa439e5" testId="c2d13a07-8b81-6ba0-a061-8fde3fb680eb" testName="Nalix.Network.Tests.SocketConnectionFragmentationTests.BeginReceive_NonFragmentedFrame_DoesNotCreateFragmentAssembler" computerName="PHCNGUYEN" duration="00:00:00.0027685" startTime="2026-04-12T16:18:40.8022119+07:00" endTime="2026-04-12T16:18:40.8047294+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="998a3f4a-712a-4044-8400-4ad76fa439e5" />
+    <UnitTestResult executionId="5dbad5c1-e70f-47f6-a304-84e7d33cd92b" testId="29045f5e-304d-ed20-e518-dfcc7bd598c3" testName="Nalix.Network.Tests.ConnectionHubTests.UnregisterConnection_DecrementsCount_AndRaisesEvent" computerName="PHCNGUYEN" duration="00:00:00.0036372" startTime="2026-04-12T16:18:40.7849157+07:00" endTime="2026-04-12T16:18:40.7863645+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5dbad5c1-e70f-47f6-a304-84e7d33cd92b" />
+    <UnitTestResult executionId="d6c45cee-da6e-4c87-a3bf-d4c429bae23f" testId="ad4f3f54-18a9-06d1-a11b-332338edc0b8" testName="Nalix.Network.Tests.SocketConnectionFragmentationTests.BeginReceive_FragmentedFrame_CreatesFragmentAssemblerOnDemand" computerName="PHCNGUYEN" duration="00:00:00.0118451" startTime="2026-04-12T16:18:40.7903578+07:00" endTime="2026-04-12T16:18:40.8017208+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="d6c45cee-da6e-4c87-a3bf-d4c429bae23f" />
+    <UnitTestResult executionId="f8192e65-ab18-42b3-83d4-0d409581f2d1" testId="52d5a6ea-ace0-1281-e683-d9b05cf0a6e6" testName="Nalix.Network.Tests.UdpListenerTests.ProcessDatagram_InvalidTransport_IncrementsDropShort" computerName="PHCNGUYEN" duration="00:00:00.0002565" startTime="2026-04-12T16:18:40.7621790+07:00" endTime="2026-04-12T16:18:40.7622754+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f8192e65-ab18-42b3-83d4-0d409581f2d1" />
+    <UnitTestResult executionId="dfb7d3ff-462a-445f-93e8-fb1ae18a1410" testId="8bf51bb1-2d66-ecd5-2794-7d2f31ed7cbf" testName="Nalix.Network.Tests.UdpListenerTests.ProcessDatagram_UnknownSessionToken_IncrementsDropUnknown" computerName="PHCNGUYEN" duration="00:00:00.0447098" startTime="2026-04-12T16:18:40.7134961+07:00" endTime="2026-04-12T16:18:40.7457788+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="dfb7d3ff-462a-445f-93e8-fb1ae18a1410" />
+    <UnitTestResult executionId="e462e3ee-60d3-41cd-a6d3-8125c79b470c" testId="01884d30-0dbd-bf1e-c108-f78cb20a7fba" testName="Nalix.Network.Tests.PacketContextBridgeDispatchTests.ExecuteResolvedHandlerAsync_BridgesTypedInterfaceContext_WhenDispatcherUsesIPacket" computerName="PHCNGUYEN" duration="00:00:00.0863550" startTime="2026-04-12T16:18:40.7147278+07:00" endTime="2026-04-12T16:18:40.7870687+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e462e3ee-60d3-41cd-a6d3-8125c79b470c" />
+    <UnitTestResult executionId="b5572648-4357-4d31-9251-6812e01ac3ef" testId="1c7b1508-2a53-a480-df48-a56dd44700fc" testName="Nalix.Network.Tests.NetworkSmokeTests.Validate_TokenBucketOptions_NonPowerOfTwoShardCount_ThrowsValidationException" computerName="PHCNGUYEN" duration="00:00:00.0010207" startTime="2026-04-12T16:18:40.7812792+07:00" endTime="2026-04-12T16:18:40.7819759+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b5572648-4357-4d31-9251-6812e01ac3ef" />
+    <UnitTestResult executionId="9789a0a7-40fc-419a-9171-1b1ba026f556" testId="5a192b73-e044-443a-70be-e90b95d80466" testName="Nalix.Network.Tests.AsyncCallbackDispatchTests.InjectIncoming_QueuesProcessCallbackOnce_AndDoesNotUnderflowPendingPackets" computerName="PHCNGUYEN" duration="00:00:00.0033582" startTime="2026-04-12T16:18:40.8052147+07:00" endTime="2026-04-12T16:18:40.8083881+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9789a0a7-40fc-419a-9171-1b1ba026f556" />
+    <UnitTestResult executionId="5cfa1392-b97a-4bf4-a6f0-fba7fd64fc50" testId="5454192c-e470-53ce-d223-7ad1e0cf5f69" testName="Nalix.Network.Tests.NetworkSmokeTests.Evaluate_ConcurrentCalls_OnSameEndpoint_DoNotThrow" computerName="PHCNGUYEN" duration="00:00:00.0059383" startTime="2026-04-12T16:18:40.7858261+07:00" endTime="2026-04-12T16:18:40.7868347+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5cfa1392-b97a-4bf4-a6f0-fba7fd64fc50" />
+    <UnitTestResult executionId="10fd5455-1b37-4458-95b0-7fb3d475977b" testId="ef658690-d6a4-64c6-e615-3aecabbfb7dd" testName="Nalix.Network.Tests.ConnectionHubTests.RegisterConnection_IncrementsCount_AndAllowsLookup" computerName="PHCNGUYEN" duration="00:00:00.0576705" startTime="2026-04-12T16:18:40.7147527+07:00" endTime="2026-04-12T16:18:40.7833011+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="10fd5455-1b37-4458-95b0-7fb3d475977b" />
+    <UnitTestResult executionId="7d665b26-4446-4e90-83ea-55dad88c748f" testId="5ae2ceea-cab5-ee9d-cbcb-e44173d396d1" testName="Nalix.Network.Tests.PooledSocketReceiveContextTests.ReceiveAsync_AsyncCompletion_ReusesManualResetValueTaskSourceAcrossOperations" computerName="PHCNGUYEN" duration="00:00:00.0393243" startTime="2026-04-12T16:18:40.7148013+07:00" endTime="2026-04-12T16:18:40.7425149+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="7d665b26-4446-4e90-83ea-55dad88c748f" />
+    <UnitTestResult executionId="3630df9f-f5df-4f86-b851-4139ce7e8965" testId="a66d1ea0-99ff-bb4c-8ae5-0563bf065476" testName="Nalix.Network.Tests.PacketContextBridgeDispatchTests.ExecuteResolvedHandlerAsync_BridgesTypedConcreteContext_WhenDispatcherUsesIPacket" computerName="PHCNGUYEN" duration="00:00:00.0053908" startTime="2026-04-12T16:18:40.7874605+07:00" endTime="2026-04-12T16:18:40.7893953+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="3630df9f-f5df-4f86-b851-4139ce7e8965" />
+    <UnitTestResult executionId="da9b25ef-ca82-4db2-b150-3665685c8fe5" testId="c8e8f263-85af-959d-9848-1f97c42db434" testName="Nalix.Network.Tests.PolicyRateLimiterTests.Evaluate_StalePolicyEntry_IsEvictedBySweep" computerName="PHCNGUYEN" duration="00:00:00.0047637" startTime="2026-04-12T16:18:40.7828475+07:00" endTime="2026-04-12T16:18:40.7858688+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="da9b25ef-ca82-4db2-b150-3665685c8fe5" />
+    <UnitTestResult executionId="c0b77386-a233-4d4f-9c09-2b4f9aad7763" testId="0014c6b0-5a02-5c7f-8430-a5e0a7800565" testName="Nalix.Network.Tests.AsyncCallbackDispatchTests.Send_PostProcessCallback_DoesNotConsumeReceivePendingSlot" computerName="PHCNGUYEN" duration="00:00:00.0034256" startTime="2026-04-12T16:18:40.8088089+07:00" endTime="2026-04-12T16:18:40.8120410+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="c0b77386-a233-4d4f-9c09-2b4f9aad7763" />
+    <UnitTestResult executionId="94fb58fa-8488-409e-9f9e-6a0660aa454d" testId="3f93e501-47a2-a0b4-1cdd-86afe6808b34" testName="Nalix.Network.Tests.NetworkSmokeTests.Validate_ConnectionLimitOptions_DefaultsAreValid" computerName="PHCNGUYEN" duration="00:00:00.0019013" startTime="2026-04-12T16:18:40.7853726+07:00" endTime="2026-04-12T16:18:40.7854213+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="94fb58fa-8488-409e-9f9e-6a0660aa454d" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Nalix.Network.Tests.AsyncCallbackDispatchTests.InjectIncoming_QueuesProcessCallbackOnce_AndDoesNotUnderflowPendingPackets" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="5a192b73-e044-443a-70be-e90b95d80466">
+      <Execution id="9789a0a7-40fc-419a-9171-1b1ba026f556" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.AsyncCallbackDispatchTests" name="InjectIncoming_QueuesProcessCallbackOnce_AndDoesNotUnderflowPendingPackets" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.ConnectionHubTests.UnregisterConnection_DecrementsCount_AndRaisesEvent" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="29045f5e-304d-ed20-e518-dfcc7bd598c3">
+      <Execution id="5dbad5c1-e70f-47f6-a304-84e7d33cd92b" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.ConnectionHubTests" name="UnregisterConnection_DecrementsCount_AndRaisesEvent" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.NetworkSmokeTests.GetReportData_AfterEvaluation_ContainsTrackedEndpointSummary" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="8cbc8efd-1051-eaf4-cabc-50a915bb1d2e">
+      <Execution id="c3fbe58f-87ca-41b8-86a4-602c293f70ff" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.NetworkSmokeTests" name="GetReportData_AfterEvaluation_ContainsTrackedEndpointSummary" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.UdpListenerTests.ProcessDatagram_ShortPacket_IncrementsDropShort" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="6befbf29-f2c5-4e94-a816-b0d622f112b4">
+      <Execution id="ec74d183-d175-476b-823b-de22c6aa4946" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.UdpListenerTests" name="ProcessDatagram_ShortPacket_IncrementsDropShort" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.ConnectionHubTests.RegisterConnection_IncrementsCount_AndAllowsLookup" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="ef658690-d6a4-64c6-e615-3aecabbfb7dd">
+      <Execution id="10fd5455-1b37-4458-95b0-7fb3d475977b" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.ConnectionHubTests" name="RegisterConnection_IncrementsCount_AndAllowsLookup" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.UdpListenerTests.ProcessDatagram_UnknownSessionToken_IncrementsDropUnknown" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="8bf51bb1-2d66-ecd5-2794-7d2f31ed7cbf">
+      <Execution id="dfb7d3ff-462a-445f-93e8-fb1ae18a1410" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.UdpListenerTests" name="ProcessDatagram_UnknownSessionToken_IncrementsDropUnknown" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.NetworkSmokeTests.Evaluate_ConcurrentCalls_OnSameEndpoint_DoNotThrow" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="5454192c-e470-53ce-d223-7ad1e0cf5f69">
+      <Execution id="5cfa1392-b97a-4bf4-a6f0-fba7fd64fc50" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.NetworkSmokeTests" name="Evaluate_ConcurrentCalls_OnSameEndpoint_DoNotThrow" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.ConnectionHubSessionTests.TryResumeSession_RestoresState_AndFailsIfOldConnectionActive" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="ae5cff37-9bd8-c194-7927-c7b58a3bd1c3">
+      <Execution id="9b7887de-1b20-41b3-bfa5-140d17aced2c" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.ConnectionHubSessionTests" name="TryResumeSession_RestoresState_AndFailsIfOldConnectionActive" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.PooledSocketReceiveContextTests.ReceiveAsync_AsyncCompletion_ReusesManualResetValueTaskSourceAcrossOperations" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="5ae2ceea-cab5-ee9d-cbcb-e44173d396d1">
+      <Execution id="7d665b26-4446-4e90-83ea-55dad88c748f" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.PooledSocketReceiveContextTests" name="ReceiveAsync_AsyncCompletion_ReusesManualResetValueTaskSourceAcrossOperations" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.PacketContextBridgeDispatchTests.ExecuteResolvedHandlerAsync_BridgesTypedConcreteContext_WhenDispatcherUsesIPacket" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="a66d1ea0-99ff-bb4c-8ae5-0563bf065476">
+      <Execution id="3630df9f-f5df-4f86-b851-4139ce7e8965" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.PacketContextBridgeDispatchTests" name="ExecuteResolvedHandlerAsync_BridgesTypedConcreteContext_WhenDispatcherUsesIPacket" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.UdpListenerTests.ProcessDatagram_InvalidTransport_IncrementsDropShort" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="52d5a6ea-ace0-1281-e683-d9b05cf0a6e6">
+      <Execution id="f8192e65-ab18-42b3-83d4-0d409581f2d1" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.UdpListenerTests" name="ProcessDatagram_InvalidTransport_IncrementsDropShort" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.PacketContextBridgeDispatchTests.ExecuteResolvedHandlerAsync_BridgesTypedInterfaceContext_WhenDispatcherUsesIPacket" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="01884d30-0dbd-bf1e-c108-f78cb20a7fba">
+      <Execution id="e462e3ee-60d3-41cd-a6d3-8125c79b470c" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.PacketContextBridgeDispatchTests" name="ExecuteResolvedHandlerAsync_BridgesTypedInterfaceContext_WhenDispatcherUsesIPacket" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.NetworkSmokeTests.Validate_TokenBucketOptions_NonPowerOfTwoShardCount_ThrowsValidationException" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="1c7b1508-2a53-a480-df48-a56dd44700fc">
+      <Execution id="b5572648-4357-4d31-9251-6812e01ac3ef" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.NetworkSmokeTests" name="Validate_TokenBucketOptions_NonPowerOfTwoShardCount_ThrowsValidationException" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.UdpListenerTests.ConnectionUnregistered_PrunesEndpointCache" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="8742b74a-307e-f5c5-5f14-f6981bd8f9b9">
+      <Execution id="db9a751e-a80d-4658-ae4e-94d704b955ff" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.UdpListenerTests" name="ConnectionUnregistered_PrunesEndpointCache" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.PolicyRateLimiterTests.Evaluate_StalePolicyEntry_IsEvictedBySweep" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="c8e8f263-85af-959d-9848-1f97c42db434">
+      <Execution id="da9b25ef-ca82-4db2-b150-3665685c8fe5" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.PolicyRateLimiterTests" name="Evaluate_StalePolicyEntry_IsEvictedBySweep" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.SocketConnectionFragmentationTests.BeginReceive_FragmentedFrame_CreatesFragmentAssemblerOnDemand" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="ad4f3f54-18a9-06d1-a11b-332338edc0b8">
+      <Execution id="d6c45cee-da6e-4c87-a3bf-d4c429bae23f" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.SocketConnectionFragmentationTests" name="BeginReceive_FragmentedFrame_CreatesFragmentAssemblerOnDemand" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.ConnectionHubSessionTests.CreateSession_CapturesConnectionState" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="0037f558-8826-1675-fd16-3383b0e7ede3">
+      <Execution id="f13c36ca-63dc-47e4-aab8-2b61d7130186" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.ConnectionHubSessionTests" name="CreateSession_CapturesConnectionState" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.NetworkSmokeTests.Validate_ConnectionLimitOptions_DefaultsAreValid" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="3f93e501-47a2-a0b4-1cdd-86afe6808b34">
+      <Execution id="94fb58fa-8488-409e-9f9e-6a0660aa454d" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.NetworkSmokeTests" name="Validate_ConnectionLimitOptions_DefaultsAreValid" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.PolicyRateLimiterTests.Evaluate_UsesSeparateBucketsPerOpcode" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="39933f5d-1dce-d469-4dd9-a4bdf21d37cc">
+      <Execution id="be2c4855-17e4-41d3-a855-c10ef5b01a86" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.PolicyRateLimiterTests" name="Evaluate_UsesSeparateBucketsPerOpcode" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.NetworkSmokeTests.NetworkEndpointInterfaceProperties_RemainAccessibleThroughInterface" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="49f6a5bd-9158-40e5-c05f-b7a4396451b0">
+      <Execution id="80b6f867-10e5-4159-83f9-8edff41627f7" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.NetworkSmokeTests" name="NetworkEndpointInterfaceProperties_RemainAccessibleThroughInterface" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.NetworkSmokeTests.Evaluate_DisposedLimiter_ReturnsHardLockoutDecision" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="17fd0c88-f8fe-ecfc-b762-862ebf29208f">
+      <Execution id="3587a8d0-9277-4f70-b3f9-f05664f76ea4" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.NetworkSmokeTests" name="Evaluate_DisposedLimiter_ReturnsHardLockoutDecision" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.AsyncCallbackDispatchTests.Send_PostProcessCallback_DoesNotConsumeReceivePendingSlot" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="0014c6b0-5a02-5c7f-8430-a5e0a7800565">
+      <Execution id="c0b77386-a233-4d4f-9c09-2b4f9aad7763" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.AsyncCallbackDispatchTests" name="Send_PostProcessCallback_DoesNotConsumeReceivePendingSlot" />
+    </UnitTest>
+    <UnitTest name="Nalix.Network.Tests.SocketConnectionFragmentationTests.BeginReceive_NonFragmentedFrame_DoesNotCreateFragmentAssembler" storage="e:\cs\nalix\tests\nalix.network.test\bin\release\net10.0\nalix.network.tests.dll" id="c2d13a07-8b81-6ba0-a061-8fde3fb680eb">
+      <Execution id="998a3f4a-712a-4044-8400-4ad76fa439e5" />
+      <TestMethod codeBase="E:\Cs\Nalix\tests\Nalix.Network.Test\bin\Release\net10.0\Nalix.Network.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Nalix.Network.Tests.SocketConnectionFragmentationTests" name="BeginReceive_NonFragmentedFrame_DoesNotCreateFragmentAssembler" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="0037f558-8826-1675-fd16-3383b0e7ede3" executionId="f13c36ca-63dc-47e4-aab8-2b61d7130186" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="49f6a5bd-9158-40e5-c05f-b7a4396451b0" executionId="80b6f867-10e5-4159-83f9-8edff41627f7" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6befbf29-f2c5-4e94-a816-b0d622f112b4" executionId="ec74d183-d175-476b-823b-de22c6aa4946" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="17fd0c88-f8fe-ecfc-b762-862ebf29208f" executionId="3587a8d0-9277-4f70-b3f9-f05664f76ea4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="39933f5d-1dce-d469-4dd9-a4bdf21d37cc" executionId="be2c4855-17e4-41d3-a855-c10ef5b01a86" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8cbc8efd-1051-eaf4-cabc-50a915bb1d2e" executionId="c3fbe58f-87ca-41b8-86a4-602c293f70ff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8742b74a-307e-f5c5-5f14-f6981bd8f9b9" executionId="db9a751e-a80d-4658-ae4e-94d704b955ff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ae5cff37-9bd8-c194-7927-c7b58a3bd1c3" executionId="9b7887de-1b20-41b3-bfa5-140d17aced2c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c2d13a07-8b81-6ba0-a061-8fde3fb680eb" executionId="998a3f4a-712a-4044-8400-4ad76fa439e5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="29045f5e-304d-ed20-e518-dfcc7bd598c3" executionId="5dbad5c1-e70f-47f6-a304-84e7d33cd92b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ad4f3f54-18a9-06d1-a11b-332338edc0b8" executionId="d6c45cee-da6e-4c87-a3bf-d4c429bae23f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="52d5a6ea-ace0-1281-e683-d9b05cf0a6e6" executionId="f8192e65-ab18-42b3-83d4-0d409581f2d1" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="8bf51bb1-2d66-ecd5-2794-7d2f31ed7cbf" executionId="dfb7d3ff-462a-445f-93e8-fb1ae18a1410" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="01884d30-0dbd-bf1e-c108-f78cb20a7fba" executionId="e462e3ee-60d3-41cd-a6d3-8125c79b470c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1c7b1508-2a53-a480-df48-a56dd44700fc" executionId="b5572648-4357-4d31-9251-6812e01ac3ef" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5a192b73-e044-443a-70be-e90b95d80466" executionId="9789a0a7-40fc-419a-9171-1b1ba026f556" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5454192c-e470-53ce-d223-7ad1e0cf5f69" executionId="5cfa1392-b97a-4bf4-a6f0-fba7fd64fc50" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="ef658690-d6a4-64c6-e615-3aecabbfb7dd" executionId="10fd5455-1b37-4458-95b0-7fb3d475977b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="5ae2ceea-cab5-ee9d-cbcb-e44173d396d1" executionId="7d665b26-4446-4e90-83ea-55dad88c748f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a66d1ea0-99ff-bb4c-8ae5-0563bf065476" executionId="3630df9f-f5df-4f86-b851-4139ce7e8965" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c8e8f263-85af-959d-9848-1f97c42db434" executionId="da9b25ef-ca82-4db2-b150-3665685c8fe5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="0014c6b0-5a02-5c7f-8430-a5e0a7800565" executionId="c0b77386-a233-4d4f-9c09-2b4f9aad7763" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3f93e501-47a2-a0b4-1cdd-86afe6808b34" executionId="94fb58fa-8488-409e-9f9e-6a0660aa454d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="23" executed="23" passed="23" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.5+1b188a7b0a (64-bit .NET 10.0.5)&#xD;
+[xUnit.net 00:00:00.06]   Discovering: Nalix.Network.Tests&#xD;
+[xUnit.net 00:00:00.09]   Discovered:  Nalix.Network.Tests&#xD;
+[xUnit.net 00:00:00.11]   Starting:    Nalix.Network.Tests&#xD;
+     Warning:&#xD;
+     The component "Fluent Assertions" is governed by the rules defined in the Xceed License Agreement and&#xD;
+     the Xceed Fluent Assertions Community License. You may use Fluent Assertions free of charge for&#xD;
+     non-commercial use only. An active subscription is required to use Fluent Assertions for commercial use.&#xD;
+     Please contact Xceed Sales mailto:sales@xceed.com to acquire a subscription at a very low cost.&#xD;
+     A paid commercial license supports the development and continued increasing support of&#xD;
+     Fluent Assertions users under both commercial and community licenses. Help us&#xD;
+     keep Fluent Assertions at the forefront of unit testing.&#xD;
+     For more information, visit https://xceed.com/products/unit-testing/fluent-assertions/&#xD;
+[xUnit.net 00:00:00.25]   Finished:    Nalix.Network.Tests&#xD;
+</StdOut>
+    </Output>
+    <CollectorDataEntries>
+      <Collector agentName="PHCNGUYEN" uri="datacollector://microsoft/CoverletCodeCoverage/1.0" collectorDisplayName="XPlat code coverage">
+        <UriAttachments>
+          <UriAttachment>
+            <A href="PHCNGUYEN\coverage.cobertura.xml"></A>
+          </UriAttachment>
+        </UriAttachments>
+      </Collector>
+    </CollectorDataEntries>
+  </ResultSummary>
+</TestRun>
