@@ -45,6 +45,20 @@ public sealed partial class TaskManager : ITaskManager
     #region Properties
 
     /// <summary>
+    /// Gets a short console title summary containing running workers, total workers, and recurring tasks.
+    /// </summary>
+    public System.String Title
+    {
+        get
+        {
+            System.Int32 recurring = _recurring.Count;
+            System.Int32 totalWorkers = _workers.Count;
+            System.Int32 runningWorkers = _workers.Values.Count(w => w.IsRunning);
+            return $"Workers: {runningWorkers} running / {totalWorkers} total | Recurring: {recurring}";
+        }
+    }
+
+    /// <summary>
     /// Gets the average execution time for worker tasks in milliseconds.
     /// </summary>
     public System.Double AverageWorkerExecutionTime =>

@@ -1,9 +1,10 @@
 using DDoS.Helpers;
 using DDoS.Models;
+using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.SDK.Transport;
-using Nalix.Shared.Messaging.Controls;
+using Nalix.Shared.Messaging;
 
 namespace DDoS;
 
@@ -17,275 +18,433 @@ public partial class Form1 : Form
     private ReliableClient? _reliableClient;
     private System.Windows.Forms.Timer? _statusTimer;
 
-    // UI controls for TCP Flood tab
+    // ── TCP Flood tab controls ───────────────────────────────────────────────
     private TextBox? txtTcpIp, txtTcpPort, txtTcpConn;
     private Button? btnTcpStart, btnTcpStop;
     private Label? lblFloodStatus;
 
-    // UI controls for TCP Send tab - UPDATED
+    // ── Packet Sender – LEFT column ──────────────────────────────────────────
     private TextBox? txtSendIp, txtSendPort;
     private ComboBox? cmbPacketType;
+    private NumericUpDown? nudOpCode;
+    private ComboBox? cmbPriority;
+    private ComboBox? cmbFlags;
+    private ComboBox? cmbTransportProtocol;
     private TextBox? txtPacketContent;
+
+    // ── Packet Sender – RIGHT column (Control/Directive only) ────────────────
+    private Label? lblSequenceId, lblControlType, lblProtocolReason, lblProtocolAdvice;
+    private Label? lblHandshakeHint;
     private NumericUpDown? nudSequenceId;
     private ComboBox? cmbControlType, cmbProtocolReason, cmbProtocolAdvice;
+    private Button? btnToggleHexMode;
+    private Boolean _handshakeHexMode = true;
+
+    // ── Buttons & status ─────────────────────────────────────────────────────
     private Button? btnConnect, btnSendPacket, btnDisconnect, btnClearHistory;
     private Label? lblSendStatus, lblPacketInfo;
     private ListBox? lstPacketHistory, lstReceivedData;
 
-    // Packet history storage
+    // Packet history
     private readonly List<PacketHistory> _packetHistory = [];
 
-    /// <summary>
-    /// Form constructor
-    /// </summary>
+    /// <summary>Form constructor.</summary>
     public Form1()
     {
         InitializeComponent();
         InitializeMainUI();
     }
 
-    /// <summary>
-    /// Initializes the main user interface, including tabs and controls.
-    /// </summary>
+    /// <summary>Initializes the main UI including tab pages.</summary>
     private void InitializeMainUI()
     {
         this.BackColor = Color.FromArgb(150, 150, 150);
         this.Text = "DDoS Tool - Packet Sender";
-        this.Size = new Size(750, 500);
+        this.Size = new Size(900, 640);
 
-        var tabControl = new TabControl
-        {
-            Dock = DockStyle.Fill
-        };
-
+        var tabControl = new TabControl { Dock = DockStyle.Fill };
         tabControl.TabPages.Add(CreateTcpFloodTab());
-        tabControl.TabPages.Add(CreatePacketSendTab()); // Renamed and updated
-
+        tabControl.TabPages.Add(CreatePacketSendTab());
         this.Controls.Add(tabControl);
     }
 
-    /// <summary>
-    /// Creates the TCP Flood tab with controls and event bindings.
-    /// </summary>
+    #region TCP Flood Tab
+
+    /// <summary>Creates the TCP Flood tab.</summary>
     private TabPage CreateTcpFloodTab()
     {
-        var tcpTab = new TabPage("TCP - Flood")
-        {
-            BackColor = Color.FromArgb(200, 200, 200)
-        };
+        const Int32 CtrlWidth = 120;
 
-        // Giữ nguyên code TCP Flood như cũ
-        txtTcpIp = new() { Location = new Point(120, 10), Width = 120, Text = "127.0.0.1" };
-        txtTcpPort = new() { Location = new Point(120, 40), Width = 80, Text = "57206" };
-        txtTcpConn = new() { Location = new Point(120, 70), Width = 60 };
+        var tab = new TabPage("TCP - Flood") { BackColor = Color.FromArgb(200, 200, 200) };
 
+        txtTcpIp = new() { Location = new Point(120, 10), Width = CtrlWidth, Text = "127.0.0.1" };
+        txtTcpPort = new() { Location = new Point(120, 40), Width = CtrlWidth, Text = "57206" };
+        txtTcpConn = new() { Location = new Point(120, 70), Width = CtrlWidth };
         btnTcpStart = new() { Text = "Start TCP Flood", Location = new Point(10, 110), Width = 120 };
-        btnTcpStop = new() { Text = "Stop", Location = new Point(140, 110), Width = 80, Enabled = false };
-
+        btnTcpStop = new() { Text = "Stop", Location = new Point(140, 110), Width = 100, Enabled = false };
         lblFloodStatus = new() { Text = "Status: Stopped", Location = new Point(10, 150), AutoSize = true };
 
-        var lblTcpIp = new Label { Text = "IP Address:", Location = new Point(10, 10), AutoSize = true };
-        var lblTcpPort = new Label { Text = "Port:", Location = new Point(10, 40), AutoSize = true };
-        var lblTcpConn = new Label { Text = "Max Connections:", Location = new Point(10, 70), AutoSize = true };
-
-        tcpTab.Controls.AddRange(new System.Windows.Forms.Control[] {
-            lblTcpIp, txtTcpIp, lblTcpPort, txtTcpPort, lblTcpConn, txtTcpConn,
+        tab.Controls.AddRange(new Control[]
+        {
+            new Label { Text = "IP Address:",      Location = new Point(10, 13), AutoSize = true }, txtTcpIp,
+            new Label { Text = "Port:",            Location = new Point(10, 43), AutoSize = true }, txtTcpPort,
+            new Label { Text = "Max Connections:", Location = new Point(10, 73), AutoSize = true }, txtTcpConn,
             btnTcpStart, btnTcpStop, lblFloodStatus
         });
 
         btnTcpStart.Click += BtnTcpStart_Click;
         btnTcpStop.Click += BtnTcpStop_Click;
-
-        return tcpTab;
+        return tab;
     }
 
+    #endregion
+
+    #region Packet Send Tab
+
     /// <summary>
-    /// Creates the Packet Send tab with controls and event bindings.
+    /// Creates the Packet Send tab with a two-column layout.
+    /// Left column: common header fields. Right column: Control/Directive/Handshake extras.
     /// </summary>
     private TabPage CreatePacketSendTab()
     {
-        var packetTab = new TabPage("Packet Sender")
-        {
-            BackColor = Color.FromArgb(200, 200, 200)
-        };
+        var tab = new TabPage("Packet Sender") { BackColor = Color.FromArgb(200, 200, 200) };
 
-        // Connection controls
-        txtSendIp = new() { Location = new Point(120, 10), Width = 120, Text = "127.0.0.1" };
-        txtSendPort = new() { Location = new Point(120, 40), Width = 80, Text = "57206" };
+        // ── Column geometry ──────────────────────────────────────────────────
+        const Int32 LeftLabelX = 10;
+        const Int32 LeftCtrlX = 150;
+        const Int32 CtrlWidth = 140;
 
-        // Packet type selection
-        cmbPacketType = new() { Location = new Point(120, 70), Width = 120, DropDownStyle = ComboBoxStyle.DropDownList };
+        const Int32 RightLabelX = 330;
+        const Int32 RightCtrlX = 470;
+        const Int32 RightWidth = 160;
+
+        const Int32 RowH = 30;
+        Int32 leftRow = 10;
+        Int32 rightRow = 10;
+
+        Int32 NextLeft() { Int32 y = leftRow; leftRow += RowH; return y; }
+        Int32 NextRight() { Int32 y = rightRow; rightRow += RowH; return y; }
+
+        // ════════════════════ LEFT COLUMN ════════════════════════════════════
+
+        // IP Address
+        Int32 y = NextLeft();
+        txtSendIp = new() { Location = new Point(LeftCtrlX, y), Width = CtrlWidth, Text = "127.0.0.1" };
+        tab.Controls.Add(MakeLabel("IP Address:", LeftLabelX, y)); tab.Controls.Add(txtSendIp);
+
+        // Port
+        y = NextLeft();
+        txtSendPort = new() { Location = new Point(LeftCtrlX, y), Width = CtrlWidth, Text = "57206" };
+        tab.Controls.Add(MakeLabel("Port:", LeftLabelX, y)); tab.Controls.Add(txtSendPort);
+
+        // Packet Type
+        y = NextLeft();
+        cmbPacketType = new() { Location = new Point(LeftCtrlX, y), Width = CtrlWidth, DropDownStyle = ComboBoxStyle.DropDownList };
         cmbPacketType.Items.AddRange(Enum.GetNames<PacketType>());
-        cmbPacketType.SelectedIndex = 0; // Default to Text256
+        cmbPacketType.SelectedIndex = 0;
+        tab.Controls.Add(MakeLabel("Packet Type:", LeftLabelX, y)); tab.Controls.Add(cmbPacketType);
 
-        // Packet content
+        // OpCode
+        y = NextLeft();
+        nudOpCode = new() { Location = new Point(LeftCtrlX, y), Width = CtrlWidth, Minimum = 0, Maximum = UInt16.MaxValue, Value = 0 };
+        tab.Controls.Add(MakeLabel("OpCode (0–65535):", LeftLabelX, y)); tab.Controls.Add(nudOpCode);
+
+        // Priority
+        y = NextLeft();
+        cmbPriority = new() { Location = new Point(LeftCtrlX, y), Width = CtrlWidth, DropDownStyle = ComboBoxStyle.DropDownList };
+        cmbPriority.Items.AddRange(Enum.GetNames<PacketPriority>());
+        cmbPriority.SelectedIndex = 0;
+        tab.Controls.Add(MakeLabel("Priority:", LeftLabelX, y)); tab.Controls.Add(cmbPriority);
+
+        // Flags
+        y = NextLeft();
+        cmbFlags = new() { Location = new Point(LeftCtrlX, y), Width = CtrlWidth, DropDownStyle = ComboBoxStyle.DropDownList };
+        cmbFlags.Items.AddRange(Enum.GetNames<PacketFlags>());
+        cmbFlags.SelectedIndex = 0;
+        tab.Controls.Add(MakeLabel("Flags:", LeftLabelX, y)); tab.Controls.Add(cmbFlags);
+
+        // Transport
+        y = NextLeft();
+        cmbTransportProtocol = new() { Location = new Point(LeftCtrlX, y), Width = CtrlWidth, DropDownStyle = ComboBoxStyle.DropDownList };
+        cmbTransportProtocol.Items.AddRange(Enum.GetNames<ProtocolType>());
+        Int32 tcpIdx = cmbTransportProtocol.Items.IndexOf(nameof(ProtocolType.TCP));
+        cmbTransportProtocol.SelectedIndex = tcpIdx >= 0 ? tcpIdx : 0;
+        tab.Controls.Add(MakeLabel("Transport:", LeftLabelX, y)); tab.Controls.Add(cmbTransportProtocol);
+
+        // Content (tall – spans 3 rows visually)
+        y = NextLeft();
         txtPacketContent = new()
         {
-            Location = new Point(120, 100),
-            Width = 300,
-            Height = 60,
+            Location = new Point(LeftCtrlX, y),
+            Width = CtrlWidth + 130,   // wider content box
+            Height = 80,
             Multiline = true,
             ScrollBars = ScrollBars.Vertical,
             Text = "Hello from DDoS Tool!"
         };
+        tab.Controls.Add(MakeLabel("Content:", LeftLabelX, y)); tab.Controls.Add(txtPacketContent);
+        leftRow = y + 80 + 5; // skip past tall textbox
 
-        // Sequence ID for Control/Directive packets
+        // ════════════════════ RIGHT COLUMN ═══════════════════════════════════
+        // These controls are shown/hidden based on PacketType selection.
+
+        // Separator label for right column header
+        var lblRightTitle = new Label
+        {
+            Text = "── Packet Extras ──",
+            Location = new Point(RightLabelX, rightRow - 5),
+            AutoSize = true,
+            ForeColor = Color.DimGray,
+            Font = new Font(SystemFonts.DefaultFont, FontStyle.Italic)
+        };
+        tab.Controls.Add(lblRightTitle);
+        rightRow += RowH;
+
+        // Sequence ID
+        Int32 ry = NextRight();
+        lblSequenceId = MakeLabel("Sequence ID:", RightLabelX, ry);
         nudSequenceId = new()
         {
-            Location = new Point(120, 170),
-            Width = 80,
+            Location = new Point(RightCtrlX, ry),
+            Width = 110,
+            Minimum = 0,
             Maximum = UInt32.MaxValue,
-            Value = 1
+            Value = 1,
+            Visible = false
         };
+        lblSequenceId.Visible = false;
+        tab.Controls.Add(lblSequenceId); tab.Controls.Add(nudSequenceId);
 
-        // Control Type dropdown (for Control/Directive packets)
+        // Control Type
+        ry = NextRight();
+        lblControlType = MakeLabel("Control Type:", RightLabelX, ry);
         cmbControlType = new()
         {
-            Location = new Point(120, 200),
-            Width = 100,
+            Location = new Point(RightCtrlX, ry),
+            Width = RightWidth,
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Enabled = false
+            Visible = false
         };
         cmbControlType.Items.AddRange(Enum.GetNames<ControlType>());
         cmbControlType.SelectedIndex = 0;
+        lblControlType.Visible = false;
+        tab.Controls.Add(lblControlType); tab.Controls.Add(cmbControlType);
 
-        // Protocol Reason dropdown (for Control/Directive packets)
+        // Protocol Reason
+        ry = NextRight();
+        lblProtocolReason = MakeLabel("Reason:", RightLabelX, ry);
         cmbProtocolReason = new()
         {
-            Location = new Point(230, 200),
-            Width = 100,
+            Location = new Point(RightCtrlX, ry),
+            Width = RightWidth,
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Enabled = false
+            Visible = false
         };
         cmbProtocolReason.Items.AddRange(Enum.GetNames<ProtocolReason>());
         cmbProtocolReason.SelectedIndex = 0;
+        lblProtocolReason.Visible = false;
+        tab.Controls.Add(lblProtocolReason); tab.Controls.Add(cmbProtocolReason);
 
-        // Protocol Advice dropdown (for Directive packets)
+        // Protocol Advice (Directive only)
+        ry = NextRight();
+        lblProtocolAdvice = MakeLabel("Advice:", RightLabelX, ry);
         cmbProtocolAdvice = new()
         {
-            Location = new Point(340, 200),
-            Width = 100,
+            Location = new Point(RightCtrlX, ry),
+            Width = RightWidth,
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Enabled = false
+            Visible = false
         };
         cmbProtocolAdvice.Items.AddRange(Enum.GetNames<ProtocolAdvice>());
         cmbProtocolAdvice.SelectedIndex = 0;
+        lblProtocolAdvice.Visible = false;
+        tab.Controls.Add(lblProtocolAdvice); tab.Controls.Add(cmbProtocolAdvice);
+
+        // Handshake toggle button
+        ry = NextRight();
+        btnToggleHexMode = new()
+        {
+            Text = "Switch to Byte[] mode",
+            Location = new Point(RightLabelX, ry),
+            Width = 185,
+            Height = 26,
+            Visible = false
+        };
+        tab.Controls.Add(btnToggleHexMode);
+        btnToggleHexMode.Click += BtnToggleHexMode_Click;
+
+        // Handshake hint label
+        ry = NextRight();
+        lblHandshakeHint = new()
+        {
+            Location = new Point(RightLabelX, ry),
+            Width = 300,
+            AutoSize = false,
+            Height = 40,
+            ForeColor = Color.DarkBlue,
+            Text = "Hex mode: enter bytes like\nDE AD BE EF (space-separated)",
+            Visible = false
+        };
+        tab.Controls.Add(lblHandshakeHint);
+
+        // ════════════════════ BOTTOM STRIP ═══════════════════════════════════
+        Int32 bottomY = Math.Max(leftRow, rightRow) + 5;
 
         // Buttons
-        btnConnect = new() { Text = "Connect", Location = new Point(10, 240), Width = 100 };
-        btnSendPacket = new() { Text = "Send Packet", Location = new Point(120, 240), Width = 100, Enabled = false };
-        btnDisconnect = new() { Text = "Disconnect", Location = new Point(230, 240), Width = 100, Enabled = false };
-        btnClearHistory = new() { Text = "Clear History", Location = new Point(340, 240), Width = 100 };
+        btnConnect = new() { Text = "Connect", Location = new Point(10, bottomY), Width = 100 };
+        btnSendPacket = new() { Text = "Send Packet", Location = new Point(115, bottomY), Width = 100, Enabled = false };
+        btnDisconnect = new() { Text = "Disconnect", Location = new Point(220, bottomY), Width = 100, Enabled = false };
+        btnClearHistory = new() { Text = "Clear History", Location = new Point(325, bottomY), Width = 110 };
+        tab.Controls.AddRange(new Control[] { btnConnect, btnSendPacket, btnDisconnect, btnClearHistory });
+        bottomY += RowH;
 
-        // Status and info labels
-        lblSendStatus = new() { Text = "Status: Disconnected", Location = new Point(10, 270), AutoSize = true };
-        lblPacketInfo = new() { Text = "Packet Info: Ready", Location = new Point(10, 290), AutoSize = true, ForeColor = Color.Blue };
+        // Status
+        lblSendStatus = new() { Text = "Status: Disconnected", Location = new Point(10, bottomY), AutoSize = true };
+        tab.Controls.Add(lblSendStatus);
+        bottomY += RowH - 5;
 
-        // History ListBox
-        lstPacketHistory = new()
-        {
-            Location = new Point(10, 320),
-            Width = 350,
-            Height = 120,
-            HorizontalScrollbar = true
-        };
+        // Packet info
+        lblPacketInfo = new() { Text = "Packet Info: Ready", Location = new Point(10, bottomY), AutoSize = true, ForeColor = Color.Blue };
+        tab.Controls.Add(lblPacketInfo);
+        bottomY += RowH;
 
-        // Received data ListBox
-        lstReceivedData = new()
-        {
-            Location = new Point(370, 320),
-            Width = 350,
-            Height = 120,
-            HorizontalScrollbar = true
-        };
+        // History labels
+        tab.Controls.Add(new Label { Text = "Sent History:", Location = new Point(10, bottomY), AutoSize = true });
+        tab.Controls.Add(new Label { Text = "Received:", Location = new Point(450, bottomY), AutoSize = true });
+        bottomY += RowH - 10;
 
-        // Labels
-        var labels = new[] {
-            new Label { Text = "IP Address:", Location = new Point(10, 10), AutoSize = true },
-            new Label { Text = "Port:", Location = new Point(10, 40), AutoSize = true },
-            new Label { Text = "Packet Type:", Location = new Point(10, 70), AutoSize = true },
-            new Label { Text = "Content:", Location = new Point(10, 100), AutoSize = true },
-            new Label { Text = "Sequence ID:", Location = new Point(10, 170), AutoSize = true },
-            new Label { Text = "Control Type:", Location = new Point(10, 200), AutoSize = true },
-            new Label { Text = "Sent History:", Location = new Point(10, 305), AutoSize = true },
-            new Label { Text = "Received:", Location = new Point(370, 305), AutoSize = true }
-        };
+        // History list boxes
+        lstPacketHistory = new() { Location = new Point(10, bottomY), Width = 420, Height = 120, HorizontalScrollbar = true };
+        lstReceivedData = new() { Location = new Point(440, bottomY), Width = 420, Height = 120, HorizontalScrollbar = true };
+        tab.Controls.Add(lstPacketHistory);
+        tab.Controls.Add(lstReceivedData);
 
-        // Add all controls to tab
-        packetTab.Controls.AddRange([
-            txtSendIp, txtSendPort, cmbPacketType, txtPacketContent, nudSequenceId,
-            cmbControlType, cmbProtocolReason, cmbProtocolAdvice,
-            btnConnect, btnSendPacket, btnDisconnect, btnClearHistory,
-            lblSendStatus, lblPacketInfo, lstPacketHistory, lstReceivedData
-        ]);
-        packetTab.Controls.AddRange(labels);
-
-        // Event bindings
+        // ── Event bindings ────────────────────────────────────────────────────
         cmbPacketType.SelectedIndexChanged += CmbPacketType_SelectedIndexChanged;
         btnConnect.Click += BtnConnect_Click;
         btnSendPacket.Click += BtnSendPacket_Click;
         btnDisconnect.Click += BtnDisconnect_Click;
         btnClearHistory.Click += BtnClearHistory_Click;
 
-        // Initialize packet type selection
         CmbPacketType_SelectedIndexChanged(null, EventArgs.Empty);
-
-        return packetTab;
+        return tab;
     }
 
+    /// <summary>Helper: creates a right-aligned label at the given position.</summary>
+    private static Label MakeLabel(String text, Int32 x, Int32 y)
+        => new() { Text = text, Location = new Point(x, y + 3), AutoSize = true };
+
+    #endregion
+
+    #region Packet Type Selection Logic
+
     /// <summary>
-    /// Xử lý khi thay đổi packet type
+    /// Shows/hides right-column controls based on the selected packet type.
     /// </summary>
     private void CmbPacketType_SelectedIndexChanged(Object? sender, EventArgs e)
     {
-        if (cmbPacketType?.SelectedItem is String selectedType &&
-            Enum.TryParse<PacketType>(selectedType, out PacketType packetType))
+        if (cmbPacketType?.SelectedItem is not String selectedType ||
+            !Enum.TryParse<PacketType>(selectedType, out PacketType packetType))
         {
-            // Enable/disable controls based on packet type
-            Boolean isControlPacket = packetType is PacketType.Control or PacketType.Directive;
-            Boolean isDirectivePacket = packetType == PacketType.Directive;
-
-            cmbControlType!.Enabled = isControlPacket;
-            cmbProtocolReason!.Enabled = isControlPacket;
-            cmbProtocolAdvice!.Enabled = isDirectivePacket;
-            nudSequenceId!.Enabled = isControlPacket;
-
-            // Update packet info
-            UpdatePacketInfo();
+            return;
         }
+
+        Boolean isControl = packetType is PacketType.Control or PacketType.Directive;
+        Boolean isDirective = packetType == PacketType.Directive;
+        Boolean isHandshake = packetType == PacketType.Handshake;
+
+        // Sequence ID row
+        lblSequenceId!.Visible = isControl;
+        nudSequenceId!.Visible = isControl;
+
+        // Control Type row
+        lblControlType!.Visible = isControl;
+        cmbControlType!.Visible = isControl;
+
+        // Reason row
+        lblProtocolReason!.Visible = isControl;
+        cmbProtocolReason!.Visible = isControl;
+
+        // Advice row – Directive only
+        lblProtocolAdvice!.Visible = isDirective;
+        cmbProtocolAdvice!.Visible = isDirective;
+
+        // Handshake extras
+        btnToggleHexMode!.Visible = isHandshake;
+        lblHandshakeHint!.Visible = isHandshake;
+
+        if (isHandshake)
+        {
+            UpdateHandshakeHint();
+            txtPacketContent?.Text = _handshakeHexMode ? "DE AD BE EF" : "222, 173, 190, 239";
+        }
+
+        UpdatePacketInfo(packetType);
     }
 
-    /// <summary>
-    /// Cập nhật thông tin packet hiện tại
-    /// </summary>
-    private void UpdatePacketInfo()
+    /// <summary>Toggles Handshake input between hex and decimal-byte modes.</summary>
+    private void BtnToggleHexMode_Click(Object? sender, EventArgs e)
     {
-        if (cmbPacketType?.SelectedItem is String selectedType &&
-            Enum.TryParse<PacketType>(selectedType, out PacketType packetType))
+        _handshakeHexMode = !_handshakeHexMode;
+        UpdateHandshakeHint();
+        if (txtPacketContent is null)
         {
-            String info = packetType switch
-            {
-                PacketType.Text256 => "Text packet (max 256 bytes)",
-                PacketType.Text512 => "Text packet (max 512 bytes)",
-                PacketType.Text1024 => "Text packet (max 1024 bytes)",
-                PacketType.Control => "Control packet (system commands)",
-                PacketType.Directive => "Directive packet (instructions)",
-                PacketType.Handshake => "Handshake packet (connection setup)",
-                _ => "Unknown packet type"
-            };
-
-            lblPacketInfo?.Text = $"Packet Info: {info}";
+            return;
         }
+
+        try
+        {
+            Byte[] bytes = _handshakeHexMode
+                ? ParseByteArray(txtPacketContent.Text)
+                : ParseHexString(txtPacketContent.Text);
+
+            txtPacketContent.Text = _handshakeHexMode
+                ? BitConverter.ToString(bytes).Replace("-", " ")
+                : String.Join(", ", bytes);
+        }
+        catch { /* leave content unchanged */ }
     }
 
-    /// <summary>
-    /// Xử lý sự kiện gửi packet
-    /// </summary>
+    /// <summary>Updates handshake hint text and toggle button label.</summary>
+    private void UpdateHandshakeHint()
+    {
+        btnToggleHexMode?.Text = _handshakeHexMode ? "Switch to Byte[] mode" : "Switch to Hex mode";
+
+        lblHandshakeHint?.Text = _handshakeHexMode
+                ? "Hex mode: enter bytes like\nDE AD BE EF (space-separated)"
+                : "Byte mode: decimal bytes like\n222, 173, 190, 239 (comma-sep)";
+    }
+
+    /// <summary>Updates the packet info label.</summary>
+    private void UpdatePacketInfo(PacketType packetType)
+    {
+        if (lblPacketInfo is null)
+        {
+            return;
+        }
+
+        lblPacketInfo.Text = "Packet Info: " + packetType switch
+        {
+            PacketType.Text256 => "Text packet (max 256 bytes UTF-8)",
+            PacketType.Text512 => "Text packet (max 512 bytes UTF-8)",
+            PacketType.Text1024 => "Text packet (max 1024 bytes UTF-8)",
+            PacketType.Control => "Control packet – fill ControlType, Reason, SeqID on the right",
+            PacketType.Directive => "Directive packet – fill ControlType, Reason, Advice, SeqID on the right",
+            PacketType.Handshake => "Handshake packet – enter raw bytes on the right",
+            _ => "Unknown packet type"
+        };
+    }
+
+    #endregion
+
+    #region Send Logic
+
+    /// <summary>Handles send button click.</summary>
     private async void BtnSendPacket_Click(Object? sender, EventArgs e)
     {
         if (_reliableClient?.IsConnected != true)
         {
-            MessageBox.Show("Vui lòng kết nối trước khi gửi packet!", "Chưa kết nối",
+            MessageBox.Show("Please connect before sending a packet.", "Not Connected",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -293,7 +452,7 @@ public partial class Form1 : Form
         if (cmbPacketType?.SelectedItem is not String selectedType ||
             !Enum.TryParse<PacketType>(selectedType, out PacketType packetType))
         {
-            MessageBox.Show("Vui lòng chọn loại packet!", "Lỗi",
+            MessageBox.Show("Please select a packet type.", "Error",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -301,19 +460,17 @@ public partial class Form1 : Form
         try
         {
             IPacket? packet = CreatePacket(packetType);
-            if (packet == null)
+            if (packet is null)
             {
-                return; // Error already shown in CreatePacket
+                return;
             }
 
-            // Serialize packet to bytes
-            Byte[] packetBytes = packet.Serialize();
+            ApplyCommonHeader(packet);
 
-            // Send packet
+            Byte[] packetBytes = packet.Serialize();
             Boolean success = await _reliableClient.SendAsync(packetBytes);
 
-            // Add to history
-            var history = new PacketHistory
+            _packetHistory.Add(new PacketHistory
             {
                 Timestamp = DateTime.Now,
                 Type = packetType,
@@ -321,28 +478,23 @@ public partial class Form1 : Form
                 Size = packetBytes.Length,
                 Success = success,
                 ErrorMessage = success ? null : "Send failed"
-            };
-
-            _packetHistory.Add(history);
+            });
             RefreshPacketHistory();
 
-            // Update status
             if (lblSendStatus != null)
             {
-                lblSendStatus.Text = success ? $"Last Send: SUCCESS ({packetBytes.Length} bytes)" : "Last Send: FAILED";
+                lblSendStatus.Text = success
+                    ? $"Last Send: SUCCESS ({packetBytes.Length} bytes)"
+                    : "Last Send: FAILED";
                 lblSendStatus.ForeColor = success ? Color.Green : Color.Red;
             }
-
-            //// Return packet to pool
-            //PacketBuilder.ReturnToPool(packet);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Lỗi khi gửi packet: {ex.Message}", "Lỗi",
+            MessageBox.Show($"Error sending packet: {ex.Message}", "Error",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-            // Add error to history
-            var errorHistory = new PacketHistory
+            _packetHistory.Add(new PacketHistory
             {
                 Timestamp = DateTime.Now,
                 Type = packetType,
@@ -350,20 +502,49 @@ public partial class Form1 : Form
                 Size = 0,
                 Success = false,
                 ErrorMessage = ex.Message
-            };
-
-            _packetHistory.Add(errorHistory);
+            });
             RefreshPacketHistory();
         }
     }
 
     /// <summary>
-    /// Tạo packet dựa trên loại đã chọn
+    /// Applies OpCode, Priority, Flags, and Transport from the UI to the packet header.
     /// </summary>
+    private void ApplyCommonHeader(IPacket packet)
+    {
+        if (packet is not FrameBase frame)
+        {
+            return;
+        }
+
+        if (nudOpCode != null)
+        {
+            frame.OpCode = (UInt16)nudOpCode.Value;
+        }
+
+        if (cmbPriority?.SelectedItem is String priStr &&
+            Enum.TryParse<PacketPriority>(priStr, out var priority))
+        {
+            frame.Priority = priority;
+        }
+
+        if (cmbFlags?.SelectedItem is String flagStr &&
+            Enum.TryParse<PacketFlags>(flagStr, out var flags))
+        {
+            frame.Flags = flags;
+        }
+
+        if (cmbTransportProtocol?.SelectedItem is String protoStr &&
+            Enum.TryParse<ProtocolType>(protoStr, out var proto))
+        {
+            frame.Protocol = proto;
+        }
+    }
+
+    /// <summary>Creates a typed packet from current UI state.</summary>
     private IPacket? CreatePacket(PacketType packetType)
     {
         String content = txtPacketContent?.Text ?? "";
-
         try
         {
             return packetType switch
@@ -371,114 +552,121 @@ public partial class Form1 : Form
                 PacketType.Text256 => PacketBuilder.CreateText256(content),
                 PacketType.Text512 => PacketBuilder.CreateText512(content),
                 PacketType.Text1024 => PacketBuilder.CreateText1024(content),
-
                 PacketType.Control => CreateControlPacket(),
                 PacketType.Directive => CreateDirectivePacket(),
-
-                PacketType.Handshake => PacketBuilder.CreateHandshake(
-                    System.Text.Encoding.UTF8.GetBytes(content)),
-
+                PacketType.Handshake => CreateHandshakePacket(),
                 _ => throw new ArgumentException($"Unsupported packet type: {packetType}")
             };
         }
         catch (ArgumentOutOfRangeException ex)
         {
-            MessageBox.Show($"Nội dung quá dài cho loại packet {packetType}: {ex.Message}",
-                "Lỗi kích thước", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show($"Content too large for {packetType}: {ex.Message}",
+                "Size Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return null;
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Lỗi tạo packet: {ex.Message}", "Lỗi",
+            MessageBox.Show($"Error creating packet: {ex.Message}", "Error",
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
             return null;
         }
     }
 
-    /// <summary>
-    /// Tạo Control packet
-    /// </summary>
+    /// <summary>Creates a Control packet.</summary>
     private Nalix.Shared.Messaging.Controls.Control CreateControlPacket()
     {
-        var controlType = Enum.Parse<ControlType>(cmbControlType?.SelectedItem?.ToString() ?? "PING");
+        var type = Enum.Parse<ControlType>(cmbControlType?.SelectedItem?.ToString() ?? "NONE");
         var reason = Enum.Parse<ProtocolReason>(cmbProtocolReason?.SelectedItem?.ToString() ?? "NONE");
-        var sequenceId = (UInt32)(nudSequenceId?.Value ?? 0);
-
-        return PacketBuilder.CreateControl(controlType, sequenceId, reason);
+        var seqId = (UInt32)(nudSequenceId?.Value ?? 0);
+        return PacketBuilder.CreateControl(type, seqId, reason);
     }
 
-    /// <summary>
-    /// Tạo Directive packet
-    /// </summary>
-    private Directive CreateDirectivePacket()
+    /// <summary>Creates a Directive packet.</summary>
+    private Nalix.Shared.Messaging.Controls.Directive CreateDirectivePacket()
     {
-        var controlType = Enum.Parse<ControlType>(cmbControlType?.SelectedItem?.ToString() ?? "PING");
+        var type = Enum.Parse<ControlType>(cmbControlType?.SelectedItem?.ToString() ?? "NONE");
         var reason = Enum.Parse<ProtocolReason>(cmbProtocolReason?.SelectedItem?.ToString() ?? "NONE");
         var advice = Enum.Parse<ProtocolAdvice>(cmbProtocolAdvice?.SelectedItem?.ToString() ?? "NONE");
-        var sequenceId = (UInt32)(nudSequenceId?.Value ?? 0);
-
-        return PacketBuilder.CreateDirective(controlType, reason, advice, sequenceId);
+        var seqId = (UInt32)(nudSequenceId?.Value ?? 0);
+        return PacketBuilder.CreateDirective(type, reason, advice, seqId);
     }
 
-    /// <summary>
-    /// Lấy nội dung packet để hiển thị trong history
-    /// </summary>
-    private String GetPacketContentForHistory(IPacket packet)
+    /// <summary>Creates a Handshake packet from hex or decimal-byte input.</summary>
+    private Nalix.Shared.Messaging.Controls.Handshake CreateHandshakePacket()
     {
-        return packet switch
+        String raw = txtPacketContent?.Text.Trim() ?? "";
+        Byte[] data = _handshakeHexMode ? ParseHexString(raw) : ParseByteArray(raw);
+        return PacketBuilder.CreateHandshake(data);
+    }
+
+    /// <summary>Parses a space/dash-separated hex string into bytes.</summary>
+    private static Byte[] ParseHexString(String hex)
+    {
+        String clean = hex.Replace(" ", "").Replace("-", "");
+        if (clean.Length % 2 != 0)
         {
-            Nalix.Shared.Messaging.Text.Text256 text => $"Text: \"{text.Content}\"",
-            Nalix.Shared.Messaging.Text.Text512 text => $"Text: \"{text.Content}\"",
-            Nalix.Shared.Messaging.Text.Text1024 text => $"Text: \"{text.Content}\"",
+            throw new FormatException("Hex string must have an even number of hex characters.");
+        }
 
-            Nalix.Shared.Messaging.Controls.Control ctrl =>
-                $"Control: {ctrl.Type} (Seq: {ctrl.SequenceId}, Reason: {ctrl.Reason})",
+        Byte[] result = new Byte[clean.Length / 2];
+        for (Int32 i = 0; i < result.Length; i++)
+        {
+            result[i] = Convert.ToByte(clean.Substring(i * 2, 2), 16);
+        }
 
-            Nalix.Shared.Messaging.Controls.Directive dir =>
-                $"Directive: {dir.Type} (Seq: {dir.SequenceId}, Reason: {dir.Reason}, Action: {dir.Action})",
+        return result;
+    }
 
-            Nalix.Shared.Messaging.Controls.Handshake hs =>
-                $"Handshake: {hs.Data?.Length ?? 0} bytes",
+    /// <summary>Parses a comma-separated decimal byte list into bytes.</summary>
+    private static Byte[] ParseByteArray(String byteList)
+        => byteList
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(Byte.Parse)
+            .ToArray();
 
+    #endregion
+
+    #region History
+
+    /// <summary>Returns a summary string for the packet history list.</summary>
+    private static String GetPacketContentForHistory(IPacket packet)
+        => packet switch
+        {
+            Nalix.Shared.Messaging.Text.Text256 t => $"[TEXT256]   Op={t.OpCode} \"{t.Content}\"",
+            Nalix.Shared.Messaging.Text.Text512 t => $"[TEXT512]   Op={t.OpCode} \"{t.Content}\"",
+            Nalix.Shared.Messaging.Text.Text1024 t => $"[TEXT1024]  Op={t.OpCode} \"{t.Content}\"",
+            Nalix.Shared.Messaging.Controls.Control c => $"[CONTROL]   Op={c.OpCode} Type={c.Type} Seq={c.SequenceId} Reason={c.Reason} Pri={c.Priority}",
+            Nalix.Shared.Messaging.Controls.Directive d => $"[DIRECTIVE] Op={d.OpCode} Type={d.Type} Seq={d.SequenceId} Reason={d.Reason} Action={d.Action}",
+            Nalix.Shared.Messaging.Controls.Handshake h =>
+                $"[HANDSHAKE] Op={h.OpCode} {h.Data?.Length ?? 0}B [{BitConverter.ToString(h.Data ?? [])}]",
             _ => packet.GetType().Name
         };
-    }
 
-    /// <summary>
-    /// Refresh packet history display
-    /// </summary>
+    /// <summary>Refreshes the sent-history list box (last 50 entries).</summary>
     private void RefreshPacketHistory()
     {
-        if (lstPacketHistory == null)
+        if (lstPacketHistory is null)
         {
             return;
         }
 
         lstPacketHistory.Items.Clear();
-
-        // Hiển thị 50 packet gần nhất
-        var recentHistory = _packetHistory.TakeLast(50).ToList();
-
-        foreach (var history in recentHistory)
+        foreach (PacketHistory h in _packetHistory.TakeLast(50))
         {
-            lstPacketHistory.Items.Add(history);
+            lstPacketHistory.Items.Add(h);
         }
 
-        // Auto scroll to bottom
         if (lstPacketHistory.Items.Count > 0)
         {
             lstPacketHistory.TopIndex = lstPacketHistory.Items.Count - 1;
         }
     }
 
-    /// <summary>
-    /// Clear packet history
-    /// </summary>
+    /// <summary>Clears the packet send history.</summary>
     private void BtnClearHistory_Click(Object? sender, EventArgs e)
     {
         _packetHistory.Clear();
         RefreshPacketHistory();
-
         if (lblSendStatus != null)
         {
             lblSendStatus.Text = "Status: History cleared";
@@ -486,16 +674,19 @@ public partial class Form1 : Form
         }
     }
 
-    // Giữ nguyên các method cũ cho TCP Flood
+    #endregion
+
+    #region TCP Flood Events
+
     private void BtnTcpStart_Click(Object? sender, EventArgs e)
     {
         String ip = txtTcpIp?.Text.Trim() ?? "";
         Boolean validPort = Int32.TryParse(txtTcpPort?.Text, out Int32 port);
-        Boolean validMaxConn = Int32.TryParse(txtTcpConn?.Text, out Int32 maxConn);
+        Boolean validConn = Int32.TryParse(txtTcpConn?.Text, out Int32 maxConn);
 
-        if (String.IsNullOrEmpty(ip) || !validPort || port == 0 || !validMaxConn || maxConn == 0)
+        if (String.IsNullOrEmpty(ip) || !validPort || port == 0 || !validConn || maxConn == 0)
         {
-            MessageBox.Show("Vui lòng nhập đúng IP, Port và Max Connections!", "Thiếu thông tin",
+            MessageBox.Show("Please fill in valid IP, Port, and Max Connections.", "Missing Info",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -522,17 +713,18 @@ public partial class Form1 : Form
     {
         btnTcpStop!.Enabled = false;
         btnTcpStart!.Enabled = true;
-
         _tcpFlooder?.Stop();
         _tcpFlooder = null;
         lblFloodStatus!.Text = "Status: Stopped";
-
         _statusTimer?.Stop();
         _statusTimer?.Dispose();
         _statusTimer = null;
     }
 
-    // Updated connection methods for packet sending
+    #endregion
+
+    #region Connection Events
+
     private async void BtnConnect_Click(Object? sender, EventArgs e)
     {
         String ip = txtSendIp?.Text.Trim() ?? "";
@@ -540,7 +732,7 @@ public partial class Form1 : Form
 
         if (String.IsNullOrEmpty(ip) || !validPort || port == 0)
         {
-            MessageBox.Show("Vui lòng nhập đúng IP và Port!", "Thiếu thông tin",
+            MessageBox.Show("Please fill in a valid IP and Port.", "Missing Info",
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -557,7 +749,7 @@ public partial class Form1 : Form
             btnDisconnect!.Invoke(() => btnDisconnect.Enabled = true);
             lblSendStatus!.Invoke(() =>
             {
-                lblSendStatus.Text = "Status: Connected - Ready to send packets";
+                lblSendStatus.Text = "Status: Connected – Ready to send packets";
                 lblSendStatus.ForeColor = Color.Green;
             });
         };
@@ -585,11 +777,10 @@ public partial class Form1 : Form
 
         _reliableClient.OnMessageReceived += (_, lease) =>
         {
-            String receivedText = System.Text.Encoding.UTF8.GetString(lease.Span);
+            String text = System.Text.Encoding.UTF8.GetString(lease.Span);
             lstReceivedData?.Invoke(() =>
             {
-                lstReceivedData.Items.Add($"[{DateTime.Now:HH:mm:ss}] {receivedText}");
-                // Auto scroll to bottom
+                lstReceivedData.Items.Add($"[{DateTime.Now:HH:mm:ss}] {text}");
                 if (lstReceivedData.Items.Count > 0)
                 {
                     lstReceivedData.TopIndex = lstReceivedData.Items.Count - 1;
@@ -620,4 +811,6 @@ public partial class Form1 : Form
             _reliableClient = null;
         }
     }
+
+    #endregion
 }

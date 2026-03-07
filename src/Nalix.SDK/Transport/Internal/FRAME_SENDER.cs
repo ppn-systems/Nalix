@@ -111,33 +111,8 @@ internal sealed class FRAME_SENDER(
         }
     }
 
-    public async System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken cancellationToken = default)
-    {
-        System.ArgumentNullException.ThrowIfNull(packet);
-
-        if (packet.Length == 0)
-        {
-            return await SendAsync(System.ReadOnlyMemory<System.Byte>.Empty, cancellationToken);
-        }
-
-        if (packet.Length < 512)
-        {
-            System.Byte[] tmp = new System.Byte[packet.Length];
-            System.Int32 w = packet.Serialize(tmp);
-            return await SendAsync(new System.ReadOnlyMemory<System.Byte>(tmp, 0, w), cancellationToken);
-        }
-        else
-        {
-            System.Byte[] rent = _bufferPool.Rent(packet.Length);
-            try
-            {
-                System.Int32 w = packet.Serialize(rent);
-                return await SendAsync(new System.ReadOnlyMemory<System.Byte>(rent, 0, w), cancellationToken);
-            }
-            finally
-            {
-                _bufferPool.Return(rent);
-            }
-        }
-    }
+    public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
+        IPacket packet,
+        System.Threading.CancellationToken cancellationToken = default)
+        => await SendAsync(packet.Serialize(), cancellationToken);
 }

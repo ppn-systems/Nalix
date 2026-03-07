@@ -62,37 +62,10 @@ public static class TimeSyncExtensions
         }
 
         // Prepare TCS and timeout
-        System.Threading.Tasks.TaskCompletionSource<Control> tcs =
-            new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using System.Threading.CancellationTokenSource linked =
-            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
-        linked.CancelAfter(timeoutMs);
-
-        // Temporary listener (auto-removed in finally)
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void OnPacket(System.Object _, IBufferLease buffer)
-        {
-            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
-
-            if (p is Control ctrl &&
-                ctrl.OpCode == opCode &&
-                ctrl.Protocol == ProtocolType.TCP)
-            {
-                _ = tcs.TrySetResult(ctrl);
-            }
-        }
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        void OnDisconnected(System.Object _, System.Exception ex)
-        {
-            _ = tcs.TrySetException(
-                ex ?? new System.InvalidOperationException("Disconnected during time sync."));
-        }
-
+        System.Threading.Tasks.TaskCompletionSource<Control> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        using System.Threading.CancellationTokenSource linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct); linked.CancelAfter(timeoutMs);
         using System.IDisposable sub = client.SubscribeTemp(OnPacket, OnDisconnected);
+
 
         try
         {
@@ -148,6 +121,29 @@ public static class TimeSyncExtensions
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[SDK.TimeSyncAsync] Failed: {ex}.");
             return false;
+        }
+
+        // Temporary listener (auto-removed in finally)
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        void OnPacket(System.Object _, IBufferLease buffer)
+        {
+            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
+
+            if (p is Control ctrl &&
+                ctrl.OpCode == opCode &&
+                ctrl.Protocol == ProtocolType.TCP)
+            {
+                _ = tcs.TrySetResult(ctrl);
+            }
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        void OnDisconnected(System.Object _, System.Exception ex)
+        {
+            _ = tcs.TrySetException(
+                ex ?? new System.InvalidOperationException("Disconnected during time sync."));
         }
     }
 }

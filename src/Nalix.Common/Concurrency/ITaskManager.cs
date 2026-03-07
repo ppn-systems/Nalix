@@ -15,6 +15,11 @@ namespace Nalix.Common.Concurrency;
 public interface ITaskManager : System.IDisposable, IReportable
 {
     /// <summary>
+    /// Gets a short console title summary containing running workers, total workers, and recurring tasks.
+    /// </summary>
+    System.String Title { get; }
+
+    /// <summary>
     /// Schedules a recurring job.
     /// </summary>
     /// <param name="name">The name of the recurring job.</param>
