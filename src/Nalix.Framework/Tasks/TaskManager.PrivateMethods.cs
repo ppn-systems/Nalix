@@ -377,7 +377,7 @@ public partial class TaskManager
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[FW.TaskManager.Internal] failed-adjust-concurrency", ex);
+                                    .Warn($"[FW.TaskManager.Internal] failed-adjust-concurrency ex={ex.Message}");
         }
     }
 }

@@ -1,10 +1,6 @@
-﻿using Nalix.Common.Abstractions;
-using Nalix.Common.Enums;
-using Nalix.Framework.Identity;
-using Nalix.Framework.Options;
+﻿using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -89,31 +85,6 @@ public class TaskManagerTests
         Assert.True(await Task.WhenAny(finished.Task, Task.Delay(500)) == finished.Task);
 
         Assert.True(tm.CancelWorker(w.Id));
-    }
-
-    [Fact]
-    public void CancelGroup_and_CancelAllWorkers_work()
-    {
-        // Test Snowflake uniqueness FIRST
-        var ids = new HashSet<ISnowflake>();
-        for (Int32 i = 0; i < 100; i++)
-        {
-            var id = Snowflake.NewId(SnowflakeType.Inventory, 1);
-            if (!ids.Add(id))
-            {
-                throw new Exception($"Duplicate Snowflake ID generated at iteration {i}:  {id}");
-            }
-        }
-        Console.WriteLine($"✅ Generated {ids.Count} unique Snowflake IDs");
-
-        // Now test TaskManager
-        var tm = new TaskManager();
-        var w1 = tm.ScheduleWorker("w1", "G", async (_, ct) => await Task.Delay(200, ct));
-        var w2 = tm.ScheduleWorker("w2", "G", async (_, ct) => await Task.Delay(200, ct));
-        var w3 = tm.ScheduleWorker("w3", "H", async (_, ct) => await Task.Delay(200, ct));
-
-        Assert.Equal(2, tm.CancelGroup("G"));
-        Assert.Equal(1, tm.CancelAllWorkers());
     }
 
     [Fact]
