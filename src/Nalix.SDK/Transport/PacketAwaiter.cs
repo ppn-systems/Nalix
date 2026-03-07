@@ -9,13 +9,13 @@ using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Extensions;
 using Nalix.SDK.Transport.Extensions;
 
-namespace Nalix.SDK.Transport.Internal;
+namespace Nalix.SDK.Transport;
 
 /// <summary>
 /// Internal helper that encapsulates the recurring boilerplate shared by all
 /// "subscribe -> await matching packet -> timeout -> unsubscribe" operations.
 /// </summary>
-internal static class PacketAwaiter
+public static class PacketAwaiter
 {
     /// <summary>
     /// Subscribes for a matching packet, invokes <paramref name="sendAsync"/>,
@@ -31,12 +31,9 @@ internal static class PacketAwaiter
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     /// <exception cref="TimeoutException"></exception>
     /// <exception cref="OperationCanceledException"></exception>
-    internal static async Task<TPkt> AwaitAsync<TPkt>(
-        TransportSession client,
-        Func<TPkt, bool> predicate,
-        int timeoutMs,
-        Func<CancellationToken, Task> sendAsync,
-        CancellationToken ct)
+    public static async Task<TPkt> AwaitAsync<TPkt>(
+        TransportSession client, Func<TPkt, bool> predicate,
+        int timeoutMs, Func<CancellationToken, Task> sendAsync, CancellationToken ct)
         where TPkt : class, IPacket
     {
         // Parameter validation
