@@ -123,13 +123,13 @@ public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
         }
         catch (System.IO.InvalidDataException ex)
         {
-            s_logger?.Warn($"[NW.{nameof(WrapPacketMiddleware)}] compress-failed type={current.GetType().Name}", ex);
+            s_logger?.Warn($"[NW.{nameof(WrapPacketMiddleware)}] compress-failed type={current.GetType().Name} ex={ex.Message}");
             await SEND_ERROR_RESPONSE(context, ProtocolReason.COMPRESSION_FAILED, ControlFlags.NONE).ConfigureAwait(false);
             return;
         }
         catch (System.Exception ex)
         {
-            s_logger?.Warn($"[NW.{nameof(WrapPacketMiddleware)}] transform-failed type={current.GetType().Name}", ex);
+            s_logger?.Warn($"[NW.{nameof(WrapPacketMiddleware)}] transform-failed type={current.GetType().Name} ex={ex.Message}");
             await SEND_ERROR_RESPONSE(context, ProtocolReason.TRANSFORM_FAILED, ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
             return;
         }

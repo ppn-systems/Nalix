@@ -16,6 +16,9 @@ namespace Nalix.Framework.Injection;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("CachedInstanceCount = {CachedInstanceCount}")]
+[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDisposable, IReportable
 {
     #region Fields

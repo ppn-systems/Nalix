@@ -363,7 +363,7 @@ public sealed class TimingWheel : IActivatable
                         }
                         catch (System.Exception ex)
                         {
-                            s_logger?.Warn($"[NW.{nameof(TimingWheel)}] close-error remote={task.Conn.EndPoint?.Address}", ex);
+                            s_logger?.Warn($"[NW.{nameof(TimingWheel)}] close-error remote={task.Conn.EndPoint?.Address} ex={ex.Message}");
                         }
 
                         s_poolManager.Return(task);

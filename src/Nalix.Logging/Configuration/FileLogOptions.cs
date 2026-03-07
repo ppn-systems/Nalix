@@ -154,20 +154,34 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <param name="date">The date to include in the file name.</param>
     /// <param name="index">The sequence index for the file on the given date.</param>
     /// <returns>The constructed log file name.</returns>
-    public System.String BuildFileName(System.DateTime date, System.Int32 index)
+    public System.String BuildCustomFileName(System.DateTime date, System.Int32 index)
     {
-        var datePart = date.ToString("yy_MM_dd", System.Globalization.CultureInfo.InvariantCulture);
-        var name = $"Nalix_{datePart}_{index}.log";
+        // 1. Sử dụng LogFileName template trước
+        System.String baseName = this.LogFileName;
 
-        if (UsePerProcessSuffix)
+        // 2. Nếu có FormatLogFileName custom, áp dụng
+        if (this.FormatLogFileName != null)
         {
-            using var p = System.Diagnostics.Process.GetCurrentProcess();
-            var ext = System.IO.Path.GetExtension(name); // ".log"
-            var stem = System.IO.Path.GetFileNameWithoutExtension(name);
-            name = $"{stem}_{p.ProcessName}_{p.Id}{ext}";
+            baseName = this.FormatLogFileName(baseName);
         }
 
-        return name;
+        // 3. Thêm hậu tố ngày và index (nếu chưa có)
+        System.String ext = System.IO.Path.GetExtension(baseName);      // giữ ext, ví dụ ".log"
+        System.String stem = System.IO.Path.GetFileNameWithoutExtension(baseName);
+
+        System.String datePart = date.ToString("yy_MM_dd");
+        System.String newName = $"{stem}_{datePart}_{index}{ext}";
+
+        // 4. Nếu UsePerProcessSuffix, thêm tên tiến trình + id
+        if (this.UsePerProcessSuffix)
+        {
+            using System.Diagnostics.Process p = System.Diagnostics.Process.GetCurrentProcess();
+            System.String processSuffix = $"_{p.ProcessName}_{p.Id}";
+            System.String stemWithProcess = System.IO.Path.GetFileNameWithoutExtension(newName) + processSuffix;
+            newName = stemWithProcess + ext;
+        }
+
+        return newName;
     }
 
     #endregion Methods

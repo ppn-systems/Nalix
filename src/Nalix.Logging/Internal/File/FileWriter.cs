@@ -207,12 +207,12 @@ internal sealed class FileWriter : System.IDisposable
                 _currentIndex = 1;
             }
 
-            System.String fullPath = System.IO.Path.Combine(Directories.LogsDirectory, _provider.Options
-                                                   .BuildFileName(_currentDayLocal, _currentIndex));
+            System.String filename = System.IO.Path.Combine(Directories.LogsDirectory, _provider.Options
+                                                   .BuildCustomFileName(_currentDayLocal, _currentIndex));
 
             try
             {
-                System.IO.FileInfo info = new(fullPath);
+                System.IO.FileInfo info = new(filename);
                 // If file exists and already beyond size, skip to next index
                 if (info.Exists && info.Length >= _provider.Options.MaxFileSizeBytes)
                 {
@@ -222,7 +222,7 @@ internal sealed class FileWriter : System.IDisposable
 
                 // Try append with cooperative share for multi-process
                 _stream = new System.IO.FileStream(
-                    fullPath,
+                    filename,
                     System.IO.FileMode.Append,
                     System.IO.FileAccess.Write,
                     System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete,
@@ -234,7 +234,7 @@ internal sealed class FileWriter : System.IDisposable
                     AutoFlush = false
                 };
 
-                _currentPath = fullPath;
+                _currentPath = filename;
                 _writtenBytesForCurrentFile = info.Exists ? info.Length : 0;
 
                 // Write header only if new file (length == 0)
@@ -247,7 +247,7 @@ internal sealed class FileWriter : System.IDisposable
             }
             catch (System.Exception ex)
             {
-                _provider.Options.HandleFileError?.Invoke(new FileError(ex, fullPath));
+                _provider.Options.HandleFileError?.Invoke(new FileError(ex, filename));
                 CloseLogFileLocked();
                 _currentIndex++;
                 continue;

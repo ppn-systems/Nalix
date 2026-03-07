@@ -394,17 +394,14 @@ public sealed class ReliableClient : IClientConnection
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
-        return _sender is null
-            ? throw new System.InvalidOperationException("Client not connected.")
-            : _sender.SendAsync(payload, ct);
+        return _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(payload, ct);
     }
 
     /// <inheritdoc/>
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(this._disposed, nameof(ReliableClient));
-        return packet is null
-            ? throw new System.ArgumentNullException(nameof(packet))
+        return packet is null ? throw new System.ArgumentNullException(nameof(packet))
             : _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(packet, ct);
     }
 

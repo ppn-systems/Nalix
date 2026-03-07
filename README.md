@@ -52,72 +52,84 @@ Nalix is a real-time server solution designed for efficient communication and da
 
     [![Technologies](https://skillicons.dev/icons?i=dotnet,cs,docker,git)](https://skillicons.dev)
 
-## 📈 Benchmarks
+# 📈 Benchmarks
 
-> *All benchmarks are performed on .NET 10.0, Intel i7-13620H, Windows 11, using BenchmarkDotNet v0.15.8.*
+> **Note:** All benchmarks are performed on **.NET 10.0**, **Intel i7-13620H**, **Windows 11**, using **BenchmarkDotNet v0.15.8**.
 
-### 🔥 LZ4 Compression (`Nalix.Shared`)
+---
 
-| Method                                                | Payload | Compressible | Mean (ns) | Allocated |
-|-------------------------------------------------------|:-------:|:------------:|----------:|----------:|
-| Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)    |   128   |     False    |   3,460   |    -      |
-| Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)    |  8192   |      True    |   3,452   |    -      |
-| Encode(ReadOnlySpan&lt;byte&gt;) ➔ new byte[]         |  8192   |      True    |   3,825   |  8,368 B  |
-| Decode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)    |  8192   |      True    |   2,961   |    -      |
-| Decode(ReadOnlySpan&lt;byte&gt;, out byte[], out int) |  8192   |      True    |   3,226   |  8,216 B  |
-| ... *See more in the detailed benchmark report file.* |         |              |           |           |
+## 🔥 LZ4 Compression
 
-### 🔒 Envelope Encryption (`Nalix.Shared`)
+| **Method**                                              | **Payload** | **Compressible** | **Mean (ns)** | **Allocated** |
+|---------------------------------------------------------|:-----------:|:----------------:|--------------:|--------------:|
+| Encode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)      |   8192      |      True        |    3,452      |      -        |
+| Encode(ReadOnlySpan&lt;byte&gt;) ➔ new byte[]           |   8192      |      True        |    3,825      |  8,368 B      |
+| Decode(ReadOnlySpan&lt;byte&gt;, Span&lt;byte&gt;)      |   8192      |      True        |    2,961      |      -        |
+| Decode(ReadOnlySpan&lt;byte&gt;, out byte[], out int)   |   8192      |      True        |    3,226      |  8,216 B      |
 
-| Method                   | Payload | Algorithm         | Mean      | Allocated |
-|--------------------------|--------:|-------------------|----------:|----------:|
-| Encrypt                  |   128   | SALSA20           |  356 ns   |     -     |
-| Decrypt                  |   128   | SALSA20           |  281 ns   |   48 B    |
-| Encrypt                  |  8192   | CHACHA20_POLY1305 | 48,649 ns |     -     |
-| Decrypt                  |  8192   | CHACHA20_POLY1305 | 26,153 ns |   48 B    |
+... *See more in the detailed benchmark report file.*
 
-### ⚡ Envelope Encryptor (`Nalix.Shared`)
+---
 
-| Method      | Algorithm        | Mean  | Min   | Max   | Allocated |
-|-------------|------------------|------:|------:|------:|----------:|
-| Encrypt     | SALSA20          | 31 μs | 27 μs | 36 μs | 4.49 KB   |
-| Decrypt     | SALSA20          | 20 μs | 19 μs | 20 μs | 2.27 KB   |
-| Encrypt     | CHACHA20_POLY1305| 47 μs | 43 μs | 52 μs | 5.13 KB   |
-| Decrypt     | CHACHA20_POLY1305| 40 μs | 32 μs | 47 μs | 2.27 KB   |
+## 🔒 Envelope Encryption
 
-### 🏎️ X25519 ECC (`Nalix.Shared`)
+| **Method**              | **Payload** | **Algorithm**         | **Mean**    | **Allocated** |
+|-------------------------|:-----------:|:---------------------:|------------:|--------------:|
+| Encrypt                 |    128      | SALSA20               |   356 ns    |    -          |
+| Decrypt                 |    128      | SALSA20               |   281 ns    |    48 B       |
+| Encrypt                 |   8192      | CHACHA20_POLY1305     | 48,649 ns   |    -          |
+| Decrypt                 |   8192      | CHACHA20_POLY1305     | 26,153 ns   |    48 B       |
 
-| Method                                          | KeyPairCount | Mean    | Allocated |
-|-------------------------------------------------|--------------|---------|----------:|
-| X25519.GenerateKeyPair (CSPRNG + scalar mult)   |      1       | 65.36 μs|   112 B   |
-| X25519.GenerateKeyFromPrivateKey (scalar only)  |      1       | 67.35 μs|   112 B   |
-| X25519.Agreement (shared secret)                |      1       | 66.59 μs|   56 B    |
+---
 
-### 🔄 Serialization (`Nalix.Shared`)
+## ⚡ Envelope Encryptor
 
-| Method                                                   | ArrayLength | Mean (ns) | Allocated |
-|----------------------------------------------------------|------------:|----------:|----------:|
-| Serialize<`int`[]> ➔ byte[]                              |     256     |   0.0476  |    -      |
-| Deserialize<`int`> <- ReadOnlySpan<`byte`> (ref)         |     256     |   0.1097  |    -      |
-| Serialize<`LargeStruct`> -> existing `byte`[] buffer     |     2048    |   0.0396  |    -      |
-| Deserialize<`LargeStruct`> <- ReadOnlySpan<`byte`> (ref) |     2048    |   0.2274  |    1 B    |
+| **Method**              | **Algorithm**        | **Mean** | **Min** | **Max** | **Allocated** |
+|-------------------------|:--------------------:|---------:|--------:|--------:|--------------:|
+| Encrypt                 | SALSA20              | 31 μs    | 27 μs   | 36 μs   | 4.49 KB       |
+| Decrypt                 | SALSA20              | 20 μs    | 19 μs   | 20 μs   | 2.27 KB       |
+| Encrypt                 | CHACHA20_POLY1305    | 47 μs    | 43 μs   | 52 μs   | 5.13 KB       |
+| Decrypt                 | CHACHA20_POLY1305    | 40 μs    | 32 μs   | 47 μs   | 2.27 KB       |
 
-> **Note:** More detailed data and more test cases can be viewed in the `docs/benchmark` folder of the repo.
+---
+
+## 🏎️ X25519 ECC
+
+| **Method**                                     | **KeyPairCount** | **Mean**   | **Allocated** |
+|------------------------------------------------|:----------------:|-----------:|--------------:|
+| X25519.GenerateKeyPair (CSPRNG + scalar mult)  |        1         | 65.36 μs   |   112 B       |
+| X25519.GenerateKeyFromPrivateKey (scalar only) |        1         | 67.35 μs   |   112 B       |
+| X25519.Agreement (shared secret)               |        1         | 66.59 μs   |    56 B       |
+
+---
+
+## 🔄 Serialization
+
+| **Method**                                                | **ArrayLength** | **Mean (ns)** | **Allocated** |
+|-----------------------------------------------------------|----------------:|--------------:|--------------:|
+| Serialize<`int`[]> ➔ byte[]                               |       256       |    0.0476     |      -        |
+| Deserialize<`int`> <- ReadOnlySpan<`byte`> (ref)          |       256       |    0.1097     |      -        |
+| Serialize<`LargeStruct`> ➔ existing `byte`[] buffer       |      2048       |    0.0396     |      -        |
+| Deserialize<`LargeStruct`> <- ReadOnlySpan<`byte`> (ref)  |      2048       |    0.2274     |     1 B       |
+
+---
+
+> **More details:** See the `docs/benchmark` folder in the repository for full data and additional test cases.
 
 ---
 
 ## 📦 Available NuGet Packages
 
-| Package ID         |Description                             | Install Command                            |
-|--------------------|----------------------------------------|--------------------------------------------|
-| **Nalix.SDK**      | Client-side SDK offering controllers, time sync, and localization utilities for connecting to Nalix.Network.| `dotnet add package Nalix.SDK`|
-| **Nalix.Common**   | Core abstractions, enums, and shared contracts for the Nalix ecosystem.| `dotnet add package Nalix.Common`|
-| **Nalix.Shared**   | Shared low-level utilities and primitives such as memory pooling, LZ4 compression, and lightweight serialization.| `dotnet add package Nalix.Shared`          |
-| **Nalix.Logging**  | Asynchronous and high-performance logging subsystem with batching and multiple sinks.| `dotnet add package Nalix.Logging`|
-| **Nalix.Network**  | Core networking runtime providing TCP/UDP connections, protocol pipelines, and throttling.| `dotnet add package Nalix.Network`|
-| **Nalix.Framework**| High-level framework providing identity, injection, randomization, and task orchestration.| `dotnet add package Nalix.Framework`|
+| Package ID         |Description                                                                                                        |
+|--------------------|-------------------------------------------------------------------------------------------------------------------|
+| **Nalix.SDK**      | Client-side SDK offering controllers, time sync, and localization utilities for connecting to Nalix.Network.      |
+| **Nalix.Common**   | Core abstractions, enums, and shared contracts for the Nalix ecosystem.                                           |
+| **Nalix.Shared**   | Shared low-level utilities and primitives such as memory pooling, LZ4 compression, and lightweight serialization. |
+| **Nalix.Logging**  | Asynchronous and high-performance logging subsystem with batching and multiple sinks.                             |
+| **Nalix.Network**  | Core networking runtime providing TCP/UDP connections, protocol pipelines, and throttling.                        |
+| **Nalix.Framework**| High-level framework providing identity, injection, randomization, and task orchestration.                        |
 
-## 📦 Installation
+### 📦 Installation
 
 You can install Nalix packages individually via NuGet:
 

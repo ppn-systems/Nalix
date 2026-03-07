@@ -204,7 +204,8 @@ public abstract class NLogixEngine : System.IDisposable
             {
                 // Heuristic max length. If not enough, grow on-demand.
                 System.Span<System.Char> initial = stackalloc System.Char[64];
-                var provider = System.Globalization.CultureInfo.CurrentCulture;
+                System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.CurrentCulture;
+
                 if (spanFormattable.TryFormat(initial, out System.Int32 written, innerFormat, provider))
                 {
                     return new System.String(initial[..written]);
@@ -212,7 +213,7 @@ public abstract class NLogixEngine : System.IDisposable
 
                 // Rerun with rented buffer if initial stack is not enough
                 System.Int32 size = 128;
-                while (true)
+                do
                 {
                     System.Char[] rented = System.Buffers.ArrayPool<System.Char>.Shared.Rent(size);
                     try
@@ -227,11 +228,8 @@ public abstract class NLogixEngine : System.IDisposable
                         System.Buffers.ArrayPool<System.Char>.Shared.Return(rented);
                     }
                     size <<= 1;
-                    if (size > 1024 * 64) // hard cap to avoid runaway
-                    {
-                        break;
-                    }
                 }
+                while (size <= 1024 * 64);
             }
 
             // IFormattable fallback (boxed types or custom formattables)

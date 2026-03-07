@@ -188,17 +188,17 @@ public abstract partial class ConfigurationLoader
             catch (System.ArgumentException ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] invalid-argument section={section} key={propertyInfo.Name} error={ex.Message}", ex);
+                                        .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] invalid-argument section={section} key={propertyInfo.Name}", ex);
             }
             catch (System.InvalidOperationException ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] invalid-operation section={section} key={propertyInfo.Name} error={ex.Message}", ex);
+                                        .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] invalid-operation section={section} key={propertyInfo.Name}", ex);
             }
             catch (System.Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(ConfigurationLoader)}:Internal] set-error section={section} key={propertyInfo.Name} type={ex.GetType().Name}", ex);
+                                        .Warn($"[FW.{nameof(ConfigurationLoader)}:Internal] set-error section={section} key={propertyInfo.Name} type={ex.GetType().Name}, ex={ex.Message}");
             }
         }
 
