@@ -1,4 +1,6 @@
 name: "Repo: Sync labels"
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 # Keeps repository labels in sync with the definition file at
 # .github/labels.yml — run manually or whenever the file changes.
@@ -18,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Sync labels
         uses: EndBug/label-sync@v2

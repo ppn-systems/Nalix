@@ -19,7 +19,7 @@
 		<TieredCompilation>true</TieredCompilation>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-		<MaxParallelProjectBuilds>10</MaxParallelProjectBuilds>
+		<MaxParallelProjectBuilds>4</MaxParallelProjectBuilds>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
