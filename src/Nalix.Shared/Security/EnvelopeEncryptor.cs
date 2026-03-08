@@ -1,9 +1,9 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Enums;
-using Nalix.Common.Messaging.Abstractions;
-using Nalix.Common.Messaging.Packets;
+using Nalix.Common.Networking.Packets.Abstractions;
+using Nalix.Common.Networking.Packets.Core;
+using Nalix.Common.Security.Enums;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Security.Internal;
 
@@ -44,7 +44,7 @@ public static class EnvelopeEncryptor
 
     /// <summary>
     /// Encrypts all properties and fields marked with
-    /// <see cref="Nalix.Common.Attributes.SensitiveDataAttribute"/> whose
+    /// <see cref="Common.Security.Attributes.SensitiveDataAttribute"/> whose
     /// <see cref="DataSensitivityLevel"/> is at or above <c>Confidential</c>.
     /// </summary>
     /// <typeparam name="T">The object type to process. Must be a reference type.</typeparam>
@@ -96,7 +96,7 @@ public static class EnvelopeEncryptor
 
     /// <summary>
     /// Decrypts all properties and fields marked with
-    /// <see cref="Nalix.Common.Attributes.SensitiveDataAttribute"/> on the specified object.
+    /// <see cref="Common.Security.Attributes.SensitiveDataAttribute"/> on the specified object.
     /// </summary>
     /// <typeparam name="T">The object type to process. Must be a reference type.</typeparam>
     /// <param name="obj">The object whose sensitive members will be decrypted in place.</param>
@@ -156,7 +156,7 @@ public static class EnvelopeEncryptor
 
     /// <summary>
     /// Returns <see langword="true"/> when <typeparamref name="T"/> contains at least one
-    /// member annotated with <see cref="Nalix.Common.Attributes.SensitiveDataAttribute"/>.
+    /// member annotated with <see cref="Common.Security.Attributes.SensitiveDataAttribute"/>.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -164,7 +164,7 @@ public static class EnvelopeEncryptor
 
     /// <summary>
     /// Returns the names and sensitivity levels of all members on <typeparamref name="T"/>
-    /// that carry <see cref="Nalix.Common.Attributes.SensitiveDataAttribute"/>.
+    /// that carry <see cref="Common.Security.Attributes.SensitiveDataAttribute"/>.
     /// </summary>
     /// <returns>
     /// An array of strings in the format <c>"MemberName [Level]"</c>,

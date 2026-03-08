@@ -4,7 +4,7 @@
 
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Enums;
+using Nalix.Common.Identity.Enums;
 
 namespace Nalix.Common.Concurrency;
 
