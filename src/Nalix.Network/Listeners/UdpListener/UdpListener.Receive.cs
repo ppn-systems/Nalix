@@ -4,7 +4,7 @@
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Identity.Abstractions;
 using Nalix.Common.Identity.Enums;
-using Nalix.Common.Networking.Packets.Core;
+using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;

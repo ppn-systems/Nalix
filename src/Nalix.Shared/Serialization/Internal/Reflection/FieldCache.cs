@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Serialization;
+using Nalix.Common.Serialization.Attributes;
 using System.Linq;
 
 #if DEBUG

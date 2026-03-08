@@ -1,13 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-
+using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
 
-namespace Nalix.Common.Networking.Packets.Core;
+namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
 /// Defines default values and constants for packet configuration and memory thresholds.

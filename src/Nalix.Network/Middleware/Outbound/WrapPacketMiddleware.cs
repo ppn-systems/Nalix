@@ -4,8 +4,8 @@
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Middleware.Attributes;
 using Nalix.Common.Middleware.Enums;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Core;
 using Nalix.Common.Networking.Packets.Transformation;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Injection;

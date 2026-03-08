@@ -6,7 +6,7 @@ using Nalix.Common.Identity.Enums;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Core;
+using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;

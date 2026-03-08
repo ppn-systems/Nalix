@@ -3,7 +3,7 @@
 
 using Nalix.Common.Shared.Attributes;
 
-namespace Nalix.Common.Networking.Packets.Core;
+namespace Nalix.Common.Networking.Packets.Enums;
 
 /// <summary>
 /// Represents the positions of fields in the serialization order.

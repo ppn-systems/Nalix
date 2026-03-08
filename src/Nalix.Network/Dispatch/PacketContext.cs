@@ -3,7 +3,7 @@
 
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Caching;
-using Nalix.Common.Networking.Packets.Core;
+using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;

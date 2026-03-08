@@ -4,8 +4,8 @@
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Caching;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Core;
 using Nalix.Common.Networking.Transport;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
