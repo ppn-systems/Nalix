@@ -3,7 +3,7 @@
 
 using Nalix.Common.Messaging.Protocols;
 
-namespace Nalix.Common.Messaging.Packets.Abstractions;
+namespace Nalix.Common.Messaging.Abstractions;
 
 /// <summary>
 /// Defines a contract for packets that carry a reason code,

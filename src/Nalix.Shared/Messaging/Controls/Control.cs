@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Attributes;
+using Nalix.Common.Messaging.Abstractions;
 using Nalix.Common.Messaging.Packets;
-using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Time;

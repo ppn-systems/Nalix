@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Common.Messaging.Packets.Attributes;
+namespace Nalix.Common.Messaging.Attributes;
 
 /// <summary>
 /// <c>PacketRateLimitAttribute</c> is an attribute used to limit the rate of requests for a method.
@@ -13,12 +13,12 @@ namespace Nalix.Common.Messaging.Packets.Attributes;
 /// <param name="requestsPerSecond">Maximum requests per second allowed.</param>
 /// <param name="burst">Burst size (default is 1).</param>
 [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-public sealed class PacketRateLimitAttribute(System.Int32 requestsPerSecond, System.Int32 burst = 1) : System.Attribute
+public sealed class PacketRateLimitAttribute(System.Int32 requestsPerSecond, System.Double burst = 1) : System.Attribute
 {
     /// <summary>
     /// The burst size allowed for requests. Default is 1.
     /// </summary>
-    public System.Int32 Burst { get; } = burst;
+    public System.Double Burst { get; } = burst;
 
     /// <summary>
     /// The maximum number of requests allowed per second.

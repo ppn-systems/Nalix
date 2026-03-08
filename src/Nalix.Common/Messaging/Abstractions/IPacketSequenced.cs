@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Common.Messaging.Packets.Abstractions;
+namespace Nalix.Common.Messaging.Abstractions;
 
 /// <summary>
 /// Defines a contract for packets that are sequence-aware,

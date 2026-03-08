@@ -5,7 +5,6 @@ using Nalix.Common.Enums;
 using Nalix.Common.Exceptions;
 using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Serialization.Formatters;
-using Nalix.Shared.Serialization.Formatters.Cache;
 
 namespace Nalix.Shared.Security.Internal;
 
@@ -51,14 +50,14 @@ internal static class EnvelopeValueCodec
         // Retrieve the formatter — FormatterCache<T>.Formatter is already populated
         // by FormatterProvider.Get<T>() the first time it is requested.
         // Access the static field directly to avoid a dictionary lookup on every call.
-        var formatter = FormatterCache<T>.Formatter ?? FormatterProvider.Get<T>();
 
         // Use a small initial capacity; DataWriter grows automatically if needed.
         DataWriter writer = new(64);
         try
         {
             // Serialize into the writer's pooled buffer — no intermediate array allocation.
-            formatter.Serialize(ref writer, typedValue);
+            FormatterProvider.Get<T>()
+                             .Serialize(ref writer, typedValue);
 
             System.Int32 plaintextLen = writer.WrittenCount;
 
@@ -239,8 +238,8 @@ internal static class EnvelopeValueCodec
         try
         {
             // Use FormatterCache<T>.Formatter for zero-lookup access on the hot path.
-            var formatter = FormatterCache<T>.Formatter ?? FormatterProvider.Get<T>();
-            T result = formatter.Deserialize(ref reader);
+            T result = FormatterProvider.Get<T>()
+                                        .Deserialize(ref reader);
 
             // Zero sensitive plaintext before returning.
             plainSpan[..written].Clear();
@@ -290,9 +289,8 @@ internal static class EnvelopeValueCodec
             DataReader reader = new(plainSpan[..written]);
             try
             {
-                var formatter = FormatterCache<T>.Formatter
-                                ?? Nalix.Shared.Serialization.Formatters.FormatterProvider.Get<T>();
-                T result = formatter.Deserialize(ref reader);
+                T result = FormatterProvider.Get<T>()
+                                            .Deserialize(ref reader);
 
                 plainSpan[..written].Clear();
                 return result!;

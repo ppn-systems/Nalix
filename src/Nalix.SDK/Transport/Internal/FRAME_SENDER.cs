@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
 using Nalix.Shared.Memory.Pooling;

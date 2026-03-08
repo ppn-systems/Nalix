@@ -1,10 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Messaging.Packets;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Common.Serialization;
 
-namespace Nalix.Common.Messaging.Packets.Abstractions;
+namespace Nalix.Common.Messaging.Abstractions;
 
 /// <summary>
 /// Defines the common contract for all network packets.

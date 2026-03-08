@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Infrastructure.Client;
-using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Abstractions;
 using System.Linq;
 
 namespace Nalix.SDK.Transport.Dispatch;

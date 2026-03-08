@@ -4,8 +4,8 @@
 using Nalix.Common.Attributes;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Enums;
+using Nalix.Common.Messaging.Abstractions;
 using Nalix.Common.Messaging.Packets;
-using Nalix.Common.Messaging.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Messaging.Controls;
 using Nalix.Shared.Messaging.Text;
@@ -94,153 +94,6 @@ public sealed class PacketCatalogFactory
     }
 
     #endregion Constructors
-
-    #region Private Methods
-
-    /// <summary>
-    /// Generic trampoline that stores function pointers for a specific <typeparamref name="TPacket"/>.
-    /// The public static methods act as thin facades converting <see cref="IPacket"/> to/from
-    /// <typeparamref name="TPacket"/> and then invoking the function pointer.
-    /// </summary>
-    private static unsafe class PacketFunctionTable<TPacket> where TPacket : IPacket
-    {
-        // Note: The 'in' modifier on ReadOnlySpan is optional in the consumer; the function pointer
-        // signature must match the actual static method on TPacket. If your methods use
-        // 'in ReadOnlySpan<byte>' exactly, it remains ABI-compatible to call with a plain argument.
-        public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializeFunc;
-
-        public static delegate* managed<TPacket, TPacket> CompressFunc;
-        public static delegate* managed<TPacket, TPacket> DecompressFunc;
-        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> EncryptFunc;
-        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> DecryptFunc;
-
-        /// <summary>
-        /// Facade for <see cref="PacketDeserializer"/>.
-        /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Deserialize(System.ReadOnlySpan<System.Byte> raw) => DeserializeFunc(raw);
-
-        /// <summary>
-        /// Facade for <see cref="PacketTransformer.Compress"/>.
-        /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Compress(IPacket p) => CompressFunc((TPacket)p);
-
-        /// <summary>
-        /// Facade for <see cref="PacketTransformer.Decompress"/>.
-        /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Decompress(IPacket p) => DecompressFunc((TPacket)p);
-
-        /// <summary>
-        /// Facade for <see cref="PacketTransformer.Encrypt"/>.
-        /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Encrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => EncryptFunc((TPacket)p, key, alg);
-
-        /// <summary>
-        /// Facade for <see cref="PacketTransformer.Decrypt"/>.
-        /// </summary>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Decrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => DecryptFunc((TPacket)p, key, alg);
-    }
-
-    /// <summary>
-    /// Safely iterates types of an assembly, even if some fail to load.
-    /// </summary>
-    private static System.Collections.Generic.IEnumerable<System.Type> SafeGetTypes(System.Reflection.Assembly asm)
-    {
-        try
-        {
-            return asm.GetTypes();
-        }
-        catch (System.Reflection.ReflectionTypeLoadException ex)
-        {
-            return System.Linq.Enumerable.OfType<System.Type>(ex.Types);
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, TPacket> UnaryIntPtr<TPacket>(System.Reflection.MethodInfo mi)
-    {
-        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
-        return (delegate* managed<TPacket, TPacket>)ptr;
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> CryptoIntPtr<TPacket>(System.Reflection.MethodInfo mi)
-    {
-        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
-        return (delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket>)ptr;
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializeIntPtr<TPacket>(System.Reflection.MethodInfo mi)
-    {
-        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
-        return (delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>)ptr;
-    }
-
-    /// <summary>
-    /// Assigns function pointers to <see cref="PacketFunctionTable{TPacket}"/> for a specific packet type.
-    /// Any null <paramref name="miDeserialize"/>, <paramref name="miCompress"/>,
-    /// <paramref name="miDecompress"/>, <paramref name="miEncrypt"/>, or <paramref name="miDecrypt"/> parameters are skipped.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe void BindPtrs<TPacket>(
-        System.Reflection.MethodInfo? miDeserialize,
-        System.Reflection.MethodInfo? miCompress,
-        System.Reflection.MethodInfo? miDecompress,
-        System.Reflection.MethodInfo? miEncrypt,
-        System.Reflection.MethodInfo? miDecrypt)
-        where TPacket : IPacket
-    {
-        if (miDeserialize is not null)
-        {
-            PacketFunctionTable<TPacket>.DeserializeFunc = DeserializeIntPtr<TPacket>(miDeserialize);
-        }
-
-        if (miCompress is not null)
-        {
-            PacketFunctionTable<TPacket>.CompressFunc = UnaryIntPtr<TPacket>(miCompress);
-        }
-
-        if (miDecompress is not null)
-        {
-            PacketFunctionTable<TPacket>.DecompressFunc = UnaryIntPtr<TPacket>(miDecompress);
-        }
-
-        if (miEncrypt is not null)
-        {
-            PacketFunctionTable<TPacket>.EncryptFunc = CryptoIntPtr<TPacket>(miEncrypt);
-        }
-
-        if (miDecrypt is not null)
-        {
-            PacketFunctionTable<TPacket>.DecryptFunc = CryptoIntPtr<TPacket>(miDecrypt);
-        }
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Meta(
-            $"[SH.{nameof(PacketCatalogFactory)}] bind " +
-            $"type={typeof(TPacket).Name} des={(miDeserialize is not null ? "+" : "-")} " +
-            $"cmp={(miCompress is not null ? "+" : "-")} dcmp={(miDecompress is not null ? "+" : "-")} " +
-            $"enc={(miEncrypt is not null ? "+" : "-")} dec={(miDecrypt is not null ? "+" : "-")}");
-    }
-
-    #endregion Private Methods
 
     #region API
 
@@ -529,4 +382,151 @@ public sealed class PacketCatalogFactory
     }
 
     #endregion API
+
+    #region Private Methods
+
+    /// <summary>
+    /// Generic trampoline that stores function pointers for a specific <typeparamref name="TPacket"/>.
+    /// The public static methods act as thin facades converting <see cref="IPacket"/> to/from
+    /// <typeparamref name="TPacket"/> and then invoking the function pointer.
+    /// </summary>
+    private static unsafe class PacketFunctionTable<TPacket> where TPacket : IPacket
+    {
+        // Note: The 'in' modifier on ReadOnlySpan is optional in the consumer; the function pointer
+        // signature must match the actual static method on TPacket. If your methods use
+        // 'in ReadOnlySpan<byte>' exactly, it remains ABI-compatible to call with a plain argument.
+        public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializeFunc;
+
+        public static delegate* managed<TPacket, TPacket> CompressFunc;
+        public static delegate* managed<TPacket, TPacket> DecompressFunc;
+        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> EncryptFunc;
+        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> DecryptFunc;
+
+        /// <summary>
+        /// Facade for <see cref="PacketDeserializer"/>.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket Deserialize(System.ReadOnlySpan<System.Byte> raw) => DeserializeFunc(raw);
+
+        /// <summary>
+        /// Facade for <see cref="PacketTransformer.Compress"/>.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket Compress(IPacket p) => CompressFunc((TPacket)p);
+
+        /// <summary>
+        /// Facade for <see cref="PacketTransformer.Decompress"/>.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket Decompress(IPacket p) => DecompressFunc((TPacket)p);
+
+        /// <summary>
+        /// Facade for <see cref="PacketTransformer.Encrypt"/>.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket Encrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => EncryptFunc((TPacket)p, key, alg);
+
+        /// <summary>
+        /// Facade for <see cref="PacketTransformer.Decrypt"/>.
+        /// </summary>
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket Decrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => DecryptFunc((TPacket)p, key, alg);
+    }
+
+    /// <summary>
+    /// Safely iterates types of an assembly, even if some fail to load.
+    /// </summary>
+    private static System.Collections.Generic.IEnumerable<System.Type> SafeGetTypes(System.Reflection.Assembly asm)
+    {
+        try
+        {
+            return asm.GetTypes();
+        }
+        catch (System.Reflection.ReflectionTypeLoadException ex)
+        {
+            return System.Linq.Enumerable.OfType<System.Type>(ex.Types);
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<TPacket, TPacket> UnaryIntPtr<TPacket>(System.Reflection.MethodInfo mi)
+    {
+        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
+        return (delegate* managed<TPacket, TPacket>)ptr;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> CryptoIntPtr<TPacket>(System.Reflection.MethodInfo mi)
+    {
+        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
+        return (delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket>)ptr;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializeIntPtr<TPacket>(System.Reflection.MethodInfo mi)
+    {
+        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
+        return (delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>)ptr;
+    }
+
+    /// <summary>
+    /// Assigns function pointers to <see cref="PacketFunctionTable{TPacket}"/> for a specific packet type.
+    /// Any null <paramref name="miDeserialize"/>, <paramref name="miCompress"/>,
+    /// <paramref name="miDecompress"/>, <paramref name="miEncrypt"/>, or <paramref name="miDecrypt"/> parameters are skipped.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe void BindPtrs<TPacket>(
+        System.Reflection.MethodInfo? miDeserialize,
+        System.Reflection.MethodInfo? miCompress,
+        System.Reflection.MethodInfo? miDecompress,
+        System.Reflection.MethodInfo? miEncrypt,
+        System.Reflection.MethodInfo? miDecrypt)
+        where TPacket : IPacket
+    {
+        if (miDeserialize is not null)
+        {
+            PacketFunctionTable<TPacket>.DeserializeFunc = DeserializeIntPtr<TPacket>(miDeserialize);
+        }
+
+        if (miCompress is not null)
+        {
+            PacketFunctionTable<TPacket>.CompressFunc = UnaryIntPtr<TPacket>(miCompress);
+        }
+
+        if (miDecompress is not null)
+        {
+            PacketFunctionTable<TPacket>.DecompressFunc = UnaryIntPtr<TPacket>(miDecompress);
+        }
+
+        if (miEncrypt is not null)
+        {
+            PacketFunctionTable<TPacket>.EncryptFunc = CryptoIntPtr<TPacket>(miEncrypt);
+        }
+
+        if (miDecrypt is not null)
+        {
+            PacketFunctionTable<TPacket>.DecryptFunc = CryptoIntPtr<TPacket>(miDecrypt);
+        }
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Meta(
+            $"[SH.{nameof(PacketCatalogFactory)}] bind " +
+            $"type={typeof(TPacket).Name} des={(miDeserialize is not null ? "+" : "-")} " +
+            $"cmp={(miCompress is not null ? "+" : "-")} dcmp={(miDecompress is not null ? "+" : "-")} " +
+            $"enc={(miEncrypt is not null ? "+" : "-")} dec={(miDecrypt is not null ? "+" : "-")}");
+    }
+
+    #endregion Private Methods
 }

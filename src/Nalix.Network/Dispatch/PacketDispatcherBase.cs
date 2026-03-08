@@ -3,7 +3,7 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Abstractions;
 using Nalix.Network.Dispatch.Options;
 
 namespace Nalix.Network.Dispatch;

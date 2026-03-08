@@ -3,7 +3,7 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Infrastructure.Client;
-using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Abstractions;
 using Nalix.Common.Messaging.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;

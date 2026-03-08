@@ -3,7 +3,7 @@
 
 using Nalix.Common.Enums;
 
-namespace Nalix.Common.Messaging.Packets.Abstractions;
+namespace Nalix.Common.Messaging.Abstractions;
 
 /// <summary>
 /// Exposes static encryption/decryption capability for a packet type.
