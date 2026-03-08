@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Environment;
-using Nalix.Logging.Internal.Exceptions;
+using Nalix.Logging.Exceptions;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Logging.Internal.Exceptions;
+namespace Nalix.Logging.Exceptions;
 
 /// <summary>
 /// Represents an error that occurred during file logging operations.

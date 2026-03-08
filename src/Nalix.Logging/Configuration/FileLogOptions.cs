@@ -4,7 +4,7 @@
 using Nalix.Common.Environment;
 using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Configuration.Binding;
-using Nalix.Logging.Internal.Exceptions;
+using Nalix.Logging.Exceptions;
 
 namespace Nalix.Logging.Configuration;
 

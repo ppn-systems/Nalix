@@ -8,7 +8,7 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Options;
 using Nalix.Framework.Time;
 
-namespace Nalix.Framework.Identity;
+namespace Nalix.Framework.Identifiers;
 
 /// <summary>
 /// Represents a 56-bit unique identifier composed of a value, machine identifier, and type.

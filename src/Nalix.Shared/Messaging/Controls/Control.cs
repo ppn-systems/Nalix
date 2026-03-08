@@ -5,7 +5,7 @@ using Nalix.Common.Middleware.Attributes;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Serialization;
+using Nalix.Common.Serialization.Attributes;
 using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Time;
 

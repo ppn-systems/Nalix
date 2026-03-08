@@ -5,7 +5,7 @@ using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Identity.Abstractions;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Identity;
+using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Time;

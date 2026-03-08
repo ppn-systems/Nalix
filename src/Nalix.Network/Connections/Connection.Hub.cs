@@ -7,7 +7,7 @@ using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Security.Enums;
 using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Identity;
+using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
