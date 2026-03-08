@@ -4,7 +4,7 @@
 using Nalix.Common.Identity.Enums;
 using Nalix.Common.Primitives;
 
-namespace Nalix.Framework.Identity;
+namespace Nalix.Framework.Identifiers;
 
 public readonly partial struct Snowflake
 {
