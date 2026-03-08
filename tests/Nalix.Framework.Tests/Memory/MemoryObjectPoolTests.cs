@@ -159,7 +159,14 @@ public sealed partial class MemoryTests
         int unhealthyPools = manager.PerformHealthCheck();
         Task scheduled = manager.ScheduleRegularTrimming(TimeSpan.FromMilliseconds(10), cancellationToken: cancellationTokenSource.Token);
         cancellationTokenSource.CancelAfter(20);
-        await scheduled.ConfigureAwait(true);
+        try
+        {
+            await scheduled.ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when the cancellation token is triggered
+        }
 
         Assert.True(unhealthyPools >= 0);
         Assert.True(manager.UnhealthyPoolCount >= 0);
