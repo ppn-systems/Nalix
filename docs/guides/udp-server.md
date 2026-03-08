@@ -55,7 +55,7 @@ For most teams, the easiest model is:
 - use UDP to carry fast authenticated datagrams
 - keep both paths tied to the same `ConnectionHub`
 
-The current runtime expects UDP datagrams to reference an existing `ConnectionHub` connection and to carry the authenticated trailer validated by `UdpListenerBase`.
+The current runtime expects UDP datagrams to reference an existing `ConnectionHub` connection and to carry a 7-byte session token prefix validated by `UdpListenerBase`.
 
 ### 3. Runtime tuning
 
@@ -106,9 +106,8 @@ receive datagram
 
 - UDP should not invent a second identity model separate from TCP sessions
 - unauthenticated drops should be visible in diagnostics
-- replay and timestamp assumptions should be explicit on both client and server
 - `IsAuthenticated(...)` should stay fast and deterministic
-- the authenticated trailer now includes session ID, timestamp, nonce, and Poly1305 tag
+- the datagram prefix is the 7-byte `SessionToken` and the payload comes after it
 
 ## Related APIs
 

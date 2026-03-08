@@ -54,7 +54,7 @@ flowchart LR
 
 ## Inbound authentication model
 
-`ProcessDatagram(...)` extracts the fixed 7-byte `SessionId` (Snowflake) from the beginning of the datagram.
+`ProcessDatagram(...)` extracts the fixed 7-byte `SessionToken` (`Snowflake`) from the beginning of the datagram.
 
 The base class then:
 
@@ -67,7 +67,7 @@ Only after all of those steps pass does the payload get injected into the connec
 
 - short packets are dropped before any connection lookup
 - unknown sessions are counted separately from authentication failures
-- replay-window failures should be treated as client/server clock or nonce issues, not generic transport loss
+- datagrams that fail token lookup are treated as unknown-session packets, not generic transport loss
 
 ## Extensibility points
 
@@ -95,7 +95,7 @@ The class keeps counters for:
 
 - treating UDP as if it can safely work without a session identity
 - making `IsAuthenticated(...)` slow or non-deterministic
-- forgetting that the listener expects the authenticated trailer to be present on every accepted datagram
+- forgetting that the listener expects the 7-byte session-token prefix on every accepted datagram
 
 !!! tip "Keep authentication fast"
     `IsAuthenticated(...)` should be deterministic and cheap.

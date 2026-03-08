@@ -53,9 +53,13 @@ The builder uses a fluent API to configure the host before it is built.
 ### Logging and Options
 
 - `ConfigureLogging(ILogger)`: Registers the logger into the `InstanceManager`.
-- `ConfigureConnectionHub(ConnectionHub)`: Registers the shared connection hub into the `InstanceManager`.
+- `ConfigureConnectionHub(IConnectionHub)`: Registers the shared connection hub into the `InstanceManager`.
 - `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager.
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type. This is applied during the activation phase.
+
+> [!NOTE]
+> If you do not configure a connection hub or buffer pool manager, the builder can create default instances during build/activation.
+> The built-in handler set is registered automatically before user-defined handler discovery runs.
 
 ### Packet and Handler Discovery
 

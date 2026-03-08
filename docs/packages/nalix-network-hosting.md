@@ -29,10 +29,11 @@ flowchart LR
 
 ## Builder notes
 
-- `ConfigureConnectionHub(...)` lets you register the `ConnectionHub` you want the host to use instead of relying on the default fallback instance.
-- `UseBufferPoolManager(...)` is available when you want to reduce allocation pressure in the hosting pipeline.
-- `AddHandler<THandler>()` and `AddMetadataProvider<TProvider>()` expect concrete, constructible classes because the host instantiates them at runtime.
-- `AddTcp<TProtocol>(...)` is the primary binding path for server startup, and `AddUdp<TProtocol>(...)` is expected to be paired with TCP bindings in this package.
+- `ConfigureConnectionHub(...)` takes an `IConnectionHub`; use it when you want to supply your own shared hub instead of the default fallback instance.
+- `ConfigureBufferPoolManager(...)` is the explicit way to supply a custom `BufferPoolManager`.
+- `AddPacket(Assembly)` and `AddPacket<TMarker>()` scan packet contracts, while `AddHandler<THandler>()` registers a single handler type.
+- `AddHandlers(Assembly)` and `AddHandlers<TMarker>()` scan a whole assembly for packet controllers.
+- `AddTcp<TProtocol>(...)` is the primary binding path for server startup, and `AddUdp<TProtocol>(...)` is available when the server needs UDP too.
 
 ## Core APIs
 
@@ -50,14 +51,22 @@ The builder exposes fluent methods for common bootstrap concerns:
 
 - `ConfigureLogging(...)`
 - `ConfigureConnectionHub(...)`
+- `ConfigureBufferPoolManager(...)`
 - `Configure<TOptions>(...)`
-- `AddPacketAssemblies(...)`
+- `AddPacket(...)`
 - `AddHandlers(...)`
+- `AddHandler(...)`
 - `AddMetadataProvider(...)`
 - `ConfigureDispatch(...)`
-- `UseBufferPoolManager(...)`
 - `AddTcp<TProtocol>(...)`
 - `AddUdp<TProtocol>(...)`
+
+### Registration semantics
+
+- `AddPacket<TMarker>()` scans the marker assembly for packet types.
+- `AddHandlers<TMarker>()` scans the marker assembly for packet controller types.
+- `AddHandler<THandler>()` registers one handler type explicitly.
+- If you use the marker-based overloads, make the marker live in the assembly you actually want scanned.
 
 For a method-by-method breakdown, see the dedicated API page: [Network Application](../api/hosting/network-application.md).
 

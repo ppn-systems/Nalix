@@ -1,0 +1,11 @@
+<Solution>
+  <Project Path="../../src/Nalix.Analyzers.CodeFixes/Nalix.Analyzers.CodeFixes.csproj" />
+  <Project Path="../../src/Nalix.Analyzers/Nalix.Analyzers.csproj" />
+  <Project Path="../../src/Nalix.Common/Nalix.Common.csproj" />
+  <Project Path="Nalix.Chat.Application/Nalix.Chat.Application.csproj" />
+  <Project Path="Nalix.Chat.Client.Avalonia/Nalix.Chat.Client.Avalonia.csproj" />
+  <Project Path="Nalix.Chat.Client.Core/Nalix.Chat.Client.Core.csproj" />
+  <Project Path="Nalix.Chat.Contracts/Nalix.Chat.Contracts.csproj" />
+  <Project Path="Nalix.Chat.Domain/Nalix.Chat.Domain.csproj" />
+  <Project Path="Nalix.Chat.Infrastructure/Nalix.Chat.Infrastructure.csproj" />
+</Solution>

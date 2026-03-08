@@ -160,6 +160,10 @@ public sealed class HandshakeHandlers
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
         SessionEntry? session = Hub?.SessionStore.CreateSession(connection);
+        if (session is not null)
+        {
+            await Hub!.SessionStore.StoreAsync(session).ConfigureAwait(false);
+        }
 
         using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
         Handshake reply = lease.Value;
