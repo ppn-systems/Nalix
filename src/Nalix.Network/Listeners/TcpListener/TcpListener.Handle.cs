@@ -14,7 +14,6 @@ using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timekeeping;
 using Nalix.Shared.Memory.Pooling;
-using System.Net;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -127,7 +126,7 @@ public abstract partial class TcpListenerBase
                         return;
                     }
 
-                    if (socket.RemoteEndPoint is not IPEndPoint remoteIp
+                    if (socket.RemoteEndPoint is not System.Net.IPEndPoint remoteIp
                         || !_limiter.IsConnectionAllowed(remoteIp))
                     {
                         SafeCloseSocket(socket);
