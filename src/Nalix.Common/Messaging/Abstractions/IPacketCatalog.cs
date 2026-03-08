@@ -1,7 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Common.Messaging.Packets.Abstractions;
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using Nalix.Common.Messaging.Packets;
+
+namespace Nalix.Common.Messaging.Abstractions;
 
 /// <summary>
 /// Provides a read-only catalog that maps magic numbers and packet types

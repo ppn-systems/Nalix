@@ -1,9 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using Nalix.Common.Enums;
 
-namespace Nalix.Common.Messaging.Packets.Attributes;
+namespace Nalix.Common.Messaging.Attributes;
 
 /// <summary>
 /// Specifies the minimum <see cref="PermissionLevel"/> required to execute the target packet command.

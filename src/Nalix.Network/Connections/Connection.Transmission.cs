@@ -3,7 +3,7 @@
 
 using Nalix.Common.Connection;
 using Nalix.Common.Infrastructure.Caching;
-using Nalix.Common.Messaging.Packets.Abstractions;
+using Nalix.Common.Messaging.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Network.Dispatch.Results.Primitives;
 using Nalix.Shared.Memory.Pooling;
