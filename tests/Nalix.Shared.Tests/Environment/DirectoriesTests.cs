@@ -1,4 +1,6 @@
-﻿namespace Nalix.Shared.Tests.Environment;
+﻿using Nalix.Common.Environment;
+
+namespace Nalix.Shared.Tests.Environment;
 
 [System.Runtime.Versioning.UnsupportedOSPlatform("browser")]
 [Xunit.Collection("DirectoriesTests")]
@@ -20,31 +22,31 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
 
         // Do đã gọi OverrideBasePathForTesting(BaseDir), BasePath phải bằng BaseDir
         Xunit.Assert.Equal(System.IO.Path.GetFullPath(expected),
-                           System.IO.Path.GetFullPath(Nalix.Common.Infrastructure.Environment.Directories.BaseAssetsDirectory));
+                           System.IO.Path.GetFullPath(Directories.BaseAssetsDirectory));
     }
 
     [Xunit.Fact]
     public void All_Known_Directories_Are_Created_And_Exist()
     {
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.BaseAssetsDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.DataDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.LogsDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.TemporaryDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.ConfigurationDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.StorageDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.DatabaseDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.CacheDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.UploadsDirectory));
-        Xunit.Assert.True(System.IO.Directory.Exists(Nalix.Common.Infrastructure.Environment.Directories.BackupsDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.BaseAssetsDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.DataDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.LogsDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.TemporaryDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.ConfigurationDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.StorageDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.DatabaseDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.CacheDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.UploadsDirectory));
+        Xunit.Assert.True(System.IO.Directory.Exists(Directories.BackupsDirectory));
     }
 
     [Xunit.Fact]
     public void GetFilePath_Creates_Parent_And_Combines_Safely()
     {
         System.String parent = System.IO.Path.Combine(
-            Nalix.Common.Infrastructure.Environment.Directories.DataDirectory, "unit_parent_" + System.Guid.NewGuid().ToString("N"));
+            Directories.DataDirectory, "unit_parent_" + System.Guid.NewGuid().ToString("N"));
 
-        System.String filePath = Nalix.Common.Infrastructure.Environment.Directories.GetFilePath(parent, "foo.bin");
+        System.String filePath = Directories.GetFilePath(parent, "foo.bin");
 
         Xunit.Assert.True(System.IO.Directory.Exists(parent));
         Xunit.Assert.True(filePath.EndsWith(System.IO.Path.DirectorySeparatorChar + "foo.bin")
@@ -54,8 +56,8 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     [Xunit.Fact]
     public void CreateTimestampedDirectory_Uses_UTC_Format_And_Exists()
     {
-        System.String parent = Nalix.Common.Infrastructure.Environment.Directories.DataDirectory;
-        System.String dir = Nalix.Common.Infrastructure.Environment.Directories.CreateTimestampedDirectory(parent, "px");
+        System.String parent = Directories.DataDirectory;
+        System.String dir = Directories.CreateTimestampedDirectory(parent, "px");
 
         Xunit.Assert.True(System.IO.Directory.Exists(dir));
 
@@ -69,7 +71,7 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     public void CleanupDirectory_Removes_Only_Old_Files()
     {
         System.String target = System.IO.Path.Combine(
-            Nalix.Common.Infrastructure.Environment.Directories.TemporaryDirectory, "cleanup_" + System.Guid.NewGuid().ToString("N"));
+            Directories.TemporaryDirectory, "cleanup_" + System.Guid.NewGuid().ToString("N"));
 
         _ = System.IO.Directory.CreateDirectory(target);
 
@@ -83,7 +85,7 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
         System.DateTime past = System.DateTime.UtcNow - System.TimeSpan.FromDays(2);
         System.IO.File.SetLastWriteTimeUtc(oldFile, past);
 
-        System.Int32 removed = Nalix.Common.Infrastructure.Environment.Directories.DeleteOldFiles(target, System.TimeSpan.FromDays(1), "*.tmp");
+        System.Int32 removed = Directories.DeleteOldFiles(target, System.TimeSpan.FromDays(1), "*.tmp");
 
         Xunit.Assert.Equal(1, removed);
         Xunit.Assert.False(System.IO.File.Exists(oldFile));
@@ -100,14 +102,14 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
             if (!System.String.IsNullOrEmpty(p)) { hits.Add(p); }
         }
 
-        Nalix.Common.Infrastructure.Environment.Directories.RegisterDirectoryCreationHandler(handler);
+        Directories.RegisterDirectoryCreationHandler(handler);
 
         try
         {
             System.String parent = System.IO.Path.Combine(
-                Nalix.Common.Infrastructure.Environment.Directories.DataDirectory, "evt_" + System.Guid.NewGuid().ToString("N"));
+                Directories.DataDirectory, "evt_" + System.Guid.NewGuid().ToString("N"));
 
-            System.String sub = Nalix.Common.Infrastructure.Environment.Directories.CreateSubdirectory(parent, "child");
+            System.String sub = Directories.CreateSubdirectory(parent, "child");
 
             Xunit.Assert.True(System.IO.Directory.Exists(sub));
             Xunit.Assert.True(hits.Count >= 1);
@@ -115,17 +117,17 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
         }
         finally
         {
-            Nalix.Common.Infrastructure.Environment.Directories.UnregisterDirectoryCreationHandler(handler);
+            Directories.UnregisterDirectoryCreationHandler(handler);
         }
     }
 
     [Xunit.Fact]
     public void GetFilePath_Blocks_Path_Traversal()
     {
-        System.String baseDir = Nalix.Common.Infrastructure.Environment.Directories.DataDirectory;
+        System.String baseDir = Directories.DataDirectory;
         System.String traversal = ".." + System.IO.Path.DirectorySeparatorChar + "evil.txt";
 
-        void act() => _ = Nalix.Common.Infrastructure.Environment.Directories.GetFilePath(baseDir, traversal);
+        void act() => _ = Directories.GetFilePath(baseDir, traversal);
 
         _ = Xunit.Assert.Throws<System.UnauthorizedAccessException>(act);
     }
@@ -133,8 +135,8 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     [Xunit.Fact]
     public void CreateHierarchicalDateDirectory_Builds_Y_M_D()
     {
-        System.String parent = Nalix.Common.Infrastructure.Environment.Directories.DataDirectory;
-        System.String day = Nalix.Common.Infrastructure.Environment.Directories.CreateHierarchicalDateDirectory(parent);
+        System.String parent = Directories.DataDirectory;
+        System.String day = Directories.CreateHierarchicalDateDirectory(parent);
 
         Xunit.Assert.True(System.IO.Directory.Exists(day));
 
@@ -150,7 +152,7 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     [Xunit.Fact]
     public void ValidateDirectories_Returns_True()
     {
-        System.Boolean ok = Nalix.Common.Infrastructure.Environment.Directories.CanAccessAllDirectories();
+        System.Boolean ok = Directories.CanAccessAllDirectories();
         Xunit.Assert.True(ok);
     }
 }

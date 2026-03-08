@@ -1,5 +1,5 @@
-﻿using Nalix.Common.Messaging.Protocols;
-using Nalix.Shared.Messaging.Controls;
+﻿using Nalix.Common.Networking.Protocols;
+using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Serialization;
 using System;
 using Xunit;

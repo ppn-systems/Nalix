@@ -1,5 +1,5 @@
-﻿using Nalix.Common.Attributes;
-using Nalix.Common.Enums;
+﻿using Nalix.Common.Security.Attributes;
+using Nalix.Common.Security.Enums;
 using System.Collections.Generic;
 
 namespace Nalix.Shared.Tests.Cryptography;
