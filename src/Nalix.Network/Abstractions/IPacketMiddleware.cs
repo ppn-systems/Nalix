@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Network.Dispatch;
+using Nalix.Network.Routing;
 
 namespace Nalix.Network.Abstractions;
 

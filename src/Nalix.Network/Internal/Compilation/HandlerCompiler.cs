@@ -6,9 +6,9 @@ using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Attributes;
 using Nalix.Framework.Injection;
-using Nalix.Network.Dispatch;
-using Nalix.Network.Dispatch.Delegates;
 using Nalix.Network.Internal.Extensions;
+using Nalix.Network.Routing;
+using Nalix.Network.Routing.Delegates;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]

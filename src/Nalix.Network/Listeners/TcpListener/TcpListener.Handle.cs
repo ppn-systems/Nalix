@@ -12,7 +12,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
-using Nalix.Network.Timing;
+using Nalix.Network.Timekeeping;
 using Nalix.Shared.Memory.Pooling;
 using System.Net;
 

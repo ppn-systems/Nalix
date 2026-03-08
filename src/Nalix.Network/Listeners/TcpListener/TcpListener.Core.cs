@@ -12,7 +12,7 @@ using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Throttling;
-using Nalix.Network.Timing;
+using Nalix.Network.Timekeeping;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Listeners.Tcp;
