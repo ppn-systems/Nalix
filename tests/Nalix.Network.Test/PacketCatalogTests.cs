@@ -1,7 +1,8 @@
-﻿using Nalix.Common.Messaging.Packets;
-using Nalix.Common.Messaging.Packets.Abstractions;
-using Nalix.Shared.Messaging.Catalog;
-using Nalix.Shared.Messaging.Controls;
+﻿using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Packets.Abstractions;
+using Nalix.Common.Networking.Packets.Transformation;
+using Nalix.Shared.Frames.Controls;
+using Nalix.Shared.Registry;
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
@@ -23,7 +24,7 @@ public sealed class PacketCatalogTests
         // Arrange
         var transformers = new Dictionary<Type, PacketTransformer>().ToFrozenDictionary();
         var deserializers = new Dictionary<UInt32, PacketDeserializer>().ToFrozenDictionary();
-        var catalog = new PacketCatalog(transformers, deserializers);
+        var catalog = new PacketRegistry(transformers, deserializers);
         Span<Byte> raw = stackalloc Byte[PacketConstants.HeaderSize - 1];
 
         // Act
@@ -49,7 +50,7 @@ public sealed class PacketCatalogTests
         // With this line:
         static IPacket deser(ReadOnlySpan<Byte> _) => new Control();
         var des = new Dictionary<UInt32, PacketDeserializer> { [Magic] = deser };
-        var catalog = new PacketCatalog(
+        var catalog = new PacketRegistry(
             new Dictionary<Type, PacketTransformer>().ToFrozenDictionary(),
             des.ToFrozenDictionary());
 
@@ -75,7 +76,7 @@ public sealed class PacketCatalogTests
         const UInt32 Magic = 0xAABBCCDD;
         static IPacket deser(ReadOnlySpan<Byte> _) => new Control();
 
-        var catalog = new PacketCatalog(
+        var catalog = new PacketRegistry(
             new Dictionary<Type, PacketTransformer>().ToFrozenDictionary(),
             new Dictionary<UInt32, PacketDeserializer> { [Magic] = deser }.ToFrozenDictionary());
 
