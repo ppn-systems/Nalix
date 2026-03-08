@@ -37,16 +37,16 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Must be within the range of 1 to 65535.
     /// Standard is 57206.
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
     public System.UInt16 Port
     {
         get => this._port;
         set
         {
-            if (value is <= System.UInt16.MinValue or > System.UInt16.MaxValue)
+            if (value is < 1 or > 65535)
             {
                 throw new System.ArgumentOutOfRangeException(nameof(value), "Port must be between 1 and 65535.");
             }
-
             this._port = value;
         }
     }
@@ -55,14 +55,12 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Gets or sets the maximum length of the pending connections queue.
     /// Default is 512.
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Range(1, 65535, ErrorMessage = "Backlog must be between 1 and 65535.")]
     public System.Int32 Backlog { get; set; } = 512;
 
     /// <summary>
     /// Gets or sets a value indicating whether the idle timeout mechanism is enabled.
     /// </summary>
-    /// <value>
-    /// <c>true</c> to enable idle timeout monitoring; otherwise, <c>false</c>.
-    /// </value>
     public System.Boolean EnableTimeout { get; set; } = true;
 
     /// <summary>
@@ -79,22 +77,21 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "MaxParallel must be at least 1.")]
     public System.Int32 MaxParallel { get; set; } = 5;
 
     /// <summary>
     /// Gets or sets the buffer size for both sending and receiving data.
     /// </summary>
     /// <value>
-    /// The buffer size in bytes. Default is <c>8192</c>.
+    /// The buffer size in bytes. Default is <c>4096</c>.
     /// </value>
+    [System.ComponentModel.DataAnnotations.Range(64, 10_485_760, ErrorMessage = "BufferSize must be between 512 and 10MiB (10,485,760 bytes).")]
     public System.Int32 BufferSize { get; set; } = 4 * 1024;
 
     /// <summary>
     /// Gets or sets a value indicating whether the socket should use the RELIABLE Keep-Alive mechanism.
     /// </summary>
-    /// <value>
-    /// <c>true</c> to enable Keep-Alive; otherwise, <c>false</c>.
-    /// </value>
     public System.Boolean KeepAlive { get; set; } = false;
 
     /// <summary>
@@ -107,6 +104,7 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Gets or sets the maximum number of concurrent groups allowed for socket operations.
     /// Default is 8.
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxGroupConcurrency must be between 1 and 1024.")]
     public System.Int32 MaxGroupConcurrency { get; set; } = 8;
 
     /// <summary>
@@ -115,4 +113,33 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     public System.Boolean TuneThreadPool { get; set; } = false;
 
     #endregion Properties
+
+    /// <summary>
+    /// Validates the configuration options and throws an exception if validation fails.
+    /// </summary>
+    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
+    /// Thrown when one or more validation attributes fail.
+    /// </exception>
+    public void Validate()
+    {
+        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
+        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+
+        if (this.Port is < 1 or > 65535)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("Port must be between 1 and 65535.");
+        }
+        if (this.Backlog < 1)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("Backlog must be positive.");
+        }
+        if (this.MaxParallel < 1)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxParallel must be at least 1.");
+        }
+        if (this.BufferSize < 64)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("BufferSize must be at least 0 bytes.");
+        }
+    }
 }

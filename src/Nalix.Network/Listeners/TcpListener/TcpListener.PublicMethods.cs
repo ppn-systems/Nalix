@@ -42,13 +42,13 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Configuration:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"EnableTimeout       : {Config.EnableTimeout}");
-        _ = sb.AppendLine($"MaxParallelAccepts  : {Config.MaxParallel}");
-        _ = sb.AppendLine($"BufferSize          : {Config.BufferSize}");
-        _ = sb.AppendLine($"KeepAlive           : {Config.KeepAlive}");
-        _ = sb.AppendLine($"ReuseAddress        : {Config.ReuseAddress}");
-        _ = sb.AppendLine($"EnableIPv6          : {Config.EnableIPv6}");
-        _ = sb.AppendLine($"Backlog             : {Config.Backlog}");
+        _ = sb.AppendLine($"EnableTimeout       : {_config.EnableTimeout}");
+        _ = sb.AppendLine($"MaxParallelAccepts  : {_config.MaxParallel}");
+        _ = sb.AppendLine($"BufferSize          : {_config.BufferSize}");
+        _ = sb.AppendLine($"KeepAlive           : {_config.KeepAlive}");
+        _ = sb.AppendLine($"ReuseAddress        : {_config.ReuseAddress}");
+        _ = sb.AppendLine($"EnableIPv6          : {_config.EnableIPv6}");
+        _ = sb.AppendLine($"Backlog             : {_config.Backlog}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Protocol:");
@@ -100,9 +100,9 @@ public abstract partial class TcpListenerBase
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
 
-        if (Config.MaxParallel < 1)
+        if (_config.MaxParallel < 1)
         {
-            throw new System.InvalidOperationException("Config.MaxParallel must be at least 1.");
+            throw new System.InvalidOperationException("_config.MaxParallel must be at least 1.");
         }
 
         s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
@@ -148,7 +148,7 @@ public abstract partial class TcpListenerBase
 
             s_logger.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
 
-            if (Config.EnableTimeout)
+            if (_config.EnableTimeout)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                         .Activate(linkedToken);
@@ -156,7 +156,7 @@ public abstract partial class TcpListenerBase
 
             _acceptWorkerIds.Clear();
 
-            for (System.Int32 i = 0; i < Config.MaxParallel; i++)
+            for (System.Int32 i = 0; i < _config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Accept}.{i}",
@@ -230,7 +230,7 @@ public abstract partial class TcpListenerBase
             }
         }
 
-        if (Config.EnableTimeout)
+        if (_config.EnableTimeout)
         {
             InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                     .Deactivate(System.Threading.CancellationToken.None);
