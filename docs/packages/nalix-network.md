@@ -33,6 +33,11 @@ The `IProtocol` interface and `Protocol` base class define how raw network data 
 - `SocketConnection`: Concrete implementation for socket-based transports.
 - `ConnectionHub`: Manages collections of active connections.
 
+### [Session Store](../api/network/session-store.md)
+
+`Nalix.Network.Sessions` contains the default runtime session-store implementations.
+It covers the shared creation flow, the in-memory implementation, and the TTL-based session retention options.
+
 ## Relationship with Nalix.Runtime
 
 `Nalix.Network` focuses on **how** data is moved between the network and the server. It delegates **what** to do with that data to the `IPacketDispatch` interface, which is typically implemented in `Nalix.Runtime`.

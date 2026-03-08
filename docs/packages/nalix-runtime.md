@@ -27,7 +27,7 @@ Attribute-based routing allows you to define packet handlers simply by annotatin
 
 ### [Session Resume](../api/security/session-resume.md)
 
-The built-in resume flow is handled by `SessionHandlers` and backed by `ISessionManager`.
+The built-in resume flow is handled by `SessionHandlers` and backed by `ISessionStore`.
 
 ## Usage
 
