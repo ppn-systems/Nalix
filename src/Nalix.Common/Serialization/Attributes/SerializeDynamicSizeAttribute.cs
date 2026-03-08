@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Common.Serialization;
+namespace Nalix.Common.Serialization.Attributes;
 
 /// <summary>
 /// Indicates that a field/property has dynamic size during serialization.
