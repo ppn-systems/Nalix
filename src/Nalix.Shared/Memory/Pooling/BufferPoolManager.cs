@@ -19,17 +19,14 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 {
     #region Fields & Constants
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.String, (System.Int32, System.Double)[]> _allocationPatternCache;
+
 
     private readonly System.Int64 _maxMemoryBytes;
     private readonly System.Int32 _totalBuffers;
     private readonly System.Boolean _enableTrimming;
     private readonly System.Boolean _enableAnalytics;
-    private readonly System.Boolean _enableQueueCompaction;
     private readonly System.Boolean _secureClear;
     private readonly System.Boolean _fallbackToArrayPool;
-    private readonly System.Int32 _autoTuneOpThreshold;
     private readonly System.Double _adaptiveGrowthFactor;
     private readonly System.Double _maxMemoryPct;
     private readonly System.Int32 _minIncrease;
@@ -65,11 +62,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
     #region Constructors
 
-    static BufferPoolManager()
-    {
-        _allocationPatternCache = new();
-        RecurringName = "buf.trim";
-    }
+    static BufferPoolManager() => RecurringName = "buf.trim";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with validation and trimming.
@@ -82,6 +75,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     public BufferPoolManager(BufferConfig? bufferConfig = null)
     {
         BufferConfig config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferConfig>();
+        config.Validate();
 
         _suitablePoolSizeCache = new();
 
@@ -96,11 +90,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _fallbackToArrayPool = config.FallbackToArrayPool;
         _trimIntervalMinutes = config.TrimIntervalMinutes;
         _adaptiveGrowthFactor = config.AdaptiveGrowthFactor;
-        _enableQueueCompaction = config.EnableQueueCompaction;
-        _autoTuneOpThreshold = config.AutoTuneOperationThreshold;
         _deepTrimIntervalMinutes = config.DeepTrimIntervalMinutes;
 
-        _bufferAllocations = ParseBufferAllocations(config.BufferAllocations);
+        _bufferAllocations = BufferConfig.ParseBufferAllocations(config.BufferAllocations);
 
         MinBufferSize = System.Linq.Enumerable.Min(_bufferAllocations, alloc => alloc.BufferSize);
         MaxBufferSize = System.Linq.Enumerable.Max(_bufferAllocations, alloc => alloc.BufferSize);
@@ -691,87 +683,6 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     }
 
     #endregion Private: Reporting
-
-    #region Parsing
-
-    /// <summary>
-    /// Parses the buffer allocation settings with caching for repeated configurations.
-    /// </summary>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public static (System.Int32, System.Double)[] ParseBufferAllocations(System.String bufferAllocationsString)
-    {
-        return System.String.IsNullOrWhiteSpace(bufferAllocationsString)
-            ? throw new System.ArgumentException($"[{nameof(BufferPoolManager)}] The input string must not be blank.", nameof(bufferAllocationsString))
-            : _allocationPatternCache.GetOrAdd(bufferAllocationsString, key =>
-            {
-                try
-                {
-                    var allocations = PARSE_ALLOCATIONS(key, bufferAllocationsString);
-
-                    System.Double totalAllocation = System.Linq.Enumerable.Sum(allocations, a => a.ratio);
-                    return totalAllocation > 1.1
-                        ? throw new System.ArgumentException($"[{nameof(BufferPoolManager)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0.")
-                        : ((System.Int32, System.Double)[])allocations;
-                }
-                catch (System.Exception ex) when (ex is System.FormatException or System.ArgumentException or System.OverflowException or System.ArgumentOutOfRangeException)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                                   $"alloc-parse-fail str='{bufferAllocationsString}' msg={ex.Message}");
-
-                    throw new System.ArgumentException(
-                        $"[{nameof(BufferPoolManager)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
-                }
-            });
-    }
-
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static (System.Int32 allocationSize, System.Double ratio)[] PARSE_ALLOCATIONS(System.String key, System.String bufferAllocationsString)
-    {
-        // Split by ';'
-        System.String[] pairs = key.Split(';', System.StringSplitOptions.RemoveEmptyEntries);
-
-        var list = new System.Collections.Generic.List<(System.Int32, System.Double)>();
-
-        foreach (System.String pair in pairs)
-        {
-            System.String[] parts = pair.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length != 2)
-            {
-                throw new System.FormatException(
-                    $"[{nameof(BufferPoolManager)}] Incorrectly formatted pair: '{pair}'.");
-            }
-
-            // Parse size
-            if (!System.Int32.TryParse(parts[0].Trim(), out System.Int32 allocationSize) || allocationSize <= 0)
-            {
-                throw new System.ArgumentOutOfRangeException(
-                    nameof(bufferAllocationsString),
-                    $"[{nameof(BufferPoolManager)}] SIZE must be > 0.");
-            }
-
-            // Parse ratio
-            if (!System.Double.TryParse(parts[1].Trim(), out System.Double ratio) || ratio <= 0 || ratio > 1)
-            {
-                throw new System.ArgumentOutOfRangeException(
-                    nameof(bufferAllocationsString),
-                    $"[{nameof(BufferPoolManager)}] Ratio must be (0,1].");
-            }
-
-            list.Add((allocationSize, ratio));
-        }
-
-        list.Sort((a, b) => a.Item1.CompareTo(b.Item1));
-
-        return [.. list];
-    }
-
-    #endregion Parsing
 
     #region IDisposable
 
