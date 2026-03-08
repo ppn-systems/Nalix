@@ -12,7 +12,7 @@ using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 using System.Linq;
 
-namespace Nalix.Shared.Messaging;
+namespace Nalix.Shared.Frames;
 
 /// <summary>
 /// Base class for all packets with automatic serialization and pooling.

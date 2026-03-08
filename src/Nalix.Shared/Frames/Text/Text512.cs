@@ -14,19 +14,19 @@ using Nalix.Shared.Extensions;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
-namespace Nalix.Shared.Messaging.Text;
+namespace Nalix.Shared.Frames.Text;
 
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
-[MagicNumber(ProtocolMagic.TEXT1024)]
+[MagicNumber(ProtocolMagic.TEXT512)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("TEXT1024 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
-public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPacketCompressor<Text1024>
+[System.Diagnostics.DebuggerDisplay("TEXT512 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
+public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>, IPacketCompressor<Text512>
 {
     /// <inheritdoc/>
-    public const System.Int32 DynamicSize = 1024;
+    public const System.Int32 DynamicSize = 512;
 
     /// <summary>
     /// Gets the total serialized length in bytes, including header and content.
@@ -43,16 +43,16 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     public System.String Content { get; set; }
 
     /// <summary>
-    /// Initializes a new <see cref="Text1024"/> with empty content.
+    /// Initializes a new <see cref="Text512"/> with empty content.
     /// </summary>
-    public Text1024()
+    public Text512()
     {
         Flags = PacketFlags.NONE;
         Protocol = ProtocolType.NONE;
         Content = System.String.Empty;
         Priority = PacketPriority.NONE;
         OpCode = PacketConstants.OPCODE_DEFAULT;
-        MagicNumber = (System.UInt32)ProtocolMagic.TEXT1024;
+        MagicNumber = (System.UInt32)ProtocolMagic.TEXT512;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -72,17 +72,17 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     }
 
     /// <summary>
-    /// Deserializes a <see cref="Text1024"/> from the specified buffer.
+    /// Deserializes a <see cref="Text512"/> from the specified buffer.
     /// </summary>
     /// <remarks>
     /// <b>Internal infrastructure API.</b> Do not call directly—use the dispatcher/serializer.
     /// </remarks>
     /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="Text1024"/> instance.</returns>
-    public static Text1024 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
+    /// <returns>A pooled <see cref="Text512"/> instance.</returns>
+    public static Text512 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
-        Text1024 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                  .Get<Text1024>();
+        Text512 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                 .Get<Text512>();
 
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
         if (bytesRead == 0)
@@ -100,7 +100,7 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static Text1024 Compress(Text1024 packet)
+    public static Text512 Compress(Text512 packet)
     {
         if (packet?.Content == null)
         {
@@ -118,7 +118,7 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
     /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static Text1024 Decompress(Text1024 packet)
+    public static Text512 Decompress(Text512 packet)
     {
         if (packet?.Content == null)
         {
@@ -148,6 +148,6 @@ public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPa
 
     /// <inheritdoc/>
     public override System.String ToString()
-        => $"TEXT1024(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
+        => $"TEXT512(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
            $"PRIORITY={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

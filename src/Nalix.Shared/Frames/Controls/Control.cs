@@ -9,7 +9,7 @@ using Nalix.Common.Serialization.Attributes;
 using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Time;
 
-namespace Nalix.Shared.Messaging.Controls;
+namespace Nalix.Shared.Frames.Controls;
 
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
