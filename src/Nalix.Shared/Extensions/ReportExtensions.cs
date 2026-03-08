@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Infrastructure.Environment;
+using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Environment;
+using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Shared.Extensions;

@@ -1,11 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Attributes;
-using Nalix.Common.Connection;
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Enums;
-using Nalix.Common.Messaging.Attributes;
+using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Middleware.Attributes;
+using Nalix.Common.Middleware.Enums;
+using Nalix.Common.Networking.Abstractions;
+using Nalix.Common.Networking.Packets.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Dispatch.Delegates;

@@ -1,11 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Abstractions;
-using Nalix.Common.Connection;
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Enums;
-using Nalix.Common.Infrastructure.Connection;
+using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Identity.Abstractions;
+using Nalix.Common.Networking.Abstractions;
+using Nalix.Common.Security.Enums;
+using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Identity;
 using Nalix.Framework.Injection;
@@ -842,12 +842,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         switch (_options.RejectPolicy)
         {
-            case RejectPolicy.REJECT_NEW:
+            case DropPolicy.DROP_NEWEST:
                 newConnection.Disconnect("connection limit reached");
                 System.Threading.Interlocked.Increment(ref _rejectedConnections);
                 break;
 
-            case RejectPolicy.DROP_OLDEST_ANONYMOUS:
+            case DropPolicy.DROP_OLDEST:
                 // Efficient eviction: use queue of anonymous IDs and dequeue until we find a valid anonymous to evict.
                 while (_anonymousQueue.TryDequeue(out ISnowflake oldestId))
                 {

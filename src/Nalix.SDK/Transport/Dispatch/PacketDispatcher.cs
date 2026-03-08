@@ -1,8 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Infrastructure.Client;
-using Nalix.Common.Messaging.Abstractions;
+using Nalix.Common.Networking.Packets.Abstractions;
+using Nalix.Common.Networking.Transport;
 using System.Linq;
 
 namespace Nalix.SDK.Transport.Dispatch;

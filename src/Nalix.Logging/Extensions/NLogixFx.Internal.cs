@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Diagnostics.Enums;
+using Nalix.Common.Diagnostics.Models;
 
 namespace Nalix.Logging.Extensions;
 
