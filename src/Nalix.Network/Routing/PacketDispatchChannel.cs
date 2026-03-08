@@ -542,11 +542,11 @@ public sealed class PacketDispatchChannel
         try
         {
             System.String catalogType = _catalog?.GetType().FullName ?? "-";
-            _ = sb.AppendLine($"PacketCatalog: {catalogType}");
+            _ = sb.AppendLine($"PacketRegistry: {catalogType}");
         }
         catch
         {
-            _ = sb.AppendLine("PacketCatalog: -");
+            _ = sb.AppendLine("PacketRegistry: -");
         }
 
         _ = sb.AppendLine("------------------------------------------------------------------------------------------------------------------------");

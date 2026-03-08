@@ -252,14 +252,11 @@ internal sealed class IniConfig
         _fileLock.EnterReadLock();
         try
         {
-            if (_iniData.TryGetValue(section,
+            return _iniData.TryGetValue(section,
                 out System.Collections.Generic.Dictionary<System.String, System.String>? sectionData) &&
-                sectionData.TryGetValue(key, out System.String? value))
-            {
-                return value.Equals("null", System.StringComparison.OrdinalIgnoreCase) ? null! : value;
-            }
-
-            return System.String.Empty;
+                sectionData.TryGetValue(key, out System.String? value)
+                ? value.Equals("null", System.StringComparison.OrdinalIgnoreCase) ? null! : value
+                : System.String.Empty;
         }
         finally
         {

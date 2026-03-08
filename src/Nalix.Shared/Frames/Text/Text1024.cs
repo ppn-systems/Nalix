@@ -14,21 +14,23 @@ using Nalix.Shared.Extensions;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
-namespace Nalix.Shared.Messaging.Text;
+namespace Nalix.Shared.Frames.Text;
 
 /// <summary>
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
-[MagicNumber(ProtocolMagic.TEXT256)]
+[MagicNumber(ProtocolMagic.TEXT1024)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("TEXT256 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
-public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPacketCompressor<Text256>
+[System.Diagnostics.DebuggerDisplay("TEXT1024 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
+public class Text1024 : FrameBase, IPoolable, IPacketDeserializer<Text1024>, IPacketCompressor<Text1024>
 {
     /// <inheritdoc/>
-    public const System.Int32 DynamicSize = 256;
+    public const System.Int32 DynamicSize = 1024;
 
-    /// <summary>Gets the total serialized length in bytes, including header and content.</summary>
+    /// <summary>
+    /// Gets the total serialized length in bytes, including header and content.
+    /// </summary>
     [SerializeIgnore]
     public override System.UInt16 Length =>
         (System.UInt16)(PacketConstants.HeaderSize + System.Text.Encoding.UTF8.GetByteCount(Content ?? System.String.Empty));
@@ -40,15 +42,17 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     [SerializeOrder(PacketHeaderOffset.DATA_REGION)]
     public System.String Content { get; set; }
 
-    /// <summary>Initializes a new <see cref="Text256"/> with empty content.</summary>
-    public Text256()
+    /// <summary>
+    /// Initializes a new <see cref="Text1024"/> with empty content.
+    /// </summary>
+    public Text1024()
     {
         Flags = PacketFlags.NONE;
         Protocol = ProtocolType.NONE;
         Content = System.String.Empty;
         Priority = PacketPriority.NONE;
         OpCode = PacketConstants.OPCODE_DEFAULT;
-        MagicNumber = (System.UInt32)ProtocolMagic.TEXT256;
+        MagicNumber = (System.UInt32)ProtocolMagic.TEXT1024;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -68,17 +72,17 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     }
 
     /// <summary>
-    /// Deserializes a <see cref="Text256"/> from the specified buffer.
+    /// Deserializes a <see cref="Text1024"/> from the specified buffer.
     /// </summary>
     /// <remarks>
     /// <b>Internal infrastructure API.</b> Do not call directly—use the dispatcher/serializer.
     /// </remarks>
     /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="Text256"/> instance.</returns>
-    public static Text256 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
+    /// <returns>A pooled <see cref="Text1024"/> instance.</returns>
+    public static Text1024 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
-        Text256 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                 .Get<Text256>();
+        Text1024 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                  .Get<Text1024>();
 
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
         if (bytesRead == 0)
@@ -96,7 +100,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static Text256 Compress(Text256 packet)
+    public static Text1024 Compress(Text1024 packet)
     {
         if (packet?.Content == null)
         {
@@ -114,7 +118,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     /// </summary>
     /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static Text256 Decompress(Text256 packet)
+    public static Text1024 Decompress(Text1024 packet)
     {
         if (packet?.Content == null)
         {
@@ -133,9 +137,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
     /// <inheritdoc/>
     public override System.Int32 Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
-    /// <summary>
-    /// Resets this instance to its default state for pooling reuse.
-    /// </summary>
+    /// <summary>Resets this instance to its default state for pooling reuse.</summary>
     public override void ResetForPool()
     {
         this.Flags = PacketFlags.NONE;
@@ -146,6 +148,6 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>, IPack
 
     /// <inheritdoc/>
     public override System.String ToString()
-        => $"TEXT256(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
+        => $"TEXT1024(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
            $"PRIORITY={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

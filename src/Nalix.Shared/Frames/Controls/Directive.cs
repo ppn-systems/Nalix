@@ -13,7 +13,7 @@ using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
-namespace Nalix.Shared.Messaging.Controls;
+namespace Nalix.Shared.Frames.Controls;
 
 /// <summary>
 /// A compact, generic server-to-client directive frame for common control scenarios.

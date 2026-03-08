@@ -4,8 +4,6 @@
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Framework.Injection;
-using Nalix.Network.Routing;
-using Nalix.Network.Routing.Results;
 
 namespace Nalix.Network.Routing.Results.Packet;
 

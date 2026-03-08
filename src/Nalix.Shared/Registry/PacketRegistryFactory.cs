@@ -8,13 +8,13 @@ using Nalix.Common.Networking.Packets.Transformation;
 using Nalix.Common.Security.Enums;
 using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Messaging.Controls;
-using Nalix.Shared.Messaging.Text;
+using Nalix.Shared.Frames.Controls;
+using Nalix.Shared.Frames.Text;
 
-namespace Nalix.Shared.Messaging.Catalog;
+namespace Nalix.Shared.Registry;
 
 /// <summary>
-/// Builds an immutable <see cref="PacketCatalog"/> by scanning packet types and
+/// Builds an immutable <see cref="PacketRegistry"/> by scanning packet types and
 /// binding their static transformation functions with maximum performance.
 /// </summary>
 /// <remarks>
@@ -46,7 +46,7 @@ namespace Nalix.Shared.Messaging.Catalog;
 /// </para>
 /// </remarks>
 [System.Diagnostics.DebuggerDisplay("C={HasCompress}, D={HasDecompress}, E={HasEncrypt}, R={HasDecrypt}")]
-public sealed class PacketCatalogFactory
+public sealed class PacketRegistryFactory
 {
     #region Static: Defaults & Utilities
 
@@ -66,7 +66,7 @@ public sealed class PacketCatalogFactory
 
     #region Constructors
 
-    static PacketCatalogFactory()
+    static PacketRegistryFactory()
     {
         Namespaces = new(System.StringComparer.Ordinal)
         {
@@ -74,14 +74,14 @@ public sealed class PacketCatalogFactory
             typeof(Control).Namespace!
         };
 
-        BindAllPtrsMi = typeof(PacketCatalogFactory).GetMethod(nameof(BindPtrs), BindingFlags)!;
+        BindAllPtrsMi = typeof(PacketRegistryFactory).GetMethod(nameof(BindPtrs), BindingFlags)!;
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="PacketCatalogFactory"/> and registers
+    /// Initializes a new instance of <see cref="PacketRegistryFactory"/> and registers
     /// built-in packet types.
     /// </summary>
-    public PacketCatalogFactory()
+    public PacketRegistryFactory()
     {
         // Text packets
         _ = this.RegisterPacket<Text256>()
@@ -104,7 +104,7 @@ public sealed class PacketCatalogFactory
     /// <exception cref="System.InvalidOperationException">
     /// Thrown when duplicate magic numbers are detected.
     /// </exception>
-    public PacketCatalog CreateCatalog()
+    public PacketRegistry CreateCatalog()
     {
         // Pre-allocate to reduce rehashing.
         System.Int32 estimated =
@@ -117,34 +117,34 @@ public sealed class PacketCatalogFactory
         System.Collections.Generic.HashSet<System.Type> candidates = [.. _explicitPacketTypes];
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(PacketCatalogFactory)}] " +
+                                .Info($"[SH.{nameof(PacketRegistryFactory)}] " +
                                       $"build-start asm={_assemblies.Count} explicit={_explicitPacketTypes.Count}");
 
         foreach (System.Reflection.Assembly asm in _assemblies)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] scan-asm name={asm.FullName}");
+                                    .Debug($"[SH.{nameof(PacketRegistryFactory)}] scan-asm name={asm.FullName}");
 
             foreach (System.Type? type in SafeGetTypes(asm))
             {
                 if (type?.IsClass != true || type.IsAbstract)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[SH.{nameof(PacketCatalogFactory)}] skip reason=not-class type={type?.Name}");
+                                            .Trace($"[SH.{nameof(PacketRegistryFactory)}] skip reason=not-class type={type?.Name}");
                     continue;
                 }
 
                 if (type.Namespace is not null && Namespaces.Contains(type.Namespace))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[SH.{nameof(PacketCatalogFactory)}] skip reason=default-ns type={type?.Name}");
+                                            .Trace($"[SH.{nameof(PacketRegistryFactory)}] skip reason=default-ns type={type?.Name}");
                     continue;
                 }
 
                 if (!typeof(IPacket).IsAssignableFrom(type))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[SH.{nameof(PacketCatalogFactory)}] skip reason=not-ipacket type={type?.Name}");
+                                            .Trace($"[SH.{nameof(PacketRegistryFactory)}] skip reason=not-ipacket type={type?.Name}");
                     continue;
                 }
 
@@ -155,7 +155,7 @@ public sealed class PacketCatalogFactory
         if (candidates.Count == 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[SH.{nameof(PacketCatalogFactory)}] no-candidate");
+                                    .Info($"[SH.{nameof(PacketRegistryFactory)}] no-candidate");
         }
 
         // 2) Bind per type
@@ -171,13 +171,13 @@ public sealed class PacketCatalogFactory
                 if (type == null)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[SH.{nameof(PacketCatalogFactory)}] skip reason=no-magic");
+                                        .Trace($"[SH.{nameof(PacketRegistryFactory)}] skip reason=no-magic");
 
                     continue;
                 }
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[SH.{nameof(PacketCatalogFactory)}] use key-hash");
+                                        .Trace($"[SH.{nameof(PacketRegistryFactory)}] use key-hash");
 
                 key = Compute(type);
             }
@@ -231,7 +231,7 @@ public sealed class PacketCatalogFactory
                 if (deserializers.ContainsKey(key))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Fatal($"[SH.{nameof(PacketCatalogFactory)}] dup-magic val=0x{key:X8} type={type?.Name}");
+                                            .Fatal($"[SH.{nameof(PacketRegistryFactory)}] dup-magic val=0x{key:X8} type={type?.Name}");
                 }
 
                 // Assign FromBytes pointer into Fn<TPacket>
@@ -249,7 +249,7 @@ public sealed class PacketCatalogFactory
             else
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[SH.{nameof(PacketCatalogFactory)}] miss-deserialize type={type?.Name}");
+                                        .Error($"[SH.{nameof(PacketRegistryFactory)}] miss-deserialize type={type?.Name}");
                 continue;
             }
 
@@ -257,7 +257,7 @@ public sealed class PacketCatalogFactory
             if (pipelineManaged)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[SH.{nameof(PacketCatalogFactory)}] pipeline-managed type={type?.Name}");
+                                        .Debug($"[SH.{nameof(PacketRegistryFactory)}] pipeline-managed type={type?.Name}");
 
                 transformers[type!] = new PacketTransformer(null, null, null, null);
 
@@ -306,10 +306,10 @@ public sealed class PacketCatalogFactory
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(PacketCatalogFactory)}] build-ok packets={deserializers.Count} transformers={transformers.Count}");
+                                .Info($"[SH.{nameof(PacketRegistryFactory)}] build-ok packets={deserializers.Count} transformers={transformers.Count}");
 
         // Freeze for thread-safe, allocation-free lookups
-        return new PacketCatalog(
+        return new PacketRegistry(
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(transformers),
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers));
     }
@@ -317,19 +317,19 @@ public sealed class PacketCatalogFactory
     /// <summary>
     /// Registers a concrete packet type explicitly (skipped from scanning).
     /// </summary>
-    public PacketCatalogFactory RegisterPacket<TPacket>() where TPacket : IPacket
+    public PacketRegistryFactory RegisterPacket<TPacket>() where TPacket : IPacket
     {
         System.Type t = typeof(TPacket);
 
         if (_explicitPacketTypes.Add(typeof(TPacket)))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[SH.{nameof(PacketCatalogFactory)}] reg-type type={t.Name}");
+                                    .Trace($"[SH.{nameof(PacketRegistryFactory)}] reg-type type={t.Name}");
         }
         else
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[SH.{nameof(PacketCatalogFactory)}] reg-type-skip type={t.Name}");
+                                    .Trace($"[SH.{nameof(PacketRegistryFactory)}] reg-type-skip type={t.Name}");
         }
 
         return this;
@@ -338,24 +338,24 @@ public sealed class PacketCatalogFactory
     /// <summary>
     /// Adds an assembly to be scanned for packet types.
     /// </summary>
-    public PacketCatalogFactory IncludeAssembly(System.Reflection.Assembly? asm)
+    public PacketRegistryFactory IncludeAssembly(System.Reflection.Assembly? asm)
     {
         if (asm is null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] include-asm-null");
+                                    .Debug($"[SH.{nameof(PacketRegistryFactory)}] include-asm-null");
             return this;
         }
 
         if (_assemblies.Add(asm))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] include-asm name={asm.FullName}");
+                                    .Debug($"[SH.{nameof(PacketRegistryFactory)}] include-asm name={asm.FullName}");
         }
         else
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketCatalogFactory)}] include-asm-skip name={asm.FullName}");
+                                    .Debug($"[SH.{nameof(PacketRegistryFactory)}] include-asm-skip name={asm.FullName}");
         }
 
         return this;
@@ -523,7 +523,7 @@ public sealed class PacketCatalogFactory
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Meta(
-            $"[SH.{nameof(PacketCatalogFactory)}] bind " +
+            $"[SH.{nameof(PacketRegistryFactory)}] bind " +
             $"type={typeof(TPacket).Name} des={(miDeserialize is not null ? "+" : "-")} " +
             $"cmp={(miCompress is not null ? "+" : "-")} dcmp={(miDecompress is not null ? "+" : "-")} " +
             $"enc={(miEncrypt is not null ? "+" : "-")} dec={(miDecrypt is not null ? "+" : "-")}");

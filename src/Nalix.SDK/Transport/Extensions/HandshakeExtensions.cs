@@ -8,7 +8,7 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Extensions;
-using Nalix.Shared.Messaging.Controls;            // Handshake
+using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Security.Asymmetric;
 using Nalix.Shared.Security.Hashing;
 

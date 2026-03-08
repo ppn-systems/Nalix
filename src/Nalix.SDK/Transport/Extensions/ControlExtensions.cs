@@ -7,7 +7,7 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;             // Clock
-using Nalix.Shared.Messaging.Controls;  // Control
+using Nalix.Shared.Frames.Controls;
 
 namespace Nalix.SDK.Transport.Extensions;
 

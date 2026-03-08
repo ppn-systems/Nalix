@@ -116,15 +116,7 @@ public static class TaskExtensions
     /// <param name="token">Cancellation token.</param>
     /// <returns>IDisposable registration handle.</returns>
     public static System.IDisposable LinkCancellation<T>(
-        this System.Threading.Tasks.TaskCompletionSource<T> tcs, System.Threading.CancellationToken token)
-    {
-        if (!token.CanBeCanceled)
-        {
-            return DummyDisposable.Instance;
-        }
-
-        return token.Register(() => tcs.TrySetCanceled(token));
-    }
+        this System.Threading.Tasks.TaskCompletionSource<T> tcs, System.Threading.CancellationToken token) => !token.CanBeCanceled ? DummyDisposable.Instance : token.Register(() => tcs.TrySetCanceled(token));
 
     private sealed class DummyDisposable : System.IDisposable
     {
