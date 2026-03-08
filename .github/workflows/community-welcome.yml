@@ -15,15 +15,15 @@ jobs:
     steps:
       - uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
             👋 Hi **@${{ github.actor }}**, thanks for opening your first issue!
             - Please read our [Contributing Guidelines](https://github.com/ppn-systems/Nalix/blob/master/CONTRIBUTING.md).
             - Check out our [Code of Conduct](https://github.com/ppn-systems/Nalix/blob/master/CODE_OF_CONDUCT.md).
             - Need help? See the [project documentation](https://github.com/ppn-systems/Nalix#readme) or join Discussions.
 
             We appreciate your contribution!
-          pr-message: |
+          pr_message: |
             👋 Hi **@${{ github.actor }}**, thank you for submitting your first pull request!
             - Please ensure your PR follows our [Contributing Guidelines](https://github.com/ppn-systems/Nalix/blob/master/CONTRIBUTING.md).
             - CI checks will run automatically — watch for any failures.

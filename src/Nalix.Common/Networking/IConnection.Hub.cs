@@ -22,6 +22,11 @@ public interface IConnectionHub
     int Count { get; }
 
     /// <summary>
+    /// Gets the session store used to persist connection sessions.
+    /// </summary>
+    ISessionStore SessionStore { get; }
+
+    /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
     event Action<IConnection>? ConnectionUnregistered;
@@ -80,27 +85,4 @@ public interface IConnectionHub
     /// </summary>
     /// <returns>An enumerable collection of all active <see cref="IConnection"/> instances.</returns>
     IReadOnlyCollection<IConnection> ListConnections();
-
-    /// <summary>
-    /// Creates a new resumable session for the specified connection.
-    /// </summary>
-    /// <param name="connection">The connection to create a session for.</param>
-    /// <returns>The created session entry.</returns>
-    SessionEntry CreateSession(IConnection connection);
-
-    /// <summary>
-    /// Attempts to resume a session using a new connection.
-    /// </summary>
-    /// <param name="sessionToken">The token of the session to resume.</param>
-    /// <param name="newConnection">The new connection to bind the session to.</param>
-    /// <param name="session">When this method returns, contains the resumed session entry if successful; otherwise, <c>null</c>.</param>
-    /// <returns><c>true</c> if the session was successfully resumed; otherwise, <c>false</c>.</returns>
-    bool TryResumeSession(UInt56 sessionToken, IConnection newConnection, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SessionEntry? session);
-
-    /// <summary>
-    /// Synchronizes the current connection state to its associated session.
-    /// </summary>
-    /// <param name="connection">The connection whose state should be persisted.</param>
-    /// <returns><c>true</c> if the session was found and updated; otherwise, <c>false</c>.</returns>
-    bool UpdateSession(IConnection connection);
 }
