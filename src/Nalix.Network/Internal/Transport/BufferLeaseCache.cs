@@ -75,7 +75,12 @@ internal sealed class BufferLeaseCache : System.IDisposable
     /// Initializes a new instance of the <see cref="BufferLeaseCache"/> class.
     /// </summary>
     public BufferLeaseCache()
-        => this.Incoming = new(ConfigurationManager.Instance.Get<CacheSizeOptions>().Incoming);
+    {
+        CacheSizeOptions options = ConfigurationManager.Instance.Get<CacheSizeOptions>();
+
+        options.Validate();
+        this.Incoming = new(options.Incoming);
+    }
 
     #endregion Constructors
 

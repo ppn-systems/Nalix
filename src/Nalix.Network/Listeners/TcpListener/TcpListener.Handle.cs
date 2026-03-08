@@ -52,7 +52,7 @@ public abstract partial class TcpListenerBase
 
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
-        args.Connection.OnCloseEvent -= Limiter.OnConnectionClosed;
+        args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
@@ -75,12 +75,12 @@ public abstract partial class TcpListenerBase
         IConnection connection = new Connection(socket);
 
         connection.OnCloseEvent += this.HandleConnectionClose;
-        connection.OnCloseEvent += Limiter.OnConnectionClosed;
+        connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
         connection.OnProcessEvent += _protocol.ProcessMessage;
         connection.OnPostProcessEvent += _protocol.PostProcessMessage;
 
-        if (Config.EnableTimeout)
+        if (_config.EnableTimeout)
         {
             InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                     .Register(connection);
@@ -128,7 +128,7 @@ public abstract partial class TcpListenerBase
                     }
 
                     if (socket.RemoteEndPoint is not IPEndPoint remoteIp
-                        || !Limiter.IsConnectionAllowed(remoteIp))
+                        || !_limiter.IsConnectionAllowed(remoteIp))
                     {
                         SafeCloseSocket(socket);
                         throw new InternalErrorException();
@@ -410,7 +410,7 @@ public abstract partial class TcpListenerBase
             socket = await context.BeginAcceptAsync(_listener)
                                   .ConfigureAwait(false);
 
-            if (!Limiter.IsConnectionAllowed(socket.RemoteEndPoint))
+            if (!_limiter.IsConnectionAllowed(socket.RemoteEndPoint))
             {
                 SafeCloseSocket(socket);
 

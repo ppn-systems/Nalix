@@ -76,7 +76,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     public ConnectionLimiter([System.Diagnostics.CodeAnalysis.AllowNull] ConnectionLimitOptions config = null)
     {
         _config = config ?? ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
-        VALIDATE_CONFIGURATION(_config);
+        _config.Validate();
 
         _maxPerEndpoint = _config.MaxConnectionsPerIpAddress;
         _cleanupInterval = _config.CleanupInterval;
@@ -113,7 +113,11 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPEndPoint endPoint)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(ConnectionLimiter));
-        VALIDATE_ENDPOINT(endPoint);
+
+        if (endPoint is null)
+        {
+            throw new InternalErrorException("EndPoint cannot be null", nameof(endPoint));
+        }
 
         SAFE_INCREMENT(ref _totalConnectionAttempts);
 
@@ -263,43 +267,6 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     }
 
     #endregion Public API
-
-    #region Validation
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void VALIDATE_CONFIGURATION(ConnectionLimitOptions config)
-    {
-        if (config.MaxConnectionsPerIpAddress <= 0)
-        {
-            throw new InternalErrorException(
-                $"{nameof(ConnectionLimitOptions.MaxConnectionsPerIpAddress)} must be > 0, got {config.MaxConnectionsPerIpAddress}");
-        }
-
-        if (config.InactivityThreshold <= System.TimeSpan.Zero)
-        {
-            throw new InternalErrorException(
-                $"{nameof(ConnectionLimitOptions.InactivityThreshold)} must be > TimeSpan.Zero, got {config.InactivityThreshold}");
-        }
-
-        if (config.CleanupInterval <= System.TimeSpan.Zero)
-        {
-            throw new InternalErrorException(
-                $"{nameof(ConnectionLimitOptions.CleanupInterval)} must be > TimeSpan.Zero, got {config.CleanupInterval}");
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void VALIDATE_ENDPOINT(System.Net.IPEndPoint endPoint)
-    {
-        if (endPoint is null)
-        {
-            throw new InternalErrorException("EndPoint cannot be null", nameof(endPoint));
-        }
-    }
-
-    #endregion Validation
 
     #region Connection Slot Management
 

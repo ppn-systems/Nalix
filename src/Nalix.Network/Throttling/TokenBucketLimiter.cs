@@ -109,7 +109,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
     private readonly Shard[] _shards;
     private readonly System.Double _swFreq;
-    private readonly TokenBucketOptions _opt;
+    private readonly TokenBucketOptions _options;
     private readonly System.Int64 _capacityMicro;
     private readonly System.Int64 _refillPerSecMicro;
     private readonly System.Int32 _cleanupIntervalSec;
@@ -143,16 +143,15 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// <exception cref="InternalErrorException">Thrown when options validation fails.</exception>
     public TokenBucketLimiter([System.Diagnostics.CodeAnalysis.AllowNull] TokenBucketOptions options = null)
     {
-        _opt = options ?? ConfigurationManager.Instance.Get<TokenBucketOptions>();
-        _opt.Validate();
+        _options = options ?? ConfigurationManager.Instance.Get<TokenBucketOptions>();
+        _options.Validate();
 
         _totalEndpointCount = 0;
-        _shards = new Shard[_opt.ShardCount];
+        _shards = new Shard[_options.ShardCount];
         _swFreq = System.Diagnostics.Stopwatch.Frequency;
-        _cleanupIntervalSec = _opt.CleanupIntervalSeconds;
-        s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        _capacityMicro = (System.Int64)_opt.CapacityTokens * _opt.TokenScale;
-        _refillPerSecMicro = (System.Int64)System.Math.Round(_opt.RefillTokensPerSecond * _opt.TokenScale);
+        _cleanupIntervalSec = _options.CleanupIntervalSeconds;
+        _capacityMicro = (System.Int64)_options.CapacityTokens * _options.TokenScale;
+        _refillPerSecMicro = (System.Int64)System.Math.Round(_options.RefillTokensPerSecond * _options.TokenScale);
 
         _initialBalanceMicro = CalculateInitialBalance();
 
@@ -163,20 +162,20 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         SCHEDULE_CLEANUP_JOB();
 
-        System.String initialDesc = _opt.InitialTokens < 0
+        System.String initialDesc = _options.InitialTokens < 0
             ? "full"
-            : _opt.InitialTokens.ToString();
+            : _options.InitialTokens.ToString();
 
         s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] init " +
                        $"initial={initialDesc} " +
-                       $"scale={_opt.TokenScale} " +
-                       $"shards={_opt.ShardCount} " +
-                       $"cap={_opt.CapacityTokens} " +
-                       $"stale_s={_opt.StaleEntrySeconds} " +
-                       $"hardlock_s={_opt.HardLockoutSeconds} " +
-                       $"refill={_opt.RefillTokensPerSecond}/s " +
-                       $"cleanup_s={_opt.CleanupIntervalSeconds} " +
-                       $"max_endpoints={_opt.MaxTrackedEndpoints}");
+                       $"scale={_options.TokenScale} " +
+                       $"shards={_options.ShardCount} " +
+                       $"cap={_options.CapacityTokens} " +
+                       $"stale_s={_options.StaleEntrySeconds} " +
+                       $"hardlock_s={_options.HardLockoutSeconds} " +
+                       $"refill={_options.RefillTokensPerSecond}/s " +
+                       $"cleanup_s={_options.CleanupIntervalSeconds} " +
+                       $"max_endpoints={_options.MaxTrackedEndpoints}");
     }
 
     /// <summary>
@@ -295,7 +294,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         // Pre-check limit before allocation
         if (IS_ENDPOINT_LIMIT_REACHED())
         {
-            s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_opt.MaxTrackedEndpoints}");
+            s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}");
 
             return new EndpointStateResult
             {
@@ -358,13 +357,13 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Boolean IS_ENDPOINT_LIMIT_REACHED()
     {
-        if (_opt.MaxTrackedEndpoints <= 0)
+        if (_options.MaxTrackedEndpoints <= 0)
         {
             return false;
         }
 
         System.Int32 currentCount = System.Threading.Volatile.Read(ref _totalEndpointCount);
-        return currentCount >= _opt.MaxTrackedEndpoints;
+        return currentCount >= _options.MaxTrackedEndpoints;
     }
 
     /// <summary>
@@ -372,7 +371,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean SHOULD_REJECT_DUE_TO_LIMIT(System.Int32 newCount) => _opt.MaxTrackedEndpoints > 0 && newCount > _opt.MaxTrackedEndpoints;
+    private System.Boolean SHOULD_REJECT_DUE_TO_LIMIT(System.Int32 newCount) => _options.MaxTrackedEndpoints > 0 && newCount > _options.MaxTrackedEndpoints;
 
     /// <summary>
     /// Removes a newly added endpoint that exceeded the limit.
@@ -397,7 +396,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         return new RateLimitDecision
         {
             Allowed = false,
-            RetryAfterMs = _opt.HardLockoutSeconds * 1000,
+            RetryAfterMs = _options.HardLockoutSeconds * 1000,
             Credit = 0,
             Reason = RateLimitReason.HardLockout
         };
@@ -454,7 +453,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             {
                 Allowed = false,
                 RetryAfterMs = retryMs,
-                Credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _opt.TokenScale),
+                Credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _options.TokenScale),
                 Reason = RateLimitReason.HardLockout
             };
             return true;
@@ -469,7 +468,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean CAN_CONSUME_TOKEN(EndpointState state) => state.MicroBalance >= _opt.TokenScale;
+    private System.Boolean CAN_CONSUME_TOKEN(EndpointState state) => state.MicroBalance >= _options.TokenScale;
 
     /// <summary>
     /// Consumes a token and creates an allowed decision.
@@ -479,9 +478,9 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     private RateLimitDecision CONSUME_TOKEN_AN_DCREATE_DECISION(EndpointState state)
     {
         state.SoftViolations = 0;
-        state.MicroBalance -= _opt.TokenScale;
+        state.MicroBalance -= _options.TokenScale;
 
-        System.UInt16 credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _opt.TokenScale);
+        System.UInt16 credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _options.TokenScale);
 
         if (credit <= 1)
         {
@@ -502,7 +501,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     private RateLimitDecision HANDLE_INSUFFICIENT_TOKENS(INetworkEndpoint key, EndpointState state, System.Int64 now)
     {
-        System.Int64 needed = _opt.TokenScale - state.MicroBalance;
+        System.Int64 needed = _options.TokenScale - state.MicroBalance;
         System.Int32 retryMs = CALCULATE_RETRY_DELAY_MS(needed);
 
         RECORD_VIOLATION(state, now);
@@ -514,7 +513,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             {
                 Allowed = false,
                 RetryAfterMs = retryMs,
-                Credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _opt.TokenScale),
+                Credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _options.TokenScale),
                 Reason = RateLimitReason.SoftThrottle
             };
     }
@@ -526,7 +525,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void RECORD_VIOLATION(EndpointState state, System.Int64 now)
     {
-        System.Int64 windowTicks = TO_TICKS(_opt.SoftViolationWindowSeconds);
+        System.Int64 windowTicks = TO_TICKS(_options.SoftViolationWindowSeconds);
 
         if (now - state.LastViolationSw <= windowTicks)
         {
@@ -545,7 +544,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean SHOULD_ESCALATE_TO_HARD_LOCK(EndpointState state) => state.SoftViolations >= _opt.MaxSoftViolations;
+    private System.Boolean SHOULD_ESCALATE_TO_HARD_LOCK(EndpointState state) => state.SoftViolations >= _options.MaxSoftViolations;
 
     /// <summary>
     /// Escalates endpoint to hard lockout.
@@ -555,7 +554,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         EndpointState state,
         System.Int64 now)
     {
-        state.HardBlockedUntilSw = now + TO_TICKS(_opt.HardLockoutSeconds);
+        state.HardBlockedUntilSw = now + TO_TICKS(_options.HardLockoutSeconds);
         state.SoftViolations = 0;
 
         System.Int32 retryMs = CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
@@ -566,7 +565,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         {
             Allowed = false,
             RetryAfterMs = retryMs,
-            Credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _opt.TokenScale),
+            Credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _options.TokenScale),
             Reason = RateLimitReason.HardLockout
         };
     }
@@ -888,14 +887,14 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         System.Int32 hardBlockedCount)
     {
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TokenBucketLimiter Status:");
-        _ = sb.AppendLine($"CapacityTokens      :  {_opt.CapacityTokens}");
-        _ = sb.AppendLine($"RefillPerSecond     : {_opt.RefillTokensPerSecond}");
-        _ = sb.AppendLine($"TokenScale          : {_opt.TokenScale}");
-        _ = sb.AppendLine($"Shards              : {_opt.ShardCount}");
-        _ = sb.AppendLine($"HardLockoutSeconds  : {_opt.HardLockoutSeconds}");
-        _ = sb.AppendLine($"StaleEntrySeconds   : {_opt.StaleEntrySeconds}");
-        _ = sb.AppendLine($"CleanupIntervalSecs : {_opt.CleanupIntervalSeconds}");
-        _ = sb.AppendLine($"MaxTrackedEndpoints : {_opt.MaxTrackedEndpoints}");
+        _ = sb.AppendLine($"CapacityTokens      :  {_options.CapacityTokens}");
+        _ = sb.AppendLine($"RefillPerSecond     : {_options.RefillTokensPerSecond}");
+        _ = sb.AppendLine($"TokenScale          : {_options.TokenScale}");
+        _ = sb.AppendLine($"Shards              : {_options.ShardCount}");
+        _ = sb.AppendLine($"HardLockoutSeconds  : {_options.HardLockoutSeconds}");
+        _ = sb.AppendLine($"StaleEntrySeconds   : {_options.StaleEntrySeconds}");
+        _ = sb.AppendLine($"CleanupIntervalSecs : {_options.CleanupIntervalSeconds}");
+        _ = sb.AppendLine($"MaxTrackedEndpoints : {_options.MaxTrackedEndpoints}");
         _ = sb.AppendLine($"TrackedEndpoints    : {totalEndpoints}");
         _ = sb.AppendLine($"HardBlockedCount    : {hardBlockedCount}");
         _ = sb.AppendLine();
@@ -962,7 +961,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         }
 
         System.Boolean isBlocked = blockedUntil > now;
-        System.UInt16 credit = CALCULATE_REMAINING_CREDIT(micro, _opt.TokenScale);
+        System.UInt16 credit = CALCULATE_REMAINING_CREDIT(micro, _options.TokenScale);
         System.Int32 retryMs = CALCULATE_RETRY_FOR_REPORT(micro, isBlocked, blockedUntil, now);
 
         System.String keyCol = FORMAT_ENDPOINT_KEY(key.Address);
@@ -983,7 +982,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
             return CALCULATE_DELAY_MS(now, blockedUntil);
         }
 
-        System.Int64 needed = (micro >= _opt.TokenScale) ? 0 : (_opt.TokenScale - micro);
+        System.Int64 needed = (micro >= _options.TokenScale) ? 0 : (_options.TokenScale - micro);
         return needed > 0 ? CALCULATE_RETRY_DELAY_MS(needed) : 0;
     }
 
@@ -1063,7 +1062,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     {
         System.Int32 removed = 0;
         System.Int32 visited = 0;
-        System.Int64 staleTicks = TO_TICKS(_opt.StaleEntrySeconds);
+        System.Int64 staleTicks = TO_TICKS(_options.StaleEntrySeconds);
 
         foreach (Shard shard in _shards)
         {
@@ -1130,19 +1129,19 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     /// </summary>
     private System.Int32 ENFORCE_LIMIT_IF_NEEDED(System.Threading.CancellationToken token)
     {
-        if (_opt.MaxTrackedEndpoints <= 0)
+        if (_options.MaxTrackedEndpoints <= 0)
         {
             return 0;
         }
 
         System.Int32 currentCount = System.Threading.Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
 
-        if (currentCount <= _opt.MaxTrackedEndpoints)
+        if (currentCount <= _options.MaxTrackedEndpoints)
         {
             return 0;
         }
 
-        System.Int32 toRemove = currentCount - _opt.MaxTrackedEndpoints;
+        System.Int32 toRemove = currentCount - _options.MaxTrackedEndpoints;
         System.Int32 removed = REMOVEO_LDEST_ENDPOINTS(toRemove, token);
 
         if (removed > 0)
@@ -1290,19 +1289,19 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
     private System.Int64 CalculateInitialBalance()
     {
         // Default (-1): Start with full capacity
-        if (_opt.InitialTokens < 0)
+        if (_options.InitialTokens < 0)
         {
             return _capacityMicro;
         }
 
         // Explicit 0: Start empty (cold-start mode)
-        if (_opt.InitialTokens == 0)
+        if (_options.InitialTokens == 0)
         {
             return 0;
         }
 
         // Custom value:  Clamp to [0, capacity]
-        System.Int64 requestedMicro = (System.Int64)_opt.InitialTokens * _opt.TokenScale;
+        System.Int64 requestedMicro = (System.Int64)_options.InitialTokens * _options.TokenScale;
         return System.Math.Clamp(requestedMicro, 0, _capacityMicro);
     }
 
