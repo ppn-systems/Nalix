@@ -691,6 +691,10 @@ public sealed class ReliableClient : IClientConnection
     {
         try { OnDisconnected?.Invoke(this, cause); } catch { }
 
+        // Tear down current socket AND cancel all background tasks before reconnect.
+        // This prevents "duplicate recurring name" warnings on reconnect.
+        CLEANUP_CONNECTION();
+
         // Tear down the current socket.
         lock (_sync)
         {
