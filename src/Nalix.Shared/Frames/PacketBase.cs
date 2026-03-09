@@ -63,7 +63,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.Byte[] Serialize() => LiteSerializer.Serialize(this);
+    public override System.Byte[] Serialize() => LiteSerializer.Serialize(this.GetType());
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -79,7 +79,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
         }
 
         // Then serialize...
-        return LiteSerializer.Serialize(this, buffer);
+        return LiteSerializer.Serialize(this.GetType(), buffer);
     }
 
     /// <summary>
