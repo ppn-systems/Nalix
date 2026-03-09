@@ -6,12 +6,17 @@ using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
+using Nalix.Framework.Random;
 using Nalix.Framework.Tasks;
+using Nalix.Framework.Time;
 using Nalix.SDK.Configuration;
+// Added for control-frame heartbeat support
+using Nalix.SDK.Transport.Extensions;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport;
@@ -451,7 +456,7 @@ public sealed class ReliableClient : IClientConnection
         }
 
         System.TimeSpan interval =
-            System.TimeSpan.FromMilliseconds(System.Math.Max(1, Options.KeepAliveIntervalMillis));
+            System.TimeSpan.FromMilliseconds(System.Math.Max(1000, Options.KeepAliveIntervalMillis));
 
         try
         {
@@ -462,16 +467,37 @@ public sealed class ReliableClient : IClientConnection
                 interval: interval,
                 work: async (workerCt) =>
                 {
-                    System.Threading.CancellationToken effective =
-                        workerCt.CanBeCanceled ? workerCt : loopToken;
+                    System.Threading.CancellationToken effective = workerCt.CanBeCanceled ? workerCt : loopToken;
                     try
                     {
-                        await SendAsync(System.ReadOnlyMemory<System.Byte>.Empty, effective)
-                            .ConfigureAwait(false);
+                        // Send a CONTROL PING as heartbeat using the control extension helper.
+                        await this.SendControlAsync(
+                            opCode: 100,
+                            type: ControlType.PING,
+                            configure: ctrl =>
+                            {
+                                // Assign a cryptographically-random sequence id to avoid collisions.
+                                ctrl.SequenceId = 101_010;
+                                // Use TCP as the transport for the heartbeat control frame.
+                                ctrl.Protocol = ProtocolType.TCP;
+                                // Stamp monotonic and wall-clock times for robust server-side RTT measurement/echo.
+                                ctrl.MonoTicks = Clock.MonoTicksNow();
+                                ctrl.Timestamp = Clock.UnixMillisecondsNow();
+                            },
+                            ct: effective
+                        ).ConfigureAwait(false);
                     }
                     catch (System.OperationCanceledException) when (effective.IsCancellationRequested)
                     {
                         // Cancellation is expected during disconnect; swallow.
+                    }
+                    catch (System.Exception ex)
+                    {
+                        _log?.Warn(
+                            $"[SDK.{nameof(ReliableClient)}] heartbeat-send-error: {ex.Message}");
+
+                        try { OnError?.Invoke(this, ex); } catch { }
+                        _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
                     }
                 },
                 options: new RecurringOptions { NonReentrant = true, Tag = "ClientHeartbeat" }
@@ -583,7 +609,7 @@ public sealed class ReliableClient : IClientConnection
 
     /// <summary>
     /// Fallback heartbeat loop used when <see cref="TaskManager"/> scheduling fails.
-    /// Sends an empty payload at the configured interval until canceled.
+    /// Sends a CONTROL PING at the configured interval until canceled.
     /// </summary>
     private async System.Threading.Tasks.Task HEARTBEAT_LOOP_ASYNC(
         System.Threading.CancellationToken token)
@@ -595,7 +621,20 @@ public sealed class ReliableClient : IClientConnection
             try
             {
                 await System.Threading.Tasks.Task.Delay(intervalMs, token).ConfigureAwait(false);
-                await SendAsync(System.ReadOnlyMemory<System.Byte>.Empty, token).ConfigureAwait(false);
+
+                // Send CONTROL PING as heartbeat.
+                await this.SendControlAsync(
+                    opCode: 0,
+                    type: ControlType.PING,
+                    configure: ctrl =>
+                    {
+                        ctrl.SequenceId = Csprng.NextUInt32();
+                        ctrl.Protocol = ProtocolType.TCP;
+                        ctrl.MonoTicks = Clock.MonoTicksNow();
+                        ctrl.Timestamp = Clock.UnixMillisecondsNow();
+                    },
+                    ct: token
+                ).ConfigureAwait(false);
             }
             catch (System.OperationCanceledException)
             {

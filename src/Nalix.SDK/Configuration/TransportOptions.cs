@@ -57,7 +57,7 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// <summary>
     /// Interval in milliseconds to send keep-alive (heartbeat) packets. 0 disables heartbeats.
     /// </summary>
-    public System.Int32 KeepAliveIntervalMillis { get; set; } = 0;
+    public System.Int32 KeepAliveIntervalMillis { get; set; } = 20_000;
 
     // Socket tuning
 
