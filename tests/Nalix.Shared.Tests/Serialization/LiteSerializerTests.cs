@@ -19,3 +19,10 @@ public struct ComplexStruct
     public Int16 I16;
     public Byte B;
 }
+
+public class NullClass
+{
+    public Int32[] I32;
+
+    public Int16? I16;
+}
