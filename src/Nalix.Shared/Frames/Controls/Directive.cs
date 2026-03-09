@@ -7,14 +7,12 @@ using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
-using Nalix.Common.Shared.Attributes;
 
 namespace Nalix.Shared.Frames.Controls;
 
 /// <summary>
 /// A compact, generic server-to-client directive frame for common control scenarios.
 /// </summary>
-[MagicNumber(ProtocolMagic.DIRECTIVE)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
 public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketSequenced
@@ -75,7 +73,6 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
         this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.URGENT;
         this.OpCode = PacketConstants.OPCODE_DEFAULT;
-        this.MagicNumber = (System.UInt32)ProtocolMagic.DIRECTIVE;
     }
 
     /// <summary>
