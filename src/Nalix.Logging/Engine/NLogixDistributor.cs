@@ -1,9 +1,6 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Diagnostics.Models;
 
@@ -22,6 +19,7 @@ public sealed class NLogixDistributor : ILogDistributor
     private const System.Byte DummyValue = 0;
 
     // Using a concurrent dictionary for thread-safe operations on targets
+    private ILoggerTarget[]? _targetsCache;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ILoggerTarget, System.Byte> _targets = new();
 
     // Track disposed state in a thread-safe way
@@ -76,49 +74,27 @@ public sealed class NLogixDistributor : ILogDistributor
         // Quick check for disposed state
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
-        // Increment the published entries counter
-        _ = System.Threading.Interlocked.Increment(ref _totalEntriesPublished);
-        System.Int32 count = _targets.Count;
+        ILoggerTarget[] targets = _targetsCache ??= [.. _targets.Keys];
 
-        // Fast path: no targets
-        if (count == 0)
+        if (targets.Length == 0)
         {
             return;
         }
 
-        // Optimize for the common case of a single target
-        if (count == 1)
-        {
-            foreach (System.Collections.Generic.KeyValuePair<ILoggerTarget, System.Byte> kvp in _targets)
-            {
-                try
-                {
-                    kvp.Key.Publish(entry.Value);
-                    _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
-                }
-                catch (System.Exception ex)
-                {
-                    // Count the error but continue operation
-                    _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
-                    HandleTargetError(kvp.Key, ex, entry.Value);
-                }
-                return; // Only one target, exit after processing
-            }
-        }
+        // Increment the published entries counter
+        _ = System.Threading.Interlocked.Increment(ref _totalEntriesPublished);
 
-        // Multiple targets: iterate and publish to each
-        foreach (System.Collections.Generic.KeyValuePair<ILoggerTarget, System.Byte> kvp in _targets)
+        for (System.Int32 i = 0; i < targets.Length; i++)
         {
             try
             {
-                kvp.Key.Publish(entry.Value);
-                _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
+                targets[i].Publish(entry.Value);
+                System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
             }
             catch (System.Exception ex)
             {
-                // Count the error but continue operation
-                _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
-                HandleTargetError(kvp.Key, ex, entry.Value);
+                System.Threading.Interlocked.Increment(ref _totalPublishErrors);
+                HandleTargetError(targets[i], ex, entry.Value);
             }
         }
     }
@@ -140,38 +116,27 @@ public sealed class NLogixDistributor : ILogDistributor
         // Quick check for disposed state
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
-        System.Int32 count = _targets.Count;
+        ILoggerTarget[] targets = _targetsCache ??= [.. _targets.Keys];
 
-        // Fast path: no targets
-        if (count == 0)
+        if (targets.Length == 0)
         {
             return System.Threading.Tasks.ValueTask.CompletedTask;
         }
 
-        // Optimize for the common case of a single target
-        if (count == 1)
+        for (System.Int32 i = 0; i < targets.Length; i++)
         {
-            foreach (System.Collections.Generic.KeyValuePair<ILoggerTarget, System.Byte> kvp in _targets)
+            try
             {
-                try
-                {
-                    kvp.Key.Publish(entry.Value);
-                    _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
-                }
-                catch (System.Exception ex)
-                {
-                    // Count the error but continue operation
-                    _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
-                    HandleTargetError(kvp.Key, ex, entry.Value);
-                }
-
-                // Only one target, exit after processing
-                return System.Threading.Tasks.ValueTask.CompletedTask;
+                targets[i].Publish(entry.Value);
+                System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
+            }
+            catch (System.Exception ex)
+            {
+                System.Threading.Interlocked.Increment(ref _totalPublishErrors);
+                HandleTargetError(targets[i], ex, entry.Value);
             }
         }
 
-        // For best performance, publish synchronously and let targets handle async internally
-        Publish(entry);
         return System.Threading.Tasks.ValueTask.CompletedTask;
     }
 
@@ -190,7 +155,8 @@ public sealed class NLogixDistributor : ILogDistributor
         System.ArgumentNullException.ThrowIfNull(target);
         System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
-        _ = _targets.TryAdd(target, DummyValue);
+        _targets.TryAdd(target, DummyValue);
+        _targetsCache = null;  // invalidate
         return this;
     }
 

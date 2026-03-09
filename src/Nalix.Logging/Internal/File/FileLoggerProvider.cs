@@ -5,12 +5,12 @@ using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Diagnostics.Models;
 using Nalix.Common.Environment;
+using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Logging.Configuration;
-
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
@@ -21,26 +21,31 @@ namespace Nalix.Logging.Internal.File;
 
 /// <summary>
 /// High-throughput file logger provider using <see cref="System.Threading.Channels.Channel{T}"/> + batching.
-/// Drop-in alternative to <c>FileLoggerProvider</c> optimized for low contention and fewer syscalls.
+/// Optimized for low contention and fewer syscalls.
 /// </summary>
 /// <remarks>
-/// - Single consumer background task reads from a bounded channel.
-/// - Producers use TryWrite (drop) or WriteAsync (block) based on <see cref="FileLogOptions.BlockWhenQueueFull"/>.
-/// - Batching: flush by item count or elapsed time, whichever comes first.
-/// - Adaptive flush interval can be toggled via constructor parameters.
+/// - Channel lưu <see cref="LogEntry"/> thô — formatting xảy ra tập trung tại consumer thread,
+///   tránh contention trên <c>StringBuilderPool</c> ở phía producer.
+/// - Single consumer background task reads từ bounded channel.
+/// - Producers dùng TryWrite (drop) hoặc WriteAsync (block) tùy theo
+///   <see cref="FileLogOptions.BlockWhenQueueFull"/>.
+/// - Batching: flush theo item count hoặc elapsed time, tùy cái nào đến trước.
+/// - Adaptive flush interval có thể bật/tắt qua constructor.
 /// </remarks>
 [System.Diagnostics.DebuggerDisplay("Queued={QueuedEntryCount}, Written={TotalEntriesWritten}, Dropped={EntriesDroppedCount}")]
-internal sealed class FileLoggerProvider : System.IDisposable
+internal sealed class FileLoggerProvider : System.IDisposable, IReportable
 {
     #region Fields
 
-    private readonly System.Threading.Channels.Channel<System.String> _channel;
-    private readonly System.Threading.Channels.ChannelWriter<System.String> _writer;
-    private readonly System.Threading.Channels.ChannelReader<System.String> _reader;
+    // ✅ Channel giờ lưu LogEntry thô thay vì string đã format
+    // → Producer không cần format → không contention trên StringBuilderPool
+    private readonly System.Threading.Channels.Channel<LogEntry> _channel;
+    private readonly System.Threading.Channels.ChannelWriter<LogEntry> _writer;
+    private readonly System.Threading.Channels.ChannelReader<LogEntry> _reader;
 
     private readonly FileWriter _fileWriter;
     private readonly IWorkerHandle? _workerHandle;
-    private readonly System.Threading.CancellationTokenSource _cts = new();
+    private readonly System.Threading.CancellationTokenSource _cts;
 
     private readonly System.Int32 _maxQueueSize;
     private readonly System.Boolean _blockWhenFull;
@@ -60,13 +65,13 @@ internal sealed class FileLoggerProvider : System.IDisposable
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FileLoggerProvider"/>.
+    /// Khởi tạo <see cref="FileLoggerProvider"/>.
     /// </summary>
-    /// <param name="formatter">The formatter used to format log messages.</param>
-    /// <param name="options">File logger options (reuses existing <see cref="FileLogOptions"/>).</param>
-    /// <param name="batchSize">Max entries per batch before a flush (default: 256).</param>
-    /// <param name="maxBatchDelay">Max time to wait before flushing a partial batch (default: options.FlushInterval or 1s).</param>
-    /// <param name="adaptiveFlush">Enable adaptive flush based on incoming rate (default: true).</param>
+    /// <param name="formatter">Formatter dùng để chuyển <see cref="LogEntry"/> thành string.</param>
+    /// <param name="options">Tùy chọn cấu hình file logger.</param>
+    /// <param name="batchSize">Số entry tối đa mỗi batch trước khi flush (mặc định: 256).</param>
+    /// <param name="maxBatchDelay">Thời gian tối đa chờ trước khi flush batch chưa đầy (mặc định: options.FlushInterval hoặc 1s).</param>
+    /// <param name="adaptiveFlush">Bật adaptive flush dựa trên tốc độ incoming (mặc định: true).</param>
     public FileLoggerProvider(
         ILoggerFormatter formatter,
         FileLogOptions? options = null,
@@ -76,7 +81,7 @@ internal sealed class FileLoggerProvider : System.IDisposable
     {
         Options = options ?? ConfigurationManager.Instance.Get<FileLogOptions>();
 
-        _cts = new();
+        _cts = new System.Threading.CancellationTokenSource();
         _formatter = formatter;
         _adaptiveFlush = adaptiveFlush;
         _batchSize = System.Math.Max(1, batchSize);
@@ -89,34 +94,40 @@ internal sealed class FileLoggerProvider : System.IDisposable
             _maxBatchDelay = System.TimeSpan.FromSeconds(1);
         }
 
-        // Bounded channel, single consumer, many producers
+        // ✅ Channel<LogEntry>: bounded, single reader, many writers
         System.Threading.Channels.BoundedChannelOptions channelOptions = new(_maxQueueSize)
         {
             SingleReader = true,
             SingleWriter = false,
-            FullMode = _blockWhenFull ? System.Threading.Channels.BoundedChannelFullMode.Wait : System.Threading.Channels.BoundedChannelFullMode.DropNewest
+            FullMode = _blockWhenFull
+                ? System.Threading.Channels.BoundedChannelFullMode.Wait
+                : System.Threading.Channels.BoundedChannelFullMode.DropNewest
         };
 
-        _channel = System.Threading.Channels.Channel.CreateBounded<System.String>(channelOptions);
+        _channel = System.Threading.Channels.Channel.CreateBounded<LogEntry>(channelOptions);
         _writer = _channel.Writer;
         _reader = _channel.Reader;
 
         _fileWriter = new FileWriter(this);
+
         _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
             .ScheduleWorker(
                 name: "log.file.worker",
                 group: "log",
                 work: async (ctx, ct) =>
                 {
-                    using var linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
-                    await CONSUME_LOOP_ASYNC(ctx, linkedCts.Token);
+                    using System.Threading.CancellationTokenSource linkedCts =
+                        System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
+                    await CONSUME_LOOP_ASYNC(ctx, linkedCts.Token).ConfigureAwait(false);
                 },
                 options: new WorkerOptions
                 {
                     Tag = "file-consumer",
                     GroupConcurrencyLimit = ConfigurationManager.Instance.Get<NLogixOptions>().GroupConcurrencyLimit,
-                    OnFailed = (st, ex) => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker failed: {st.Name}, {ex.Message}"),
-                    OnCompleted = st => System.Diagnostics.Debug.WriteLine($"[LG.WebhookLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
+                    OnFailed = (st, ex) => System.Diagnostics.Debug.WriteLine(
+                        $"[LG.FileLogger] Worker failed: {st.Name}, {ex.Message}"),
+                    OnCompleted = st => System.Diagnostics.Debug.WriteLine(
+                        $"[LG.FileLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
                 }
             );
     }
@@ -125,122 +136,126 @@ internal sealed class FileLoggerProvider : System.IDisposable
 
     #region Properties
 
-    /// <summary>
-    /// Gets the options used by this provider.
-    /// </summary>
+    /// <summary>Tùy chọn cấu hình đang dùng.</summary>
     public FileLogOptions Options { get; }
 
-    /// <summary>
-    /// Approximate number of entries waiting to be written.
-    /// </summary>
-    public System.Int32 QueuedEntryCount => System.Math.Max(0, System.Threading.Volatile.Read(ref _queued));
+    /// <summary>Số entry đang chờ trong queue (ước lượng).</summary>
+    public System.Int32 QueuedEntryCount
+        => System.Math.Max(0, System.Threading.Volatile.Read(ref _queued));
 
-    /// <summary>
-    /// Total entries written (since start).
-    /// </summary>
-    public System.Int64 TotalEntriesWritten => System.Threading.Interlocked.Read(ref _totalEntriesWritten);
+    /// <summary>Tổng số entry đã ghi thành công (từ lúc khởi động).</summary>
+    public System.Int64 TotalEntriesWritten
+        => System.Threading.Interlocked.Read(ref _totalEntriesWritten);
 
-    /// <summary>
-    /// Entries dropped due to capacity (when non-blocking).
-    /// </summary>
-    public System.Int64 EntriesDroppedCount => System.Threading.Interlocked.Read(ref _entriesDroppedCount);
+    /// <summary>Số entry bị drop do queue đầy.</summary>
+    public System.Int64 EntriesDroppedCount
+        => System.Threading.Interlocked.Read(ref _entriesDroppedCount);
 
     #endregion Properties
 
     #region APIs
 
     /// <summary>
-    /// Enqueue a formatted log message.
+    /// Enqueue một <see cref="LogEntry"/> để ghi vào file.
+    /// Không format ở đây — formatting xảy ra tại consumer thread.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void Enqueue(LogEntry entry)
     {
-        System.String message = _formatter.Format(entry);
-
-        if (_disposed || System.String.IsNullOrEmpty(message))
+        if (_disposed)
         {
             return;
         }
 
-        if (_blockWhenFull)
+        // ✅ TryWrite trực tiếp LogEntry — không format, không allocation ở đây
+        if (_writer.TryWrite(entry))
         {
-            try
-            {
-                _ = _writer.WriteAsync(message, _cts.Token).AsTask().ConfigureAwait(false);
-                _ = System.Threading.Interlocked.Increment(ref _queued);
-            }
-            catch
-            {
-                // swallow: don't throw from logger
-                _ = System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
-            }
+            System.Threading.Interlocked.Increment(ref _queued);
         }
         else
         {
-            _ = _writer.TryWrite(message) ? System.Threading.Interlocked.Increment(ref _queued)
-                                          : System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
+            System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
         }
     }
 
-
     /// <summary>
-    /// Force a flush of current buffers to disk.
+    /// Enqueue bất đồng bộ — dùng khi <see cref="FileLogOptions.BlockWhenQueueFull"/> = true.
     /// </summary>
+    internal async System.Threading.Tasks.ValueTask EnqueueAsync(LogEntry entry)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        try
+        {
+            // ✅ Await đúng cách — thực sự block khi queue đầy
+            await _writer.WriteAsync(entry, _cts.Token).ConfigureAwait(false);
+            System.Threading.Interlocked.Increment(ref _queued);
+        }
+        catch
+        {
+            System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
+        }
+    }
+
+    /// <summary>Flush buffer hiện tại xuống disk.</summary>
     public void Flush() => _fileWriter.Flush();
 
-    /// <summary>
-    /// Diagnostic snapshot.
-    /// </summary>
-    public System.String GetDiagnostics()
-    {
-        return $"ChannelFileLoggerProvider [UTC: {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
-             + System.Environment.NewLine + $"- USER: {System.Environment.UserName}"
-             + System.Environment.NewLine + $"- Log File: {System.IO.Path.Combine(Directories.LogsDirectory, Options.LogFileName)}"
-             + System.Environment.NewLine + $"- Written: {TotalEntriesWritten:N0}"
-             + System.Environment.NewLine + $"- Dropped: {EntriesDroppedCount:N0}"
-             + System.Environment.NewLine + $"- Queue: ~{QueuedEntryCount:N0}/{_maxQueueSize}";
-    }
+    /// <summary>Thông tin chẩn đoán về trạng thái provider.</summary>
+    public System.String GenerateReport()
+        => $"FileLoggerProvider [UTC: {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
+         + System.Environment.NewLine + $"- USER: {System.Environment.UserName}"
+         + System.Environment.NewLine + $"- Log File: {System.IO.Path.Combine(Directories.LogsDirectory, Options.LogFileName)}"
+         + System.Environment.NewLine + $"- Written:  {TotalEntriesWritten:N0}"
+         + System.Environment.NewLine + $"- Dropped:  {EntriesDroppedCount:N0}"
+         + System.Environment.NewLine + $"- Queue:    ~{QueuedEntryCount:N0}/{_maxQueueSize}";
 
     #endregion APIs
 
     #region Private Methods
 
-    private async System.Threading.Tasks.Task CONSUME_LOOP_ASYNC(IWorkerContext ctx, System.Threading.CancellationToken ct)
+    private async System.Threading.Tasks.Task CONSUME_LOOP_ASYNC(
+        IWorkerContext ctx,
+        System.Threading.CancellationToken ct)
     {
-        System.Collections.Generic.List<System.String> batch = new(_batchSize);
-        System.Diagnostics.Stopwatch sw = new();
-        sw.Start();
+        // ✅ Batch giờ là List<LogEntry> thô — format tập trung tại FileWriter
+        System.Collections.Generic.List<LogEntry> batch = new(_batchSize);
+        System.Diagnostics.Stopwatch sw = System.Diagnostics.Stopwatch.StartNew();
         System.TimeSpan currentDelay = _maxBatchDelay;
 
         try
         {
             while (await _reader.WaitToReadAsync(ct).ConfigureAwait(false))
             {
-                // Đọc 1 item đầu tiên
-                if (_reader.TryRead(out var first))
-                {
-                    batch.Add(first);
-                    _ = System.Threading.Interlocked.Decrement(ref _queued);
-                }
-                else
+                // Đọc entry đầu tiên
+                if (!_reader.TryRead(out LogEntry first))
                 {
                     continue;
                 }
 
-                var batchStartTicks = sw.ElapsedTicks;
+                batch.Add(first);
+                System.Threading.Interlocked.Decrement(ref _queued);
+
+                // Gom thêm entries trong khoảng thời gian currentDelay
+                System.Int64 batchStartTicks = sw.ElapsedTicks;
+
                 while (batch.Count < _batchSize)
                 {
-                    if (sw.Elapsed - System.TimeSpan.FromTicks(batchStartTicks) >= currentDelay)
+                    // Kiểm tra timeout bằng ticks — tránh tạo TimeSpan object mỗi vòng lặp
+                    System.Int64 elapsedSinceStart = sw.ElapsedTicks - batchStartTicks;
+                    if (elapsedSinceStart >= currentDelay.Ticks)
                     {
                         break;
                     }
 
-                    if (_reader.TryRead(out var item))
+                    if (_reader.TryRead(out LogEntry item))
                     {
                         batch.Add(item);
-                        _ = System.Threading.Interlocked.Decrement(ref _queued);
+                        System.Threading.Interlocked.Decrement(ref _queued);
                     }
                     else
                     {
@@ -249,56 +264,66 @@ internal sealed class FileLoggerProvider : System.IDisposable
                     }
                 }
 
-                _fileWriter.WriteBatch(batch);
-                _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
+                // ✅ FileWriter nhận LogEntry list, format + write trong 1 pass
+                _fileWriter.WriteBatch(batch, _formatter);
 
-                // Update progress & heartbeat
-                ctx.Advance(batch.Count, "File logs written");
+                // ✅ Capture batchCount TRƯỚC khi Clear — fix bug adaptive flush
+                System.Int32 batchCount = batch.Count;
+                System.Threading.Interlocked.Add(ref _totalEntriesWritten, batchCount);
+                ctx.Advance(batchCount, "File logs written");
                 ctx.Beat();
-
                 batch.Clear();
 
+                // Adaptive flush: điều chỉnh delay dựa trên mức độ bận
                 if (_adaptiveFlush)
                 {
-                    currentDelay = batch.Count >= _batchSize - 1
-                        ? System.TimeSpan.FromMilliseconds(System.Math.Max(1, currentDelay.TotalMilliseconds * 0.75))
-                        : System.TimeSpan.FromMilliseconds(System.Math.Min(5000, System.Math.Max(1, currentDelay.TotalMilliseconds * 1.25)));
+                    currentDelay = batchCount >= _batchSize - 1
+                        // Batch đầy → đang bận → giảm delay để flush nhanh hơn
+                        ? System.TimeSpan.FromMilliseconds(
+                            System.Math.Max(1, currentDelay.TotalMilliseconds * 0.75))
+                        // Batch thưa → đang nhàn → tăng delay để giảm CPU
+                        : System.TimeSpan.FromMilliseconds(
+                            System.Math.Min(5000, currentDelay.TotalMilliseconds * 1.25));
                 }
             }
         }
         catch (System.OperationCanceledException)
         {
-            // draining below
+            // Thoát bình thường — draining bên dưới
         }
         catch (System.Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Channel consumer error: {ex}");
+            System.Diagnostics.Debug.WriteLine($"[LG.FileLogger] Consumer error: {ex}");
         }
         finally
         {
-            while (_reader.TryRead(out var msg))
+            // Drain toàn bộ entries còn lại trước khi shutdown
+            while (_reader.TryRead(out LogEntry msg))
             {
                 batch.Add(msg);
+
                 if (batch.Count >= _batchSize)
                 {
-                    _fileWriter.WriteBatch(batch);
-                    _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
-                    ctx.Advance(batch.Count, "File logs written (shutdown)");
+                    _fileWriter.WriteBatch(batch, _formatter);
+                    System.Int32 count = batch.Count;
+                    System.Threading.Interlocked.Add(ref _totalEntriesWritten, count);
+                    ctx.Advance(count, "File logs written (shutdown)");
                     ctx.Beat();
                     batch.Clear();
                 }
             }
+
             if (batch.Count > 0)
             {
-                _fileWriter.WriteBatch(batch);
-                _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batch.Count);
-                ctx.Advance(batch.Count, "File logs written (shutdown)");
+                _fileWriter.WriteBatch(batch, _formatter);
+                System.Int32 count = batch.Count;
+                System.Threading.Interlocked.Add(ref _totalEntriesWritten, count);
+                ctx.Advance(count, "File logs written (shutdown)");
                 ctx.Beat();
                 batch.Clear();
             }
         }
     }
-
 
     #endregion Private Methods
 
@@ -315,24 +340,27 @@ internal sealed class FileLoggerProvider : System.IDisposable
 
         try
         {
-            _writer.Complete();
+            _writer.TryComplete();
             _cts.Cancel();
 
             if (_workerHandle != null)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                        .CancelWorker(_workerHandle.Id);
+                               .CancelWorker(_workerHandle.Id);
             }
 
             _fileWriter.Flush();
             _fileWriter.Dispose();
-            _cts.Dispose();
         }
         catch (System.Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Dispose error: {ex}");
+            System.Diagnostics.Debug.WriteLine($"[LG.FileLogger] Dispose error: {ex}");
         }
-        System.GC.SuppressFinalize(this);
+        finally
+        {
+            _cts.Dispose();
+            System.GC.SuppressFinalize(this);
+        }
     }
 
     #endregion Dispose

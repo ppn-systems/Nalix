@@ -54,14 +54,6 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with the specified options.
-    /// </summary>
-    /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
-    public BatchFileLogTarget(FileLogOptions options) : this(options, new LogFormatter(false))
-    {
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom configuration logic.
     /// </summary>
     /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>

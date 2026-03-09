@@ -54,11 +54,7 @@ public sealed class BatchWebhookLogTarget : ILoggerTarget, System.IDisposable
     /// </summary>
     /// <param name="options">The webhook log options to configure Discord webhook settings.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
-    public BatchWebhookLogTarget(WebhookLogOptions? options = null)
-    {
-        System.ArgumentNullException.ThrowIfNull(options);
-        _provider = new WebhookLoggerProvider(options);
-    }
+    public BatchWebhookLogTarget(WebhookLogOptions? options = null) => _provider = new WebhookLoggerProvider(options);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BatchWebhookLogTarget"/> class with custom configuration logic.
@@ -69,11 +65,6 @@ public sealed class BatchWebhookLogTarget : ILoggerTarget, System.IDisposable
         : this(Configure(configureOptions))
     {
     }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BatchWebhookLogTarget"/> class with custom configuration logic.
-    /// </summary>
-    public BatchWebhookLogTarget() => _provider = new WebhookLoggerProvider();
 
     #endregion Constructors
 

@@ -43,7 +43,7 @@ public static class NLogixExtensions
         this ILogger logger, System.String message, EventId? eventId = null,
         [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
         where T : class
-        => logger.Debug<T>($"[{typeof(T).Name}:{member}] {message}", eventId);
+        => logger.Debug($"[{typeof(T).Name}:{member}] {message}", eventId);
 
     /// <summary>
     /// Logs an informational message with class and member context.

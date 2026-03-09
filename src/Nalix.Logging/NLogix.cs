@@ -51,7 +51,20 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.String SanitizeLogMessage(System.String? message)
-        => message?.Replace("\n", "").Replace("\r", "") ?? System.String.Empty;
+    {
+        if (System.String.IsNullOrEmpty(message))
+        {
+            return System.String.Empty;
+        }
+
+        // Chỉ allocate nếu thực sự có ký tự cần xóa
+        if (System.MemoryExtensions.IndexOfAny(System.MemoryExtensions.AsSpan(message), '\n', '\r') < 0)
+        {
+            return message; // fast path: không cần sanitize
+        }
+
+        return message.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ");
+    }
 
     // Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
     [System.Diagnostics.Contracts.Pure]

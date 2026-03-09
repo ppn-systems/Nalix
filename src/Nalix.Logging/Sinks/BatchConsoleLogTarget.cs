@@ -61,15 +61,6 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, System.IDisposable
     {
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class with default options.
-    /// </summary>
-    public BatchConsoleLogTarget()
-    {
-        System.Console.Title = "Nx";
-        _provider = new ConsoleLoggerProvider(null);
-    }
-
     #endregion Constructors
 
     #region API
