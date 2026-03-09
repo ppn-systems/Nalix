@@ -610,7 +610,7 @@ public partial class TaskManager
         const int StreakRequired = 3;
 
         // Normalize threshold: config là % trên 1 core -> scale lên toàn bộ core
-        double coreCount = Environment.ProcessorCount;
+        double coreCount = System.Environment.ProcessorCount;
         double threshHigh = options.ThresholdHighCpu * coreCount;
         double threshLow = options.ThresholdLowCpu * coreCount;
 
@@ -726,7 +726,7 @@ public partial class TaskManager
             return 0.0;
         }
 
-        double processorCount = Environment.ProcessorCount;
+        double processorCount = System.Environment.ProcessorCount;
 
         // cpuDelta / wallDelta = tỷ lệ sử dụng trên 1 core -> nhân processorCount -> % trên toàn bộ core
         double cpuUsagePercent = cpuDelta / (double)wallDelta * processorCount * 100.0;

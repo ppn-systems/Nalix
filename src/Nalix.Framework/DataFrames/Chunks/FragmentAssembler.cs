@@ -58,7 +58,7 @@ public sealed class FragmentAssembler : IDisposable
             AccumLease = BufferLease.Rent(estimatedBytes);
             WrittenBytes = 0;
             ReceivedCount = 0;
-            LastActivityMs = Environment.TickCount64;
+            LastActivityMs = System.Environment.TickCount64;
         }
 
         public void Dispose() => Interlocked.Exchange(ref AccumLease!, null!)?.Dispose();
@@ -131,7 +131,7 @@ public sealed class FragmentAssembler : IDisposable
                 $"Invalid fragment header. StreamId={header.StreamId}, ChunkIndex={header.ChunkIndex}, TotalChunks={header.TotalChunks}.");
         }
 
-        long now = Environment.TickCount64;
+        long now = System.Environment.TickCount64;
 
         if (++_chunksSinceLastSweep >= EvictInterval)
         {
@@ -238,7 +238,7 @@ public sealed class FragmentAssembler : IDisposable
             return 0;
         }
 
-        long now = Environment.TickCount64;
+        long now = System.Environment.TickCount64;
         int evicted = 0;
 
         foreach ((ushort streamId, StreamState? state) in _streams)

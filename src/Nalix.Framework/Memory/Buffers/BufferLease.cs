@@ -215,7 +215,7 @@ public sealed class BufferLease : IBufferLease
         {
             // newValue == 1: ok (single owner) — overflow -> negative or 0
             throw new InternalErrorException(
-                $"[{nameof(BufferLease)}] Invalid ref-count after Retain: value={newValue}, thread={Environment.CurrentManagedThreadId}.");
+                $"[{nameof(BufferLease)}] Invalid ref-count after Retain: value={newValue}, thread={System.Environment.CurrentManagedThreadId}.");
         }
     }
 
