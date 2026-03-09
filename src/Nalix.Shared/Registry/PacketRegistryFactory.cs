@@ -172,33 +172,33 @@ public sealed class PacketRegistryFactory
             // the inheritance chain. Inherited static methods are not returned by
             // GetMethod without FlattenHierarchy, and FlattenHierarchy cannot resolve
             // generic base types correctly, so we walk manually.
-            System.Reflection.MethodInfo? miDeserialize = FindStaticMethod(
+            System.Reflection.MethodInfo? facadeDeserializeMi = FindStaticMethod(
                 type, FLAGS,
                 nameof(IPacketDeserializer<>.Deserialize),
                 [typeof(System.ReadOnlySpan<System.Byte>)]);
 
-            System.Reflection.MethodInfo? miCompress = FindStaticMethod(
-                type, FLAGS,
-                nameof(IPacketCompressor<>.Compress),
-                [type]);
-
-            System.Reflection.MethodInfo? miDecompress = FindStaticMethod(
-                type, FLAGS,
-                nameof(IPacketCompressor<>.Decompress),
-                [type]);
-
-            System.Reflection.MethodInfo? miEncrypt = FindStaticMethod(
+            System.Reflection.MethodInfo? facadeEncryptMi = FindStaticMethod(
                 type, FLAGS,
                 nameof(IPacketEncryptor<>.Encrypt),
                 [type, typeof(System.Byte[]), typeof(CipherSuiteType)]);
 
-            System.Reflection.MethodInfo? miDecrypt = FindStaticMethod(
+            System.Reflection.MethodInfo? facadeDecryptMi = FindStaticMethod(
                 type, FLAGS,
                 nameof(IPacketEncryptor<>.Decrypt),
-                [type, typeof(System.Byte[]), typeof(CipherSuiteType)]);
+                [type, typeof(System.Byte[])]);
+
+            System.Reflection.MethodInfo? facadeCompressMi = FindStaticMethod(
+                type, FLAGS,
+                nameof(IPacketCompressor<>.Compress),
+                [type]);
+
+            System.Reflection.MethodInfo? facadeDecompressMi = FindStaticMethod(
+                type, FLAGS,
+                nameof(IPacketCompressor<>.Decompress),
+                [type]);
 
             // ---- Deserializer binding (required if magic exists) ----
-            if (miDeserialize is not null)
+            if (facadeDeserializeMi is not null)
             {
                 if (deserializers.ContainsKey(key))
                 {
@@ -207,11 +207,11 @@ public sealed class PacketRegistryFactory
                 }
 
                 // Assign FromBytes pointer into Fn<TPacket>
-                _ = BindAllPtrsMi.MakeGenericMethod(type!).Invoke(null, [miDeserialize, null, null, null, null]);
+                _ = BindAllPtrsMi.MakeGenericMethod(type!).Invoke(null, [facadeDeserializeMi, null, null, null, null]);
 
                 // Build a stable PacketDeserializer that jumps to Fn<T>.FromBytes
                 System.Type tGeneric = typeof(PacketFunctionTable<>).MakeGenericType(type!);
-                System.Reflection.MethodInfo doDeserializeMi = tGeneric.GetMethod(nameof(PacketFunctionTable<>.Deserialize), FLAGS)!;
+                System.Reflection.MethodInfo doDeserializeMi = tGeneric.GetMethod(nameof(PacketFunctionTable<>.InvokeDeserialize), FLAGS)!;
 
                 // Create an actual delegate instance once (no reflection in hot path)
                 PacketDeserializer deserFacade = (PacketDeserializer)System.Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
@@ -237,7 +237,7 @@ public sealed class PacketRegistryFactory
             }
 
             // Assign all pointers into Fn<TPacket>
-            _ = BindAllPtrsMi.MakeGenericMethod(type!).Invoke(null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
+            _ = BindAllPtrsMi.MakeGenericMethod(type!).Invoke(null, [null, facadeCompressMi, facadeDecompressMi, facadeEncryptMi, facadeDecryptMi]);
 
             // Create public-facing delegates once (jump to Fn<T>.DoXXX)
             System.Type fnType = typeof(PacketFunctionTable<>).MakeGenericType(type!);
@@ -247,31 +247,31 @@ public sealed class PacketRegistryFactory
             System.Func<IPacket, System.Byte[], IPacket>? decryptDel = null;
             System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>? encryptDel = null;
 
-            System.Reflection.MethodInfo doEncryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.Encrypt), FLAGS)!;
-            System.Reflection.MethodInfo doDecryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.Decrypt), FLAGS)!;
-            System.Reflection.MethodInfo doCompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.Compress), FLAGS)!;
-            System.Reflection.MethodInfo doDecompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.Decompress), FLAGS)!;
+            System.Reflection.MethodInfo invokeEncryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeEncrypt), FLAGS)!;
+            System.Reflection.MethodInfo invokeDecryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecrypt), FLAGS)!;
+            System.Reflection.MethodInfo invokeCompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeCompress), FLAGS)!;
+            System.Reflection.MethodInfo invokeDecompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecompress), FLAGS)!;
 
-            if (miCompress is not null)
+            if (facadeCompressMi is not null)
             {
-                compressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), doCompressMi);
+                compressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), invokeCompressMi);
             }
 
-            if (miDecompress is not null)
+            if (facadeDecompressMi is not null)
             {
-                decompressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), doDecompressMi);
+                decompressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), invokeDecompressMi);
             }
 
-            if (miEncrypt is not null)
+            if (facadeEncryptMi is not null)
             {
                 encryptDel = (System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>)
-                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>), doEncryptMi);
+                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>), invokeEncryptMi);
             }
 
-            if (miDecrypt is not null)
+            if (facadeDecryptMi is not null)
             {
                 decryptDel = (System.Func<IPacket, System.Byte[], IPacket>)
-                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], IPacket>), doDecryptMi);
+                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], IPacket>), invokeDecryptMi);
             }
 
             transformers[type!] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
@@ -368,47 +368,32 @@ public sealed class PacketRegistryFactory
         // Note: The 'in' modifier on ReadOnlySpan is optional in the consumer; the function pointer
         // signature must match the actual static method on TPacket. If your methods use
         // 'in ReadOnlySpan<byte>' exactly, it remains ABI-compatible to call with a plain argument.
-        public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializeFunc;
+        public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializePtr;
 
-        public static delegate* managed<TPacket, TPacket> CompressFunc;
-        public static delegate* managed<TPacket, TPacket> DecompressFunc;
-        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> EncryptFunc;
-        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> DecryptFunc;
+        public static delegate* managed<TPacket, TPacket> CompressPtr;
+        public static delegate* managed<TPacket, TPacket> DecompressPtr;
+        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> EncryptPtr;
+        public static delegate* managed<TPacket, System.Byte[], TPacket> DecryptPtr;
 
-        /// <summary>
-        /// Facade for <see cref="PacketDeserializer"/>.
-        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Deserialize(System.ReadOnlySpan<System.Byte> raw) => DeserializeFunc(raw);
+        public static IPacket InvokeDeserialize(System.ReadOnlySpan<System.Byte> raw) => DeserializePtr(raw);
 
-        /// <summary>
-        /// Facade for <see cref="PacketTransformer.Compress"/>.
-        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Compress(IPacket p) => CompressFunc((TPacket)p);
+        public static IPacket InvokeCompress(IPacket p) => CompressPtr((TPacket)p);
 
-        /// <summary>
-        /// Facade for <see cref="PacketTransformer.Decompress"/>.
-        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Decompress(IPacket p) => DecompressFunc((TPacket)p);
+        public static IPacket InvokeDecompress(IPacket p) => DecompressPtr((TPacket)p);
 
-        /// <summary>
-        /// Facade for <see cref="PacketTransformer.Encrypt"/>.
-        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Encrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => EncryptFunc((TPacket)p, key, alg);
+        public static IPacket InvokeEncrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => EncryptPtr((TPacket)p, key, alg);
 
-        /// <summary>
-        /// Facade for <see cref="PacketTransformer.Decrypt"/>.
-        /// </summary>
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket Decrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => DecryptFunc((TPacket)p, key, alg);
+        public static IPacket InvokeDecrypt(IPacket p, System.Byte[] key) => DecryptPtr((TPacket)p, key);
     }
 
     /// <summary>
@@ -470,9 +455,11 @@ public sealed class PacketRegistryFactory
         }
     }
 
+    #region Binding Helpers
+
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, TPacket> UnaryIntPtr<TPacket>(System.Reflection.MethodInfo mi)
+    private static unsafe delegate* managed<TPacket, TPacket> BindUnaryPtr<TPacket>(System.Reflection.MethodInfo mi)
     {
         System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
         return (delegate* managed<TPacket, TPacket>)ptr;
@@ -480,19 +467,29 @@ public sealed class PacketRegistryFactory
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> CryptoIntPtr<TPacket>(System.Reflection.MethodInfo mi)
+    private static unsafe delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> BindEncryptPtr<TPacket>(System.Reflection.MethodInfo mi)
     {
         System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
         return (delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket>)ptr;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<TPacket, System.Byte[], TPacket> BindDecryptPtr<TPacket>(System.Reflection.MethodInfo mi)
+    {
+        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
+        return (delegate* managed<TPacket, System.Byte[], TPacket>)ptr;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializeIntPtr<TPacket>(System.Reflection.MethodInfo mi)
+    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> BindDeserializePtr<TPacket>(System.Reflection.MethodInfo mi)
     {
         System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
         return (delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>)ptr;
     }
+
+    #endregion Binding Helpers
 
     /// <summary>
     /// Assigns function pointers to <see cref="PacketFunctionTable{TPacket}"/> for a specific packet type.
@@ -506,32 +503,31 @@ public sealed class PacketRegistryFactory
         System.Reflection.MethodInfo? miCompress,
         System.Reflection.MethodInfo? miDecompress,
         System.Reflection.MethodInfo? miEncrypt,
-        System.Reflection.MethodInfo? miDecrypt)
-        where TPacket : IPacket
+        System.Reflection.MethodInfo? miDecrypt) where TPacket : IPacket
     {
         if (miDeserialize is not null)
         {
-            PacketFunctionTable<TPacket>.DeserializeFunc = DeserializeIntPtr<TPacket>(miDeserialize);
+            PacketFunctionTable<TPacket>.DeserializePtr = BindDeserializePtr<TPacket>(miDeserialize);
         }
 
         if (miCompress is not null)
         {
-            PacketFunctionTable<TPacket>.CompressFunc = UnaryIntPtr<TPacket>(miCompress);
+            PacketFunctionTable<TPacket>.CompressPtr = BindUnaryPtr<TPacket>(miCompress);
         }
 
         if (miDecompress is not null)
         {
-            PacketFunctionTable<TPacket>.DecompressFunc = UnaryIntPtr<TPacket>(miDecompress);
+            PacketFunctionTable<TPacket>.DecompressPtr = BindUnaryPtr<TPacket>(miDecompress);
         }
 
         if (miEncrypt is not null)
         {
-            PacketFunctionTable<TPacket>.EncryptFunc = CryptoIntPtr<TPacket>(miEncrypt);
+            PacketFunctionTable<TPacket>.EncryptPtr = BindEncryptPtr<TPacket>(miEncrypt);
         }
 
         if (miDecrypt is not null)
         {
-            PacketFunctionTable<TPacket>.DecryptFunc = CryptoIntPtr<TPacket>(miDecrypt);
+            PacketFunctionTable<TPacket>.DecryptPtr = BindDecryptPtr<TPacket>(miDecrypt);
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Meta(
