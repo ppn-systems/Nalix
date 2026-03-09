@@ -9,6 +9,7 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Internal.Formatters;
+using Nalix.Logging.Internal.Pooling;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
@@ -204,6 +205,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
                 }
 
                 WRITE_BATCH(batch);
+                System.Int32 writtenInBatch = batch.Count;
 
                 // **Update progress & heartbeat**
                 ctx.Beat();
@@ -214,13 +216,13 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
                 // adaptive flush
                 if (_adaptiveFlush)
                 {
-                    if (batch.Count >= _batchSize - 1)
+                    if (writtenInBatch >= _batchSize - 1)
                     {
                         _batchDelay = System.TimeSpan.FromMilliseconds(System.Math.Max(1, _batchDelay.TotalMilliseconds * 0.75));
                     }
-                    else if (batch.Count <= 2)
+                    else if (writtenInBatch <= 2)
                     {
-                        _batchDelay = System.TimeSpan.FromMilliseconds(System.Math.Min(2000, System.Math.Max(1, _batchDelay.TotalMilliseconds * 1.33)));
+                        _batchDelay = System.TimeSpan.FromMilliseconds(System.Math.Min(2000, _batchDelay.TotalMilliseconds * 1.33));
                     }
                 }
             }
@@ -250,23 +252,36 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
 
     private void WRITE_BATCH(System.Collections.Generic.List<LogEntry> batch)
     {
-        foreach (var entry in batch)
+        if (batch.Count == 0)
         {
-            try
-            {
-                System.String formatted = _formatter.Format(entry);
-                System.Console.WriteLine(formatted);
-                System.Threading.Interlocked.Increment(ref _writtenCount);
-            }
-            catch
-            {
-                System.Threading.Interlocked.Increment(ref _droppedCount);
-            }
+            return;
         }
 
-        if (_enableFlush)
+        System.Text.StringBuilder sb = StringBuilderPool.Rent(capacity: batch.Count * 128);
+        try
         {
-            System.Console.Out.Flush();
+            foreach (LogEntry entry in batch)
+            {
+                LogMessageBuilder.AppendFormatted(
+                    sb, entry.TimeStamp, entry.LogLevel,
+                    entry.EventId, entry.Message, entry.Exception, _enableColors);
+                sb.AppendLine();
+            }
+
+            System.Console.Out.Write(sb);
+            System.Threading.Interlocked.Add(ref _writtenCount, batch.Count);
+        }
+        catch
+        {
+            System.Threading.Interlocked.Add(ref _droppedCount, batch.Count);
+        }
+        finally
+        {
+            StringBuilderPool.Return(sb);
+            if (_enableFlush)
+            {
+                System.Console.Out.Flush();
+            }
         }
     }
 

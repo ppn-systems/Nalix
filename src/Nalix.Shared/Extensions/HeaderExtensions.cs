@@ -103,66 +103,7 @@ public static class HeaderExtensions
         return (ProtocolType)@this[offs];
     }
 
-    #endregion
-
-    #region Byte[] convenience overloads
-
-    /// <summary>
-    /// Reads the 32‑bit <c>MagicNumber</c> (little‑endian) from a <see cref="System.Byte"/> array.
-    /// </summary>
-    /// <param name="this">The source array.</param>
-    /// <returns>The magic number.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt32 ReadMagicNumberLE(this System.Byte[] @this) => @this.AsReadOnlySpan().ReadMagicNumberLE();
-
-    /// <summary>
-    /// Reads the 16‑bit <c>OpCode</c> (little‑endian) from a <see cref="System.Byte"/> array.
-    /// </summary>
-    /// <param name="this">The source array.</param>
-    /// <returns>The operation code.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt16 ReadOpCodeLE(this System.Byte[] @this) => @this.AsReadOnlySpan().ReadOpCodeLE();
-
-    /// <summary>
-    /// Reads the <see cref="PacketFlags"/> from a <see cref="System.Byte"/> array.
-    /// </summary>
-    /// <param name="this">The source array.</param>
-    /// <returns>The packet flags.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static PacketFlags ReadFlagsLE(this System.Byte[] @this) => @this.AsReadOnlySpan().ReadFlagsLE();
-
-    /// <summary>
-    /// Reads the <see cref="PacketPriority"/> from a <see cref="System.Byte"/> array.
-    /// </summary>
-    /// <param name="this">The source array.</param>
-    /// <returns>The packet priority.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static PacketPriority ReadPriorityLE(this System.Byte[] @this) => @this.AsReadOnlySpan().ReadPriorityLE();
-
-    /// <summary>
-    /// Reads the <see cref="ProtocolType"/> from a <see cref="System.Byte"/> array.
-    /// </summary>
-    /// <param name="this">The source array.</param>
-    /// <returns>The transport protocol.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ProtocolType ReadTransportLE(this System.Byte[] @this) => @this.AsReadOnlySpan().ReadTransportLE();
-
-    #endregion
+    #endregion Little‑endian header readers (fixed offsets)
 
     #region Helpers
 
@@ -186,11 +127,5 @@ public static class HeaderExtensions
         }
     }
 
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.ReadOnlySpan<System.Byte> AsReadOnlySpan(this System.Byte[] buffer) => buffer;
-
-    #endregion
+    #endregion Helpers
 }
