@@ -39,7 +39,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     public ControlType Type { get; set; }
 
     /// <summary>
-    /// Gets or sets the timestamp associated with this packet.
+    /// Gets or sets the timestamp associated with this packet.s
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 3)]
     public System.Int64 Timestamp { get; set; }

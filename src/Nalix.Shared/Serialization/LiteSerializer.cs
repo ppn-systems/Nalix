@@ -220,26 +220,141 @@ public static partial class LiteSerializer
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 Serialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(
         [System.Diagnostics.CodeAnalysis.MaybeNull] in T value,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> buffer)
     {
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 size);
-        if (kind == TypeKind.FixedSizeSerializable)
+        // ── Case 1: Primitive / unmanaged struct ──────────────────────────────────
+        // T is a plain value type with no references (e.g. int, float, custom struct).
+        // Write the value directly into the span using unaligned write for performance.
+        if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
+            System.Int32 size = TypeMetadata.SizeOf<T>();
+
             if (buffer.Length < size)
             {
-                throw new SerializationException("Buffer too small.");
+                throw new SerializationException(
+                    $"Buffer too small for unmanaged type '{typeof(T)}'. " +
+                    $"Required: {size}, Actual: {buffer.Length}.");
             }
 
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), value);
+
+            return size;
+        }
+
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out System.Int32 fixedSize);
+
+        // ── Case 2: Unmanaged single-dimensional array ────────────────────────────
+        // T is something like int[], byte[], float[].
+        // Layout: [4-byte length prefix][element data...]
+        // Special cases: null  → NullArrayMarker  [255,255,255,255]
+        //                empty → EmptyArrayMarker [0,0,0,0]
+        if (kind is TypeKind.UnmanagedSZArray)
+        {
+            if (value is null)
+            {
+                // Write null-array marker (4 bytes: 0xFF 0xFF 0xFF 0xFF)
+                if (buffer.Length < 4)
+                {
+                    throw new SerializationException(
+                        $"Buffer too small to write null-array marker for type '{typeof(T)}'. " +
+                        $"Required: 4, Actual: {buffer.Length}.");
+                }
+
+                SerializerBounds.NullArrayMarker.CopyTo(buffer);
+                return 4;
+            }
+
+            System.Array array = (System.Array)(System.Object)value;
+            System.Int32 length = array.Length;
+
+            if (length == 0)
+            {
+                // Write empty-array marker (4 bytes: 0x00 0x00 0x00 0x00)
+                if (buffer.Length < 4)
+                {
+                    throw new SerializationException(
+                        $"Buffer too small to write empty-array marker for type '{typeof(T)}'. " +
+                        $"Required: 4, Actual: {buffer.Length}.");
+                }
+
+                SerializerBounds.EmptyArrayMarker.CopyTo(buffer);
+                return 4;
+            }
+
+            System.Int32 dataSize = fixedSize * length;
+            System.Int32 totalSize = dataSize + 4; // 4-byte length prefix
+
+            if (buffer.Length < totalSize)
+            {
+                throw new SerializationException(
+                    $"Buffer too small for array of type '{typeof(T)}'. " +
+                    $"Required: {totalSize} (4-byte prefix + {dataSize} data), Actual: {buffer.Length}.");
+            }
+
+            // Write the element count as a 4-byte little-endian prefix
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+                ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), length);
+
+            // Bulk-copy all element bytes directly into the span (after the prefix)
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+                ref System.Runtime.CompilerServices.Unsafe.Add(
+                    ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer), 4),
+                ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array),
+                (System.UInt32)dataSize);
+
+            return totalSize;
+        }
+
+        // ── Case 3: Fixed-size serializable (implements IFixedSizeSerializable) ───
+        // T declares a compile-time-known byte size via IFixedSizeSerializable.Size.
+        // We can safely wrap the caller's span in a DataWriter without the risk of Expand().
+        if (kind is TypeKind.FixedSizeSerializable)
+        {
+            if (buffer.Length < fixedSize)
+            {
+                throw new SerializationException(
+                    $"Buffer too small for fixed-size type '{typeof(T)}'. " +
+                    $"Required: {fixedSize}, Actual: {buffer.Length}.");
+            }
+
+            // DataWriter(Span<byte>) wraps the span directly — zero allocation, no pool renting.
+            // The formatter must not write more than fixedSize bytes, so Expand() is never called.
             DataWriter writer = new(buffer);
             FormatterProvider.Get<T>().Serialize(ref writer, value);
             return writer.WrittenCount;
         }
 
-        throw new System.NotSupportedException($"System.Span<byte> serialization not supported for {typeof(T)}.");
+        // ── Case 4: TypeKind.None — variable-length / composite types ────────────
+        // Cannot determine required buffer size at compile time.
+        // Wrap the caller's span directly in DataWriter — zero allocation, no intermediate copy.
+        // If the formatter writes more than buffer.Length, DataWriter will throw InvalidOperationException
+        // (because Span-based DataWriter cannot Expand()).
+        if (kind is TypeKind.None)
+        {
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
+
+            // DataWriter(Span<byte>) wraps the span directly — no renting, no pool.
+            // Expand() is disabled: if formatter overflows, it throws InvalidOperationException.
+            DataWriter writer = new(buffer);
+
+            try
+            {
+                formatter.Serialize(ref writer, value);
+                return writer.WrittenCount;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+
+        throw new System.NotSupportedException(
+            $"Span<byte> serialization is not supported for variable-length type '{typeof(T).FullName}'. Use Serialize<T>(in T value) to obtain a byte[] instead.");
     }
 
     /// <summary>

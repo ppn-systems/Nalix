@@ -160,7 +160,19 @@ public sealed class Directive : FrameBase, IPoolable, IPacketReasoned, IPacketSe
     public override System.Byte[] Serialize() => LiteSerializer.Serialize(this);
 
     /// <inheritdoc/>
-    public override System.Int32 Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
+    public override System.Int32 Serialize(System.Span<System.Byte> buffer)
+    {
+        // Check buffer size FIRST, before delegating to LiteSerializer
+        if (buffer.Length < this.Length)
+        {
+            throw new System.ArgumentException(
+                $"Buffer too small. Required: {this.Length}, Actual: {buffer.Length}.",
+                nameof(buffer));
+        }
+
+        // Then serialize...
+        return LiteSerializer.Serialize<Directive>(this, buffer);
+    }
 
     /// <inheritdoc/>
     public override void ResetForPool()
