@@ -1,64 +1,89 @@
 # Performance Optimizations
 
-Nalix is engineered from the ground up to achieve maximum throughput and minimum latency in high-stakes networking environments. This page deep-dives into the core optimizations that make Nalix production-grade.
+Nalix is engineered to minimize latency and maximize throughput on the networking hot path. This page explains the specific techniques used and why they matter for production workloads.
 
 ## 1. Zero-Allocation Data Path
 
-Traditional networking stacks often suffer from excessive garbage collection (GC) pauses due to frequent buffer allocations. Nalix eliminates this by using:
+Traditional networking stacks suffer from GC pressure due to frequent buffer allocations. Nalix eliminates this by pooling all hot-path resources.
 
-### Buffer Pooling (`IBufferLease`)
-Instead of `byte[]`, Nalix uses a sophisticated `BufferPoolManager`. Every incoming packet is leased into a memory-aligned buffer and must be returned via `Dispose()`.
-- **Pre-sized Buckets**: Minimal fragmentation.
-- **Span-first API**: Leverages `Span<byte>` for slicing without copying data.
+### Buffer Pooling (BufferLease)
 
-### Poolable Contexts (`IPacketContext<T>`)
-The `PacketContext` object itself is poolable. When a handler is invoked, the context is fetched from a local thread-safe pool and reset after the handler completes.
+Instead of allocating `byte[]` per request, Nalix uses `BufferPoolManager`. Every incoming packet is leased into a pre-sized, memory-aligned buffer and must be returned via `Dispose()`.
+
+- **Pre-sized buckets** — Minimize internal fragmentation by using size-class buckets.
+- **Span-first API** — Leverages `Span<byte>` and `ReadOnlySpan<byte>` for slicing without copying data.
+- **Deterministic lifetime** — `BufferLease` implements `IDisposable`, ensuring buffers return to the pool after handler execution.
+
+### Poolable Contexts (IPacketContext)
+
+The `PacketContext<TPacket>` object itself is poolable. When a handler is invoked, the context is fetched from a thread-safe pool and reset after the handler completes. This avoids per-request allocations for the most frequently created object in the dispatch path.
 
 ## 2. Shard-Aware Dispatching
 
-To prevent "Head-of-Line Blocking" (where a single slow handler slows down all incoming packets), Nalix implements a multi-worker sharded dispatch system.
+To prevent head-of-line blocking — where a single slow handler stalls all incoming packets — Nalix implements a multi-worker sharded dispatch system.
 
 ```mermaid
 graph LR
-    Incoming["Incoming Packets"] --> Shard0["Worker Shard 0"]
-    Incoming --> Shard1["Worker Shard 1"]
-    Incoming --> ShardN["Worker Shard N"]
-    Shard0 --> LockFree["Lock-free Queue"]
-    Shard1 --> LockFree
-    ShardN --> LockFree
+    Incoming["Incoming Packets"] --> Shard0["Worker 0"]
+    Incoming --> Shard1["Worker 1"]
+    Incoming --> ShardN["Worker N"]
+    Shard0 --> Handler0["Handler"]
+    Shard1 --> Handler1["Handler"]
+    ShardN --> HandlerN["Handler"]
 ```
 
-- **Parallel Execution**: Workers are scaled to match the logical CPU core count.
-- **Wake-Signaling**: Uses `System.Threading.Channels` for coalesced signaling, reducing CPU wake-ups when traffic is bursty.
+- **Parallel execution** — Workers are scaled to match the logical CPU core count by default (`WorkerCount=0` in `DispatchOptions`).
+- **Wake-signaling** — Uses `System.Threading.Channels` for coalesced signaling. Under bursty traffic, multiple enqueue operations may trigger a single wake, reducing unnecessary CPU wake-ups.
 
 ## 3. 56-Bit Snowflake Identifiers
 
-Nalix uses a customized 56-bit Snowflake identifier for all internal task tracking and packet correlation. Unlike the standard 64-bit Snowflake, this version is optimized for:
-- **Smaller Payload**: Fits more efficiently into packed headers.
-- **High Resolution**: 1ms timestamp resolution with 12 bits for sequence (4096 IDs per ms per shard).
-- **Network Safety**: Avoids issues with 53-bit precision limits in some client environments (e.g., JavaScript).
+Nalix uses a customized 56-bit Snowflake identifier for internal task tracking and packet correlation.
+
+| Design choice | Rationale |
+|---|---|
+| 56-bit (vs. standard 64-bit) | Fits efficiently into packed headers, avoids 53-bit precision limits in JavaScript-based clients |
+| 1 ms timestamp resolution | Sufficient for networking use cases; enables 4,096 IDs per millisecond per shard (12-bit sequence) |
+| Deterministic ordering | Snowflake IDs are sortable by creation time, enabling natural ordering in logs and diagnostics |
 
 ## 4. Frozen Registry Lookups
 
-The `PacketRegistry` uses `System.Collections.Frozen.FrozenDictionary` for looking up packet deserializers.
-- **O(1) Access**: Immutable lookup tables optimized for read-heavy hot paths.
-- **Dev-time Scanning**: Assemblies are scanned once at startup, creating a static jump table for packet magic numbers.
+The `PacketRegistry` uses `System.Collections.Frozen.FrozenDictionary<uint, PacketDeserializer>` for packet type resolution.
 
-## 5. Metadata Pre-compilation
+- **O(1) access** — Immutable, read-optimized lookup tables built once at startup.
+- **Function-pointer binding** — Packet deserialization is bound using `delegate* managed<ReadOnlySpan<byte>, TPacket>` (unsafe function pointers). This eliminates delegate allocation and reduces indirection compared to `Func<>` delegates.
+- **FNV-1a magic keys** — Packet types are identified by a 32-bit FNV-1a hash of the type's full name, computed during registry construction.
 
-Middlewares and Handlers are not resolved via slow reflection on every request.
-- **Compiled Handlers**: Handler methods are wrapped in pre-compiled delegates or expression trees during `Build()`.
-- **Attribute Caching**: Packet metadata (roles, timeouts, rate limits) is resolved once and cached alongside the packet type in the registry.
+## 5. Metadata Pre-Compilation
 
-## 6. Compression Scaling (LZ4)
+Middleware and handler metadata are not resolved via reflection on every request.
 
-The `FrameTransformer` dynamically scales LZ4 hash tables based on the payload size.
-- **Micro-Payloads**: Uses tiny, stack-allocated hash tables for sub-64KB packets.
-- **Batch Processing**: Groups identical compression tasks to leverage SIMD instructions where available.
+- **Compiled handlers** — Handler methods are wrapped in pre-compiled delegates during `Build()`. No reflection occurs during handler invocation.
+- **Attribute caching** — Packet metadata (permissions, timeouts, rate limits, concurrency limits) is resolved once during handler registration and cached alongside the packet entry in the registry.
 
-## Pro-Tip for Developers
+## 6. LZ4 Compression
 
-To maintain these performance benefits in your own application:
-1. **Always use `IPacketContext.Packet`** instead of creating new instances.
-2. **Avoid `await Task.Delay`** in handlers; use the built-in `TimingWheel` for scheduled tasks.
-3. **Prefer `ValueTask`** for handler return types to avoid unnecessary Task allocations on synchronized paths.
+The `LZ4Codec` provides pooled block compression and decompression optimized for networking payloads.
+
+- **Pooled hash tables** — `LZ4HashTablePool` manages reusable hash tables to avoid allocation during compression.
+- **Span-based API** — Both `Encode` and `Decode` accept `ReadOnlySpan<byte>` input and `Span<byte>` output, supporting zero-copy integration with the buffer pool.
+- **Lease-based output** — `Encode(input, out BufferLease lease, out int bytesWritten)` produces a pooled buffer lease ready for direct network transmission.
+
+## Maintaining Performance in Your Application
+
+To preserve these performance characteristics in your own handlers and middleware:
+
+1. **Always dispose `BufferLease` and `PacketLease<T>`** — Leaking pooled resources degrades throughput over time.
+2. **Avoid blocking in handlers** — Use `async`/`await` for I/O. For scheduled work, use `TaskManager` or `TimingWheel` instead of `Task.Delay`.
+3. **Prefer `ValueTask` for handler return types** — Avoids unnecessary `Task` allocations on synchronous (already-complete) code paths.
+4. **Use `IPacketContext.Packet`** — Access the deserialized packet from the context rather than creating new instances.
+
+## Benchmarks
+
+For measured performance data across serialization, cryptography, compression, and infrastructure, see the [Benchmarks](../benchmarks/index.md) section.
+
+## Recommended Next Pages
+
+- [Architecture](./architecture.md) — Layered component overview
+- [Packet System](./packet-system.md) — Serialization layouts and wire format
+- [Buffer and Pooling](../api/framework/memory/buffer-and-pooling.md) — Buffer pool API details
+- [LZ4](../api/framework/memory/lz4.md) — Compression API details

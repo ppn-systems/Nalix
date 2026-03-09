@@ -2,6 +2,13 @@
 
 Nalix implements a high-performance anonymous handshake protocol based on **X25519** (Curve25519) and **Keccak-256**. This protocol establishes a secure, encrypted session key while ensuring transcript integrity through mutual proof verification.
 
+## Source Mapping
+
+- `src/Nalix.Framework/DataFrames/SignalFrames/Handshake.cs`
+- `src/Nalix.Framework/Security/HandshakeX25519.cs`
+- `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
+- `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
+
 ## 1. Handshake Flow
 
 The handshake consists of 4 stages managed by the `Handshake` packet and `HandshakeHandlers`.
@@ -35,11 +42,6 @@ All digests are computed using **Keccak-256** over length-prefixed segments:
 ## 3. Server Implementation
 
 The server-side state machine is implemented in `HandshakeHandlers`. It tracks the handshake state using the connection's `Attributes` during the negotiation phase.
-
-### Source Mapping
-- **Model**: `src/Nalix.Framework/DataFrames/SignalFrames/Handshake.cs`
-- **Logic**: `src/Nalix.Framework/Security/HandshakeX25519.cs`
-- **Handler**: `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
 
 ### Cryptographic Methods (`HandshakeX25519`)
 - `ComputeServerProof`: Generates the proof for `SERVER_HELLO`.

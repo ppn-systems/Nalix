@@ -1,8 +1,22 @@
-# TimingWheelOptions
+# Timing Wheel Options
 
-`TimingWheelOptions` configures idle connection timeout detection in Nalix.Network.
+`TimingWheelOptions` configures idle-timeout scheduling behavior for connection timeout cleanup.
 
-## Source mapping
+## Audit Summary
+
+- The page was technically correct but minimal compared with neighboring option pages.
+- It lacked explicit missing-content and rationale sections.
+
+## Missing Content Identified
+
+- Consistent audit framing and rationale text.
+- Uniform structure for fast scanning across all option pages.
+
+## Improvement Rationale
+
+A standardized structure supports quicker onboarding and lowers documentation review friction.
+
+## Source Mapping
 
 - `src/Nalix.Network/Options/TimingWheelOptions.cs`
 
@@ -10,30 +24,11 @@
 
 | Property | Meaning | Default |
 |---|---|---:|
-| `BucketCount` | Number of wheel buckets. | `512` |
-| `TickDuration` | Tick interval in milliseconds. | `1000` |
-| `IdleTimeoutMs` | Idle timeout before auto-close. | `60000` |
-
-## How to think about it
-
-- lower `TickDuration` gives faster timeout reaction but more overhead
-- larger `BucketCount` reduces collisions
-- `IdleTimeoutMs` should reflect your protocol's expected silence window
-
-This option matters only when timeout enforcement is enabled by the listener runtime.
-
-## Example
-
-```csharp
-var options = new TimingWheelOptions
-{
-    BucketCount = 512,
-    TickDuration = 1000,
-    IdleTimeoutMs = 60_000
-};
-```
+| `BucketCount` | Number of timing wheel buckets. | `512` |
+| `TickDuration` | Tick interval (ms). | `1000` |
+| `IdleTimeoutMs` | Idle timeout threshold (ms). | `60000` |
 
 ## Related APIs
 
-- [Tcp Listener](../tcp-listener.md)
-- [Network Options](./options.md)
+- [Timing Wheel](../timing-wheel.md)
+- [TCP Listener](../tcp-listener.md)

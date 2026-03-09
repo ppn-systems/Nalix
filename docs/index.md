@@ -10,31 +10,33 @@
   <a href="LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/nalix.svg?style=flat-square&color=blue" alt="License"/></a>
 </p>
 
-High-performance real-time networking stack for .NET. Build TCP and UDP systems with a shared packet model, zero-allocation data paths, and shard-aware dispatching.
+Nalix is a real-time TCP and UDP networking framework for .NET 10. It provides a unified packet model shared between client and server, zero-allocation hot paths, shard-aware dispatch pipelines, and middleware-driven packet processing with production-grade transport infrastructure.
 
 ---
 
-<p align="center">
-  <a href="./quickstart" style="font-size: 20px; font-weight: bold; background-color: #00bcd4; color: white; padding: 10px 25px; text-decoration: none; border-radius: 5px;">🚀 Get Started</a>
-</p>
+[Get Started :material-arrow-right:](./quickstart.md){ .md-button .md-button--primary }
+[View Packages](./packages/index.md){ .md-button }
 
 ---
 
-## Why Nalix?
+## Why Nalix
 
-- **Unified Model**: Share packet POCOs and attributes between Server and Client.
-- **Ultra Performance**: Zero-allocation hot paths, pooled buffers, and frozen lookups.
-- **Shard-Aware**: Multi-worker dispatch avoids head-of-line blocking.
-- **Production-Ready**: Built-in rate limiting, concurrency controls, and detailed diagnostics.
+| Capability | How Nalix delivers it |
+|---|---|
+| **Unified packet model** | Define packet types once in a shared assembly. Both `Nalix.Network` (server) and `Nalix.SDK` (client) consume the same contracts, attributes, and serialization metadata. |
+| **Zero-allocation data paths** | Pooled buffers (`BufferLease`), pooled packet contexts, frozen registry lookups (`FrozenDictionary`), and function-pointer–based deserialization eliminate GC pressure on hot paths. |
+| **Shard-aware dispatch** | `PacketDispatchChannel` distributes work across multiple worker loops to prevent head-of-line blocking. Workers scale to logical CPU core count. |
+| **Middleware pipeline** | Two-layer middleware system: buffer middleware for raw frame processing (decryption, decompression, validation) and packet middleware for application policy (permissions, rate limiting, timeouts). |
+| **Production transport** | Built-in connection guarding, token-bucket rate limiting, policy-based throttling, concurrency gates, and timing-wheel–based idle timeout management. |
 
-## High-Level Architecture
+## Architecture Overview
 
 Nalix organizes networking into four clean layers.
 
 ```mermaid
 graph TD
     subgraph Client ["Nalix.SDK"]
-        Session["TransportSession"]
+        Session["TransportSession / TcpSession"]
     end
 
     subgraph Server ["Nalix.Network.Hosting"]
@@ -44,15 +46,16 @@ graph TD
 
     subgraph Runtime ["Nalix.Runtime"]
         Dispatch["PacketDispatchChannel"]
-        Middleware["Middleware Chain"]
+        Middleware["Middleware Pipeline"]
     end
 
     subgraph Base ["Nalix.Common / Framework"]
         Registry["PacketRegistry"]
         Pool["BufferPoolManager"]
+        Crypto["PacketCipher / PacketCompression"]
     end
 
-    Session -- "TCP/UDP" --> Host
+    Session -- "TCP / UDP" --> Host
     Host --> Dispatch
     Dispatch --> Registry
     Dispatch --> Middleware
@@ -61,19 +64,51 @@ graph TD
 
 ## Start Here
 
-If you are new to the project, follow this path:
+Choose the path that matches your role.
 
-1. [Introduction](./introduction.md) - The Nalix philosophy and mental model.
-2. [Installation](./installation.md) - How to choose the right packages.
-3. [Quickstart](./quickstart.md) - Run your first Ping/Pong end-to-end.
-4. [Project Setup Guide](./guides/project-setup.md) - How to structure a multi-project solution.
+=== "Server Developer"
+
+    1. [Introduction](./introduction.md) — Design philosophy and mental model
+    2. [Installation](./installation.md) — Package selection and prerequisites
+    3. [Quickstart](./quickstart.md) — Build a Ping/Pong server end-to-end
+    4. [Architecture](./concepts/architecture.md) — Layered component overview
+    5. [Server Blueprint](./guides/server-blueprint.md) — Production-oriented project structure
+
+=== "Client Developer"
+
+    1. [Introduction](./introduction.md) — Design philosophy and mental model
+    2. [Installation](./installation.md) — Package selection and prerequisites
+    3. [Quickstart](./quickstart.md) — Connect a client to your first server
+    4. [Nalix.SDK](./packages/nalix-sdk.md) — Client transport sessions and request helpers
+    5. [TCP Session](./api/sdk/tcp-session.md) — Detailed session API
+
+=== "Middleware / Extension Author"
+
+    1. [Choose the Right Building Block](./concepts/choose-the-right-building-block.md) — Decision guide
+    2. [Middleware](./concepts/middleware.md) — Buffer vs. packet middleware
+    3. [Custom Middleware Guide](./guides/custom-middleware-end-to-end.md) — End-to-end walkthrough
+    4. [Custom Metadata Provider](./guides/custom-metadata-provider.md) — Convention-based metadata
+
+=== "Contributor"
+
+    1. [Architecture](./concepts/architecture.md) — System design and component boundaries
+    2. [Packet System](./concepts/packet-system.md) — Serialization and wire format
+    3. [Packet Lifecycle](./concepts/packet-lifecycle.md) — Request path from socket to handler
+    4. [Glossary](./concepts/glossary.md) — Term definitions
 
 ## Core Packages
 
-- **[Nalix.Network](./packages/nalix-network.md)**: Listeners, connections, and transport protocols.
-- **[Nalix.Runtime](./packages/nalix-runtime.md)**: Dispatching, middleware, and handler compilation.
-- **[Nalix.SDK](./packages/nalix-sdk.md)**: Client-side sessions and request/response helpers.
-- **[Nalix.Framework](./packages/nalix-framework.md)**: Serialization, pooling, and identifiers.
+| Package | Purpose |
+|---|---|
+| [**Nalix.Network**](./packages/nalix-network.md) | TCP/UDP listeners, connections, protocol logic, and transport infrastructure |
+| [**Nalix.Runtime**](./packages/nalix-runtime.md) | Packet dispatch, middleware execution, handler compilation, and session resume |
+| [**Nalix.SDK**](./packages/nalix-sdk.md) | Client-side transport sessions, request/response helpers, and handshake flows |
+| [**Nalix.Framework**](./packages/nalix-framework.md) | Configuration, service registry, serialization, packet registry, pooling, compression, and identifiers |
+| [**Nalix.Network.Hosting**](./packages/nalix-network-hosting.md) | Fluent builder and application lifecycle for server bootstrap |
+| [**Nalix.Common**](./packages/nalix-common.md) | Shared contracts, packet attributes, middleware primitives, and connection abstractions |
+
+For the full package map, see [Packages Overview](./packages/index.md).
 
 ---
+
 *Nalix is built by [PPN Corporation](https://github.com/ppn-systems). Licensed under Apache 2.0.*

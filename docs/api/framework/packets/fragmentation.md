@@ -6,7 +6,7 @@ This page covers the chunking and reassembly helpers in `Nalix.Framework.DataFra
 
 - `src/Nalix.Framework/DataFrames/Chunks/FragmentHeader.cs`
 - `src/Nalix.Framework/DataFrames/Chunks/FragmentAssembler.cs`
-- `src/Nalix.Framework/DataFrames/Chunks/FragmentOptions.cs`
+- `src/Nalix.Framework/Options/FragmentOptions.cs`
 - `src/Nalix.Framework/DataFrames/Chunks/FragmentStreamId.cs`
 
 ## Main types

@@ -1,47 +1,49 @@
-# ConnectionHubOptions
+# Connection Hub Options
 
-`ConnectionHubOptions` configures capacity planning, username policy, sharding, broadcast batching, disconnect parallelism, and latency logging for `ConnectionHub`.
+`ConnectionHubOptions` configures capacity, drop policy, sharding, and fan-out/disconnect behavior for `ConnectionHub`.
 
-## Source mapping
+## Audit Summary
+
+- Previous page listed properties that are not present in the current implementation.
+- Required correction to actual option surface.
+
+## Missing Content Identified
+
+- Exact current properties and validation constraints.
+- Clear note on `MaxConnections` and `ParallelDisconnectDegree` special values.
+
+## Improvement Rationale
+
+Accurate options documentation prevents misconfiguration in production.
+
+## Source Mapping
 
 - `src/Nalix.Network/Options/ConnectionHubOptions.cs`
 
-## Important properties
+## Current Properties
 
 | Property | Meaning | Default |
 |---|---|---:|
-| `InitialConnectionCapacity` | Initial sizing hint for connection storage. | `1024` |
-| `MaxConnections` | Max live connections. `-1` means unlimited. | `-1` |
-| `DropPolicy` | Action when max connections is reached. | `DROP_NEWEST` |
-| `ParallelDisconnectDegree` | Max parallelism for bulk disconnect. | `-1` |
-| `BroadcastBatchSize` | Batch size for broadcast fan-out. | `0` |
-| `ShardCount` | Number of internal connection shards. | `CPU count` |
-| `UnregisterDrainMillis` | Delay budget before unregistering on close. | `0` |
-| `IsEnableLatency` | Enables latency timing logs. | `true` |
+| `MaxConnections` | Maximum concurrent connections (`-1` = unlimited, `0` invalid). | `-1` |
+| `DropPolicy` | Admission behavior at capacity (`DropNewest`/`DropOldest`). | `DropNewest` |
+| `ParallelDisconnectDegree` | Parallelism for bulk disconnect (`-1` = runtime default, `0` invalid). | `-1` |
+| `BroadcastBatchSize` | Batch size for broadcast fan-out (`0` = no batching mode). | `0` |
+| `ShardCount` | Number of connection storage shards (>= 1). | `Environment.ProcessorCount` |
+| `IsEnableLatency` | Enables latency measurement diagnostics. | `true` |
 
-## Client guidance
+## Validation Rules
 
-For most systems, tune only:
+- Data annotations validate numeric ranges.
+- Additional guards:
+  - `MaxConnections` cannot be `0`.
+  - `ParallelDisconnectDegree` cannot be `0`.
 
-- `MaxConnections`
-- `DropPolicy`
-- `BroadcastBatchSize`
-- `ShardCount`
+## Best Practices
 
-Change username-related options only if your identity format differs from the built-in assumptions.
-
-## Example
-
-```csharp
-var options = new ConnectionHubOptions
-{
-    MaxConnections = 50_000,
-    DropPolicy = ConnectionDropPolicy.DROP_NEWEST,
-    BroadcastBatchSize = 256,
-    ShardCount = Environment.ProcessorCount
-};
-```
+- Tune `MaxConnections`, `DropPolicy`, `ShardCount`, and `BroadcastBatchSize` together.
+- Keep `ShardCount` >= CPU core count for high-connection workloads, then benchmark.
 
 ## Related APIs
 
 - [Connection Hub](./connection-hub.md)
+- [Network Options](../options/options.md)

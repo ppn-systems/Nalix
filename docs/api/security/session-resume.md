@@ -2,6 +2,14 @@
 
 Session resumption enables low-latency reconnection by bypassing the full X25519 handshake. It allows clients to re-establish a secure session using previously negotiated symmetric secrets and a valid session token.
 
+## Source Mapping
+
+- `src/Nalix.Framework/DataFrames/SignalFrames/SessionResume.cs`
+- `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
+- `src/Nalix.Network/Sessions/SessionStoreBase.cs`
+- `src/Nalix.Common/Networking/Sessions/ISessionStore.cs`
+- `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
+
 ## 1. Design & Rationale
 
 Nalix utilizes a **Unified Signal Flow** (introduced in v1.2) to manage session state. By consolidating the legacy `SessionResume` and `SessionResumeAck` packets into a single `SESSION_SIGNAL` packet with a `Stage` state machine, the protocol reduces complexity and ensures atomic state transitions.
@@ -52,14 +60,6 @@ The `SESSION_SIGNAL` packet is a fixed-size frame of **23 bytes**.
 ---
 
 ## 4. Implementation Details
-
-### Source Mapping
-- **Packet Model**: `src/Nalix.Framework/DataFrames/SignalFrames/SessionResume.cs`
-- **Control OpCode**: `ProtocolOpCode.SESSION_SIGNAL`
-- **Server Logic**: `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
-- **Hub State**: `src/Nalix.Network/Connections/Connection.Hub.cs`
-- **Session Store**: `src/Nalix.Network/Sessions/SessionStoreBase.cs`
-- **Session Contract**: `src/Nalix.Common/Networking/Sessions/ISessionStore.cs`
 
 ### Server Handling Logic
 When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:

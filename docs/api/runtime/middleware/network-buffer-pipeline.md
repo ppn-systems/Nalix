@@ -4,8 +4,8 @@ This page covers the raw-byte middleware surface that runs before packet deseria
 
 ## Source mapping
 
-- `src/Nalix.Network/Middleware/NetworkBufferMiddlewarePipeline.cs`
-- `src/Nalix.Network/Middleware/INetworkBufferMiddleware.cs`
+- `src/Nalix.Runtime/Middleware/NetworkBufferMiddlewarePipeline.cs`
+- `src/Nalix.Common/Middleware/INetworkBufferMiddleware.cs`
 
 ## Main types
 

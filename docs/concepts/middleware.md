@@ -1,129 +1,122 @@
 # Middleware
 
-This page explains how middleware fits into the Nalix request path.
+This page explains how middleware fits into the Nalix request path and how to choose the right middleware layer for your use case.
 
-Use it when you want to decide where custom logic belongs before you start writing handlers.
+## The Two-Layer Model
 
-## The simple model
-
-Nalix has two middleware layers:
-
-- buffer middleware for raw frames before packet deserialization
-- packet middleware for policy and flow around handler execution
-
-That split matters more than any individual middleware type. Most mistakes come from choosing the wrong layer first.
+Nalix has two distinct middleware layers. Choosing the correct layer is more important than any individual middleware implementation.
 
 ```mermaid
 flowchart LR
     A["Socket frame"] --> B["Buffer middleware"]
     B --> C["Deserialize packet"]
-    C --> D["Packet middleware"]
-    D --> E["Handler"]
-    E --> F["Return handler / reply"]
+    C --> D["Resolve handler metadata"]
+    D --> E["Packet middleware"]
+    E --> F["Handler"]
+    F --> G["Return handler / reply"]
 ```
 
-## Buffer middleware
+### Buffer Middleware
 
-Buffer middleware runs before a packet exists.
+Buffer middleware runs **before** packet deserialization. It receives raw `IBufferLease` data and has no access to `PacketContext`.
 
-Use it when you need to work with raw bytes:
+Use it when:
 
-- decrypt or decompress a frame
-- reject invalid or suspicious frame shapes early
-- perform low-level protocol checks
-- stop bad traffic before packet allocation and handler lookup
+- You need to decrypt or decompress a frame
+- You want to reject invalid or suspicious frame shapes early
+- You need to perform low-level protocol checks
+- You want to stop bad traffic before packet allocation
 
-The important tradeoff is simple:
+**Tradeoff:** You get early control, but you do not have typed packet access or handler metadata.
 
-- you get early control
-- you do not get `PacketContext`
+### Packet Middleware
 
-## Packet middleware
+Packet middleware runs **after** deserialization and metadata resolution. It receives `PacketContext<TPacket>` with the deserialized packet, connection state, and cached handler metadata.
 
-Packet middleware runs after deserialization.
+Use it when:
 
-Use it when you need application-aware behavior:
+- You need permission checks
+- You need timeout enforcement
+- You need rate limiting or concurrency limiting
+- You need audit logging with handler context
+- You need tenant or product policy checks
 
-- permissions
-- timeout rules
-- rate limits
-- concurrency limits
-- auditing
-- tenant or product policy checks
+**Tradeoff:** You get full context, but the packet has already been allocated and deserialized.
 
-This is where `PacketContext<TPacket>` and resolved metadata become useful.
-The same model applies to built-in packets and custom packet types.
+## Execution Order
 
-## How metadata fits in
+Middleware executes in **registration order**. Earlier-registered middleware runs first.
 
-Middleware becomes powerful because dispatch resolves metadata before packet middleware runs.
+```mermaid
+flowchart LR
+    M1["Middleware 1 (order -20)"] --> M2["Middleware 2 (order -10)"]
+    M2 --> M3["Middleware 3 (order 0)"]
+    M3 --> H["Handler"]
+```
 
-That means packet middleware can read:
+Registration example:
 
-- `PacketOpcode`
-- permission rules
-- timeout rules
-- rate-limit rules
-- concurrency rules
-- custom attributes added by metadata providers
+```csharp
+PacketDispatchChannel dispatch = new(options =>
+{
+    // Buffer middleware (raw frames)
+    options.NetworkPipeline.Use(new DecryptionMiddleware());
 
-So the usual flow is:
+    // Packet middleware (ordered by registration)
+    options.PacketPipeline.Use(new PermissionMiddleware<IPacket>());
+    options.PacketPipeline.Use(new RateLimitMiddleware<IPacket>());
+    options.PacketPipeline.Use(new AuditMiddleware<IPacket>());
+});
+```
 
-1. declare attributes on handlers
-2. optionally enrich them with `IPacketMetadataProvider`
-3. read the resolved metadata inside middleware
+## How Metadata Fits In
 
-## How to choose the right layer
+Middleware becomes powerful because dispatch resolves metadata **before** packet middleware runs.
 
-Choose buffer middleware when:
+Packet middleware can read:
 
-- the packet is not safe to deserialize yet
-- the decision depends on bytes, framing, crypto, or compression
+- `PacketOpcode` — the handler's opcode
+- Permission rules (`[PacketPermission]`)
+- Timeout rules (`[PacketTimeout]`)
+- Rate limit rules (`[PacketRateLimit]`)
+- Concurrency limits (`[PacketConcurrencyLimit]`)
+- Custom attributes added by `IPacketMetadataProvider`
 
-Choose packet middleware when:
+The typical flow is:
 
-- the request is already a packet
-- the decision depends on handler metadata, permissions, or connection state
+1. Declare attributes on handler methods
+2. Optionally enrich them with `IPacketMetadataProvider`
+3. Read the resolved metadata inside middleware via `context.Attributes`
 
-If you are unsure, start with packet middleware. It is easier to test, easier to debug, and usually the right layer for app-level policy.
-
-## Example decisions
+## Decision Guide
 
 | Need | Best fit |
 |---|---|
 | Reject a malformed frame before packet creation | Buffer middleware |
 | Decrypt a wrapped payload | Buffer middleware |
+| Decompress a frame | Buffer middleware |
 | Block a packet by permission level | Packet middleware |
 | Apply per-handler timeout rules | Packet middleware |
 | Read a custom tenant tag from metadata | Packet middleware |
+| Rate limit by opcode or endpoint | Packet middleware |
+| Audit handler invocations | Packet middleware |
 
-## Minimal example
+If you are unsure, start with packet middleware. It is easier to test, easier to debug, and usually the right layer for application-level policy.
 
-```csharp
-PacketDispatchChannel dispatch = new(options =>
-{
-    options.NetworkPipeline.Use(new SampleAuditBufferMiddleware());
-    options.PacketPipeline.Use(new SampleAuditMiddleware<IPacket>());
-});
-```
+## Common Pitfalls
 
-In that example:
+!!! warning "Pitfall: Heavy work in buffer middleware"
+    Buffer middleware runs on the transport thread path. Expensive operations (database lookups, external API calls) should be deferred to packet middleware or the handler itself.
 
-- `NetworkPipeline` handles raw-frame work
-- `PacketPipeline` handles packet-aware policy
-- both pipelines can still flow into custom packet handlers when the dispatch layer resolves a non-built-in `TPacket`
+!!! warning "Pitfall: Forgetting to call next()"
+    If a middleware does not call `await next(ct)`, the request pipeline is short-circuited. This is intentional for rejection scenarios but can cause silent drops if done accidentally.
 
-## Common advice
+!!! warning "Pitfall: Ordering assumptions"
+    Middleware executes in registration order. If your permission middleware runs after your audit middleware, you will audit rejected requests — which may or may not be desirable.
 
-- keep buffer middleware narrow and cheap
-- keep packet middleware policy-focused
-- use metadata providers for conventions, not runtime decisions
-- short-circuit early when the request should not continue
-- prefer one clear middleware per concern over one giant policy class
+## Recommended Next Pages
 
-## Read this next
-
-- [Choose the Right Building Block](./choose-the-right-building-block.md)
-- [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
-- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
-- [Custom Middleware End-to-End](../guides/custom-middleware-end-to-end.md)
+- [Choose the Right Building Block](./choose-the-right-building-block.md) — Component selection guide
+- [Middleware Pipeline](../api/runtime/middleware/pipeline.md) — Pipeline API reference
+- [Packet Metadata](../api/runtime/routing/packet-metadata.md) — Metadata API reference
+- [Custom Middleware End-to-End](../guides/custom-middleware-end-to-end.md) — Build a middleware from scratch

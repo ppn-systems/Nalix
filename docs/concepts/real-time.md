@@ -1,103 +1,124 @@
 # Real-time Engine
 
-Nalix is designed around a simple real-time server model:
+Nalix is designed around a real-time server model with long-lived sessions, predictable dispatch flow, and explicit throttling controls. This page explains the runtime mindset behind the network layer — how sessions, dispatch, and protection work together.
 
-- long-lived sessions
-- predictable dispatch flow
-- explicit throttling and timeout controls
-- TCP for reliable request/response
-- UDP for low-latency datagrams when needed
-
-Use this page when you want the runtime mindset behind the network layer, not just the individual types.
-
-## Mental model
+## Mental Model
 
 ```mermaid
 flowchart LR
-    A["Client session"] --> B["TCP listener or UDP listener"]
-    B --> C["Connection / session state"]
+    A["Client session"] --> B["TCP / UDP listener"]
+    B --> C["Connection state"]
     C --> D["Protocol"]
-    D --> E["Packet dispatch"]
-    E --> F["Middleware + handler"]
-    F --> G["Reply or side effect"]
+    D --> E["PacketDispatchChannel"]
+    E --> F["Middleware chain"]
+    F --> G["Handler"]
+    G --> H["Reply or side effect"]
 ```
 
-## 1. Session lifecycle
+## Session Lifecycle
 
-At runtime, Nalix keeps state around the connection, not just around one message.
+At runtime, Nalix maintains state around each connection — not just around individual messages. This persistent state is what makes real-time patterns possible.
 
-That state includes:
+```mermaid
+stateDiagram-v2
+    [*] --> Connecting: Socket accepted
+    Connecting --> Handshake: Protocol validates
+    Handshake --> Active: Keys exchanged
+    Active --> Active: Packets processed
+    Active --> Idle: No traffic
+    Idle --> Active: Traffic resumes
+    Idle --> Disconnected: Timeout
+    Active --> Disconnected: Client disconnect / error
+    Disconnected --> Resuming: Session resume attempt
+    Resuming --> Active: Token valid
+    Resuming --> [*]: Token invalid
+    Disconnected --> [*]: Session expired
+```
 
-- connection ID
-- remote endpoint
-- permission level
-- secret / algorithm
-- bytes sent, uptime, ping time, and error count
+Connection state includes:
+
+| State | Description |
+|---|---|
+| Connection ID | Unique identifier for the session |
+| Remote endpoint | Source IP and port |
+| Permission level | Authorization level (`NONE`, `USER`, `ADMINISTRATOR`, etc.) |
+| Cipher state | Active encryption algorithm and shared secret |
+| Diagnostics | Bytes sent/received, uptime, ping time, error count |
 
 This is why `Connection` and `ConnectionHub` sit at the center of the real-time model.
 
-## 2. Request flow
+## Request Flow
 
-A normal TCP request usually looks like this:
+A typical TCP request follows this path:
 
-1. socket accepted
-2. `Protocol.OnAccept(...)` starts receive
-3. protocol receives frames through `ProcessFrame(...)` and forwards them into `PacketDispatchChannel`
-4. dispatch deserializes, runs middleware, and invokes handler
-5. handler returns or sends a response
+1. Socket accepted by `TcpListenerBase`
+2. `Protocol.OnAccept(...)` starts the receive loop
+3. Protocol receives frames via `ProcessFrame(...)` and `ProcessMessage(...)`
+4. Frames are forwarded into `PacketDispatchChannel`
+5. Dispatch deserializes the packet, runs middleware, and invokes the handler
+6. Handler returns or sends a response
 
-For client work, the simplest mental model is:
+For client applications, the simplest mental model is:
 
-- TCP = reliable command/request flow
-- dispatch = application entry point
-- middleware = policy layer
+- **TCP** = reliable, ordered command/request flow
+- **Dispatch** = application entry point
+- **Middleware** = policy enforcement layer
 
-The same real-time model applies whether your handler uses built-in packets or custom packet types.
+## Low-Latency Datagrams (UDP)
 
-## 3. Low-latency datagrams
+Nalix supports a UDP runtime through `UdpListenerBase` for use cases where reliability is not required:
 
-Nalix also supports a UDP runtime through `UdpListenerBase`.
+| Use case | Why UDP |
+|---|---|
+| Game state updates | Position/velocity updates where latest value matters, not every value |
+| Telemetry | High-frequency sensor or metric data where occasional loss is acceptable |
+| Discovery | Service discovery broadcasts |
+| Non-critical signals | Heartbeats, status pings |
 
-Typical use cases:
+The UDP path still requires session identity and authentication. Think of it as the same application logic, but with a different transport characteristic:
 
-- game state updates
-- telemetry
-- discovery
-- fast non-critical real-time signals
+- Session must be established over TCP first
+- Each datagram includes a session token prefix
+- Connection secret must be initialized
+- `IsAuthenticated(...)` validates each datagram
 
-The UDP path still depends on session identity and authentication rules. Think of it as the same app, just with a different transport style.
+## Throttling and Protection
 
-## 4. Throttling and protection
+Real-time systems fail fastest when they do not control pressure. Nalix integrates protection at multiple levels:
 
-Real-time systems tend to fail fastest when they do not control pressure.
+| Component | Layer | Purpose |
+|---|---|---|
+| `ConnectionGuard` | Socket | Reject endpoints before resource allocation |
+| `TokenBucketLimiter` | Dispatch | Protect against request spikes with burst budgets |
+| `PolicyRateLimiter` | Dispatch | Per-opcode and per-endpoint rate limiting |
+| `ConcurrencyGate` | Dispatch | Limit concurrent in-flight handlers |
+| `TimingWheel` | Transport | O(1) idle timeout management for connection cleanup |
 
-Nalix bakes that into the model with:
+These are not optional extras. They are part of making the engine stable under production traffic.
 
-- `ConnectionGuard`
-- `TokenBucketLimiter`
-- `PolicyRateLimiter`
-- `ConcurrencyGate`
-- timeout enforcement through `TimingWheel`
+## Packet Metadata in the Real-time Path
 
-These are not optional extras. They are part of making the engine stable under real traffic.
+Handler attributes become runtime behavior through cached metadata:
 
-## 5. Why packet metadata matters
+```csharp
+[PacketOpcode(0x3001)]
+[PacketPermission(PermissionLevel.USER)]
+[PacketTimeout(3000)]
+[PacketRateLimit(maxRequests: 30, windowSeconds: 10)]
+[PacketConcurrencyLimit(maxConcurrent: 4)]
+public ValueTask<PositionAck> HandlePosition(
+    IPacketContext<PositionUpdate> context)
+{
+    // Metadata-driven enforcement happens before this code runs
+}
+```
 
-Attributes on handlers become runtime behavior.
+Metadata is resolved once during handler registration, then reused through dispatch and middleware on every request. This keeps the real-time path fast and consistent.
 
-Examples:
+## Recommended Next Pages
 
-- `[PacketPermission]`
-- `[PacketTimeout]`
-- `[PacketRateLimit]`
-- `[PacketConcurrencyLimit]`
-
-That metadata is resolved once, then reused through dispatch and middleware. This keeps the real-time path fast and consistent.
-
-## Read this next
-
-- [Architecture](./architecture.md)
-- [Middleware](./middleware.md)
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
-- [TCP Request/Response](../guides/tcp-request-response.md)
-- [UDP Auth Flow](../guides/udp-auth-flow.md)
+- [Architecture](./architecture.md) — Layered component overview
+- [Middleware](./middleware.md) — Buffer vs. packet middleware
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
+- [TCP Request/Response](../guides/tcp-request-response.md) — TCP pattern guide
+- [UDP Auth Flow](../guides/udp-auth-flow.md) — UDP authentication guide

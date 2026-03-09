@@ -1,26 +1,62 @@
 # Nalix.Runtime API Reference
 
-`Nalix.Runtime` is the engine that drives packet processing, handler execution, and middleware pipelines. It is the bridge between the raw network buffers and your application logic.
+`Nalix.Runtime` is the server-side execution layer that converts incoming packets into handler invocations through dispatch channels, packet contexts, metadata resolution, and middleware pipelines.
 
-## Core Namespaces
+## Source Mapping
 
-### [Nalix.Runtime.Dispatching](./routing/index.md)
-The dispatching layer handles the queuing and sharding of incoming packets.
-- **[PacketDispatchChannel](./routing/packet-dispatch.md)**: The heart of the runtime.
-- **[IPacketContext<T>](./routing/packet-context.md)**: The request-scoped context for handlers.
-- **[IPacketSender<T>](./routing/packet-sender.md)**: Pooled sender for sending replies.
+- `src/Nalix.Runtime/Dispatching`
+- `src/Nalix.Runtime/Middleware`
+- `src/Nalix.Runtime/Handlers`
+- `src/Nalix.Runtime/Options`
 
-### [Nalix.Runtime.Middleware](./middleware/index.md)
-The middleware layer allows for cross-cutting concerns like authentication and rate limiting.
-- **[IPacketMiddleware<T>](./middleware/pipeline.md)**: The contract for packet-level middleware.
-- **[INetworkBufferMiddleware](./middleware/network-buffer-pipeline.md)**: Raw buffer-level middleware.
+## Why This Package Exists
 
-### [Nalix.Runtime.Handlers](./handlers/index.md)
-Classes related to handler discovery and invocation.
-- **[PacketControllerAttribute](./routing/packet-attributes.md)**: Attribute to mark a class as a packet controller.
-- **[PacketOpcodeAttribute](./routing/packet-attributes.md)**: Attribute to mark a method as a handler for a specific opcode.
+`Nalix.Network` accepts traffic and manages connections, but packet execution policy lives in `Nalix.Runtime`. This split allows transport and handler execution to evolve independently.
 
-## Design Principles
-- **Zero-Allocation**: Most types in the runtime are designed to be pooled or stack-allocated.
-- **Parallelism**: Shard-aware loops ensure that multicore systems are utilized effectively.
-- **Extensibility**: Almost every part of the dispatch pipeline can be customized via metadata providers and custom middlewares.
+## Mental Model
+
+1. A packet arrives (raw buffer or already deserialized packet).
+2. `IPacketDispatch` handles it via `PacketDispatchChannel`.
+3. Packet metadata is resolved for handler execution.
+4. A pooled `PacketContext<TPacket>` is created.
+5. Handler pipeline executes with middleware and optional outbound transforms.
+
+## Core Public Types
+
+### Dispatching
+
+- [IPacketDispatch](./routing/dispatch-contracts.md): entry point for handling incoming packets.
+- [PacketDispatchChannel](./routing/packet-dispatch.md): high-throughput dispatcher with worker loops and wake signaling.
+- [PacketDispatcherBase<TPacket>](./routing/dispatch-channel-and-router.md): base type for dispatch execution and handler invocation.
+- [PacketContext<TPacket>](./routing/packet-context.md): pooled per-dispatch context implementing `IPacketContext<TPacket>`.
+- [PacketSender<TPacket>](./routing/packet-sender.md): metadata-aware sender used by packet contexts.
+- [IPacketMetadataProvider](./routing/packet-metadata.md), [PacketMetadataBuilder](./routing/packet-metadata.md), [PacketMetadataProviders](./routing/packet-metadata.md): metadata resolution surface.
+
+### Middleware
+
+- [NetworkBufferMiddlewarePipeline](./middleware/network-buffer-pipeline.md): inbound raw-buffer middleware pipeline.
+- Middleware contracts are shared in `Nalix.Common` (`IPacketMiddleware<TPacket>`, `INetworkBufferMiddleware`).
+
+### Built-in Handlers
+
+- [HandshakeHandlers](./handlers/index.md)
+- [SessionHandlers](./handlers/index.md)
+- [SystemControlHandlers](./handlers/index.md)
+
+### Runtime Options
+
+- [DispatchOptions](./options/dispatch-options.md)
+- Runtime pooling options are exposed by `Nalix.Runtime.Options.PoolingOptions`.
+
+## Architecture Notes
+
+- `PacketContext<TPacket>` and `PacketSender<TPacket>` are pool-oriented types.
+- `PacketDispatchChannel` supports both raw buffer (`IBufferLease`) and typed packet dispatch paths.
+- Middleware is split by stage (inbound/outbound) and can be configured to continue or stop on errors.
+
+## Related APIs
+
+- [Runtime Routing Overview](./routing/index.md)
+- [Runtime Middleware Overview](./middleware/index.md)
+- [Network Protocol](../network/protocol.md)
+- [Packet Contracts](../common/packet-contracts.md)

@@ -1,20 +1,74 @@
 # Nalix.Runtime.Handlers
 
-This namespace contains the logic for finding and invoking classes marked as packet handlers.
+`Nalix.Runtime.Handlers` contains built-in packet controller classes for core protocol flows.
 
-## Core Concepts
+## Audit Summary
 
-### [Packet Controllers](../routing/packet-attributes.md)
-Classes decorated with `[PacketController]` are automatically discovered by the `NetworkApplicationBuilder`.
+- Existing page focused on generic handler discovery/signature patterns but did not document concrete built-in handler responsibilities.
+- Needed alignment with actual public handler classes in `Nalix.Runtime`.
 
-### [Handler Methods](../routing/packet-attributes.md)
-Individual methods decorated with `[PacketOpcode]` define the logic for a specific message type.
+## Missing Content Identified
 
-## Supported Signatures
+- Built-in controller coverage (`HandshakeHandlers`, `SessionHandlers`, `SystemControlHandlers`).
+- Responsibility boundaries and when not to depend on built-ins directly.
 
-Handlers can take several forms:
-1. `public TPacketResponse Handle(TPacketRequest request)`
-2. `public ValueTask<TPacketResponse> Handle(IPacketContext<TPacketRequest> context)`
-3. `public async Task Handle(IPacketContext<TPacketRequest> context, CancellationToken ct)`
+## Improvement Rationale
 
-For more details on return types, see [Handler Result Types](../routing/handler-results.md).
+This clarifies default runtime behavior and extension points for production deployments.
+
+## Source Mapping
+
+- `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
+- `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
+- `src/Nalix.Runtime/Handlers/SystemControlHandlers.cs`
+
+## Built-in Controllers
+
+### `HandshakeHandlers`
+
+Handles X25519 handshake flow using `Handshake` packets.
+
+- Accepts `CLIENT_HELLO` and `CLIENT_FINISH` stages.
+- Validates transcript/proofs.
+- Establishes connection secret/algorithm on success.
+- Stores session entry when session store is available.
+
+### `SessionHandlers`
+
+Handles session resume with `SessionResume` packets.
+
+- Validates resume request/stage/token.
+- Loads session from `IConnectionHub.SessionStore`.
+- Restores secret/algorithm/permission/attributes to connection.
+- Responds with resume acknowledgement.
+
+### `SystemControlHandlers`
+
+Handles control packet operations (`Control`).
+
+- Handles disconnect requests.
+- Responds to ping with pong.
+- Handles cipher update control and acknowledgement.
+- Handles time sync request/response path.
+
+## Handler Attributes in Built-ins
+
+Built-in handlers currently use packet attributes such as:
+
+- `PacketController`
+- `PacketOpcode`
+- `PacketEncryption`
+- `PacketPermission`
+- `ReservedOpcodePermitted`
+
+## Best Practices
+
+- Keep built-in controllers enabled for standard handshake/session/control protocol behaviors.
+- Add custom controllers for domain packet logic; do not overload system opcode responsibilities.
+- Use metadata and middleware for policy changes before replacing built-in core handlers.
+
+## Related APIs
+
+- [Packet Attributes](../routing/packet-attributes.md)
+- [Packet Metadata](../routing/packet-metadata.md)
+- [Handler Result Types](../routing/handler-results.md)
