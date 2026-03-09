@@ -6,7 +6,6 @@ using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization.Attributes;
-using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Time;
 
 namespace Nalix.Shared.Frames.Controls;
@@ -15,7 +14,6 @@ namespace Nalix.Shared.Frames.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(ProtocolMagic.CONTROL)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("CONTROL OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}")]
 public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned, IPacketSequenced
@@ -53,11 +51,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// <summary>
     /// Initializes a new instance of the Control class with default metadata values.
     /// </summary>
-    public Control()
-    {
-        ResetForPool();
-        this.MagicNumber = (System.UInt32)ProtocolMagic.CONTROL;
-    }
+    public Control() => ResetForPool();
 
     /// <summary>
     /// Initializes the control packet with full metadata.

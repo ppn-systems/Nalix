@@ -9,6 +9,7 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Registry;
 using Nalix.Shared.Serialization;
 using System.Linq;
 
@@ -17,9 +18,61 @@ namespace Nalix.Shared.Frames;
 /// <summary>
 /// Base class for all packets with automatic serialization and pooling.
 /// Eliminates boilerplate code for Length, Serialize, Deserialize, and ResetForPool.
+/// <para>
+/// <b>MagicNumber</b> is derived automatically from <typeparamref name="TSelf"/>'s
+/// full type name via FNV-1a hash — no <c>[MagicNumber]</c> attribute needed.
+/// </para>
 /// </summary>
 public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeserializer<TSelf> where TSelf : PacketBase<TSelf>, new()
 {
+    #region Static Cache
+
+    // Computed once per concrete type at class-load time.
+    private static readonly System.UInt32 AutoMagic =
+        PacketRegistryFactory.Compute(typeof(TSelf));
+
+    // All serializable properties as pre-compiled PropertyMetadata — no further
+    // reflection attribute scanning needed in hot paths.
+    private static readonly System.Lazy<PropertyMetadata[]> _metadata = new(() =>
+        [.. typeof(TSelf)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(p =>
+                System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeOrderAttribute>(p) is not null &&
+                System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(p) is null)
+            .OrderBy(p => System.Reflection.CustomAttributeExtensions
+                                .GetCustomAttribute<SerializeOrderAttribute>(p)!.Order)
+            .Select(p => new PropertyMetadata(p))]);
+
+    // Zero means "has dynamic properties — compute at runtime".
+    private static readonly System.Lazy<System.UInt16> _cachedFixedSize = new(() =>
+    {
+        System.UInt16 size = PacketConstants.HeaderSize;
+        foreach (PropertyMetadata meta in _metadata.Value)
+        {
+            if (meta.IsDynamic)
+            {
+                return 0; // signal: runtime calculation required
+            }
+
+            size += meta.FixedSize;
+        }
+        return size;
+    });
+
+    #endregion Static Cache
+
+    #region Constructor
+
+    /// <summary>
+    /// Assigns the automatically derived <see cref="FrameBase.MagicNumber"/>
+    /// so that every packet is self-identifying on the wire without any attribute.
+    /// </summary>
+    protected PacketBase() => this.MagicNumber = AutoMagic;
+
+    #endregion Constructor
+
+    #region Length
+
     /// <inheritdoc/>
     [SerializeIgnore]
     public override System.UInt16 Length
@@ -28,75 +81,84 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get
         {
-            var fixedSize = _cachedFixedSize.Value;
-            if (fixedSize > 0)
-            {
-                return fixedSize;
-            }
-
-            // Has dynamic size properties - calculate at runtime
-            System.UInt16 size = PacketConstants.HeaderSize;
-            foreach (System.Reflection.PropertyInfo prop in _serializableProperties.Value)
-            {
-                SerializeDynamicSizeAttribute? dynamicAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeDynamicSizeAttribute>(prop);
-                if (dynamicAttr != null)
-                {
-                    System.Object? value = prop.GetValue(this);
-                    if (value is System.Byte[] bytes)
-                    {
-                        size += (System.UInt16)bytes.Length;
-                    }
-                    else if (value is System.String str)
-                    {
-                        size += (System.UInt16)(str?.Length ?? 0);
-                    }
-                }
-                else
-                {
-                    size += GET_PROPERTY_SIZE(prop.PropertyType);
-                }
-            }
-            return size;
+            System.UInt16 fixedSize = _cachedFixedSize.Value;
+            // Fast path: all properties have known fixed sizes.
+            return fixedSize > 0 ? fixedSize : ComputeDynamicLength();
         }
     }
+
+    /// <summary>
+    /// Walks only the dynamic properties to compute the runtime wire-length.
+    /// Fixed-size contributions are taken from <see cref="PropertyMetadata.FixedSize"/>
+    /// — no attribute scanning on every call.
+    /// </summary>
+    private System.UInt16 ComputeDynamicLength()
+    {
+        System.UInt16 size = PacketConstants.HeaderSize;
+        foreach (PropertyMetadata meta in _metadata.Value)
+        {
+            if (!meta.IsDynamic)
+            {
+                size += meta.FixedSize;
+                continue;
+            }
+
+            // Dynamic: measure actual runtime content.
+            size += meta.GetValue(this) switch
+            {
+                System.Byte[] bytes => (System.UInt16)bytes.Length,
+
+                // Use UTF-8 byte-count, NOT char-count, to get the true wire size.
+                System.String str => (System.UInt16)System.Text.Encoding.UTF8.GetByteCount(str),
+
+                _ => 0
+            };
+        }
+        return size;
+    }
+
+    #endregion Length
+
+    #region APIs
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.Byte[] Serialize() => LiteSerializer.Serialize(this.GetType());
+    public override System.Byte[] Serialize() => LiteSerializer.Serialize<TSelf>((TSelf)this);
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public override System.Int32 Serialize(System.Span<System.Byte> buffer)
     {
-        // Check buffer size FIRST, before delegating to LiteSerializer
-        if (buffer.Length < this.Length)
-        {
-            throw new System.ArgumentException(
+        return buffer.Length < this.Length
+            ? throw new System.ArgumentException(
                 $"Buffer too small. Required: {this.Length}, Actual: {buffer.Length}.",
-                nameof(buffer));
-        }
-
-        // Then serialize...
-        return LiteSerializer.Serialize(this.GetType(), buffer);
+                nameof(buffer))
+            : LiteSerializer.Serialize<TSelf>((TSelf)this, buffer);
     }
 
     /// <summary>
-    /// Deserializes a packet from buffer using object pooling.
+    /// Deserializes a <typeparamref name="TSelf"/> packet from <paramref name="buffer"/>
+    /// using object pooling to avoid heap allocation.
     /// </summary>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown when the deserializer reads zero bytes (corrupt or empty frame).
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TSelf Deserialize(System.ReadOnlySpan<System.Byte> buffer)
     {
-        TSelf packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                               .Get<TSelf>();
+        TSelf packet = InstanceManager.Instance
+                                      .GetOrCreateInstance<ObjectPoolManager>()
+                                      .Get<TSelf>();
 
         System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
         if (bytesRead == 0)
         {
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return(packet);
+            InstanceManager.Instance
+                           .GetOrCreateInstance<ObjectPoolManager>()
+                           .Return(packet);
 
             throw new System.InvalidOperationException(
                 $"Failed to deserialize {typeof(TSelf).Name}: No bytes were read.");
@@ -108,89 +170,22 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     /// <inheritdoc/>
     public override void ResetForPool()
     {
-        // Auto-reset all serializable properties to default values
-        foreach (System.Reflection.PropertyInfo prop in _serializableProperties.Value)
+        // Reset all serializable properties to their pre-computed defaults.
+        // No GetCustomAttribute calls — everything is in PropertyMetadata.
+        foreach (PropertyMetadata meta in _metadata.Value)
         {
-            if (!prop.CanWrite)
+            if (meta.IsWritable)
             {
-                continue;
+                meta.SetValue(this, meta.DefaultValue);
             }
-
-            System.Object? defaultValue = GET_DEFAULT_VALUE(prop.PropertyType);
-            prop.SetValue(this, defaultValue);
         }
 
-        // Reset base packet fields
+        // Reset fixed header fields.
         this.OpCode = 0;
-        this.MagicNumber = 0;
         this.Flags = PacketFlags.NONE;
         this.Protocol = ProtocolType.NONE;
+        this.MagicNumber = AutoMagic; // restore identity — never reset to 0
     }
 
-    #region Fields
-
-    private static readonly System.Lazy<System.Reflection.PropertyInfo[]> _serializableProperties = new(() =>
-    {
-        return [.. typeof(TSelf)
-            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
-            .Where(p =>
-                System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeOrderAttribute>(p) != null &&
-                System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(p) == null)
-            .OrderBy(p => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeOrderAttribute>(p)!.Order)];
-    });
-
-    private static readonly System.Lazy<System.UInt16> _cachedFixedSize = new(() =>
-    {
-        System.UInt16 size = PacketConstants.HeaderSize;
-
-        foreach (System.Reflection.PropertyInfo prop in _serializableProperties.Value)
-        {
-            SerializeDynamicSizeAttribute? dynamicAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeDynamicSizeAttribute>(prop);
-            if (dynamicAttr != null)
-            {
-                // Dynamic size property - cannot pre-calculate
-                return 0; // Signal that we need runtime calculation
-            }
-
-            size += GET_PROPERTY_SIZE(prop.PropertyType);
-        }
-
-        return size;
-    });
-
-    #endregion Fields
-
-    #region Private Methods
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt16 GET_PROPERTY_SIZE(System.Type type)
-    {
-        return System.Type.GetTypeCode(type) switch
-        {
-            System.TypeCode.Byte => 1,
-            System.TypeCode.Boolean => 1,
-            System.TypeCode.Int16 => 2,
-            System.TypeCode.UInt16 => 2,
-            System.TypeCode.Int32 => 4,
-            System.TypeCode.UInt32 => 4,
-            System.TypeCode.Int64 => 8,
-            System.TypeCode.UInt64 => 8,
-            System.TypeCode.Single => 4,
-            System.TypeCode.Double => 8,
-            System.TypeCode.Decimal => 16,
-            _ => type.IsEnum ? GET_PROPERTY_SIZE(System.Enum.GetUnderlyingType(type)) : (System.UInt16)0
-        };
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Object? GET_DEFAULT_VALUE(System.Type type)
-    {
-        return type == typeof(System.Byte[])
-            ? System.Array.Empty<System.Byte>() : type == typeof(System.String)
-            ? System.String.Empty : type.IsValueType ? System.Activator.CreateInstance(type) : null;
-    }
-
-    #endregion Private Methods
+    #endregion APIs
 }

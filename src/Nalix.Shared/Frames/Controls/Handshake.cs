@@ -7,7 +7,6 @@ using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
-using Nalix.Common.Shared.Attributes;
 
 namespace Nalix.Shared.Frames.Controls;
 
@@ -15,7 +14,6 @@ namespace Nalix.Shared.Frames.Controls;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [PipelineManagedTransform]
-[MagicNumber(ProtocolMagic.HANDSHAKE)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, FLAGS={Flags}")]
@@ -42,7 +40,6 @@ public sealed class Handshake : PacketBase<Handshake>
         Protocol = ProtocolType.NONE;
         Priority = PacketPriority.NONE;
         OpCode = PacketConstants.OPCODE_DEFAULT;
-        MagicNumber = (System.UInt32)ProtocolMagic.HANDSHAKE;
     }
 
     /// <summary>
