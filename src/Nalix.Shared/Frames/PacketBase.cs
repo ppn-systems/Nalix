@@ -68,7 +68,19 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.Int32 Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
+    public override System.Int32 Serialize(System.Span<System.Byte> buffer)
+    {
+        // Check buffer size FIRST, before delegating to LiteSerializer
+        if (buffer.Length < this.Length)
+        {
+            throw new System.ArgumentException(
+                $"Buffer too small. Required: {this.Length}, Actual: {buffer.Length}.",
+                nameof(buffer));
+        }
+
+        // Then serialize...
+        return LiteSerializer.Serialize(this, buffer);
+    }
 
     /// <summary>
     /// Deserializes a packet from buffer using object pooling.
@@ -109,6 +121,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
         }
 
         // Reset base packet fields
+        this.OpCode = 0;
+        this.MagicNumber = 0;
         this.Flags = PacketFlags.NONE;
         this.Protocol = ProtocolType.NONE;
     }
