@@ -4,9 +4,8 @@
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Framework.Injection;
 using Nalix.Network.Routing.Results.Primitives;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.Network.Connections;
 
@@ -85,7 +84,7 @@ public sealed partial class Connection : IConnection
             {
                 return false;
             }
-            else if (packet.Length < 512)
+            else if (packet.Length < BufferLease.StackAllocThreshold)
             {
                 System.Span<System.Byte> buffer = stackalloc System.Byte[packet.Length * 110 / 100];
                 System.Int32 written = packet.Serialize(buffer);
@@ -101,23 +100,9 @@ public sealed partial class Connection : IConnection
             }
             else
             {
-                System.Byte[] rent = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                                             .Rent(packet.Length);
-                try
-                {
-                    System.Int32 written = packet.Serialize(rent);
-                    return this.Send(System.MemoryExtensions.AsSpan(rent)[..written]);
-                }
-                catch
-                {
-                    return false;
-                }
-                finally
-                {
-                    // Return the rented array to the pool
-                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                            .Return(rent);
-                }
+                using BufferLease lease = BufferLease.Rent(packet.Length);
+                System.Int32 written = packet.Serialize(lease.Span);
+                return this.Send(lease.Span[..written]);
             }
         }
 
@@ -154,7 +139,7 @@ public sealed partial class Connection : IConnection
             {
                 return false;
             }
-            else if (packet.Length < 256)
+            else if (packet.Length < BufferLease.StackAllocThreshold)
             {
                 System.Byte[] buffer = new System.Byte[packet.Length * 110 / 100];
                 System.Int32 written = packet.Serialize(buffer);
@@ -170,24 +155,10 @@ public sealed partial class Connection : IConnection
             }
             else
             {
-                System.Byte[] rent = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                                             .Rent(packet.Length);
-                try
-                {
-                    System.Int32 written = packet.Serialize(rent);
-                    return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(rent, 0, written), cancellationToken)
-                                     .ConfigureAwait(false);
-                }
-                catch
-                {
-                    return false;
-                }
-                finally
-                {
-                    // Return the rented array to the pool
-                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                            .Return(rent);
-                }
+                using BufferLease lease = BufferLease.Rent(packet.Length);
+
+                System.Int32 written = packet.Serialize(lease.Span);
+                return await this.SendAsync(lease.Memory[..written], cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -266,7 +237,7 @@ public sealed partial class Connection : IConnection
             {
                 return false;
             }
-            else if (packet.Length < 512)
+            else if (packet.Length < BufferLease.StackAllocThreshold)
             {
                 System.Span<System.Byte> buffer = stackalloc System.Byte[packet.Length * 110 / 100];
                 try
@@ -283,25 +254,12 @@ public sealed partial class Connection : IConnection
             }
             else
             {
-                System.Byte[] rent = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                                             .Rent(packet.Length);
-                try
-                {
-                    System.Int32 written = packet.Serialize(rent);
+                using BufferLease lease = BufferLease.Rent(packet.Length);
 
-                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
-                    return this.Send(System.MemoryExtensions.AsSpan(rent)[..written]);
-                }
-                catch
-                {
-                    return false;
-                }
-                finally
-                {
-                    // Return the rented array to the pool
-                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                            .Return(rent);
-                }
+                System.Int32 written = packet.Serialize(lease.Span);
+                _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
+
+                return this.Send(lease.Span[..written]);
             }
         }
 
@@ -386,7 +344,7 @@ public sealed partial class Connection : IConnection
             {
                 return false;
             }
-            else if (packet.Length < 256)
+            else if (packet.Length < BufferLease.StackAllocThreshold)
             {
                 System.Byte[] buffer = new System.Byte[packet.Length * 110 / 100];
                 try
@@ -404,26 +362,13 @@ public sealed partial class Connection : IConnection
             }
             else
             {
-                System.Byte[] rent = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                                             .Rent(packet.Length);
-                try
-                {
-                    System.Int32 written = packet.Serialize(rent);
+                using BufferLease lease = BufferLease.Rent(packet.Length);
 
-                    _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
-                    return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(rent, 0, written), cancellationToken)
-                                     .ConfigureAwait(false);
-                }
-                catch
-                {
-                    return false;
-                }
-                finally
-                {
-                    // Return the rented array to the pool
-                    InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>()
-                                            .Return(rent);
-                }
+                System.Int32 written = packet.Serialize(lease.Span);
+                _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
+
+                return await this.SendAsync(lease.Memory[..written], cancellationToken)
+                                 .ConfigureAwait(false);
             }
         }
 

@@ -9,14 +9,25 @@ using Nalix.Framework.Injection;
 namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
-/// Convenience subscriptions for ReliableClient to reduce boilerplate.
+/// Convenience subscriptions for <see cref="IClientConnection"/> to reduce boilerplate.
 /// </summary>
+/// <remarks>
+/// All wrappers correctly dispose the <see cref="IBufferLease"/> after deserialization
+/// to prevent memory leaks from the pooled buffer.
+/// </remarks>
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public static class ReliableClientSubscriptions
 {
     /// <summary>
-    /// Subscribe to a typed packet. Returns IDisposable for quick unsubscribe.
+    /// Subscribes to strongly-typed packets. Returns <see cref="System.IDisposable"/> for easy unsubscription.
     /// </summary>
+    /// <typeparam name="TPacket">The packet type to filter for.</typeparam>
+    /// <param name="client">The client connection to subscribe to.</param>
+    /// <param name="handler">The action invoked for each matching packet.</param>
+    /// <returns>An <see cref="System.IDisposable"/> that unsubscribes when disposed.</returns>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="client"/> or <paramref name="handler"/> is <c>null</c>.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.IDisposable On<TPacket>(
@@ -24,16 +35,18 @@ public static class ReliableClientSubscriptions
         System.Action<TPacket> handler)
         where TPacket : class, IPacket
     {
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        System.ArgumentNullException.ThrowIfNull(client);
+        System.ArgumentNullException.ThrowIfNull(handler);
+
         void Wrapper(System.Object _, IBufferLease buffer)
         {
-            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
-                                    .TryDeserialize(buffer.Span, out IPacket p);
-
-            if (p is TPacket t)
+            using (buffer)
             {
-                handler(t);
+                if (InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+                        .TryDeserialize(buffer.Span, out IPacket p) && p is TPacket t)
+                {
+                    handler(t);
+                }
             }
         }
 
@@ -42,8 +55,15 @@ public static class ReliableClientSubscriptions
     }
 
     /// <summary>
-    /// Subscribe with predicate filter. Returns IDisposable for quick unsubscribe.
+    /// Subscribes with a predicate filter. Returns <see cref="System.IDisposable"/> for easy unsubscription.
     /// </summary>
+    /// <param name="client">The client connection to subscribe to.</param>
+    /// <param name="predicate">Filter predicate; only packets returning <c>true</c> are forwarded.</param>
+    /// <param name="handler">The action invoked for each matching packet.</param>
+    /// <returns>An <see cref="System.IDisposable"/> that unsubscribes when disposed.</returns>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="client"/>, <paramref name="predicate"/>, or <paramref name="handler"/> is <c>null</c>.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.IDisposable On(
@@ -51,25 +71,44 @@ public static class ReliableClientSubscriptions
         System.Func<IPacket, System.Boolean> predicate,
         System.Action<IPacket> handler)
     {
+        System.ArgumentNullException.ThrowIfNull(client);
+        System.ArgumentNullException.ThrowIfNull(predicate);
+        System.ArgumentNullException.ThrowIfNull(handler);
 
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void Wrapper(System.Object _, IBufferLease buffer)
         {
-            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
-
-            if (predicate(p))
+            using (buffer)
             {
-                handler(p);
+                if (!InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+                        .TryDeserialize(buffer.Span, out IPacket p))
+                {
+                    return;
+                }
+
+                // Guard against null packet from a failed deserialization path.
+                if (p is not null && predicate(p))
+                {
+                    handler(p);
+                }
             }
         }
+
         client.OnMessageReceived += Wrapper;
         return new Unsub(() => client.OnMessageReceived -= Wrapper);
     }
 
     /// <summary>
-    /// One-shot subscribe: auto-unsubscribe after the first matching packet.
+    /// One-shot subscription: auto-unsubscribes after the first matching packet.
+    /// Thread-safe via <see cref="System.Threading.Interlocked"/>.
     /// </summary>
+    /// <typeparam name="TPacket">The packet type to filter for.</typeparam>
+    /// <param name="client">The client connection to subscribe to.</param>
+    /// <param name="predicate">Optional additional filter predicate.</param>
+    /// <param name="handler">The action invoked for the first matching packet.</param>
+    /// <returns>An <see cref="System.IDisposable"/> that cancels the subscription when disposed.</returns>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="client"/> or <paramref name="handler"/> is <c>null</c>.
+    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.IDisposable OnOnce<TPacket>(
@@ -78,76 +117,122 @@ public static class ReliableClientSubscriptions
         System.Action<TPacket> handler)
         where TPacket : class, IPacket
     {
+        System.ArgumentNullException.ThrowIfNull(client);
+        System.ArgumentNullException.ThrowIfNull(handler);
+
         System.Int32 fired = 0;
 
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void Wrapper(System.Object _, IBufferLease buffer)
         {
-            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
-
-            if (p is not TPacket t)
+            using (buffer)
             {
-                return;
-            }
+                if (!InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+                        .TryDeserialize(buffer.Span, out IPacket p))
+                {
+                    return;
+                }
 
-            if (predicate != null && !predicate(t))
-            {
-                return;
-            }
+                if (p is not TPacket t)
+                {
+                    return;
+                }
 
-            if (System.Threading.Interlocked.Exchange(ref fired, 1) == 0)
-            {
-                client.OnMessageReceived -= Wrapper; // remove first
-                handler(t);                       // then invoke
+                if (predicate is not null && !predicate(t))
+                {
+                    return;
+                }
+
+                // Ensure exactly-once delivery even under concurrent invocations.
+                if (System.Threading.Interlocked.Exchange(ref fired, 1) == 0)
+                {
+                    client.OnMessageReceived -= Wrapper; // unsubscribe first, then invoke
+                    handler(t);
+                }
             }
         }
+
         client.OnMessageReceived += Wrapper;
         return new Unsub(() => client.OnMessageReceived -= Wrapper);
     }
 
-
     /// <summary>
-    /// Helper to group multiple subscriptions and dispose once.
+    /// Groups multiple subscriptions into a single <see cref="CompositeSubscription"/>.
     /// </summary>
+    /// <param name="_">The client (unused; provided for fluent extension syntax).</param>
+    /// <param name="subs">The subscriptions to group.</param>
+    /// <returns>A <see cref="CompositeSubscription"/> that disposes all grouped subscriptions.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static CompositeSubscription Subscribe(this ReliableClient _, params System.IDisposable[] subs) => new(subs);
+    public static CompositeSubscription Subscribe(
+        this IClientConnection _,
+        params System.IDisposable[] subs)
+        => new(subs);
+
+    // ── Internal helper ──────────────────────────────────────────────────────
 
     private sealed class Unsub(System.Action dispose) : System.IDisposable
     {
         private System.Action _dispose = dispose;
 
+        /// <inheritdoc/>
         public void Dispose() => System.Threading.Interlocked.Exchange(ref _dispose, null)?.Invoke();
     }
 }
 
 /// <summary>
-/// Groups multiple IDisposable subscriptions into one disposable.
+/// Groups multiple <see cref="System.IDisposable"/> subscriptions into one disposable handle.
+/// Thread-safe; supports adding new subscriptions after construction.
 /// </summary>
-public sealed class CompositeSubscription(params System.IDisposable[] subs) : System.IDisposable
+public sealed class CompositeSubscription : System.IDisposable
 {
-    private System.Int32 _disposed; // 0/1
-    private System.IDisposable[] _subs = subs;
+    private System.Int32 _disposed;
+    private volatile System.IDisposable[] _subs;
 
     /// <summary>
-    /// Adds a new subscription to the composite.
+    /// Initializes a new <see cref="CompositeSubscription"/> with the specified subscriptions.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <param name="subs">Initial subscriptions to manage.</param>
+    public CompositeSubscription(params System.IDisposable[] subs) => _subs = subs ?? [];
+
+    /// <summary>
+    /// Adds a new subscription.
+    /// If already disposed, the subscription is disposed immediately.
+    /// </summary>
+    /// <param name="sub">The subscription to add.</param>
     public void Add(System.IDisposable sub)
     {
-        if (System.Threading.Interlocked.CompareExchange(ref _disposed, 0, 0) == 1)
+        if (sub is null)
+        {
+            return;
+        }
+
+        if (System.Threading.Volatile.Read(ref _disposed) == 1)
         {
             sub.Dispose();
             return;
         }
-        var old = _subs;
-        var arr = new System.IDisposable[old.Length + 1];
-        System.Array.Copy(old, arr, old.Length);
-        arr[^1] = sub;
-        _subs = arr;
+
+        // Spin-safe append using Interlocked.CompareExchange loop.
+        while (true)
+        {
+            System.IDisposable[] current = _subs;
+            System.IDisposable[] updated = new System.IDisposable[current.Length + 1];
+            System.Array.Copy(current, updated, current.Length);
+            updated[^1] = sub;
+
+            if (System.Threading.Interlocked.CompareExchange(ref _subs, updated, current) == current)
+            {
+                break;
+            }
+
+            // Another thread mutated _subs concurrently; retry.
+        }
+
+        // Re-check disposed after insertion to handle a race between Add and Dispose.
+        if (System.Threading.Volatile.Read(ref _disposed) == 1)
+        {
+            sub.Dispose();
+        }
     }
 
     /// <inheritdoc/>
@@ -158,7 +243,11 @@ public sealed class CompositeSubscription(params System.IDisposable[] subs) : Sy
             return;
         }
 
-        var subs = System.Threading.Interlocked.Exchange(ref _subs, []);
-        foreach (var s in subs) { try { s.Dispose(); } catch { /* swallow */ } }
+        System.IDisposable[] subs = System.Threading.Interlocked.Exchange(ref _subs, []);
+        foreach (System.IDisposable s in subs)
+        {
+            try { s?.Dispose(); }
+            catch { /* Swallow: one bad subscription must not prevent others from being disposed. */ }
+        }
     }
 }

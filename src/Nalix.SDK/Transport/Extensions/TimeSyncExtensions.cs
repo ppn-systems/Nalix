@@ -14,39 +14,44 @@ using Nalix.Shared.Frames.Controls;
 namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
-/// Client-side time synchronization for ReliableClient (event-driven).
-/// Flow:
-/// 1) Capture local mono ticks (t0).
-/// 2) SEND Control(opCode, TIME_SYNC, TCP) -> server stamps its Unix ms.
-/// 3) Await server Control response with same opCode.
-/// 4) Capture local mono ticks (t1), compute RTT.
-/// 5) Call Clock.SynchronizeUnixMilliseconds(serverUnixMs, rttMs).
+/// Client-side time synchronization extension for <see cref="IClientConnection"/> (event-driven).
 /// </summary>
+/// <remarks>
+/// Flow:
+/// <list type="number">
+/// <item>Capture local monotonic ticks <c>t0</c>.</item>
+/// <item>SEND <see cref="ControlType.TIME_SYNC_REQUEST"/> control frame.</item>
+/// <item>Await server <see cref="Control"/> response with the same opCode.</item>
+/// <item>Capture <c>t1</c>, compute RTT = <c>t1 - t0</c>.</item>
+/// <item>Call <see cref="Clock.SynchronizeUnixMilliseconds"/> with the server timestamp and RTT.</item>
+/// </list>
+/// </remarks>
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public static class TimeSyncExtensions
 {
+    // Lazy logger resolution: avoids hard startup failure if ILogger is registered after this type loads.
+    private static ILogger Log => InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     /// <summary>
     /// Performs a one-shot time synchronization with the server.
     /// </summary>
-    /// <param name="client">RELIABLE client instance.</param>
+    /// <param name="client">The connected reliable client.</param>
     /// <param name="opCode">
-    /// Operation code to match request/response.
-    /// Use a dedicated opcode for time sync (e.g. 2).
+    /// Operation code used to correlate request/response.
+    /// Use a dedicated opcode for time sync (e.g. <c>2</c>).
     /// </param>
-    /// <param name="sequenceId">Optional sequence id; if <c>null</c>, a value is generated.</param>
-    /// <param name="timeoutMs">Total timeout (send + await).</param>
+    /// <param name="sequenceId">Optional sequence identifier. Default is <c>0</c>.</param>
+    /// <param name="timeoutMs">Total timeout in milliseconds (send + await). Default is 2 000 ms.</param>
     /// <param name="maxAllowedDriftMs">
-    /// Maximum allowed drift before applying adjustment. Smaller values mean more strict sync.
+    /// Maximum drift in milliseconds before an adjustment is applied.
+    /// Smaller values enforce stricter synchronization.
     /// </param>
     /// <param name="maxHardAdjustMs">
-    /// Maximum allowed absolute difference; above this value, adjustment is ignored.
+    /// Maximum absolute adjustment in milliseconds.
+    /// Adjustments above this threshold are discarded as likely invalid.
     /// </param>
     /// <param name="ct">Cancellation token.</param>
-    /// <returns>
-    /// true if time sync succeeded; false on timeout/failure.
-    /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <returns><c>true</c> if synchronization succeeded; <c>false</c> on timeout or failure.</returns>
     public static async System.Threading.Tasks.Task<System.Boolean> TimeSyncAsync(
         this IClientConnection client,
         System.UInt16 opCode = 2,
@@ -63,18 +68,23 @@ public static class TimeSyncExtensions
             return false;
         }
 
-        // Prepare TCS and timeout
-        System.Threading.Tasks.TaskCompletionSource<Control> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
-        using System.Threading.CancellationTokenSource linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct); linked.CancelAfter(timeoutMs);
-        using System.IDisposable sub = client.SubscribeTemp(OnPacket, OnDisconnected);
+        IPacketCatalog catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
 
+        System.Threading.Tasks.TaskCompletionSource<Control> tcs =
+            new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using System.Threading.CancellationTokenSource linked =
+            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        linked.CancelAfter(timeoutMs);
+
+        // Subscribe BEFORE sending to eliminate the race where the server responds before we listen.
+        using System.IDisposable sub = client.SubscribeTemp(OnPacket, OnDisconnected);
 
         try
         {
-            // Subscribe BEFORE sending to avoid race
+            // Stamp t0 after subscribing but before sending.
             System.Int64 t0Mono = Clock.MonoTicksNow();
 
-            // Build request control packet
             Control req = new();
             req.Initialize(
                 opCode: opCode,
@@ -83,69 +93,59 @@ public static class TimeSyncExtensions
                 reasonCode: ProtocolReason.NONE,
                 transport: ProtocolType.TCP);
 
-            await client.SendAsync(req, linked.Token)
-                        .ConfigureAwait(false);
+            await client.SendAsync(req, linked.Token).ConfigureAwait(false);
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug("[SDK.TimeSyncAsync] Time sync request sent.");
+            Log?.Debug("[SDK.TimeSyncAsync] Time sync request sent.");
 
             using (tcs.LinkCancellation(linked.Token))
             {
-                // Wait for server response
                 Control resp = await tcs.Task.ConfigureAwait(false);
 
-                // RTT (client mono clock)
                 System.Int64 t1Mono = Clock.MonoTicksNow();
                 System.Double rttMs = Clock.MonoTicksToMilliseconds(t1Mono - t0Mono);
-
-                // Server wall-clock at send time (Unix ms, filled by server Clock.UnixMillisecondsNow())
                 System.Int64 serverUnixMs = resp.Timestamp;
 
-                // Apply synchronization
                 System.Double adjustMs = Clock.SynchronizeUnixMilliseconds(
-                    serverUnixMs: serverUnixMs, rttMs: rttMs,
-                    maxAllowedDriftMs: maxAllowedDriftMs, maxHardAdjustMs: maxHardAdjustMs);
+                    serverUnixMs: serverUnixMs,
+                    rttMs: rttMs,
+                    maxAllowedDriftMs: maxAllowedDriftMs,
+                    maxHardAdjustMs: maxHardAdjustMs);
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[SDK.TimeSyncAsync] Completed. RTT={rttMs:F2}ms, Adjust={adjustMs:F2}ms.");
-
+                Log?.Info($"[SDK.TimeSyncAsync] Completed. RTT={rttMs:F2} ms, Adjust={adjustMs:F2} ms.");
                 return true;
             }
         }
         catch (System.OperationCanceledException oce)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SDK.TimeSyncAsync] Canceled: {oce.Message}.");
+            Log?.Debug($"[SDK.TimeSyncAsync] Canceled: {oce.Message}.");
             return false;
         }
         catch (System.Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[SDK.TimeSyncAsync] Failed: {ex}.");
+            Log?.Error($"[SDK.TimeSyncAsync] Failed: {ex}.");
             return false;
         }
 
-        // Temporary listener (auto-removed in finally)
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void OnPacket(System.Object _, IBufferLease buffer)
         {
-            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
-
-            if (p is Control ctrl &&
-                ctrl.OpCode == opCode &&
-                ctrl.Protocol == ProtocolType.TCP)
+            // Always dispose the lease; deserialize takes a ReadOnlySpan copy.
+            using (buffer)
             {
-                _ = tcs.TrySetResult(ctrl);
+                if (!catalog.TryDeserialize(buffer.Span, out IPacket p))
+                {
+                    return;
+                }
+
+                if (p is Control ctrl &&
+                    ctrl.OpCode == opCode &&
+                    ctrl.Protocol == ProtocolType.TCP)
+                {
+                    tcs.TrySetResult(ctrl);
+                }
             }
         }
 
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void OnDisconnected(System.Object _, System.Exception ex)
-        {
-            _ = tcs.TrySetException(
-                ex ?? new System.InvalidOperationException("Disconnected during time sync."));
-        }
+            => tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during time sync."));
     }
 }
