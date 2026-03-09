@@ -15,6 +15,6 @@ namespace Nalix.Network.Internal.Compilation;
 /// This avoids runtime reflection by precompiling the method invoker.
 /// </summary>
 /// <typeparam name="TPacket">The packet type this handler processes.</typeparam>
-internal readonly record struct HandlerInvoker<TPacket>(
+internal readonly record struct CompiledHandler<TPacket>(
     System.Reflection.MethodInfo MethodInfo, System.Type ReturnType,
     System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> CompiledInvoker);

@@ -37,7 +37,7 @@ internal sealed class HandlerCompiler<
     /// </summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
         System.Type, System.Collections.Frozen.FrozenDictionary<
-            System.UInt16, HandlerInvoker<TPacket>>> _compiledMethodCache = new();
+            System.UInt16, CompiledHandler<TPacket>>> _compiledMethodCache = new();
 
     /// <summary>
     /// Caches attribute lookups per method for performance.
@@ -69,7 +69,7 @@ internal sealed class HandlerCompiler<
                                 .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(CompileHandlers)}] scan controller={controllerType.Name}");
 
         // Get or compile all handler methods
-        var compiledMethods = X04(controllerType);
+        var compiledMethods = CompileControllerHandlers(controllerType);
 
         // Create the controller instance
         TController controllerInstance = factory();
@@ -80,7 +80,7 @@ internal sealed class HandlerCompiler<
 
         foreach (var (opCode, compiledMethod) in compiledMethods)
         {
-            var attributes = X01(compiledMethod.MethodInfo);
+            var attributes = GetPacketMetadata(compiledMethod.MethodInfo);
 
             descriptors[index++] = new PacketHandler<TPacket>(
                 opCode,
@@ -109,7 +109,7 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, HandlerInvoker<TPacket>> X04(
+    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, CompiledHandler<TPacket>> CompileControllerHandlers(
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] System.Type x03)
     {
         // Get methods with [PacketOpcode] attribute
@@ -133,7 +133,7 @@ internal sealed class HandlerCompiler<
 
         return _compiledMethodCache.GetOrAdd(x03, static (_, methods) =>
         {
-            System.Collections.Generic.Dictionary<System.UInt16, HandlerInvoker<TPacket>> compiled = new(methods.Length);
+            System.Collections.Generic.Dictionary<System.UInt16, CompiledHandler<TPacket>> compiled = new(methods.Length);
 
             foreach (System.Reflection.MethodInfo method in methods)
             {
@@ -144,23 +144,23 @@ internal sealed class HandlerCompiler<
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[NW.{nameof(HandlerCompiler<,>)}:Internal] dup-opcode " +
-                                                  $"{X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
+                                                  $"{FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
 
                     continue;
                 }
 
                 try
                 {
-                    HandlerInvoker<TPacket> compiledMethod = X03(method);
+                    CompiledHandler<TPacket> compiledMethod = CompileHandlerMethod(method);
                     compiled[opcodeAttr.OpCode] = compiledMethod;
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[NW.{nameof(HandlerCompiler<,>)}:Internal] compiled " +
-                                                   $"{X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
+                                                   $"{FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType)}");
                 }
                 catch (System.Exception ex)
                 {
-                    System.String ___ = X00(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
+                    System.String ___ = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[NW.{nameof(HandlerCompiler<,>)}:Internal] " +
                                                    $"failed-compile {___} ex={ex.GetType().Name}", ex);
@@ -175,7 +175,7 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static HandlerInvoker<TPacket> X03(System.Reflection.MethodInfo x22)
+    private static CompiledHandler<TPacket> CompileHandlerMethod(System.Reflection.MethodInfo x22)
     {
         System.Linq.Expressions.ParameterExpression x00 =
             System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
@@ -284,16 +284,16 @@ internal sealed class HandlerCompiler<
         }
 
         System.Func<System.Object, PacketContext<TPacket>,
-            System.Threading.Tasks.ValueTask<System.Object>> x20 = X02(x12, x22.ReturnType);
+            System.Threading.Tasks.ValueTask<System.Object>> x20 = WrapReturnType(x12, x22.ReturnType);
 
-        return new HandlerInvoker<TPacket>(x22, x22.ReturnType, x20);
+        return new CompiledHandler<TPacket>(x22, x22.ReturnType, x20);
     }
 
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> X02(
+    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> WrapReturnType(
         System.Func<System.Object, PacketContext<TPacket>, System.Object> x00,
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] System.Type x01)
     {
@@ -381,7 +381,7 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static PacketMetadata X01(System.Reflection.MethodInfo x02)
+    private static PacketMetadata GetPacketMetadata(System.Reflection.MethodInfo x02)
     {
         return _attributeCache.GetOrAdd(x02, static x03 => new PacketMetadata(
             System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(x03)!,
@@ -397,7 +397,7 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.String X00(System.String x00, System.UInt16 x01, System.Reflection.MethodInfo x02 = null, System.Type x03 = null)
+    private static System.String FormatHandlerInfo(System.String x00, System.UInt16 x01, System.Reflection.MethodInfo x02 = null, System.Type x03 = null)
     {
         System.String op = $"opcode=0x{x01:X4}";
         System.String ctrl = $"controller={x00}";
