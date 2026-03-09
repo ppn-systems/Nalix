@@ -24,12 +24,11 @@ public static class PacketConstants
     /// </list>
     /// </summary>
     public const System.Byte HeaderSize =
-        sizeof(PacketFlags) +
-        sizeof(System.UInt16) +  // OpCode
-        sizeof(System.UInt16) +  // Length
-        sizeof(System.UInt32) +  // MagicNumber
-        sizeof(PacketPriority) +
-        sizeof(ProtocolType);
+        sizeof(System.UInt32) +  // MagicNumber = 4  (offset 0)
+        sizeof(System.UInt16) +  // OpCode      = 2  (offset 4)
+        sizeof(System.Byte) +    // Flags       = 1  (offset 6)
+        sizeof(System.Byte) +    // Priority    = 1  (offset 7)
+        sizeof(System.Byte);     // Protocol    = 1  (offset 8)
 
     /// <summary>
     /// The default operation code value for packets.
