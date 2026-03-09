@@ -2,17 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Middleware.Attributes;
-using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Common.Shared.Attributes;
-using Nalix.Framework.Injection;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Frames.Controls;
 
@@ -23,32 +18,26 @@ namespace Nalix.Shared.Frames.Controls;
 [MagicNumber(ProtocolMagic.HANDSHAKE)]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("HANDSHAKE OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
-public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
+[System.Diagnostics.DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, FLAGS={Flags}")]
+public sealed class Handshake : PacketBase<Handshake>
 {
-    /// <inheritdoc/>
-    public const System.Int32 DynamicSize = 32;
-
     /// <summary>
-    /// Gets the total length of the serialized packet in bytes, including header and content.
+    /// Suggested minimum granularity for allocation.
     /// </summary>
-    [SerializeIgnore]
-    public override System.UInt16 Length =>
-        (System.UInt16)(PacketConstants.HeaderSize + (Data?.Length ?? 0));
+    public const System.Int32 DynamicSize = 32;
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
-    public System.Byte[] Data { get; set; }
+    public System.Byte[] Data { get; set; } = [];
 
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with empty content.
     /// </summary>
     public Handshake()
     {
-        Data = [];
         Flags = PacketFlags.NONE;
         Protocol = ProtocolType.NONE;
         Priority = PacketPriority.NONE;
@@ -57,71 +46,38 @@ public class Handshake : FrameBase, IPoolable, IPacketDeserializer<Handshake>
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Handshake"/> class with the specified operation code, binary data, and transport protocol.
+    /// Initializes a new instance with the specified operation code, binary data, and protocol.
     /// </summary>
-    /// <param name="opCode">The operation code for the handshake packet.</param>
-    /// <param name="data">The binary content of the packet.</param>
-    /// <param name="transport">The transport protocol to use.</param>
-    public Handshake(
-        System.UInt16 opCode,
-        System.Byte[] data, ProtocolType transport) : this()
+    public Handshake(System.UInt16 opCode, System.Byte[] data, ProtocolType transport = ProtocolType.TCP) : this()
     {
-        this.Data = data;
-        this.OpCode = opCode;
-        this.Protocol = transport;
+        Data = data ?? [];
+        OpCode = opCode;
+        Protocol = transport;
     }
 
     /// <summary>
-    /// Initializes the packet with a sequence ID, binary data, and an optional transport protocol.
+    /// Initializes the packet with binary data and an optional transport protocol.
     /// </summary>
-    /// <param name="data">Binary content of the packet.</param>
-    /// <param name="transport">The transport protocol to use (default is TCP).</param>
     public void Initialize(System.Byte[] data, ProtocolType transport = ProtocolType.TCP)
     {
-        this.Data = data ?? [];
-        this.Protocol = transport;
+        Data = data ?? [];
+        Protocol = transport;
     }
 
     /// <summary>
-    /// Deserializes a <see cref="Handshake"/> from the specified buffer.
+    /// Returns a string representation including all relevant fields.
     /// </summary>
-    /// <param name="buffer">The source buffer.</param>
-    /// <returns>A pooled <see cref="Handshake"/> instance.</returns>
-    public static Handshake Deserialize(System.ReadOnlySpan<System.Byte> buffer)
-    {
-        Handshake packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                   .Get<Handshake>();
-
-        System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
-        if (bytesRead == 0)
-        {
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return(packet);
-            throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.");
-        }
-
-        return packet;
-    }
-
-    /// <inheritdoc/>
-    public override System.Byte[] Serialize() => LiteSerializer.Serialize(this);
-
-    /// <inheritdoc/>
-    public override System.Int32 Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
+    public override System.String ToString() => $"HANDSHAKE(OpCode={OpCode}, Length={Length}, Flags={Flags}, Priority={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
 
     /// <summary>
     /// Resets this instance to its default state for pooling reuse.
     /// </summary>
     public override void ResetForPool()
     {
-        this.Data = [];
-        this.Flags = PacketFlags.NONE;
-        this.Protocol = ProtocolType.NONE;
-        this.Priority = PacketPriority.NONE;
-    }
+        base.ResetForPool(); // always call for consistency!
 
-    /// <inheritdoc/>
-    public override System.String ToString() =>
-        $"HANDSHAKE(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
-        $"PRIORITY={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
+        Data = [];
+        Protocol = ProtocolType.NONE;
+        base.Priority = PacketPriority.LOW;
+    }
 }

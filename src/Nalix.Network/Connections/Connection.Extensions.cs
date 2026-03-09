@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics.Abstractions;
@@ -6,6 +6,7 @@ using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Frames.Controls;
+using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connections;
@@ -39,26 +40,27 @@ public static class ConnectionExtensions
         System.UInt32 sequenceId = 0, ControlFlags flags = ControlFlags.NONE,
         System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
     {
-        const System.Int32 STACK_THRESHOLD = 1024;
         System.ArgumentNullException.ThrowIfNull(connection);
 
-        Directive pkt = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                .Get<Directive>();
+        Directive directive = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                      .Get<Directive>();
 
         try
         {
-            pkt.Initialize(controlType, reason, action, sequenceId: sequenceId, flags: flags, arg0: arg0, arg1: arg1, arg2: arg2);
+            directive.Initialize(controlType, reason, action, sequenceId: sequenceId, flags: flags, arg0: arg0, arg1: arg1, arg2: arg2);
 
-            System.Int32 len = pkt.Length;
+            System.Int32 len = directive.Length;
 
-            if (len >= STACK_THRESHOLD)
+            if (len >= BufferLease.StackAllocThreshold)
             {
-                System.Byte[] rented = System.Buffers.ArrayPool<System.Byte>.Shared.Rent(len + 32);
+                using BufferLease lease = BufferLease.Rent(len + 32);
 
                 try
                 {
-                    System.Int32 length = pkt.Serialize(System.MemoryExtensions.AsSpan(rented, 0, len));
-                    _ = await connection.TCP.SendAsync(System.MemoryExtensions.AsMemory(rented, 0, length)).ConfigureAwait(false);
+                    System.Int32 length = directive.Serialize(lease.Span[..len]);
+                    lease.CommitLength(length);
+                    _ = await connection.TCP.SendAsync(lease.Memory)
+                                            .ConfigureAwait(false);
                 }
                 catch (System.Exception ex)
                 {
@@ -66,16 +68,14 @@ public static class ConnectionExtensions
                                             .Error($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed type={controlType} " +
                                                    $"reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
                 }
-                finally
-                {
-                    System.Buffers.ArrayPool<System.Byte>.Shared.Return(rented);
-                }
             }
             else
             {
                 try
                 {
-                    System.Boolean sent = await connection.TCP.SendAsync(pkt.Serialize()).ConfigureAwait(false);
+                    System.Boolean sent = await connection.TCP.SendAsync(directive
+                                                              .Serialize())
+                                                              .ConfigureAwait(false);
                     if (!sent)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -94,7 +94,7 @@ public static class ConnectionExtensions
         finally
         {
             InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return(pkt);
+                                    .Return(directive);
         }
     }
 }

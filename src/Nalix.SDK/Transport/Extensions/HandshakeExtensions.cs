@@ -55,6 +55,7 @@ public static class HandshakeExtensions
         System.Func<System.Byte[], System.Boolean> validateServerPublicKey = null,
         System.Threading.CancellationToken ct = default)
     {
+        IPacketCatalog catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
         System.ArgumentNullException.ThrowIfNull(client);
 
         if (!client.IsConnected)
@@ -80,7 +81,7 @@ public static class HandshakeExtensions
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         void OnMessageReceived(System.Object _, IBufferLease buffer)
         {
-            InstanceManager.Instance.GetExistingInstance<IPacketCatalog>().TryDeserialize(buffer.Span, out IPacket p);
+            catalog.TryDeserialize(buffer.Span, out IPacket p);
 
             if (p is Handshake hs &&
                 hs.OpCode == opCode &&

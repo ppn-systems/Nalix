@@ -6,6 +6,7 @@ using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Random;
 using Nalix.Framework.Time;             // Clock
 using Nalix.Shared.Frames.Controls;
 
@@ -105,12 +106,12 @@ public static class ControlExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static async System.Threading.Tasks.Task<TPkt> AwaitPacketAsync<TPkt>(
-        this IClientConnection client, System.Func<TPkt, System.Boolean> predicate,
+        this IClientConnection client,
+        System.Func<TPkt, System.Boolean> predicate,
         System.Int32 timeoutMs, System.Threading.CancellationToken ct = default) where TPkt : class, IPacket
     {
         System.ArgumentNullException.ThrowIfNull(client);
         System.ArgumentNullException.ThrowIfNull(predicate);
-
 
         if (!client.IsConnected)
         {
@@ -219,7 +220,7 @@ public static class ControlExtensions
         }
 
         // Sequence: generate if not provided
-        System.UInt32 seq = sequenceId ?? unchecked((System.UInt32)System.Environment.TickCount);
+        System.UInt32 seq = sequenceId ?? Csprng.NextUInt32();
 
         // Build + send PING (ControlType.PING)  (enum: PING/PONG)  :contentReference[oaicite:2]{index=2}
         var ping = client.NewControl(opCode, ControlType.PING)

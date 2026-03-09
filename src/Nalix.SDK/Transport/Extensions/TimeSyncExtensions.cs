@@ -33,6 +33,7 @@ public static class TimeSyncExtensions
     /// Operation code to match request/response.
     /// Use a dedicated opcode for time sync (e.g. 2).
     /// </param>
+    /// <param name="sequenceId">Optional sequence id; if <c>null</c>, a value is generated.</param>
     /// <param name="timeoutMs">Total timeout (send + await).</param>
     /// <param name="maxAllowedDriftMs">
     /// Maximum allowed drift before applying adjustment. Smaller values mean more strict sync.
@@ -49,6 +50,7 @@ public static class TimeSyncExtensions
     public static async System.Threading.Tasks.Task<System.Boolean> TimeSyncAsync(
         this IClientConnection client,
         System.UInt16 opCode = 2,
+        System.UInt32 sequenceId = 0,
         System.Int32 timeoutMs = 2_000,
         System.Double maxAllowedDriftMs = 1_000.0,
         System.Double maxHardAdjustMs = 10_000.0,
@@ -77,7 +79,7 @@ public static class TimeSyncExtensions
             req.Initialize(
                 opCode: opCode,
                 type: ControlType.TIME_SYNC_REQUEST,
-                sequenceId: 0,
+                sequenceId: sequenceId,
                 reasonCode: ProtocolReason.NONE,
                 transport: ProtocolType.TCP);
 

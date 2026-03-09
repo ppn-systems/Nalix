@@ -35,26 +35,6 @@ public enum ProtocolMagic : System.UInt32
     CONTROL = 0x0000_A002,
 
     /// <summary>
-    /// Binary data packet with a maximum payload size of 128 bytes.
-    /// </summary>
-    BINARY128 = 0x0000_A003,
-
-    /// <summary>
-    /// Binary data packet with a maximum payload size of 256 bytes.
-    /// </summary>
-    BINARY256 = 0x0000_A004,
-
-    /// <summary>
-    /// Binary data packet with a maximum payload size of 512 bytes.
-    /// </summary>
-    BINARY512 = 0x0000_A005,
-
-    /// <summary>
-    /// Binary data packet with a maximum payload size of 1024 bytes.
-    /// </summary>
-    BINARY1024 = 0x0000_A006,
-
-    /// <summary>
     /// UTF-8 text packet with a maximum payload size of 256 bytes.
     /// </summary>
     TEXT256 = 0x0000_A007,
