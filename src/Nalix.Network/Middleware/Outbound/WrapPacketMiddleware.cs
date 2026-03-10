@@ -23,7 +23,7 @@ namespace Nalix.Network.Middleware.Outbound;
 public class WrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private static readonly IPacketCatalog s_catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
+    private static readonly IPacketRegistry s_catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
 
     /// <summary>
     /// Determines whether the specified packet should be compressed before transmission.

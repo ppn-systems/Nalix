@@ -138,7 +138,7 @@ public static class ControlExtensions
             throw new System.InvalidOperationException("Client not connected.");
         }
 
-        IPacketCatalog catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
+        IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
         System.Threading.Tasks.TaskCompletionSource<TPkt> tcs =
             new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
