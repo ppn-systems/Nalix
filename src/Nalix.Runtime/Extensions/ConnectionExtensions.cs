@@ -11,7 +11,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 
-namespace Nalix.Runtime.Extentions;
+namespace Nalix.Runtime.Extensions;
 
 /// <summary>
 /// Provides extension methods for the <see cref="IConnection"/> interface to support connection management operations.
