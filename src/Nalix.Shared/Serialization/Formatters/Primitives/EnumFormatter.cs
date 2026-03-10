@@ -49,8 +49,7 @@ public sealed class EnumFormatter<
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, T value)
-        => _serialize(ref writer, value);
+    public void Serialize(ref DataWriter writer, T value) => _serialize(ref writer, value);
 
     /// <summary>
     /// Deserializes an enum value from the provided reader using its underlying type.
@@ -62,8 +61,7 @@ public sealed class EnumFormatter<
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public T Deserialize(ref DataReader reader)
-        => _deserialize(ref reader);
+    public T Deserialize(ref DataReader reader) => _deserialize(ref reader);
 
     #region Delegates for Enum Formatter
 
@@ -81,6 +79,7 @@ public sealed class EnumFormatter<
             System.TypeCode.Byte => (
                 (ref DataWriter writer, T value) =>
                 {
+                    writer.Expand(sizeof(System.Byte));
                     System.Byte b = System.Runtime.CompilerServices.Unsafe.As<T, System.Byte>(ref value);
                     FormatterProvider.Get<System.Byte>().Serialize(ref writer, b);
                 },
@@ -93,6 +92,7 @@ public sealed class EnumFormatter<
             System.TypeCode.SByte => (
                 (ref DataWriter writer, T value) =>
                 {
+                    writer.Expand(sizeof(System.SByte));
                     System.SByte b = System.Runtime.CompilerServices.Unsafe.As<T, System.SByte>(ref value);
                     FormatterProvider.Get<System.SByte>().Serialize(ref writer, b);
                 },
@@ -105,6 +105,7 @@ public sealed class EnumFormatter<
             System.TypeCode.Int16 => (
                 (ref DataWriter writer, T value) =>
                 {
+                    writer.Expand(sizeof(System.Int16));
                     System.Int16 v = System.Runtime.CompilerServices.Unsafe.As<T, System.Int16>(ref value);
                     FormatterProvider.Get<System.Int16>().Serialize(ref writer, v);
                 },
@@ -117,6 +118,7 @@ public sealed class EnumFormatter<
             System.TypeCode.UInt16 => (
                 (ref DataWriter writer, T value) =>
                 {
+                    writer.Expand(sizeof(System.UInt16));
                     System.UInt16 v = System.Runtime.CompilerServices.Unsafe.As<T, System.UInt16>(ref value);
                     FormatterProvider.Get<System.UInt16>().Serialize(ref writer, v);
                 },
@@ -129,6 +131,7 @@ public sealed class EnumFormatter<
             System.TypeCode.Int32 => (
                 (ref DataWriter writer, T value) =>
                 {
+                    writer.Expand(sizeof(System.Int32));
                     System.Int32 v = System.Runtime.CompilerServices.Unsafe.As<T, System.Int32>(ref value);
                     FormatterProvider.Get<System.Int32>().Serialize(ref writer, v);
                 },
@@ -141,6 +144,7 @@ public sealed class EnumFormatter<
             System.TypeCode.UInt32 => (
                 (ref DataWriter writer, T value) =>
                 {
+                    writer.Expand(sizeof(System.UInt32));
                     System.UInt32 v = System.Runtime.CompilerServices.Unsafe.As<T, System.UInt32>(ref value);
                     FormatterProvider.Get<System.UInt32>().Serialize(ref writer, v);
                 },
@@ -153,6 +157,7 @@ public sealed class EnumFormatter<
             System.TypeCode.Int64 => (
                 (ref DataWriter writer, T value) =>
                 {
+                    writer.Expand(sizeof(System.Int64));
                     System.Int64 v = System.Runtime.CompilerServices.Unsafe.As<T, System.Int64>(ref value);
                     FormatterProvider.Get<System.Int64>().Serialize(ref writer, v);
                 },
@@ -165,6 +170,7 @@ public sealed class EnumFormatter<
             System.TypeCode.UInt64 => (
                 (ref DataWriter writer, T value) =>
                 {
+                    writer.Expand(sizeof(System.UInt64));
                     System.UInt64 v = System.Runtime.CompilerServices.Unsafe.As<T, System.UInt64>(ref value);
                     FormatterProvider.Get<System.UInt64>().Serialize(ref writer, v);
                 },

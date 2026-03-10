@@ -45,6 +45,7 @@ internal sealed partial class UnmanagedFormatter<
     public void Serialize(ref DataWriter writer, T value)
     {
         System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+        writer.Expand(size);
 
         if (size == sizeof(System.Byte))
         {
