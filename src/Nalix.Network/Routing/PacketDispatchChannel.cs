@@ -51,7 +51,7 @@ public sealed class PacketDispatchChannel
 {
     #region Fields
 
-    private readonly IPacketCatalog _catalog;
+    private readonly IPacketRegistry _catalog;
     private readonly DispatchChannel<IPacket> _dispatch;
     private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
     private readonly System.Threading.CancellationTokenSource _cts = new();
@@ -71,9 +71,9 @@ public sealed class PacketDispatchChannel
     public PacketDispatchChannel(System.Action<PacketDispatchOptions<IPacket>> options) : base(options)
     {
         _dispatch = new DispatchChannel<IPacket>();
-        _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+        _catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
                    ?? throw new System.InvalidOperationException(
-                       $"[{nameof(PacketDispatchChannel)}] IPacketCatalog not registered in InstanceManager. Make sure to build and register IPacketCatalog before starting dispatcher.");
+                       $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager. Make sure to build and register IPacketRegistry before starting dispatcher.");
 
         // Push any additional initialization here if needed
         Logger?.Debug($"[{nameof(PacketDispatchChannel)}] init");

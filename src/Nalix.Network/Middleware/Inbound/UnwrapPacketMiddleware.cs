@@ -23,7 +23,7 @@ namespace Nalix.Network.Middleware.Inbound;
 public class UnwrapPacketMiddleware : IPacketMiddleware<IPacket>
 {
     private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private readonly IPacketCatalog s_catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>();
+    private readonly IPacketRegistry s_catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
 
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(

@@ -27,7 +27,7 @@ namespace Nalix.Shared.Registry;
 /// This type is safe for concurrent read access. Instances are immutable once constructed.
 /// </para>
 /// </remarks>
-public sealed class PacketRegistry : IPacketCatalog
+public sealed class PacketRegistry : IPacketRegistry
 {
     private readonly System.Collections.Frozen.FrozenDictionary<System.Type, PacketTransformer> _transformers;
     private readonly System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> _deserializers;

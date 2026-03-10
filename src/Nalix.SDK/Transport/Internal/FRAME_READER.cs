@@ -104,9 +104,7 @@ internal sealed class FRAME_READER(
                             // Subscriber faulted — log and continue the receive loop.
                             // The lease is already disposed by the subscriber's finally/using block.
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error(
-                                    $"[SDK.{nameof(FRAME_READER)}] handler-faulted — " +
-                                    $"loop continues. msg={handlerEx.Message}", handlerEx);
+                                                    .Error($"[SDK.{nameof(FRAME_READER)}] handler-faulted—loop continues. msg={handlerEx.Message}", handlerEx);
                         }
                     }
                     catch
@@ -134,9 +132,7 @@ internal sealed class FRAME_READER(
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error(
-                    $"[SDK.{nameof(FRAME_READER)}:{nameof(ReceiveLoopAsync)}] " +
-                    $"faulted msg={ex.Message}", ex);
+                                    .Error($"[SDK.{nameof(FRAME_READER)}:{nameof(ReceiveLoopAsync)}] faulted msg={ex.Message}", ex);
 
             _onError(ex);
         }

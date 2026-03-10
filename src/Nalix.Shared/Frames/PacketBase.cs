@@ -30,8 +30,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     #region Static Cache
 
     // Computed once per concrete type at class-load time.
-    private static readonly System.UInt32 AutoMagic =
-        PacketRegistryFactory.Compute(typeof(TSelf));
+    private static readonly System.UInt32 AutoMagic = PacketRegistryFactory.Compute(typeof(TSelf));
 
     // All serializable properties as pre-compiled PropertyMetadata — no further
     // reflection attribute scanning needed in hot paths.

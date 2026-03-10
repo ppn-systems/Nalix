@@ -20,7 +20,7 @@ namespace Nalix.Network.Routing;
 [System.Obsolete("Use more advanced PacketDispatchChannel with explicit handler registration instead.")]
 public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispatch
 {
-    private readonly IPacketCatalog _catalog;
+    private readonly IPacketRegistry _catalog;
 
     /// <summary>
     /// The <see cref="PacketDispatch"/> processes incoming packets and invokes corresponding handlers
@@ -32,9 +32,9 @@ public sealed class PacketDispatch : PacketDispatcherBase<IPacket>, IPacketDispa
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketDispatch(System.Action<PacketDispatchOptions<IPacket>> options) : base(options)
     {
-        _catalog = InstanceManager.Instance.GetExistingInstance<IPacketCatalog>()
+        _catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
             ?? throw new System.InvalidOperationException(
-                "IPacketCatalog not registered in InstanceManager. Make sure to build and register IPacketCatalog before starting dispatcher.");
+                "IPacketRegistry not registered in InstanceManager. Make sure to build and register IPacketRegistry before starting dispatcher.");
     }
 
     /// <inheritdoc />

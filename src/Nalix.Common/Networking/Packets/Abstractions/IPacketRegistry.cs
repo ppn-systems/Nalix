@@ -24,7 +24,7 @@ namespace Nalix.Common.Networking.Packets.Abstractions;
 /// </list>
 /// Implementations must be safe for concurrent read access if used across threads.
 /// </remarks>
-public interface IPacketCatalog
+public interface IPacketRegistry
 {
     /// <summary>
     /// Attempts to deserialize a packet by reading the magic number from the provided raw buffer.

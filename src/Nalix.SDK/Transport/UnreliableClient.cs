@@ -130,13 +130,13 @@ public sealed class UnreliableClient : IClientConnection
 
         _bufferPool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
 
-        if (InstanceManager.Instance.GetExistingInstance<IPacketCatalog>() == null)
+        if (InstanceManager.Instance.GetExistingInstance<IPacketRegistry>() == null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[SDK.{nameof(ReliableClient)}] no IPacketCatalog instance found; this is a fatal configuration error. The process will terminate.");
+                                    .Error($"[SDK.{nameof(ReliableClient)}] no IPacketRegistry instance found; this is a fatal configuration error. The process will terminate.");
 
             // Fail fast with a clear message so operator/collector can see cause.
-            System.Environment.FailFast($"[SDK.{nameof(ReliableClient)}] missing required service: IPacketCatalog. Terminating process.");
+            System.Environment.FailFast($"[SDK.{nameof(ReliableClient)}] missing required service: IPacketRegistry. Terminating process.");
         }
     }
 
