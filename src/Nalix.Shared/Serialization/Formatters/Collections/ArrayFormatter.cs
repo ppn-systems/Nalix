@@ -36,16 +36,14 @@ internal sealed class ArrayFormatter<
         if (value == null)
         {
             // Convention: -1 indicates a null array
-            FormatterProvider
-                .Get<System.UInt16>()
-                .Serialize(ref writer, SerializerBounds.Null);
+            FormatterProvider.Get<System.UInt16>()
+                             .Serialize(ref writer, SerializerBounds.Null);
 
             return;
         }
 
-        FormatterProvider
-            .Get<System.UInt16>()
-            .Serialize(ref writer, unchecked((System.UInt16)value.Length));
+        FormatterProvider.Get<System.UInt16>()
+                         .Serialize(ref writer, unchecked((System.UInt16)value.Length));
 
         if (value.Length == 0)
         {
@@ -78,9 +76,8 @@ internal sealed class ArrayFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe T[] Deserialize(ref DataReader reader)
     {
-        System.UInt16 length = FormatterProvider
-            .Get<System.UInt16>()
-            .Deserialize(ref reader);
+        System.UInt16 length = FormatterProvider.Get<System.UInt16>()
+                                                .Deserialize(ref reader);
 
         if (length == 0)
         {

@@ -64,6 +64,7 @@ internal sealed class StringArrayFormatter : IFormatter<System.String[]>
 
         for (System.Int32 i = 0; i < value.Length; i++)
         {
+            writer.Expand(sizeof(System.Int32));
             // Reuse StringFormatter logic (null, empty, UTF8, bounds, ...)
             StringFormatterInstance.Serialize(ref writer, value[i]);
         }

@@ -149,30 +149,6 @@ public ref struct DataWriter
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Expand(System.Int32 minimumSize)
     {
-        [System.Diagnostics.StackTraceHidden]
-        [System.Diagnostics.DebuggerStepThrough]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        static unsafe void CopyBytes(System.Byte[]? src, System.Byte[] dst, System.Int32 count)
-        {
-            System.ArgumentNullException.ThrowIfNull(src);
-            System.ArgumentNullException.ThrowIfNull(dst);
-            System.ArgumentOutOfRangeException.ThrowIfNegative(count);
-
-            if ((System.UInt32)count > (System.UInt32)src.Length || (System.UInt32)count > (System.UInt32)dst.Length)
-            {
-                throw new System.ArgumentOutOfRangeException(nameof(count));
-            }
-
-            fixed (System.Byte* pSrc = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(src))
-            {
-                fixed (System.Byte* pDst = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(dst))
-                {
-                    System.Buffer.MemoryCopy(pSrc, pDst, (System.UIntPtr)count, (System.UIntPtr)count);
-                }
-            }
-        }
-
         if (minimumSize <= 0)
         {
             throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "SIZE must be greater than zero.");
@@ -214,6 +190,30 @@ public ref struct DataWriter
         if (oldOwner is not null)
         {
             BufferLease.BufferPool.Return(oldOwner);
+        }
+
+        [System.Diagnostics.StackTraceHidden]
+        [System.Diagnostics.DebuggerStepThrough]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        static unsafe void CopyBytes(System.Byte[]? src, System.Byte[] dst, System.Int32 count)
+        {
+            System.ArgumentNullException.ThrowIfNull(src);
+            System.ArgumentNullException.ThrowIfNull(dst);
+            System.ArgumentOutOfRangeException.ThrowIfNegative(count);
+
+            if ((System.UInt32)count > (System.UInt32)src.Length || (System.UInt32)count > (System.UInt32)dst.Length)
+            {
+                throw new System.ArgumentOutOfRangeException(nameof(count));
+            }
+
+            fixed (System.Byte* pSrc = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(src))
+            {
+                fixed (System.Byte* pDst = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(dst))
+                {
+                    System.Buffer.MemoryCopy(pSrc, pDst, (System.UIntPtr)count, (System.UIntPtr)count);
+                }
+            }
         }
     }
 

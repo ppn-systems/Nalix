@@ -52,9 +52,8 @@ internal sealed class NullableFormatter<
     public void Serialize(ref DataWriter writer, T? value)
     {
         // 0 = null, 1 = has value
-        FormatterProvider
-            .Get<System.Byte>()
-            .Serialize(ref writer, value.HasValue ? HasValueFlag : NoValueFlag);
+        FormatterProvider.Get<System.Byte>()
+                         .Serialize(ref writer, value.HasValue ? HasValueFlag : NoValueFlag);
 
         if (value.HasValue)
         {
@@ -78,10 +77,6 @@ internal sealed class NullableFormatter<
             .Get<System.Byte>()
             .Deserialize(ref reader);
 
-        return hasValue == NoValueFlag
-            ? null
-            : hasValue != HasValueFlag
-            ? throw new SerializationException("Invalid nullable data!")
-            : (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
+        return hasValue == NoValueFlag ? null : hasValue != HasValueFlag ? throw new SerializationException("Invalid nullable data!") : (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
     }
 }
