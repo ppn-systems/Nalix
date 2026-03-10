@@ -36,12 +36,14 @@ internal sealed class ArrayFormatter<
         if (value == null)
         {
             // Convention: -1 indicates a null array
+            writer.Expand(sizeof(System.UInt16));
             FormatterProvider.Get<System.UInt16>()
                              .Serialize(ref writer, SerializerBounds.Null);
 
             return;
         }
 
+        writer.Expand(sizeof(System.UInt16));
         FormatterProvider.Get<System.UInt16>()
                          .Serialize(ref writer, unchecked((System.UInt16)value.Length));
 

@@ -41,14 +41,15 @@ internal sealed class EnumListFormatter<
     {
         if (value is null)
         {
+            writer.Expand(sizeof(System.UInt16));
             FormatterProvider.Get<System.UInt16>()
                              .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
+        writer.Expand(sizeof(System.UInt16));
         System.UInt16 count = (System.UInt16)value.Count;
-        FormatterProvider.Get<System.UInt16>()
-                         .Serialize(ref writer, count);
+        FormatterProvider.Get<System.UInt16>().Serialize(ref writer, count);
 
         for (System.Int32 i = 0; i < count; i++)
         {

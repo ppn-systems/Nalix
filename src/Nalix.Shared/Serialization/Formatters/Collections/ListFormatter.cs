@@ -33,11 +33,13 @@ internal sealed class ListFormatter<
     {
         if (value == null)
         {
+            writer.Expand(sizeof(System.UInt16));
             FormatterProvider.Get<System.UInt16>()
                              .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
+        writer.Expand(sizeof(System.UInt16));
         FormatterProvider.Get<System.UInt16>()
                          .Serialize(ref writer, (System.UInt16)value.Count);
 
@@ -51,7 +53,6 @@ internal sealed class ListFormatter<
         {
             formatter.Serialize(ref writer, value[i]);
         }
-
     }
 
     /// <summary>
