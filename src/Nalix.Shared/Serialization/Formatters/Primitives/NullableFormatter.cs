@@ -52,6 +52,7 @@ internal sealed class NullableFormatter<
     public void Serialize(ref DataWriter writer, T? value)
     {
         // 0 = null, 1 = has value
+        writer.Expand(sizeof(System.Byte));
         FormatterProvider.Get<System.Byte>()
                          .Serialize(ref writer, value.HasValue ? HasValueFlag : NoValueFlag);
 

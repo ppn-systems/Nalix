@@ -40,12 +40,14 @@ internal sealed class NullableObjectFormatter<
     {
         if (value is null)
         {
+            writer.Expand(sizeof(System.Byte));
             FormatterProvider.Get<System.Byte>()
                              .Serialize(ref writer, 0);
 
             return;
         }
 
+        writer.Expand(sizeof(System.Byte));
         FormatterProvider.Get<System.Byte>()
                          .Serialize(ref writer, 1);
 

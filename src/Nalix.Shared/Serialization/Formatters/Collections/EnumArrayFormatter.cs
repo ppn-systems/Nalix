@@ -52,11 +52,13 @@ internal sealed class EnumArrayFormatter<
     {
         if (value == null)
         {
+            writer.Expand(sizeof(System.UInt16));
             FormatterProvider.Get<System.UInt16>()
                              .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
+        writer.Expand(sizeof(System.UInt16));
         FormatterProvider.Get<System.UInt16>()
                          .Serialize(ref writer, (System.UInt16)value.Length);
 
