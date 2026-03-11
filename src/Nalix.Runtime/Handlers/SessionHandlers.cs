@@ -2,12 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Security;
+using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
@@ -31,43 +33,45 @@ public sealed class SessionHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode((ushort)ProtocolOpCode.SESSION_SIGNAL)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "NALIX037:Potential allocation in hot path", Justification = "<Pending>")]
-    public static SessionResume? Handle(IPacketContext<SessionResume> context)
+    public static async ValueTask HandleAsync(IPacketContext<SessionResume> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         if (Hub is null)
         {
-            SEND_FAILURE_AND_DISCONNECT(context.Connection, ProtocolReason.SERVICE_UNAVAILABLE);
-            return null;
+            await HandleFailureAsync(context.Connection, ProtocolReason.SERVICE_UNAVAILABLE).ConfigureAwait(false);
+            return;
         }
 
         SessionResume packet = context.Packet;
         if (packet.Stage != SessionResumeStage.REQUEST)
         {
-            return null;
+            return;
         }
 
         if (packet.SessionToken.IsEmpty)
         {
-            SEND_FAILURE_AND_DISCONNECT(context.Connection, ProtocolReason.TOKEN_REVOKED);
-            return null;
+            await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
+            return;
         }
 
-        if (!Hub.TryResumeSession(packet.SessionToken.ToUInt56(), context.Connection, out SessionEntry? session))
+        if (Hub.TryResumeSession(packet.SessionToken.ToUInt56(), context.Connection, out SessionEntry? session))
         {
-            SEND_FAILURE_AND_DISCONNECT(context.Connection, ProtocolReason.SESSION_EXPIRED);
-            return null;
+            using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
+            SessionResume ack = lease.Value;
+            ack.Initialize(
+                stage: SessionResumeStage.RESPONSE,
+                sessionToken: Snowflake.NewId(session.Snapshot.SessionToken),
+                reason: ProtocolReason.NONE,
+                transport: packet.Protocol);
+
+            await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
         }
-
-        SessionResume ack = new();
-        ack.Initialize(
-            stage: SessionResumeStage.RESPONSE,
-            sessionToken: Snowflake.NewId(session.Snapshot.SessionToken),
-            reason: ProtocolReason.NONE,
-            transport: packet.Protocol);
-
-        return ack;
+        else
+        {
+            await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
+            return;
+        }
     }
 
     /// <summary>
@@ -75,9 +79,10 @@ public sealed class SessionHandlers
     /// </summary>
     /// <param name="connection">The connection to close.</param>
     /// <param name="reason">The failure reason to report.</param>
-    private static void SEND_FAILURE_AND_DISCONNECT(IConnection connection, ProtocolReason reason)
+    private static async ValueTask HandleFailureAsync(IConnection connection, ProtocolReason reason)
     {
-        SessionResume ack = new();
+        using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
+        SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,
             sessionToken: default,
@@ -86,7 +91,8 @@ public sealed class SessionHandlers
 
         try
         {
-            connection.TCP.Send(ack);
+            await connection.TCP.SendAsync(ack)
+                                .ConfigureAwait(false);
         }
         finally
         {

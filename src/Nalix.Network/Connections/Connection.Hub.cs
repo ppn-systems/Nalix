@@ -366,13 +366,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         SessionSnapshot snapshot = new()
         {
+            Attributes = attributes,
+            Level = connection.Level,
             SessionToken = sessionToken,
-            CreatedAtUnixMilliseconds = entry.Snapshot.CreatedAtUnixMilliseconds,
-            ExpiresAtUnixMilliseconds = entry.Snapshot.ExpiresAtUnixMilliseconds,
             Secret = [.. connection.Secret],
             Algorithm = connection.Algorithm,
-            Level = connection.Level,
-            Attributes = attributes
+            CreatedAtUnixMilliseconds = entry.Snapshot.CreatedAtUnixMilliseconds,
+            ExpiresAtUnixMilliseconds = entry.Snapshot.ExpiresAtUnixMilliseconds,
         };
 
         SessionSnapshot oldSnapshot = entry.Snapshot;
