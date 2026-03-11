@@ -481,11 +481,9 @@ public abstract partial class TcpListenerBase
                     $"accept-error port={_port}");
 
                 // Delay 50ms to avoid CPU spinning during persistent errors (eg, file descriptor explosion).
-                // WHY GetAwaiter().GetResult(): This is sync context -> blocking is correct.
-                // WHY CancellationToken.None: Do not want delays to be canceled midway -> wait for 50ms.
-                Task.Delay(50, CancellationToken.None)
-                    .GetAwaiter()
-                    .GetResult();
+                // Use Thread.Sleep because this is a synchronous wait on a background worker thread.
+                // Avoids allocating a Task object just to block.
+                Thread.Sleep(50);
             }
             finally
             {

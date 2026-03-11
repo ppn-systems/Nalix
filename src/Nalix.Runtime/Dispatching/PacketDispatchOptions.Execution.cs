@@ -49,7 +49,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.REQUEST_INVALID,
                 action: ProtocolAdvice.FIX_AND_RETRY,
-                options: new ControlDirectiveOptions(SequenceId: packet.SequenceId, Arg0: descriptor.OpCode)).ConfigureAwait(false);
+                options: new ControlDirectiveOptions(
+                    SequenceId: packet.SequenceId,
+                    Arg0: descriptor.OpCode)).ConfigureAwait(false);
 
             return;
         }
@@ -342,9 +344,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         // 3) Unauthorized / security
-        if (ex is UnauthorizedAccessException or CipherException)
+        if (ex is UnauthorizedAccessException)
         {
-            return (ProtocolReason.ACCOUNT_LOCKED, ProtocolAdvice.NONE, ControlFlags.NONE);
+            return (ProtocolReason.UNAUTHORIZED, ProtocolAdvice.NONE, ControlFlags.NONE);
+        }
+
+        if (ex is CipherException)
+        {
+            return (ProtocolReason.DECRYPTION_FAILED, ProtocolAdvice.REAUTHENTICATE, ControlFlags.NONE);
         }
 
         // 4) Unsupported / not implemented

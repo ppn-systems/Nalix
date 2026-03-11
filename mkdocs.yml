@@ -118,6 +118,7 @@ nav:
       - Configuration and Runtime: concepts/configuration-and-runtime.md
       - Real-time Engine: concepts/real-time.md
       - Security Model: concepts/security-model.md
+      - Error Reporting: concepts/error-reporting.md
       - Glossary: concepts/glossary.md
   - Guides:
     - Build a Server:

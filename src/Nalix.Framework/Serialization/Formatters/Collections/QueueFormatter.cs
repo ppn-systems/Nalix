@@ -164,14 +164,15 @@ internal sealed class QueueFormatter<
     {
         int count = reader.ReadInt32();
 
-        if (count == -1)
+        if (count == SerializerBounds.Null)
         {
             return null;
         }
 
-        if (count < -1)
+        if (count < 0 || count > SerializerBounds.MaxArray)
         {
-            throw new SerializationFailureException("Queue count out of range.");
+            throw new SerializationFailureException(
+                $"Queue count out of range: {count}. Max allowed is {SerializerBounds.MaxArray}.");
         }
 
         System.Collections.Generic.Queue<T> queue = new(count);

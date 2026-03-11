@@ -59,8 +59,16 @@ public static class PacketAwaiter
         using IDisposable subscription = client.SubscribeTemp<TPkt>(
             onMessage: packet =>
             {
-                if (!predicate(packet))
+                try
                 {
+                    if (!predicate(packet))
+                    {
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _ = tcs.TrySetException(ex);
                     return;
                 }
 

@@ -40,8 +40,12 @@ public abstract partial class Protocol : IProtocol
             args.Lease?.Retain();
             this.ProcessMessage(sender, args);
         }
-        catch (Exception ex) when (this.TryHandleProcessError(ex))
+        catch (Exception ex)
         {
+            if (this.TryHandleProcessError(args, ex))
+            {
+                // Handled / Logged as trace
+            }
         }
         finally
         {
@@ -89,7 +93,7 @@ public abstract partial class Protocol : IProtocol
         {
             _ = Interlocked.Increment(ref _totalErrors);
 
-            s_logger?.Error($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
+            args.Connection.ThrottledError(s_logger, "protocol.post_fail", $"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
             // Give the derived protocol a chance to observe the failure before the socket closes.
             this.OnConnectionError(args.Connection, ex);

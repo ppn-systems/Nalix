@@ -150,8 +150,9 @@ public static class HeaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CheckSize(ReadOnlySpan<byte> buffer, int offset, int size)
     {
-        if ((uint)offset > (uint)buffer.Length ||
-            (uint)size > (uint)(buffer.Length - offset))
+        int length = buffer.Length;
+        if ((uint)offset > (uint)length ||
+            (uint)size > (uint)(length - offset))
         {
             throw new ArgumentException($"Buffer is too small to read {size} bytes at offset {offset}.");
         }

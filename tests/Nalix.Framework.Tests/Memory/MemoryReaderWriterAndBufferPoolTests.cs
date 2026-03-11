@@ -116,12 +116,23 @@ public sealed partial class MemoryTests
     [Fact]
     public void Advance_ReaderWouldOverflow_ThrowsSerializationException()
     {
-        DataReader reader = new([1, 2]);
+        SerializationFailureException spanException = Assert.Throws<SerializationFailureException>(() =>
+        {
+            DataReader reader = new([1, 2]);
+            reader.GetSpanReference(3);
+        });
 
-        SerializationFailureException spanException = Assert.Throws<SerializationFailureException>(() => reader.GetSpanReference(3));
-        SerializationFailureException advanceException = Assert.Throws<SerializationFailureException>(() => reader.Advance(3));
-        ArgumentOutOfRangeException negativeException = Assert.Throws<ArgumentOutOfRangeException>(() => reader.Advance(-1));
-        reader.Dispose();
+        SerializationFailureException advanceException = Assert.Throws<SerializationFailureException>(() =>
+        {
+            DataReader reader = new([1, 2]);
+            reader.Advance(3);
+        });
+
+        ArgumentOutOfRangeException negativeException = Assert.Throws<ArgumentOutOfRangeException>(() =>
+        {
+            DataReader reader = new([1, 2]);
+            reader.Advance(-1);
+        });
 
         Assert.Contains("Not enough data", spanException.Message);
         Assert.Contains("Cannot advance", advanceException.Message);

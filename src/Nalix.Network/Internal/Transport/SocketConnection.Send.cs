@@ -107,8 +107,10 @@ internal sealed partial class SocketConnection
                 }
                 else
                 {
-                    _logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                    $"stackalloc-error ep={FORMAT_ENDPOINT(_socket)}", ex);
+                    _sender.ThrottledError(
+                        _logger,
+                        "socket.send.stackalloc_error",
+                        $"stackalloc-error ep={FORMAT_ENDPOINT(_socket)}", ex);
                 }
                 throw;
             }
@@ -167,8 +169,10 @@ internal sealed partial class SocketConnection
             }
             else
             {
-                _logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                $"pooled-error ep={FORMAT_ENDPOINT(_socket)}", ex);
+                _sender.ThrottledError(
+                    _logger,
+                    "socket.send.pooled_error",
+                    $"pooled-error ep={FORMAT_ENDPOINT(_socket)}", ex);
             }
             throw;
         }
@@ -265,8 +269,10 @@ internal sealed partial class SocketConnection
             }
             else
             {
-                _logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                                $"error ep={FORMAT_ENDPOINT(_socket)}", ex);
+                _sender.ThrottledError(
+                    _logger,
+                    "socket.send.error",
+                    $"error ep={FORMAT_ENDPOINT(_socket)}", ex);
             }
             throw;
         }

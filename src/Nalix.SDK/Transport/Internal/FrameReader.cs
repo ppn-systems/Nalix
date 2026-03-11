@@ -34,6 +34,13 @@ internal sealed class FrameReader : IDisposable
         StreamTimeoutMs = s_fragmentOptions.ReassemblyTimeoutMs
     };
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FrameReader"/> class.
+    /// </summary>
+    /// <param name="getSocket">A delegate that returns the active socket used for receiving data.</param>
+    /// <param name="options">The transport options used to validate inbound frame sizes.</param>
+    /// <param name="onMessage">The callback invoked when a fully processed frame is ready.</param>
+    /// <param name="onError">The callback invoked when receive processing fails.</param>
     public FrameReader(
         Func<Socket> getSocket,
         TransportOptions options,
@@ -46,6 +53,10 @@ internal sealed class FrameReader : IDisposable
         _onMessage = onMessage ?? throw new ArgumentNullException(nameof(onMessage));
     }
 
+    /// <summary>
+    /// Starts the receive loop and continues processing frames until cancellation is requested or a fatal socket error occurs.
+    /// </summary>
+    /// <param name="token">A cancellation token used to stop the receive loop.</param>
     public async Task ReceiveLoopAsync(CancellationToken token)
     {
         try
@@ -126,7 +137,7 @@ internal sealed class FrameReader : IDisposable
     {
         try
         {
-            PacketFrameTransforms.TransformInbound(ref lease, _options.Secret);
+            PacketFrameTransforms.TransformInbound(ref lease, _options);
             _onMessage(lease);
         }
         finally
@@ -150,5 +161,8 @@ internal sealed class FrameReader : IDisposable
         }
     }
 
+    /// <summary>
+    /// Releases resources used by the fragment assembler.
+    /// </summary>
     public void Dispose() => _fragmentAssembler.Dispose();
 }

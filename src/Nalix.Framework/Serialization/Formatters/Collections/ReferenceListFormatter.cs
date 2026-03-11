@@ -80,7 +80,7 @@ internal sealed class ReferenceListFormatter<
             return null!;
         }
 
-        if (count > SerializerBounds.MaxArray)
+        if (count < 0 || count > SerializerBounds.MaxArray)
         {
             throw new SerializationFailureException("Reference list length out of range.");
         }

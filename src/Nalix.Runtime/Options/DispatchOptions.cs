@@ -15,11 +15,15 @@ public sealed class DispatchOptions : ConfigurationLoader
 {
     /// <summary>
     /// Max items allowed in a single connection queue.
-    /// Set to 0 or negative to disable bounding.
+    /// Set to 0 or negative to disable bounding (NOT recommended for production).
     /// </summary>
-    [IniComment("Max items in a single connection queue (0 = unlimited)")]
+    /// <remarks>
+    /// SEC-36: Default changed from 0 (unlimited) to 4096 to prevent memory DoS.
+    /// An unbounded queue allows attackers to flood packets faster than handlers process them.
+    /// </remarks>
+    [IniComment("Max items in a single connection queue (0 = unlimited, default 4096)")]
     [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "MaxPerConnectionQueue must be -1, 0 (unlimited), or a positive value.")]
-    public int MaxPerConnectionQueue { get; init; }
+    public int MaxPerConnectionQueue { get; init; } = 4096;
 
     /// <summary>
     /// Drop strategy when the per-connection queue is full.

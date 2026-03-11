@@ -164,9 +164,10 @@ internal sealed class StackFormatter<
             return null;
         }
 
-        if (count < SerializerBounds.Null)
+        if (count is < 0 or > SerializerBounds.MaxArray)
         {
-            throw new SerializationFailureException("Stack count out of range.");
+            throw new SerializationFailureException(
+                $"Stack count out of range: {count}. Max allowed is {SerializerBounds.MaxArray}.");
         }
 
         System.Collections.Generic.Stack<T> stack = new(count);

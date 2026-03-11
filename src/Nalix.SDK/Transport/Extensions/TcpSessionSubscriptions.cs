@@ -15,9 +15,9 @@ namespace Nalix.SDK.Transport.Extensions;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Lease ownership contract: every wrapper in this class disposes the
-/// <see cref="IBufferLease"/> exactly once inside a <c>finally</c> block.
-/// Handlers receive deserialized packet objects and must NOT interact with the lease.
+/// Lease ownership contract: the <see cref="TransportSession"/> owns the
+/// <see cref="IBufferLease"/> and will dispose it after event invocation.
+/// Handlers must NOT dispose the lease; use Retain() if persistence is needed.
 /// </para>
 /// <para>
 /// Handler exceptions are caught and logged; they are never re-thrown so that the

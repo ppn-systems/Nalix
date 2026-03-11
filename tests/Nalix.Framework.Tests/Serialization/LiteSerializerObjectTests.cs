@@ -1,7 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+using System;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Common.Primitives;
 using Nalix.Framework.Identifiers;
 using Xunit;
 
@@ -12,16 +14,19 @@ public sealed class LiteSerializerObjectTests
     [Fact]
     public void SerializeDeserialize_Handshake_RoundTripsState()
     {
-        byte[] proof = new byte[32]; proof[0] = 9; proof[1] = 8; proof[2] = 7; proof[3] = 6;
-        byte[] hash = new byte[32]; "nalix-handshake"u8.CopyTo(hash);
+        Span<byte> proofArr = stackalloc byte[32]; proofArr[0] = 9; proofArr[1] = 8; proofArr[2] = 7; proofArr[3] = 6;
+        Span<byte> hashArr = stackalloc byte[32]; "nalix-handshake"u8.CopyTo(hashArr);
+
+        Fixed256 proof = new(proofArr);
+        Fixed256 hash = new(hashArr);
 
         Handshake input = new(
             stage: HandshakeStage.CLIENT_HELLO,
-            publicKey: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
-            nonce: [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+            publicKey: new Fixed256([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]),
+            nonce: new Fixed256([32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]),
             proof: proof,
             transport: ProtocolType.TCP);
-        input.UpdateTranscriptHash(hash);
+        input.TranscriptHash = hash;
         input.SessionToken = Snowflake.NewId(0x01020304, 0x0506, (Nalix.Common.Identity.SnowflakeType)0x07);
 
         Handshake? output = null;

@@ -259,8 +259,8 @@ public sealed class NetworkClientService : INetworkClientService
                 throw new NetworkException("No valid session state (token/secret) available to resume. Please perform a handshake first.");
             }
 
-            bool success = await tcpSession.ResumeSessionAsync(cancellationToken).ConfigureAwait(false);
-            if (success)
+            ProtocolReason reason = await tcpSession.ResumeSessionAsync(cancellationToken).ConfigureAwait(false);
+            if (reason == ProtocolReason.NONE)
             {
                 // Update persisted token if server assigned a new one during resume
                 _savedSessionToken = tcpSession.Options.SessionToken;
@@ -268,7 +268,10 @@ public sealed class NetworkClientService : INetworkClientService
             }
             else
             {
-                throw new NetworkException("The server rejected the session resume request (session may have expired).");
+                throw new NetworkException(string.Format(
+                    CultureInfo.CurrentCulture,
+                    _configurationService.Texts.StatusResumeFailedFormat,
+                    reason));
             }
         }
         else

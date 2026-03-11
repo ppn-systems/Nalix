@@ -87,9 +87,14 @@ public abstract partial class TcpListenerBase
         // The consumer thread will drain the remaining items and then exit the loop.
         _ = (_processChannel?.Writer.TryComplete());
 
-        // Join with a 5-second timeout -> avoids an infinite block if the consumer thread freezes.
-        // WHY 5 seconds: Enough time for the consumer to drain all remaining items in the queue when shutting down.
-        _ = (_processThread?.Join(millisecondsTimeout: 5_000));
+        // Join with a 10-second timeout -> avoids an infinite block if the consumer thread freezes.
+        // WHY 10 seconds: Enough time for the consumer to drain all remaining items in the queue when shutting down.
+        if (_processThread != null && !_processThread.Join(millisecondsTimeout: 10_000))
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(STOP_PROCESS_CHANNEL)}] " +
+                $"consumer-thread-join-timeout port={_port} - thread may still be running");
+        }
     }
 
     #endregion Lifecycle
@@ -248,6 +253,8 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex)
         {
+            this.Metrics.RECORD_ERROR();
+
             s_logger?.Error(
                 ex,
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] " +

@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.Intrinsics;
+using Nalix.Common.Primitives;
 
 namespace Nalix.Framework.Security.Hashing;
 
@@ -125,6 +126,21 @@ public static class Keccak256
     #endregion Precomputed Tables (immutable)
 
     #region Public Static API
+
+    /// <summary>
+    /// Computes a Keccak-256 digest of <paramref name="data"/> and returns it as a <see cref="Fixed256"/> struct.
+    /// <b>Zero heap allocation.</b>
+    /// </summary>
+    /// <param name="data">Input bytes to hash.</param>
+    /// <returns>A <see cref="Fixed256"/> containing the Keccak-256 digest.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public static Fixed256 HashDataToFixed(ReadOnlySpan<byte> data)
+    {
+        Span<byte> hash = stackalloc byte[HashSizeBytes];
+        HashData(data, hash);
+        return new Fixed256(hash);
+    }
 
     /// <summary>
     /// Computes a Keccak-256 digest of <paramref name="data"/> and returns a new 32-byte array.

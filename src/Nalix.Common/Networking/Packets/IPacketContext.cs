@@ -3,6 +3,7 @@
 
 using System.Threading;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Networking.Protocols;
 
 namespace Nalix.Common.Networking.Packets;
 
@@ -17,6 +18,11 @@ namespace Nalix.Common.Networking.Packets;
 /// </remarks>
 public interface IPacketContext<TPacket> : IPoolable where TPacket : IPacket
 {
+    /// <summary>
+    /// Gets the transport protocol (TCP/UDP) over which the packet was received.
+    /// </summary>
+    ProtocolType Protocol { get; }
+
     /// <summary>
     /// If true, outbound middlewares will be skipped for this context.
     /// </summary>

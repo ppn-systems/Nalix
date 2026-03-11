@@ -2,6 +2,7 @@
 using System;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Xunit;
@@ -97,23 +98,14 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void ResetForPoolWhenHandshakeContainsDataClearsPayload()
     {
-        Handshake packet = new(HandshakeStage.CLIENT_HELLO, new byte[32], new byte[32], transport: ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.CLIENT_HELLO, Fixed256.Empty, Fixed256.Empty, transport: ProtocolType.UDP);
 
         packet.ResetForPool();
 
-        Assert.NotNull(packet.PublicKey);
-        Assert.NotNull(packet.Nonce);
-        Assert.NotNull(packet.Proof);
-        Assert.NotNull(packet.TranscriptHash);
-        Assert.Equal(Handshake.DynamicSize, packet.PublicKey.Length);
-        Assert.Equal(Handshake.DynamicSize, packet.Nonce.Length);
-        Assert.Equal(Handshake.DynamicSize, packet.Proof.Length);
-        Assert.Equal(Handshake.DynamicSize, packet.TranscriptHash.Length);
-        
-        Assert.All(packet.PublicKey, b => Assert.Equal(0, b));
-        Assert.All(packet.Nonce, b => Assert.Equal(0, b));
-        Assert.All(packet.Proof, b => Assert.Equal(0, b));
-        Assert.All(packet.TranscriptHash, b => Assert.Equal(0, b));
+        Assert.True(packet.PublicKey.IsEmpty);
+        Assert.True(packet.Nonce.IsEmpty);
+        Assert.True(packet.Proof.IsEmpty);
+        Assert.True(packet.TranscriptHash.IsEmpty);
         Assert.Equal(HandshakeStage.NONE, packet.Stage);
         Assert.Equal(PacketFlags.NONE, packet.Flags);
         Assert.Equal(PacketPriority.URGENT, packet.Priority);
@@ -156,7 +148,7 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void HandshakeLengthWhenHandshakePayloadExistsMatchesActualSerializedBytes()
     {
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, new byte[32], new byte[32], new byte[32], ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, Fixed256.Empty, Fixed256.Empty, Fixed256.Empty, ProtocolType.UDP);
         packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
 
         byte[] bytes = packet.Serialize();
@@ -167,7 +159,7 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void HandshakeSerializeIntoLengthSizedBufferWhenHandshakePayloadExistsSucceeds()
     {
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, new byte[32], new byte[32], new byte[32], ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, Fixed256.Empty, Fixed256.Empty, Fixed256.Empty, ProtocolType.UDP);
         packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
 
         byte[] buffer = new byte[packet.Length];

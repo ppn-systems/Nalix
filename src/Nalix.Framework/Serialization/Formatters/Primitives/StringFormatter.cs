@@ -111,7 +111,7 @@ public sealed class StringFormatter : IFormatter<string>
         }
 
         // Reject corrupt or oversized payloads before we slice the input buffer.
-        if (length > SerializerBounds.MaxString)
+        if (length < 0 || length > SerializerBounds.MaxString)
         {
             throw new SerializationFailureException("String length out of range");
         }
