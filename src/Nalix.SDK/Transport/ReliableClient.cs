@@ -15,9 +15,9 @@ using Nalix.Framework.Random;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.SDK.Configuration;
-// Added for control-frame heartbeat support
 using Nalix.SDK.Transport.Extensions;
 using Nalix.SDK.Transport.Internal;
+using Nalix.Shared.Frames.Controls;
 
 namespace Nalix.SDK.Transport;
 
@@ -77,6 +77,11 @@ public sealed class ReliableClient : IClientConnection
     private System.Int64 _lastSendBps;
     private System.Int64 _lastReceiveBps;
 
+    // RTT (ms) của lần heartbeat gần nhất
+    private System.Double _lastHeartbeatRtt;
+    private Control _lastHeartbeatPong;
+    private readonly System.Threading.Lock _heartbeatLock = new();
+
     // Cached logger — resolved once to avoid repeated DI lookups on hot paths.
     private readonly ILogger _log;
 
@@ -121,6 +126,22 @@ public sealed class ReliableClient : IClientConnection
 
     /// <inheritdoc/>
     ITransportOptions IClientConnection.Options => this.Options;
+
+    /// <summary>
+    /// RTT (ms) of the most recent heartbeat (if not available, value = 0)
+    /// </summary>
+    public System.Double LastHeartbeatRtt
+    {
+        get { lock (_heartbeatLock) { return _lastHeartbeatRtt; } }
+    }
+
+    /// <summary>
+    /// The most recent PONG control packet received (or null if not received)
+    /// </summary>
+    public Control LastHeartbeatPong
+    {
+        get { lock (_heartbeatLock) { return _lastHeartbeatPong; } }
+    }
 
     /// <inheritdoc/>
     public System.Boolean IsConnected
@@ -379,7 +400,7 @@ public sealed class ReliableClient : IClientConnection
     {
         try
         {
-            _rateSamplerName = $"ClientRateSampler-{addr}:{port}";
+            _rateSamplerName = $"ReliableClient-{addr}:{port}";
 
             InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: _rateSamplerName,
@@ -390,7 +411,7 @@ public sealed class ReliableClient : IClientConnection
                         workerCt.CanBeCanceled ? workerCt : loopToken;
                     await RATE_SAMPLER_TICK_ASYNC(effective).ConfigureAwait(false);
                 },
-                options: new RecurringOptions { NonReentrant = true, Tag = "ClientRateSampler" }
+                options: new RecurringOptions { NonReentrant = true, Tag = TaskNaming.Tags.Service }
             );
         }
         catch (System.Exception ex)
@@ -417,15 +438,15 @@ public sealed class ReliableClient : IClientConnection
         try
         {
             _receiveHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                name: $"ClientReceiver-{addr}:{port}",
-                group: "ClientConnection",
+                name: $"ReliableClient-{addr}:{port}",
+                group: "client",
                 work: async (_, workerCt) =>
                 {
                     System.Threading.CancellationToken effective =
                         workerCt.CanBeCanceled ? workerCt : loopToken;
                     await _receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
                 },
-                options: new WorkerOptions { CancellationToken = loopToken, Tag = "ClientReceiver" }
+                options: new WorkerOptions { CancellationToken = loopToken, Tag = TaskNaming.Tags.Service }
             );
         }
         catch (System.Exception ex)
@@ -446,9 +467,9 @@ public sealed class ReliableClient : IClientConnection
     /// No-op when <see cref="TransportOptions.KeepAliveIntervalMillis"/> is zero.
     /// </summary>
     private void START_HEARTBEAT(
-        System.Net.IPAddress addr,
-        System.UInt16 port,
-        System.Threading.CancellationToken loopToken)
+    System.Net.IPAddress addr,
+    System.UInt16 port,
+    System.Threading.CancellationToken loopToken)
     {
         if (Options.KeepAliveIntervalMillis <= 0)
         {
@@ -460,57 +481,71 @@ public sealed class ReliableClient : IClientConnection
 
         try
         {
-            _heartbeatName = $"ClientHeartbeat-{addr}:{port}";
+            _heartbeatName = $"ReliableClient-Heartbeat-{addr}:{port}";
 
             InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: _heartbeatName,
                 interval: interval,
                 work: async (workerCt) =>
                 {
+                    System.UInt32 sequenceId = Csprng.NextUInt32();
                     System.Threading.CancellationToken effective = workerCt.CanBeCanceled ? workerCt : loopToken;
                     try
                     {
-                        // Send a CONTROL PING as heartbeat using the control extension helper.
-                        await this.SendControlAsync(
-                            opCode: 100,
-                            type: ControlType.PING,
-                            configure: ctrl =>
-                            {
-                                // Assign a cryptographically-random sequence id to avoid collisions.
-                                ctrl.SequenceId = 101_010;
-                                // Use TCP as the transport for the heartbeat control frame.
-                                ctrl.Protocol = ProtocolType.TCP;
-                                // Stamp monotonic and wall-clock times for robust server-side RTT measurement/echo.
-                                ctrl.MonoTicks = Clock.MonoTicksNow();
-                                ctrl.Timestamp = Clock.UnixMillisecondsNow();
-                            },
-                            ct: effective
-                        ).ConfigureAwait(false);
+                        // Build PING — dùng như ControlExtensions PingAsync nhưng không cần trả về tuple.
+                        Control ping = this.NewControl(0, ControlType.PING)
+                            .WithSeq(sequenceId)
+                            .StampNow()
+                            .Build();
+                        System.Int64 sendMono = ping.MonoTicks != 0 ? ping.MonoTicks : Clock.MonoTicksNow();
+
+                        await this.SendAsync(ping, effective).ConfigureAwait(false);
+
+                        var pong = await this.AwaitControlAsync(
+                            predicate: c => c.Type == ControlType.PONG && c.SequenceId == sequenceId,
+                            timeoutMs: Options.KeepAliveIntervalMillis / 2 > 3000 ? Options.KeepAliveIntervalMillis / 2 : 3000,
+                            ct: effective).ConfigureAwait(false);
+
+                        // Đo RTT
+                        System.Int64 nowMono = Clock.MonoTicksNow();
+                        System.Double rtt = pong.MonoTicks > 0 && pong.MonoTicks <= nowMono ? Clock.MonoTicksToMilliseconds(nowMono - pong.MonoTicks) : Clock.MonoTicksToMilliseconds(nowMono - sendMono);
+
+                        // Ghi nhận kết quả vào field (bảo vệ thread-safe)
+                        lock (_heartbeatLock)
+                        {
+                            _lastHeartbeatRtt = rtt;
+                            _lastHeartbeatPong = pong;
+                        }
                     }
                     catch (System.OperationCanceledException) when (effective.IsCancellationRequested)
                     {
-                        // Cancellation is expected during disconnect; swallow.
+                        // Cancellation là bình thường.
+                    }
+                    catch (System.TimeoutException)
+                    {
+                        // Nếu timeout không nhận được pong, nên xóa đi thông tin cũ cho an toàn.
+                        lock (_heartbeatLock)
+                        {
+                            _lastHeartbeatRtt = 0;
+                            _lastHeartbeatPong = null;
+                        }
+                        _log?.Warn($"[SDK.{nameof(ReliableClient)}] heartbeat PONG timeout.");
                     }
                     catch (System.Exception ex)
                     {
-                        _log?.Warn(
-                            $"[SDK.{nameof(ReliableClient)}] heartbeat-send-error: {ex.Message}");
+                        _log?.Warn($"[SDK.{nameof(ReliableClient)}] heartbeat-send-or-pong-error: {ex.Message}");
 
                         try { OnError?.Invoke(this, ex); } catch { }
                         _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
                     }
                 },
-                options: new RecurringOptions { NonReentrant = true, Tag = "ClientHeartbeat" }
+                options: new RecurringOptions { NonReentrant = true, Tag = TaskNaming.Tags.Service }
             );
         }
         catch (System.Exception ex)
         {
-            _log?.Warn(
-                $"[SDK.{nameof(ReliableClient)}] schedule-heartbeat-failed; falling back to loop. ex={ex.Message}");
-
-            _ = System.Threading.Tasks.Task.Run(
-                () => HEARTBEAT_LOOP_ASYNC(loopToken),
-                System.Threading.CancellationToken.None);
+            _log?.Warn($"[SDK.{nameof(ReliableClient)}] schedule-heartbeat-failed; falling back to loop. ex={ex.Message}");
+            _ = System.Threading.Tasks.Task.Run(() => HEARTBEAT_LOOP_ASYNC(loopToken), System.Threading.CancellationToken.None);
         }
     }
 
@@ -532,23 +567,24 @@ public sealed class ReliableClient : IClientConnection
         // Cancel TaskManager handles (best-effort; individual failures must not abort cleanup).
         try
         {
-            TaskManager taskMgr = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
-
             if (_heartbeatName is not null)
             {
-                _ = taskMgr.CancelRecurring(_heartbeatName);
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                            .CancelRecurring(_heartbeatName);
                 _heartbeatName = null;
             }
 
             if (_rateSamplerName is not null)
             {
-                _ = taskMgr.CancelRecurring(_rateSamplerName);
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                            .CancelRecurring(_rateSamplerName);
                 _rateSamplerName = null;
             }
 
             if (_receiveHandle is not null)
             {
-                _ = taskMgr.CancelWorker(_receiveHandle.Id);
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                            .CancelWorker(_receiveHandle.Id);
                 _receiveHandle = null;
             }
         }
