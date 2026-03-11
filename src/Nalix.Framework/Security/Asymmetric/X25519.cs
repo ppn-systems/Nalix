@@ -27,12 +27,12 @@ public static class X25519
         /// <summary>
         /// The private key (32 bytes).
         /// </summary>
-        public Fixed256 PrivateKey { get; set; }
+        public Bytes32 PrivateKey { get; set; }
 
         /// <summary>
         /// The public key (32 bytes).
         /// </summary>
-        public Fixed256 PublicKey { get; set; }
+        public Bytes32 PublicKey { get; set; }
     }
 
     /// <summary>
@@ -50,8 +50,8 @@ public static class X25519
         priv[31] &= 127;
         priv[31] |= 64;
 
-        X25519KeyPair key = new() { PrivateKey = new Fixed256(priv) };
-        key.PublicKey = new Fixed256(Curve25519.ScalarMultiplication(priv, Curve25519.Basepoint));
+        X25519KeyPair key = new() { PrivateKey = new Bytes32(priv) };
+        key.PublicKey = new Bytes32(Curve25519.ScalarMultiplication(priv, Curve25519.Basepoint));
         return key;
     }
 
@@ -61,10 +61,10 @@ public static class X25519
     /// <param name="privateKey">The 32-byte private key used to derive the key pair.</param>
     /// <returns>An <see cref="X25519KeyPair"/> instance initialized with the provided private key and its derived public key.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static X25519KeyPair GenerateKeyFromPrivateKey(Fixed256 privateKey)
+    public static X25519KeyPair GenerateKeyFromPrivateKey(Bytes32 privateKey)
     {
         X25519KeyPair key = new() { PrivateKey = privateKey };
-        key.PublicKey = new Fixed256(Curve25519.ScalarMultiplication(privateKey.AsSpan(), Curve25519.Basepoint));
+        key.PublicKey = new Bytes32(Curve25519.ScalarMultiplication(privateKey.AsSpan(), Curve25519.Basepoint));
         return key;
     }
 
@@ -76,8 +76,8 @@ public static class X25519
     /// <param name="otherPublicKey">The remote 32-byte public key.</param>
     /// <returns>A 32-byte shared secret that can be used for session key derivation.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static Fixed256 Agreement(Fixed256 myPrivateKey, Fixed256 otherPublicKey)
+    public static Bytes32 Agreement(Bytes32 myPrivateKey, Bytes32 otherPublicKey)
     {
-        return new Fixed256(Curve25519.ScalarMultiplication(myPrivateKey.AsSpan(), otherPublicKey.AsSpan()));
+        return new Bytes32(Curve25519.ScalarMultiplication(myPrivateKey.AsSpan(), otherPublicKey.AsSpan()));
     }
 }

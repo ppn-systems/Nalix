@@ -69,10 +69,10 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         PacketConstants.HeaderSize +
         sizeof(HandshakeStage) +    // Stage
         sizeof(ProtocolReason) +    // Reason
-        Fixed256.Size +             // PublicKey
-        Fixed256.Size +             // Nonce
-        Fixed256.Size +             // Proof
-        Fixed256.Size +             // TranscriptHash
+        Bytes32.Size +             // PublicKey
+        Bytes32.Size +             // Nonce
+        Bytes32.Size +             // Proof
+        Bytes32.Size +             // TranscriptHash
         Snowflake.Size;             // SessionToken
 
     [SerializeOrder(0)]
@@ -96,26 +96,26 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// X25519 public keys are expected to be 32 bytes.
     /// </summary>
     [SerializeOrder(3)]
-    public Fixed256 PublicKey { get; set; }
+    public Bytes32 PublicKey { get; set; }
 
     /// <summary>
     /// Gets or sets the handshake nonce or challenge bytes.
     /// </summary>
     [SerializeOrder(4)]
-    public Fixed256 Nonce { get; set; }
+    public Bytes32 Nonce { get; set; }
 
     /// <summary>
     /// Gets or sets the proof bytes for the current stage.
     /// This is typically a MAC or transcript-derived verifier.
     /// </summary>
     [SerializeOrder(5)]
-    public Fixed256 Proof { get; set; }
+    public Bytes32 Proof { get; set; }
 
     /// <summary>
     /// Gets or sets the Keccak-256 transcript hash associated with the handshake state.
     /// </summary>
     [SerializeOrder(6)]
-    public Fixed256 TranscriptHash { get; set; }
+    public Bytes32 TranscriptHash { get; set; }
 
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with default transport metadata.
@@ -132,9 +132,9 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <param name="transport">The transport protocol.</param>
     public Handshake(
         HandshakeStage stage,
-        Fixed256 publicKey,
-        Fixed256 nonce,
-        Fixed256? proof = null,
+        Bytes32 publicKey,
+        Bytes32 nonce,
+        Bytes32? proof = null,
         ProtocolType transport = ProtocolType.TCP) : this()
         => this.Initialize(stage, publicKey, nonce, proof, transport);
 
@@ -148,9 +148,9 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <param name="transport">The transport protocol.</param>
     public void Initialize(
         HandshakeStage stage,
-        Fixed256 publicKey,
-        Fixed256 nonce,
-        Fixed256? proof = null,
+        Bytes32 publicKey,
+        Bytes32 nonce,
+        Bytes32? proof = null,
         ProtocolType transport = ProtocolType.TCP)
     {
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
@@ -161,8 +161,8 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         this.Reason = ProtocolReason.NONE;
         this.PublicKey = publicKey;
         this.Nonce = nonce;
-        this.Proof = proof ?? Fixed256.Empty;
-        this.TranscriptHash = Fixed256.Empty;
+        this.Proof = proof ?? Bytes32.Zero;
+        this.TranscriptHash = Bytes32.Zero;
         this.SessionToken = Snowflake.Empty;
     }
 
@@ -177,10 +177,10 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         this.Priority = PacketPriority.URGENT;
         this.Reason = reason;
         
-        this.PublicKey = Fixed256.Empty;
-        this.Nonce = Fixed256.Empty;
-        this.Proof = Fixed256.Empty;
-        this.TranscriptHash = Fixed256.Empty;
+        this.PublicKey = Bytes32.Zero;
+        this.Nonce = Bytes32.Zero;
+        this.Proof = Bytes32.Zero;
+        this.TranscriptHash = Bytes32.Zero;
         this.SessionToken = Snowflake.Empty;
     }
 
@@ -188,7 +188,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// Validates if a hello packet has the correct cryptographic lengths.
     /// </summary>
     public static bool IsValid(Handshake packet)
-        => packet != null && !packet.PublicKey.IsEmpty && !packet.Nonce.IsEmpty;
+        => packet != null && !packet.PublicKey.IsZero && !packet.Nonce.IsZero;
 
     /// <summary>
     /// Computes the Keccak-256 transcript hash for the provided bytes.
@@ -196,7 +196,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <param name="transcript">Handshake transcript bytes.</param>
     /// <returns>A 32-byte Keccak-256 hash.</returns>
     [return: NotNull]
-    public static Fixed256 ComputeTranscriptHash(ReadOnlySpan<byte> transcript)
+    public static Bytes32 ComputeTranscriptHash(ReadOnlySpan<byte> transcript)
         => Keccak256.HashDataToFixed(transcript);
 
     /// <summary>
@@ -224,10 +224,10 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = HandshakeStage.NONE;
         this.Reason = ProtocolReason.NONE;
-        this.PublicKey = Fixed256.Empty;
-        this.Nonce = Fixed256.Empty;
-        this.Proof = Fixed256.Empty;
-        this.TranscriptHash = Fixed256.Empty;
+        this.PublicKey = Bytes32.Zero;
+        this.Nonce = Bytes32.Zero;
+        this.Proof = Bytes32.Zero;
+        this.TranscriptHash = Bytes32.Zero;
         this.SessionToken = Snowflake.Empty;
         this.Priority = PacketPriority.URGENT;
     }

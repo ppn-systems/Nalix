@@ -10,8 +10,8 @@ public sealed class BenchServiceA { }
 public sealed class BenchServiceB { }
 public sealed class BenchServiceC { }
 
-public interface IBenchService { }
-public sealed class BenchServiceWithIface : IBenchService { }
+public interface IBenchService { void NoOp(); }
+public sealed class BenchServiceWithIface : IBenchService { public void NoOp() { } }
 
 public sealed class BenchServiceWithArgs(int value, string name)
 {
@@ -73,10 +73,10 @@ public class InstanceManagerBenchmarks : NalixBenchmarkBase
     public BenchServiceA? ResolveGenericSlot() => _manager.GetOrCreateInstance<BenchServiceA>();
 
     [BenchmarkCategory("Resolve"), Benchmark(Description = "Resolve (Dictionary Hit)")]
-    public object ResolveDictionary() => _manager.GetOrCreateInstance(typeof(BenchServiceC));
+    public BenchServiceC? ResolveDictionary() => _manager.GetOrCreateInstance<BenchServiceC>();
 
     [BenchmarkCategory("Resolve"), Benchmark(Description = "Resolve (Signature Cache Hit)")]
-    public object ResolveSignatureCache() => _manager.GetOrCreateInstance(typeof(BenchServiceWithArgs), s_ctorArgs);
+    public BenchServiceWithArgs? ResolveSignatureCache() => _manager.GetOrCreateInstance<BenchServiceWithArgs>(s_ctorArgs);
 
     [BenchmarkCategory("Access"), Benchmark(Description = "Access (Generic Slot Hit)")]
     public BenchServiceA? AccessGenericSlot() => _manager.GetExistingInstance<BenchServiceA>();

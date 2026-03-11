@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.DataFrames.Transforms;
@@ -34,7 +35,12 @@ public class FrameTransformerBenchmarks : NalixBenchmarkBase
         }
 
         Handshake frame = new();
-        frame.Initialize(HandshakeStage.SERVER_HELLO, Csprng.GetBytes(32), Csprng.GetBytes(32), Csprng.GetBytes(32), ProtocolType.TCP);
+        frame.Initialize(
+            HandshakeStage.SERVER_HELLO,
+            new Bytes32(Csprng.GetBytes(32)),
+            new Bytes32(Csprng.GetBytes(32)),
+            new Bytes32(Csprng.GetBytes(32)),
+            ProtocolType.TCP);
         frame.Flags = PacketFlags.NONE;
         _rawPacket = frame.Serialize();
 
@@ -51,14 +57,14 @@ public class FrameTransformerBenchmarks : NalixBenchmarkBase
         _encrypted.Dispose();
     }
 
-    [Benchmark]
+    [BenchmarkCategory("Transformation"), Benchmark(Description = "Compress Frame (LZ4)")]
     public int CompressFrame()
     {
         FrameTransformer.Compress(_source, _compressed);
         return _compressed.Length;
     }
 
-    [Benchmark]
+    [BenchmarkCategory("Transformation"), Benchmark(Description = "Encrypt Frame (ChaCha20-Poly1305)")]
     public int EncryptFrame()
     {
         FrameTransformer.Encrypt(_source, _encrypted, _key, CipherSuiteType.Chacha20Poly1305);

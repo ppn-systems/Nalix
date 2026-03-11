@@ -28,37 +28,37 @@ public static class HandshakeX25519
     /// <summary>
     /// Computes the server proof over the negotiated shared secret and transcript hash.
     /// </summary>
-    public static Fixed256 ComputeServerProof(Fixed256 sharedSecret, Fixed256 transcriptHash)
+    public static Bytes32 ComputeServerProof(Bytes32 sharedSecret, Bytes32 transcriptHash)
         => ComputeDigest(ServerProofLabel, sharedSecret.AsSpan(), transcriptHash.AsSpan());
 
     /// <summary>
     /// Computes the client proof over the negotiated shared secret and transcript hash.
     /// </summary>
-    public static Fixed256 ComputeClientProof(Fixed256 sharedSecret, Fixed256 transcriptHash)
+    public static Bytes32 ComputeClientProof(Bytes32 sharedSecret, Bytes32 transcriptHash)
         => ComputeDigest(ClientProofLabel, sharedSecret.AsSpan(), transcriptHash.AsSpan());
 
     /// <summary>
     /// Computes the final server acknowledgement proof over the negotiated shared secret and transcript hash.
     /// </summary>
-    public static Fixed256 ComputeServerFinishProof(Fixed256 sharedSecret, Fixed256 transcriptHash)
+    public static Bytes32 ComputeServerFinishProof(Bytes32 sharedSecret, Bytes32 transcriptHash)
         => ComputeDigest(ServerFinishLabel, sharedSecret.AsSpan(), transcriptHash.AsSpan());
 
     /// <summary>
     /// Derives the session key that should be assigned to the connection.
     /// </summary>
-    public static Fixed256 DeriveSessionKey(Fixed256 sharedSecret, Fixed256 clientNonce, Fixed256 serverNonce, Fixed256 transcriptHash)
+    public static Bytes32 DeriveSessionKey(Bytes32 sharedSecret, Bytes32 clientNonce, Bytes32 serverNonce, Bytes32 transcriptHash)
         => ComputeDigest(SessionLabel, sharedSecret.AsSpan(), clientNonce.AsSpan(), serverNonce.AsSpan(), transcriptHash.AsSpan());
 
     /// <summary>
     /// Composes the initial transcript buffer from public keys and nonces to compute the transcript hash.
     /// </summary>
-    public static byte[] ComposeTranscriptBuffer(Fixed256 clientPublicKey, Fixed256 clientNonce, Fixed256 serverPublicKey, Fixed256 serverNonce)
+    public static byte[] ComposeTranscriptBuffer(Bytes32 clientPublicKey, Bytes32 clientNonce, Bytes32 serverPublicKey, Bytes32 serverNonce)
     {
         int total = (sizeof(int) * 4)
-            + Fixed256.Size
-            + Fixed256.Size
-            + Fixed256.Size
-            + Fixed256.Size;
+            + Bytes32.Size
+            + Bytes32.Size
+            + Bytes32.Size
+            + Bytes32.Size;
 
         byte[] buffer = GC.AllocateUninitializedArray<byte>(total);
         Span<byte> destination = buffer;
@@ -76,7 +76,7 @@ public static class HandshakeX25519
 
     #region Private Helpers
 
-    private static Fixed256 ComputeDigest(ReadOnlySpan<byte> label, ReadOnlySpan<byte> segment0, ReadOnlySpan<byte> segment1)
+    private static Bytes32 ComputeDigest(ReadOnlySpan<byte> label, ReadOnlySpan<byte> segment0, ReadOnlySpan<byte> segment1)
     {
         int total = (sizeof(int) * 3) + label.Length + segment0.Length + segment1.Length;
 
@@ -91,7 +91,7 @@ public static class HandshakeX25519
         return Keccak256.HashDataToFixed(buffer);
     }
 
-    private static Fixed256 ComputeDigest(ReadOnlySpan<byte> label, ReadOnlySpan<byte> segment0, ReadOnlySpan<byte> segment1, ReadOnlySpan<byte> segment2, ReadOnlySpan<byte> segment3)
+    private static Bytes32 ComputeDigest(ReadOnlySpan<byte> label, ReadOnlySpan<byte> segment0, ReadOnlySpan<byte> segment1, ReadOnlySpan<byte> segment2, ReadOnlySpan<byte> segment3)
     {
         int total = (sizeof(int) * 5)
             + label.Length

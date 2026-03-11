@@ -24,7 +24,7 @@ public class DataWriterBenchmarks : NalixBenchmarkBase
         System.Random.Shared.NextBytes(_payload);
     }
 
-    [Benchmark]
+    [BenchmarkCategory("Writing"), Benchmark(Baseline = true, Description = "Write (Pre-allocated)")]
     public int WriteWithRentedBuffer()
     {
         using DataWriter writer = new(PayloadBytes);
@@ -33,7 +33,7 @@ public class DataWriterBenchmarks : NalixBenchmarkBase
         return writer.WrittenCount;
     }
 
-    [Benchmark]
+    [BenchmarkCategory("Writing"), Benchmark(Description = "Write (Expand Strategy)")]
     public int ExpandThenWrite()
     {
         using DataWriter writer = new(32);
@@ -43,7 +43,7 @@ public class DataWriterBenchmarks : NalixBenchmarkBase
         return writer.WrittenCount;
     }
 
-    [Benchmark]
+    [BenchmarkCategory("Writing"), Benchmark(Description = "Write (Fixed Buffer)")]
     public int WriteWithFixedArray()
     {
         using DataWriter writer = new(_fixedBuffer);

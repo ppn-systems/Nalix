@@ -109,10 +109,10 @@ public sealed class PacketRegistryTests : IDisposable
         Span<byte> hashArr = stackalloc byte[32];
         hashArr[0] = 0x01; hashArr[1] = 0x02; hashArr[2] = 0x03; hashArr[3] = 0xDE; hashArr[4] = 0xAD; hashArr[5] = 0xBE; hashArr[6] = 0xEF;
 
-        Fixed256 publicKey = new(publicKeyArr);
-        Fixed256 nonce = new(nonceArr);
-        Fixed256 proof = new(proofArr);
-        Fixed256 hash = new(hashArr);
+        Bytes32 publicKey = new(publicKeyArr);
+        Bytes32 nonce = new(nonceArr);
+        Bytes32 proof = new(proofArr);
+        Bytes32 hash = new(hashArr);
 
         Handshake original = new(
             stage: HandshakeStage.CLIENT_HELLO,
@@ -162,9 +162,9 @@ public sealed class PacketRegistryTests : IDisposable
     {
         Handshake original = new(
             stage: HandshakeStage.CLIENT_HELLO,
-            publicKey: Fixed256.Empty,
-            nonce: Fixed256.Empty,
-            proof: Fixed256.Empty,
+            publicKey: Bytes32.Zero,
+            nonce: Bytes32.Zero,
+            proof: Bytes32.Zero,
             transport: ProtocolType.UDP);
         byte[] bytes = original.Serialize();
 
@@ -172,10 +172,10 @@ public sealed class PacketRegistryTests : IDisposable
 
         Handshake result = Assert.IsType<Handshake>(packet);
         
-        Assert.True(result.PublicKey.IsEmpty);
-        Assert.True(result.Nonce.IsEmpty);
-        Assert.True(result.Proof.IsEmpty);
-        Assert.True(result.TranscriptHash.IsEmpty);
+        Assert.True(result.PublicKey.IsZero);
+        Assert.True(result.Nonce.IsZero);
+        Assert.True(result.Proof.IsZero);
+        Assert.True(result.TranscriptHash.IsZero);
     }
 
     [Fact]

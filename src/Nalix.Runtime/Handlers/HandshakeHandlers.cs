@@ -92,17 +92,17 @@ public sealed class HandshakeHandlers
         }
 
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
-        Fixed256 sharedSecret = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
+        Bytes32 sharedSecret = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
 
-        if (sharedSecret.IsEmpty)
+        if (sharedSecret.IsZero)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
             return;
         }
 
-        Fixed256 serverNonce = new(Csprng.GetBytes(Fixed256.Size));
+        Bytes32 serverNonce = new(Csprng.GetBytes(Bytes32.Size));
 
-        Fixed256 transcriptHash = Handshake.ComputeTranscriptHash(
+        Bytes32 transcriptHash = Handshake.ComputeTranscriptHash(
             HandshakeX25519.ComposeTranscriptBuffer(
                 packet.PublicKey,
                 packet.Nonce,
@@ -142,13 +142,13 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        if (packet.Proof.IsEmpty || packet.TranscriptHash.IsEmpty)
+        if (packet.Proof.IsZero || packet.TranscriptHash.IsZero)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
 
-        Fixed256 expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
+        Bytes32 expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
         if (packet.Proof != expectedProof)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
@@ -176,8 +176,8 @@ public sealed class HandshakeHandlers
         using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
         Handshake reply = lease.Value;
         reply.Stage = HandshakeStage.SERVER_FINISH;
-        reply.PublicKey = Fixed256.Empty;
-        reply.Nonce = Fixed256.Empty;
+        reply.PublicKey = Bytes32.Zero;
+        reply.Nonce = Bytes32.Zero;
         reply.Proof = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
         reply.Protocol = packet.Protocol;
         reply.TranscriptHash = state.TranscriptHash;
@@ -221,13 +221,13 @@ public sealed class HandshakeHandlers
 
     private sealed class HandshakeContext
     {
-        public Fixed256 ClientPublicKey { get; init; }
-        public Fixed256 ClientNonce { get; init; }
-        public Fixed256 ServerPublicKey { get; init; }
-        public Fixed256 ServerNonce { get; init; }
-        public Fixed256 SharedSecret { get; init; }
-        public Fixed256 TranscriptHash { get; init; }
-        public Fixed256 SessionKey { get; init; }
+        public Bytes32 ClientPublicKey { get; init; }
+        public Bytes32 ClientNonce { get; init; }
+        public Bytes32 ServerPublicKey { get; init; }
+        public Bytes32 ServerNonce { get; init; }
+        public Bytes32 SharedSecret { get; init; }
+        public Bytes32 TranscriptHash { get; init; }
+        public Bytes32 SessionKey { get; init; }
     }
 
     #endregion Private Methods
