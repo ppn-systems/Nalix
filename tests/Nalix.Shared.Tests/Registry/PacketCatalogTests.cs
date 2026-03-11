@@ -28,7 +28,8 @@ public sealed class PacketCatalogTests : System.IDisposable
 {
     #region Setup
 
-    private readonly IPacketCatalog _catalog;
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
+    private readonly IPacketRegistry _catalog;
 
     public PacketCatalogTests()
     {
@@ -56,10 +57,10 @@ public sealed class PacketCatalogTests : System.IDisposable
     public void Debug_RegistryBuildDirect()
     {
         // Build registry thủ công, không qua PacketRegistry constructor
-        var factory = new PacketRegistryFactory();
+        PacketRegistryFactory factory = new();
         factory.RegisterPacket<Control>();
 
-        var registry = factory.CreateCatalog();
+        PacketRegistry registry = factory.CreateCatalog();
 
         System.UInt32 key = PacketRegistryFactory.Compute(typeof(Control));
 
@@ -77,8 +78,7 @@ public sealed class PacketCatalogTests : System.IDisposable
         System.Byte[] bytes = original.Serialize();
 
         // Xem bytes có đủ dài không
-        Assert.True(bytes.Length >= Nalix.Common.Networking.Packets.PacketConstants.HeaderSize,
-            $"Bytes quá ngắn: {bytes.Length}");
+        Assert.True(bytes.Length >= Nalix.Common.Networking.Packets.PacketConstants.HeaderSize, $"Bytes quá ngắn: {bytes.Length}");
 
         // Xem MagicNumber trong bytes
         System.UInt32 magicInBytes = System.Buffers.Binary.BinaryPrimitives
@@ -87,13 +87,11 @@ public sealed class PacketCatalogTests : System.IDisposable
         // Xem registry có key này không — gọi TryGetDeserializer trực tiếp
         System.Boolean hasKey = _catalog.TryGetDeserializer(magicInBytes, out var des);
 
-        Assert.True(hasKey,
-            $"Registry không có key=0x{magicInBytes:X8}. " +
-            $"AutoMagic=0x{PacketRegistryFactory.Compute(typeof(Control)):X8}");
+        Assert.True(hasKey, $"Registry không có key=0x{magicInBytes:X8}. AutoMagic=0x{PacketRegistryFactory.Compute(typeof(Control)):X8}");
 
         // Cuối cùng mới gọi TryDeserialize
-        System.Boolean found = _catalog.TryDeserialize(bytes, out IPacket packet);
-        Assert.True(found, $"TryDeserialize fail dù key tồn tại");
+        System.Boolean found = _catalog.TryDeserialize(bytes, out _);
+        Assert.True(found, "TryDeserialize fail dù key tồn tại");
     }
 
     // -------------------------------------------------------------------------
