@@ -19,8 +19,8 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Order;
-using Nalix.Common.Attributes;
-using Nalix.Common.Enums;
+using Nalix.Common.Security.Attributes;
+using Nalix.Common.Security.Enums;
 using Nalix.Shared.Security;
 using System;
 using System.Collections.Generic;
