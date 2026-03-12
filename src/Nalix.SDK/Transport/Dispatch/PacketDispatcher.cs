@@ -12,6 +12,7 @@ namespace Nalix.SDK.Transport.Dispatch;
 /// - Supports Register&lt;T&gt;, RegisterOnce&lt;T&gt; with predicate.
 /// - Dispatch(IPacket) calls matching handlers synchronously on the caller thread.
 /// </summary>
+[System.Obsolete("PacketDispatcher is not production-ready yet. This API may change or be removed in future versions.")]
 public sealed class PacketDispatcher : IPacketDispatcher
 {
     #region Fields
