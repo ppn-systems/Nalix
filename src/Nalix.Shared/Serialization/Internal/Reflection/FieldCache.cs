@@ -98,11 +98,9 @@ internal static partial class FieldCache<
 
             if (_layout is SerializeLayout.Explicit)
             {
-                // Explicit: chỉ include fields có SerializeOrderAttribute
                 var explicitOrder = GetExplicitOrder(field);
                 if (explicitOrder is null)
                 {
-                    // ✅ Skip field không có order trong Explicit layout
                     continue;
                 }
                 order = explicitOrder.Value;
@@ -161,22 +159,23 @@ internal static partial class FieldCache<
         "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
     private static System.Int32? GetExplicitOrder(System.Reflection.FieldInfo field)
     {
-        System.Reflection.PropertyInfo? property =
-            System.Linq.Enumerable.FirstOrDefault(
-                field.DeclaringType?.GetProperties(
-                    System.Reflection.BindingFlags.Public |
-                    System.Reflection.BindingFlags.NonPublic |
-                    System.Reflection.BindingFlags.Instance) ?? [],
-                    p => p.Name.Equals(field.Name, System.StringComparison.Ordinal) ||
-                    IsBackingFieldFor(field, p));
-
-        if (property is not null)
+        System.Type? type = field.DeclaringType;
+        if (type is null)
         {
-            SerializeOrderAttribute? orderAttr = System.Reflection.CustomAttributeExtensions
-                .GetCustomAttribute<SerializeOrderAttribute>(property);
-            if (orderAttr is not null)
+            return null;
+        }
+
+        foreach (System.Reflection.PropertyInfo property in type.GetProperties(
+            System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.Instance))
+        {
+            if (field.Name == property.Name || IsBackingFieldFor(field, property))
             {
-                return orderAttr.Order;
+                SerializeOrderAttribute? attr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeOrderAttribute>(property);
+                if (attr is not null)
+                {
+                    return attr.Order;
+                }
             }
         }
 
@@ -187,8 +186,7 @@ internal static partial class FieldCache<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Boolean IsBackingFieldFor(
         System.Reflection.FieldInfo field,
-        System.Reflection.PropertyInfo property)
-        => field.Name == $"<{property.Name}>k__BackingField";
+        System.Reflection.PropertyInfo property) => field.Name == $"<{property.Name}>k__BackingField";
 
     #endregion Field Discovery
 
