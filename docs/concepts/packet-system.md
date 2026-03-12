@@ -4,20 +4,24 @@ The Packet System is the foundation of Nalix's networking model. It provides a d
 
 ## 1. Defining Packets
 
-To define a packet, create a `sealed class` that inherits from `PacketBase<T>` and annotate it with both `[Packet]` (for discovery) and `[SerializePackable]` (for wire layout).
+### The Mandatory Attribute Pair
+For a standard network packet, you must apply both of the following attributes:
+
+1. **`[Packet]`**: Registers the class in the `PacketRegistry` catalog for automatic discovery. Without this, the dispatcher will not know how to map an incoming OpCode to this class.
+2. **`[SerializePackable]`**: Configures the wire layout. Without this, the serializer will fail with an `InvalidOperationException`.
 
 ```csharp
-[Packet]
-[SerializePackable(SerializeLayout.Explicit)]
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Serialization;
+
+[Packet] // Discovery & Registration
+[SerializePackable(SerializeLayout.Explicit)] // Wire Formatting
 public sealed class TradePacket : PacketBase<TradePacket>
 {
     public const ushort OpCodeValue = 0x5001;
 
-    [SerializeOrder(0)]
-    public long TradeId { get; set; }
-
-    [SerializeOrder(1)]
-    public double Price { get; set; }
+    [SerializeOrder(0)] public long TradeId { get; set; }
+    [SerializeOrder(1)] public double Price { get; set; }
 
     public TradePacket() => OpCode = OpCodeValue;
 }
@@ -170,7 +174,43 @@ public sealed class PingRequest : PacketBase<PingRequest>
 
 ---
 
-## 6. Packet Registration
+## 6. Edge Cases & Wire Integrity
+
+### Magic Numbers: Ensuring Type Safety
+Every packet in Nalix includes a hidden **Magic Number** derived from its full type name. During deserialization, `PacketBase<T>.Deserialize` validates this number before attempting to read the payload.
+
+If you attempt to deserialize a `PingRequest` buffer into a `TradePacket` object, the system will throw a `SerializationFailureException` due to a magic number mismatch. This prevents silent data corruption and type-conversion bugs.
+
+### Handling Serialization Failures
+Network data can be malformed, truncated, or malicious. Nalix protects the hot path by throwing a `SerializationFailureException` in the following cases:
+
+- **Buffer Too Small**: The incoming data is shorter than the fixed-size header or the expected static payload.
+- **Dynamic Size Limit Exceeded**: A string or array exceeds the limit set by `[SerializeDynamicSize]`.
+- **Magic Number Mismatch**: The incoming packet's type identity does not match the target deserialization class.
+
+#### Best Practice: Defensive Dispatch
+In a high-performance scenario, let the dispatcher handle these exceptions. It will log the failure, increment the connection's error count via `IConnection.IncrementErrorCount()`, and safely return the buffer to the pool.
+
+```csharp
+using Nalix.Common.Exceptions;
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+
+try 
+{
+    var packet = MyPacket.Deserialize(buffer);
+}
+catch (SerializationFailureException ex)
+{
+    Log.Warning($"Discarding malformed packet: {ex.Message}");
+    // Passive health tracking
+    connection.IncrementErrorCount();
+}
+```
+
+---
+
+## 7. Packet Registration
 
 Packets must be registered with the `PacketRegistry` before they can be deserialized at runtime. The `PacketRegistryFactory` discovers packet types, binds their deserializers, and builds an immutable `FrozenDictionary`-backed catalog.
 
@@ -179,6 +219,8 @@ Packets must be registered with the `PacketRegistry` before they can be deserial
 When using `Nalix.Network.Hosting`, use the builder to scan assemblies:
 
 ```csharp
+using Nalix.Network.Hosting;
+
 var app = NetworkApplication.CreateBuilder()
     .AddPacket<PingRequest>()        // Scans the assembly containing PingRequest
     .AddHandlers<PingHandler>()
@@ -190,6 +232,8 @@ var app = NetworkApplication.CreateBuilder()
 When building the dispatch manually, create the registry explicitly:
 
 ```csharp
+using Nalix.Common.Networking.Packets;
+
 PacketRegistryFactory factory = new();
 factory.RegisterPacket<PingRequest>()
        .RegisterPacket<PingResponse>();
@@ -209,10 +253,56 @@ Built-in signal packets (`Control`, `Handshake`, `SessionResume`, `Directive`) a
 
 If your data type is not supported by the built-in serializer (e.g., a third-party struct), you can implement a custom formatter.
 
+### Example: Complete Custom Formatter
+
+In this scenario, we have a `UserProfile` class that we want to shared between server and client, but it requires a specialized serialization format (e.g., to handle legacy bit-flags or custom string encoding).
+
+```csharp
+```csharp
+using System;
+using Nalix.Framework.Serialization;
+using Nalix.Common.Serialization;
+
+// 1. Define your data contract (shared)
+public sealed class UserProfile
+{
+    public int UserId { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public DateTime LastSeen { get; set; }
+}
+
+// 2. Implement the specialized formatter
+public sealed class UserProfileFormatter : IFormatter<UserProfile>
+{
+    public void Serialize(ref DataWriter writer, UserProfile value)
+    {
+        writer.WriteInt32(value.UserId);
+        writer.WriteString(value.DisplayName);
+        writer.WriteInt64(value.LastSeen.ToBinary());
+    }
+
+    public UserProfile Deserialize(ref DataReader reader)
+    {
+        return new UserProfile
+        {
+            UserId = reader.ReadInt32(),
+            DisplayName = reader.ReadString(),
+            LastSeen = DateTime.FromBinary(reader.ReadInt64())
+        };
+    }
+}
+
+// 3. Register the formatter during startup
+LiteSerializer.Register<UserProfile>(new UserProfileFormatter());
+```
+
 1. Implement `IFormatter<T>`.
 2. Register it using `LiteSerializer.Register<T>(formatter)`.
 
 ```csharp
+using Nalix.Framework.Serialization;
+using Nalix.Common.Serialization;
+
 public class GeoLocationFormatter : IFormatter<GeoLocation>
 {
     public void Serialize(ref DataWriter writer, GeoLocation value)
