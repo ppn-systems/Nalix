@@ -1,142 +1,220 @@
-# LiteSerializer Documentation
+# LiteSerializer — Fast, Compact, Customizable Serialization
 
-## Overview
+**LiteSerializer** is a high-performance, allocation-optimized binary serializer for .NET, designed for efficient object/struct serialization, high-throughput, and explicit memory control.  
+Suited for networking, logging, interprocess communication, distributed protocols, and low-latency storage scenarios.
 
-The `LiteSerializer` class provides high-performance serialization and deserialization APIs for objects in .NET, supporting unmanaged types, arrays, and complex types. Its design aims for efficiency, zero-boxing, and type safety, leveraging reflection and advanced C# features. This class is part of the `Nalix.Shared.Serialization` namespace.
-
-## Functional Summary
-
-- **Serialization:** Converts objects of various types (value, reference, array, struct, class) to compact `byte[]` or `Span<byte>`.
-- **Deserialization:** Reconstructs objects from binary data.
-- **Buffer Support:** Works with arrays and spans for high performance.
-- **Type Support:** Handles unmanaged, nullable, arrays, and user-defined types via formatters.
-- **Error Handling:** Throws precise exceptions for unsupported types or invalid buffers.
-
----
-
-## Code Explanation
-
-### 1. Constants
-
-- `NullArrayMarker`, `EmptyArrayMarker`: Special markers for serializing `null` and empty arrays, using magic numbers for fast detection during deserialization.
-
-### 2. Serialization Methods
-
-#### `Serialize<T>(in T value)`
-
-- **Purpose:** Serializes an object of type `T` into a `byte[]`.
-- **Details:**
-  - **Unmanaged types:** Direct memory copy for speed.
-  - **Arrays:** Handles `null`, empty, and unmanaged arrays specially.
-  - **Fixed-size serializable objects:** Uses registered formatters.
-  - **Fallback:** Throws exception for unsupported types.
-
-#### `Serialize<T>(in T value, byte[] buffer)`
-
-- **Purpose:** Serializes an object into a provided buffer.
-- **Details:**
-  - Checks buffer size.
-  - Supports only value and fixed-size types for this overload.
-
-#### `Serialize<T>(in T value, Span<byte> buffer)`
-
-- **Purpose:** Serializes an object into a provided span.
-- **Details:**
-  - For fixed-size serializable only.
-  - Throws for unsupported or reference types.
-
-### 3. Deserialization
-
-#### `Deserialize<T>(ReadOnlySpan<byte> buffer, ref T value)`
-
-- **Purpose:** Reads and reconstructs an object from a buffer.
-- **Details:**
-  - Checks for null/empty buffer.
-  - Handles unmanaged types, arrays (with magic markers), and complex types via formatters.
-
-### 4. Private Helpers
-
-- **`IsNullArrayMarker`, `IsEmptyArrayMarker`:** Checks for magic markers in the buffer to identify special array cases.
+- **Namespace:** `Nalix.Shared.Serialization`
+- **Class:** `LiteSerializer` (static)
+- **Key Features:**
+  - Fast serialization of unmanaged types, structs, arrays, and common .NET types
+  - Allocation-free APIs (`Span<byte>`, buffer reuse, BufferLease support)
+  - Custom serializer registration and full control with wire layout attributes
+  - Minimal overhead, zero boxing/copy for value types
 
 ---
 
-## Usage
+## Typical Usage
+
+### Serialize / Deserialize (Basic Usage)
 
 ```csharp
 using Nalix.Shared.Serialization;
 
-// Serialize to byte array
-MyStruct data = new MyStruct { /* ... */ };
-byte[] bytes = LiteSerializer.Serialize(in data);
+// Serialize value to byte[]
+byte[] payload = LiteSerializer.Serialize(myData);
 
-// Serialize into existing buffer
-byte[] buffer = new byte[LiteSerializer.GetSerializedSize(data)];
-int written = LiteSerializer.Serialize(in data, buffer);
-
-// Serialize into Span<byte>
-Span<byte> span = stackalloc byte[expectedSize];
-int written = LiteSerializer.Serialize(in data, span);
-
-// Deserialize from buffer
-MyStruct result = default;
-LiteSerializer.Deserialize(bytes, ref result);
+// Deserialize from byte[]
+MyType restored = default!;
+LiteSerializer.Deserialize(payload, ref restored);
 ```
 
----
-
-## Example
+### In-place Span/Buffer Serialization
 
 ```csharp
-// Define a fixed-size struct
-[Serializable]
-public struct Point
-{
-    public int X;
-    public int Y;
-}
+Span<byte> buffer = stackalloc byte[128];
+int bytesWritten = LiteSerializer.Serialize(myData, buffer);
+// ... Send or save buffer[..bytesWritten]
+```
 
-// Serialization
-Point p = new Point { X = 10, Y = 20 };
-byte[] serialized = LiteSerializer.Serialize(in p);
+### Allocation-free — BufferLease
 
-// Deserialization
-Point deserialized = default;
-LiteSerializer.Deserialize(serialized, ref deserialized);
+```csharp
+using Nalix.Shared.Memory.Buffers;
 
-// Output
-Console.WriteLine($"X={deserialized.X}, Y={deserialized.Y}"); // X=10, Y=20
+// Allocate an output buffer lease (pooled)
+using var lease = LiteSerializer.Serialize(myData, zeroOnDispose: true);
+// lease.Memory/lease.Span contains payload, lease.Length gives size
+
+// Deserialize directly from BufferLease
+MyType result = default!;
+LiteSerializer.Deserialize(lease, ref result);
 ```
 
 ---
 
-## Notes & Security
+## API Overview
 
-- **Type Safety:** Only supported types (unmanaged, arrays, registered complex types) can be serialized/deserialized.
-- **Exception Handling:** Throws `SerializationException` or `NotSupportedException` on errors (e.g., buffer too small, unsupported types).
-- **Magic Numbers:** Special array markers are used for efficient detection of `null` and empty arrays.
-- **Security:** Do not deserialize untrusted data. Tampered or malformed data can cause exceptions or undefined behavior.
-- **Performance:** Uses aggressive inlining, memory pooling, and unsafe APIs for maximum speed.
-- **Extensibility:** Register custom formatters for user-defined types via `FormatterProvider`.
-
----
-
-## SOLID & DDD Principles
-
-- **Single Responsibility:** Each method has a clear, focused responsibility (serialize or deserialize).
-- **Open/Closed:** New formatters can be registered without modifying the core serializer.
-- **Liskov Substitution:** Works for all types as long as they meet serialization constraints.
-- **Interface Segregation:** Uses strongly-typed interfaces for formatters.
-- **Dependency Inversion:** Core logic depends on abstractions (`IFormatter<T>`), not on concrete implementations.
-
-**Domain-Driven Design:**  
-Serialization logic is separated from domain entities. Complex types should implement or register custom formatters to maintain clear domain boundaries.
+| Method                                                      | Returns            | Purpose                                                           |
+|-------------------------------------------------------------|--------------------|-------------------------------------------------------------------|
+| `Serialize<T>(in T value)`                                  | `byte[]`           | Serialize value to a new byte array                               |
+| `Serialize<T>(in T value, Span<byte> buffer)`               | `int`              | Serialize to existing buffer (returns length written)             |
+| `Serialize<T>(in T value, BufferLease lease)`               | `int`              | Serialize to BufferLease                                          |
+| `Serialize<T>(in T value, bool zeroOnDispose)`              | `BufferLease`      | Allocate a buffer lease and serialize (optionally zero on dispose)|
+| `Deserialize<T>(ReadOnlySpan<byte> buffer, ref T outValue)` | `int`              | Deserialize from bytes into an existing object                    |
+| `Deserialize<T>(BufferLease lease, ref T outValue)`         | `int`              | Deserialize from BufferLease                                      |
+| `Deserialize<T>(ReadOnlySpan<byte> buffer, out int len)`    | `T`                | Deserialize, returns value and bytes-read                         |
+| `Deserialize<T>(BufferLease lease, out int len)`            | `T`                | Deserialize from lease (returns value + bytes-read)               |
+| `Register<T>(IFormatter<T> formatter)`                      | `void`             | Register a custom formatter for a type                            |
 
 ---
 
-## Additional Notes
+## Supported Types (Built-in)
 
-- **Debugging:** Extensive debug output in DEBUG builds for traceability.
-- **Memory Management:** Pools and reuses buffers for efficiency; releases unmanaged resources promptly.
-- **Reflection:** Reflection is used for type discovery but is cached for performance.
+LiteSerializer supports these types by default (no registration needed):
+
+| Type Category         | Examples                                      |
+|-----------------------|-----------------------------------------------|
+| Primitive types       | `int`, `long`, `float`, `double`, `bool`, ... |
+| Structs               | `DateTime`, `Guid`, `TimeSpan`, ...           |
+| Nullable types        | `int?`, `DateTime?`, etc.                     |
+| Arrays                | `int[]`, `Guid[]`, `DateTime[]`, ...          |
+| Nullable arrays       | `int?[]`, `DateTime?[]`, ...                  |
+| Enum types            | Any `enum`                                    |
+| String types          | `string`, `string[]`                          |
+
+> **Tip:** For custom classes/structs, implement `IFormatter<T>` and register using `LiteSerializer.Register<T>()`.
 
 ---
+
+## Customizing Serialization Layout
+
+You can control exactly how your type is serialized using a set of attributes provided by the library.  
+This allows for precise over-the-wire layout, field selection, dynamic and fixed sizes, and version-safe extension.
+
+### Key Attributes
+
+| Attribute                             | Use for                                                                                                       |
+|---------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| `[SerializePackable(layout)]`         | Mark class/struct/interface as serializable. `layout`: `Explicit` or `Sequential`                             |
+| `[SerializeOrder(order)]`             | Specify explicit serialization order/field offset                                                             |
+| `[SerializeDynamicSize(size)]`        | Mark a field/property as dynamic length (e.g. string, byte[]). Optional `size` hint for buffer preallocation. |
+| `[SerializeIgnore]`                   | Field/property will be skipped during serialization                                                           |
+| `IFixedSizeSerializable (interface)`  | For types that can always be serialized to the same fixed size (see below)                                    |
+
+**Usage:**
+
+```csharp
+[SerializePackable(SerializeLayout.Explicit)]
+public class MyMessage
+{
+    [SerializeOrder(0)]
+    public int Id { get; set; }
+
+    [SerializeOrder(1)]
+    public byte[] Data { get; set; }
+
+    [SerializeOrder(2)]
+    [SerializeDynamicSize] // Length can vary per instance!
+    public string Note { get; set; }
+
+    [SerializeIgnore]
+    public string NonSerializedProp { get; set; }
+}
+```
+
+- Use `SerializeOrder` to control on-wire order (critical for protocol compatibility).
+- Use `SerializeDynamicSize` for fields where payload can vary in length.
+- Use `SerializeIgnore` for transient/logic properties.
+
+---
+
+## Advanced: Layout Modes
+
+- **Sequential (default):** Serializes fields/properties in definition order.
+- **Explicit:** Uses explicit field order/offset, good for protocol and binary compatibility (especially useful with `[SerializeOrder]`).
+
+```csharp
+[SerializePackable(SerializeLayout.Sequential)]
+public struct Foo { /* ... */ }
+
+[SerializePackable(SerializeLayout.Explicit)]
+public struct Bar { /* ... */ }
+```
+
+---
+
+## Making Types Fixed-Size
+
+To allow size calculation at compile time and maximize serialization performance (no per-instance checking),  
+implement the interface:
+
+```csharp
+public interface IFixedSizeSerializable
+{
+    static abstract int Size { get; }
+}
+```
+
+This is often recommended for protocol headers, GUID wrappers, or special struct types.
+
+---
+
+## Handling Special Values
+
+Some constants are defined for special cases:
+
+- **Null:** `SerializerBounds.Null` for null values
+- **Max Array:** `SerializerBounds.MaxArray` is the maximum allowed array length
+- **Max String:** `SerializerBounds.MaxString` for string field size
+- **Null Array Marker:** A 4-byte marker `[255,255,255,255]` represents a null array
+- **Empty Array Marker:** A 4-byte marker `[0,0,0,0]` for empty arrays
+
+They are used by the framework for efficient wire signaling of special/null cases.
+
+---
+
+## Registering Custom Formatters
+
+If you want full control or need custom logic/perf (e.g. for version-tolerant, compressed, partial serialization):
+
+```csharp
+LiteSerializer.Register<MyCustomType>(new MyCustomFormatter());
+```
+
+---
+
+## Performance Tips
+
+- For high-frequency operations, prefer `Span<byte>` and `BufferLease` overloads to avoid heap allocations.
+- Use `BufferLease` for long-lived or pooled network/storage buffers.
+- If you hit buffer size errors, check the minimum required buffer size for your type, or use the `byte[]`-returning overload for convenience.
+- Always catch `SerializationException` for safety with unknown/heterogeneous payloads.
+
+---
+
+## Example: Serialize/Deserialize Struct
+
+```csharp
+struct Foo { public int X, Y; }
+Foo f = new Foo { X = 10, Y = 20 };
+
+// Fastest all-in-one
+var bytes = LiteSerializer.Serialize(f);
+
+Foo restored = default!;
+LiteSerializer.Deserialize(bytes, ref restored);
+// restored.X == 10
+```
+
+---
+
+## Error Handling
+
+- Throws `SerializationException` if buffer is too small, type unsupported, or data is malformed.
+- All methods validate buffer bounds aggressively for safety and performance.
+
+---
+
+## License
+
+Licensed under the Apache License, Version 2.0.
