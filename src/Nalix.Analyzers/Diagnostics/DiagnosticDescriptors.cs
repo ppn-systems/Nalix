@@ -412,4 +412,112 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix network hosting in this package expects UDP bindings to be paired with TCP bindings.");
 
+    public static readonly DiagnosticDescriptor UnusuallyLargeSerializeOrderGap = new(
+        id: "NALIX046",
+        title: "SerializeOrder gap is unusually large",
+        messageFormat: "Member '{0}' uses SerializeOrder {1}, which leaves a large gap from previous SerializeOrder {2}",
+        category: "Serialization",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "SerializeOrder defines member ordering, not byte offsets. Large jumps are allowed, but may indicate accidental numbering.");
+
+    public static readonly DiagnosticDescriptor DispatchLoopCountOutOfRange = new(
+        id: "NALIX047",
+        title: "Dispatch loop count is out of supported range",
+        messageFormat: "WithDispatchLoopCount({0}) is outside supported range [1..64]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix PacketDispatchOptions.WithDispatchLoopCount expects values between 1 and 64.");
+
+    public static readonly DiagnosticDescriptor UnsupportedControllerHandlerReturnType = new(
+        id: "NALIX048",
+        title: "Packet controller handler return type is unsupported",
+        messageFormat: "Handler method '{0}' returns '{1}', which is not supported by Nalix return handlers",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix packet handlers should return void, Task, ValueTask, IPacket, byte[], Memory<byte>, ReadOnlyMemory<byte>, or Task/ValueTask of supported result types.");
+
+    public static readonly DiagnosticDescriptor PacketOpcodeOnNonControllerType = new(
+        id: "NALIX050",
+        title: "PacketOpcode is declared on a non-controller type",
+        messageFormat: "Method '{0}' declares [PacketOpcode], but containing type '{1}' is missing [PacketController]",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "PacketOpcode handlers are expected to be declared inside PacketController types.");
+
+    public static readonly DiagnosticDescriptor FixedSizeSerializableHasDynamicMember = new(
+        id: "NALIX051",
+        title: "IFixedSizeSerializable type contains dynamic serialization member",
+        messageFormat: "Type '{0}' implements IFixedSizeSerializable but member '{1}' has dynamic size type '{2}'",
+        category: "Serialization",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Fixed-size serializable types should avoid variable-sized members such as string, arrays, or nested packets.");
+
+    public static readonly DiagnosticDescriptor PacketDeserializeSpanOverloadMissing = new(
+        id: "NALIX052",
+        title: "Packet Deserialize overload should include ReadOnlySpan<byte>",
+        messageFormat: "Packet type '{0}' declares Deserialize overloads but is missing 'public static {0} Deserialize(ReadOnlySpan<byte>)'",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix packet discovery and registry binding expect a ReadOnlySpan<byte> Deserialize entry point.");
+
+    public static readonly DiagnosticDescriptor RequestEncryptVariableRequiresTcpSession = new(
+        id: "NALIX053",
+        title: "Encrypted RequestAsync requires TcpSession (options variable path)",
+        messageFormat: "RequestAsync uses options variable '{0}' with Encrypt=true, but client type '{1}' is not assignable to TcpSession",
+        category: "SDK",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix encrypted RequestAsync overload requires the client to be a TcpSession, including when options are built via local variables.");
+
+    public static readonly DiagnosticDescriptor DuplicatePacketControllerName = new(
+        id: "NALIX054",
+        title: "PacketController name is duplicated",
+        messageFormat: "PacketController name '{0}' is used by both '{1}' and '{2}'",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Duplicate PacketController names reduce routing and diagnostics clarity.");
+
+    public static readonly DiagnosticDescriptor RedundantPacketContextPacketCast = new(
+        id: "NALIX055",
+        title: "Redundant cast on PacketContext<T>.Packet",
+        messageFormat: "Handler method '{0}' already uses PacketContext<{1}>; casting '{2}.Packet' to '{1}' is redundant",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "PacketContext<T> already provides a strongly-typed Packet value; additional casts to T are unnecessary.");
+
+    public static readonly DiagnosticDescriptor MiddlewareRegistrationNullLiteral = new(
+        id: "NALIX056",
+        title: "Middleware registration uses null",
+        messageFormat: "Call to '{0}' passes null middleware and will throw at runtime",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "PacketDispatchOptions middleware registration requires non-null middleware instances.");
+
+    public static readonly DiagnosticDescriptor RequestOptionsInfiniteTimeoutWithRetry = new(
+        id: "NALIX057",
+        title: "RequestOptions uses infinite timeout with retries",
+        messageFormat: "RequestOptions sets TimeoutMs=0 with RetryCount={0}; retries are typically ineffective with infinite timeout",
+        category: "SDK",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "With TimeoutMs=0 each attempt can wait indefinitely, so RetryCount usually has no practical effect.");
+
+    public static readonly DiagnosticDescriptor GenericPacketHandlerMethod = new(
+        id: "NALIX058",
+        title: "Packet handler method should not be generic",
+        messageFormat: "Handler method '{0}' declares generic type parameters, which is not recommended for PacketOpcode dispatch",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix packet dispatch expects concrete handler signatures; generic handler methods can lead to ambiguous or unsupported binding.");
+
 }

@@ -89,11 +89,15 @@ Use the fluent builder to assemble your server layers:
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Hosting;
 using Nalix.Network.Options;
 using Nalix.Runtime.Dispatching;
 
+BufferPoolManager pool = new();
+
 using var app = NetworkApplication.CreateBuilder()
+    .ConfigureBufferPoolManager(pool)
     .Configure<NetworkSocketOptions>(options => options.Port = 57206)
     .AddPacket<JoinRequest>() // Scans the marker assembly for contracts
     .AddHandlers<MyHandlers>() // Scans the marker assembly for controllers
@@ -119,6 +123,7 @@ public sealed class MyProtocol : IProtocol
 - `AddHandlers<TMarker>()` scans the assembly that contains `TMarker`.
 - `AddHandler<THandler>()` registers one handler type directly.
 - `ConfigureConnectionHub(...)` and `ConfigureBufferPoolManager(...)` are optional, but make host wiring explicit.
+- `ConfigureBufferPoolManager(...)` is recommended for high-throughput servers to keep receive/send buffers on pooled paths end-to-end.
 
 ---
 

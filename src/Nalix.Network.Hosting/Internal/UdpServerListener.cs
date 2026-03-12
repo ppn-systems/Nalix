@@ -11,6 +11,8 @@ namespace Nalix.Network.Hosting.Internal;
 /// <inheritdoc />
 internal sealed class UdpServerListener : UdpListenerBase
 {
+    private readonly Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? _authen;
+
     /// <inheritdoc />
     public UdpServerListener(IProtocol protocol) : base(protocol) { }
 
@@ -18,11 +20,28 @@ internal sealed class UdpServerListener : UdpListenerBase
     public UdpServerListener(ushort port, IProtocol protocol) : base(port, protocol) { }
 
     /// <inheritdoc />
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0022:Use expression body for method", Justification = "<Pending>")]
-    protected override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
+    public UdpServerListener(ushort port, IProtocol protocol, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        : base(port, protocol)
     {
+        _authen = authen;
+    }
+
+    /// <inheritdoc />
+    public UdpServerListener(IProtocol protocol, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        : base(protocol)
+    {
+        _authen = authen;
+    }
+
+    /// <inheritdoc />
+    protected override bool IsAuthenticated(IConnection connection, System.Net.EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
+    {
+        if (_authen != null)
+        {
+            return _authen(connection, remoteEndPoint, payload);
+        }
+
         // By default, hosting allows all datagrams that pass the session token check.
-        // Custom authentication logic can be added by providing a specialized listener.
         return true;
     }
 }

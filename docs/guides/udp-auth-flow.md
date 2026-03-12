@@ -38,7 +38,7 @@ public sealed class SampleUdpListener : UdpListenerBase
 {
     public SampleUdpListener(IProtocol protocol) : base(protocol) { }
 
-    protected override bool IsAuthenticated(IConnection connection, in UdpReceiveResult result)
+    protected override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
     {
         // Add your own checks here:
         // - allowed endpoint
@@ -48,6 +48,12 @@ public sealed class SampleUdpListener : UdpListenerBase
     }
 }
 ```
+
+> [!TIP]
+> **Preferred Modern Pattern:** instead of subclassing `UdpListenerBase`, use the hosting predicate:
+> ```csharp
+> app.AddUdp<MyProtocol>((conn, ep, data) => conn.Level >= PermissionLevel.USER);
+> ```
 
 ### 2. Keep TCP and UDP tied to the same session
 

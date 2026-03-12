@@ -19,23 +19,53 @@ Nalix is a real-time TCP and UDP networking framework for .NET 10. It provides a
 
 ---
 
+## What does building with Nalix look like?
+
+A typical Nalix application involves five clean steps:
+
+1. :fontawesome-solid-message: **Define packets**: Create shared contracts using `[Packet]` attributes.
+2. :fontawesome-solid-route: **Register handlers**: Map packets to logic via fluent routing.
+3. :fontawesome-solid-network-wired: **Configure transport**: Select TCP/UDP and set security policies.
+4. :fontawesome-solid-server: **Run the server**: Start the host using the `NetworkApplicationBuilder`.
+5. :fontawesome-solid-plug: **Connect using SDK**: Leverage the client-side session to communicate.
+
+👉 See [Quickstart](./quickstart.md) for a full, copy-pasteable example.
+
+---
+
+## 🚀 Recommended Path
+
+If you're new to Nalix, follow this path to go from zero to production-ready:
+
+1. :fontawesome-solid-book-open: [Introduction](./introduction.md) — Understand the design philosophy and mental model.
+2. :fontawesome-solid-sitemap: [Architecture](./concepts/architecture.md) — Explore the layered component system.
+3. :fontawesome-solid-bolt: [Quickstart](./quickstart.md) — Build your first Ping/Pong server in minutes.
+4. :fontawesome-solid-vial: [End-to-End Guide](./guides/end-to-end.md) — Move beyond basics with a full feature implementation.
+5. :fontawesome-solid-shield-halved: [Middleware](./guides/middleware.md) — Learn how to secure and scale your traffic.
+
+👉 After this, you can explore the [API Reference](./api/index.md) as needed.
+
+---
+
 ![Nalix Data Flow](./assets/overview-flow.svg){ .nlx-hero-img }
 
-## Performance Highlights
+<div class="nlx-highlight-grid" markdown="1">
 
-<div class="nlx-highlight-grid">
-  <div class="nlx-highlight-card">
-    <h3>Zero-alloc hot path</h3>
-    <p>Pooled buffers, pooled contexts, and frozen lookups reduce GC pressure for sustained low-latency traffic.</p>
-  </div>
-  <div class="nlx-highlight-card">
-    <h3>Shard-aware dispatch</h3>
-    <p>Worker distribution prevents head-of-line blocking and scales packet handling across logical cores.</p>
-  </div>
-  <div class="nlx-highlight-card">
-    <h3>Built-in safety controls</h3>
-    <p>Timeouts, permission checks, concurrency gates, and token-bucket policies are middleware-ready from day one.</p>
-  </div>
+<div class="nlx-highlight-card" markdown="1">
+### :fontawesome-solid-bolt: Zero-alloc hot path
+Pooled buffers, pooled contexts, and frozen lookups reduce GC pressure for sustained low-latency traffic.
+</div>
+
+<div class="nlx-highlight-card" markdown="1">
+### :fontawesome-solid-sitemap: Shard-aware dispatch
+Worker distribution prevents head-of-line blocking and scales packet handling across logical cores.
+</div>
+
+<div class="nlx-highlight-card" markdown="1">
+### :fontawesome-solid-shield-halved: Fault Isolation
+Handler exceptions are trapped and logged without affecting other connections or crashing the worker loops.
+</div>
+
 </div>
 
 ---

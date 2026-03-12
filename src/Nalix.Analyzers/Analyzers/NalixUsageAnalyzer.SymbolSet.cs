@@ -50,6 +50,10 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? valueTaskType,
             INamedTypeSymbol? genericValueTaskType,
             INamedTypeSymbol? cancellationTokenType,
+            INamedTypeSymbol? readOnlyMemoryByteType,
+            INamedTypeSymbol? memoryByteType,
+            INamedTypeSymbol? fixedSizeSerializableType,
+            INamedTypeSymbol? packetDispatchType,
             INamedTypeSymbol? bufferLeaseType,
             int packetHeaderRegionOffset)
         {
@@ -89,6 +93,10 @@ public sealed partial class NalixUsageAnalyzer
             this.ValueTaskType = valueTaskType;
             this.GenericValueTaskType = genericValueTaskType;
             this.CancellationTokenType = cancellationTokenType;
+            this.ReadOnlyMemoryByteType = readOnlyMemoryByteType;
+            this.MemoryByteType = memoryByteType;
+            this.FixedSizeSerializableType = fixedSizeSerializableType;
+            this.PacketDispatchType = packetDispatchType;
             this.BufferLeaseType = bufferLeaseType;
             this.PacketHeaderRegionOffset = packetHeaderRegionOffset;
         }
@@ -129,6 +137,10 @@ public sealed partial class NalixUsageAnalyzer
         public INamedTypeSymbol? ValueTaskType { get; }
         public INamedTypeSymbol? GenericValueTaskType { get; }
         public INamedTypeSymbol? CancellationTokenType { get; }
+        public INamedTypeSymbol? ReadOnlyMemoryByteType { get; }
+        public INamedTypeSymbol? MemoryByteType { get; }
+        public INamedTypeSymbol? FixedSizeSerializableType { get; }
+        public INamedTypeSymbol? PacketDispatchType { get; }
         public INamedTypeSymbol? BufferLeaseType { get; }
         public int PacketHeaderRegionOffset { get; }
 
@@ -163,7 +175,7 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? packetMetadataProviderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketMetadataProvider");
             INamedTypeSymbol? packetMetadataBuilderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketMetadataBuilder");
             INamedTypeSymbol? methodInfoType = compilation.GetTypeByMetadataName("System.Reflection.MethodInfo");
-            INamedTypeSymbol? requestOptionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Configuration.RequestOptions");
+            INamedTypeSymbol? requestOptionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Options.RequestOptions");
             INamedTypeSymbol? requestExtensionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Extensions.RequestExtensions");
             INamedTypeSymbol? tcpSessionBaseType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.TcpSession");
             INamedTypeSymbol? taskType = compilation.GetTypeByMetadataName(typeof(Task).FullName);
@@ -171,6 +183,13 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? valueTaskType = compilation.GetTypeByMetadataName(typeof(ValueTask).FullName);
             INamedTypeSymbol? genericValueTaskType = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
             INamedTypeSymbol? cancellationTokenType = compilation.GetTypeByMetadataName(typeof(CancellationToken).FullName);
+            INamedTypeSymbol? readOnlyMemoryType = compilation.GetTypeByMetadataName("System.ReadOnlyMemory`1");
+            INamedTypeSymbol? memoryType = compilation.GetTypeByMetadataName("System.Memory`1");
+            ITypeSymbol byteType = compilation.GetSpecialType(SpecialType.System_Byte);
+            INamedTypeSymbol? readOnlyMemoryByteType = readOnlyMemoryType?.Construct(byteType);
+            INamedTypeSymbol? memoryByteType = memoryType?.Construct(byteType);
+            INamedTypeSymbol? fixedSizeSerializableType = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.IFixedSizeSerializable");
+            INamedTypeSymbol? packetDispatchType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketDispatch");
             INamedTypeSymbol? bufferLeaseType = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.IBufferLease");
             int packetHeaderRegionOffset = 12;
             if (packetHeaderOffsetType is not null)
@@ -224,6 +243,10 @@ public sealed partial class NalixUsageAnalyzer
                     valueTaskType,
                     genericValueTaskType,
                     cancellationTokenType,
+                    readOnlyMemoryByteType,
+                    memoryByteType,
+                    fixedSizeSerializableType,
+                    packetDispatchType,
                     bufferLeaseType,
                     packetHeaderRegionOffset);
         }

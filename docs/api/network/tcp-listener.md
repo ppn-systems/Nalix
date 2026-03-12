@@ -2,6 +2,15 @@
 
 `TcpListenerBase` is the core server listener abstraction for accepted TCP sockets in `Nalix.Network`.
 
+## Usage Patterns
+
+A common question is whether to use this class directly or through the Hosting layer. 
+
+| Layer | Type | Recommended Use Case |
+|---|---|---|
+| **Hosting** | `NetworkApplicationBuilder` | **Standard Application Development**. Use this for most production services to benefit from DI, automated handlers, and multi-protocol management. |
+| **Transport** | `TcpListenerBase` | **Library & Infrastructure Development**. Use this when building standalone networking utilities or if you need total control over the raw socket lifecycle. |
+
 ## Audit Summary
 
 - Existing page captured lifecycle well but had some path/name drift and mixed internal detail with conceptual guidance.

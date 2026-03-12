@@ -1,5 +1,10 @@
 # Middleware Guide
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Intermediate
+    - :fontawesome-solid-clock: **Time**: 10–15 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+
 Use this guide when you know you need request policy or frame processing, but you are not yet sure which Nalix middleware layer should own it.
 
 ## Start with the right question

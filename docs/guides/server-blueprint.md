@@ -1,5 +1,10 @@
 # Server Blueprint
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Intermediate
+    - :fontawesome-solid-clock: **Time**: 15–20 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+
 This page is the recommended blueprint for a real Nalix server project.
 
 It is not the smallest sample. It is the shape that holds up better once you start adding real handlers, middleware, options, and operational checks.

@@ -34,7 +34,7 @@ ValueTask<IBufferLease?> InvokeAsync(
 
 ## Packet middleware
 
-Packet middleware works on `PacketContext<TPacket>` after deserialization.
+Packet middleware works on `IPacketContext<TPacket>` after deserialization.
 The same middleware model applies to built-in packets and custom packet types.
 
 Use it for:
@@ -49,7 +49,7 @@ Contract:
 
 ```csharp
 ValueTask InvokeAsync(
-    PacketContext<TPacket> context,
+    IPacketContext<TPacket> context,
     Func<CancellationToken, ValueTask> next)
 ```
 
