@@ -8,7 +8,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Order;
-using Nalix.Common.Enums;
+using Nalix.Common.Security.Enums;
 using Nalix.Shared.Security;
 using System;
 using System.Security.Cryptography;
