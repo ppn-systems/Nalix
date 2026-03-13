@@ -55,23 +55,23 @@ public sealed class SessionHandlers
             return;
         }
 
-        if (Hub.TryResumeSession(packet.SessionToken.ToUInt56(), context.Connection, out SessionEntry? session))
-        {
-            using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
-            SessionResume ack = lease.Value;
-            ack.Initialize(
-                stage: SessionResumeStage.RESPONSE,
-                sessionToken: Snowflake.NewId(session.Snapshot.SessionToken),
-                reason: ProtocolReason.NONE,
-                transport: packet.Protocol);
-
-            await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
-        }
-        else
+        SessionEntry? session = await Hub.SessionStore.RetrieveAsync(packet.SessionToken.ToUInt56())
+                                                      .ConfigureAwait(false);
+        if (session == null)
         {
             await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
             return;
         }
+
+        using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
+        SessionResume ack = lease.Value;
+        ack.Initialize(
+            stage: SessionResumeStage.RESPONSE,
+            sessionToken: Snowflake.NewId(session.Snapshot.SessionToken),
+            reason: ProtocolReason.NONE,
+            transport: packet.Protocol);
+
+        await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
     }
 
     /// <summary>
