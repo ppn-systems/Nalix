@@ -72,6 +72,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         this.SendPacketCommand = new AsyncRelayCommand(this.SendPacketAsync, this.CanSendPacket);
         this.RepeatSendCommand = new AsyncRelayCommand(this.RepeatSendAsync, this.CanRepeatSend);
         this.HandshakeCommand = new AsyncRelayCommand(this.HandshakeAsync, this.CanHandshake);
+        this.ResumeCommand = new AsyncRelayCommand(this.ResumeAsync, this.CanResume);
 
         _tcpClientService.StatusChanged += this.HandleStatusChanged;
 
@@ -130,6 +131,11 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     /// Gets the handshake command.
     /// </summary>
     public AsyncRelayCommand HandshakeCommand { get; }
+
+    /// <summary>
+    /// Gets the resume command.
+    /// </summary>
+    public AsyncRelayCommand ResumeCommand { get; }
 
     /// <summary>
     /// Gets or sets the connection host.
@@ -192,6 +198,22 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
             if (this.SetProperty(ref _sessionToken, value))
             {
                 this.NotifyCommandStates();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether auto-ping is enabled.
+    /// </summary>
+    public bool AutoPingEnabled
+    {
+        get => _tcpClientService.AutoPingEnabled;
+        set
+        {
+            if (_tcpClientService.AutoPingEnabled != value)
+            {
+                _tcpClientService.AutoPingEnabled = value;
+                this.OnPropertyChanged(nameof(this.AutoPingEnabled));
             }
         }
     }
@@ -415,6 +437,8 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 
     private bool CanHandshake() => this.IsConnected;
 
+    private bool CanResume() => this.IsConnected;
+
     private async Task ConnectAsync()
     {
         if (!this.TryParsePort(out ushort port))
@@ -472,6 +496,20 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         catch (Exception exception)
         {
             this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusHandshakeFailedFormat, exception.Message));
+        }
+    }
+
+    private async Task ResumeAsync()
+    {
+        try
+        {
+            this.RaiseStatusRequested(_texts.StatusHandshakeStarted);
+            await _tcpClientService.ResumeAsync().ConfigureAwait(true);
+            this.RaiseStatusRequested(_texts.StatusResumeSuccess);
+        }
+        catch (Exception exception)
+        {
+            this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusResumeFailedFormat, exception.Message));
         }
     }
 
@@ -642,7 +680,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         this.CurrentProperties.Clear();
         foreach (PropertyNodeViewModel node in PropertyNodeViewModel.CreateNodes(
                      packet,
-                     [.. descriptor.Properties.Where(static definition => !string.Equals(definition.Name, "OpCode", StringComparison.Ordinal))],
+                     [.. descriptor.Properties],
                      isReadOnly,
                      !isReadOnly,
                      this.HandleCurrentPacketChanged))
@@ -716,6 +754,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         this.SendPacketCommand.NotifyCanExecuteChanged();
         this.RepeatSendCommand.NotifyCanExecuteChanged();
         this.HandshakeCommand.NotifyCanExecuteChanged();
+        this.ResumeCommand.NotifyCanExecuteChanged();
     }
 
     /// <inheritdoc/>
