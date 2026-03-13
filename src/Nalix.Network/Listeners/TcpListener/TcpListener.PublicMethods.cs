@@ -36,7 +36,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
         _ = sb.AppendLine($"Port                : {_port}");
-        _ = sb.AppendLine($"StateWrapper               : {State}");
+        _ = sb.AppendLine($"StateWrapper        : {State}");
         _ = sb.AppendLine($"Disposed            : {_isDisposed}");
         _ = sb.AppendLine();
 

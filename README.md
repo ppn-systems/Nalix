@@ -114,7 +114,7 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 ---
 
-> **More details:** See the `docs/benchmark` folder in the repository for full data and additional test cases.
+> **More details:** See the `docs/Nalix.Benchmarks` folder in the repository for full data and additional test cases.
 
 ---
 

@@ -1,296 +1,152 @@
-# Nalix Ecosystem - Complete Documentation
+# 🚀 Nalix Documentation
 
-## Overview
+**Nalix** is a high-performance, modern .NET backend and networking library for building secure, scalable, maintainable, and robust distributed systems, applications, and protocol servers.
 
-The **Nalix** ecosystem is a comprehensive suite of .NET libraries designed for building high-performance, real-time applications with advanced networking, cryptography, graphics, and data management capabilities. Built using modern C# 13 and .NET 9.0-10.0, Nalix follows Domain-Driven Design (DDD) principles and SOLID architectural patterns.
+This documentation provides an overview, quick navigation, best practices, and direct links to all main module docs.
 
-## 📚 Project Documentation
+---
 
-Each project in the Nalix ecosystem has comprehensive documentation with detailed usage examples, API references, and best practices:
+## 📚 Table of Contents
 
-### Core Libraries
+| Section                                        | Description                                          |
+|------------------------------------------------|------------------------------------------------------|
+| [About Nalix](#-about-nalix)                   | What is Nalix? Major architecture overview           |
+| [Key Features](#-key-features)                 | Highlights and what makes Nalix powerful             |
+| [Module Summary](#%EF%B8%8F-module-summary)    | Overview of major modules and their roles            |
+| [Getting Started](#-getting-started)           | How to install and use Nalix in your .NET project    |
+| [Detailed Module Docs](#-detailed-module-docs) | Links to module-level documentation                  |
+| [Best Practices](#-best-practices)             | General tips for usage, maintainability, and security|
+| [License](#%F0%9F%9B%A1%EF%B8%8F-license)      | License and further info                             |
 
-#### [**Nalix** - Foundation Library](./Nalix/README.md)
+---
 
-The foundational library providing essential utilities for diagnostics, runtime management, secure randomization, unique identification, threading, and reflection.
+## 🧩 About Nalix
 
-**Key Features:**
+Nalix is built for .NET developers who need high-performance, secure and modular foundational libraries (🪐) for:
 
-- 🎲 Advanced randomization (cryptographically secure and high-performance PRNGs)
-- 🆔 Unique identifier generation (Base32/36/58/64 formats)
-- 🔧 Assembly management and dynamic loading
-- 🏗️ Platform abstraction and interoperability
-- 📊 Performance diagnostics and profiling
+- Backend and API servers
+- Protocol gateways
+- Message routing, serialization/deserialization
+- Memory pooling, zero-copy pipelines
+- Cryptography, secure randoms, object pools
+- Distributed scheduling & configuration
 
-#### [**Nalix.Common** - Shared Foundation](./Nalix.Common/README.md)
+It is designed on Domain-Driven Design (DDD) and SOLID principles for easy maintenance and scaling.  
+Modules are neatly separated to keep dependencies clean and testing easy.
 
-Foundational library providing essential utilities for logging, memory management, cryptography, security, exception handling, and system operations.
+### Modern, Layered Architecture
 
-**Key Features:**
+```plaintext
+Nalix.Shared   →   Nalix.Framework   →   Nalix.Network
+   |                 |                    |
+ Low-level        Service tools        Network stack,
+ Memory, Crypto,  Logging, Tasks,      Protocol, Routing
+ Serialization    DI, Config           Listeners, Pipeline
+```
 
-- 📝 Comprehensive logging framework with hierarchical levels
-- 🧠 Memory management and buffer pooling
-- 🔒 Security and permission systems
-- 🏗️ Repository pattern implementations
-- ⚡ High-performance optimizations
+---
 
-### Specialized Libraries
+## ✨ Key Features
 
-#### [**Nalix.Shared** - Cross-Cutting Concerns](./Nalix.Shared/README.md)
+- ⚡ **Performance:** Zero-allocation APIs, spans, buffer pooling, lock-free data structures
+- 🔒 **Security:** Built-in CSPRNG, AEAD encryption, attribute-based sensitive data protection
+- 🧱 **Modularity:** Use only what you need and scale up by stacking modules
+- 🛠️ **Maintainable:** Interfaces, dependency-injection, configuration management
+- 📦 **Cross-platform:** Runs on .NET 10+, supports Windows, Linux, MacOS
+- 🔬 **Observability:** Structured logging, live diagnostics, configuration hot-reload
 
-Comprehensive library providing shared models, serialization, localization, and foundational definitions used across the entire Nalix ecosystem.
+---
 
-**Key Features:**
+## 🗂️ Module Summary
 
-- 🔄 High-performance binary serialization (10GB/s+ throughput)
-- 🌐 Localization and internationalization (PO file support)
-- ⏰ Precision time management (microsecond accuracy)
-- 🏠 Environment management (cross-platform directory handling)
-- 📦 Client communication protocols
+| Module                   | Purpose / Highlights                                              |
+|--------------------------|-------------------------------------------------------------------|
+| **Nalix.Logging**        | Fast, batch file/console logging, structured metadata, log levels |
+| **Nalix.Network**        | TCP/UDP listeners, connection pooling, protocol stack, middleware |
+| **Nalix.Shared**         | (De)serialization, zero-copy memory, buffer & object pools        |
+| **Nalix.Framework**      | Configuration (INI), DI, time utilities, ID generators, task mgmt |
+| `BufferLease`            | Pooled, sliceable, zero-copy buffer manager, secure clearing      |
+| `ObjectPoolManager`      | Type-safe, concurrent, preallocatable object pooling              |
+| `LiteSerializer`         | High-throughput binary serializer, supports struct/array/nullable |
+| `PacketRegistry`         | Fast deserializer/transformer registry for protocol packets       |
+| `EnvelopeCipher`         | Envelope AEAD/counter encryption with nonce/tag, best-practice    |
+| `Csprng`                 | Cryptographically secure random for keys, tokens, IDs             |
+| `Snowflake`              | Compact, distributed 56-bit sortable IDs (like Twitter Snowflake) |
+| `TaskManager`            | Robust scheduled/background task, recurring/one-off workers       |
 
-#### [**Nalix.Cryptography** - Security Toolkit](./Nalix.Cryptography/README.md)
+_Note: See the [Detailed Module Docs](#-detailed-module-docs) for deep dives and API examples._
 
-High-performance cryptographic library providing secure and efficient cryptographic utilities for modern applications.
+---
 
-**Key Features:**
+## 🏁 Getting Started
 
-- 🔐 Authenticated encryption (ChaCha20-Poly1305 AEAD)
-- 🔄 Symmetric and asymmetric cryptography
-- 🏷️ Message authentication codes (HMAC, Poly1305)
-- 🔍 Cryptographic hash functions (SHA-2 family)
-- ⚡ Performance-optimized implementations (>1GB/s throughput)
+### 1️⃣ Install via NuGet
 
-#### [**Nalix.Network** - Networking Foundation](./Nalix.Network/README.md)
-
-High-performance networking library for building scalable and efficient networking applications with real-time capabilities.
-
-**Key Features:**
-
-- 🚀 High-performance connection management (100,000+ concurrent connections)
-- 🔧 Pluggable protocol framework
-- 📡 Event-driven listeners and async processing
-- 🎯 Packet dispatch and routing system
-- 🛡️ Built-in security and authentication
-
-#### [**Nalix.Logging** - Enterprise Logging](./Nalix.Logging/README.md)
-
-Flexible and high-performance logging library providing structured logging capabilities for enterprise applications.
-
-**Key Features:**
-
-- 🎯 Multiple logging targets (console, file, batch, email, database)
-- 📊 Structured logging with JSON/XML support
-- ⚡ High-performance async processing (1M+ logs/second)
-- 🔧 Full dependency injection integration
-- 📈 Built-in performance monitoring and metrics
-
-**Key Features:**
-
-- 🎮 Complete game engine with scene management
-- 🖼️ Advanced UI framework with interactive components
-- 🎨 Hardware-accelerated 2D rendering
-- 🌊 Multi-layer parallax scrolling effects
-- ⚙️ 2D physics simulation and collision detection
-
-## 🚀 Quick Start Guide
-
-### Installation
-
-Install Nalix packages via NuGet Package Manager:
-
-```bash
-# Core libraries
-dotnet add package Nalix.Common
+```shell
 dotnet add package Nalix.Shared
 dotnet add package Nalix.Framework
-
-# Specialized libraries
-dotnet add package Nalix.SDK
 dotnet add package Nalix.Network
 dotnet add package Nalix.Logging
 ```
 
-### Basic Usage Example
+### 2️⃣ Import Namespaces & Use
 
 ```csharp
 using Nalix.Logging;
-using Nalix.Cryptography.Aead;
-using Nalix.Network.Package;
-using Nalix.Shared.Time;
+using Nalix.Network.Middleware;
+using Nalix.Shared.Memory.Buffers;
 
-// Initialize logging
-var logger = new NLogix(options =>
-{
-    options.AddConsoleTarget(console => console.EnableColors = true);
-    options.AddFileTarget(file => file.FilePath = "app.log");
-});
-
-// High-resolution timing
-var startTime = Clock.GetUtcNowPrecise();
-logger.Info($"Application started at {startTime:yyyy-MM-dd HH:mm:ss.ffffff}");
-
-// Secure communication
-var key = new byte[32];
-var nonce = new byte[12];
-RandomNumberGenerator.Fill(key);
-RandomNumberGenerator.Fill(nonce);
-
-var message = "Hello, secure world!";
-var plaintext = Encoding.UTF8.GetBytes(message);
-var ciphertext = ChaCha20Poly1305.Encrypt(key, nonce, plaintext);
-
-logger.Info($"Message encrypted: {Convert.ToHexString(ciphertext)}");
-
-// Structured packet communication
-var packet = Packet.CreateText(1000, "Network communication test");
-var serializedPacket = packet.Serialize();
-
-logger.Info($"Packet created: OpCode={packet.OpCode}, Size={packet.Length} bytes");
-
-// Performance measurement
-var elapsed = Clock.GetElapsedMilliseconds();
-logger.Info($"Operations completed in {elapsed:F2}ms");
+// Example: Start a logger
+NLogix logger = NLogix.Host.Instance;
+logger.Info("Welcome to Nalix!");
 ```
 
-## 📊 Performance Characteristics
+### 3️⃣ Explore Examples
 
-### Memory Efficiency
-
-- **Zero-allocation paths**: `Span<T>` and `Memory<T>` usage
-- **Object pooling**: Reduced garbage collection pressure
-- **Buffer management**: Efficient memory reuse
-- **Streaming operations**: Process data without full materialization
-
-### Latency Targets
-
-- **Network operations**: <1ms for local communications
-- **Serialization**: <1µs for small objects
-- **Cryptographic operations**: <100µs for typical workloads
-- **Logging**: <10µs per log entry (async mode)
-
-## 🛡️ Security Features
-
-### Cryptographic Capabilities
-
-- **Modern Algorithms**: ChaCha20, Ed25519, X25519, SHA-3
-- **Authenticated Encryption**: ChaCha20-Poly1305 AEAD
-- **Key Management**: Secure key derivation and storage
-- **Constant-Time Operations**: Timing attack resistance
-
-### Network Security
-
-- **Application Layer Encryption**: Additional protection layer
-- **Authentication**: Multi-factor authentication support
-- **Authorization**: Role-based access control (RBAC)
-
-### Data Protection
-
-- **Input Validation**: Comprehensive sanitization
-- **Secure Defaults**: Security-first configuration
-- **Audit Logging**: Complete audit trails
-- **Data Anonymization**: Privacy protection features
-
-## 🔧 Development Environment
-
-### Requirements
-
-- **.NET 9.0 SDK** or later
-- **Visual Studio 2022** or Visual Studio Code with C# extensions
-- **Git** for version control
-
-### Supported Platforms
-
-- **Windows** (x64, ARM64)
-- **Linux** (x64, ARM64)
-- **macOS** (x64, ARM64)
-
-## 📖 Documentation Structure
-
-Each library includes comprehensive documentation:
-
-1. **Overview**: Purpose and key features
-2. **Architecture**: Design patterns and structure
-3. **Usage Examples**: Practical code examples
-4. **API Reference**: Complete method documentation
-5. **Performance Guidelines**: Optimization tips
-6. **Security Considerations**: Best practices
-7. **Configuration Options**: Customization settings
-8. **Integration Patterns**: Common usage scenarios
-
-## 🧪 Testing and Quality
-
-### Test Coverage
-
-- **Unit Tests**: Comprehensive test suites for all public APIs
-- **Integration Tests**: End-to-end testing scenarios
-- **Performance Tests**: Benchmark validation
-- **Security Tests**: Vulnerability assessments
-
-### Quality Assurance
-
-- **Code Analysis**: Static analysis tools
-- **Performance Profiling**: Continuous performance monitoring
-- **Security Scanning**: Automated security assessments
-- **Cross-Platform Testing**: Multi-platform validation
-
-## 🚢 Deployment Options
-
-### Development
-
-- **Local Development**: Visual Studio debugging
-- **Package Testing**: Local NuGet package testing
-- **Integration Testing**: Isolated test environments
-
-### Production
-
-- **Docker Containers**: Containerized deployments
-- **Kubernetes**: Orchestrated scaling
-- **Cloud Platforms**: Azure, AWS, GCP support
-- **Edge Deployment**: CDN and edge computing
-
-## 🗺️ Roadmap
-
-### Version 1.5 (Q2 2024)
-
-- **gRPC Integration**: High-performance RPC support
-- **OpenTelemetry**: Distributed tracing and metrics
-- **Native AOT**: Ahead-of-time compilation support
-- **WebAssembly**: Browser and edge deployment
-
-### Version 2.0 (Q4 2024)
-
-- **Cloud Native Features**: Enhanced cloud deployment
-- **AI/ML Integration**: Machine learning pipeline support
-- **GraphQL Support**: Modern API query language
-- **Advanced Analytics**: Real-time analytics capabilities
-
-## 🤝 Contributing
-
-We welcome contributions to the Nalix ecosystem! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on:
-
-- **Code Style**: Coding standards and conventions
-- **Pull Requests**: Submission process and requirements
-- **Issue Reporting**: Bug reports and feature requests
-- **Documentation**: Documentation improvements
-- **Testing**: Test requirements and guidelines
-
-## 📄 License
-
-Nalix is licensed under the [Apache License, Version 2.0](LICENSE). See the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- **SFML Team**: For the excellent multimedia library
-- **SixLabors**: For the ImageSharp image processing library
-- **Microsoft**: For the .NET platform and tooling
-- **Community**: For feedback, contributions, and support
-
-## 📞 Support and Community
-
-- **GitHub Issues**: [Report bugs and request features](https://github.com/ppn-systems/Nalix/issues)
-- **Discussions**: [Community discussions and Q&A](https://github.com/ppn-systems/Nalix/discussions)
-- **Examples**: [Sample applications and tutorials](https://github.com/ppn-systems/Nalix/tree/master/examples)
+Each module's documentation (linked below) includes code samples and usage scenarios.
 
 ---
 
-**Nalix** - Building the future of high-performance .NET applications. 🚀
+## 📖 Detailed Module Docs
+
+| Documentation                                                                 | Description                                   |
+|-------------------------------------------------------------------------------|-----------------------------------------------|
+| [Logging](./Nalix.Logging/README.md)                                          | Logging API, batch sinks, config              |
+| [Middleware Pipeline](./Nalix.Network/Middleware/README.md)                   | Packet middleware, stages, attributes         |
+| [Packet Dispatch & Handler](./Nalix.Network/Routing/PacketDispatchChannel.md) | Attribute-driven handler registration, routing|
+| [TCP/Connection](./Nalix.Network/Listeners/TcpListenerBase.md)                | Listener setup and connection lifecycle       |
+| [ConnectionHub](./Nalix.Network/New%20folder/ConnectionHub.md)                | Sharded, high-throughput connection manager   |
+| [BufferLease](./Nalix.Shared/Memory/BufferLease.md)                           | Zero-copy buffer pool, secure                 |
+| [ObjectPoolManager](./Nalix.Shared/Memory/ObjectPoolManager.md)               | Generic object pooling, preallocation         |
+| [LiteSerializer](./Nalix.Shared/LiteSerializer.md)                            | Serialization of structs, arrays, primitives  |
+| [PacketRegistry](./Nalix.Shared/PacketRegistry.md)                            | Typed packet registry and deserialization     |
+| [EnvelopeCipher & Encryptor](./Nalix.Shared/Security/EnvelopeCipher.md)       | Envelope/AEAD encryption/decryption           |
+| [CSPRNG](./Csprng.md)                                                         | Secure random numbers, nonces, integers       |
+| [Snowflake ID](./Snowflake.md)                                                | Unique distributed ID generator (Snowflake)   |
+| [Configuration](./Configuration.md)                                           | Thread-safe INI management, container binding |
+| [TaskManager](./TaskManager.md)                                               | Background scheduling, recurring tasks        |
+| [Full Architecture](./Nalix.Network/Architecture.md)                          | Layered design, DDD/Clean, flows & diagrams   |
+
+---
+
+## 📝 Best Practices
+
+- Use zero-copy APIs (`Span<T>`, `BufferLease`) for performance-critical code
+- Always securely clear secrets (see `BufferLease` & `EnvelopeCipher`)
+- Design configuration classes by inheriting `ConfiguredBinder` and use `ConfiguredShared`
+- Attribute-annotate fields for serialization, encryption, and logging
+- Favor registering/discovering packet handlers using `[PacketController]` & `[PacketOpcode]` attributes
+- Leverage dependency injection patterns for testable, robust code
+- Call `Flush()` and `Dispose()` on configuration and pool classes for clean shutdown
+- Follow Microsoft XML doc standards in comments for public APIs
+
+---
+
+## 🛡️ License
+
+Nalix is released under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).  
+See LICENSE files in the repo and modules for details.
+
+---
+
+> For feature requests, contribution guidelines, and more documentation, visit the repository or reach out to the Nalix team.

@@ -44,6 +44,7 @@ bld/
 *.snk
 nuget.key
 appsettings.json
+cert/
 nugets/
 artifacts/
 docs/Nalix.Benchmarks/*.log

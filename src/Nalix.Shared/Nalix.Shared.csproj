@@ -9,10 +9,10 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>11.1.4</Version>
-		<FileVersion>11.1.4.0</FileVersion>
-		<PackageVersion>11.1.4</PackageVersion>
-		<InformationalVersion>11.1.4+$(SourceRevisionId)</InformationalVersion>
+		<Version>11.3.0</Version>
+		<FileVersion>11.3.0.0</FileVersion>
+		<PackageVersion>11.3.0</PackageVersion>
+		<InformationalVersion>11.3.0+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
 Nalix.Shared provides the foundational low-level primitives and shared utilities
