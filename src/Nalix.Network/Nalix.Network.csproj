@@ -16,13 +16,11 @@ Designed for latency-sensitive workloads, it emphasizes efficient I/O, predictab
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Expanded ConnectionHub observability with configurable shard telemetry, anonymous queue depth metrics, and capacity-related runtime hooks.
-- Improved packet dispatch diagnostics with clearer loop, semaphore, and middleware instrumentation reporting.
-- Hardened UDP listener authentication with timestamp validation, Poly1305-based integrity checks, and replay-guard protections.
-- Added adaptive throttling primitives including ConnectionLimiter, TokenBucketLimiter, and PolicyRateLimiter.
-- Enhanced protocol lifecycle and metrics infrastructure for more reliable service orchestration.
-- Improved timing and scheduling components with high-resolution wheel-based coordination and synchronization helpers.
-- Continued performance, stability, and maintainability refinements across the networking stack.
+- Hardened UDP Transport: Optimized sequence ID parsing and advanced sliding window logic for robust anti-replay protection.
+- Enhanced Security: Integrated HMAC integrity checks and timestamp validation directly into the UDP listener pipeline.
+- Intelligent Traffic Control: Introduced adaptive throttling with Token Bucket and Policy-based rate limiters to protect against traffic bursts.
+- Scalable Observability: Expanded shard telemetry and real-time queue depth monitoring for complex distributed deployments.
+- High-Performance Dispatch: Seamless integration with the new Weighted Round-Robin dispatcher for fair packet processing.
 		]]></PackageReleaseNotes>
 
 	</PropertyGroup>

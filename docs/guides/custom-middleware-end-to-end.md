@@ -1,5 +1,10 @@
 # Custom Middleware End-to-End
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Intermediate
+    - :fontawesome-solid-clock: **Time**: 15 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Middleware](../concepts/middleware.md)
+
 This guide shows how to implement custom authorization rules that validate session tokens across the Nalix inbound pipeline.
 
 The example combines:

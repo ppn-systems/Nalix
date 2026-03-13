@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -16,12 +16,10 @@ This package is intended for applications and infrastructure that want finer con
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Added inbound middleware for permission checks, rate limiting, concurrency gates, and timeout enforcement.
-- Introduced reusable throttling primitives including TokenBucketLimiter, PolicyRateLimiter, and ConcurrencyGate.
-- Added configurable token-bucket options to simplify traffic-shaping setup.
-- Included TimeSynchronizer for clock coordination in distributed networking scenarios.
-- Improved modularity so pipeline and throttling features can be consumed independently from the broader transport runtime.
-- General cleanup, packaging polish, and documentation improvements.
+- Adaptive Traffic Shaping: Robust Token Bucket and Policy-based rate limiters to protect critical network boundaries from traffic bursts.
+- Middleware Defense: High-efficiency inbound filters for permission validation, concurrency gating, and automated timeout enforcement.
+- Temporal Accuracy: Integrated TimeSynchronizer for precise, high-resolution clock coordination in distributed networking environments.
+- Modular Integration: Decoupled pipeline and throttling primitives that can be used independently from the core transport runtime.
 		]]></PackageReleaseNotes>
 
 	</PropertyGroup>

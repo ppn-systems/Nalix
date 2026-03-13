@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Net;
 using Nalix.Common.Networking;
 using Nalix.Network.Listeners.Udp;
 
@@ -21,17 +20,11 @@ internal sealed class UdpServerListener : UdpListenerBase
 
     /// <inheritdoc />
     public UdpServerListener(ushort port, IProtocol protocol, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        : base(port, protocol)
-    {
-        _authen = authen;
-    }
+        : base(port, protocol) => _authen = authen;
 
     /// <inheritdoc />
     public UdpServerListener(IProtocol protocol, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        : base(protocol)
-    {
-        _authen = authen;
-    }
+        : base(protocol) => _authen = authen;
 
     /// <inheritdoc />
     protected override bool IsAuthenticated(IConnection connection, System.Net.EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)

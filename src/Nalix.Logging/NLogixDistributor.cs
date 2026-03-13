@@ -47,19 +47,19 @@ public sealed class NLogixDistributor : INLogixDistributor
     #region Properties
 
     /// <summary>
-    /// Gets the ProtocolType of errors that occurred during publish operations.
+    /// Gets the total count of errors that occurred during publish operations.
     /// </summary>
     public long TotalPublishErrors
         => Interlocked.Read(ref _totalPublishErrors);
 
     /// <summary>
-    /// Gets the total ProtocolType of log entries that have been published.
+    /// Gets the total number of log entries that have been published.
     /// </summary>
     public long TotalEntriesPublished
         => Interlocked.Read(ref _totalEntriesPublished);
 
     /// <summary>
-    /// Gets the total ProtocolType of target publish operations performed.
+    /// Gets the total number of target publish operations performed.
     /// </summary>
     public long TotalTargetInvocations
         => Interlocked.Read(ref _totalTargetInvocations);

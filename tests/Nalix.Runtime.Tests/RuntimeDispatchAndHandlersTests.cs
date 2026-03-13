@@ -1,3 +1,4 @@
+using Nalix.Common.Networking.Protocols;
 using System;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
@@ -6,7 +7,6 @@ using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
@@ -111,7 +111,7 @@ public sealed class RuntimeDispatchAndHandlersTests
     {
         PacketContext<TestPacket> context = new();
 
-        Assert.Equal(ProtocolType.NONE, context.Protocol);
+        Assert.False(context.IsReliable);
         Assert.False(context.SkipOutbound);
 
         context.Return();
@@ -170,9 +170,9 @@ public sealed class RuntimeDispatchAndHandlersTests
         public ushort OpCode { get; set; }
         public PacketFlags Flags { get; set; }
         public PacketPriority Priority { get; set; }
-        public ProtocolType Protocol { get; set; } = ProtocolType.TCP;
-        public uint SequenceId { get; } = 1;
+        public ushort SequenceId { get; } = 1;
         public byte[] Serialize() => [];
         public int Serialize(Span<byte> buffer) => 0;
     }
 }
+

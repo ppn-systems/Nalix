@@ -34,7 +34,7 @@ public sealed class PacketPoolLeaseTests
             type: ControlType.DISCONNECT,
             sequenceId: 42,
             reasonCode: ProtocolReason.INTERNAL_ERROR,
-            transport: ProtocolType.UDP);
+            flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
         packet.Priority = PacketPriority.LOW;
 
         PacketPool<Control>.Return(packet);

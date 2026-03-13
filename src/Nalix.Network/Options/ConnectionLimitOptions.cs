@@ -24,7 +24,7 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     /// Gets or sets the maximum number of connection attempts allowed within the configured rate window.
     /// </summary>
     [IniComment("Max connection attempts from one IP within the rate window (1–10,000,000)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 10_000_000, ErrorMessage = "MaxConnectionsPerWindow must be between 1 and 10,000.")]
+    [System.ComponentModel.DataAnnotations.Range(1, 10_000_000, ErrorMessage = "MaxConnectionsPerWindow must be between 1 and 10,000,000.")]
     public int MaxConnectionsPerWindow { get; set; } = 10;
 
     /// <summary>

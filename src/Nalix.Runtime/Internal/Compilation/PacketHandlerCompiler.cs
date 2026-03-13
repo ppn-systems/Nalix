@@ -759,7 +759,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
         try
         {
-            bridgedContext.Initialize(concretePacket, context.Connection, context.Attributes, context.Protocol, context.CancellationToken);
+            bridgedContext.Initialize(concretePacket, context.Connection, context.Attributes, context.IsReliable, context.CancellationToken);
             bridgedContext.SkipOutbound = context.SkipOutbound;
 
             object? result = withToken

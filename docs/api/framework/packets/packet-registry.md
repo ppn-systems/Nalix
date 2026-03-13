@@ -99,11 +99,29 @@ bool registered = registry.IsRegistered<Handshake>();
 
 ### Common public methods
 
-- `IsKnownMagic(magic)`
-- `IsRegistered<TPacket>()`
-- `TryDeserialize(raw, out packet)`
-- `TryGetDeserializer(magic, out deserializer)`
-- `DeserializerCount`
+- `IsKnownMagic(magic)`: Fast check for registered magic numbers.
+- `IsRegistered<TPacket>()`: Checks if a specific packet type is registered.
+- `Deserialize(raw)`: Decodes a packet from raw bytes; throws on failure.
+- `TryDeserialize(raw, out packet)`: Safely decodes a packet from raw bytes.
+- `DeserializerCount`: Gets the total number of registered packet types.
+
+### In-place Deserialization (Zero-allocation)
+
+For mission-critical paths where performance is paramount, `PacketRegistry` supports deserializing data directly **into** an existing packet instance. This is essential for zero-allocation patterns when combined with packet pooling.
+
+```csharp
+// Example using an existing instance (e.g., from a pool)
+MyPacket reuse = pool.Rent();
+if (registry.TryDeserialize(buffer, ref reuse))
+{
+    // 'reuse' is now populated with data from buffer. 
+    // If the buffer contained a different packet type, TryDeserialize returns false.
+}
+```
+
+#### New In-place Methods
+- **`Deserialize<TPacket>(raw, ref value)`**: Deserializes the buffer into the provided `ref value`. Returns the instance. Throws `InvalidOperationException` if the magic number doesn't match `TPacket`.
+- **`TryDeserialize<TPacket>(raw, ref value)`**: Attempts to populate `ref value`. Returns `false` if the magic number is unknown, the data is invalid, or the type doesn't match.
 
 ### Practical notes
 

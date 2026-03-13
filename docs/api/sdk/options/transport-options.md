@@ -32,8 +32,7 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 | Property | Default | Description |
 |---|---|---|
 | `NoDelay` | `true` | Disables Nagle's algorithm for lower latency. |
-| `BufferSize` | `8192` | Socket send/receive buffer size in bytes. |
-| `MaxPacketSize` | `65536` | Maximum allowed packet size. |
+| `BufferSize` | `65536` | Socket send/receive buffer size in bytes. |
 | `AsyncQueueCapacity` | `1024` | Capacity of the internal async message queue. |
 | `MaxUdpDatagramSize` | `1400` | Maximum MTU for UDP (including 7-byte Token). |
 
@@ -44,7 +43,7 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 | `CompressionThreshold` | `512` | Minimum bytes to trigger compression. |
 | `EncryptionEnabled` | `true` | Enables AEAD packet encryption. |
 | `Algorithm` | `Chacha20Poly1305`| Cipher suite for encrypted communication. |
-| `Secret` | `[]` | **[Ignored]** Runtime encryption key. |
+| `Secret` | `Bytes32.Zero` | **[Ignored]** Runtime zero-allocation encryption key. |
 
 ### Session Resume & Time Sync
 | Property | Default | Description |
@@ -59,8 +58,7 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 
 The `Validate()` method should be called after loading configuration to ensure constraints are met. Common validation errors include:
 - `Port` outside [1, 65535].
-- `BufferSize` outside [1KB, 1MB].
-- `MaxPacketSize` outside [512B, 64KB].
+- `BufferSize` outside [2KB, 10MB].
 - `ReconnectBaseDelayMillis` > `ReconnectMaxDelayMillis`.
 
 ## Basic usage

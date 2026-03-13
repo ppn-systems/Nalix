@@ -35,7 +35,7 @@ internal class TypePool(int maxCapacity)
     #region Properties
 
     /// <summary>
-    /// Gets the ProtocolType of objects available in this pool.
+    /// Gets the number of objects available in this pool.
     /// </summary>
     public int AvailableCount => _objects.Count;
 
@@ -109,7 +109,7 @@ internal class TypePool(int maxCapacity)
     /// <summary>
     /// Clears all objects from this pool.
     /// </summary>
-    /// <returns>The ProtocolType of objects removed.</returns>
+    /// <returns>The number of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Clear()
     {
@@ -123,7 +123,7 @@ internal class TypePool(int maxCapacity)
     /// Trims the pool to a target size based on a percentage of the maximum capacity.
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
-    /// <returns>The ProtocolType of objects removed.</returns>
+    /// <returns>The number of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public int Trim(int percentage)
     {
@@ -179,3 +179,4 @@ internal class TypePool(int maxCapacity)
 
     #endregion Public Methods
 }
+

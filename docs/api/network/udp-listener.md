@@ -1,70 +1,96 @@
-# UDP Listener
+# UDP Listener (Low-Level Transport)
 
-`UdpListenerBase` is the abstract UDP listener runtime used for datagram receive, session-token-based connection resolution, and protocol handoff.
+`UdpListenerBase` orchestrates high-performance Datagram reception. Unlike TCP, UDP is connectionless. Therefore, the Nalix UDP implementation acts as a **stateless router and authenticator** that securely maps incoming datagrams to stateful TCP `Connection` objects.
 
-## Audit Summary
+!!! danger "Security Prerequisite"
+    Nalix strictly enforces that UDP communication cannot exist without an active TCP connection. All UDP packets must leverage the `SessionToken` issued by the successful TCP handshake.
 
-- Existing page provided good lifecycle coverage but referenced one non-existent file path (`UdpListener.PrivateMethods.cs`).
-- Needed tighter alignment to current public member surface.
+---
 
-## Missing Content Identified
+## 1. Zero-Allocation Receive Loop
 
-- Explicit mention that accepted datagrams are associated to connections through session-token flow.
-- Correct source mapping and API list.
-
-## Improvement Rationale
-
-Correct source references and lifecycle boundaries reduce confusion during UDP troubleshooting.
-
-## Source Mapping
-
-- `src/Nalix.Network/Listeners/UdpListener/UdpListener.Core.cs`
-- `src/Nalix.Network/Listeners/UdpListener/UdpListener.PublicMethods.cs`
-- `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`
-- `src/Nalix.Network/Listeners/UdpListener/UdpListener.SocketConfig.cs`
-
-## Why This Type Exists
-
-`UdpListenerBase` provides shared UDP socket lifecycle and receive-loop infrastructure while allowing subclasses to define authentication policy.
-
-## Core Public Members
-
-- `Activate(CancellationToken cancellationToken = default)`
-- `Deactivate(CancellationToken cancellationToken = default)`
-- `GenerateReport()`
-- `GetReportData()`
-- `Dispose()`
-- `IsListening`
-
-## Required Extension Point
-
-Derived listeners must implement the authentication hook to validate inbound datagrams:
-
-```csharp
-protected abstract bool IsAuthenticated(
-    IConnection connection, 
-    EndPoint remoteEndPoint, 
-    ReadOnlySpan<byte> payload);
-```
-
-## Mental Model
+The UDP Listener avoids heap allocations completely on its hot path by coupling `SocketAsyncEventArgs` with internal pooling (`BufferLease` and `SpinLock`).
 
 ```mermaid
-flowchart LR
-    A["UDP datagram"] --> B["Receive loop"]
-    B --> C["Resolve connection/session"]
-    C --> D["Authentication check"]
-    D --> E["Protocol / connection pipeline"]
+flowchart TD
+    subgraph Transport[UDP Socket Layer]
+        Raw[Raw UDP Socket]
+        Loop[SAEA Receive Loop]
+    end
+
+    subgraph Extraction[Header Extraction]
+        SizeCheck[Size Validator]
+        FlagCheck[PacketFlags Mask Verification]
+        Token[Extract 7-byte Token]
+    end
+
+    subgraph Security[Security Authentication Gate]
+        HubLookup[IConnectionHub Dictionary Lookup]
+        IPPinning[End-Point Strict Pinning Check]
+        SlidingWindow[SlidingWindow Sequence Validator]
+    end
+
+    subgraph Handoff[Processing Handoff]
+        Slice[Zero-Allocation Memory Slice]
+        AppHandoff[Decryption & Application Stack]
+    end
+
+    Raw -->|Incoming Datagram| Loop
+    Loop --> SizeCheck
+    
+    SizeCheck -->|Valid Size > 10 bytes| FlagCheck
+    SizeCheck -.->|Invalid Size| Drop[Silent Discard]
+    
+    FlagCheck -->|Valid UNRELIABLE flag| Token
+    FlagCheck -.->|Malformation| Drop
+    
+    Token --> HubLookup
+    HubLookup -->|Found Target| IPPinning
+    HubLookup -.->|Token Expired/Invalid| Drop
+    
+    IPPinning -->|IP matched TCP Socket| SlidingWindow
+    IPPinning -.->|IP Spoofed| Drop
+    
+    SlidingWindow -->|Sequence Unique & Recent| Slice
+    SlidingWindow -.->|Packet Replayed / Stale| Drop
+    
+    Slice --> AppHandoff
+
 ```
 
-## Best Practices
+## 2. Low-Level Security Pipeline
 
-- Use UDP only after session identity is established by your control flow.
-- Keep authentication checks deterministic and low-latency.
-- Monitor drop counters (short/unknown/unauthenticated) to distinguish protocol errors from transport pressure.
+UDP is vulnerable to spoofing and reflection attacks. Nalix hardens the listener via a 3-stage validation gate:
 
-## Related APIs
+### Stage 1: Protocol & Token Validation
+- **Minimum Size Guard**: Any datagram smaller than 10 bytes is instantly dropped.
+- **Flag Verification**: The listener validates `payload[6]` (the `PacketFlags` byte) to ensure it carries the `PacketFlags.UNRELIABLE` mask identifying a UDP frame.
+- **Session Lookup**: The first 7 bytes (`SessionToken`) are read natively via `ReadOnlySpan<byte>` and cross-referenced with the `IConnectionHub`. Extremely fast mapping occurs without object allocation.
 
-- [Protocol](./protocol.md)
-- [Connection Hub](./connection/connection-hub.md)
-- [Network Options](./options/options.md)
+### Stage 2: IP Pinning (SEC-30)
+Even if an attacker steals a `SessionToken`, the listener verifies that the source `IPEndPoint` of the UDP datagram stringently matches the `Connection.NetworkEndpoint` bound to the TCP socket. Spoofed IPs are instantly dropped down to the networking stack.
+
+### Stage 3: Sliding Replay Window (SEC-27)
+Due to UDP's nature, an attacker could capture a valid packet and replay it iteratively. 
+- Nalix utilizes an internal lock-free (via `SpinLock`) `SlidingWindow` instance attached to the connection.
+- It parses the 16-bit `SequenceId` at offset 8.
+- If the packet sequence is historical or already observed within the window, the datagram is rejected.
+- **Performance**: Executing the bit-shift operations inside a low-level struct SpinLock ensures the validation cost rests under 10 nanoseconds per datagram.
+
+## 3. Buffer Lifecycle Handoff
+
+Once authenticated, the UDP payload must be processed:
+1. Nalix extracts a `BufferLease` (rented from the `ByteArrayPool`) containing the raw datagram.
+2. The 7-byte `SessionToken` prefix is mathematically sliced off using `Memory<byte>` operations without array copies.
+3. The remaining payload is routed to the application's `ProcessFrame` pipeline using the resolved `Connection` object as the context.
+
+## 4. Public API Surface
+
+| Method | Description |
+|---|---|
+| `Activate()` | Initializes the `Socket` and launches the continuous SAEA asynchronous receive loops. |
+| `Deactivate()` | Cancels active receive tasks safely. |
+| `IsAuthenticated` | **(Abstract)** The final application logic hook used by derived classes for custom datagram acceptance strategy. |
+
+!!! tip "Performance Tuning"
+    For immense traffic scenarios, ensure that `NetworkSocketOptions.BufferSize` is appropriately sized (typically between `2MB` and `10MB`) to accommodate OS-level network queuing preventing datagram drop under load spikes.

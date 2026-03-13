@@ -1,7 +1,6 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.Transforms;
@@ -27,7 +26,7 @@ internal static class PacketFrameTransforms
 
         if (flags.HasFlag(PacketFlags.ENCRYPTED))
         {
-            IBufferLease next = PacketCipher.DecryptFrame(current, options.Secret, options.Algorithm);
+            IBufferLease next = PacketCipher.DecryptFrame(current, options.Secret.AsSpan(), options.Algorithm);
             current.Dispose();
             current = next;
             flags = current.Span.ReadFlagsLE();
@@ -61,7 +60,7 @@ internal static class PacketFrameTransforms
 
         if (doEncrypt)
         {
-            IBufferLease next = PacketCipher.EncryptFrame(current, options.Secret, options.Algorithm);
+            IBufferLease next = PacketCipher.EncryptFrame(current, options.Secret.AsSpan(), options.Algorithm);
             current.Dispose();
             current = next;
         }

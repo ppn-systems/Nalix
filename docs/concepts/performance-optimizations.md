@@ -1,13 +1,23 @@
 # Performance Optimizations
 
+!!! warning "Advanced Topic"
+    This page describes internal framework mechanics like Span limits, structure alignments, and GC overheads.
+
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Advanced
+    - :fontawesome-solid-clock: **Time**: 15 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](architecture.md)
+
 Nalix is engineered to minimize latency and maximize throughput on the networking hot path. This page explains the specific techniques used and why they matter for production workloads.
 
 ## 1. Zero-Allocation Data Path
 
 Traditional networking stacks suffer from GC pressure due to frequent buffer allocations. Nalix eliminates this by pooling all hot-path resources.
 
-> [!TIP]
-> **New Guide**: For a complete end-to-end walkthrough of how these optimizations work together in a production scenario, see the [Zero-Allocation Hot Path](../guides/zero-allocation-hot-path.md) guide.
+!!! tip
+    Monitor GC pause time and allocated bytes as your primary performance indicators during load testing.
+
+For a complete end-to-end walkthrough of how these optimizations work together in a production scenario, see the [Zero-Allocation Hot Path](../guides/zero-allocation-hot-path.md) guide.
 
 ### Buffer Pooling (BufferLease)
 
@@ -88,5 +98,6 @@ For measured performance data across serialization, cryptography, compression, a
 
 - [Architecture](./architecture.md) — Layered component overview
 - [Packet System](./packet-system.md) — Serialization layouts and wire format
-- [Buffer and Pooling](../api/framework/memory/buffer-and-pooling.md) — Buffer pool API details
+- [Buffer Management](../api/framework/memory/buffer-management.md) — Buffer pool API details
+- [Object Pooling](../api/framework/memory/object-pooling.md) — Object recycling API details
 - [LZ4](../api/framework/memory/lz4.md) — Compression API details

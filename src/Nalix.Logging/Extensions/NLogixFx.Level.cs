@@ -19,7 +19,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Debug(
         this string message,
@@ -40,7 +40,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType.</param>
+    /// <param name="callerLineNumber">The caller line number.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Debug(
         this string message,
@@ -61,7 +61,7 @@ public static partial class NLogixFx
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Debug(
         this Exception extendedData,
@@ -86,7 +86,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Trace(
         this string message,
@@ -107,7 +107,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType.</param>
+    /// <param name="callerLineNumber">The caller line number.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Trace(
         this string message,
@@ -128,7 +128,7 @@ public static partial class NLogixFx
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Trace(
         this Exception extendedData,
@@ -153,7 +153,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Warn(
         this string message,
@@ -174,7 +174,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType.</param>
+    /// <param name="callerLineNumber">The caller line number.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Warn(
         this string message,
@@ -195,7 +195,7 @@ public static partial class NLogixFx
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Warn(
         this Exception extendedData,
@@ -220,7 +220,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Fatal(
         this string message,
@@ -241,7 +241,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType.</param>
+    /// <param name="callerLineNumber">The caller line number.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Fatal(
         this string message,
@@ -262,7 +262,7 @@ public static partial class NLogixFx
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Fatal(
         this Exception extendedData,
@@ -287,7 +287,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Info(
         this string message,
@@ -308,7 +308,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType.</param>
+    /// <param name="callerLineNumber">The caller line number.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Info(
         this string message,
@@ -329,7 +329,7 @@ public static partial class NLogixFx
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Info(
         this Exception extendedData,
@@ -354,7 +354,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(
         this string message,
@@ -375,7 +375,7 @@ public static partial class NLogixFx
     /// <param name="extendedData">The extended data.</param>
     /// <param name="callerMemberName">Name of the caller member.</param>
     /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType.</param>
+    /// <param name="callerLineNumber">The caller line number.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(
         this string message,
@@ -396,7 +396,7 @@ public static partial class NLogixFx
     /// <param name="message">The message.</param>
     /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
+    /// <param name="callerLineNumber">The caller line number. This is automatically populated.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Error(
         this Exception ex,

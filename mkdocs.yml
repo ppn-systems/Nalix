@@ -74,7 +74,7 @@ theme:
 plugins:
   - search:
       separator: '[\s\-\.]+'
-  - social
+  # - social
   - git-revision-date-localized:
       type: datetime
       enable_creation_date: true
@@ -153,6 +153,7 @@ nav:
           - Custom Serialization Provider: guides/custom-serialization-provider.md
       - Networking Patterns:
           - Client Session Connect: guides/client-session-connect.md
+          - Low Level Session APIs: guides/low-level-session-apis.md
           - TCP Request/Response: guides/tcp-request-response.md
           - UDP Server: guides/udp-server.md
           - UDP Auth Flow: guides/udp-auth-flow.md
@@ -183,28 +184,38 @@ nav:
         - Connection Contracts: api/common/connection-contracts.md
         - Session Contracts: api/common/session-contracts.md
         - Concurrency Contracts: api/common/concurrency-contracts.md
+        - Enums: api/common/enums.md
       - Framework:
-        - Directories: api/framework/environment/directories.md
-        - Configuration & DI: api/framework/runtime/configuration.md
-        - Task Manager: api/framework/runtime/task-manager.md
-        - Snowflake: api/framework/runtime/snowflake.md
-        - Clock: api/framework/runtime/clock.md
-        - Timing Scope: api/framework/runtime/timing-scope.md
-        - Singleton Base: api/framework/runtime/singleton-base.md
-        - Worker Options: api/framework/options/worker-options.md
-        - Recurring Options: api/framework/options/recurring-options.md
-        - Frame Model: api/framework/packets/frame-model.md
-        - Serialization Attributes: api/common/serialization-attributes.md
-        - Framework Serialization: api/framework/serialization/serialization-basics.md
-        - Packet Registry: api/framework/packets/packet-registry.md
-        - Built-in Frames: api/framework/packets/built-in-frames.md
-        - Packet Pooling: api/framework/packets/packet-pooling.md
-        - Fragmentation: api/framework/packets/fragmentation.md
-        - Reader, Writer, and Header Extensions: api/framework/packets/reader-writer-and-header-extensions.md
-        - LZ4: api/framework/memory/lz4.md
-        - Buffer and Pooling: api/framework/memory/buffer-and-pooling.md
-        - Object Map and Typed Pools: api/framework/memory/object-map-and-typed-pools.md
-        - Serialization: api/framework/packets/serialization.md
+        - Overview: api/framework/index.md
+        - Environment: api/framework/environment/directories.md
+        - Runtime:
+          - Clock: api/framework/runtime/clock.md
+          - Snowflake: api/framework/runtime/snowflake.md
+          - Timing Scope: api/framework/runtime/timing-scope.md
+          - Task Manager: api/framework/runtime/task-manager.md
+          - Configuration: api/framework/runtime/configuration.md
+          - Singleton Base: api/framework/runtime/singleton-base.md
+          - Instance Manager (DI): api/framework/runtime/instance-manager.md
+        - Options:
+          - Worker Options: api/framework/options/worker-options.md
+          - Recurring Options: api/framework/options/recurring-options.md
+        - Packets:
+          - Frame Model: api/framework/packets/frame-model.md
+          - Fragmentation: api/framework/packets/fragmentation.md
+          - Built-in Frames: api/framework/packets/built-in-frames.md
+          - Packet Pooling: api/framework/packets/packet-pooling.md
+          - Packet Registry: api/framework/packets/packet-registry.md
+          - Packet IO & Headers: api/framework/packets/reader-writer-and-header-extensions.md
+        - Serialization:
+          - Serialization: api/framework/packets/serialization.md
+          - Framework Serialization: api/framework/serialization/serialization-basics.md
+          - Serialization Attributes: api/common/serialization-attributes.md
+        - Memory & Pooling:
+          - LZ4: api/framework/memory/lz4.md
+          - Buffer Management: api/framework/memory/buffer-management.md
+          - Object Pooling: api/framework/memory/object-pooling.md
+          - Object Map: api/framework/memory/object-map.md
+          - Typed Object Pools: api/framework/memory/typed-object-pools.md
       - Logging:
         - Overview: api/logging/index.md
         - Options: api/logging/options.md
@@ -219,9 +230,9 @@ nav:
         - Permission Levels: api/security/permission-level.md
       - Runtime:
         - Overview: api/runtime/index.md
+        - Handlers: api/runtime/handlers/index.md
         - Routing:
           - Overview: api/runtime/routing/index.md
-          - Handlers: api/runtime/handlers/index.md
           - Attributes: api/runtime/routing/packet-attributes.md
           - Metadata: api/runtime/routing/packet-metadata.md
           - Context: api/runtime/routing/packet-context.md
@@ -254,13 +265,14 @@ nav:
           - Events: api/network/connection/connection-events.md
           - Extensions: api/network/connection/connection-extensions.md
           - Limiter: api/network/connection/connection-limiter.md
-        - Time Synchronizer: api/network/time-synchronizer.md
-        - Timing Wheel: api/network/timing-wheel.md
+        - Time:
+          - Time Synchronizer: api/network/time/time-synchronizer.md
+          - Timing Wheel: api/network/time/timing-wheel.md
         - Options:
           - Overview: api/network/options/options.md
           - Network Socket: api/network/options/network-socket-options.md
           - Connection Limit: api/network/options/connection-limit-options.md
-          - Connection Hub Options: api/network/connection/connection-hub-options.md
+          - Connection Hub Options: api/network/options/connection-hub-options.md
           - Timing Wheel Options: api/network/options/timing-wheel-options.md
           - Pooling Options: api/network/options/pooling-options.md
           - Network Callback Options: api/network/options/network-callback-options.md

@@ -11,11 +11,18 @@ Use it when you want Nalix server startup to feel more like a single bootstrap p
 
 ```mermaid
 flowchart LR
-    A["NetworkApplication.CreateBuilder()"] --> B["Configure options + logger + connection hub"]
-    B --> C["Register packets / handlers / metadata providers"]
-    C --> D["Build()"]
-    D --> E["ActivateAsync / RunAsync"]
-    E --> F["PacketDispatchChannel + Protocol + Listeners"]
+    subgraph Config ["Configuration"]
+        A["CreateBuilder()"] --> B["Register Services"]
+        B --> C["Scan Packets"]
+        C --> D["Bind Protocols"]
+    end
+
+    subgraph Runtime ["Execution"]
+        D --> E["Build & Activate"]
+        E --> F["Infrastructure"]
+        F --> G["Dispatcher"]
+        G --> H["Listeners"]
+    end
 ```
 
 ## What it gives you

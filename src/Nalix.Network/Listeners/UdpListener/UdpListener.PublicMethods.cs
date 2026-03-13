@@ -11,11 +11,10 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Network.Internal.Pooling;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -86,29 +85,28 @@ public abstract partial class UdpListenerBase : IListener
             }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
-            this.SubscribeToHubEvents();
 
             s_logger?.Info(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
                 $"listening port={_port} protocol={_protocol.GetType().Name}");
 
-            // Schedule the receive loop as a background worker through the TaskManager.
-            _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
-                name: $"{TaskNaming.Tags.Udp}.{TaskNaming.Tags.Process}",
-                group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",
-                work: async (_, ct) => await this.ReceiveDatagramsAsync(ct).ConfigureAwait(false),
-                options: new WorkerOptions
+            // Dispatch parallel SAEA receive workers
+            int concurrency = Math.Max(1, s_config.MaxParallel);
+            for (int i = 0; i < concurrency; i++)
+            {
+                PooledUdpReceiveEventArgs args = new();
+                args.Completed += this.OnReceiveCompleted;
+
+                // Offload start to ThreadPool to prevent blocking Activate if ReceiveFromAsync completes inline.
+                _ = ThreadPool.UnsafeQueueUserWorkItem(state =>
                 {
-                    Tag = TaskNaming.Tags.Udp,
-                    IdType = SnowflakeType.System,
-                    CancellationToken = _cancellationToken,
-                    GroupConcurrencyLimit = s_config.MaxGroupConcurrency
-                });
+                    this.StartReceive((PooledUdpReceiveEventArgs)state!);
+                }, args);
+            }
         }
         catch (OperationCanceledException)
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
-            this.UnsubscribeFromHubEvents();
 
             s_logger?.Info(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
@@ -117,7 +115,6 @@ public abstract partial class UdpListenerBase : IListener
         catch (SocketException ex)
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
-            this.UnsubscribeFromHubEvents();
 
             s_logger?.Critical(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
@@ -126,7 +123,6 @@ public abstract partial class UdpListenerBase : IListener
         catch (Exception ex)
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
-            this.UnsubscribeFromHubEvents();
 
             s_logger?.Critical(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
@@ -179,8 +175,6 @@ public abstract partial class UdpListenerBase : IListener
 
         try
         {
-            this.UnsubscribeFromHubEvents();
-
             try { cts?.Cancel(); } catch { }
 
             try
@@ -191,9 +185,6 @@ public abstract partial class UdpListenerBase : IListener
             catch { }
 
             _socket = null;
-
-            // Flush endpoint binding cache — all bindings are invalid after stop.
-            _endpointCache.Clear();
 
             // Cancel any scheduled workers in the UDP group for this port.
             _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
@@ -296,7 +287,6 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Socket          : {(_socket is null ? "<null>" : "OK")}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CTS             : {(_cts is null ? "<null>" : "OK")}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EndpointCache   : {_endpointCache.Count}");
         _ = sb.AppendLine();
 
         return sb.ToString();
@@ -348,8 +338,7 @@ public abstract partial class UdpListenerBase : IListener
             ["Runtime"] = new Dictionary<string, object>
             {
                 ["Socket"] = _socket is null ? "<null>" : "OK",
-                ["CTS"] = _cts is null ? "<null>" : "OK",
-                ["EndpointCacheSize"] = _endpointCache.Count
+                ["CTS"] = _cts is null ? "<null>" : "OK"
             }
         };
 

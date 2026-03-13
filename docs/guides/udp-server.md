@@ -41,13 +41,13 @@ Use it to:
 - reject spoofed or malformed datagrams
 - gate traffic until a handshake token or session secret is known
 
-> [!TIP]
-> If you are using `NetworkApplication` (Hosting layer), you don't need to subclass `UdpListenerBase` just for authentication. You can provide a predicate directly in the builder:
-> ```csharp
-> app.AddUdp<MyProtocol>((connection, endpoint, payload) => {
->     return connection.Level >= PermissionLevel.USER;
-> });
-> ```
+!!! tip
+    If you are using `NetworkApplication` (Hosting layer), you don't need to subclass `UdpListenerBase` just for authentication. You can provide a predicate directly in the builder:
+    ```csharp
+    app.AddUdp<MyProtocol>((connection, endpoint, payload) => {
+        return connection.Level >= PermissionLevel.USER;
+    });
+    ```
 
 ### 2. Protocol behavior
 
@@ -116,7 +116,7 @@ receive datagram
 - unauthenticated drops should be visible in diagnostics
 - `IsAuthenticated(...)` should stay fast and deterministic
 - the datagram layout is `[7-byte SessionToken][Payload]`
-- Payload itself follows the Nalix header format: `[Transport(1), SequenceId(4), ...]`
+- Payload itself follows the standard 10-byte Nalix header format: `[Magic(4), OpCode(2), Flags(1), Priority(1), SequenceId(2), ...]`
 
 ## Related APIs
 

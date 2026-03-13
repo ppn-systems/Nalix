@@ -127,5 +127,6 @@ That keeps startup deterministic and easier to debug.
 
 - [Server Blueprint](../guides/server-blueprint.md) — Production-oriented project structure
 - [Production Checklist](../guides/production-checklist.md) — Pre-deployment verification
-- [Configuration & DI](../api/framework/runtime/configuration.md) — ConfigurationManager API reference
+- [Configuration](../api/framework/runtime/configuration.md) — ConfigurationManager and ConfigurationLoader API reference
+- [Instance Manager (DI)](../api/framework/runtime/instance-manager.md) — Runtime service registry API reference
 - [Network Options](../api/network/options/options.md) — Options class reference

@@ -29,7 +29,8 @@ A typical Nalix application involves five clean steps:
 4. :fontawesome-solid-server: **Run the server**: Start the host using the `NetworkApplicationBuilder`.
 5. :fontawesome-solid-plug: **Connect using SDK**: Leverage the client-side session to communicate.
 
-👉 See [Quickstart](./quickstart.md) for a full, copy-pasteable example.
+!!! tip "Quickstart"
+    See [Quickstart](./quickstart.md) for a full, copy-pasteable example.
 
 ---
 
@@ -43,7 +44,8 @@ If you're new to Nalix, follow this path to go from zero to production-ready:
 4. :fontawesome-solid-vial: [End-to-End Guide](./guides/end-to-end.md) — Move beyond basics with a full feature implementation.
 5. :fontawesome-solid-shield-halved: [Middleware](./guides/middleware.md) — Learn how to secure and scale your traffic.
 
-👉 After this, you can explore the [API Reference](./api/index.md) as needed.
+!!! tip "Next"
+    Explore the [API Reference](./api/index.md) as needed.
 
 ---
 

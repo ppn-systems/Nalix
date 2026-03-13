@@ -1,61 +1,77 @@
 # Nalix.Runtime.Dispatching
 
-`Nalix.Runtime.Dispatching` contains the execution APIs that map incoming packets to handlers with metadata-aware context and pooled senders.
+`Nalix.Runtime.Dispatching` contains the execution APIs that bridge the gap between deserialized packets and application handlers. It manages opcode-to-handler resolution, context pooling, and result transformation.
 
-## Source Mapping
+## OpCode Dispatch Pipeline
 
-- `src/Nalix.Runtime/Dispatching`
-- `src/Nalix.Runtime/Internal/Routing`
-- `src/Nalix.Runtime/Internal/Compilation`
+The following diagram illustrates the internal resolution and execution path within the dispatch layer.
 
-## Why This Layer Exists
+```mermaid
+flowchart TD
+    subgraph Ingress[Layer 1: Incoming]
+        P[Packet / OpCode]
+        C[Source Connection]
+    end
 
-The dispatch layer isolates handler execution policy from socket/listener concerns. `Nalix.Network` can focus on transport while dispatching focuses on packet-to-handler routing and middleware orchestration.
+    subgraph Resolution[Layer 2: Resolution]
+        Table[Handler Lookup Table]
+        Desc[Handler Descriptor]
+        Error[Protocol FAIL Response]
+        
+        P -->|1. Lookup OpCode| Table
+        Table -->|Found| Desc
+        Table -->|Not Found| Error
+    end
+
+    subgraph State[Layer 3: Context Management]
+        Pool[ObjectPool - PacketContext]
+        Init[Initialize Context]
+        Ctx[PacketContext Instance]
+        
+        Desc -->|2. Rent| Pool
+        Pool --> Init
+        C & P -.-> Init
+        Init --> Ctx
+    end
+
+    subgraph Execution[Layer 4: Logic Execution]
+        MP[Middleware Pipeline]
+        Inv[Compiled Invoker]
+        RH[Return Handler]
+        
+        Ctx -->|3. Run| MP
+        MP -->|4. Call| Inv
+        Inv -->|5. Resolve Result| RH
+        RH -->|6. Send Response| C
+    end
+
+    Ctx -.->|Finalize| Return[Return to Pool]
+    RH -.-> Return
+```
+
+## Internal Workflow (Source-Verified)
+
+1.  **Resolution**: The `PacketDispatchOptions` uses a high-performance thread-safe dictionary to map `ushort` opcodes to pre-compiled `PacketHandler` descriptors.
+2.  **Zero-Allocation Pooling**: For every request, a `PacketContext` is rented from the `ObjectPoolManager`. This context carries the connection state, metadata, and handles the `CancellationToken` linkage.
+3.  **Type Safety Gate**: Before the handler runs, the dispatcher performs a runtime type check against the deserialized packet to ensure it matches the handler signature, preventing cast exceptions in the business logic.
+4.  **Middleware Orchestration**: The `MiddlewarePipeline` executes in three stages (Inbound, OutboundAlways, Outbound), allowing for complex cross-cutting concerns like authentication or encryption updates.
+5.  **Return Handling**: The `IReturnHandler` (resolved at compile-time) automatically detects the handler's return type (e.g., `ValueTask<T>`, `T`, or `void`) and packages the result into the appropriate outbound transport call.
 
 ## Public Surface
 
 ### Contracts
-
-- [IDispatchChannel<TPacket>](./dispatch-channel-and-router.md): queue contract for connection-aware packet routing.
-- [IPacketDispatch](./dispatch-contracts.md): high-level dispatch entry points (`IBufferLease` and `IPacket` overloads).
-- [IPacketMetadataProvider](./packet-metadata.md): metadata provider abstraction.
+- [IDispatchChannel<TPacket>](./dispatch-channel-and-router.md): The queue contract for connection-aware packet routing.
+- [IPacketDispatch](./dispatch-contracts.md): The high-level entry point for dispatchers.
 
 ### Core Implementations
-
-- [PacketDispatchChannel](./packet-dispatch.md): runtime dispatcher used in production packet processing.
-- [PacketDispatchOptions<TPacket>](./packet-dispatch-options.md): fluent configuration for handlers, middleware, and loop behavior.
-- [PacketContext<TPacket>](./packet-context.md): pooled handler context.
-- [PacketSender<TPacket>](./packet-sender.md): send API honoring context metadata.
-- [PacketMetadataBuilder](./packet-metadata.md): builds packet metadata.
-- [PacketMetadataProviders](./packet-metadata.md): predefined provider helpers.
-
-### Base/Advanced
-
-- [PacketDispatcherBase<TPacket>](./dispatch-channel-and-router.md): base dispatch implementation.
-- `Nalix.Runtime.Internal.Routing.DispatchChannel<TPacket>` is public but located in an internal namespace; treat as advanced infrastructure API.
-
-## Mental Model
-
-```mermaid
-flowchart LR
-    A["IBufferLease or IPacket"] --> B["IPacketDispatch"]
-    B --> C["PacketDispatchChannel"]
-    C --> D["IPacketRegistry"]
-    D --> E["PacketContext<TPacket>"]
-    E --> F["Middleware + Handler"]
-    F --> G["PacketSender<TPacket>"]
-```
-
-## Best Practices
-
-- Register packet metadata providers before dispatch activation.
-- Use `IPacketContext<TPacket>.Sender` inside handlers instead of bypassing context.
-- Prefer `HandlePacket(IBufferLease, IConnection)` for normal inbound transport flow.
+- [PacketDispatchChannel](./packet-dispatch.md): The standard runtime dispatcher using worker loops and wake signaling.
+- [PacketDispatchOptions<TPacket>](./packet-dispatch-options.md): Fluent configuration for handlers and middleware.
+- [PacketContext<TPacket>](./packet-context.md): The state object representing a single packet execution.
+- [PacketSender<TPacket>](./packet-sender.md): An abstraction for responding to packets within a context.
 
 ## Related APIs
 
-- [Packet Dispatch](./packet-dispatch.md)
-- [Packet Dispatch Options](./packet-dispatch-options.md)
-- [Packet Context](./packet-context.md)
+- [Packet Attributes](./packet-attributes.md)
 - [Packet Metadata](./packet-metadata.md)
+- [Handler Result Types](./handler-results.md)
 - [Runtime Overview](../index.md)

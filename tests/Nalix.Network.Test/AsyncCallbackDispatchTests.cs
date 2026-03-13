@@ -54,7 +54,7 @@ public sealed class AsyncCallbackDispatchTests
 
         TransportAsyncCallback.ResetStatistics();
 
-        using BufferLease lease = BufferLease.CopyFrom([1, 2, 3]);
+        BufferLease lease = BufferLease.CopyFrom([1, 2, 3]);
         connection.InjectIncoming(lease);
 
         await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));

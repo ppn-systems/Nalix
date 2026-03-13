@@ -57,7 +57,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     private static readonly int[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
     private static readonly double[] s_burstTiers = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0];
 
-    private static readonly Lazy<TokenBucketOptions> s_defaults = new(() => ConfigurationManager.Instance.Get<TokenBucketOptions>());
+    private static readonly Lazy<TokenBucketOptions> s_defaults = new(ConfigurationManager.Instance.Get<TokenBucketOptions>);
 
     /// <summary>
     /// Gets the default rate limiting options shared across all policies.

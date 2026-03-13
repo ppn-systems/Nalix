@@ -20,7 +20,7 @@ public sealed partial class DataFramesPublicApiTests
     {
         PacketRegistry registry = new(factory => _ = factory);
         Control packet = new();
-        packet.Initialize(33, ControlType.PONG, 88, ProtocolReason.NONE, ProtocolType.TCP);
+        packet.Initialize(33, ControlType.PONG, 88, PacketFlags.RELIABLE, ProtocolReason.NONE);
         byte[] bytes = packet.Serialize();
 
         IPacket deserialized = registry.Deserialize(bytes);

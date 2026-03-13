@@ -214,7 +214,7 @@ public class TcpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        packet.Protocol = Common.Networking.Protocols.ProtocolType.TCP;
+        packet.Flags = (packet.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
 
         // Rent a buffer, serialize the packet, and delegate sending to FrameSender
         using BufferLease lease = BufferLease.Rent(packet.Length);
@@ -278,15 +278,15 @@ public class TcpSession : TransportSession
             {
                 if (asyncPayload is { } copiedPayload)
                 {
-                if (!writer.TryWrite(async () =>
+                    if (!writer.TryWrite(async () =>
+                        {
+                            try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
+                            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException) { this.OnError?.Invoke(this, ex); }
+                        }))
                     {
-                        try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
-                        catch (Exception ex) { this.OnError?.Invoke(this, ex); }
-                    }))
-                {
-                    this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; frame dropped."));
-                }
-                return;
+                        this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; frame dropped."));
+                    }
+                    return;
                 }
 
                 lease.Retain();

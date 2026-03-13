@@ -10,7 +10,7 @@ public static class PacketConstants
 {
     /// <summary>
     /// The size, in bytes, of the fixed packet header.
-    /// Total header size = 13 bytes (offsets 0-12)
+    /// Total header size = 10 bytes (offsets 0-9)
     /// </summary>
     public const byte HeaderSize = (byte)PacketHeaderOffset.Region;
 

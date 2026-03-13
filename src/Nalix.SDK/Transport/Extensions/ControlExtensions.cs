@@ -42,7 +42,7 @@ public static class ControlExtensions
         /// <param name="seq">The sequence identifier to assign.</param>
         /// <returns>The current builder.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ControlBuilder WithSeq(uint seq) { c.SequenceId = seq; return this; }
+        public ControlBuilder WithSeq(ushort seq) { c.SequenceId = seq; return this; }
 
         /// <summary>Sets the reason code.</summary>
         /// <param name="reason">The protocol reason code.</param>
@@ -50,15 +50,26 @@ public static class ControlExtensions
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithReason(ProtocolReason reason) { c.Reason = reason; return this; }
 
-        /// <summary>Sets the transport type.</summary>
-        /// <param name="tr">The transport type (e.g., <see cref="ProtocolType.TCP"/> or UDP).</param>
+        /// <summary>Sets the transport reliability.</summary>
+        /// <param name="reliable">True for reliable (TCP), false for unreliable (UDP).</param>
         /// <returns>The current builder.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ControlBuilder WithTransport(ProtocolType tr) { c.Protocol = tr; return this; }
+        public ControlBuilder WithReliable(bool reliable)
+        {
+            if (reliable)
+            {
+                c.Flags = (c.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
+            }
+            else
+            {
+                c.Flags = (c.Flags & ~PacketFlags.RELIABLE) | PacketFlags.UNRELIABLE;
+            }
+            return this;
+        }
 
         /// <summary>
         /// Stamps the control with the current Unix timestamp (milliseconds) and the sender's monotonic ticks.
-        /// Note: <see cref="Control.Initialize(ushort, ControlType, uint, ProtocolReason, ProtocolType)"/> already stamps on construction; call this only to refresh.
+        /// Note: <see cref="Control.Initialize(ushort, ControlType, ushort, PacketFlags, ProtocolReason)"/> already stamps on construction; call this only to refresh.
         /// </summary>
         /// <returns>The current builder.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -77,12 +88,12 @@ public static class ControlExtensions
 
     /// <summary>
     /// Creates a new CONTROL frame with the specified operation code and type.
-    /// The frame is pre-stamped with the current time via <see cref="Control.Initialize(ushort, ControlType, uint, ProtocolReason, ProtocolType)"/>.
+    /// The frame is pre-stamped with the current time via <see cref="Control.Initialize(ushort, ControlType, ushort, PacketFlags, ProtocolReason)"/>.
     /// </summary>
     /// <param name="_">The client connection (unused; provided for fluent extension syntax).</param>
     /// <param name="opCode">The operation code.</param>
     /// <param name="type">The control type.</param>
-    /// <param name="transport">The transport type. Default is <see cref="ProtocolType.TCP"/>.</param>
+    /// <param name="reliable">The transport reliability. Default is <see langword="true"/> (TCP).</param>
     /// <returns>A <see cref="ControlBuilder"/> initialized with the requested type.</returns>
     /// <example>
     /// <code>
@@ -94,11 +105,11 @@ public static class ControlExtensions
         this TransportSession _,
         ushort opCode,
         ControlType type,
-        ProtocolType transport = ProtocolType.TCP)
+        bool reliable = true)
     {
         Control c = new();
         // Initialize already stamps MonoTicks + Timestamp internally.
-        c.Initialize(opCode, type, sequenceId: 0, reasonCode: ProtocolReason.NONE, transport: transport);
+        c.Initialize(opCode, type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.NONE);
         return new ControlBuilder(c);
     }
 

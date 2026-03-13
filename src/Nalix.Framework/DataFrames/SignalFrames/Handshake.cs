@@ -133,14 +133,14 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <param name="publicKey">The ephemeral public key for this message.</param>
     /// <param name="nonce">The stage nonce or challenge bytes.</param>
     /// <param name="proof">Optional proof bytes for this stage.</param>
-    /// <param name="transport">The transport protocol.</param>
+    /// <param name="flags">The transport reliability flags.</param>
     public Handshake(
         HandshakeStage stage,
         Bytes32 publicKey,
         Bytes32 nonce,
         Bytes32? proof = null,
-        ProtocolType transport = ProtocolType.TCP) : this()
-        => this.Initialize(stage, publicKey, nonce, proof, transport);
+        PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE) : this()
+        => this.Initialize(stage, publicKey, nonce, proof, flags);
 
     /// <summary>
     /// Initializes the handshake packet with the supplied stage data.
@@ -149,18 +149,18 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <param name="publicKey">The ephemeral public key.</param>
     /// <param name="nonce">The nonce or challenge bytes.</param>
     /// <param name="proof">Optional proof bytes.</param>
-    /// <param name="transport">The transport protocol.</param>
+    /// <param name="flags">The transport reliability flags.</param>
     public void Initialize(
         HandshakeStage stage,
         Bytes32 publicKey,
         Bytes32 nonce,
         Bytes32? proof = null,
-        ProtocolType transport = ProtocolType.TCP)
+        PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = stage;
-        this.Protocol = transport;
         this.Priority = PacketPriority.URGENT;
+        this.Flags = flags;
 
         this.Reason = ProtocolReason.NONE;
         this.PublicKey = publicKey;
@@ -173,12 +173,12 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <summary>
     /// Initializes the handshake packet with an error state and reason.
     /// </summary>
-    public void InitializeError(ProtocolReason reason, ProtocolType transport = ProtocolType.TCP)
+    public void InitializeError(ProtocolReason reason, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = HandshakeStage.ERROR;
-        this.Protocol = transport;
         this.Priority = PacketPriority.URGENT;
+        this.Flags = flags;
         this.Reason = reason;
 
         this.PublicKey = Bytes32.Zero;
@@ -215,8 +215,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// </summary>
     public override string ToString()
         => $"HANDSHAKE(Stage={this.Stage}, OpCode={this.OpCode}, Length={this.Length}, " +
-           $"Flags={this.Flags}, Priority={this.Priority}, Protocol={this.Protocol}, " +
-           $"SessionToken={this.SessionToken})";
+           $"Flags={this.Flags}, Priority={this.Priority}, SessionToken={this.SessionToken})";
 
     /// <summary>
     /// Resets this instance for safe pool reuse.
@@ -226,6 +225,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         base.ResetForPool();
 
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
+        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
         this.Stage = HandshakeStage.NONE;
         this.Reason = ProtocolReason.NONE;
         this.PublicKey = Bytes32.Zero;

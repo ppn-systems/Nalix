@@ -297,7 +297,7 @@ public struct ChaCha20
 
         // Advance block counter — UInt32 wraps naturally; check == 0 for overflow
         state[12] = BitwiseOperations.AddOne(state[12]);
- 
+
         if (state[12] == 0u)
         {
             // Counter overflow: MUST NOT reuse key/nonce (RFC 8439 §2.4)

@@ -5,6 +5,7 @@ using System;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Identity;
 using Nalix.Common.Security;
+using Nalix.Common.Primitives;
 
 namespace Nalix.Common.Networking;
 
@@ -50,7 +51,7 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// <summary>
     /// Gets the encryption key used for securing communication.
     /// </summary>
-    byte[] Secret { get; set; }
+    Bytes32 Secret { get; set; }
 
     /// <summary>
     /// Gets the authority levels associated with the connection.

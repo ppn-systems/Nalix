@@ -16,12 +16,10 @@ It serves as the foundation for building complex message-processing workflows, o
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Initial release of the Nalix core runtime infrastructure.
-- Implemented high-performance MiddlewarePipeline for asynchronous packet processing and orchestration.
-- Introduced PacketDispatchChannel for reliable, observable packet routing and execution management.
-- Optimized PacketContext for low-allocation metadata and state propagation through pipelines.
-- Added support for NetworkBufferMiddlewarePipeline to streamline low-level buffer manipulations.
-- Refined PacketDispatchOptions with granular concurrency and synchronization controls.
+- Smart Dispatching: Implemented Weighted Round-Robin (DRR) in PacketDispatchChannel to ensure fair processing and eliminate priority starvation.
+- Configurable Fairness: Added PriorityWeights to DispatchOptions, allowing fine-grained control over how urgent vs. background traffic is served.
+- Zero-Allocation Hot-Path: Optimized MiddlewarePipeline and PacketContext for minimum heap allocation during high-frequency message processing.
+- Advanced Resource Control: Improved concurrency management and synchronization primitives for stable execution under extreme load.
 		]]></PackageReleaseNotes>
 
 	</PropertyGroup>

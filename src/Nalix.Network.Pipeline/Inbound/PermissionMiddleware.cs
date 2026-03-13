@@ -66,7 +66,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 ControlType.FAIL,
                 ProtocolReason.UNAUTHORIZED, ProtocolAdvice.NONE,
                 sequenceId: context.Packet.SequenceId,
-                flags: ControlFlags.NONE,
+                controlFlags: ControlFlags.NONE,
                 arg0: 0,
                 arg1: 0,
                 arg2: context.Attributes.PacketOpcode.OpCode);

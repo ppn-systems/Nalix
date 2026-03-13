@@ -12,7 +12,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -40,7 +39,7 @@ namespace Nalix.Network.Connections;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("ConnectionHub (Count={_count})")]
-public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
+public sealed class ConnectionHub : IConnectionHub
 {
     #region Fields
 

@@ -464,7 +464,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                 {
                     this.LastPingTime = Clock.UnixMillisecondsNow();
                     BufferLease lease = BufferLease.TakeOwnership(currentBuf, HeaderSize, payload);
-                    lease.Protocol = Nalix.Common.Networking.Protocols.ProtocolType.TCP;
+                    lease.IsReliable = true;
                     ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
                     ReadOnlySpan<byte> payloadSpan = lease.Span;
 
@@ -506,7 +506,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                         if (assembled is not null)
                         {
                             BufferLease assembledLease = assembled.Value.Lease;
-                            assembledLease.Protocol = Nalix.Common.Networking.Protocols.ProtocolType.TCP;
+                            assembledLease.IsReliable = true;
                             assembledLease.Retain();
                             args.Initialize(assembledLease, _cachedArgs.Connection);
                             if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
