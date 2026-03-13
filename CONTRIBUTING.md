@@ -65,6 +65,13 @@ This project and everyone participating in it is governed by the [Nalix Code of 
    dotnet build
    ```
 
+   If you hit `NuGet.targets(780,5): Value cannot be null. (Parameter 'path1')` on Windows shells with stripped env vars, use:
+
+   ```powershell
+   ./tools/restore.ps1 restore
+   ./tools/restore.ps1 build
+   ```
+
 ---
 
 ## How to Contribute

@@ -56,8 +56,8 @@ You can tune the parallelism of your application by adjusting the number of shar
 
 | Option | Default | Tuning Strategy |
 |---|---|---|
-| `DispatchLoopCount` | `ProcessorCount` | Set to your **physical core count** for CPU-intensive handlers to avoid context switching. |
-| `MaxInternalQueueSize` | `100,000` | Limits total pending packets. Use to prevent memory exhaustion during spikes. |
+| `DispatchLoopCount` | `null` (auto) | Set explicitly for deterministic loop count, or keep auto mode. |
+| `MinDispatchLoops` / `MaxDispatchLoops` | `1` / `64` | Clamp auto loop selection based on host capacity. |
 | `MaxDrainPerWake` | `2,048` | Max packets a worker processes before yielding. Higher values improve cache locality. |
 | `MaxDrainPerWakeMultiplier` | `8` | Multiplier applied to `DispatchLoopCount` for automatic batching. |
 
@@ -71,8 +71,9 @@ builder.ConfigureDispatch(options =>
     // 1. Core Affinity: Match physical cores to avoid context switching
     options.WithDispatchLoopCount(Environment.ProcessorCount / 2);
     
-    // 2. Backpressure: Set a hard limit on global queued packets
-    options.MaxInternalQueueSize = 500_000;
+    // 2. Auto-mode guardrails (used only when DispatchLoopCount is null)
+    options.MinDispatchLoops = 2;
+    options.MaxDispatchLoops = 32;
     
     // 3. Throughput Tuning: Process 16 packets per wake to improve cache locality
     options.MaxDrainPerWakeMultiplier = 16; 
@@ -162,8 +163,8 @@ builder.ConfigureDispatch(options =>
 });
 ```
 
-### Backpressure with DropPolicy
-When the `MaxInternalQueueSize` is reached, Nalix uses a `DropPolicy` to decide how to handle new ingress:
+### Backpressure with DispatchOptions + DropPolicy
+Per-connection queue backpressure is controlled by `DispatchOptions` (`MaxPerConnectionQueue` + `DropPolicy`):
 
 - **DropNewest**: Rejects the incoming packet. Safest for real-time latency.
 - **DropOldest**: Removes the head of the queue to make room. Ensures data freshness.

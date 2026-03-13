@@ -38,20 +38,21 @@ theme:
   favicon: assets/nalix.ico
   font:
     text: Inter
-    code: "Fira Code"
+    code: "JetBrains Mono"
   palette:
-    - scheme: default
-      primary: black
-      accent: cyan
-      toggle:
-        icon: material/weather-night
-        name: Switch to dark mode
-    - scheme: slate
-      primary: black
-      accent: cyan
-      toggle:
-        icon: material/weather-sunny
-        name: Switch to light mode
+      - scheme: default
+        primary: white
+        accent: cyan
+        toggle:
+          icon: material/weather-night
+          name: Switch to dark mode
+
+      - scheme: slate
+        primary: black
+        accent: cyan
+        toggle:
+          icon: material/weather-sunny
+          name: Switch to light mode
   features:
     - navigation.path
     - navigation.tabs
@@ -227,6 +228,7 @@ nav:
           - Packet Sender: api/runtime/routing/packet-sender.md
           - Dispatch Contracts: api/runtime/routing/dispatch-contracts.md
           - Dispatch: api/runtime/routing/packet-dispatch.md
+          - Packet Dispatch Options: api/runtime/routing/packet-dispatch-options.md
           - Dispatch Channel and Router: api/runtime/routing/dispatch-channel-and-router.md
           - Handler Return Types: api/runtime/routing/handler-results.md
           - Dispatch Options: api/runtime/options/dispatch-options.md

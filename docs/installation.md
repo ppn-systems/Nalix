@@ -75,7 +75,9 @@ Port=57206
 Backlog=512
 
 [DispatchOptions]
-WorkerCount=0
+MaxPerConnectionQueue=4096
+DropPolicy=DropNewest
+BlockTimeout=00:00:01
 
 [TransportOptions]
 Address=127.0.0.1
@@ -84,8 +86,9 @@ ConnectTimeoutMillis=7000
 MaxPacketSize=65536
 ```
 
-!!! note "WorkerCount=0"
-    Setting `WorkerCount` to `0` tells the dispatcher to auto-scale workers to the logical CPU core count.
+!!! note "Dispatch loop scaling"
+    Worker-loop count is configured on `PacketDispatchOptions<TPacket>` in code via `WithDispatchLoopCount(...)`.
+    Use `WithDispatchLoopCount(null)` to keep auto-scaling behavior.
 
 ## Validate Options at Startup
 

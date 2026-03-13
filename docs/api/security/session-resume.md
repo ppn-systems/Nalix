@@ -43,7 +43,7 @@ sequenceDiagram
 ## 3. Protocol Specification
 
 ### Header & Payload
-The `SESSION_SIGNAL` packet is a fixed-size frame of **23 bytes**.
+The `SESSION_SIGNAL` packet is a fixed-size frame of **55 bytes**.
 
 | Offset | Field | Type | size | Description |
 |---|---|---|---|---|
@@ -51,11 +51,12 @@ The `SESSION_SIGNAL` packet is a fixed-size frame of **23 bytes**.
 | 4 | `OpCode` | `ushort` | 2 | `0x0002` (SESSION_SIGNAL). |
 | 6 | `Flags` | `byte` | 1 | Framing flags. |
 | 7 | `Priority` | `byte` | 1 | Fixed at `0x03` (URGENT). |
-| 8 | `Transport` | `byte` | 1 | `0x01` (TCP) or `0x02` (UDP). |
+| 8 | `Transport` | `byte` | 1 | `0x06` (`ProtocolType.TCP`) or `0x11` (`ProtocolType.UDP`). |
 | 9 | `SequenceId` | `uint` | 4 | Correlation identifier. |
 | 13 | `Stage` | `byte` | 1 | `0x01` (REQUEST), `0x02` (RESPONSE). |
 | 14 | `SessionToken` | `Snowflake` | 7 | The 56-bit unique session identifier. |
-| 21 | `Reason` | `ushort` | 2 | Result code (e.g., `0` for SUCCESS). |
+| 21 | `Reason` | `ushort` | 2 | `ProtocolReason` result (`ProtocolReason.NONE` = success). |
+| 23 | `Proof` | `Bytes32` | 32 | HMAC-Keccak256 proof-of-possession for the session secret. |
 
 ---
 
@@ -64,10 +65,11 @@ The `SESSION_SIGNAL` packet is a fixed-size frame of **23 bytes**.
 ### Server Handling Logic
 When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
 1. The server extracts the `SessionToken` from the payload.
-2. It attempts to resolve a valid `SessionEntry` via the active `ISessionStore`.
-3. If found, the runtime restores the connection's `Secret`, `Level`, and `Attributes`.
-4. A `RESPONSE` is generated with `ProtocolReason.NONE`.
-5. If the token is invalid or expired, the server responds with an error code (e.g., `SESSION_EXPIRED`) and disconnects.
+2. It atomically consumes a valid `SessionEntry` via the active `ISessionStore` (`ConsumeAsync`) to prevent token replay.
+3. It validates `Proof` using HMAC-Keccak256 over the 7-byte session token and the stored session secret.
+4. If validation succeeds, the runtime restores the connection's `Secret`, `Level`, and `Attributes`.
+5. A rotated session token is generated and stored, then a `RESPONSE` is sent with `ProtocolReason.NONE`.
+6. If token lookup or proof validation fails, the server sends an error reason (for example `SESSION_EXPIRED` or `TOKEN_REVOKED`) and disconnects.
 
 ---
 

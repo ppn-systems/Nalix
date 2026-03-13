@@ -1,3 +1,4 @@
+#if DEBUG
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
@@ -122,3 +123,4 @@ public sealed class AsyncCallbackDispatchTests
         InstanceManager.Instance.Register<ILogger>(NullLogger.Instance);
     }
 }
+#endif

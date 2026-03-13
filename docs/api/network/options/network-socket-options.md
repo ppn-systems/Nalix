@@ -38,12 +38,17 @@ Accurate defaults are critical for production rollout and troubleshooting.
 | `ExclusiveAddressUse` | Exclusive bind behavior. | `true` |
 | `ProcessChannelCapacity` | Accepted-connection process queue size. | `128` |
 | `MaxUdpDatagramSize` | Max inbound UDP datagram bytes. | `1400` |
+| `MaxErrorThreshold` | Max cumulative connection errors before forced disconnect. | `50` |
+| `UdpReplayWindowSize` | UDP anti-replay sliding window size (bits). | `1024` |
+| `MinWorkerThreadsMultiplier` | Thread-pool minimum worker multiplier when auto-tuning. | `4` |
+| `MaxThreadPoolWorkers` | Upper thread-pool worker limit when auto-tuning. | `512` |
 
 ## Best Practices
 
 - Validate options before listener activation.
 - Tune `MaxParallel`, `ProcessChannelCapacity`, and connection limits together.
 - Keep `MaxUdpDatagramSize` below fragmentation-prone values for your network profile.
+- Keep `UdpReplayWindowSize` high enough for your real packet reordering profile.
 
 ## Related APIs
 

@@ -131,4 +131,87 @@ public class IdentifierTests
         int size = Unsafe.SizeOf<Snowflake>();
         Assert.Equal(7, size);
     }
+
+    [Fact]
+    public void TryParseWhenHexIsValidReturnsTrueAndParsedValue()
+    {
+        Snowflake source = Snowflake.NewId(0x12345678, 0x99AA, (SnowflakeType)0x11);
+        string hex = source.ToString();
+
+        bool ok = Snowflake.TryParse(hex, out Snowflake parsed);
+
+        Assert.True(ok);
+        Assert.Equal(source, parsed);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("ABC")]
+    [InlineData("00112233445566ZZ")]
+    public void TryParseWhenInputIsInvalidReturnsFalseAndEmpty(string? input)
+    {
+        bool ok = Snowflake.TryParse(input, out Snowflake parsed);
+
+        Assert.False(ok);
+        Assert.True(parsed.IsEmpty);
+    }
+
+    [Fact]
+    public void FromBytesWhenArrayIsNullThrowsSerializationFailureException()
+    {
+        byte[]? bytes = null;
+
+        _ = Assert.Throws<SerializationFailureException>(() => Snowflake.FromBytes(bytes!));
+    }
+
+    [Fact]
+    public void FromUInt56RoundTripsToSameIdentifier()
+    {
+        Snowflake source = Snowflake.NewId(0xDEADBEEF, 0xABCD, (SnowflakeType)0x22);
+        Snowflake roundTripped = Snowflake.FromUInt56(source.ToUInt56());
+
+        Assert.Equal(source, roundTripped);
+    }
+
+    [Fact]
+    public void CompareAndOperatorsFollowUnderlyingOrder()
+    {
+        Snowflake smaller = Snowflake.NewId(1, 1, SnowflakeType.System);
+        Snowflake bigger = Snowflake.NewId(2, 1, SnowflakeType.System);
+
+        Assert.True(smaller < bigger);
+        Assert.True(smaller <= bigger);
+        Assert.True(bigger > smaller);
+        Assert.True(bigger >= smaller);
+        Assert.Equal(-1, Math.Sign(Snowflake.Compare(smaller, bigger)));
+        Assert.Equal(1, Math.Sign(Snowflake.Compare(bigger, smaller)));
+        Assert.Equal(0, Snowflake.Compare(smaller, smaller));
+    }
+
+    [Fact]
+    public void EqualsWithISnowflakeDifferentImplementationReturnsFalse()
+    {
+        Snowflake id = Snowflake.NewId(123, 4, SnowflakeType.System);
+        ISnowflake other = new StubSnowflake();
+
+        Assert.False(id.Equals(other));
+    }
+
+    private sealed class StubSnowflake : ISnowflake
+    {
+        public bool IsEmpty => false;
+        public SnowflakeType Type => SnowflakeType.System;
+        public uint Value => 1;
+        public ushort MachineId => 1;
+        public Nalix.Common.Primitives.UInt56 ToUInt56() => Nalix.Common.Primitives.UInt56.Zero;
+        public byte[] ToByteArray() => new byte[7];
+        public bool TryWriteBytes(Span<byte> destination) => false;
+        public bool TryWriteBytes(Span<byte> destination, out int bytesWritten)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+    }
 }

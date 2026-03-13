@@ -78,7 +78,7 @@ var response = await client.RequestAsync<ProfileData>(
 ### Control Flow
 ```csharp
 // Build a tagged PING
-var ping = client.NewControl(opCode: 10, ControlType.PING)
+var ping = client.NewControl(opCode: 10, type: ControlType.PING)
                  .WithSeq(42)
                  .Build();
 

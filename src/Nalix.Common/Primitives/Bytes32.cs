@@ -134,6 +134,7 @@ public struct Bytes32 : IEquatable<Bytes32>
     /// Returns <see langword="true"/> if all bits in the buffer are zero.
     /// This comparison is performed in constant-time.
     /// </summary>
+    [SerializeIgnore]
     public readonly bool IsZero
     {
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]

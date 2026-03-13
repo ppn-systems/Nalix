@@ -23,5 +23,5 @@ public interface IPacketDeserializer<TPacket> where TPacket : IPacket
     /// </summary>
     /// <param name="buffer">A read-only span containing the serialized packet bytes.</param>
     /// <param name="value">An existing packet instance to populate with deserialized data.</param>
-    static abstract TPacket Deserialize(ReadOnlyMemory<byte> buffer, ref TPacket value);
+    static abstract TPacket Deserialize(ReadOnlySpan<byte> buffer, ref TPacket value);
 }

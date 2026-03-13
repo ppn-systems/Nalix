@@ -132,23 +132,24 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     public void Send(IPacket packet)
     {
         ArgumentNullException.ThrowIfNull(packet);
+        int packetLength = packet.Length;
 
-        if (packet.Length == 0)
+        if (packetLength == 0)
         {
             return;
         }
 
-        if (packet.Length < BufferLease.StackAllocThreshold)
+        if (packetLength < BufferLease.StackAllocThreshold)
         {
             // Renting memory on the stack for small packets to avoid GC pressure.
             // Using a safe overhead (10%) for serialization margins.
-            Span<byte> buffer = stackalloc byte[packet.Length + (packet.Length / 20)];
+            Span<byte> buffer = stackalloc byte[packetLength + (packetLength / 20)];
             int bytesWritten = packet.Serialize(buffer);
             this.Send(buffer[..bytesWritten]);
             return;
         }
 
-        using BufferLease lease = BufferLease.Rent(packet.Length + (packet.Length / 20));
+        using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
         int written = packet.Serialize(lease.SpanFull);
         lease.CommitLength(written);
         this.Send(lease.Span);
@@ -185,17 +186,18 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     public async Task SendAsync(IPacket packet, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
+        int packetLength = packet.Length;
 
-        if (packet.Length == 0)
+        if (packetLength == 0)
         {
             return;
         }
 
         // --- OPTIMIZATION: Zero-allocation small packet send ---
-        if (packet.Length < BufferLease.StackAllocThreshold)
+        if (packetLength < BufferLease.StackAllocThreshold)
         {
             // Rent a reusable byte array from the shared pool.
-            byte[] arr = BufferLease.ByteArrayPool.Rent(packet.Length + (packet.Length / 20));
+            byte[] arr = BufferLease.ByteArrayPool.Rent(packetLength + (packetLength / 20));
             try
             {
                 int written = packet.Serialize(arr);
@@ -208,7 +210,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        using BufferLease lease = BufferLease.Rent(packet.Length + (packet.Length / 20));
+        using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
         int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
         lease.CommitLength(bytesWrittenHeap);
         await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);

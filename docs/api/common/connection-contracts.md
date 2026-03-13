@@ -58,7 +58,7 @@ It supports:
 
 - keeping stale connection references after unregistering
 - using the hub as a general app-state store instead of a connection registry
-- assuming a connection exists without checking `TryGetConnection(...)`
+- assuming a connection exists without checking whether `GetConnection(...)` returned `null`
 
 ## IProtocol
 
