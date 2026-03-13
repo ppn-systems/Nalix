@@ -5,7 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Tools.Models;
 
 namespace Nalix.SDK.Tools.Abstractions;
@@ -23,7 +23,7 @@ public interface INetworkClientService : IDisposable
     /// <summary>
     /// Gets the current transport protocol.
     /// </summary>
-    ProtocolType Transport { get; }
+    PacketFlags Transport { get; }
 
     /// <summary>
     /// Gets the session token (Snowflake) if available.

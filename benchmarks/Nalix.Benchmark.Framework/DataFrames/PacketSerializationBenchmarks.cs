@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -26,7 +26,7 @@ public class PacketSerializationBenchmarks : NalixBenchmarkBase
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
-            ProtocolType.TCP);
+            PacketFlags.RELIABLE);
 
         _serializedHandshake = _handshake.Serialize();
         _buffer = new byte[Handshake.Size];

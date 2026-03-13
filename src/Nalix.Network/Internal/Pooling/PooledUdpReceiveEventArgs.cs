@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Network.Options;
 
@@ -40,7 +41,7 @@ internal sealed class PooledUdpReceiveEventArgs : SocketAsyncEventArgs, IPoolabl
             ex is InvalidOperationException ||
             ex is NullReferenceException ||
             ex is TypeInitializationException ||
-            ex is ConfigurationErrorsException)
+            ex is InternalErrorException)
         {
             // Fallback cleanly if ConfigurationManager is uninitialized in tests.
         }
@@ -48,7 +49,7 @@ internal sealed class PooledUdpReceiveEventArgs : SocketAsyncEventArgs, IPoolabl
         // Pre-allocate buffer once per SAEA instance.
         // Use pinned array to prevent GC from moving the buffer during async I/O.
 #if NET6_0_OR_GREATER
-        _buffer = System.GC.AllocateUninitializedArray<byte>(bufferSize, pinned: true);
+        _buffer = GC.AllocateUninitializedArray<byte>(bufferSize, pinned: true);
 #else
         _buffer = new byte[bufferSize];
 #endif

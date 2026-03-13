@@ -11,6 +11,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Primitives;
 using Nalix.Framework.Identifiers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Tools.Abstractions;
@@ -31,7 +32,7 @@ public sealed class NetworkClientService : INetworkClientService
     private bool _disposed;
     private bool _autoPingEnabled = true;
     private CancellationTokenSource? _pingCts;
-    private byte[] _savedSecret = [];
+    private Bytes32 _savedSecret = Bytes32.Zero;
     private Snowflake _savedSessionToken = Snowflake.Empty;
     private string? _savedHost;
     private ushort _savedPort;
@@ -51,11 +52,11 @@ public sealed class NetworkClientService : INetworkClientService
     public bool IsConnected => _session?.IsConnected == true;
 
     /// <inheritdoc/>
-    public ProtocolType Transport => _session switch
+    public PacketFlags Transport => _session switch
     {
-        TcpSession => ProtocolType.TCP,
-        UdpSession => ProtocolType.UDP,
-        _ => ProtocolType.NONE
+        TcpSession => PacketFlags.RELIABLE,
+        UdpSession => PacketFlags.UNRELIABLE,
+        _ => PacketFlags.NONE
     };
 
     /// <inheritdoc/>
@@ -120,7 +121,7 @@ public sealed class NetworkClientService : INetworkClientService
             this.ClearSavedSessionState();
         }
 
-        bool hasSavedSecret = _savedSecret.Length > 0;
+        bool hasSavedSecret = !_savedSecret.IsZero;
 
         TransportOptions options = new()
         {
@@ -129,18 +130,18 @@ public sealed class NetworkClientService : INetworkClientService
             NoDelay = true,
             CompressionEnabled = false,
             EncryptionEnabled = hasSavedSecret,
-            Secret = [.. _savedSecret],
+            Secret = _savedSecret,
             SessionToken = _savedSessionToken
         };
 
         // If we are connecting to a DIFFERENT host/port, we should probably clear the saved state
         // but for now let's just use what's in settings if it matches.
-        if (settings.Transport == ProtocolType.UDP && Snowflake.TryParse(settings.SessionToken, out Snowflake manualToken))
+        if (settings.Transport == PacketFlags.UNRELIABLE && Snowflake.TryParse(settings.SessionToken, out Snowflake manualToken))
         {
             options.SessionToken = manualToken;
         }
 
-        _session = settings.Transport == ProtocolType.UDP
+        _session = settings.Transport == PacketFlags.UNRELIABLE
             ? new UdpSession(options, _catalogService.Catalog.Registry)
             : new TcpSession(options, _catalogService.Catalog.Registry);
 
@@ -273,7 +274,7 @@ public sealed class NetworkClientService : INetworkClientService
 
         if (_session is TcpSession tcpSession)
         {
-            if (tcpSession.Options.SessionToken.IsEmpty || tcpSession.Options.Secret.Length == 0)
+            if (tcpSession.Options.SessionToken.IsEmpty || tcpSession.Options.Secret.IsZero)
             {
                 throw new NetworkException("No valid session state (token/secret) available to resume. Please perform a handshake first.");
             }
@@ -448,10 +449,9 @@ public sealed class NetworkClientService : INetworkClientService
         action();
     }
 
-    private void ReplaceSavedSecret(byte[] source)
+    private void ReplaceSavedSecret(Bytes32 source)
     {
-        this.ClearSavedSecretBytes();
-        _savedSecret = [.. source];
+        _savedSecret = source;
     }
 
     private void ClearSavedSessionState()
@@ -464,10 +464,6 @@ public sealed class NetworkClientService : INetworkClientService
 
     private void ClearSavedSecretBytes()
     {
-        if (_savedSecret.Length > 0)
-        {
-            CryptographicOperations.ZeroMemory(_savedSecret);
-            _savedSecret = [];
-        }
+        _savedSecret = Bytes32.Zero;
     }
 }
