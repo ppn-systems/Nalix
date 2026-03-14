@@ -8,7 +8,6 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Memory.Buffers;
@@ -100,106 +99,34 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             int written = packet.Serialize(rawLease.SpanFull);
             rawLease.CommitLength(written);
 
-            // Compression is only worthwhile once the payload crosses the configured threshold.
-            bool enableCompress = s_options.Enabled && written >= s_options.MinSizeToCompress;
+            IBufferLease current = rawLease;
 
-#if DEBUG
-            s_logger?.Debug($"[NW.PacketSender] Serialized: {written} bytes | Compress={enableCompress}");
-#endif
+            // FramePipeline mutates `current` and properly cleans up older leases.
+            FramePipeline.ProcessOutbound(
+                ref current,
+                s_options.Enabled,
+                s_options.MinSizeToCompress,
+                needEncrypt,
+                context.Connection.Secret.AsSpan(),
+                context.Connection.Algorithm);
 
-            // Case 1: send the raw serialized payload as-is.
-            if (!enableCompress && !needEncrypt)
+            try
             {
-#if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Case 1: Plain Send");
-#endif
-                await GetTransport(context).SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
-                return;
+                await GetTransport(context).SendAsync(current.Memory, ct).ConfigureAwait(false);
             }
-
-            // Case 2: compress the serialized payload and send the compressed lease.
-            if (enableCompress && !needEncrypt)
+            finally
             {
-#if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Case 2: Compress Only");
-#endif
-
-                BufferLease compressedLease = (BufferLease)PacketCompression.CompressFrame(rawLease);
-                try
+                // Only dispose `current` if it was replaced. 
+                // `rawLease` itself will be disposed in the outer finally.
+                if (current != rawLease)
                 {
-                    await GetTransport(context).SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
+                    current.Dispose();
                 }
-                finally
-                {
-                    compressedLease.Dispose();
-                }
-
-                return;
             }
-
-            // Case 3: encrypt the serialized payload without compression.
-            if (!enableCompress && needEncrypt)
-            {
-#if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Case 3: Encrypt Only");
-#endif
-
-                IBufferLease encryptedLease = PacketCipher.EncryptFrame(
-                    rawLease,
-                    context.Connection.Secret.AsSpan(),
-                    context.Connection.Algorithm);
-                try
-                {
-                    await GetTransport(context).SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
-                }
-                finally
-                {
-                    encryptedLease.Dispose();
-                }
-
-                return;
-            }
-
-            // Case 4: compress first, then encrypt the compressed buffer.
-            if (enableCompress && needEncrypt)
-            {
-#if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Case 4: Compress + Encrypt");
-#endif
-
-                IBufferLease compressedLease = PacketCompression.CompressFrame(rawLease);
-                try
-                {
-                    IBufferLease encryptedLease = PacketCipher.EncryptFrame(
-                        compressedLease,
-                        context.Connection.Secret.AsSpan(),
-                        context.Connection.Algorithm);
-                    try
-                    {
-                        await GetTransport(context).SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        encryptedLease.Dispose();
-                    }
-                }
-                finally
-                {
-                    compressedLease.Dispose();
-                }
-
-                return;
-            }
-
-#if DEBUG
-            s_logger?.Debug("[NW.PacketSender] ERROR: Unexpected state reached!");
-#endif
-
-            throw new InternalErrorException("Unexpected state in packet sending logic.");
         }
         finally
         {
-            // The raw serialization buffer is always returned, regardless of which branch ran.
+            // The raw serialization buffer is always returned.
             rawLease.Dispose();
         }
     }

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<TargetFramework>net10.0</TargetFramework>
+		<AssemblyName>Nalix.Certificate</AssemblyName>
+		<RootNamespace>Nalix.Certificate</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
+	</ItemGroup>
+
+</Project>

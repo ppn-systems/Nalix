@@ -11,6 +11,7 @@ using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
+using Nalix.SDK.Transport.Internal;
 using Xunit;
 
 namespace Nalix.SDK.Tests;

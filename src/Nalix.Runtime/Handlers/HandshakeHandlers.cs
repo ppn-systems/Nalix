@@ -86,13 +86,6 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        if (!packet.Validate(packet, out string? reason))
-        {
-            Debug.WriteLine($"[NW.Handshake] Rejecting CLIENT_HELLO. Reason: {reason}");
-            await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
-            return;
-        }
-
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
         Bytes32 sharedSecretEE = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
 
@@ -153,13 +146,6 @@ public sealed class HandshakeHandlers
         if (!TryGetState(connection, out HandshakeContext? state) || state is null)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
-        }
-
-        if (!packet.Validate(packet, out string? reason))
-        {
-            Debug.WriteLine($"[NW.Handshake] Rejecting CLIENT_FINISH. Reason: {reason}");
-            await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
 

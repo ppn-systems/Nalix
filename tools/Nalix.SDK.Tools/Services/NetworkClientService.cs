@@ -131,7 +131,8 @@ public sealed class NetworkClientService : INetworkClientService
             CompressionEnabled = false,
             EncryptionEnabled = hasSavedSecret,
             Secret = _savedSecret,
-            SessionToken = _savedSessionToken
+            SessionToken = _savedSessionToken,
+            ServerPublicKey = settings.ServerPublicKey
         };
 
         // If we are connecting to a DIFFERENT host/port, we should probably clear the saved state

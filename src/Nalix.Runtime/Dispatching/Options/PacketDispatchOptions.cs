@@ -34,12 +34,6 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     private int _handlerCount;
 
     /// <summary>
-    /// Gets the middleware pipeline that transforms raw network buffers before packet dispatch.
-    /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public NetworkBufferMiddlewarePipeline NetworkPipeline { get; }
-
-    /// <summary>
     /// Gets or sets a custom error handler invoked when packet processing fails.
     /// </summary>
     /// <remarks>
@@ -59,8 +53,6 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
         _handlerTable = new System.Collections.Concurrent.ConcurrentDictionary<ushort, PacketHandler<TPacket>>();
         _pipeline = new MiddlewarePipeline<TPacket>();
         _objectPool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-
-        this.NetworkPipeline = new NetworkBufferMiddlewarePipeline();
     }
 
     #endregion Fields

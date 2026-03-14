@@ -29,4 +29,9 @@ public sealed class ConnectionSettings
     /// Gets or sets the UDP session token (7-byte Snowflake hex).
     /// </summary>
     public string SessionToken { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the pinned Server Identity Public Key (Hex representation).
+    /// </summary>
+    public string? ServerPublicKey { get; set; }
 }

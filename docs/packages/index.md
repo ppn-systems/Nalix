@@ -9,7 +9,7 @@ Nalix is composed of focused packages that can be used together or independently
 ## Package Map
 
 | Package | Purpose | Key Types |
-|---|---|---|
+| :--- | :--- | :--- |
 | :fontawesome-solid-cube: [**Nalix.Common**](./nalix-common.md) | Shared contracts, packet attributes, middleware primitives, and connection abstractions | `IPacket`, `IConnection`, `PacketOpcodeAttribute`, `PacketControllerAttribute`, `IPacketContext<TPacket>` |
 | :fontawesome-solid-box-open: [**Nalix.Framework**](./nalix-framework.md) | Configuration, service registry, serialization, packet registry, pooling, compression, and identifiers | `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, `PacketRegistryFactory`, `PacketCipher`, `LZ4Codec` |
 | :fontawesome-solid-gears: [**Nalix.Runtime**](./nalix-runtime.md) | Packet dispatch, middleware execution, handler compilation, and session resume | `PacketDispatchChannel`, `MiddlewarePipeline`, `PacketContext<TPacket>`, `PacketMetadata` |
@@ -45,7 +45,7 @@ flowchart TD
 ## Minimum Package Sets
 
 | Scenario | Packages |
-|---|---|
+| :--- | :--- |
 | **Hosted server** (recommended) | `Nalix.Network.Hosting`, `Nalix.Network.Pipeline`, `Nalix.Logging` |
 | **Manual server** | `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Common`, `Nalix.Logging` |
 | **Client only** | `Nalix.SDK` |

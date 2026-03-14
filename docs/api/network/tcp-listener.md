@@ -37,7 +37,8 @@ flowchart TD
 
     subgraph ApplicationPhase[Application Layer]
         Init[IConnection Allocation]
-        Protocol[Protocol Handoff & BeginReceive]
+        BufferPipe[FramePipeline: Decrypt & Decompress]
+        Protocol[Protocol Message Handoff]
     end
 
     Raw -->|New Client Connection| Loop
@@ -56,7 +57,8 @@ flowchart TD
     Init -->|Push to Pipeline| BoundedQueue
     
     BoundedQueue -->|Dequeued by| Workers
-    Workers --> Protocol
+    Workers --> BufferPipe
+    BufferPipe --> Protocol
 ```
 
 ## 2. Low-Level Mechanics
@@ -73,11 +75,12 @@ Before a `Socket` is promoted to a `Connection` object, it traverses the `Connec
 - **Global connection limits**: Enforces an absolute ceiling on active `ConnectionHub` entries.
 - Dropped sockets at this phase incur **zero object allocation** (garbage collector is untouched).
 
-### 2.3. The Process Channel
+### 2.3. The Process Channel & Inbound Pipeline
 To prevent "Slowloris" or blocking socket reading from exhausting the worker threads, `TcpListenerBase` hands off connected sockets to an asynchronous `BoundedChannel`.
 - Incoming connections are pushed to the channel.
 - If the channel is full (Application is saturated), backpressure is naturally applied to network ingestion.
-- Background worker tasks (`TaskCreationOptions.LongRunning`) continuously pull from this channel and initiate the asynchronous frame-reading loops (`BeginReceive`) on the Protocol transport layer.
+- Background worker tasks (`TaskCreationOptions.LongRunning`) continuously pull from this channel and initiate the asynchronous frame-reading loops (`BeginReceive`).
+- **New in v1.4**: The Listener now owns the `ProcessFrame` handler which executes the `FramePipeline` (decryption, decompression) before delivering a clean message to the `IProtocol` for business logic.
 
 ## 3. Public API Surface
 
@@ -86,6 +89,9 @@ To prevent "Slowloris" or blocking socket reading from exhausting the worker thr
 | `Activate()` | Binds the socket, begins listening, and spins up parallel accept loop workers. |
 | `Deactivate()` | Gracefully stops accepting new connections but allows existing connections to drain. |
 | `Dispose()` | Actively terminates the listening socket and all pending accept args. |
+
+### Private Members (Framework Internal)
+- `ProcessFrame(object? sender, IConnectEventArgs args)`: The central bridge that runs the transformation pipeline before protocol dispatch.
 
 ### Diagnostic Properties
 - `Metrics`: Exposes counters for `TotalConnectionsAccepted`, `DroppedConnections`, and `CurrentBacklog`.

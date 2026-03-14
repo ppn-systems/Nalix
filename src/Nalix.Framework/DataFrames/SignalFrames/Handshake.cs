@@ -56,7 +56,7 @@ public enum HandshakeStage : byte
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Sequential)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, IPacketValidatable<Handshake>
+public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, IPacketValidatable
 {
     /// <summary>
     /// Default dynamic size hint used for fixed-width handshake fields.
@@ -189,36 +189,36 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     }
 
     /// <inheritdoc/>
-    public bool Validate(Handshake packet, [NotNullWhen(false)] out string? failureReason)
+    public bool Validate([NotNullWhen(false)] out string? failureReason)
     {
-        if (packet == null)
+        if (this == null)
         {
             failureReason = "Handshake packet is null.";
             return false;
         }
 
-        bool isValid = packet.Stage switch
+        bool isValid = this.Stage switch
         {
             HandshakeStage.CLIENT_HELLO =>
-                !packet.PublicKey.IsZero && !packet.Nonce.IsZero && packet.Proof.IsZero && packet.TranscriptHash.IsZero,
+                !this.PublicKey.IsZero && !this.Nonce.IsZero && this.Proof.IsZero && this.TranscriptHash.IsZero,
 
             HandshakeStage.SERVER_HELLO =>
-                !packet.PublicKey.IsZero && !packet.Nonce.IsZero && !packet.Proof.IsZero && !packet.TranscriptHash.IsZero,
+                !this.PublicKey.IsZero && !this.Nonce.IsZero && !this.Proof.IsZero && !this.TranscriptHash.IsZero,
 
             HandshakeStage.CLIENT_FINISH =>
-                packet.PublicKey.IsZero && packet.Nonce.IsZero && !packet.Proof.IsZero && !packet.TranscriptHash.IsZero,
+                this.PublicKey.IsZero && this.Nonce.IsZero && !this.Proof.IsZero && !this.TranscriptHash.IsZero,
 
             HandshakeStage.SERVER_FINISH =>
-                packet.PublicKey.IsZero && packet.Nonce.IsZero && !packet.Proof.IsZero && !packet.TranscriptHash.IsZero,
+                this.PublicKey.IsZero && this.Nonce.IsZero && !this.Proof.IsZero && !this.TranscriptHash.IsZero,
 
             HandshakeStage.ERROR or HandshakeStage.NONE =>
-                packet.Reason != ProtocolReason.NONE,
+                this.Reason != ProtocolReason.NONE,
             _ => false
         };
 
         if (!isValid)
         {
-            failureReason = $"Invalid cryptographic fields or structural anomaly detected for stage {packet.Stage}.";
+            failureReason = $"Invalid cryptographic fields or structural anomaly detected for stage {this.Stage}.";
             return false;
         }
 

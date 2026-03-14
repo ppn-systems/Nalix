@@ -66,7 +66,7 @@ public sealed class SecureChatController
 }
 ```
 
-For a comprehensive walkthrough of handler implementation, including error handling and registration, see the [Implementing Packet Handlers](../../../guides/implementing-packet-handlers.md) guide.
+For a comprehensive walkthrough of handler implementation, including error handling and registration, see the [Implementing Packet Handlers](../../../guides/application/packet-handlers.md) guide.
 
 ## Best Practices
 

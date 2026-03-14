@@ -80,9 +80,9 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     }
 
     [Fact]
-    public void HandshakeIsValidWhenPacketIsNullReturnsFalse()
+    public void HandshakeIsValidWhenPacketIsInvalidForDefaultStageReturnsFalse()
     {
-        Assert.False(new Handshake().Validate(null!, out _));
+        Assert.False(new Handshake().Validate(out _));
     }
 
     [Fact]

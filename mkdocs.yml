@@ -36,29 +36,32 @@ theme:
   language: en
   logo: assets/nalix.png
   favicon: assets/nalix.ico
-  font:
-    text: Inter
-    code: "JetBrains Mono"
+  # font:
+  #   text: Inter
+  #   code: "JetBrains Mono"
+  font: false
   palette:
-      - scheme: default
-        primary: white
-        accent: cyan
-        toggle:
-          icon: material/weather-night
-          name: Switch to dark mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
 
-      - scheme: slate
-        primary: black
-        accent: cyan
-        toggle:
-          icon: material/weather-sunny
-          name: Switch to light mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   features:
     - navigation.path
     - navigation.tabs
     - navigation.top
     - navigation.instant
-    - navigation.instant.prefetch
+    # - navigation.instant.prefetch
     - navigation.tabs.sticky
     # - navigation.sections
     - header.sticky
@@ -87,6 +90,7 @@ markdown_extensions:
   - pymdownx.details
   - attr_list
   - pymdownx.highlight:
+      guess_lang: false
       use_pygments: true
       anchor_linenums: true
       pygments_lang_class: true
@@ -119,47 +123,55 @@ nav:
       - Full Sitemap: sitemap.md
   - Concepts:
       - Overview: concepts/index.md
-      - Choose the Right Building Block: concepts/choose-the-right-building-block.md
-      - Architecture: concepts/architecture.md
-      - Performance Optimizations: concepts/performance-optimizations.md
-      - Packet System: concepts/packet-system.md
-      - Packet Lifecycle: concepts/packet-lifecycle.md
-      - Middleware: concepts/middleware.md
-      - Configuration and Runtime: concepts/configuration-and-runtime.md
-      - Real-time Engine: concepts/real-time.md
-      - Security Model: concepts/security-model.md
-      - Error Reporting: concepts/error-reporting.md
+      - Fundamentals:
+          - Architecture: concepts/fundamentals/architecture.md
+          - Packet System: concepts/fundamentals/packet-system.md
+          - Packet Lifecycle: concepts/fundamentals/packet-lifecycle.md
+          - Errors and Diagnostics: concepts/fundamentals/errors-and-diagnostics.md
+      - Runtime Engine:
+          - Real-time Engine: concepts/runtime/real-time-engine.md
+          - Middleware Pipeline: concepts/runtime/middleware-pipeline.md
+          - Configuration System: concepts/runtime/configuration.md
+          - Selecting Building Blocks: concepts/runtime/building-blocks.md
+          - Hosting Model: concepts/application/hosting-model.md
+      - Security:
+          - Security Architecture: concepts/security/security-architecture.md
+          - Encryption Model: concepts/security/encryption-model.md
+          - Handshake Protocol: concepts/security/handshake-protocol.md
+          - Session Resumption: concepts/security/session-resumption.md
+      - Advanced Internals:
+          - Reliability Model: concepts/internals/reliability.md
+          - Sharding & Concurrency: concepts/internals/sharding.md
+          - Zero-Allocation Path: concepts/internals/zero-allocation.md
+          - System Guarantees: concepts/internals/guarantees-and-invariants.md
+          - Failure Handling: concepts/internals/failure-handling.md
+          - Design Tradeoffs: concepts/internals/design-tradeoffs.md
+          - Performance Optimizations: concepts/internals/performance-optimizations.md
       - Glossary: concepts/glossary.md
-      - Reliability & Internals:
-          - Overview: concepts/advanced/reliability-model.md
-          - Guarantees & Invariants: concepts/advanced/guarantees-and-invariants.md
-          - Failure Model: concepts/advanced/failure-model.md
-          - Shard-Aware Dispatch: guides/shard-aware-dispatch.md
-          - Zero-Allocation Hot Path: guides/zero-allocation-hot-path.md
-          - Design Tradeoffs: concepts/advanced/design-tradeoffs.md
   - Guides:
       - Overview: guides/index.md
-      - Build a Server:
-          - Starter Template: guides/starter-template.md
-          - Implementing Packet Handlers: guides/implementing-packet-handlers.md
-          - End-to-End Sample: guides/end-to-end.md
-          - Production End-to-End: guides/production-end-to-end.md
-          - Project Setup: guides/project-setup.md
-          - Server Blueprint: guides/server-blueprint.md
-      - Extend Behavior:
-          - Middleware Guide: guides/middleware.md
-          - Custom Middleware: guides/custom-middleware-end-to-end.md
-          - Custom Metadata Provider: guides/custom-metadata-provider.md
-          - Custom Serialization Provider: guides/custom-serialization-provider.md
-      - Networking Patterns:
-          - Client Session Connect: guides/client-session-connect.md
-          - Low Level Session APIs: guides/low-level-session-apis.md
-          - TCP Request/Response: guides/tcp-request-response.md
-          - UDP Server: guides/udp-server.md
-          - UDP Auth Flow: guides/udp-auth-flow.md
-      - Operate and Debug:
-          - Production Checklist: guides/production-checklist.md
-          - Troubleshooting: guides/troubleshooting.md
+      - Getting Started:
+          - Project Setup: guides/getting-started/project-setup.md
+          - Server Boilerplate: guides/getting-started/server-boilerplate.md
+          - Server Blueprint: guides/getting-started/server-blueprint.md
+      - Networking:
+          - Client Session Guide: guides/networking/connecting-clients.md
+          - UDP Server Guide: guides/networking/udp-server.md
+          - TCP Patterns Guide: guides/networking/tcp-patterns.md
+          - UDP Security Guide: guides/networking/udp-security.md
+          - Session APIs Guide: guides/networking/session-apis.md
+          - Minimal Server Guide: guides/networking/minimal-server.md
+      - Application Logic:
+          - Implementing Packet Handlers: guides/application/packet-handlers.md
+          - Middleware Usage Guide: guides/application/middleware-usage.md
+      - Extensibility:
+          - Custom Middleware Guide: guides/extensibility/custom-middleware.md
+          - Custom Metadata Providers: guides/extensibility/metadata-providers.md
+          - Custom Serialization Provider: guides/extensibility/serialization-providers.md
+      - Deployment & Operations:
+          - Production Server Example: guides/deployment/production-example.md
+          - Production Checklist: guides/deployment/production-checklist.md
+          - Troubleshooting Guide: guides/deployment/troubleshooting.md
   - Packages:
       - Overview: packages/index.md
       - Nalix.Common: packages/nalix-common.md
@@ -246,7 +258,6 @@ nav:
         - Middleware:
           - Overview: api/runtime/middleware/index.md
           - Pipeline: api/runtime/middleware/pipeline.md
-          - Network Buffer Pipeline: api/runtime/middleware/network-buffer-pipeline.md
           - Concurrency Gate: api/runtime/middleware/concurrency-gate.md
           - Policy Rate Limiter: api/runtime/middleware/policy-rate-limiter.md
           - Token Bucket Limiter: api/runtime/middleware/token-bucket-limiter.md

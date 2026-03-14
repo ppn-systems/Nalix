@@ -11,13 +11,12 @@
 ## Type summary
 
 - Generic constraint: `where TPacket : IPacket`
-- Purpose: registration-time configuration for handler table, packet middleware, and buffer middleware.
+- Purpose: registration-time configuration for handler table and packet middleware.
 
 ## Public properties
 
 | Property | Meaning | Default |
 |---|---|---:|
-| `NetworkPipeline` | Buffer middleware pipeline (`INetworkBufferMiddleware`) executed before deserialization. | initialized |
 | `Logging` | Optional logger used by dispatch setup/execution logs. | `null` |
 | `DispatchLoopCount` | Explicit worker-loop count. `null` means auto-select during `Activate()`. | `null` |
 | `MaxDrainPerWakeMultiplier` | Multiplier used to compute per-wake drain budget. | `8` |
@@ -34,7 +33,6 @@
 | `WithLogging(ILogger logger)` | Attaches logger used by dispatch diagnostics. |
 | `WithErrorHandling(Action<Exception, ushort> errorHandler)` | Registers global dispatch error callback. |
 | `WithMiddleware(IPacketMiddleware<TPacket> middleware)` | Adds packet middleware to handler pipeline. Throws on `null`. |
-| `WithBufferMiddleware(INetworkBufferMiddleware middleware)` | Adds pre-deserialization middleware. Throws on `null`. |
 | `WithDispatchLoopCount(int? loopCount)` | Sets explicit worker-loop count (`1..64`) or `null` for auto mode. |
 | `WithErrorHandlingMiddleware(bool continueOnError, Action<Exception, Type>? errorHandler = null)` | Configures packet middleware pipeline error behavior. |
 | `WithHandler<TController>()` | Registers handlers by creating `TController` via parameterless ctor. |
@@ -65,7 +63,6 @@ PacketDispatchChannel dispatch = new(options =>
                logger.Error($"dispatch-error opcode=0x{opcode:X4}", ex);
            })
            .WithDispatchLoopCount(null)
-           .WithBufferMiddleware(new SessionEnvelopeGuard())
            .WithMiddleware(new PermissionMiddleware())
            .WithMiddleware(new RateLimitMiddleware())
            .WithMiddleware(new TimeoutMiddleware())

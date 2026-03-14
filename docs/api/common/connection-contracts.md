@@ -21,7 +21,7 @@
 |---|---|
 | `IConnection` | `ID`, `UpTime`, `BytesSent`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Close(...)`, `Disconnect(...)` |
 | `IConnectionHub` | `Count`, `SessionStore`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ForceClose(...)`, `CloseAllConnections(...)`, `ListConnections(...)` |
-| `IProtocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessFrame(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)` |
+| `IProtocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)` |
 
 ## IConnection
 
@@ -67,7 +67,6 @@ It supports:
 It supports:
 
 - `OnAccept(...)`
-- `ProcessFrame(...)`
 - `ProcessMessage(...)`
 - `PostProcessMessage(...)`
 - `KeepConnectionOpen`
@@ -75,7 +74,6 @@ It supports:
 ### Common pitfalls
 
 - doing business logic in `OnAccept(...)` that really belongs in dispatch or middleware
-- assuming `ProcessFrame(...)` replaces `ProcessMessage(...)` instead of feeding it
 - forgetting to keep `ProcessMessage(...)` and `PostProcessMessage(...)` aligned with the connection lifecycle
 - treating `KeepConnectionOpen` as a transport-level guarantee instead of a protocol decision
 
@@ -86,14 +84,15 @@ IConnection connection = hub.GetConnection(connectionId);
 IProtocol protocol = new SampleProtocol();
 
 protocol.OnAccept(connection, ct);
-protocol.ProcessFrame(sender, args);
+protocol.ProcessMessage(sender, args);
 ```
 
 Typical flow:
 
 1. accept a connection through the protocol
-2. let the protocol normalize and forward frame events
-3. send through the connection or packet sender when the handler finishes
+2. the listener handles frame normalization (decryption/decompression)
+3. the listener forwards processed messages to `ProcessMessage`
+4. send through the connection or packet sender when the handler finishes
 
 ## Related APIs
 

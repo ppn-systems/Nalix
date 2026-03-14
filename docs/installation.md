@@ -67,7 +67,7 @@ dotnet add package Nalix.Framework
 
 ## Configuration File
 
-Most server setups and many SDK examples load options from a `default.ini` file through `ConfigurationManager`. Create this file in your project output directory:
+Most server setups and many SDK examples load options from the `default.ini` file via `ConfigurationManager`. This file will be automatically generated in your project's output directory:
 
 ```ini
 [NetworkSocketOptions]
@@ -95,9 +95,9 @@ MaxPacketSize=65536
 Validate options before opening sockets or creating sessions. Invalid configuration is cheaper to catch during startup than during live traffic.
 
 ```csharp
-using Nalix.Framework.Configuration;
-using Nalix.Network.Options;
 using Nalix.SDK.Options;
+using Nalix.Network.Options;
+using Nalix.Framework.Configuration;
 
 // Server
 NetworkSocketOptions socket = ConfigurationManager.Instance.Get<NetworkSocketOptions>();

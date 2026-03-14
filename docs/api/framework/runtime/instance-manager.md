@@ -83,4 +83,4 @@ In typical Nalix applications, service registration follows this order:
 - [Configuration](./configuration.md)
 - [Task Manager](./task-manager.md)
 - [SingletonBase](./singleton-base.md)
-- [Server Blueprint](../../../guides/server-blueprint.md)
+- [Server Blueprint](../../../guides/getting-started/server-blueprint.md)

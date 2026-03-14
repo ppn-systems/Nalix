@@ -56,6 +56,29 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return;
         }
 
+        // Industrial-grade validation: if the packet implements IPacketValidatable,
+        // we must ensure it's structurally and logically sound before letting
+        // application code touch it.
+        if (context.Packet is IPacketValidatable validatable && !validatable.Validate(out string? failureReason))
+        {
+            this.Logging?.Warn(
+                $"[{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
+                $"validation-failed opcode=0x{descriptor.OpCode:X4} " +
+                $"reason={failureReason} — skipping handler");
+
+            await this.TrySendControlAsync(
+                context,
+                descriptor.OpCode,
+                controlType: ControlType.FAIL,
+                reason: ProtocolReason.MALFORMED_PACKET,
+                action: ProtocolAdvice.FIX_AND_RETRY,
+                options: new ControlDirectiveOptions(
+                    SequenceId: context.Packet.SequenceId,
+                    Arg0: descriptor.OpCode)).ConfigureAwait(false);
+
+            return;
+        }
+
         // Void / Task / ValueTask handlers do not produce an outbound packet payload.
         context.SkipOutbound = HasNoOutboundResult(descriptor.ReturnType);
 

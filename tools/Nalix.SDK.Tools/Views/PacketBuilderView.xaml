@@ -144,6 +144,9 @@
                 <StackPanel Margin="0,0,0,16">
                     <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding CurrentPacketTitle}" />
                     <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Text="{Binding CurrentPacketSummary}" />
+                    <TextBlock Margin="0,8,0,0" Foreground="#E74C3C" FontWeight="Bold" TextWrapping="Wrap" 
+                               Visibility="{Binding HasValidationError, Converter={StaticResource BooleanToVisibilityConverter}}"
+                               Text="{Binding ValidationError}" />
                 </StackPanel>
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
