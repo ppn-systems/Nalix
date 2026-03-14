@@ -639,6 +639,17 @@ public sealed partial class TaskManager : ITaskManager
         _ = sb.AppendLine($"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={COUNT_RUNNING_WORKERS()})");
         _ = sb.AppendLine();
 
+        // ========== CPU Monitoring Section ==========
+        _ = sb.AppendLine("---------------------------------------------------------------------");
+        _ = sb.AppendLine("CPU Monitoring");
+        _ = sb.AppendLine($"Dynamic Adjustment Enabled : {_options.DynamicAdjustmentEnabled}");
+        _ = sb.AppendLine($"Current Concurrency Limit  : {_currentConcurrencyLimit}/{_options.MaxWorkers}");
+        _ = sb.AppendLine($"High CPU Threshold         : {_options.ThresholdHighCpu:F1}%");
+        _ = sb.AppendLine($"Low CPU Threshold          : {_options.ThresholdLowCpu:F1}%");
+        _ = sb.AppendLine($"Observing Interval         : {_options.ObservingInterval.TotalSeconds:F1}s");
+        _ = sb.AppendLine("---------------------------------------------------------------------");
+        _ = sb.AppendLine();
+
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Monitoring Statistics");
         _ = sb.AppendLine($"Worker Execution Count            : {_workerExecutionCount}");

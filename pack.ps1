@@ -40,15 +40,6 @@ try
     Write-Host "Done. Packages:"
     Get-ChildItem -LiteralPath $OutDir -Filter *.nupkg -File | ForEach-Object { Write-Host ("- " + $_.FullName) }
     Get-ChildItem -LiteralPath $OutDir -Filter *.snupkg -File -ErrorAction SilentlyContinue | ForEach-Object { Write-Host ("- " + $_.FullName) }
-
-	Get-ChildItem -LiteralPath $OutDir -Filter *.nupkg -File | ForEach-Object {
-	    Write-Host "Signing $($_.Name)"
-    
-	    dotnet nuget sign $_.FullName `
- 	       --certificate-path $certPath `
- 	       --certificate-password $certPassword `
- 	       --timestamper http://timestamp.digicert.com
-	}
 }
 finally {
     if ($Pause.IsPresent) {
