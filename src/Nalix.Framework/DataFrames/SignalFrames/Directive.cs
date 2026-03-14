@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -160,9 +159,4 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     public override string ToString()
         => $"Directive [SequenceId={this.SequenceId}, Type={this.Type}, Reason={this.Reason}, Action={this.Action}, Control={this.Control}, " +
            $"Arg0={this.Arg0}, Arg1={this.Arg1}, Arg2={this.Arg2}, OpCode={this.OpCode}, Priority={this.Priority}]";
-
-    /// <summary>
-    /// Deserializes a <see cref="Directive"/> packet from a buffer.
-    /// </summary>
-    public static new Directive Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<Directive>.Deserialize(buffer);
 }

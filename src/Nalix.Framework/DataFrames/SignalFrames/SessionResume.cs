@@ -1,7 +1,6 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking.Packets;
@@ -41,7 +40,7 @@ public enum SessionResumeStage : byte
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Sequential)]
 [DebuggerDisplay("SESSION_SIGNAL Stage={Stage}, Token={SessionToken}, Reason={Reason}")]
-public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSerializable
+public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSerializable, IPacketValidatable<SessionResume>
 {
     /// <inheritdoc/>
     [SerializeIgnore]
@@ -107,8 +106,32 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
         this.Proof = Bytes32.Zero;
     }
 
-    /// <summary>
-    /// Deserializes a <see cref="SessionResume"/> packet from a buffer.
-    /// </summary>
-    public static new SessionResume Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<SessionResume>.Deserialize(buffer);
+    /// <inheritdoc/>
+    public bool Validate(SessionResume packet, [NotNullWhen(false)] out string? failureReason)
+    {
+        if (packet == null)
+        {
+            failureReason = "SessionResume packet is null.";
+            return false;
+        }
+
+        bool isValid = packet.Stage switch
+        {
+            SessionResumeStage.REQUEST =>
+                !packet.SessionToken.IsEmpty && !packet.Proof.IsZero,
+
+            SessionResumeStage.RESPONSE =>
+                packet.Reason != ProtocolReason.NONE || (!packet.SessionToken.IsEmpty && !packet.Proof.IsZero),
+            SessionResumeStage.NONE or _ => false
+        };
+
+        if (!isValid)
+        {
+            failureReason = $"Invalid fields provided for session resume stage {packet.Stage}.";
+            return false;
+        }
+
+        failureReason = null;
+        return true;
+    }
 }

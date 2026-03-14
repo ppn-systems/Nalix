@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
@@ -53,14 +54,16 @@ public sealed class SessionHandlers
         }
 
         SessionResume packet = context.Packet;
-        if (packet.Stage != SessionResumeStage.REQUEST)
+
+        if (!packet.Validate(packet, out string? reason))
         {
+            Debug.WriteLine($"[NW.Session] Rejecting SESSION_RESUME. Reason: {reason}");
+            await HandleFailureAsync(context.Connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
 
-        if (packet.SessionToken.IsEmpty)
+        if (packet.Stage != SessionResumeStage.REQUEST)
         {
-            await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
             return;
         }
 

@@ -20,10 +20,18 @@ public static class HandshakeX25519
     private static ReadOnlySpan<byte> ServerProofLabel => "nalix-handshake/server-proof"u8;
     private static ReadOnlySpan<byte> ClientProofLabel => "nalix-handshake/client-proof"u8;
     private static ReadOnlySpan<byte> ServerFinishLabel => "nalix-handshake/server-finish"u8;
+    private static ReadOnlySpan<byte> MasterSecretLabel => "nalix-handshake/master-secret"u8;
 
     #endregion Static Labels
 
     #region Public Methods
+
+    /// <summary>
+    /// Computes the master secret by combining the ephemeral-ephemeral and static-ephemeral shared secrets.
+    /// This provides both forward secrecy and server authentication (MitM protection) via Noise Protocol concepts.
+    /// </summary>
+    public static Bytes32 ComputeMasterSecret(Bytes32 sharedSecretEE, Bytes32 sharedSecretSE)
+        => ComputeDigest(MasterSecretLabel, sharedSecretEE.AsSpan(), sharedSecretSE.AsSpan());
 
     /// <summary>
     /// Computes the server proof over the negotiated shared secret and transcript hash.

@@ -44,7 +44,7 @@
 | :--- | :--- |
 | 🖥️ **Cross-Platform** | Runs on Windows, Linux, and macOS with .NET 10+. |
 | ⚡ **High Performance** | Zero-allocation serialization, shard-aware dispatch, and buffer pooling for thousands of concurrent connections. |
-| 🔐 **Security-First** | AEAD encryption (ChaCha20-Poly1305, Salsa20-Poly1305), X25519 key exchange, and zero-RTT session resumption. |
+| 🔐 **Security-First** | AEAD encryption (ChaCha20-Poly1305), Static-Ephemeral X25519 (Noise Protocol) with server identity pinning, and zero-RTT session resumption. |
 | 🔌 **Pluggable Protocols** | Swap network, serialization, or security protocols without modifying core logic. |
 | 🛤️ **Middleware Pipeline** | Built-in authentication, rate limiting, traffic shaping, and audit logging — or write your own. |
 | 📡 **Real-Time Updates** | Instant messaging, state synchronization, and live event broadcasting. |
