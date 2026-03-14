@@ -328,6 +328,8 @@ public sealed class TimingWheel : IActivatable
 
             while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
             {
+                ctx.Beat();
+
                 System.Int64 tickSnapshot = System.Threading.Interlocked.Read(ref _tick);
                 System.Int32 bucketIndex = _useMask
                     ? (System.Int32)(tickSnapshot & _mask)
@@ -383,8 +385,7 @@ public sealed class TimingWheel : IActivatable
 
                 System.Threading.Interlocked.Increment(ref _tick);
 
-                ctx?.Beat();
-                ctx?.Advance(1);
+                ctx.Advance(1);
             }
         }
         catch (System.OperationCanceledException)
