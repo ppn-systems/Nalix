@@ -20,7 +20,7 @@
 | Type | Public members |
 |---|---|
 | `IConnection` | `ID`, `UpTime`, `BytesSent`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Close(...)`, `Disconnect(...)` |
-| `IConnectionHub` | `GetConnection`, `TryGetConnection`, `Register`, `Unregister`, `GetAll`, `CloseAll`, `BindUsername`, `TryGetUsername` |
+| `IConnectionHub` | `Count`, `SessionStore`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ForceClose(...)`, `CloseAllConnections(...)`, `ListConnections(...)` |
 | `IProtocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessFrame(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)` |
 
 ## IConnection
@@ -51,7 +51,7 @@ It supports:
 - lookup by ID
 - register and unregister
 - listing active connections
-- association helpers such as username binding
+- session store access via `SessionStore`
 - close-all operations
 
 ### Common pitfalls
@@ -99,4 +99,5 @@ Typical flow:
 
 - [Connection](../network/connection/connection.md)
 - [Connection Hub](../network/connection/connection-hub.md)
+- [Session Contracts](./session-contracts.md)
 - [Protocol](../network/protocol.md)
