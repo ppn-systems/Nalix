@@ -25,9 +25,10 @@ public abstract partial class TcpListenerBase
     {
         try
         {
-            s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.EndPoint}");
-
             _protocol.OnAccept(connection, _cancellationToken);
+
+            _metrics.RECORD_ACCEPTED();
+            s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.EndPoint}");
         }
         catch (System.Exception ex)
         {
@@ -47,8 +48,6 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] close={args.Connection.EndPoint}");
-
         // De-subscribe to prevent memory leaks
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
@@ -57,6 +56,8 @@ public abstract partial class TcpListenerBase
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
 
         args.Connection.Dispose();
+
+        s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] close={args.Connection.EndPoint}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]
@@ -113,7 +114,7 @@ public abstract partial class TcpListenerBase
         try
         {
             if (args.SocketError == System.Net.Sockets.SocketError.Success &&
-           args.AcceptSocket is System.Net.Sockets.Socket socket)
+                args.AcceptSocket is System.Net.Sockets.Socket socket)
             {
                 try
                 {
@@ -126,8 +127,8 @@ public abstract partial class TcpListenerBase
                         return;
                     }
 
-                    if (socket.RemoteEndPoint is not System.Net.IPEndPoint remoteIp
-                        || !_limiter.IsConnectionAllowed(remoteIp))
+                    if (socket.RemoteEndPoint is not System.Net.IPEndPoint remoteIp ||
+                        !_limiter.IsConnectionAllowed(remoteIp))
                     {
                         SafeCloseSocket(socket);
                         throw new InternalErrorException();
@@ -157,6 +158,7 @@ public abstract partial class TcpListenerBase
                     // Rebind a fresh context for the next accept on this args
                     PooledAcceptContext nextCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                                           .Get<PooledAcceptContext>();
+
                     ((PooledSocketAsyncEventArgs)args).Context = nextCtx;
                     nextCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
                 }
@@ -173,24 +175,24 @@ public abstract partial class TcpListenerBase
                         // Rebind a fresh context for next accepts on this args
                         PooledAcceptContext newCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                                              .Get<PooledAcceptContext>();
+
                         pooled.Context = newCtx;
                         newCtx.BindArgsForSync(pooled);
                     }
                 }
                 catch (System.Exception ex)
                 {
+                    _metrics.RECORD_ERROR();
                     s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
 
-                    try
-                    {
-                        socket.Close();
-                    }
-                    catch { }
+                    SafeCloseSocket(socket);
+
                     InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                             .Return<PooledAcceptContext>(((PooledSocketAsyncEventArgs)args).Context!);
 
                     PooledAcceptContext newCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                                          .Get<PooledAcceptContext>();
+
                     ((PooledSocketAsyncEventArgs)args).Context = newCtx;
                     newCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
                 }
@@ -201,16 +203,16 @@ public abstract partial class TcpListenerBase
 
                 if (args is PooledSocketAsyncEventArgs pooled)
                 {
-                    ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-                    PooledAcceptContext oldCtx = pooled.Context;
-                    if (oldCtx is not null)
+                    if (pooled.Context is not null)
                     {
-                        pool.Return<PooledAcceptContext>(oldCtx);
+                        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                .Return<PooledAcceptContext>(pooled.Context);
                     }
 
-                    PooledAcceptContext newCtx = pool.Get<PooledAcceptContext>();
-                    pooled.Context = newCtx;
-                    newCtx.BindArgsForSync(pooled);
+                    pooled.Context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                             .Get<PooledAcceptContext>();
+
+                    pooled.Context.BindArgsForSync(pooled);
                 }
             }
         }
@@ -291,11 +293,10 @@ public abstract partial class TcpListenerBase
                 // Listener closed during/just before AcceptAsync
                 break;
             }
-            catch (System.Net.Sockets.SocketException ex) when (
-                ex.SocketErrorCode is
-                System.Net.Sockets.SocketError.Interrupted or
-                System.Net.Sockets.SocketError.OperationAborted or
-                System.Net.Sockets.SocketError.ConnectionAborted)
+            catch (System.Net.Sockets.SocketException ex) when (ex.SocketErrorCode is
+                   System.Net.Sockets.SocketError.Interrupted or
+                   System.Net.Sockets.SocketError.OperationAborted or
+                   System.Net.Sockets.SocketError.ConnectionAborted)
             {
                 // Expected during shutdown
                 break;
@@ -366,6 +367,8 @@ public abstract partial class TcpListenerBase
                     break;
                 }
 
+                _metrics.RECORD_ERROR();
+
                 // Transient: Gentle backoff to avoid spam
                 await System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
                                                  .ConfigureAwait(false);
@@ -373,6 +376,7 @@ public abstract partial class TcpListenerBase
             }
             catch (System.Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
+                _metrics.RECORD_ERROR();
                 s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
 
                 // Brief delay to prevent CPU spinning on repeated errors
@@ -418,6 +422,7 @@ public abstract partial class TcpListenerBase
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                         .Return<PooledAcceptContext>(context);
 
+                _metrics.RECORD_REJECTED();
                 throw new InternalErrorException();
             }
 
@@ -428,7 +433,7 @@ public abstract partial class TcpListenerBase
             if (!contextReturned)
             {
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return<PooledAcceptContext>(context);
+                                        .Return<PooledAcceptContext>(context);
             }
 
             throw new InternalErrorException("Accept failed", ex);
