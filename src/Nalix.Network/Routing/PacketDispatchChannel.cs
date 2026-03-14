@@ -212,13 +212,23 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private async System.Threading.Tasks.Task RunLoop(IWorkerContext ctx, System.Threading.CancellationToken ct)
     {
+        System.TimeSpan heartbeatInterval = System.TimeSpan.FromSeconds(1);
+
         try
         {
             while (System.Threading.Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
             {
+                ctx.Beat();
+
                 // Wait for packets to be available
-                await _semaphore.WaitAsync(ct)
-                                .ConfigureAwait(false);
+                System.Boolean signaled = await _semaphore.WaitAsync(heartbeatInterval, ct)
+                                                          .ConfigureAwait(false);
+
+                if (!signaled)
+                {
+                    // No packet arrived during heartbeatInterval; continue to beat and observe cancellation.
+                    continue;
+                }
 
                 // Pull from channel (priority-aware)
                 if (!_dispatch.Pull(out IConnection connection, out IBufferLease lease))
@@ -262,7 +272,6 @@ public sealed class PacketDispatchChannel
                 }
 
                 ctx.Advance(1);
-                ctx.Beat();
             }
         }
         catch (System.OperationCanceledException)

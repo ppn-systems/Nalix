@@ -325,12 +325,26 @@ public abstract partial class TcpListenerBase
         [System.Diagnostics.CodeAnalysis.NotNull] IWorkerContext ctx,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
     {
+        // Beat even when idle (no incoming connections).
+        System.TimeSpan heartbeatInterval = System.TimeSpan.FromSeconds(2);
+
         while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                IConnection connection = await this.CreateConnectionAsync(cancellationToken)
-                                                   .ConfigureAwait(false);
+                ctx.Beat();
+
+                System.Threading.Tasks.Task<IConnection> acceptTask = this.CreateConnectionAsync(cancellationToken).AsTask();
+                System.Threading.Tasks.Task delayTask = System.Threading.Tasks.Task.Delay(heartbeatInterval, cancellationToken);
+                System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(acceptTask, delayTask).ConfigureAwait(false);
+
+                if (completed != acceptTask)
+                {
+                    // No connection yet; loop again to update Beat.
+                    continue;
+                }
+
+                IConnection connection = await acceptTask.ConfigureAwait(false);
 
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Process}.Protocol",
@@ -345,8 +359,7 @@ public abstract partial class TcpListenerBase
                     }
                 );
 
-                ctx.Beat();
-                ctx.Advance(1);
+                ctx.Advance(1, note: "accepted");
 
                 continue;
             }
