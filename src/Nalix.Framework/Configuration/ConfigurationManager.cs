@@ -214,8 +214,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                 // Log the change
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                          $"path-changed from='{oldPath}' to='{normalizedPath}'");
+                                        .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}'");
 
                 // Optionally reload all configurations
                 if (autoReload && !_configContainerDict.IsEmpty)
@@ -237,14 +236,12 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         LastReloadTime = System.DateTime.UtcNow;
 
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                                                      $"auto-reload-ok count={_configContainerDict.Count}");
+                                                .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] auto-reload-ok count={_configContainerDict.Count}");
                     }
                     catch (System.Exception ex)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                                                       $"auto-reload-fail msg={ex.Message}", ex);
+                                                .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] auto-reload-fail msg={ex.Message}", ex);
 
                         // Rollback the path change on reload failure
                         _configFilePath = oldPath;
@@ -390,15 +387,13 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             {
                 _configLock.ExitWriteLock();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] " +
-                                              $"reload-ok count={_configContainerDict.Count}");
+                                        .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
             }
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] " +
-                                           $"reload-fail msg={ex.Message}", ex);
+                                    .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-fail msg={ex.Message}", ex);
             return false;
         }
         finally

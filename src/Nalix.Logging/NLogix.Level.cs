@@ -146,19 +146,19 @@ public sealed partial class NLogix
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Fatal(System.String format, params System.Object[] args)
-        => base.Publish(LogLevel.Critical, EventId.Empty, format, args);
+        => base.Publish(LogLevel.Fatal, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Fatal(System.String message, EventId? eventId = null)
-        => WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message);
+        => WriteLog(LogLevel.Fatal, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Fatal(System.String message, System.Exception exception, EventId? eventId = null)
-        => WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message, exception);
+        => WriteLog(LogLevel.Fatal, eventId ?? EventId.Empty, message, exception);
 
     #endregion Fatal Methods
 }

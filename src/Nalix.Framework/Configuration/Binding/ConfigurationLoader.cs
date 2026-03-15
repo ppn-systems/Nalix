@@ -15,9 +15,11 @@ namespace Nalix.Framework.Configuration.Binding;
 /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
 /// Supported data types: int, long, short, byte, double, float, decimal, bool, char, string, DateTime, TimeSpan, Guid, and all Enum types.
 /// The section and key names in the INI file are derived from the class and property names.
+/// Apply <see cref="Nalix.Common.Shared.Attributes.IniCommentAttribute"/> to the class or its properties
+/// to generate human-readable comments in the INI file on first run.
 /// </remarks>
 [System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("{GetType().Naming,nq} (Initialized = {IsInitialized})")]
+[System.Diagnostics.DebuggerDisplay("{GetType().Name,nq} (Initialized = {IsInitialized})")]
 public abstract partial class ConfigurationLoader
 {
     #region Fields
@@ -40,7 +42,7 @@ public abstract partial class ConfigurationLoader
         "Configurations",
     ];
 
-    private System.Int32 _isInitialized; // Flag to track initialization status
+    private System.Int32 _isInitialized;
 
     #endregion Fields
 
@@ -59,17 +61,12 @@ public abstract partial class ConfigurationLoader
     /// <summary>
     /// Gets a value indicating whether this instance has been initialized.
     /// </summary>
-    /// <value>
-    /// <c>true</c> if the configuration has been initialized; otherwise, <c>false</c>.
-    /// </value>
-    public System.Boolean IsInitialized => System.Threading.Volatile.Read(ref _isInitialized) == 1;
+    public System.Boolean IsInitialized
+        => System.Threading.Volatile.Read(ref _isInitialized) == 1;
 
     /// <summary>
     /// Gets the time when this configuration was last initialized.
     /// </summary>
-    /// <value>
-    /// A <see cref="System.DateTime"/> representing the UTC time of last initialization.
-    /// </value>
     public System.DateTime LastInitializationTime { get; private set; }
 
     #endregion Properties
@@ -93,22 +90,6 @@ public abstract partial class ConfigurationLoader
     /// <summary>
     /// Creates a shallow clone of this configuration instance.
     /// </summary>
-    /// <typeparam name="T">
-    /// The type of the derived class from <see cref="ConfigurationLoader"/>.
-    /// </typeparam>
-    /// <returns>
-    /// A new instance of type <typeparamref name="T"/> with the same property values.
-    /// </returns>
-    /// <remarks>
-    /// This method supports all bindable properties, including the supported data types:
-    /// <list type="bullet">
-    /// <item><description>int, long, short, byte</description></item>
-    /// <item><description>double, float, decimal</description></item>
-    /// <item><description>bool, char, string</description></item>
-    /// <item><description>DateTime, TimeSpan</description></item>
-    /// <item><description>Guid, Enum types</description></item>
-    /// </list>
-    /// </remarks>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -118,17 +99,14 @@ public abstract partial class ConfigurationLoader
         T clone = new();
         System.Type type = GetType();
 
-        // Get the configuration metadata
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
 
-        // Copy each property value to the clone
         foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
         {
             System.Object? value = propertyInfo.PropertyInfo.GetValue(this);
             propertyInfo.PropertyInfo.SetValue(clone, value);
         }
 
-        // Mark as initialized
         _ = System.Threading.Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
         clone.LastInitializationTime = LastInitializationTime;
 
@@ -140,8 +118,9 @@ public abstract partial class ConfigurationLoader
     #region Private Methods
 
     /// <summary>
-    /// Initializes an instance of <see cref="ConfigurationLoader"/> from the provided <see cref="IniConfig"/>
-    /// using optimized reflection with caching to set property values based on the configuration file.
+    /// Initializes an instance of <see cref="ConfigurationLoader"/> from the provided <see cref="IniConfig"/>.
+    /// Section and property comments from <see cref="Nalix.Common.Shared.Attributes.IniCommentAttribute"/>
+    /// are written to the file the first time a key is generated.
     /// </summary>
     /// <param name="configFile">The INI configuration file to load values from.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when configFile is null.</exception>
@@ -153,36 +132,34 @@ public abstract partial class ConfigurationLoader
         System.ArgumentNullException.ThrowIfNull(configFile, nameof(configFile));
 
         System.Type type = GetType();
-
-        // Get or create configuration metadata for this type
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
-
-        // Get the section name from cache
         System.String section = GetSectionName(type);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Meta($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
 
-        // Process each bindable property
+        // Write the section-level comment once, before the first property is processed.
+        // IniConfig.WriteComment is a no-op when the section already exists, so this
+        // is safe to call on every initialization — it only fires on first-time generation.
+        configFile.WriteComment(section, key: null, comment: metadata.SectionComment);
+
         foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
         {
             try
             {
-                // Get the configuration value using the appropriate method
                 System.Object? value = GetConfigValue(configFile, section, propertyInfo);
 
-                // Handle missing or empty configuration values
                 if (value == null ||
                    (value is System.String strValue && System.String.IsNullOrEmpty(strValue)))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
 
+                    // HandleEmptyValue writes the comment + default value for new keys
                     this.HandleEmptyValue(configFile, section, propertyInfo);
                     continue;
                 }
 
-                // Assign the value to the property using the cached setter
                 propertyInfo.SetValue(this, value);
             }
             catch (System.ArgumentException ex)
@@ -202,7 +179,6 @@ public abstract partial class ConfigurationLoader
             }
         }
 
-        // Mark as initialized and record timestamp
         _ = System.Threading.Interlocked.Exchange(ref _isInitialized, 1);
         LastInitializationTime = System.DateTime.UtcNow;
     }

@@ -16,6 +16,11 @@ namespace Nalix.Framework.Configuration.Internal;
 internal class ConfigurationMetadata
 {
     /// <summary>
+    /// Gets or sets the optional comment written above the section header.
+    /// </summary>
+    public System.String? SectionComment { get; init; }
+
+    /// <summary>
     /// Gets or sets the configuration type.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.NotNull]

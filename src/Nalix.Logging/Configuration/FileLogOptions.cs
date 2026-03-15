@@ -13,13 +13,12 @@ namespace Nalix.Logging.Configuration;
 /// </summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("File={LogFileName,nq}, Dir={LogDirectory,nq}, MaxSize={MaxFileSizeBytes}")]
+[IniComment("File logger configuration — controls file size, queue, flush behavior, and naming")]
 public sealed class FileLogOptions : ConfigurationLoader
 {
     #region Constants
 
-    // Default values
     private const System.Int32 DefaultMaxFileSize = 10 * 1024 * 1024; // 10 MB
-
     private const System.Int32 DefaultMaxQueueSize = 4096;
 
     #endregion Constants
@@ -41,13 +40,14 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// When this size is reached, a new log file will be created.
     /// </summary>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1KB or greater than 2GB.</exception>
+    [IniComment("Max log file size in bytes before rotation (min 1024, max 33554432)")]
     public System.Int32 MaxFileSizeBytes
     {
         get => _maxFileSize;
         set
         {
-            const System.Int32 min = 1024; // 1 KB minimum
-            const System.Int32 max = 32 * 1024 * 1024; // 2 GB maximum
+            const System.Int32 min = 1024;
+            const System.Int32 max = 32 * 1024 * 1024;
 
             if (value is < min or > max)
             {
@@ -60,9 +60,10 @@ public sealed class FileLogOptions : ConfigurationLoader
     }
 
     /// <summary>
-    /// The maximum ProtocolType of entries that can be queued before blocking or discarding.
+    /// The maximum number of entries that can be queued before blocking or discarding.
     /// </summary>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
+    [IniComment("Maximum log entries in the write queue (minimum 1)")]
     public System.Int32 MaxQueueSize
     {
         get => _maxQueueSize;
@@ -82,8 +83,9 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// Gets or sets the name template for log files.
     /// </summary>
     /// <remarks>
-    /// The actual filename may have additional information appended like date or sequence ProtocolType.
+    /// The actual filename may have additional information appended like date or sequence number.
     /// </remarks>
+    [IniComment("Log file name template (date and index are appended automatically)")]
     public System.String LogFileName
     {
         get => _logFileName;
@@ -98,6 +100,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <remarks>
     /// A shorter interval reduces the risk of data loss but may impact performance.
     /// </remarks>
+    [IniComment("How often buffered log entries are written to disk (e.g. 00:00:01 = 1 second)")]
     public System.TimeSpan FlushInterval { get; set; } = DefaultFlushInterval;
 
     /// <summary>
@@ -107,33 +110,26 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// When true, logging will block until queue space is available.
     /// When false, log entries will be discarded when the queue is full.
     /// </remarks>
+    [IniComment("Block the caller when the queue is full (false = discard entries instead)")]
     public System.Boolean BlockWhenQueueFull { get; set; } = false;
 
     /// <summary>
     /// Optional: also suffix by process to avoid cross-process collisions.
     /// </summary>
+    [IniComment("Append process name and ID to the file name to avoid multi-process collisions")]
     public System.Boolean UsePerProcessSuffix { get; set; } = false;
 
     /// <summary>
     /// A custom formatter for the log file name.
     /// </summary>
-    /// <remarks>
-    /// By providing a custom formatter, you can define your own criteria for generating log file names.
-    /// This formatter is applied once when creating a new log file, not for every log entry.
-    /// </remarks>
     [ConfiguredIgnore]
     public System.Func<System.String, System.String>? FormatLogFileName { get; set; }
 
     /// <summary>
     /// A custom handler for file errors.
     /// </summary>
-    /// <remarks>
-    /// If this handler is provided, exceptions occurring during file operations will be passed to it.
-    /// You can handle file errors according to your application's logic and propose an alternative log file name.
-    /// </remarks>
     [ConfiguredIgnore]
     public System.Action<FileError>? HandleFileError { get; set; }
-
 
     #endregion Properties
 
@@ -146,7 +142,8 @@ public sealed class FileLogOptions : ConfigurationLoader
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.String GetFullLogFilePath() => System.IO.Path.Combine(Directories.LogsDirectory, LogFileName);
+    public System.String GetFullLogFilePath()
+        => System.IO.Path.Combine(Directories.LogsDirectory, LogFileName);
 
     /// <summary>
     /// Builds the exact log file name for a given day and index.
@@ -156,23 +153,18 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <returns>The constructed log file name.</returns>
     public System.String BuildCustomFileName(System.DateTime date, System.Int32 index)
     {
-        // 1. Sử dụng LogFileName template trước
         System.String baseName = this.LogFileName;
 
-        // 2. Nếu có FormatLogFileName custom, áp dụng
         if (this.FormatLogFileName != null)
         {
             baseName = this.FormatLogFileName(baseName);
         }
 
-        // 3. Thêm hậu tố ngày và index (nếu chưa có)
-        System.String ext = System.IO.Path.GetExtension(baseName);      // giữ ext, ví dụ ".log"
+        System.String ext = System.IO.Path.GetExtension(baseName);
         System.String stem = System.IO.Path.GetFileNameWithoutExtension(baseName);
-
         System.String datePart = date.ToString("yy_MM_dd");
         System.String newName = $"{stem}_{datePart}_{index}{ext}";
 
-        // 4. Nếu UsePerProcessSuffix, thêm tên tiến trình + id
         if (this.UsePerProcessSuffix)
         {
             using System.Diagnostics.Process p = System.Diagnostics.Process.GetCurrentProcess();

@@ -1,6 +1,7 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
@@ -10,6 +11,7 @@ namespace Nalix.Network.Configurations;
 /// Defines maximum sizes for incoming and outgoing caches,
 /// which control how many frames or packets can be buffered.
 /// </summary>
+[IniComment("Network cache configuration — controls incoming and outgoing frame buffer sizes")]
 public sealed class CacheSizeOptions : ConfigurationLoader
 {
     /// <summary>
@@ -19,7 +21,8 @@ public sealed class CacheSizeOptions : ConfigurationLoader
     /// Controls how many incoming frames can be buffered before processing.
     /// Default is 20.
     /// </remarks>
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "Incoming must be between 1 and 1,000,000.")]
+    [IniComment("Maximum incoming frames buffered before processing (10–1,000,000)")]
+    [System.ComponentModel.DataAnnotations.Range(10, 1_000_000, ErrorMessage = "Incoming must be between 1 and 1,000,000.")]
     public System.Int32 Incoming { get; set; } = 20;
 
     /// <summary>
@@ -30,13 +33,7 @@ public sealed class CacheSizeOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
-        var context = new System.ComponentModel.DataAnnotations.ValidationContext(this);
+        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-
-        // Nâng cao (nếu cần thêm điều kiện, kiểm tra here)
-        if (this.Incoming < 1)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("Incoming must be greater than zero.");
-        }
     }
 }

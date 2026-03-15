@@ -24,12 +24,12 @@ public partial class ConfigurationLoader
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    private static System.Object? GetConfigValue(IniConfig configFile, System.String section, PropertyMetadata property)
+    private static System.Object? GetConfigValue(
+        IniConfig configFile, System.String section, PropertyMetadata property)
     {
         // Handle Enums of any underlying type with cached reflection
         if (property.PropertyType.IsEnum)
         {
-            // Get or create the generic method for this enum type
             System.Reflection.MethodInfo method = _enumGetterCache.GetOrAdd(
                 property.PropertyType,
                 enumType =>
@@ -39,8 +39,7 @@ public partial class ConfigurationLoader
                         System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
 
                     return baseMethod == null
-                        ? throw new System.InvalidOperationException(
-                            $"Could not find GetEnum method on {nameof(IniConfig)}.")
+                        ? throw new System.InvalidOperationException($"Could not find GetEnum method on {nameof(IniConfig)}.")
                         : baseMethod.MakeGenericMethod(enumType);
                 });
 
@@ -64,33 +63,43 @@ public partial class ConfigurationLoader
             System.TypeCode.Single => configFile.GetSingle(section, property.Name),
             System.TypeCode.Double => configFile.GetDouble(section, property.Name),
             System.TypeCode.DateTime => configFile.GetDateTime(section, property.Name),
-            System.TypeCode.Object when property.PropertyType == typeof(System.Guid) => configFile.GetGuid(section, property.Name),
-            System.TypeCode.Object when property.PropertyType == typeof(System.TimeSpan) => configFile.GetTimeSpan(section, property.Name),
+            System.TypeCode.Object when property.PropertyType == typeof(System.Guid)
+                => configFile.GetGuid(section, property.Name),
+            System.TypeCode.Object when property.PropertyType == typeof(System.TimeSpan)
+                => configFile.GetTimeSpan(section, property.Name),
             _ => ThrowUnsupported(property),
         };
     }
 
     /// <summary>
-    /// Handles empty configuration values by writing defaults to the file.
+    /// Handles empty configuration values by writing defaults — and any associated
+    /// comment — to the file. The comment is written only when the key is new,
+    /// consistent with <see cref="IniConfig.WriteValue"/> behavior.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void HandleEmptyValue(IniConfig configFile, System.String section, PropertyMetadata property)
+    private void HandleEmptyValue(
+        IniConfig configFile, System.String section, PropertyMetadata property)
     {
         System.Object? currentValue = property.PropertyInfo.GetValue(this);
-        System.Object valueToWrite = currentValue ?? "null";
 
-        valueToWrite = property.PropertyType.IsEnum
-            ? currentValue?.ToString() ?? System.Enum.GetValues(property.PropertyType).GetValue(0)!.ToString()!
-            : currentValue?.ToString() ?? GetDefaultValueString(property);
+        System.Object valueToWrite = property.PropertyType.IsEnum
+            ? currentValue?.ToString()
+              ?? System.Enum.GetValues(property.PropertyType).GetValue(0)!.ToString()!
+            : currentValue?.ToString()
+              ?? GetDefaultValueString(property);
 
+        // WriteValue already guards against overwriting an existing key.
+        // WriteComment is called first so the comment appears above the key;
+        // both writes are no-ops if the key already exists in the file.
+        configFile.WriteComment(section, property.Name, property.Comment);
         configFile.WriteValue(section, property.Name, valueToWrite);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(ConfigurationLoader)}:Internal] default-written section={section} key={property.Name} val={valueToWrite}");
+                                .Debug($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
+                                       $"default-written section={section} key={property.Name} val={valueToWrite}");
     }
 
     /// <summary>
@@ -111,10 +120,12 @@ public partial class ConfigurationLoader
                 {
                     return System.Guid.Empty.ToString("c", System.Globalization.CultureInfo.InvariantCulture);
                 }
+
                 if (propertyType.PropertyType == typeof(System.TimeSpan))
                 {
                     return System.TimeSpan.Zero.ToString("c", System.Globalization.CultureInfo.InvariantCulture);
                 }
+
                 break;
             case System.TypeCode.Char:
             case System.TypeCode.String:
@@ -136,6 +147,7 @@ public partial class ConfigurationLoader
             case System.TypeCode.DateTime:
                 return System.DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture);
         }
+
         return System.String.Empty;
     }
 
@@ -151,6 +163,7 @@ public partial class ConfigurationLoader
                                 .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
                                        $"unsupported-type type={property.PropertyType.Name} info={property.PropertyInfo.Name} key={property.Name}");
 
-        throw new System.NotSupportedException($"Value type {property.PropertyType.Name} is not supported for configuration files.");
+        throw new System.NotSupportedException(
+            $"Value type {property.PropertyType.Name} is not supported for configuration files.");
     }
 }

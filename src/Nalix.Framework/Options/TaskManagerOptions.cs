@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Framework.Options;
@@ -23,6 +24,7 @@ namespace Nalix.Framework.Options;
 /// </code>
 /// </example>
 /// </remarks>
+[IniComment("Task manager configuration — controls concurrency, CPU thresholds, and cleanup behavior")]
 public sealed class TaskManagerOptions : ConfigurationLoader
 {
     /// <summary>
@@ -32,31 +34,37 @@ public sealed class TaskManagerOptions : ConfigurationLoader
     /// When set to <see langword="true"/>, the system will collect and report
     /// latency information for diagnostic or performance monitoring purposes.
     /// </remarks>
+    [IniComment("Enable latency measurement for diagnostic and performance monitoring")]
     public System.Boolean IsEnableLatency { get; init; } = true;
 
     /// <summary>
     /// Enables or disables dynamic concurrency adjustment. Default is true.
     /// </summary>
+    [IniComment("Enable dynamic concurrency adjustment based on system load")]
     public System.Boolean DynamicAdjustmentEnabled { get; init; } = true;
 
     /// <summary>
     /// Maximum number of workers in the entire TaskManager (global limit). Defaults to 100.
     /// </summary>
+    [IniComment("Global maximum number of concurrent workers (1–int.MaxValue)")]
     public System.Int32 MaxWorkers { get; init; } = 100;
 
     /// <summary>
     /// High CPU utilization threshold to reduce concurrency. Default is 80%.
     /// </summary>
+    [IniComment("CPU usage % above which concurrency is reduced (0–100)")]
     public System.Double ThresholdHighCpu { get; init; } = 80.0;
 
     /// <summary>
     /// Low CPU utilization threshold to increase concurrency. Default is 40%.
     /// </summary>
+    [IniComment("CPU usage % below which concurrency is increased (0–100)")]
     public System.Double ThresholdLowCpu { get; init; } = 40.0;
 
     /// <summary>
     /// Time interval for monitoring system load (default 5 seconds).
     /// </summary>
+    [IniComment("How often system load is sampled (e.g. 00:00:05 = 5 seconds)")]
     public System.TimeSpan ObservingInterval { get; init; } = System.TimeSpan.FromSeconds(5);
 
     /// <summary>
@@ -66,6 +74,7 @@ public sealed class TaskManagerOptions : ConfigurationLoader
     /// <value>
     /// A <see cref="System.TimeSpan"/> representing the cleanup interval.
     /// </value>
+    [IniComment("How often completed workers are removed from memory (minimum 00:00:01)")]
     public System.TimeSpan CleanupInterval { get; init; } = System.TimeSpan.FromSeconds(30);
 
     /// <summary>

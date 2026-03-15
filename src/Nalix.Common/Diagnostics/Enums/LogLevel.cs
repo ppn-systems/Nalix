@@ -58,5 +58,5 @@ public enum LogLevel : System.Byte
     /// Critical-level logging.
     /// Indicates a serious failure that may cause the application to stop or become unstable.
     /// </summary>
-    Critical = 7,
+    Fatal = 7,
 }
