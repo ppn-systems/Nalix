@@ -15,7 +15,7 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// Max items allowed in a single connection queue.
     /// Set to 0 or negative to disable bounding.
     /// </summary>
-    [System.ComponentModel.DataAnnotations.Range(-1, System.Int32.MaxValue, ErrorMessage = "MaxPerConnectionQueue must be -1, 0 (unlimited), or a positive value.")]
+    [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue, ErrorMessage = "MaxPerConnectionQueue must be -1, 0 (unlimited), or a positive value.")]
     public System.Int32 MaxPerConnectionQueue { get; init; } = 0;
 
     /// <summary>
@@ -23,6 +23,11 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// </summary>
     [System.ComponentModel.DataAnnotations.EnumDataType(typeof(DropPolicy), ErrorMessage = "Invalid drop policy.")]
     public DropPolicy DropPolicy { get; init; } = DropPolicy.DROP_NEWEST;
+
+    /// <summary>
+    /// Block timeout in milliseconds for push operations when the queue is full and DropPolicy is BLOCK.
+    /// </summary>
+    public System.TimeSpan BlockTimeout { get; init; } = System.TimeSpan.FromMilliseconds(1000);
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
@@ -36,9 +41,9 @@ public sealed class DispatchOptions : ConfigurationLoader
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
 
         // Custom validation logic if needed
-        if (MaxPerConnectionQueue < -1)
+        if (MaxPerConnectionQueue < 0)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxPerConnectionQueue must be -1, 0, or a positive number.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxPerConnectionQueue must be 0, or a positive number.");
         }
     }
 }

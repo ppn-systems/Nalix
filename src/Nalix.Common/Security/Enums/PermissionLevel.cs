@@ -28,24 +28,36 @@ public enum PermissionLevel : System.Byte
     READ_ONLY = 2,
 
     /// <summary>
-    /// Standard registered user with access to general features.
+    /// Standard registered user with access to general features
+    /// within a single tenant or organization.
     /// </summary>
     USER = 3,
 
     /// <summary>
-    /// Elevated privileges for managing content, users, or restricted features.
-    /// Less authority than a full administrator.
+    /// Elevated privileges for managing content or users
+    /// within a limited scope such as a module, department, or project.
+    /// Less authority than a tenant administrator.
     /// </summary>
     SUPERVISOR = 4,
 
     /// <summary>
-    /// Full administrative control over the system and its users.
+    /// Administrative control over a single tenant or organization.
+    /// Can manage users and settings within that tenant, but has no
+    /// authority over other tenants or global platform configuration.
     /// </summary>
-    ADMINISTRATOR = 5,
+    TENANT_ADMINISTRATOR = 5,
 
     /// <summary>
-    /// Highest authority level with unrestricted control over all system settings.
+    /// System-wide administrative authority across all tenants.
+    /// Can manage global configuration, tenants, and system-level policies.
+    /// Typically used by the operations or platform team.
+    /// </summary>
+    SYSTEM_ADMINISTRATOR = 6,
+
+    /// <summary>
+    /// Highest authority level with unrestricted control over all
+    /// system settings and data.
     /// Typically reserved for the system owner or creator.
     /// </summary>
-    OWNER = 6
+    OWNER = 7
 }

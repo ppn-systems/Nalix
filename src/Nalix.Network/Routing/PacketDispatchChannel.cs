@@ -58,7 +58,10 @@ public sealed class PacketDispatchChannel
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
     private System.Int32 _running;
+    private System.Int32 _activeLoops;
     private System.Int32 _dispatchLoops;
+    private IWorkerHandle[] _workerHandle;
+    private System.Threading.CancellationTokenSource _linkedCts;
 
     #endregion Fields
 
@@ -100,16 +103,30 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        System.Threading.CancellationToken linkedToken = cancellationToken.CanBeCanceled
-            ? System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token).Token : _cts.Token;
+        System.Threading.CancellationToken linkedToken;
+
+        if (cancellationToken.CanBeCanceled)
+        {
+            _linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+            linkedToken = _linkedCts.Token;
+        }
+        else
+        {
+            linkedToken = _cts.Token;
+        }
+
+        System.Threading.Volatile.Write(ref _activeLoops, 0);
 
         // Decide how many parallel dispatch loops to start.
         // Rule of thumb: cores/2, clamped to [1..12]
         _dispatchLoops = System.Math.Clamp(System.Environment.ProcessorCount / 2, 1, 12);
+        _workerHandle = new IWorkerHandle[_dispatchLoops];
 
         for (System.Int32 i = 0; i < _dispatchLoops; i++)
         {
-            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+            System.Threading.Interlocked.Increment(ref _activeLoops);
+
+            _workerHandle[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"{TaskNaming.Tags.Dispatch}.{TaskNaming.Tags.Process}.{i}",
                 group: $"{NetTaskNames.Net}/{TaskNaming.Tags.Dispatch}",
                 work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
@@ -119,7 +136,8 @@ public sealed class PacketDispatchChannel
                     CancellationToken = linkedToken,
                     RetainFor = System.TimeSpan.Zero,
                     Tag = NetTaskNames.Net
-                });
+                }
+            );
         }
 
         Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Activate}] start");
@@ -142,6 +160,13 @@ public sealed class PacketDispatchChannel
 
         try
         {
+            for (System.Int32 i = 0; i < _dispatchLoops; i++)
+            {
+                System.Threading.Interlocked.Decrement(ref _activeLoops);
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                            .CancelWorker(_workerHandle[i].Id);
+            }
+
             if (!_cts.IsCancellationRequested)
             {
                 _cts.Cancel();
@@ -344,6 +369,7 @@ public sealed class PacketDispatchChannel
                         System.Int32 len = lease.Length;
                         System.String head = System.Convert.ToHexString(lease.Span[..System.Math.Min(16, len)]);
                         Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.EndPoint} len={len} head={head}");
+
                         continue;
                     }
 
@@ -372,7 +398,10 @@ public sealed class PacketDispatchChannel
         }
         finally
         {
-            System.Threading.Volatile.Write(ref _running, 0);
+            if (System.Threading.Interlocked.Decrement(ref _activeLoops) == 0)
+            {
+                System.Threading.Volatile.Write(ref _running, 0);
+            }
         }
     }
 
@@ -387,6 +416,9 @@ public sealed class PacketDispatchChannel
     public void Dispose()
     {
         this.Deactivate();
+
+        _linkedCts?.Dispose();
+
         this._cts.Dispose();
         this._semaphore.Dispose();
     }
