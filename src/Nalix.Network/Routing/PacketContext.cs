@@ -3,6 +3,7 @@
 
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Caching;
+using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
@@ -22,7 +23,7 @@ namespace Nalix.Network.Routing;
 /// allocations and supports thread-safe operations.
 /// </remarks>
 [System.Diagnostics.DebuggerDisplay("IsInitialized={_isInitialized}, Properties={_properties.Count}")]
-public sealed class PacketContext<TPacket> : IPoolable
+public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
 {
     #region Fields
 
@@ -95,6 +96,13 @@ public sealed class PacketContext<TPacket> : IPoolable
         internal set;
     }
 
+    /// <summary>
+    /// Gets a sender that automatically applies encryption/compression
+    /// based on the current handler's attributes.
+    /// Use this instead of calling connection.TCP.SendAsync() directly.
+    /// </summary>
+    public IPacketSender<TPacket> Sender { get; private set; } = default!;
+
     #endregion Properties
 
     #region Constructor
@@ -153,6 +161,7 @@ public sealed class PacketContext<TPacket> : IPoolable
         this.Connection = connection;
         this.Attributes = descriptor;
         this.CancellationToken = new System.Threading.CancellationToken();
+        this.Sender = new PacketSender<TPacket>(this, InstanceManager.Instance.GetExistingInstance<IPacketRegistry>());
 
         _isInitialized = true;
     }
@@ -168,6 +177,7 @@ public sealed class PacketContext<TPacket> : IPoolable
     internal void Reset()
     {
         this.Packet = default!;
+        this.Sender = default!;
         this.Attributes = default;
         this.Connection = default!;
 

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Networking.Packets.Abstractions;
+
 namespace Nalix.Network.Routing.Delegates;
 
 /// <summary>
@@ -13,7 +15,7 @@ namespace Nalix.Network.Routing.Delegates;
 public readonly struct PacketHandler<TPacket>(
     System.UInt16 opCode, PacketMetadata metadata,
     System.Object controllerInstance, System.Reflection.MethodInfo method, System.Type returnType,
-    System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> compiledInvoker)
+    System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> compiledInvoker) where TPacket : IPacket
 {
     #region Fields
 

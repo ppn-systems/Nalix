@@ -114,8 +114,9 @@ Each module's documentation (linked below) includes code samples and usage scena
 | [Logging](./Nalix.Logging/README.md)                                          | Logging API, batch sinks, config              |
 | [Middleware Pipeline](./Nalix.Network/Middleware/README.md)                   | Packet middleware, stages, attributes         |
 | [Packet Dispatch & Handler](./Nalix.Network/Routing/PacketDispatchChannel.md) | Attribute-driven handler registration, routing|
+| [Send from handler](./Nalix.Network/Routing/PacketDispatchChannel.md#send-from-handler)           | Gửi packet trong handler qua `context.Sender.SendAsync`       |
 | [TCP/Connection](./Nalix.Network/Listeners/TcpListenerBase.md)                | Listener setup and connection lifecycle       |
-| [ConnectionHub](./Nalix.Network/New%20folder/ConnectionHub.md)                | Sharded, high-throughput connection manager   |
+| [ConnectionHub](./Nalix.Network/Connections/ConnectionHub.md)                 | Sharded, high-throughput connection manager   |
 | [BufferLease](./Nalix.Shared/Memory/BufferLease.md)                           | Zero-copy buffer pool, secure                 |
 | [ObjectPoolManager](./Nalix.Shared/Memory/ObjectPoolManager.md)               | Generic object pooling, preallocation         |
 | [LiteSerializer](./Nalix.Shared/LiteSerializer.md)                            | Serialization of structs, arrays, primitives  |
