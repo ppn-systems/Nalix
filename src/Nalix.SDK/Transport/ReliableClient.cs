@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Concurrency;
@@ -108,6 +108,37 @@ public sealed class ReliableClient : IClientConnection
 
     /// <inheritdoc/>
     public event System.EventHandler<System.Exception> OnDisconnected;
+
+    /// <summary>
+    /// Raised after a successful automatic reconnection.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The event argument is the 1-based attempt number that succeeded
+    /// (e.g., <c>1</c> means the very first reconnect attempt worked).
+    /// </para>
+    /// <para>
+    /// Use this event to re-run post-connect setup that must repeat after a
+    /// reconnect — for example:
+    /// <list type="bullet">
+    /// <item><description>Re-run <c>HandshakeAsync</c> to establish a new session key.</description></item>
+    /// <item><description>Re-run <c>TimeSyncAsync</c> to re-synchronize the clock.</description></item>
+    /// <item><description>Re-subscribe to server-side channels or rooms.</description></item>
+    /// </list>
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// client.OnReconnected += async (sender, attempt) =>
+    /// {
+    ///     var c = (ReliableClient)sender;
+    ///     await c.HandshakeAsync();
+    ///     await c.TimeSyncAsync();
+    ///     logger.Info($"Re-authenticated after reconnect attempt {attempt}");
+    /// };
+    /// </code>
+    /// </example>
+    public event System.EventHandler<System.Int32> OnReconnected;
 
     /// <summary>
     /// Optional asynchronous message handler.
@@ -881,6 +912,9 @@ public sealed class ReliableClient : IClientConnection
             {
                 await ConnectAsync(_host, _port).ConfigureAwait(false);
                 _log?.Info($"[SDK.{nameof(ReliableClient)}] Reconnect-success attempt={attempt}.");
+
+                // Notify subscribers — pass attempt number so they can log/trace it.
+                try { OnReconnected?.Invoke(this, attempt); } catch { }
 
                 return;
             }

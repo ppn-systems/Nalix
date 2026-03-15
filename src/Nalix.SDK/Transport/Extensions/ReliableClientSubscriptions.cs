@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics.Abstractions;
@@ -189,6 +189,114 @@ public static class ReliableClientSubscriptions
         return new Unsub(() => client.OnMessageReceived -= Wrapper);
     }
 
+    // ── SubscribeTemp strongly-typed ─────────────────────────────────────────
+
+    /// <summary>
+    /// Subscribes to strongly-typed packets for the duration of a scoped operation.
+    /// Automatically unsubscribes when the returned <see cref="System.IDisposable"/> is disposed.
+    /// </summary>
+    /// <typeparam name="TPacket">The expected packet type.</typeparam>
+    /// <param name="client">The connected client.</param>
+    /// <param name="onMessage">
+    /// Handler invoked for each matching packet. The lease has already been disposed
+    /// before this is called — do not interact with the raw buffer.
+    /// </param>
+    /// <param name="onDisconnected">
+    /// Optional handler invoked when the client disconnects while the subscription is active.
+    /// </param>
+    /// <returns>
+    /// An <see cref="System.IDisposable"/> that unsubscribes both handlers when disposed.
+    /// Always wrap in a <c>using</c> statement.
+    /// </returns>
+    /// <example>
+    /// <code>
+    /// using var sub = client.SubscribeTemp&lt;LoginResponse&gt;(
+    ///     onMessage:      resp => tcs.TrySetResult(resp),
+    ///     onDisconnected: ex   => tcs.TrySetException(ex));
+    ///
+    /// await client.SendAsync(loginRequest, ct);
+    /// var response = await tcs.Task;
+    /// </code>
+    /// </example>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.IDisposable SubscribeTemp<TPacket>(
+        this IClientConnection client,
+        System.Action<TPacket> onMessage,
+        System.Action<System.Exception> onDisconnected = null)
+        where TPacket : class, IPacket
+    {
+        System.ArgumentNullException.ThrowIfNull(client);
+        System.ArgumentNullException.ThrowIfNull(onMessage);
+
+        System.IDisposable msgSub = client.On<TPacket>(onMessage);
+
+        if (onDisconnected is null)
+        {
+            return msgSub;
+        }
+
+        void DisconnectHandler(System.Object _, System.Exception ex)
+        {
+            try { onDisconnected(ex); } catch { }
+        }
+
+        client.OnDisconnected += DisconnectHandler;
+
+        // Return a composite that unsubscribes both handlers atomically.
+        return new CompositeSubscription(
+            msgSub,
+            new DelegateDisposable(() => client.OnDisconnected -= DisconnectHandler));
+    }
+
+    /// <summary>
+    /// Subscribes to strongly-typed packets with a predicate filter for the duration of a scoped operation.
+    /// </summary>
+    /// <typeparam name="TPacket">The expected packet type.</typeparam>
+    /// <param name="client">The connected client.</param>
+    /// <param name="predicate">Filter — only packets for which this returns <c>true</c> are forwarded.</param>
+    /// <param name="onMessage">Handler invoked for each matching packet.</param>
+    /// <param name="onDisconnected">Optional disconnect handler.</param>
+    /// <returns>An <see cref="System.IDisposable"/> that unsubscribes when disposed.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.IDisposable SubscribeTemp<TPacket>(
+        this IClientConnection client,
+        System.Func<TPacket, System.Boolean> predicate,
+        System.Action<TPacket> onMessage,
+        System.Action<System.Exception> onDisconnected = null)
+        where TPacket : class, IPacket
+    {
+        System.ArgumentNullException.ThrowIfNull(client);
+        System.ArgumentNullException.ThrowIfNull(predicate);
+        System.ArgumentNullException.ThrowIfNull(onMessage);
+
+        // Wrap predicate + handler into a single On<TPacket> subscription.
+        System.IDisposable msgSub = client.On<TPacket>(p =>
+        {
+            if (predicate(p))
+            {
+                onMessage(p);
+            }
+        });
+
+        if (onDisconnected is null)
+        {
+            return msgSub;
+        }
+
+        void DisconnectHandler(System.Object _, System.Exception ex)
+        {
+            try { onDisconnected(ex); } catch { }
+        }
+
+        client.OnDisconnected += DisconnectHandler;
+
+        return new CompositeSubscription(
+            msgSub,
+            new DelegateDisposable(() => client.OnDisconnected -= DisconnectHandler));
+    }
+
     // ── Subscribe (composite) ────────────────────────────────────────────────
 
     /// <summary>
@@ -280,4 +388,18 @@ public sealed class CompositeSubscription : System.IDisposable
             catch { /* one bad subscription must not prevent others from being disposed */ }
         }
     }
+}
+
+/// <summary>
+/// An <see cref="System.IDisposable"/> that executes a delegate on disposal.
+/// Used internally to wrap event unsubscription delegates into a disposable handle.
+/// Thread-safe: the delegate is invoked at most once.
+/// </summary>
+internal sealed class DelegateDisposable(System.Action onDispose) : System.IDisposable
+{
+    private System.Action _onDispose = onDispose;
+
+    /// <inheritdoc/>
+    public void Dispose()
+        => System.Threading.Interlocked.Exchange(ref _onDispose, null)?.Invoke();
 }
