@@ -1,13 +1,15 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Network.Configurations;
 
 /// <summary>
-/// Represents network configuration settings for socket and RELIABLE connections.
+/// Represents network configuration settings for socket and TCP connections.
 /// </summary>
+[IniComment("Network socket configuration — controls port, buffering, concurrency, and socket behavior")]
 public sealed class NetworkSocketOptions : ConfigurationLoader
 {
     #region Fields
@@ -18,14 +20,7 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
 
     #region Constants
 
-    /// <summary>
-    /// Constant value for True (1).
-    /// </summary>
     internal const System.Int32 True = 1;
-
-    /// <summary>
-    /// Constant value for False (0).
-    /// </summary>
     internal const System.Int32 False = 0;
 
     #endregion Constants
@@ -34,9 +29,8 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
 
     /// <summary>
     /// Gets or sets the port number for the network connection.
-    /// Must be within the range of 1 to 65535.
-    /// Standard is 57206.
     /// </summary>
+    [IniComment("TCP port to listen on (1–65535, default 57206)")]
     [System.ComponentModel.DataAnnotations.Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
     public System.UInt16 Port
     {
@@ -47,69 +41,73 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
             {
                 throw new System.ArgumentOutOfRangeException(nameof(value), "Port must be between 1 and 65535.");
             }
+
             this._port = value;
         }
     }
 
     /// <summary>
     /// Gets or sets the maximum length of the pending connections queue.
-    /// Default is 512.
     /// </summary>
+    [IniComment("Maximum pending connection queue length (1–65535)")]
     [System.ComponentModel.DataAnnotations.Range(1, 65535, ErrorMessage = "Backlog must be between 1 and 65535.")]
     public System.Int32 Backlog { get; set; } = 512;
 
     /// <summary>
     /// Gets or sets a value indicating whether the idle timeout mechanism is enabled.
     /// </summary>
+    [IniComment("Enable idle connection timeout enforcement")]
     public System.Boolean EnableTimeout { get; set; } = true;
 
     /// <summary>
-    /// Indicates whether to use IPv4 or IPv6.
+    /// Indicates whether to use IPv6 instead of IPv4.
     /// </summary>
+    [IniComment("Listen on IPv6 instead of IPv4")]
     public System.Boolean EnableIPv6 { get; set; } = false;
 
     /// <summary>
-    /// Gets or sets whether Nagle's algorithm is disabled (low-latency communication).
-    /// Standard is true.
+    /// Gets or sets whether Nagle's algorithm is disabled (low-latency mode).
     /// </summary>
+    [IniComment("Disable Nagle's algorithm for lower latency (recommended: true)")]
     public System.Boolean NoDelay { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
     /// </summary>
+    [IniComment("Maximum simultaneous parallel connections (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "MaxParallel must be at least 1.")]
     public System.Int32 MaxParallel { get; set; } = 5;
 
     /// <summary>
     /// Gets or sets the buffer size for both sending and receiving data.
     /// </summary>
-    /// <value>
-    /// The buffer size in bytes. Default is <c>4096</c>.
-    /// </value>
+    [IniComment("Send and receive buffer size in bytes (64–10,485,760)")]
     [System.ComponentModel.DataAnnotations.Range(64, 10_485_760, ErrorMessage = "BufferSize must be between 512 and 10MiB (10,485,760 bytes).")]
     public System.Int32 BufferSize { get; set; } = 4 * 1024;
 
     /// <summary>
-    /// Gets or sets a value indicating whether the socket should use the RELIABLE Keep-Alive mechanism.
+    /// Gets or sets a value indicating whether TCP Keep-Alive is enabled.
     /// </summary>
+    [IniComment("Enable TCP Keep-Alive probes to detect dead connections")]
     public System.Boolean KeepAlive { get; set; } = false;
 
     /// <summary>
-    /// Gets or sets whether the socket can reuse an address already in the TIME_WAIT state.
-    /// Standard is false.
+    /// Gets or sets whether the socket can reuse an address in TIME_WAIT state.
     /// </summary>
+    [IniComment("Allow reuse of a local address in TIME_WAIT state (recommended: true)")]
     public System.Boolean ReuseAddress { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the maximum number of concurrent groups allowed for socket operations.
-    /// Default is 8.
+    /// Gets or sets the maximum number of concurrent groups for socket operations.
     /// </summary>
+    [IniComment("Maximum concurrent socket operation groups (1–1024)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxGroupConcurrency must be between 1 and 1024.")]
     public System.Int32 MaxGroupConcurrency { get; set; } = 8;
 
     /// <summary>
     /// Tunes the thread pool settings for optimal network performance.
     /// </summary>
+    [IniComment("Apply thread pool tuning optimized for high-throughput network workloads")]
     public System.Boolean TuneThreadPool { get; set; } = false;
 
     #endregion Properties
@@ -129,17 +127,20 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("Port must be between 1 and 65535.");
         }
+
         if (this.Backlog < 1)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("Backlog must be positive.");
         }
+
         if (this.MaxParallel < 1)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("MaxParallel must be at least 1.");
         }
+
         if (this.BufferSize < 64)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("BufferSize must be at least 0 bytes.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("BufferSize must be at least 64 bytes.");
         }
     }
 }

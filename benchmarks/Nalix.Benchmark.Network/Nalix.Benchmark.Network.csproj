@@ -10,8 +10,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Nalix.Common" Version="11.1.2" />
-		<PackageReference Include="Nalix.Shared" Version="11.1.4" />
+		<PackageReference Include="Nalix.Common" Version="11.4.0" />
+		<PackageReference Include="Nalix.Shared" Version="11.4.0" />
+		<PackageReference Include="Nalix.Network" Version="11.4.0" />
+		<PackageReference Include="Nalix.Framework" Version="11.4.0" />
 	</ItemGroup>
 
 </Project>

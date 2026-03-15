@@ -46,7 +46,7 @@ internal static class AnsiColors
     #region Fields
 
     // Cache of color codes by log level to avoid repeated switch statements
-    private static readonly System.String[] _levelColorCache = new System.String[(System.Int32)LogLevel.Critical + 1];
+    private static readonly System.String[] _levelColorCache = new System.String[(System.Int32)LogLevel.Fatal + 1];
 
     #endregion Fields
 
@@ -65,7 +65,7 @@ internal static class AnsiColors
         _levelColorCache[(System.Int32)LogLevel.Information] = LightGreen;
         _levelColorCache[(System.Int32)LogLevel.Warning] = LightYellow;
         _levelColorCache[(System.Int32)LogLevel.Error] = LightMagenta;
-        _levelColorCache[(System.Int32)LogLevel.Critical] = Red;
+        _levelColorCache[(System.Int32)LogLevel.Fatal] = Red;
     }
 
     #endregion Constructor

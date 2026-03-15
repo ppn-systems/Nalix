@@ -4,7 +4,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 using System.Threading.Tasks;
 
-namespace Nalix.Benchmark.Shared;
+namespace Nalix.Benchmark.Network;
 
 public static class Program
 {
