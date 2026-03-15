@@ -102,23 +102,28 @@ public static partial class LiteSerializer
         for (System.Int32 attempt = 0; attempt < 3; attempt++)
         {
             BufferLease lease = BufferLease.Rent(capacity, zeroOnDispose);
+            System.Boolean success = false;
             DataWriter writer = new(lease.SpanFull);
             try
             {
                 formatter.Serialize(ref writer, value);
                 lease.CommitLength(writer.WrittenCount);
+                success = true;
                 return value == null ? throw new SerializationException($"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.") : lease;
             }
             catch (System.Exception ex) when (
                 ex is SerializationException or System.IndexOutOfRangeException or System.ArgumentOutOfRangeException)
             {
-                lease.Dispose(); // Chỉ Dispose lease ở đây
                 capacity = checked(System.Math.Max(capacity * 2, writer.WrittenCount > 0 ? writer.WrittenCount : capacity * 2));
                 continue;
             }
             finally
             {
                 writer.Dispose();
+                if (!success)
+                {
+                    lease.Dispose();
+                }
             }
         }
 

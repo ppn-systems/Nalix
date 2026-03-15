@@ -261,8 +261,8 @@ internal static class EnvelopeValueCodec
         System.Byte[] aad,
         System.Int32 maxDecodeLen)
     {
-        BufferLease cipherLease = BufferLease.Rent(maxDecodeLen);
-        BufferLease plainLease = BufferLease.Rent(maxDecodeLen);
+        using BufferLease cipherLease = BufferLease.Rent(maxDecodeLen);
+        using BufferLease plainLease = BufferLease.Rent(maxDecodeLen);
         try
         {
             System.Span<System.Byte> cipherFull = cipherLease.SpanFull;
@@ -309,9 +309,6 @@ internal static class EnvelopeValueCodec
                 plainLease.SpanFull.Clear();
             }
             catch { /* ignore clearing errors */ }
-
-            cipherLease.Dispose();
-            plainLease.Dispose();
         }
     }
 }

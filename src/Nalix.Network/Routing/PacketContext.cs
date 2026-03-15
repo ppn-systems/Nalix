@@ -27,7 +27,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
 {
     #region Fields
 
-    private PacketContextState _state;
+    private System.Int32 _state;
     private System.Boolean _isInitialized;
 
     #endregion Fields
@@ -131,7 +131,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <remarks>
     /// This constructor is used by the object pool to create instances in the <see cref="PacketContextState.POOLED"/> state.
     /// </remarks>
-    public PacketContext() => _state = PacketContextState.POOLED;
+    public PacketContext() => _state = (System.Int32)PacketContextState.POOLED;
 
     #endregion Constructor
 
@@ -154,8 +154,8 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         [System.Diagnostics.CodeAnalysis.MaybeNull] PacketMetadata descriptor)
     {
         _ = System.Threading.Interlocked.Exchange(
-            ref System.Runtime.CompilerServices.Unsafe.As<PacketContextState, System.Byte>(ref _state),
-            (System.Byte)PacketContextState.IN_USE);
+            ref _state,
+            (System.Int32)PacketContextState.IN_USE);
 
         this.Packet = packet;
         this.Connection = connection;
@@ -211,8 +211,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
             this.Reset();
         }
 
-        _ = System.Threading.Interlocked.Exchange(ref System.Runtime.CompilerServices.Unsafe
-                                        .As<PacketContextState, System.Byte>(ref _state), (System.Byte)PacketContextState.POOLED);
+        _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)PacketContextState.POOLED);
     }
 
     /// <summary>
@@ -226,8 +225,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     public void Return()
     {
         if (System.Threading.Interlocked.Exchange(
-        ref System.Runtime.CompilerServices.Unsafe.As<PacketContextState, System.Int32>(ref _state),
-        (System.Int32)PacketContextState.RETURNED) != (System.Int32)PacketContextState.IN_USE)
+        ref _state, (System.Int32)PacketContextState.RETURNED) != (System.Int32)PacketContextState.IN_USE)
         {
             return;
         }
