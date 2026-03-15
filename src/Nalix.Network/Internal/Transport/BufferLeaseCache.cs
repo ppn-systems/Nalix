@@ -138,12 +138,18 @@ internal sealed class BufferLeaseCache : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PushIncoming(BufferLease data)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) != 0, nameof(BufferLeaseCache));
+        if (data == null)
+            throw new System.ArgumentNullException(nameof(data));
 
-        System.ArgumentNullException.ThrowIfNull(data);
+        if (System.Threading.Volatile.Read(ref _disposed) != 0)
+        {
+            data.Dispose();
+            throw new System.ObjectDisposedException(nameof(BufferLeaseCache));
+        }
 
         if (System.Threading.Volatile.Read(ref _isCallbackSet) == 0)
         {
+            data.Dispose();
             throw new System.InvalidOperationException(
                 "Callback must be set before pushing incoming data. Call SetCallback first.");
         }
