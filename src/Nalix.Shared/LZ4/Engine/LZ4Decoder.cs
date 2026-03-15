@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Shared.LZ4.Encoders;
@@ -18,25 +18,17 @@ internal static class LZ4Decoder
     /// <summary>
     /// Decompresses the provided compressed data into the specified output buffer.
     /// </summary>
-    /// <param name="input">The compressed data, including the header.</param>
-    /// <param name="output">The buffer to store decompressed data. Size must match the original length in the header.</param>
-    /// <returns>
-    /// The number of bytes written to the output buffer (equal to the original length),
-    /// or -1 if decompression fails.
-    /// </returns>
+    /// <returns>Bytes written, or -1 on failure.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Decode(
         System.ReadOnlySpan<System.Byte> input,
-        System.Span<System.Byte> output) => !DecodeInternal(input, output, out System.Int32 written) ? -1 : written;
+        System.Span<System.Byte> output)
+        => !DecodeInternal(input, output, out System.Int32 written) ? -1 : written;
 
     /// <summary>
     /// Decompresses the provided compressed data into a newly allocated output buffer.
     /// </summary>
-    /// <param name="input">The compressed data, including the header.</param>
-    /// <param name="output">The decompressed data, or <c>null</c> if decompression fails.</param>
-    /// <param name="bytesWritten">The number of bytes written to the output buffer.</param>
-    /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -79,6 +71,7 @@ internal static class LZ4Decoder
             bytesWritten = 0;
             return false;
         }
+
         return true;
     }
 
@@ -124,14 +117,8 @@ internal static class LZ4Decoder
 
                 while (inputPtr < inputEnd)
                 {
-                    if (inputPtr >= inputEnd)
-                    {
-                        MemorySecurity.ZeroMemory(output);
-                        return false;
-                    }
-
+                    // ── Token ────────────────────────────────────────────────────
                     System.Byte token = *inputPtr++;
-
                     System.Int32 literalLength = (token >> 4) & LZ4CompressionConstants.TokenLiteralMask;
 
                     if (literalLength == LZ4CompressionConstants.TokenLiteralMask)
@@ -146,6 +133,7 @@ internal static class LZ4Decoder
                         literalLength += extraLength;
                     }
 
+                    // ── Literals ─────────────────────────────────────────────────
                     if (literalLength > 0)
                     {
                         if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
@@ -159,11 +147,13 @@ internal static class LZ4Decoder
                         outputPtr += literalLength;
                     }
 
+                    // Last sequence has no match — stop when input or output is exhausted.
                     if (inputPtr >= inputEnd || outputPtr >= outputEnd)
                     {
                         break;
                     }
 
+                    // ── Offset ───────────────────────────────────────────────────
                     if (inputPtr + sizeof(System.UInt16) > inputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
@@ -172,12 +162,14 @@ internal static class LZ4Decoder
 
                     System.Int32 offset = MemOps.ReadUnaligned<System.UInt16>(inputPtr);
                     inputPtr += sizeof(System.UInt16);
+
                     if (offset == 0 || offset > (outputPtr - outputBase))
                     {
                         MemorySecurity.ZeroMemory(output);
                         return false;
                     }
 
+                    // ── Match length ─────────────────────────────────────────────
                     System.Int32 matchLength = token & LZ4CompressionConstants.TokenMatchMask;
                     if (matchLength == LZ4CompressionConstants.TokenMatchMask)
                     {
@@ -190,6 +182,7 @@ internal static class LZ4Decoder
 
                         matchLength += extraLength;
                     }
+
                     matchLength += LZ4CompressionConstants.MinMatchLength;
 
                     System.Byte* matchSourcePtr = outputPtr - offset;

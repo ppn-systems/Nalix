@@ -30,8 +30,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     #region Static Cache
 
     // Computed once per concrete type at class-load time.
-    private static readonly System.UInt32 AutoMagic =
-        PacketRegistryFactory.Compute(typeof(TSelf));
+    private static readonly System.UInt32 AutoMagic = PacketRegistryFactory.Compute(typeof(TSelf));
 
     // All serializable properties as pre-compiled PropertyMetadata.
     // Lazy<T> guarantees thread-safe single initialization without explicit locking.
@@ -312,10 +311,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     /// </summary>
     public System.String DetailsMetadata()
     {
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"[{typeof(TSelf).Name}] AutoMagic=0x{AutoMagic:X8} " +
-                      $"FixedSize={_cachedFixedSize.Value?.ToString() ?? "dynamic"} " +
-                      $"Properties={_metadata.Value.Length}");
+        var sb = new System.Text.StringBuilder(128);
+        sb.AppendLine($"[{typeof(TSelf).Name}] AutoMagic=0x{AutoMagic:X8} FixedSize={_cachedFixedSize.Value?.ToString() ?? "dynamic"} Properties={_metadata.Value.Length}");
 
         foreach (PropertyMetadata meta in _metadata.Value)
         {
