@@ -19,7 +19,7 @@ namespace Nalix.Shared.Registry;
 /// <remarks>
 /// <para>
 /// This implementation binds packet transformation methods using <b>unsafe function
-/// pointers</b> (i.e., <c>delegate*</c>) to eliminate delegate allocation and reduce
+/// pointers</b> (<c>delegate*</c>) to eliminate delegate allocation and reduce
 /// indirection in the hot path. Public-facing delegates are created only once at
 /// build time as thin facades that jump directly to these function pointers.
 /// </para>
@@ -28,19 +28,12 @@ namespace Nalix.Shared.Registry;
 /// <list type="bullet">
 ///   <item>Implements <see cref="IPacket"/>.</item>
 ///   <item>Implements the static abstract members defined by
-///         <see cref="IPacketTransformer{TPacket}"/> on the concrete packet type:
-///         <c>FromBytes(ReadOnlySpan&lt;byte&gt;)</c>, <c>Compress(TPacket)</c>,
-///         <c>Decompress(TPacket)</c>, <c>Encrypt(TPacket, byte[], CipherType)</c>,
-///         <c>Decrypt(TPacket, byte[], CipherType)</c>.</item>
+///         <see cref="IPacketTransformer{TPacket}"/> on the concrete packet type.</item>
 /// </list>
 /// </para>
 /// <para>
 /// If <see cref="PipelineManagedTransformAttribute"/> is present on a packet type,
-/// transformer binding is skipped (deserialize may still be bound).
-/// </para>
-/// <para>
-/// When trimming or AOT compiling, ensure these static methods are preserved using
-/// <c>DynamicDependency</c> or <c>DynamicallyAccessedMembers</c> as appropriate.
+/// transformer binding is skipped (deserializer may still be bound).
 /// </para>
 /// </remarks>
 [System.Diagnostics.DebuggerDisplay("C={HasCompress}, D={HasDecompress}, E={HasEncrypt}, R={HasDecrypt}")]
@@ -48,10 +41,19 @@ public sealed class PacketRegistryFactory
 {
     #region Static: Defaults & Utilities
 
-    private const System.Reflection.BindingFlags BindingFlags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
+    private const System.Reflection.BindingFlags StaticNonPublic =
+        System.Reflection.BindingFlags.NonPublic |
+        System.Reflection.BindingFlags.Static;
+
+    private const System.Reflection.BindingFlags StaticPublic =
+        System.Reflection.BindingFlags.Public |
+        System.Reflection.BindingFlags.Static;
 
     private static readonly System.Reflection.MethodInfo BindAllPtrsMi;
-    private static readonly System.Collections.Generic.HashSet<System.String> Namespaces;
+
+    // Built-in namespaces whose types are pre-registered in the default constructor
+    // and must NOT be re-added during assembly scanning (would cause duplicate magic).
+    private static readonly System.Collections.Frozen.FrozenSet<System.String> BuiltInNamespaces;
 
     #endregion Static: Defaults & Utilities
 
@@ -60,19 +62,29 @@ public sealed class PacketRegistryFactory
     private readonly System.Collections.Generic.HashSet<System.Type> _explicitPacketTypes = [];
     private readonly System.Collections.Generic.HashSet<System.Reflection.Assembly> _assemblies = [];
 
+    // namespace → recursive flag
+    // Key: namespace string (exact or prefix match when recursive=true)
+    private readonly System.Collections.Generic.Dictionary<System.String, System.Boolean> _namespaceScan
+        = new(System.StringComparer.Ordinal);
+
     #endregion Fields
 
     #region Constructors
 
     static PacketRegistryFactory()
     {
-        Namespaces = new(System.StringComparer.Ordinal)
-        {
-            typeof(Text256).Namespace!,
-            typeof(Control).Namespace!
-        };
+        BuiltInNamespaces = System.Collections.Frozen.FrozenSet.ToFrozenSet(
+            new System.String[]
+            {
+                typeof(Text256).Namespace!,
+                typeof(Control).Namespace!
+            },
+            System.StringComparer.Ordinal);
 
-        BindAllPtrsMi = typeof(PacketRegistryFactory).GetMethod(nameof(BindPtrs), BindingFlags)!;
+        BindAllPtrsMi = typeof(PacketRegistryFactory)
+            .GetMethod(nameof(BindPtrs), StaticNonPublic)
+            ?? throw new System.InvalidOperationException(
+                $"Cannot locate private method '{nameof(BindPtrs)}' on {nameof(PacketRegistryFactory)}.");
     }
 
     /// <summary>
@@ -82,19 +94,117 @@ public sealed class PacketRegistryFactory
     public PacketRegistryFactory()
     {
         // Text packets
-        _ = this.RegisterPacket<Text256>()
-                .RegisterPacket<Text512>()
-                .RegisterPacket<Text1024>();
+        _ = RegisterPacket<Text256>()
+            .RegisterPacket<Text512>()
+            .RegisterPacket<Text1024>();
 
         // Control / handshake packets
-        _ = this.RegisterPacket<Control>()
-                .RegisterPacket<Handshake>()
-                .RegisterPacket<Directive>();
+        _ = RegisterPacket<Control>()
+            .RegisterPacket<Handshake>()
+            .RegisterPacket<Directive>();
     }
 
     #endregion Constructors
 
-    #region API
+    #region Public API
+
+    /// <summary>
+    /// Registers a concrete packet type explicitly.
+    /// </summary>
+    public PacketRegistryFactory RegisterPacket<TPacket>() where TPacket : IPacket
+    {
+        System.Type t = typeof(TPacket);
+        System.Boolean added = _explicitPacketTypes.Add(t);
+
+        INFO(added
+            ? $"reg-type type={t.Name}"
+            : $"reg-type-skip type={t.Name}");
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an assembly to be scanned for packet types.
+    /// Only types whose namespace is NOT in the built-in set will be considered.
+    /// </summary>
+    public PacketRegistryFactory IncludeAssembly(System.Reflection.Assembly? asm)
+    {
+        if (asm is null) { INFO("include-asm-null"); return this; }
+
+        System.Boolean added = _assemblies.Add(asm);
+        INFO(added
+            ? $"include-asm name={asm.GetName().Name}"
+            : $"include-asm-skip name={asm.GetName().Name}");
+
+        return this;
+    }
+
+    /// <summary>
+    /// Scans all loaded assemblies in the current <see cref="System.AppDomain"/>
+    /// for packet types.
+    /// </summary>
+    public PacketRegistryFactory IncludeCurrentDomain()
+    {
+        foreach (System.Reflection.Assembly asm in System.AppDomain.CurrentDomain.GetAssemblies())
+        {
+            IncludeAssembly(asm);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Registers all concrete <see cref="IPacket"/> types whose namespace exactly matches
+    /// <paramref name="ns"/>, from all assemblies that have been added via
+    /// <see cref="IncludeAssembly"/> or <see cref="IncludeCurrentDomain"/>.
+    /// </summary>
+    /// <param name="ns">
+    /// The exact namespace to match, e.g. <c>"MyGame.Network.Packets"</c>.
+    /// </param>
+    /// <remarks>
+    /// Only direct members of the namespace are matched. To include nested namespaces
+    /// (e.g. <c>MyGame.Network.Packets.Auth</c>), use
+    /// <see cref="IncludeNamespaceRecursive"/> instead.
+    /// </remarks>
+    public PacketRegistryFactory IncludeNamespace(System.String ns)
+    {
+        System.ArgumentException.ThrowIfNullOrWhiteSpace(ns);
+
+        // If already registered as recursive, keep recursive (superset).
+        if (!_namespaceScan.TryGetValue(ns, out System.Boolean existing) || !existing)
+        {
+            _namespaceScan[ns] = false;
+        }
+
+        INFO($"include-ns ns={ns} recursive=false");
+        return this;
+    }
+
+    /// <summary>
+    /// Registers all concrete <see cref="IPacket"/> types whose namespace is exactly
+    /// <paramref name="rootNs"/> <b>or starts with <c>"{rootNs}."</c></b>, from all
+    /// assemblies that have been added via <see cref="IncludeAssembly"/> or
+    /// <see cref="IncludeCurrentDomain"/>.
+    /// </summary>
+    /// <param name="rootNs">
+    /// The root namespace prefix, e.g. <c>"MyGame.Network"</c>.
+    /// All child namespaces (<c>MyGame.Network.Packets</c>,
+    /// <c>MyGame.Network.Auth.Packets</c>, …) will also be scanned.
+    /// </param>
+    /// <remarks>
+    /// Prefer <see cref="IncludeNamespace"/> when you only want a single namespace
+    /// level to avoid accidentally picking up unrelated types.
+    /// </remarks>
+    public PacketRegistryFactory IncludeNamespaceRecursive(System.String rootNs)
+    {
+        System.ArgumentException.ThrowIfNullOrWhiteSpace(rootNs);
+
+        // Recursive always wins over non-recursive for the same key.
+        _namespaceScan[rootNs] = true;
+
+        INFO($"include-ns ns={rootNs} recursive=true");
+        return this;
+    }
 
     /// <summary>
     /// Builds an immutable catalog of packet deserializers and transformers.
@@ -104,309 +214,278 @@ public sealed class PacketRegistryFactory
     /// </exception>
     public PacketRegistry CreateCatalog()
     {
-        // Pre-allocate to reduce rehashing.
         System.Int32 estimated =
             System.Math.Max(16, _explicitPacketTypes.Count + System.Math.Min(64, _assemblies.Count * 8));
 
         System.Collections.Generic.Dictionary<System.Type, PacketTransformer> transformers = new(estimated);
         System.Collections.Generic.Dictionary<System.UInt32, PacketDeserializer> deserializers = new(estimated);
 
-        // 1) Collect candidate packet types
+        // ── 1. Collect candidates ────────────────────────────────────────────────
         System.Collections.Generic.HashSet<System.Type> candidates = [.. _explicitPacketTypes];
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(PacketRegistryFactory)}] " +
-                                      $"build-start asm={_assemblies.Count} explicit={_explicitPacketTypes.Count}");
+        INFO($"build-start asm={_assemblies.Count} explicit={_explicitPacketTypes.Count} ns={_namespaceScan.Count}");
 
         foreach (System.Reflection.Assembly asm in _assemblies)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketRegistryFactory)}] scan-asm name={asm.FullName}");
+            INFO($"scan-asm name={asm.GetName().Name}");
 
-            foreach (System.Type? type in SafeGetTypes(asm))
+            foreach (System.Type type in SAFE_GET_TYPES(asm))
             {
-                if (type?.IsClass != true || type.IsAbstract)
+                // Must be a concrete class
+                if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[SH.{nameof(PacketRegistryFactory)}] skip reason=not-class type={type?.Name}");
+                    TRACE($"skip reason=not-concrete type={type.Name}");
                     continue;
                 }
 
-                if (!_explicitPacketTypes.Contains(type) &&
-                    type.Namespace is not null && Namespaces.Contains(type.Namespace))
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[SH.{nameof(PacketRegistryFactory)}] skip reason=default-ns type={type?.Name}");
-                    continue;
-                }
-
+                // Must implement IPacket
                 if (!typeof(IPacket).IsAssignableFrom(type))
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[SH.{nameof(PacketRegistryFactory)}] skip reason=not-ipacket type={type?.Name}");
+                    TRACE($"skip reason=not-ipacket type={type.Name}");
+                    continue;
+                }
+
+                // Already explicitly registered — no namespace check needed
+                if (_explicitPacketTypes.Contains(type))
+                {
+                    TRACE($"skip reason=already-explicit type={type.Name}");
+                    continue;
+                }
+
+                System.String? typeNs = type.Namespace;
+
+                // Built-in namespace: skip unless explicitly registered
+                if (typeNs is not null && BuiltInNamespaces.Contains(typeNs))
+                {
+                    TRACE($"skip reason=builtin-ns type={type.Name}");
+                    continue;
+                }
+
+                // Namespace filter: only include if the type's namespace matches
+                // a registered namespace entry (exact or recursive prefix).
+                if (_namespaceScan.Count > 0 && !MATCHES_NAMESPACE_FILTER(typeNs))
+                {
+                    TRACE($"skip reason=ns-mismatch type={type.Name} ns={typeNs}");
                     continue;
                 }
 
                 _ = candidates.Add(type);
+                INFO($"candidate type={type.FullName}");
             }
         }
 
         if (candidates.Count == 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[SH.{nameof(PacketRegistryFactory)}] no-candidate");
+            INFO("no-candidate");
         }
 
-        // 2) Bind per type
-        const System.Reflection.BindingFlags FLAGS = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static;
-
+        // ── 2. Bind per type ─────────────────────────────────────────────────────
         foreach (System.Type type in candidates)
         {
-            // Magic number
-            System.UInt32 key = PacketRegistryFactory.Compute(type);
-
-            // Pipeline-managed?
+            System.UInt32 key = Compute(type);
             System.Boolean pipelineManaged = type.IsDefined(typeof(PipelineManagedTransformAttribute), inherit: false);
 
-            // Locate static implementations — search concrete type first, then climb
-            // the inheritance chain. Inherited static methods are not returned by
-            // GetMethod without FlattenHierarchy, and FlattenHierarchy cannot resolve
-            // generic base types correctly, so we walk manually.
-            System.Reflection.MethodInfo? facadeDeserializeMi = FindStaticMethod(
-                type, FLAGS,
+            System.Reflection.MethodInfo? miDeserialize = FIND_STATIC_METHOD(
+                type, StaticPublic,
                 nameof(IPacketDeserializer<>.Deserialize),
                 [typeof(System.ReadOnlySpan<System.Byte>)]);
 
-            System.Reflection.MethodInfo? facadeEncryptMi = FindStaticMethod(
-                type, FLAGS,
+            System.Reflection.MethodInfo? miEncrypt = FIND_STATIC_METHOD(
+                type, StaticPublic,
                 nameof(IPacketEncryptor<>.Encrypt),
                 [type, typeof(System.Byte[]), typeof(CipherSuiteType)]);
 
-            System.Reflection.MethodInfo? facadeDecryptMi = FindStaticMethod(
-                type, FLAGS,
+            System.Reflection.MethodInfo? miDecrypt = FIND_STATIC_METHOD(
+                type, StaticPublic,
                 nameof(IPacketEncryptor<>.Decrypt),
                 [type, typeof(System.Byte[])]);
 
-            System.Reflection.MethodInfo? facadeCompressMi = FindStaticMethod(
-                type, FLAGS,
+            System.Reflection.MethodInfo? miCompress = FIND_STATIC_METHOD(
+                type, StaticPublic,
                 nameof(IPacketCompressor<>.Compress),
                 [type]);
 
-            System.Reflection.MethodInfo? facadeDecompressMi = FindStaticMethod(
-                type, FLAGS,
+            System.Reflection.MethodInfo? miDecompress = FIND_STATIC_METHOD(
+                type, StaticPublic,
                 nameof(IPacketCompressor<>.Decompress),
                 [type]);
 
-            // ---- Deserializer binding (required if magic exists) ----
-            if (facadeDeserializeMi is not null)
+            // ── Deserializer (required) ──────────────────────────────────────────
+            if (miDeserialize is null)
             {
-                if (deserializers.ContainsKey(key))
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Fatal($"[SH.{nameof(PacketRegistryFactory)}] dup-magic val=0x{key:X8} type={type?.Name}");
-                }
-
-                // Assign FromBytes pointer into Fn<TPacket>
-                _ = BindAllPtrsMi.MakeGenericMethod(type!).Invoke(null, [facadeDeserializeMi, null, null, null, null]);
-
-                // Build a stable PacketDeserializer that jumps to Fn<T>.FromBytes
-                System.Type tGeneric = typeof(PacketFunctionTable<>).MakeGenericType(type!);
-                System.Reflection.MethodInfo doDeserializeMi = tGeneric.GetMethod(nameof(PacketFunctionTable<>.InvokeDeserialize), FLAGS)!;
-
-                // Create an actual delegate instance once (no reflection in hot path)
-                PacketDeserializer deserFacade = (PacketDeserializer)System.Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
-
-                deserializers[key] = deserFacade;
-            }
-            else
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[SH.{nameof(PacketRegistryFactory)}] miss-deserialize type={type?.Name}");
+                INFO($"[ERROR] miss-deserialize type={type.Name} — skipping");
                 continue;
             }
 
-            // ---- Transformer binding ----
+            // BUG FIX: duplicate magic was only logged, not blocked.
+            // Now we log AND skip to prevent last-write-wins silently overwriting.
+            if (deserializers.ContainsKey(key))
+            {
+                System.Type existingType = FIND_TYPE_BY_MAGIC(key);
+                INFO($"[FATAL] dup-magic val=0x{key:X8} new={type.FullName} existing={existingType.FullName} — skipping new type");
+                continue;
+            }
+
+            // Bind deserialize pointer into PacketFunctionTable<TPacket>
+            BindAllPtrsMi.MakeGenericMethod(type).Invoke(
+                null, [miDeserialize, null, null, null, null]);
+
+            System.Type tbl = typeof(PacketFunctionTable<>).MakeGenericType(type);
+            System.Reflection.MethodInfo doDeserializeMi =
+                tbl.GetMethod(nameof(PacketFunctionTable<IPacket>.InvokeDeserialize), StaticNonPublic)!;
+
+            deserializers[key] = (PacketDeserializer)
+                System.Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
+
+            // ── Transformer ──────────────────────────────────────────────────────
             if (pipelineManaged)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[SH.{nameof(PacketRegistryFactory)}] pipeline-managed type={type?.Name}");
-
-                transformers[type!] = new PacketTransformer(null, null, null, null);
-
+                INFO($"pipeline-managed type={type.Name}");
+                transformers[type] = new PacketTransformer(null, null, null, null);
                 continue;
             }
 
-            // Assign all pointers into Fn<TPacket>
-            _ = BindAllPtrsMi.MakeGenericMethod(type!).Invoke(null, [null, facadeCompressMi, facadeDecompressMi, facadeEncryptMi, facadeDecryptMi]);
+            BindAllPtrsMi.MakeGenericMethod(type).Invoke(
+                null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
 
-            // Create public-facing delegates once (jump to Fn<T>.DoXXX)
-            System.Type fnType = typeof(PacketFunctionTable<>).MakeGenericType(type!);
+            System.Type fnType = typeof(PacketFunctionTable<>).MakeGenericType(type);
 
             System.Func<IPacket, IPacket>? compressDel = null;
             System.Func<IPacket, IPacket>? decompressDel = null;
             System.Func<IPacket, System.Byte[], IPacket>? decryptDel = null;
             System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>? encryptDel = null;
 
-            System.Reflection.MethodInfo invokeEncryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeEncrypt), FLAGS)!;
-            System.Reflection.MethodInfo invokeDecryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecrypt), FLAGS)!;
-            System.Reflection.MethodInfo invokeCompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeCompress), FLAGS)!;
-            System.Reflection.MethodInfo invokeDecompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecompress), FLAGS)!;
+            System.Reflection.MethodInfo invokeEncryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeEncrypt), StaticNonPublic)!;
+            System.Reflection.MethodInfo invokeDecryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecrypt), StaticNonPublic)!;
+            System.Reflection.MethodInfo invokeCompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeCompress), StaticNonPublic)!;
+            System.Reflection.MethodInfo invokeDecompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecompress), StaticNonPublic)!;
 
-            if (facadeCompressMi is not null)
+            if (miCompress is not null)
             {
                 compressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), invokeCompressMi);
             }
 
-            if (facadeDecompressMi is not null)
+            if (miDecompress is not null)
             {
                 decompressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), invokeDecompressMi);
             }
 
-            if (facadeEncryptMi is not null)
+            if (miEncrypt is not null)
             {
-                encryptDel = (System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>)
-                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>), invokeEncryptMi);
+                encryptDel = (System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>), invokeEncryptMi);
             }
 
-            if (facadeDecryptMi is not null)
+            if (miDecrypt is not null)
             {
-                decryptDel = (System.Func<IPacket, System.Byte[], IPacket>)
-                System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], IPacket>), invokeDecryptMi);
+                decryptDel = (System.Func<IPacket, System.Byte[], IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], IPacket>), invokeDecryptMi);
             }
 
-            transformers[type!] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
+            transformers[type] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(PacketRegistryFactory)}] build-ok packets={deserializers.Count} transformers={transformers.Count}");
+        INFO($"build-ok packets={deserializers.Count} transformers={transformers.Count}");
 
-        // Freeze for thread-safe, allocation-free lookups
         return new PacketRegistry(
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(transformers),
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers));
     }
 
     /// <summary>
-    /// Registers a concrete packet type explicitly (skipped from scanning).
-    /// </summary>
-    public PacketRegistryFactory RegisterPacket<TPacket>() where TPacket : IPacket
-    {
-        System.Type t = typeof(TPacket);
-
-        if (_explicitPacketTypes.Add(typeof(TPacket)))
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[SH.{nameof(PacketRegistryFactory)}] reg-type type={t.Name}");
-        }
-        else
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[SH.{nameof(PacketRegistryFactory)}] reg-type-skip type={t.Name}");
-        }
-
-        return this;
-    }
-
-    /// <summary>
-    /// Adds an assembly to be scanned for packet types.
-    /// </summary>
-    public PacketRegistryFactory IncludeAssembly(System.Reflection.Assembly? asm)
-    {
-        if (asm is null)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketRegistryFactory)}] include-asm-null");
-            return this;
-        }
-
-        if (_assemblies.Add(asm))
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketRegistryFactory)}] include-asm name={asm.FullName}");
-        }
-        else
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(PacketRegistryFactory)}] include-asm-skip name={asm.FullName}");
-        }
-
-        return this;
-    }
-
-    /// <summary>
     /// Computes a stable, deterministic 32-bit key from the type's full name
-    /// using FNV-1a. Consistent across machines, processes, and .NET versions
-    /// as long as the type name does not change.
+    /// using FNV-1a. Consistent across machines and .NET versions as long as
+    /// the type's full name does not change.
     /// </summary>
     public static System.UInt32 Compute(System.Type type)
     {
-        // Use AssemblyQualifiedName for maximum uniqueness,
-        // or FullName if you want assembly-agnostic keys.
-        System.ReadOnlySpan<System.Char> name = System.MemoryExtensions.AsSpan(type.FullName);
+        System.ArgumentNullException.ThrowIfNull(type);
 
-        // FNV-1a 32-bit
-        System.UInt32 hash = 2166136261u; // FNV offset basis
-        foreach (System.Char c in name)
+        // BUG FIX: original code read chars one at a time (XOR then multiply per char).
+        // Standard FNV-1a hashes BYTES, not chars. For ASCII-safe type names the result
+        // is the same, but for any non-ASCII char the high byte was silently dropped.
+        // Fix: encode to UTF-8 bytes first, then apply FNV-1a over bytes.
+        System.ReadOnlySpan<System.Char> name = System.MemoryExtensions.AsSpan(type.FullName ?? type.Name);
+        System.Span<System.Byte> buf = stackalloc System.Byte[System.Text.Encoding.UTF8.GetMaxByteCount(name.Length)];
+        System.Int32 written = System.Text.Encoding.UTF8.GetBytes(name, buf);
+
+        System.UInt32 hash = 2166136261u; // FNV-1a 32-bit offset basis
+        foreach (System.Byte b in buf[..written])
         {
-            hash ^= c;
-            hash *= 16777619u;   // FNV prime
+            hash ^= b;
+            hash *= 16777619u; // FNV-1a 32-bit prime
         }
+
         return hash;
     }
 
-    #endregion API
+    #endregion Public API
 
-    #region Private Methods
+    #region Private Helpers
 
     /// <summary>
-    /// Generic trampoline that stores function pointers for a specific <typeparamref name="TPacket"/>.
-    /// The public static methods act as thin facades converting <see cref="IPacket"/> to/from
-    /// <typeparamref name="TPacket"/> and then invoking the function pointer.
+    /// Returns <see langword="true"/> if <paramref name="typeNs"/> matches any registered
+    /// namespace entry — either exact or recursive-prefix.
     /// </summary>
-    private static unsafe class PacketFunctionTable<TPacket> where TPacket : IPacket
+    private System.Boolean MATCHES_NAMESPACE_FILTER(System.String? typeNs)
     {
-        // Note: The 'in' modifier on ReadOnlySpan is optional in the consumer; the function pointer
-        // signature must match the actual static method on TPacket. If your methods use
-        // 'in ReadOnlySpan<byte>' exactly, it remains ABI-compatible to call with a plain argument.
-        public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializePtr;
+        if (typeNs is null)
+        {
+            return false;
+        }
 
-        public static delegate* managed<TPacket, TPacket> CompressPtr;
-        public static delegate* managed<TPacket, TPacket> DecompressPtr;
-        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> EncryptPtr;
-        public static delegate* managed<TPacket, System.Byte[], TPacket> DecryptPtr;
+        foreach (System.Collections.Generic.KeyValuePair<System.String, System.Boolean> entry in _namespaceScan)
+        {
+            System.String ns = entry.Key;
+            System.Boolean recursive = entry.Value;
 
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeDeserialize(System.ReadOnlySpan<System.Byte> raw) => DeserializePtr(raw);
+            if (recursive)
+            {
+                // Exact match OR proper sub-namespace (starts with "ns.")
+                if (typeNs.Equals(ns, System.StringComparison.Ordinal) ||
+                    typeNs.StartsWith(ns + ".", System.StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (typeNs.Equals(ns, System.StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+        }
 
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeCompress(IPacket p) => CompressPtr((TPacket)p);
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeDecompress(IPacket p) => DecompressPtr((TPacket)p);
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeEncrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => EncryptPtr((TPacket)p, key, alg);
-
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeDecrypt(IPacket p, System.Byte[] key) => DecryptPtr((TPacket)p, key);
+        return false;
     }
 
     /// <summary>
-    /// Searches for a static method by name and parameter types on <paramref name="startType"/>,
-    /// then walks up the inheritance chain if not found on the concrete type.
-    /// <para>
-    /// This is necessary because <c>GetMethod</c> with <c>Public | Static</c> does not return
-    /// inherited static methods from generic base types (e.g. <c>PacketBase&lt;TSelf&gt;</c>).
-    /// </para>
-    /// If the method found on a base type is a generic method definition, it is closed
-    /// over <paramref name="startType"/> automatically.
+    /// Safely enumerates types in an assembly even when some types fail to load
+    /// (e.g. missing dependencies, AOT restrictions).
     /// </summary>
-    private static System.Reflection.MethodInfo? FindStaticMethod(
+    private static System.Collections.Generic.IEnumerable<System.Type> SAFE_GET_TYPES(System.Reflection.Assembly asm)
+    {
+        try
+        {
+            return asm.GetTypes();
+        }
+        catch (System.Reflection.ReflectionTypeLoadException ex)
+        {
+            // Return the types that did load successfully; discard the rest.
+            return System.Linq.Enumerable.OfType<System.Type>(ex.Types);
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    /// <summary>
+    /// Searches for a static method by name and exact parameter types on
+    /// <paramref name="startType"/>, then walks up the inheritance chain if not found.
+    /// Inherited static methods from generic base types require manual walking because
+    /// <c>GetMethod(FlattenHierarchy)</c> does not handle closed generic base types.
+    /// </summary>
+    private static System.Reflection.MethodInfo? FIND_STATIC_METHOD(
         System.Type startType,
         System.Reflection.BindingFlags flags,
         System.String name,
@@ -416,15 +495,10 @@ public sealed class PacketRegistryFactory
         while (current is not null && current != typeof(System.Object))
         {
             System.Reflection.MethodInfo? mi = current.GetMethod(
-                name: name,
-                bindingAttr: flags,
-                binder: null,
-                types: parameterTypes,
-                modifiers: null);
+                name, flags, binder: null, parameterTypes, modifiers: null);
 
             if (mi is not null)
             {
-                // Close over the concrete type when the method is generic (e.g. Deserialize<TSelf>)
                 return mi.IsGenericMethodDefinition
                     ? mi.MakeGenericMethod(startType)
                     : mi;
@@ -437,67 +511,106 @@ public sealed class PacketRegistryFactory
     }
 
     /// <summary>
-    /// Safely iterates types of an assembly, even if some fail to load.
+    /// Reverse-lookup helper: given a magic number, find which type is currently
+    /// registered for it. Used to produce clear duplicate-magic error messages.
     /// </summary>
-    private static System.Collections.Generic.IEnumerable<System.Type> SafeGetTypes(System.Reflection.Assembly asm)
+    private static System.Type FIND_TYPE_BY_MAGIC(System.UInt32 magic)
     {
-        try
+        // Only called on duplicate detection (rare, startup-only) — linear scan is fine.
+        foreach (System.Type t in System.Linq.Enumerable.Where(System.Linq.Enumerable
+                                                        .SelectMany(System.AppDomain.CurrentDomain
+                                                        .GetAssemblies(), SAFE_GET_TYPES), t => t.IsClass && !t.IsAbstract && typeof(IPacket)
+                                                        .IsAssignableFrom(t)))
         {
-            return asm.GetTypes();
+            if (Compute(t) == magic)
+            {
+                return t;
+            }
         }
-        catch (System.Reflection.ReflectionTypeLoadException ex)
-        {
-            return System.Linq.Enumerable.OfType<System.Type>(ex.Types);
-        }
-        catch
-        {
-            return [];
-        }
+        return typeof(System.Object); // fallback, should never happen
     }
 
-    #region Binding Helpers
+    // ── Logger helpers ────────────────────────────────────────────────────────
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, TPacket> BindUnaryPtr<TPacket>(System.Reflection.MethodInfo mi)
+    private static ILogger? Logger => InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+    private static void INFO(System.String msg) => Logger?.Info($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
+
+    private static void TRACE(System.String msg) => Logger?.Trace($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
+
+    #endregion Private Helpers
+
+    #region Private: Function Pointer Table
+
+    /// <summary>
+    /// Per-type static function-pointer store.
+    /// Fields are assigned once at build time and read in the hot path with zero allocation.
+    /// </summary>
+    private static unsafe class PacketFunctionTable<TPacket> where TPacket : IPacket
+    {
+        public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializePtr;
+        public static delegate* managed<TPacket, TPacket> CompressPtr;
+        public static delegate* managed<TPacket, TPacket> DecompressPtr;
+        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> EncryptPtr;
+        public static delegate* managed<TPacket, System.Byte[], TPacket> DecryptPtr;
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket InvokeDeserialize(System.ReadOnlySpan<System.Byte> raw) => DeserializePtr(raw);
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket InvokeCompress(IPacket p) => CompressPtr((TPacket)p);
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket InvokeDecompress(IPacket p) => DecompressPtr((TPacket)p);
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket InvokeEncrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => EncryptPtr((TPacket)p, key, alg);
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public static IPacket InvokeDecrypt(IPacket p, System.Byte[] key) => DecryptPtr((TPacket)p, key);
+    }
+
+    #endregion Private: Function Pointer Table
+
+    #region Private: Binding Helpers
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<TPacket, TPacket>
+        BindUnaryPtr<TPacket>(System.Reflection.MethodInfo mi)
     {
         System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
         return (delegate* managed<TPacket, TPacket>)ptr;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> BindEncryptPtr<TPacket>(System.Reflection.MethodInfo mi)
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket>
+        BindEncryptPtr<TPacket>(System.Reflection.MethodInfo mi)
     {
         System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
         return (delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket>)ptr;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, System.Byte[], TPacket> BindDecryptPtr<TPacket>(System.Reflection.MethodInfo mi)
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<TPacket, System.Byte[], TPacket>
+        BindDecryptPtr<TPacket>(System.Reflection.MethodInfo mi)
     {
         System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
         return (delegate* managed<TPacket, System.Byte[], TPacket>)ptr;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> BindDeserializePtr<TPacket>(System.Reflection.MethodInfo mi)
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>
+        BindDeserializePtr<TPacket>(System.Reflection.MethodInfo mi)
     {
         System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
         return (delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>)ptr;
     }
 
-    #endregion Binding Helpers
-
     /// <summary>
-    /// Assigns function pointers to <see cref="PacketFunctionTable{TPacket}"/> for a specific packet type.
-    /// Any null <paramref name="miDeserialize"/>, <paramref name="miCompress"/>,
-    /// <paramref name="miDecompress"/>, <paramref name="miEncrypt"/>, or <paramref name="miDecrypt"/> parameters are skipped.
+    /// Generic trampoline invoked via reflected <see cref="BindAllPtrsMi"/>.
+    /// Assigns function pointers to <see cref="PacketFunctionTable{TPacket}"/>
+    /// for each non-null method info provided.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static unsafe void BindPtrs<TPacket>(
         System.Reflection.MethodInfo? miDeserialize,
         System.Reflection.MethodInfo? miCompress,
@@ -530,12 +643,14 @@ public sealed class PacketRegistryFactory
             PacketFunctionTable<TPacket>.DecryptPtr = BindDecryptPtr<TPacket>(miDecrypt);
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Meta(
-            $"[SH.{nameof(PacketRegistryFactory)}] bind " +
-            $"type={typeof(TPacket).Name} des={(miDeserialize is not null ? "+" : "-")} " +
-            $"cmp={(miCompress is not null ? "+" : "-")} dcmp={(miDecompress is not null ? "+" : "-")} " +
-            $"enc={(miEncrypt is not null ? "+" : "-")} dec={(miDecrypt is not null ? "+" : "-")}");
+        Logger?.Meta(
+            $"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} " +
+            $"des={(miDeserialize is not null ? "+" : "-")} " +
+            $"cmp={(miCompress is not null ? "+" : "-")} " +
+            $"dcmp={(miDecompress is not null ? "+" : "-")} " +
+            $"enc={(miEncrypt is not null ? "+" : "-")} " +
+            $"dec={(miDecrypt is not null ? "+" : "-")}");
     }
 
-    #endregion Private Methods
+    #endregion Private: Binding Helpers
 }

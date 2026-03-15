@@ -15,39 +15,48 @@ namespace Nalix.Shared.Registry;
 /// <para>
 /// The catalog stores lookups for:
 /// <list type="bullet">
-///   <item>
-///     <description>Packet deserializers mapped by 32-bit magic numbers.</description>
-///   </item>
-///   <item>
-///     <description>Packet transformers mapped by concrete packet <see cref="System.Type"/>.</description>
-///   </item>
+///   <item>Packet deserializers mapped by 32-bit magic numbers.</item>
+///   <item>Packet transformers mapped by concrete packet <see cref="System.Type"/>.</item>
 /// </list>
 /// </para>
 /// <para>
 /// This type is safe for concurrent read access. Instances are immutable once constructed.
+/// Both internal dictionaries are <see cref="System.Collections.Frozen.FrozenDictionary{TKey,TValue}"/>
+/// for allocation-free, branch-prediction-friendly lookups.
 /// </para>
 /// </remarks>
 public sealed class PacketRegistry : IPacketRegistry
 {
+    #region Fields
+
     private readonly System.Collections.Frozen.FrozenDictionary<System.Type, PacketTransformer> _transformers;
     private readonly System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> _deserializers;
 
+    #endregion Fields
+
+    #region Constructors
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketRegistry"/> class using the specified lookup tables.
+    /// Initializes a new instance of the <see cref="PacketRegistry"/> class using
+    /// pre-built frozen lookup tables.
     /// </summary>
     /// <param name="transformers">
-    /// A frozen dictionary that maps packet <see cref="System.Type"/> objects to <see cref="PacketTransformer"/> delegates.
+    /// A frozen dictionary mapping packet <see cref="System.Type"/> to
+    /// <see cref="PacketTransformer"/> delegates.
     /// </param>
     /// <param name="deserializers">
-    /// A frozen dictionary that maps magic numbers to <see cref="PacketDeserializer"/> delegates.
+    /// A frozen dictionary mapping magic numbers to <see cref="PacketDeserializer"/> delegates.
     /// </param>
-    /// <remarks>
-    /// Both dictionaries are assumed to be non-null and already frozen. The constructor does not copy the inputs.
-    /// </remarks>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when either argument is <see langword="null"/>.
+    /// </exception>
     public PacketRegistry(
         System.Collections.Frozen.FrozenDictionary<System.Type, PacketTransformer> transformers,
         System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> deserializers)
     {
+        System.ArgumentNullException.ThrowIfNull(transformers);
+        System.ArgumentNullException.ThrowIfNull(deserializers);
+
         _transformers = transformers;
         _deserializers = deserializers;
     }
@@ -56,47 +65,53 @@ public sealed class PacketRegistry : IPacketRegistry
     /// Initializes a new instance of the <see cref="PacketRegistry"/> class by executing
     /// the specified configuration action on a <see cref="PacketRegistryFactory"/>.
     /// </summary>
-    /// <param name="action">
+    /// <param name="configure">
     /// A delegate that configures the <see cref="PacketRegistryFactory"/> by registering
-    /// explicit packet types and/or assemblies. Must not be <see langword="null"/>.
+    /// explicit packet types, assemblies, and/or namespaces. Must not be
+    /// <see langword="null"/>.
     /// </param>
     /// <exception cref="System.ArgumentNullException">
-    /// Thrown if <paramref name="action"/> is <see langword="null"/>.
+    /// Thrown when <paramref name="configure"/> is <see langword="null"/>.
     /// </exception>
-    public PacketRegistry(System.Action<PacketRegistryFactory> action)
+    public PacketRegistry(System.Action<PacketRegistryFactory> configure)
     {
-        System.ArgumentNullException.ThrowIfNull(action);
-        PacketRegistryFactory factory = new();
-        action(factory);
+        System.ArgumentNullException.ThrowIfNull(configure);
 
+        PacketRegistryFactory factory = new();
+        configure(factory);
         PacketRegistry built = factory.CreateCatalog();
 
         _transformers = built._transformers;
         _deserializers = built._deserializers;
     }
 
-    /// <summary>
-    /// Attempts to deserialize a packet by reading the magic number from the provided raw buffer
-    /// and dispatching to a registered deserializer.
-    /// </summary>
-    /// <param name="raw">
-    /// The raw byte span containing the serialized packet. The first four bytes are interpreted
-    /// as a little-endian 32-bit magic number.
-    /// </param>
-    /// <param name="packet">
-    /// When this method returns <see langword="true"/>, contains the deserialized <see cref="IPacket"/> instance;
-    /// otherwise, contains <see langword="null"/>.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if a matching deserializer is found and the packet is deserialized successfully;
-    /// otherwise, <see langword="false"/>.
-    /// </returns>
-    /// <remarks>
-    /// The method returns <see langword="false"/> if the buffer is shorter than four bytes or if the magic number
-    /// does not match any registered deserializer.
-    /// </remarks>
+    #endregion Constructors
+
+    #region Diagnostic Properties
+
+    /// <inheritdoc/>
+    public System.Int32 DeserializerCount => _deserializers.Count;
+
+    /// <inheritdoc/>
+    public System.Int32 TransformerCount => _transformers.Count;
+
+    #endregion Diagnostic Properties
+
+    #region Public API
+
+    /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean IsKnownMagic(System.UInt32 magic) => _deserializers.ContainsKey(magic);
+
+    /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public System.Boolean IsRegistered<TPacket>() where TPacket : IPacket => _deserializers.ContainsKey(PacketRegistryFactory.Compute(typeof(TPacket)));
+
+    /// <inheritdoc/>
     public System.Boolean TryDeserialize(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> raw,
+        System.ReadOnlySpan<System.Byte> raw,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IPacket? packet)
     {
         if (raw.Length < PacketConstants.HeaderSize)
@@ -105,49 +120,32 @@ public sealed class PacketRegistry : IPacketRegistry
             return false;
         }
 
-        if (_deserializers.TryGetValue(raw.ReadMagicNumberLE(), out PacketDeserializer? factory))
+        System.UInt32 magic = raw.ReadMagicNumberLE();
+
+        if (_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer))
         {
-            packet = factory(raw);
-            return true;
+            packet = deserializer(raw);
+            return packet is not null;   // BUG FIX: guard against deserializer returning null
         }
 
         packet = null;
         return false;
     }
 
-    /// <summary>
-    /// Attempts to get the <see cref="PacketDeserializer"/> associated with the specified magic number.
-    /// </summary>
-    /// <param name="magic">The 32-bit magic number that identifies a packet format.</param>
-    /// <param name="deserializer">
-    /// When this method returns <see langword="true"/>, contains the deserializer delegate;
-    /// otherwise, contains <see langword="null"/>.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if a deserializer is registered for the given magic number; otherwise, <see langword="false"/>.
-    /// </returns>
+    /// <inheritdoc/>
     public System.Boolean TryGetDeserializer(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.UInt32 magic,
+        System.UInt32 magic,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketDeserializer? deserializer)
+        => _deserializers.TryGetValue(magic, out deserializer);
+
+    /// <inheritdoc/>
+    public System.Boolean TryGetTransformer(
+        System.Type packetType,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketTransformer transformer)
     {
-        System.Boolean ok = _deserializers.TryGetValue(magic, out PacketDeserializer? d);
-        deserializer = ok ? d : null;
-        return ok;
+        System.ArgumentNullException.ThrowIfNull(packetType);
+        return _transformers.TryGetValue(packetType, out transformer);
     }
 
-    /// <summary>
-    /// Attempts to get the <see cref="PacketTransformer"/> delegates associated with the specified packet type.
-    /// </summary>
-    /// <param name="packetType">The concrete packet <see cref="System.Type"/>.</param>
-    /// <param name="transformer">
-    /// When this method returns <see langword="true"/>, contains the <see cref="PacketTransformer"/> for the type;
-    /// otherwise, contains the default value.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if a transformer set is registered for the specified type; otherwise, <see langword="false"/>.
-    /// </returns>
-    public System.Boolean TryGetTransformer(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Type packetType,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketTransformer transformer)
-        => _transformers.TryGetValue(packetType, out transformer);
+    #endregion Public API
 }
