@@ -75,12 +75,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     // Per-connection per-priority queues.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<IConnection, ConnectionQueues> _queues = new();
 
-    // Metrics (global).
-    private System.Int32 _totalPackets;
-
-    /// <summary>
-    /// Total number of packets currently queued in this dispatch channel.
-    /// </summary>
     private System.Int64 _packetCount;
 
     #endregion Fields
@@ -88,7 +82,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     #region Properties
 
     /// <summary>Gets total packets across all per-connection queues.</summary>
-    public System.Int32 TotalPackets => System.Threading.Volatile.Read(ref _totalPackets);
+    public System.Int64 TotalPackets => System.Threading.Volatile.Read(ref _packetCount);
 
     /// <summary>
     /// Indicates whether this dispatch channel currently has any packet to process.
@@ -155,7 +149,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     #region Public APIs
 
     /// <summary>
-    /// Enqueues a packet into the per-connection queue and marks the connection ready
+    /// Pull a single packet from the highest-priority ready connection, if available.
     /// if the queue transitions from empty to non-empty.
     /// </summary>
     /// <param name="connection">The target connection.</param>
@@ -200,7 +194,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                 ConnectionState cs = GET_STATE(connection);
 
                 _ = System.Threading.Interlocked.Decrement(ref _packetCount);
-                _ = System.Threading.Interlocked.Decrement(ref _totalPackets);
                 _ = System.Threading.Interlocked.Decrement(ref cs.ApproxTotal);
                 _ = System.Threading.Interlocked.Decrement(ref cs.ApproxByPriority[dequeuedFromPrio]);
 
@@ -218,11 +211,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     }
 
     /// <summary>
-    /// Attempts to dequeue a single packet from a ready connection.
+    /// Pushes a packet into the appropriate per-connection queue based on its classified priority.
     /// </summary>
-    /// <param name="connection">Output connection associated with the packet.</param>
-    /// <param name="lease">Output lease if available.</param>
-    /// <returns><c>true</c> if a packet was dequeued; otherwise <c>false</c>.</returns>
+    /// <param name="connection">The connection to enqueue the packet for.</param>
+    /// <param name="lease">The buffer lease containing the packet data.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Push(
@@ -249,7 +241,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                     if (TRY_EVICT_OLDEST(cqs, cs, out _))
                     {
                         // Evicted one; continue to enqueue the new packet.
-                        _ = System.Threading.Interlocked.Decrement(ref _totalPackets);
+                        _ = System.Threading.Interlocked.Decrement(ref _packetCount);
                     }
                     else
                     {
@@ -260,16 +252,14 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                 case DropPolicy.BLOCK:
                     // Short spin (cheap backpressure). Avoid long blocks in high-throughput networking.
-                    System.Threading.SpinWait sw = new();
-                    while (cs.ApproxTotal >= _options.MaxPerConnectionQueue)
+                    System.Boolean ok = WaitForQueueSpace(cs); // pass a CancellationToken or CancellationToken.None
+                    if (!ok)
                     {
-                        sw.SpinOnce();
-
-                        if (sw.Count > 64)
-                        {
-                            // Avoid burning CPU indefinitely
-                            _ = System.Threading.Thread.Yield();
-                        }
+                        // Handle timeout: options include
+                        // - Drop the incoming item (log and return)
+                        // - Increment metrics and return a failure to caller
+                        // - Throw a TimeoutException (less recommended in hot path)
+                        return;
                     }
 
                     break;
@@ -282,7 +272,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                         return;
                     }
 
-                    _ = System.Threading.Interlocked.Decrement(ref _totalPackets);
+                    _ = System.Threading.Interlocked.Decrement(ref _packetCount);
                     break;
             }
         }
@@ -292,7 +282,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
         // Update counters
         _ = System.Threading.Interlocked.Increment(ref _packetCount);
-        _ = System.Threading.Interlocked.Increment(ref _totalPackets);
         _ = System.Threading.Interlocked.Increment(ref cs.ApproxTotal);
         _ = System.Threading.Interlocked.Increment(ref cs.ApproxByPriority[prioIndex]);
 
@@ -306,6 +295,42 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     #endregion Public APIs
 
     #region Private Methods
+
+    private System.Boolean WaitForQueueSpace(ConnectionState cs, System.Threading.CancellationToken cancellationToken = default)
+    {
+        // Get configured timeout and threshold from options.
+        System.TimeSpan timeout = _options.BlockTimeout; // configure this, e.g. TimeSpan.FromMilliseconds(100)
+        System.Int32 maxQueue = _options.MaxPerConnectionQueue;
+
+        // Short spin for backpressure as original code intended.
+        System.Threading.SpinWait sw = new();
+        System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        while (cs.ApproxTotal >= maxQueue)
+        {
+            // OperationCanceledException signals that the wait was cancelled.
+            cancellationToken.ThrowIfCancellationRequested();
+
+            sw.SpinOnce();
+
+            // If we've spun a lot, yield to avoid burning CPU.
+            if (sw.Count > 64)
+            {
+                System.Threading.Thread.Yield();
+            }
+
+            // Check timeout only occasionally to reduce Stopwatch cost.
+            // Here we check every 16 spins (adjust as needed).
+            if ((sw.Count & 0xF) == 0 && stopwatch.Elapsed > timeout)
+            {
+                // Return false to indicate timeout; caller decides to drop or handle otherwise.
+                return false;
+            }
+        }
+
+        // Space available.
+        return true;
+    }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -415,14 +440,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void OnUnregistered([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => this.RemoveConnection(connection);
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void OnConnectionClosed(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs e) => this.RemoveConnection(e.Connection);
-
     /// <summary>
     /// Removes a connection, draining all per-priority queues and adjusting counters.
     /// </summary>
@@ -432,8 +449,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void RemoveConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
-        connection.OnCloseEvent -= this.OnConnectionClosed;
-
         if (_queues.TryRemove(connection, out var cqs))
         {
             System.Int32 drained = 0;
@@ -450,7 +465,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
             if (drained != 0)
             {
-                _ = System.Threading.Interlocked.Add(ref _totalPackets, -drained);
+                _ = System.Threading.Interlocked.Add(ref _packetCount, -drained);
             }
         }
 
