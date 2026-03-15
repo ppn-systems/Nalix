@@ -37,12 +37,13 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     private static readonly System.Lazy<PropertyMetadata[]> _metadata = new(() =>
         [.. typeof(TSelf)
             .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
-            .Where(p =>
-                System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeOrderAttribute>(p) is not null &&
-                System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(p) is null)
-            .OrderBy(p => System.Reflection.CustomAttributeExtensions
-                                .GetCustomAttribute<SerializeOrderAttribute>(p)!.Order)
-            .Select(p => new PropertyMetadata(p))]);
+            .Select(p => (p, attr: System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeOrderAttribute>(p)))
+            .Where(x => x.attr is not null &&
+                        System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(x.p) is null)
+            .OrderBy(x => x.attr!.Order)
+            .Select(x => new PropertyMetadata(x.p))
+        ]
+    );
 
     // Zero means "has dynamic properties — compute at runtime".
     private static readonly System.Lazy<System.UInt16> _cachedFixedSize = new(() =>
@@ -110,7 +111,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
                 System.Byte[] bytes => (System.UInt16)bytes.Length,
 
                 // Use UTF-8 byte-count, NOT char-count, to get the true wire size.
-                System.String str => (System.UInt16)System.Text.Encoding.UTF8.GetByteCount(str),
+                System.String str => (System.UInt16)(System.Text.Encoding.UTF8.GetByteCount(str) + 2),
 
                 _ => 0
             };
@@ -230,6 +231,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
         this.OpCode = 0;
         this.Flags = PacketFlags.NONE;
         this.Protocol = ProtocolType.NONE;
+        this.Priority = PacketPriority.NONE;
         this.MagicNumber = AutoMagic; // restore identity — never reset to 0
     }
 

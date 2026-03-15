@@ -98,17 +98,20 @@ internal sealed class PropertyMetadata
         // Compile open-instance delegates once.
         // CreateDelegate with a null first argument creates an open delegate where
         // the first parameter becomes the target instance.
-        if (prop.CanRead && prop.GetMethod is not null)
-        {
-            System.Reflection.MethodInfo getter = prop.GetMethod;
-            _getter = instance => getter.Invoke(instance, null);
-        }
+        // Getter thực sự compiled:
+        var param = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
+        var cast = System.Linq.Expressions.Expression.Convert(param, prop.DeclaringType!);
+        var access = System.Linq.Expressions.Expression.Property(cast, prop);
+        var convert = System.Linq.Expressions.Expression.Convert(access, typeof(System.Object));
+        _getter = System.Linq.Expressions.Expression.Lambda<System.Func<System.Object, System.Object?>>(convert, param).Compile();
 
-        if (prop.CanWrite && prop.SetMethod is not null)
-        {
-            System.Reflection.MethodInfo setter = prop.SetMethod;
-            _setter = (instance, value) => setter.Invoke(instance, [value]);
-        }
+        // Setter thực sự compiled:
+        var objParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
+        var valParam = System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "value");
+        var castObj = System.Linq.Expressions.Expression.Convert(objParam, prop.DeclaringType!);
+        var castVal = System.Linq.Expressions.Expression.Convert(valParam, prop.PropertyType);
+        var assign = System.Linq.Expressions.Expression.Assign(System.Linq.Expressions.Expression.Property(castObj, prop), castVal);
+        _setter = System.Linq.Expressions.Expression.Lambda<System.Action<System.Object, System.Object?>>(assign, objParam, valParam).Compile();
     }
 
     #endregion Constructor
