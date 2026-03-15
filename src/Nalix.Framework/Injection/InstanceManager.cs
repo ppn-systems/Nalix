@@ -52,6 +52,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     // Near fields
     private static System.Int32 _slotsInvalidated; // 0 = valid, 1 = invalid
 
+    private System.Int64 _instanceCreationCount;
+    private System.Int64 _instanceCacheHitCount;
+
     private System.Int32 _isDisposed;
 
     #endregion Fields
@@ -229,6 +232,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         if (_instanceCache.TryGetValue(key, out var existing) && existing is System.IDisposable d1)
         {
+            System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
             try { d1.Dispose(); }
             catch (System.Exception ex)
             {
@@ -252,6 +256,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 if (_instanceCache.TryGetValue(itfKey, out System.Object? ex) &&
                     ex is System.IDisposable d2)
                 {
+                    System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
                     try { d2.Dispose(); }
                     catch (System.Exception ex2)
                     {
@@ -313,9 +318,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.RuntimeTypeHandle key = typeof(T).TypeHandle;
         if (_instanceCache.TryGetValue(key, out var existing))
         {
+            System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
             return System.Runtime.CompilerServices.Unsafe.As<T>(existing);
         }
 
+        System.Threading.Interlocked.Increment(ref _instanceCreationCount);
         T created = System.Runtime.CompilerServices.Unsafe.As<T>(GetOrCreateInstanceSlow(typeof(T), args));
 
         // Publish to slot after creation
@@ -468,6 +475,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _tsLastValue = instance;
         if (instance is not null)
         {
+            System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
             System.Threading.Volatile.Write(ref GenericSlot<T>.Value, instance);
         }
 
@@ -526,6 +534,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
         _ = sb.AppendLine($"CachedInstanceCount: {CachedInstanceCount}");
+        _ = sb.AppendLine($"InstanceCreationCount: {System.Threading.Volatile.Read(ref _instanceCreationCount)}");
+        _ = sb.AppendLine($"InstanceCacheHitCount: {System.Threading.Volatile.Read(ref _instanceCacheHitCount)}");
         _ = sb.AppendLine();
         _ = sb.AppendLine("Instances:");
         _ = sb.AppendLine("---------------------------------------------------------------------------");
@@ -678,6 +688,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
             if (_instanceCache.TryGetValue(key, out System.Object? existing))
             {
+                System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
                 return existing;
             }
 

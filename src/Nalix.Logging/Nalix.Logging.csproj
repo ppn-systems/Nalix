@@ -8,10 +8,10 @@
 		<Deterministic>true</Deterministic>
 
 		<!-- Versions -->
-		<Version>11.3.0</Version>
-		<FileVersion>11.3.0.0</FileVersion>
-		<PackageVersion>11.3.0</PackageVersion>
-		<InformationalVersion>11.3.0+$(SourceRevisionId)</InformationalVersion>
+		<Version>11.4.0</Version>
+		<FileVersion>11.4.0.0</FileVersion>
+		<PackageVersion>11.4.0</PackageVersion>
+		<InformationalVersion>11.4.0+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
 Nalix.Logging is a high-performance, asynchronous logging subsystem designed
