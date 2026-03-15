@@ -30,8 +30,6 @@ public sealed class ObjectPoolManager : IReportable
         public System.Int64 CacheHits;         // Got from pool successfully
         public System.Int64 TotalCreated;
         public System.Int64 TotalDisposed;
-        public System.Int64 PeakAvailable;
-        public System.Int64 PeakInUse;
         public System.DateTime LastAccessUtc;
         public System.String? LastAccessType;
         public System.Int32 ConsecutiveFailures;
@@ -57,7 +55,6 @@ public sealed class ObjectPoolManager : IReportable
     internal System.Int64 _totalCacheHits;
     internal System.DateTime _startTime = System.DateTime.UtcNow;
     internal System.Int32 _peakPoolCount;
-    internal System.Int64 _maxConcurrentObjects;
 
     // Health monitoring
     private System.Int64 _lastHealthCheckUtc;
@@ -127,11 +124,6 @@ public sealed class ObjectPoolManager : IReportable
     /// Gets the number of unhealthy pools (those with high failure rates).
     /// </summary>
     public System.Int32 UnhealthyPoolCount => System.Threading.Volatile.Read(ref _unhealthyPoolCount);
-
-    /// <summary>
-    /// Gets the maximum concurrent objects tracked across all pools.
-    /// </summary>
-    public System.Int64 MaxConcurrentObjects => System.Threading.Interlocked.Read(ref _maxConcurrentObjects);
 
     #endregion Properties
 
@@ -602,7 +594,6 @@ public sealed class ObjectPoolManager : IReportable
             ["TotalCacheMisses"] = TotalCacheMisses,
             ["CacheHitRate"] = CacheHitRate,
             ["UnhealthyPoolCount"] = UnhealthyPoolCount,
-            ["MaxConcurrentObjects"] = MaxConcurrentObjects,
             ["UptimeSeconds"] = Uptime.TotalSeconds,
             ["StartTime"] = _startTime,
             ["DefaultMaxPoolSize"] = DefaultMaxPoolSize
