@@ -1,6 +1,6 @@
-# Security Policy
+# 🔐 Security Policy
 
-## Supported Versions
+## 📦 Supported Versions
 
 Patches and security fixes are considered for the two most recent active versions:
 
@@ -11,7 +11,7 @@ Older versions will not receive security updates. Users are strongly encouraged 
 
 ---
 
-## Reporting a Vulnerability
+## 🐞 Reporting a Vulnerability
 
 If you discover a potential security vulnerability, **do not open a public issue**.
 
@@ -22,7 +22,7 @@ See [this additional information from GitHub on private vulnerability reporting]
 
 ---
 
-## Disclosure Process
+## 📣 Disclosure Process
 
 1. The report will be acknowledged within **48 hours**.
 2. The maintainers will review and validate the issue.
@@ -32,7 +32,7 @@ See [this additional information from GitHub on private vulnerability reporting]
 
 ---
 
-## Security Best Practices
+## 🛡️ Security Best Practices
 
 To ensure safety while using Nalix packages:
 
@@ -43,7 +43,7 @@ To ensure safety while using Nalix packages:
 
 ---
 
-## Contact
+## 📬 Contact
 
 For questions about this policy or secure usage of Nalix libraries,  
 please reach out to [ppn.system@gmail.com](mailto:ppn.system@gmail.com) or open a private security advisory.

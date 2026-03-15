@@ -1,10 +1,10 @@
-# Nalix Documentation
+# 📚 Nalix Documentation
 
 Welcome to the complete documentation for the Nalix ecosystem.
 
 ---
 
-## Documentation Index
+## 📑 Documentation Index
 
 | Module | Description | Documentation |
 |---------|--------------|----------------|
@@ -17,7 +17,7 @@ Welcome to the complete documentation for the Nalix ecosystem.
 
 ---
 
-## Overview
+## 🌐 Overview
 
 Nalix is a modular, real-time framework designed for efficient, secure, and scalable systems.
 
@@ -25,7 +25,7 @@ Each package is independently usable yet seamlessly integrated into the overall 
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 To install Nalix packages from NuGet:
 
@@ -39,14 +39,14 @@ For more examples, see [docs/README.md](./docs/README.md).
 
 ---
 
-## Architecture Reference
+## 🧱 Architecture Reference
 
 For a deep dive into Nalix’s system architecture and design philosophy,  
 see [docs/Nalix.Network/Architecture.md](./docs/Nalix.Network/Architecture.md).
 
 ---
 
-## Additional Documents
+## 📎 Additional Documents
 
 - [README.md](./README.md) — Project overview and introduction  
 - [SECURITY.md](./SECURITY.md) — Reporting vulnerabilities  

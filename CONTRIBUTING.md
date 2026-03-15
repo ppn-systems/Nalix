@@ -1,8 +1,8 @@
-# Contributing to Nalix 🚀
+# 🚀 Contributing to Nalix
 
 First of all, thank you for considering contributing to Nalix! It's people like you that make Nalix such a great tool for real-time communication and data sharing.
 
-## Table of Contents 📑
+## 📑 Table of Contents
 
 - [Code of Conduct](https://github.com/phcnguyen/Nalix/blob/master/CODE_OF_CONDUCT.md)
 - [Coding Standards](https://github.com/phcnguyen/Nalix/blob/master/.editorconfig)
@@ -10,11 +10,11 @@ First of all, thank you for considering contributing to Nalix! It's people like 
 - [Issue Reporting Guidelines](https://github.com/phcnguyen/Nalix/issues)
 - [DDD Architecture](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice)
 
-## Code of Conduct 📜
+## 📜 Code of Conduct
 
 This project and everyone participating in it is governed by the [Nalix Code of Conduct](https://github.com/phcnguyen/Nalix/blob/master/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [email@domain.com].
 
-## Development Environment Setup 💻
+## 💻 Development Environment Setup
 
 ### Prerequisites
 
@@ -45,7 +45,7 @@ This project and everyone participating in it is governed by the [Nalix Code of 
 
 5. Open the solution in Visual Studio or VS Code and build the project to ensure everything is working correctly
 
-## How to Contribute 🤝
+## 🤝 How to Contribute
 
 ### Contribution Workflow
 
@@ -71,7 +71,7 @@ This project and everyone participating in it is governed by the [Nalix Code of 
 - Improving code quality and test coverage
 - Reporting issues
 
-## Coding Standards 📏
+## 📏 Coding Standards
 
 ### C# Code Style
 
@@ -95,7 +95,7 @@ We strive to follow SOLID principles in our codebase:
 - **I**nterface Segregation: Many client-specific interfaces are better than one general-purpose interface
 - **D**ependency Inversion: Depend on abstractions, not concretions
 
-## Pull Request Process 🔄
+## 🔄 Pull Request Process
 
 1. Ensure your code adheres to the coding standards outlined above
 2. Update the README.md or documentation with details of changes if applicable
@@ -104,7 +104,7 @@ We strive to follow SOLID principles in our codebase:
 5. A maintainer will review your PR and may request changes
 6. Once approved, your PR will be merged into the main branch
 
-## Issue Reporting Guidelines 🐛
+## 🐛 Issue Reporting Guidelines
 
 When reporting issues, please use the provided issue templates and include:
 
@@ -115,7 +115,7 @@ When reporting issues, please use the provided issue templates and include:
 5. Environment details (OS, .NET version, etc.)
 6. Any relevant logs or screenshots
 
-## DDD Architecture 🏗️
+## 🏗️ DDD Architecture
 
 Nalix follows Domain-Driven Design principles. When contributing, please respect the existing architecture:
 
@@ -133,7 +133,7 @@ Nalix follows Domain-Driven Design principles. When contributing, please respect
 - **Domain Events**: Things that happen which domain experts care about
 - **Repositories**: Methods for obtaining domain objects
 
-## Community 👥
+## 👥 Community
 
 Join our community channels to discuss development, ask questions, or just hang out:
 
@@ -142,4 +142,4 @@ Join our community channels to discuss development, ask questions, or just hang 
 
 ---
 
-Thank you for contributing to Nalix! ❤️
+❤️ Thank you for contributing to Nalix!
