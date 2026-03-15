@@ -31,10 +31,9 @@ public partial class TaskManager
 
     #region Fields (CPU Monitoring)
 
-    private CpuMetricsSnapshot? _cpuMetrics;
     private System.Int64 _lastCpuProcessorTime;
     private System.Int64 _lastCpuWallClockMs;
-    private System.Diagnostics.Stopwatch _cpuMeasureStopwatch = System.Diagnostics.Stopwatch.StartNew();
+    private readonly System.Diagnostics.Stopwatch _cpuMeasureStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
     #endregion Fields (CPU Monitoring)
 
