@@ -139,10 +139,7 @@ public static class ControlExtensions
         }
 
         IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
-        System.Threading.Tasks.TaskCompletionSource<TPkt> tcs =
-            new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
-
-
+        System.Threading.Tasks.TaskCompletionSource<TPkt> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
         using System.Threading.CancellationTokenSource lcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
         lcts.CancelAfter(timeoutMs);

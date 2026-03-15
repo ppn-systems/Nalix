@@ -58,7 +58,7 @@ public static class HandshakeExtensions
     public static async System.Threading.Tasks.Task<System.Boolean> HandshakeAsync(
         this IClientConnection client,
         System.UInt16 opCode = 1,
-        System.Int32 timeoutMs = 5_000,
+        System.Int32 timeoutMs = -1,
         System.Func<System.Byte[], System.Boolean> validateServerPublicKey = null,
         System.Threading.CancellationToken ct = default)
     {
@@ -78,38 +78,15 @@ public static class HandshakeExtensions
 
         IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
 
-        System.Threading.Tasks.TaskCompletionSource<Handshake> tcs =
-            new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        System.Threading.Tasks.TaskCompletionSource<Handshake> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
-        using System.Threading.CancellationTokenSource linked =
-            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
-        linked.CancelAfter(timeoutMs);
+        using System.Threading.CancellationTokenSource linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        System.Int32 effectiveTimeout = timeoutMs > 0 ? timeoutMs : client.Options.ConnectTimeoutMillis;
+        linked.CancelAfter(effectiveTimeout);
 
         // Generate ephemeral key pair.
         X25519.X25519KeyPair kp = X25519.GenerateKeyPair();
-
-        void OnMessageReceived(System.Object _, IBufferLease buffer)
-        {
-            // Always dispose the lease; deserialize takes a ReadOnlySpan copy.
-            using (buffer)
-            {
-                if (!catalog.TryDeserialize(buffer.Span, out IPacket p))
-                {
-                    return;
-                }
-
-                if (p is Handshake hs &&
-                    hs.OpCode == opCode &&
-                    hs.Protocol == ProtocolType.TCP)
-                {
-                    tcs.TrySetResult(hs);
-                }
-            }
-        }
-
-        void OnDisconnected(System.Object _, System.Exception ex)
-            => tcs.TrySetException(
-                ex ?? new System.InvalidOperationException("Disconnected during handshake."));
 
         // Subscribe BEFORE sending to avoid a race where the server responds before we listen.
         using System.IDisposable sub = client.SubscribeTemp(OnMessageReceived, OnDisconnected);
@@ -173,5 +150,26 @@ public static class HandshakeExtensions
             Log?.Error($"[SDK.HandshakeAsync] Failed: {ex}.");
             return false;
         }
+
+        void OnMessageReceived(System.Object _, IBufferLease buffer)
+        {
+            // Always dispose the lease; deserialize takes a ReadOnlySpan copy.
+            using (buffer)
+            {
+                if (!catalog.TryDeserialize(buffer.Span, out IPacket p))
+                {
+                    return;
+                }
+
+                if (p is Handshake hs &&
+                    hs.OpCode == opCode &&
+                    hs.Protocol == ProtocolType.TCP)
+                {
+                    tcs.TrySetResult(hs);
+                }
+            }
+        }
+
+        void OnDisconnected(System.Object _, System.Exception ex) => tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
     }
 }

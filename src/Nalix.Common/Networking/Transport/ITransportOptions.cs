@@ -6,30 +6,91 @@ using Nalix.Common.Security.Enums;
 namespace Nalix.Common.Networking.Transport;
 
 /// <summary>
-/// Defines the options required for configuring a transport connection, including
-/// port, address, encryption key, and encryption mode.
+/// Defines the full set of options required to configure a transport connection.
 /// </summary>
+/// <remarks>
+/// All extension methods (<c>HandshakeExtensions</c>, <c>TimeSyncExtensions</c>,
+/// <c>DirectiveClientExtensions</c>, etc.) depend only on this interface — never on
+/// the concrete <c>TransportOptions</c> class — so they remain testable and mockable.
+/// </remarks>
 public interface ITransportOptions
 {
-    /// <summary>
-    /// Gets the port number for the connection.
-    /// </summary>
+    // ── Endpoint ──────────────────────────────────────────────────────────
+
+    /// <summary>Port number for the connection.</summary>
     System.UInt16 Port { get; set; }
 
-    /// <summary>
-    /// Gets the server address or hostname.
-    /// </summary>
+    /// <summary>Server address or hostname.</summary>
     System.String Address { get; set; }
 
+    // ── Connect ───────────────────────────────────────────────────────────
+
     /// <summary>
-    /// Gets the encryption key used for secure communication.
-    /// Default value is an empty byte array.
+    /// Timeout for connect attempts in milliseconds.
+    /// <c>0</c> means no timeout.
+    /// </summary>
+    System.Int32 ConnectTimeoutMillis { get; set; }
+
+    // ── Reconnect ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// When <c>true</c>, the client automatically reconnects after an unexpected disconnect.
+    /// </summary>
+    System.Boolean ReconnectEnabled { get; set; }
+
+    /// <summary>
+    /// Maximum number of reconnect attempts. <c>0</c> = unlimited.
+    /// </summary>
+    System.Int32 ReconnectMaxAttempts { get; set; }
+
+    /// <summary>
+    /// Base delay in milliseconds for exponential backoff between reconnect attempts.
+    /// </summary>
+    System.Int32 ReconnectBaseDelayMillis { get; set; }
+
+    /// <summary>
+    /// Maximum delay in milliseconds between reconnect attempts.
+    /// </summary>
+    System.Int32 ReconnectMaxDelayMillis { get; set; }
+
+    // ── Keep-alive ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Interval in milliseconds to send keep-alive (heartbeat) packets.
+    /// <c>0</c> disables heartbeats.
+    /// </summary>
+    System.Int32 KeepAliveIntervalMillis { get; set; }
+
+    // ── Socket tuning ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Controls the <c>TCP_NODELAY</c> socket option.
+    /// When <c>true</c>, Nagle's algorithm is disabled for lower latency.
+    /// </summary>
+    System.Boolean NoDelay { get; set; }
+
+    /// <summary>
+    /// Size in bytes of the socket send and receive buffer.
+    /// </summary>
+    System.Int32 BufferSize { get; set; }
+
+    // ── Limits ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Maximum allowed packet size (header + payload) in bytes.
+    /// </summary>
+    System.Int32 MaxPacketSize { get; set; }
+
+    // ── Security ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Encryption key used for secure communication.
+    /// Set by <c>HandshakeExtensions</c> after the X25519 key exchange completes.
     /// </summary>
     System.Byte[] EncryptionKey { get; set; }
 
     /// <summary>
-    /// Gets the encryption mode for the connection.
-    /// This property is ignored during configuration binding.
+    /// Cipher suite used for encrypting packets.
     /// </summary>
     CipherSuiteType EncryptionMode { get; set; }
 }

@@ -56,7 +56,7 @@ public static class TimeSyncExtensions
         this IClientConnection client,
         System.UInt16 opCode = 2,
         System.UInt32 sequenceId = 0,
-        System.Int32 timeoutMs = 2_000,
+        System.Int32 timeoutMs = -1,
         System.Double maxAllowedDriftMs = 1_000.0,
         System.Double maxHardAdjustMs = 10_000.0,
         System.Threading.CancellationToken ct = default)
@@ -70,12 +70,12 @@ public static class TimeSyncExtensions
 
         IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
 
-        System.Threading.Tasks.TaskCompletionSource<Control> tcs =
-            new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        System.Threading.Tasks.TaskCompletionSource<Control> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
-        using System.Threading.CancellationTokenSource linked =
-            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
-        linked.CancelAfter(timeoutMs);
+        using System.Threading.CancellationTokenSource linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        System.Int32 effectiveTimeout = timeoutMs > 0 ? timeoutMs : System.Math.Max(1000, client.Options.KeepAliveIntervalMillis / 2);
+        linked.CancelAfter(effectiveTimeout);
 
         // Subscribe BEFORE sending to eliminate the race where the server responds before we listen.
         using System.IDisposable sub = client.SubscribeTemp(OnPacket, OnDisconnected);
