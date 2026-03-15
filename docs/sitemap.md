@@ -143,7 +143,6 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Dispatcher**](./api/runtime/routing/packet-dispatch.md)
 - [**Return Types**](./api/runtime/routing/handler-results.md)
 - [**Pipeline**](./api/runtime/middleware/pipeline.md)
-- [**Buffer Pipeline**](./api/runtime/middleware/network-buffer-pipeline.md)
 - [**Rate Limiters**](./api/runtime/middleware/token-bucket-limiter.md)
 
 ### Network Transport
@@ -164,6 +163,14 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Resumption**](./api/sdk/resume-extensions.md)
 - [**Subscriptions**](./api/sdk/subscriptions.md)
 - [**Transport Options**](./api/sdk/options/transport-options.md)
+
+---
+
+## 🛠️ Developer Tools
+
+- [**Tools Overview**](./tools/index.md) — Landing page for internal utilities.
+- [**Identity Certificate Tool**](./tools/certificate-tool.md) — Generating X25519 keys.
+- [**Packet Visualizer**](./tools/packet-visualizer.md) — Debugging network frames in real-time.
 
 ---
 

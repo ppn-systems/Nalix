@@ -42,6 +42,17 @@ public class PrivateMessage : PacketBase<PrivateMessage> { ... }
     By default, Nalix assumes all packets should be encrypted.  
     Disabling encryption should only be done for high-frequency, non-sensitive data where the overhead of AEAD is a bottleneck.
 
+## Mathematical Correctness
+
+The Nalix Framework's cryptographic implementations are engineered for both maximum performance and absolute correctness. To ensure safety, our primitives undergo rigorous **Interoperability Testing** against the industry-standard [BouncyCastle](https://www.bouncycastle.org/) library.
+
+Our [Verified Cryptography Suite](../../tools/index.md) confirms parity for:
+- **Poly1305**: RFC 8439 compliant 130-bit modular arithmetic.
+- **X25519**: RFC 7748 compliant Montgomery ladder and bit clamping.
+- **AEAD Handlers**: Correct transcript construction for associated data (AAD) and padding.
+
+This guarantees that data encrypted by Nalix is fully decryptable by any standard-compliant library, and that the underlying mathematics are free from common field-reduction errors.
+
 ## Related Topics
 
 - [Handshake Protocol](./handshake-protocol.md)
