@@ -10,6 +10,7 @@ using Nalix.Shared.Serialization.Formatters.Cache;
 using Nalix.Shared.Serialization.Formatters.Collections;
 using Nalix.Shared.Serialization.Formatters.Primitives;
 using Nalix.Shared.Serialization.Internal.Types;
+using System.Collections.Concurrent;
 
 namespace Nalix.Shared.Serialization.Formatters;
 
@@ -23,6 +24,8 @@ public static class FormatterProvider
     private static System.Int32 _cntTotal, _cntPrimitives, _cntNullables, _cntArrays, _cntNullableArrays, _cntLists, _cntEnums, _cntStrings;
     private static readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
 
+    // Factory cache (type -> factory delegate)
+    private static readonly ConcurrentDictionary<System.Type, System.Func<System.Object>> _formatterFactories = new();
 
     #endregion Fields
 
@@ -235,23 +238,30 @@ public static class FormatterProvider
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void RegisterComplex<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
-        [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter)
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
+    [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter)
     {
-        // Check if the type is a value type and not an enum
+        System.ArgumentNullException.ThrowIfNull(formatter);
+
         System.Type type = typeof(T);
 
+        // For unmanaged value types (structs) that are not enums, set Struct formatter atomically.
         if (TypeMetadata.IsUnmanaged<T>() && !type.IsEnum)
         {
-            ComplexTypeCache<T>.Struct = formatter;
+            // Use Interlocked.CompareExchange to ensure only the first successful writer wins.
+            // If another thread already set ComplexTypeCache<T>.Struct, we keep the existing one.
+            System.Threading.Interlocked.CompareExchange(ref ComplexTypeCache<T>.Struct!, formatter, default!);
+
             return;
         }
         else if (type.IsClass)
         {
-            ComplexTypeCache<T>.Class = formatter;
+            // Same for class formatters.
+            System.Threading.Interlocked.CompareExchange(ref ComplexTypeCache<T>.Class!, formatter, default!);
+
             return;
         }
 
@@ -354,9 +364,9 @@ public static class FormatterProvider
         IFormatter<T> formatter;
         System.Type type = typeof(T);
 
-        if (System.Nullable.GetUnderlyingType(typeof(T)) is not null)
+        if (System.Nullable.GetUnderlyingType(type) is not null)
         {
-            throw new System.InvalidOperationException($"Cannot call GetComplex<T>() on Nullable<T>: {typeof(T)}");
+            throw new System.InvalidOperationException($"Cannot call GetComplex<T>() on Nullable<T>: {type}");
         }
 
         if (TypeMetadata.IsUnmanaged<T>() && !type.IsEnum)
@@ -367,9 +377,13 @@ public static class FormatterProvider
                 return formatter;
             }
 
-            System.Object? @struct = System.Activator.CreateInstance(typeof(StructFormatter<>)
-                                                     .MakeGenericType(type)) ??
+            // Use cached factory delegate instead of reflection
+            var factory = GetFormatterFactory(type, typeof(StructFormatter<>));
+            System.Object? @struct = factory();
+            if (@struct is null)
+            {
                 throw new System.InvalidOperationException($"Failed to create instance of StructFormatter<{type.Name}>.");
+            }
 
             RegisterComplex((IFormatter<T>)@struct);
             return ComplexTypeCache<T>.Struct;
@@ -382,15 +396,18 @@ public static class FormatterProvider
                 return formatter;
             }
 
-            System.Object? @object = System.Activator.CreateInstance(typeof(ObjectFormatter<>)
-                                                     .MakeGenericType(type)) ??
+            var factory = GetFormatterFactory(type, typeof(ObjectFormatter<>));
+            System.Object? @object = factory();
+            if (@object is null)
+            {
                 throw new System.InvalidOperationException($"Failed to create instance of ObjectFormatter<{type.Name}>.");
+            }
 
             RegisterComplex((IFormatter<T>)@object);
             return ComplexTypeCache<T>.Class;
         }
 
-        throw new System.InvalidOperationException($"No formatter registered for type {typeof(T)}.");
+        throw new System.InvalidOperationException($"No formatter registered for type {type}.");
     }
 
     #endregion APIs
@@ -403,6 +420,24 @@ public static class FormatterProvider
     {
         IFormatter<T>? existing = System.Threading.Interlocked.CompareExchange(ref FormatterCache<T>.Formatter, created, null);
         return existing ?? created;
+    }
+
+    /// <summary>
+    /// Get (or create and cache) factory delegate for formatter type.
+    /// </summary>
+    /// <param name="type">Target type</param>
+    /// <param name="genericFormatterType">Generic definition, e.g. typeof(StructFormatter&lt;&gt;)</param>
+    private static System.Func<System.Object> GetFormatterFactory(System.Type type, System.Type genericFormatterType)
+    {
+        return _formatterFactories.GetOrAdd(type, t =>
+        {
+            var constructed = genericFormatterType.MakeGenericType(t);
+            var ctor = constructed.GetConstructor(System.Type.EmptyTypes) ?? throw new System.InvalidOperationException($"No parameterless constructor for {constructed}");
+            System.Linq.Expressions.NewExpression newExpr = System.Linq.Expressions.Expression.New(ctor);
+            System.Linq.Expressions.Expression<System.Func<System.Object>> lambda = System.Linq.Expressions.Expression.Lambda<System.Func<System.Object>>(newExpr);
+
+            return lambda.Compile();
+        });
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -469,7 +504,6 @@ public static class FormatterProvider
         return (IFormatter<T>)System.Activator.CreateInstance(refArrF)!;
     }
 
-
     [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateListFormatter<
@@ -509,7 +543,6 @@ public static class FormatterProvider
         // List<class>
         return (IFormatter<T>)System.Activator.CreateInstance(typeof(ReferenceListFormatter<>).MakeGenericType(elem))!;
     }
-
 
     #endregion Private Methods
 }

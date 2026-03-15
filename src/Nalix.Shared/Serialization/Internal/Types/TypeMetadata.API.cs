@@ -49,7 +49,9 @@ internal static partial class TypeMetadata
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static System.Boolean IsUnmanaged(System.Type type)
     {
-        if (!s_visitedTypes.Add(type))
+        t_visitedTypes ??= [];
+
+        if (!t_visitedTypes.Add(type))
         {
             return false;  // Circular reference detected
         }
@@ -69,7 +71,7 @@ internal static partial class TypeMetadata
         }
         finally
         {
-            s_visitedTypes.Remove(type);
+            t_visitedTypes.Remove(type);
         }
     }
 

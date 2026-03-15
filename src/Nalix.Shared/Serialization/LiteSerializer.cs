@@ -190,13 +190,19 @@ public static partial class LiteSerializer
 
             IFormatter<T> formatter = FormatterProvider.Get<T>();
             DataWriter writer = new(buffer);
+            try
+            {
+                formatter.Serialize(ref writer, value);
 
-            formatter.Serialize(ref writer, value);
-
-            return value == null
-                ? throw new SerializationException(
-                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
-                : writer.WrittenCount;
+                return value == null
+                    ? throw new SerializationException(
+                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
+                    : writer.WrittenCount;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
         }
 
         throw new System.NotSupportedException(
@@ -324,6 +330,7 @@ public static partial class LiteSerializer
 
             // DataWriter(Span<byte>) wraps the span directly — zero allocation, no pool renting.
             // The formatter must not write more than fixedSize bytes, so Expand() is never called.
+
             DataWriter writer = new(buffer);
             FormatterProvider.Get<T>().Serialize(ref writer, value);
             return writer.WrittenCount;
@@ -561,8 +568,9 @@ public static partial class LiteSerializer
         IFormatter<T> formatter = FormatterProvider.Get<T>();
         DataReader reader = new(buffer);
 
+        T result = formatter.Deserialize(ref reader);
         value = reader.BytesRead;
-        return formatter.Deserialize(ref reader);
+        return result;
     }
 
     #endregion APIs

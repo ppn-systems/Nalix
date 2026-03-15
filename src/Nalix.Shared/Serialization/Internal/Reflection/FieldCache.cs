@@ -23,6 +23,8 @@ internal static partial class FieldCache<
     private static readonly SerializeLayout _layout;
     private static readonly System.Collections.Generic.Dictionary<System.String, System.Int32> _fieldIndex;
 
+    private static readonly System.Collections.Generic.Dictionary<System.String, System.Reflection.PropertyInfo> _propertyCache;
+
     #endregion Static Fields
 
     #region Compiled Delegates Cache
@@ -45,6 +47,19 @@ internal static partial class FieldCache<
         _layout = GetSerializeLayout();
         _metadata = DiscoverFields<T>();
         _fieldIndex = BuildFieldIndex();
+
+        _propertyCache = new System.Collections.Generic.Dictionary<System.String, System.Reflection.PropertyInfo>(
+            capacity: 32,
+            comparer: System.StringComparer.Ordinal
+        );
+
+        foreach (var p in typeof(T).GetProperties(
+            System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.NonPublic |
+            System.Reflection.BindingFlags.Instance))
+        {
+            _propertyCache[p.Name] = p;
+        }
 
         // Create compiled getters/setters for each field
         _getters = new System.Delegate[_metadata.Length];
@@ -200,20 +215,18 @@ internal static partial class FieldCache<
         if (field.Name.StartsWith('<') && field.Name.Contains(">k__BackingField"))
         {
             var propertyName = field.Name[1..field.Name.IndexOf('>')];
-            var property = typeof(T).GetProperty(propertyName);
-
-            // Nếu property bị ignore thì skip backing field
-            if (property is not null &&
-                System.Reflection.CustomAttributeExtensions
-                    .GetCustomAttribute<SerializeIgnoreAttribute>(property) is not null)
+            if (_propertyCache.TryGetValue(propertyName, out var property))
             {
-                return true;
+                // Nếu property bị ignore thì skip backing field
+                if (System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(property) is not null)
+                {
+                    return true;
+                }
             }
         }
 
         // Rule 2: Skip fields có SerializeIgnoreAttribute
-        return System.Reflection.CustomAttributeExtensions
-                .GetCustomAttribute<SerializeIgnoreAttribute>(field) is not null;
+        return System.Reflection.CustomAttributeExtensions.GetCustomAttribute<SerializeIgnoreAttribute>(field) is not null;
     }
 
     #endregion Domain Rules - Business Logic

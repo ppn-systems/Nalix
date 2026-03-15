@@ -13,7 +13,9 @@ namespace Nalix.Shared.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
-    private static readonly System.Collections.Generic.HashSet<System.Type> s_visitedTypes;
+    [System.ThreadStatic]
+    private static System.Collections.Generic.HashSet<System.Type>? t_visitedTypes;
+
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Boolean>> s_isRefCache;
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Int32>> s_sizeOfFnCache;
 
@@ -22,7 +24,6 @@ internal static partial class TypeMetadata
         _ = typeof(IFixedSizeSerializable);
 
         s_isRefCache = new();
-        s_visitedTypes = [];
         s_sizeOfFnCache = new();
     }
 

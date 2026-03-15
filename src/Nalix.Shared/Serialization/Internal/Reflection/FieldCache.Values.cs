@@ -53,7 +53,7 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TField GetValue<TField>(T obj, System.Int32 fieldIndex)
     {
         FieldSchema metadata = _metadata[fieldIndex];
@@ -72,7 +72,7 @@ internal static partial class FieldCache<T>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TField>(T obj, System.Int32 fieldIndex, TField value)
     {
         FieldSchema metadata = _metadata[fieldIndex];
