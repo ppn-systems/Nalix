@@ -104,10 +104,9 @@ public sealed class SystemControlHandlers
 
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control ack = lease.Value;
-        ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, (ProtocolReason)packet.Reason);
+        ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, packet.Reason);
 
-        Nalix.Common.Networking.IConnection.ITransport transport = packet.Flags.HasFlag(PacketFlags.UNRELIABLE) ? connection.UDP : connection.TCP;
-        await transport.SendAsync(ack).ConfigureAwait(false);
+        await connection.TCP.SendAsync(ack).ConfigureAwait(false);
     }
 
     private static async ValueTask HandlePing(IConnection connection, Control ping)
@@ -116,8 +115,7 @@ public sealed class SystemControlHandlers
         Control pong = lease.Value;
         pong.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PONG, ping.SequenceId, ping.Flags, ProtocolReason.NONE);
 
-        Nalix.Common.Networking.IConnection.ITransport transport = ping.Flags.HasFlag(PacketFlags.UNRELIABLE) ? connection.UDP : connection.TCP;
-        await transport.SendAsync(pong).ConfigureAwait(false);
+        await connection.TCP.SendAsync(pong).ConfigureAwait(false);
     }
 
     private static async ValueTask HandleTimeSyncRequest(IConnection connection, Control req)
@@ -126,12 +124,10 @@ public sealed class SystemControlHandlers
         Control res = lease.Value;
         res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags, ProtocolReason.NONE);
 
-        Nalix.Common.Networking.IConnection.ITransport transport = req.Flags.HasFlag(PacketFlags.UNRELIABLE) ? connection.UDP : connection.TCP;
-        await transport.SendAsync(res).ConfigureAwait(false);
+        await connection.TCP.SendAsync(res).ConfigureAwait(false);
     }
 
-    private static void HandleDisconnect(IConnection connection, Control _)
-        => connection.Disconnect("Client requested disconnect via Control frame.");
+    private static void HandleDisconnect(IConnection connection, Control _) => connection.Disconnect("Client requested disconnect via Control frame.");
 
     #endregion Private Methods
 }

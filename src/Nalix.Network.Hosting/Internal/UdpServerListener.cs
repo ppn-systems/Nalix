@@ -13,18 +13,18 @@ internal sealed class UdpServerListener : UdpListenerBase
     private readonly Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? _authen;
 
     /// <inheritdoc />
-    public UdpServerListener(IProtocol protocol) : base(protocol) { }
+    public UdpServerListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub) { }
 
     /// <inheritdoc />
-    public UdpServerListener(ushort port, IProtocol protocol) : base(port, protocol) { }
+    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub) : base(port, protocol, hub) { }
 
     /// <inheritdoc />
-    public UdpServerListener(ushort port, IProtocol protocol, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        : base(port, protocol) => _authen = authen;
+    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        : base(port, protocol, hub) => _authen = authen;
 
     /// <inheritdoc />
-    public UdpServerListener(IProtocol protocol, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        : base(protocol) => _authen = authen;
+    public UdpServerListener(IProtocol protocol, IConnectionHub hub, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        : base(protocol, hub) => _authen = authen;
 
     /// <inheritdoc />
     protected override bool IsAuthenticated(IConnection connection, System.Net.EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)

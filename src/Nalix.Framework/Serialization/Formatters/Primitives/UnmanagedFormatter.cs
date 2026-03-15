@@ -104,8 +104,11 @@ internal sealed partial class UnmanagedFormatter<
                 return;
             }
 
-            throw new SerializationFailureException(
-                $"UnmanagedFormatter<{typeof(T).Name}>: 16-byte type not supported (only decimal).");
+            // Fallback for other 16-byte types like Guid or DateTimeOffset
+            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
+                ref writer.GetFreeBufferReference(), value);
+            writer.Advance(sizeof(decimal));
+            return;
         }
 
         throw new SerializationFailureException(
@@ -177,8 +180,11 @@ internal sealed partial class UnmanagedFormatter<
                 return System.Runtime.CompilerServices.Unsafe.As<decimal, T>(ref dec);
             }
 
-            throw new SerializationFailureException(
-                $"UnmanagedFormatter<{typeof(T).Name}>: 16-byte type not supported (only decimal).");
+            // Fallback for other 16-byte types like Guid or DateTimeOffset
+            ref byte startBody = ref reader.GetSpanReference(sizeof(decimal));
+            T result = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ref startBody);
+            reader.Advance(sizeof(decimal));
+            return result;
         }
 
         throw new SerializationFailureException(

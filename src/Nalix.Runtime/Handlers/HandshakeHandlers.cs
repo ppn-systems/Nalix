@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -14,6 +15,7 @@ using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Environment;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Random;
@@ -29,6 +31,68 @@ namespace Nalix.Runtime.Handlers;
 public sealed class HandshakeHandlers
 {
     private static IConnectionHub? Hub => InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
+
+    private static readonly Bytes32 s_certificate = Bytes32.Zero;
+
+    /// <inheritdoc/>
+    static HandshakeHandlers()
+    {
+        string certPath = Path.Combine(Directories.ConfigurationDirectory, "certificate.private");
+
+        if (!File.Exists(certPath))
+        {
+            throw new InternalErrorException(
+                $"Handshake failed: certificate file 'certificate.private' was not found in '{Directories.ConfigurationDirectory}'. "
+                + "Please provide a valid server identity file.");
+        }
+
+        try
+        {
+            string? hex = null;
+            string[] lines = File.ReadAllLines(certPath);
+
+            for (int i = lines.Length - 1; i >= 0; i--)
+            {
+                string line = lines[i];
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+
+                string trimmed = line.Trim();
+                if (trimmed.StartsWith('#'))
+                {
+                    continue;
+                }
+
+                hex = trimmed;
+                break;
+            }
+
+            if (string.IsNullOrWhiteSpace(hex))
+            {
+                throw new InternalErrorException(
+                    $"Handshake failed: No valid certificate data found in '{certPath}'. Please check file format and content.");
+            }
+
+            s_certificate = Bytes32.Parse(hex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new InternalErrorException(
+                $"Handshake failed: Access denied while reading server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
+        }
+        catch (IOException ex)
+        {
+            throw new InternalErrorException(
+                $"Handshake failed: Unable to read server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
+        }
+        catch (FormatException ex)
+        {
+            throw new InternalErrorException(
+                $"Handshake failed: Invalid server identity format in '{certPath}'. Exception detail: " + ex.Message, ex);
+        }
+    }
 
     /// <summary>
     /// Handles incoming handshake signal packets.
@@ -95,11 +159,9 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        Bytes32 sharedSecretSE = Hub?.IdentityPrivateKey.IsZero == false
-            ? X25519.Agreement(Hub.IdentityPrivateKey, packet.PublicKey)
-            : Bytes32.Zero;
+        Bytes32 sharedSecretSE = X25519.Agreement(s_certificate, packet.PublicKey);
 
-        if (Hub?.IdentityPrivateKey.IsZero == false && sharedSecretSE.IsZero)
+        if (sharedSecretSE.IsZero)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
             return;
@@ -135,7 +197,7 @@ public sealed class HandshakeHandlers
         reply.PublicKey = serverKey.PublicKey;
         reply.Nonce = serverNonce;
         reply.Proof = HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash);
-        reply.Flags = (reply.Flags & ~(PacketFlags.RELIABLE | PacketFlags.UNRELIABLE)) | (packet.Flags & (PacketFlags.RELIABLE | PacketFlags.UNRELIABLE));
+        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
         reply.TranscriptHash = transcriptHash;
 
         await connection.TCP.SendAsync(reply).ConfigureAwait(false);
@@ -180,7 +242,7 @@ public sealed class HandshakeHandlers
         reply.PublicKey = Bytes32.Zero;
         reply.Nonce = Bytes32.Zero;
         reply.Proof = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
-        reply.Flags = (reply.Flags & ~(PacketFlags.RELIABLE | PacketFlags.UNRELIABLE)) | (packet.Flags & (PacketFlags.RELIABLE | PacketFlags.UNRELIABLE));
+        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
         reply.TranscriptHash = state.TranscriptHash;
         reply.SessionToken = session is not null ? Snowflake.NewId(session.Snapshot.SessionToken) : (Snowflake)connection.ID;
 
@@ -197,9 +259,10 @@ public sealed class HandshakeHandlers
         try
         {
             using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
+
             Handshake error = lease.Value;
-            error.InitializeError(reason, flags: PacketFlags.SYSTEM | (connection.TCP != null ? PacketFlags.RELIABLE : PacketFlags.UNRELIABLE));
-            await (connection.TCP ?? connection.UDP).SendAsync(error).ConfigureAwait(false);
+            error.InitializeError(reason, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+            await connection.TCP.SendAsync(error).ConfigureAwait(false);
         }
         finally
         {
@@ -220,7 +283,7 @@ public sealed class HandshakeHandlers
         return false;
     }
 
-    private sealed class HandshakeContext
+    private sealed record HandshakeContext
     {
         public Bytes32 ClientPublicKey { get; init; }
         public Bytes32 ClientNonce { get; init; }

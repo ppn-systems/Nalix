@@ -6,15 +6,14 @@ This page traces the complete journey of a network request from raw socket bytes
 
 ```mermaid
 flowchart LR
-    A["Socket frame / datagram"] --> B["Buffer middleware"]
-    B --> C["Dispatch queue"]
-    C --> D["Worker loop"]
-    D --> E["Packet registry deserialize"]
-    E --> F["Resolve handler + metadata"]
-    F --> G["Packet middleware"]
-    G --> H["Handler"]
-    H --> I["Return handler"]
-    I --> J["Reply / side effect"]
+    A["Socket frame / datagram"] --> B["Dispatch queue"]
+    B --> C["Worker loop"]
+    C --> D["Packet registry deserialize"]
+    D --> E["Resolve handler + metadata"]
+    E --> F["MiddlewarePipeline"]
+    F --> G["Handler"]
+    G --> H["Return handler"]
+    H --> I["Reply / side effect"]
 ```
 
 ## Step 1. Traffic enters through a listener
@@ -39,22 +38,11 @@ Its job is to:
 At this point, the runtime still has bytes, not a packet object.
 That flow remains the same whether the eventual handler works with built-in packets or your own custom packet type.
 
-## Step 3. Buffer middleware gets the first chance to act
+## Step 3. Dispatch deserializes the packet
 
-Before deserialization, buffer middleware can inspect raw `IBufferLease` data.
+Once the frame enters the application layer, `PacketDispatchChannel` first queues the work, then its worker loop uses the packet registry to deserialize it into an `IPacket`.
 
-Use this layer for:
-
-- decryption
-- decompression
-- frame validation
-- early rejection of malformed traffic
-
-If a frame should not continue, this is the cheapest place to stop it.
-
-## Step 4. Dispatch deserializes the packet
-
-Once the frame is ready, `PacketDispatchChannel` first queues the work, then its worker loop uses the packet registry to deserialize it into an `IPacket`.
+Before this happens, the **Listeners** may have already applied decryption or decompression via the `FramePipeline`.
 
 This is the transition from transport-level work to application-level work.
 
@@ -127,8 +115,8 @@ The request path is easiest to reason about in three phases:
 
 | Phase | Components | Your extension point |
 | :--- | :--- | :--- |
-| **Transport** | Listener → Protocol → Raw frame | Custom `Protocol`, buffer middleware |
-| **Dispatch** | Queue → Worker → Deserialize → Metadata → Middleware | Packet middleware, metadata providers |
+| **Transport** | Listener → Protocol → FramePipeline | Custom `Protocol` validation |
+| **Dispatch** | Queue → Worker → Deserialize → Metadata → Middleware | `MiddlewarePipeline`, metadata providers |
 | **Application** | Handler → Return handler → Reply | Handler classes, return type selection |
 
 If you know which phase your problem belongs to, you usually know which Nalix component to customize.

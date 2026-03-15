@@ -1,37 +1,24 @@
 # Middleware Pipeline
 
-This page explains how middleware fits into the Nalix request path and how to choose the right middleware layer for your use case.
+This page explains how the `MiddlewarePipeline` fits into the Nalix request path and how to leverage it for application-level policy and observability.
 
-## The Two-Layer Model
+## The Middleware Model
 
-Nalix has two distinct middleware layers. Choosing the correct layer is more important than any individual middleware implementation.
+Nalix utilizes a single, high-performance middleware layer powered by the `MiddlewarePipeline`. This pipeline executes **after** packet deserialization and metadata resolution, giving you full context for every request.
 
 ```mermaid
 flowchart LR
-    A["Socket frame"] --> B["Buffer middleware"]
+    A["Socket frame"] --> B["FramePipeline (Low-level)"]
     B --> C["Deserialize packet"]
     C --> D["Resolve handler metadata"]
-    D --> E["Packet middleware"]
+    D --> E["MiddlewarePipeline"]
     E --> F["Handler"]
     F --> G["Return handler / reply"]
 ```
 
-### Buffer Middleware
+### Middleware Pipeline
 
-Buffer middleware runs **before** packet deserialization. It receives raw `IBufferLease` data and has no access to `PacketContext`.
-
-Use it when:
-
-- You need to decrypt or decompress a frame
-- You want to reject invalid or suspicious frame shapes early
-- You need to perform low-level protocol checks
-- You want to stop bad traffic before packet allocation
-
-**Tradeoff:** You get early control, but you do not have typed packet access or handler metadata.
-
-### Packet Middleware
-
-Packet middleware runs **after** deserialization and metadata resolution. It receives `PacketContext<TPacket>` with the deserialized packet, connection state, and cached handler metadata.
+The `MiddlewarePipeline` runs with a full `PacketContext<TPacket>`. This context provides the deserialized packet, connection state, and cached handler metadata.
 
 Use it when:
 
@@ -41,17 +28,22 @@ Use it when:
 - You need audit logging with handler context
 - You need tenant or product policy checks
 
-**Tradeoff:** You get full context, but the packet has already been allocated and deserialized.
+**Tradeoff:** Because it runs after deserialization, the packet has already been allocated. For early-stage rejection of malformed traffic, rely on `ConnectionGuard` or `Protocol` validation.
+
+## Low-Level Transformations
+
+Low-level buffer operations that were previously handled by "Buffer Middleware" (such as decryption, decompression, and raw frame validation) are now integrated into the **`FramePipeline`**. This pipeline is executed directly by the **Listeners** (TCP/UDP) at the transport layer to ensure maximum performance and zero-allocation processing of raw bytes.
 
 ## Execution Order
 
-Middleware executes in **registration order**. Earlier-registered middleware runs first.
+Middleware executes in **registration order** for the inbound path and **reverse registration order** for the outbound path.
 
 ```mermaid
 flowchart LR
-    M1["Middleware 1 (order -20)"] --> M2["Middleware 2 (order -10)"]
-    M2 --> M3["Middleware 3 (order 0)"]
-    M3 --> H["Handler"]
+    M1["Middleware 1 (Inbound)"] --> M2["Middleware 2 (Inbound)"]
+    M2 --> H["Handler"]
+    H --> M2_Out["Middleware 2 (Outbound)"]
+    M2_Out --> M1_Out["Middleware 1 (Outbound)"]
 ```
 
 Registration example:
@@ -59,10 +51,7 @@ Registration example:
 ```csharp
 PacketDispatchChannel dispatch = new(options =>
 {
-    // Buffer middleware (raw frames)
-    options.WithBufferMiddleware(new DecryptionMiddleware());
-
-    // Packet middleware (ordered by registration)
+    // Register middleware into the MiddlewarePipeline
     options.WithMiddleware(new PermissionMiddleware());
     options.WithMiddleware(new RateLimitMiddleware());
     options.WithMiddleware(new AuditMiddleware());
@@ -71,9 +60,9 @@ PacketDispatchChannel dispatch = new(options =>
 
 ## How Metadata Fits In
 
-Middleware becomes powerful because dispatch resolves metadata **before** packet middleware runs.
+Middleware becomes powerful because the dispatcher resolves metadata **before** the pipeline runs.
 
-Packet middleware can read:
+Middleware can read:
 
 - `PacketOpcode` — the handler's opcode
 - Permission rules (`[PacketPermission]`)
@@ -92,21 +81,15 @@ The typical flow is:
 
 | Need | Best fit |
 | :--- | :--- |
-| Reject a malformed frame before packet creation | Buffer middleware |
-| Decrypt a wrapped payload | Buffer middleware |
-| Decompress a frame | Buffer middleware |
-| Block a packet by permission level | Packet middleware |
-| Apply per-handler timeout rules | Packet middleware |
-| Read a custom tenant tag from metadata | Packet middleware |
-| Rate limit by opcode or endpoint | Packet middleware |
-| Audit handler invocations | Packet middleware |
-
-If you are unsure, start with packet middleware. It is easier to test, easier to debug, and usually the right layer for application-level policy.
+| Reject a malformed frame before packet creation | `Protocol` / `ConnectionGuard` |
+| Decrypt or decompress a frame | `FramePipeline` (Transport) |
+| Block a packet by permission level | `MiddlewarePipeline` |
+| Apply per-handler timeout rules | `MiddlewarePipeline` |
+| Read a custom tenant tag from metadata | `MiddlewarePipeline` |
+| Rate limit by opcode or endpoint | `MiddlewarePipeline` |
+| Audit handler invocations | `MiddlewarePipeline` |
 
 ## Common Pitfalls
-
-!!! warning "Pitfall: Heavy work in buffer middleware"
-    Buffer middleware runs on the transport thread path. Expensive operations (database lookups, external API calls) should be deferred to packet middleware or the handler itself.
 
 !!! warning "Pitfall: Forgetting to call next()"
     If a middleware does not call `await next(ct)`, the request pipeline is short-circuited. This is intentional for rejection scenarios but can cause silent drops if done accidentally.

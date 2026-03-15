@@ -48,10 +48,7 @@ A component that adds extra metadata to handler methods during `PacketMetadata` 
 
 ## Middleware
 
-Logic inserted before or around handler execution. Nalix has two middleware layers:
-
-- **Buffer middleware** — Operates on raw `IBufferLease` data before packet deserialization
-- **Packet middleware** — Operates on `PacketContext<TPacket>` after deserialization, with access to handler metadata
+Logic inserted before or around handler execution using the **`MiddlewarePipeline`**. It operates on `IPacketContext<TPacket>` after packet deserialization, with full access to the packet and handler metadata.
 
 ## PacketBase\<T\>
 
@@ -114,4 +111,4 @@ The idle-timeout scheduler used by the network layer. Manages connection timeout
 
 - [Selecting Building Blocks](./runtime/building-blocks.md) — Decision guide for component selection
 - [Architecture](./fundamentals/architecture.md) — Layered component overview
-- [Middleware](./runtime/middleware-pipeline.md) — Buffer vs. packet middleware
+- [Middleware](./runtime/middleware-pipeline.md) — Middleware Pipeline and handler policy

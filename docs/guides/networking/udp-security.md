@@ -44,7 +44,7 @@ flowchart LR
 ```csharp
 public sealed class SampleUdpListener : UdpListenerBase
 {
-    public SampleUdpListener(IProtocol protocol) : base(protocol) { }
+    public SampleUdpListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub) { }
 
     protected override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
     {

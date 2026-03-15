@@ -35,6 +35,7 @@ public abstract partial class TcpListenerBase : IListener
     private readonly ushort _port;
     private readonly SemaphoreSlim _lock;
     private readonly IProtocol _protocol;
+    private readonly IConnectionHub _hub;
     private readonly ConnectionGuard _limiter;
     private readonly List<ISnowflake> _acceptWorkerIds;
 
@@ -85,17 +86,23 @@ public abstract partial class TcpListenerBase : IListener
     /// </summary>
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
+    /// <param name="hub">The connection hub for managing active connections.</param>
     [DebuggerStepThrough]
-    protected TcpListenerBase(ushort port, IProtocol protocol)
+    protected TcpListenerBase(ushort port, IProtocol protocol, IConnectionHub hub)
     {
+        ArgumentNullException.ThrowIfNull(hub, nameof(hub));
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 
         _isDisposed = 0;
 
+        _hub = hub;
         _port = port;
         _protocol = protocol;
         _state = (int)ListenerState.STOPPED;
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
+
+        // Register force-close action to ConnectionGuard for DDoS protection
+        _ = _limiter.WithForceClose(key => _hub.ForceClose(key));
 
         s_config.Validate();
 
@@ -136,9 +143,9 @@ public abstract partial class TcpListenerBase : IListener
     /// and the specified protocol, buffer pool, and logger.
     /// </summary>
     /// <param name="protocol">The protocol to handle the connections.</param>
+    /// <param name="hub">The connection hub for managing active connections.</param>
     [DebuggerStepThrough]
-    protected TcpListenerBase(IProtocol protocol)
-        : this(s_config.Port, protocol)
+    protected TcpListenerBase(IProtocol protocol, IConnectionHub hub) : this(s_config.Port, protocol, hub)
     {
     }
 

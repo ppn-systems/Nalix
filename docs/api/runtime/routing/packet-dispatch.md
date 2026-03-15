@@ -47,9 +47,8 @@ flowchart LR
     A["IBufferLease"] --> B["HandlePacket"]
     B --> C["Dispatch Queue"]
     C --> D["Signaled Worker"]
-    D --> E["Buffer Middleware"]
-    E --> F["IPacketRegistry"]
-    F --> G["Middleware + Handler"]
+    D --> E["IPacketRegistry (Deserialize)"]
+    E --> F["MiddlewarePipeline + Handler"]
 ```
 
 ## Sharding and Scaling

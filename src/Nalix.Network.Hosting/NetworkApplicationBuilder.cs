@@ -343,10 +343,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             serverFactories.Add(dispatch =>
             {
                 this.EnsureConnectionHubRegistered();
+                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
                 IProtocol protocol = registration.Factory(dispatch);
                 TcpServerListener listener = registration.Port.HasValue
-                    ? new(registration.Port.Value, protocol)
-                    : new(protocol);
+                    ? new(registration.Port.Value, protocol, hub)
+                    : new(protocol, hub);
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: false);
             });
@@ -357,14 +358,15 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             serverFactories.Add(dispatch =>
             {
                 this.EnsureConnectionHubRegistered();
+                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
                 IProtocol protocol = registration.Factory(dispatch);
                 UdpServerListener listener = registration.Authentication != null
                     ? (registration.Port.HasValue
-                        ? new(registration.Port.Value, protocol, registration.Authentication)
-                        : new(protocol, registration.Authentication))
+                        ? new(registration.Port.Value, protocol, hub, registration.Authentication)
+                        : new(protocol, hub, registration.Authentication))
                     : (registration.Port.HasValue
-                        ? new(registration.Port.Value, protocol)
-                        : new(protocol));
+                        ? new(registration.Port.Value, protocol, hub)
+                        : new(protocol, hub));
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);
             });

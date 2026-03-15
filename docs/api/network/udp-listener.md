@@ -60,6 +60,10 @@ flowchart TD
 
 ```
 
+### 1.1. Lock-Free Rate Limiting
+
+The UDP listener integrates a high-performance **`DatagramRateLimiter`**. This component uses atomic CAS (Compare-And-Swap) operations on a 64-bit packed window state to enforce per-IP packet limits (e.g., 1000 PPS) without any lock contention. This is critical for scaling on many-core systems under flood conditions.
+
 ## 2. Low-Level Security Pipeline
 
 UDP is vulnerable to spoofing and reflection attacks. Nalix hardens the listener via a 3-stage validation gate:
@@ -91,6 +95,7 @@ Once authenticated, the UDP payload must be processed:
 
 | Method | Description |
 |---|---|
+| `Constructor(..., IConnectionHub)` | Requires an explicit `IConnectionHub` instance for session tracking. |
 | `Activate()` | Initializes the `Socket` and launches the continuous SAEA asynchronous receive loops. |
 | `Deactivate()` | Cancels active receive tasks safely. |
 | `IsAuthenticated` | **(Abstract)** The final application logic hook used by derived classes for custom datagram acceptance strategy. |

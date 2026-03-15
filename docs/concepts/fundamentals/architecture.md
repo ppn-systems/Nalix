@@ -40,7 +40,7 @@ graph TD
 | Layer | Package | Responsibility |
 | :--- | :--- | :--- |
 | Hosting | `Nalix.Network.Hosting` | Fluent builder, application lifecycle, automatic discovery |
-| Transport | `Nalix.Network` | TCP/UDP listeners, connections, protocol bridge, session store |
+| Transport | `Nalix.Network` | TCP/UDP listeners, connection lifecycle, protocol bridge, session store |
 | Dispatch | `Nalix.Runtime` | Packet dispatch, middleware, handler compilation, session resume |
 | Pipeline | `Nalix.Network.Pipeline` | Rate limiting, concurrency gating, time synchronization |
 | Infrastructure | `Nalix.Framework` | Configuration, DI, serialization, packet registry, pooling, compression, identifiers |
@@ -66,16 +66,15 @@ Understanding how a packet moves through the system is the key to effective debu
 sequenceDiagram
     participant Net as Socket / Buffer
     participant Prot as Protocol (Framing)
-    participant BufMw as Buffer Middleware
     participant Disp as PacketDispatchChannel
     participant Reg as PacketRegistry
-    participant PktMw as Packet Middleware
+    participant PktMw as MiddlewarePipeline
     participant Hand as Handler
 
     Net->>Prot: Raw bytes received
     Prot->>Prot: Validate frame (length / checksum)
-    Prot->>BufMw: Raw IBufferLease
-    BufMw->>Disp: HandlePacket(lease, connection)
+    Note over Prot: FramePipeline: Decrypt / Decompress
+    Prot->>Disp: HandlePacket(lease, connection)
     Note over Disp: Shard-aware queueing
     Disp->>Reg: Deserialize (magic → TPacket)
     Reg-->>Disp: Packet instance
@@ -89,13 +88,13 @@ sequenceDiagram
 
 ### 1. Transport and Listeners
 
-- **`TcpListenerBase`** — High-concurrency TCP listener using `SocketAsyncEventArgs`. Handles socket acceptance, connection lifecycle, and frame-level receive.
-- **`UdpListenerBase`** — Stateless datagram listener with built-in authenticated session mapping.
+- **`TcpListenerBase`** — High-concurrency TCP listener using `SocketAsyncEventArgs`. Handles socket acceptance, connection registration to the `ConnectionHub`, and frame-level receive.
+- **`UdpListenerBase`** — Stateless datagram listener with built-in authenticated session mapping and lock-free rate limiting.
 - **Connection guard** — Early-stage admission control to reject endpoints at the socket level before allocating any application resources.
 
 ### 2. Protocol (The Bridge)
 
-The `IProtocol` interface translates raw network streams into discrete message leases. It ensures that `PacketDispatchChannel` only receives complete, valid packet fragments. The protocol also manages connection acceptance (`ValidateConnection`) and initiates the receive loop.
+The `IProtocol` interface translates raw network streams into discrete message leases. It ensures that `PacketDispatchChannel` only receives complete, valid packet fragments. The protocol also manages message-level validation and initiates the receive loop.
 
 ### 3. Shard-Aware Dispatch
 

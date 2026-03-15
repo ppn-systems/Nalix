@@ -29,7 +29,7 @@ All digests are computed using **Keccak-256** over length-prefixed segments. The
 
 | Purpose | Label | Components |
 |---|---|---|
-| **Master Secret** | `nalix-handshake/master` | `SharedSecret_EE`, `SharedSecret_SE` |
+| **Master Secret** | `nalix-handshake/master-secret` | `SharedSecret_EE`, `SharedSecret_SE` |
 | **Server Proof** | `nalix-handshake/server-proof` | `MasterSecret`, `TranscriptHash` |
 | **Client Proof** | `nalix-handshake/client-proof` | `MasterSecret`, `TranscriptHash` |
 | **Server Finish** | `nalix-handshake/server-finish` | `MasterSecret`, `TranscriptHash` |
@@ -79,7 +79,8 @@ await session.SendAsync(new SecurePacket());
 
 ## 5. Security Notes
 
-- **Identity Authentication**: By configuring `ServerPublicKey` on the client and `IdentityPrivateKey` on the server, the handshake performs a dual-layer key agreement that identifies the server pinned by the client.
+- **Identity Authentication**: By configuring `ServerPublicKey` on the client and `Identity` on the server, the handshake performs a dual-layer key agreement that identifies the server pinned by the client. **Anonymous handshakes are strictly forbidden** to prevent MitM attacks.
+- **Mandatory Identity**: Both server and client must be configured with their respective identity keys. On the server, this can be provided via config or automatically loaded from `certificate.private` in the configuration directory. If missing, the server rejects the connection with `ProtocolReason.UNAUTHENTICATED`.
 - **Structural Validation**: All stages are strictly validated via `IPacketValidatable` to prevent malformed packets or stage confusion attacks before any cryptography is performed.
 - **Zero-Allocation**: Handshake packets are pooled via `PacketBase`.
 - **Memory Safety**: Private keys and shared secrets are passed as `ReadOnlySpan<byte>` and zeroed out explicitly using `MemorySecurity.ZeroMemory` after use.

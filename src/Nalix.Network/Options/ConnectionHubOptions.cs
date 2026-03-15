@@ -62,13 +62,6 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     public bool IsEnableLatency { get; init; } = true;
 
     /// <summary>
-    /// Gets or sets the permanent X25519 Identity Private Key for the server. 
-    /// If left empty (Zero), the server will automatically generate a new ephemeral identity key on startup.
-    /// </summary>
-    [IniComment("Server's permanent X25519 identity private key (HEX representation). MitM clients must pin its public key counterpart.")]
-    public string? IdentityPrivateKey { get; init; }
-
-    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">

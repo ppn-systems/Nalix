@@ -14,7 +14,7 @@
 `Protocol` centralizes shared application-level protocol concerns (acceptance, error accounting, post-processing) so derived protocols only provide message logic. 
 
 !!! important
-    Transport-level concerns like decryption and decompression are now handled by the **Listener** layer via the `FramePipeline` before the protocol is invoked.
+    Transport-level concerns like decryption and decompression, as well as **connection registration with the ConnectionHub**, are now handled by the **Listener** layer before the protocol is invoked.
 
 ```mermaid
 flowchart TD
@@ -92,7 +92,7 @@ public class MyProtocol : Protocol
 ## Extensibility Points
 
 - `ValidateConnection(IConnection connection)`: Called during the accept phase. Return `false` to reject a connection immediately.
-- `OnAccept(IConnection connection, CancellationToken cancellationToken = default)`: Called when a connection is successfully admitted. Useful for sending initial "Welcome" packets or setting session state.
+- `OnAccept(IConnection connection, CancellationToken cancellationToken = default)`: Called when a connection is successfully admitted (after registration to the Hub). Useful for sending initial "Welcome" packets or setting session state.
 - `OnPostProcess(IConnectEventArgs args)`: Runs after `ProcessMessage`.
 - `OnConnectionError(IConnection connection, Exception exception)`: Capture transport layer failures or protocol violations.
 - `Dispose(bool disposing)`: Standard lifecycle cleanup.

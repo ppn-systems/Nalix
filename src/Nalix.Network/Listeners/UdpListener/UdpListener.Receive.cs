@@ -17,7 +17,6 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Identifiers;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
@@ -124,10 +123,9 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        IUdpRateLimiter? limiter = InstanceManager.Instance.GetExistingInstance<IUdpRateLimiter>();
-        if (limiter is not null && args.RemoteEndPoint is IPEndPoint ip)
+        if (args.RemoteEndPoint is IPEndPoint ip)
         {
-            if (!limiter.TryAccept(ip))
+            if (!_rateLimiter.TryAccept(ip))
             {
                 _ = Interlocked.Increment(ref _dropUnauth);
                 return;
@@ -197,16 +195,8 @@ public abstract partial class UdpListenerBase
         // FAST PATH — Lookup Connection via SessionToken (Snowflake).
         // ================================================================
         ReadOnlySpan<byte> sessionToken = buffer[..SessionTokenSize];
-        IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
 
-        if (hub is null)
-        {
-            _ = Interlocked.Increment(ref _dropShort);
-            lease.Dispose();
-            return;
-        }
-
-        if (!this.TryResolveConnection(hub, sessionToken, out Connection? connection) || connection == null || connection.IsDisposed)
+        if (!this.TryResolveConnection(_hub, sessionToken, out Connection? connection) || connection == null || connection.IsDisposed)
         {
             _ = Interlocked.Increment(ref _dropUnknown);
             lease.Dispose();

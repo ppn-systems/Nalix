@@ -6,8 +6,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking;
-using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Protocols;
 
@@ -49,10 +47,6 @@ public abstract partial class Protocol
         this.Dispose(true);
 
         s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
-
-
-        InstanceManager.Instance.GetExistingInstance<IConnectionHub>()?
-                                .CloseAllConnections();
 
         GC.SuppressFinalize(this);
     }

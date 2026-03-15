@@ -86,6 +86,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     #region Properties
 
+    /// <inheritdoc/>
+    public bool IsDisposed => _disposed;
+
     /// <inheritdoc />
     public ISnowflake ID { get; }
 
@@ -140,8 +143,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     #endregion Properties
 
     #region Internal
-
-    internal bool IsDisposed => _disposed;
 
     internal SocketConnection Socket { get; }
 

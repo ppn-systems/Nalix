@@ -167,6 +167,12 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     [System.ComponentModel.DataAnnotations.Range(16, 4096)]
     public int MaxThreadPoolWorkers { get; set; } = 512;
 
+    /// <summary>
+    /// Gets or sets the maximum number of packets allowed per second from a single connection before it is considered abusive and disconnected.
+    /// </summary>
+    [IniComment("Maximum packets per second allowed from a single connection (SEC-55, default 1000)")]
+    public int MaxPacketPerSecond { get; set; } = 1000;
+
     #endregion Properties
 
     /// <summary>

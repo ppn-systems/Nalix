@@ -42,6 +42,7 @@ Accurate defaults are critical for production rollout and troubleshooting.
 | `UdpReplayWindowSize` | UDP anti-replay sliding window size (bits). | `1024` |
 | `MinWorkerThreadsMultiplier` | Thread-pool minimum worker multiplier when auto-tuning. | `4` |
 | `MaxThreadPoolWorkers` | Upper thread-pool worker limit when auto-tuning. | `512` |
+| `MaxPacketPerSecond` | Max packets allowed per second from a single connection. | `1000` |
 
 ## Best Practices
 

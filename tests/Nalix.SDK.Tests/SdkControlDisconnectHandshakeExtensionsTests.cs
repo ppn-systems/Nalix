@@ -26,6 +26,8 @@ namespace Nalix.SDK.Tests;
 [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
 public sealed class SdkControlDisconnectHandshakeExtensionsTests
 {
+    private static readonly X25519.X25519KeyPair s_testServerKey = X25519.GenerateKeyPair();
+
     [Fact]
     public void NewControl_WithBuilderMethods_AppliesConfiguredValues()
     {
@@ -181,10 +183,11 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
             return badServerHello;
         };
 
+        using CancellationTokenSource cts = new();
         NetworkException ex = await Assert.ThrowsAsync<NetworkException>(async () =>
-            await session.HandshakeAsync(CancellationToken.None));
+            await session.HandshakeAsync(cts.Token));
 
-        Assert.Contains("SERVER_HELLO proof is invalid", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Handshake SERVER_HELLO proof is invalid", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -196,13 +199,19 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
         Bytes32 sharedSecret = default;
         Bytes32 transcriptHash = default;
         Snowflake token = Snowflake.NewId(SnowflakeType.System);
+        Bytes32 contextPublicKey = default;
 
         session.SendInterceptor = packet =>
         {
             if (packet is Handshake clientHello && clientHello.Stage == HandshakeStage.CLIENT_HELLO)
             {
+                contextPublicKey = clientHello.PublicKey;
                 sharedSecret = X25519.Agreement(serverKey.PrivateKey, clientHello.PublicKey);
-                Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecret, Bytes32.Zero);
+                
+                // Use the matching static secret for the pinned server key
+                Bytes32 staticSecret = X25519.Agreement(s_testServerKey.PrivateKey, clientHello.PublicKey);
+                
+                Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecret, staticSecret);
                 transcriptHash = Handshake.ComputeTranscriptHash(
                     HandshakeX25519.ComposeTranscriptBuffer(
                         clientHello.PublicKey,
@@ -219,7 +228,8 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
 
             if (packet is Handshake clientFinish && clientFinish.Stage == HandshakeStage.CLIENT_FINISH)
             {
-                Bytes32 masterSecretFinish = HandshakeX25519.ComputeMasterSecret(sharedSecret, Bytes32.Zero);
+                Bytes32 staticSecret = X25519.Agreement(s_testServerKey.PrivateKey, contextPublicKey);
+                Bytes32 masterSecretFinish = HandshakeX25519.ComputeMasterSecret(sharedSecret, staticSecret);
                 return new Handshake(HandshakeStage.SERVER_FINISH, Bytes32.Zero, Bytes32.Zero, flags: clientFinish.Flags)
                 {
                     Proof = HandshakeX25519.ComputeServerFinishProof(masterSecretFinish, transcriptHash),
@@ -253,7 +263,10 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
         private readonly FakePacketRegistry _catalog = new();
         private readonly Queue<IPacket> _queuedResponses = new();
 
-        public override TransportOptions Options { get; } = new();
+        public override TransportOptions Options { get; } = new TransportOptions
+        {
+            ServerPublicKey = s_testServerKey.PublicKey.ToString()
+        };
         public override IPacketRegistry Catalog => _catalog;
         public override bool IsConnected => Connected;
         public bool Connected { get; set; } = true;

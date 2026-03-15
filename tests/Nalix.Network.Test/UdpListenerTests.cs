@@ -113,7 +113,7 @@ public sealed class UdpListenerTests
         return datagram;
     }
 
-    private sealed class TestUdpListener(IProtocol protocol) : UdpListenerBase(0, protocol)
+    private sealed class TestUdpListener(IProtocol protocol) : UdpListenerBase(0, protocol, s_hub)
     {
         public void Process(BufferLease lease, EndPoint remoteEndPoint) => this.ProcessDatagram(lease, remoteEndPoint);
 

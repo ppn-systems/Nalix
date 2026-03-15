@@ -12,6 +12,7 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Rate;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Listeners.Udp;
@@ -45,6 +46,8 @@ public abstract partial class UdpListenerBase
     private readonly ushort _port;
     private readonly IProtocol _protocol;
     private readonly SemaphoreSlim _lock;
+    private readonly IConnectionHub _hub;
+    private readonly DatagramRateLimiter _rateLimiter;
 
     private Socket? _socket;
     private EndPoint _anyEndPoint;
@@ -93,16 +96,20 @@ public abstract partial class UdpListenerBase
     /// </summary>
     /// <param name="port">The UDP port to listen on.</param>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
+    /// <param name="hub">The connection hub for managing active connections.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="protocol"/> is <c>null</c>.</exception>
     [DebuggerStepThrough]
-    protected UdpListenerBase(ushort port, IProtocol protocol)
+    protected UdpListenerBase(ushort port, IProtocol protocol, IConnectionHub hub)
     {
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
+        ArgumentNullException.ThrowIfNull(hub, nameof(hub));
 
+        _hub = hub;
         _port = port;
         _protocol = protocol;
-        _state = (int)ListenerState.STOPPED;
         _lock = new SemaphoreSlim(1, 1);
+        _state = (int)ListenerState.STOPPED;
+        _rateLimiter = new(s_config.MaxPacketPerSecond);
 
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
@@ -114,9 +121,9 @@ public abstract partial class UdpListenerBase
     /// Initializes a new instance of the <see cref="UdpListenerBase"/> class using the configured port.
     /// </summary>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
+    /// <param name="hub">The connection hub for managing active connections.</param>
     [DebuggerStepThrough]
-    protected UdpListenerBase(IProtocol protocol)
-        : this(s_config.Port, protocol)
+    protected UdpListenerBase(IProtocol protocol, IConnectionHub hub) : this(s_config.Port, protocol, hub)
     {
     }
 

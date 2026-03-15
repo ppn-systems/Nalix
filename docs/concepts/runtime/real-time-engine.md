@@ -52,7 +52,7 @@ This is why `Connection` and `ConnectionHub` sit at the center of the real-time 
 A typical TCP request follows this path:
 
 1. Socket accepted by `TcpListenerBase`.
-2. `TcpListenerBase` initiates the asynchronous receive loop.
+2. `TcpListenerBase` registers the connection with the `ConnectionHub` and initiates the asynchronous receive loop.
 3. The **Listener** receives a frame and executes the `FramePipeline` (decrypt/decompress).
 4. The resolved **Protocol** receives the processed message via `ProcessMessage(...)`.
 5. Messages are forwarded into `PacketDispatchChannel`.
@@ -90,6 +90,7 @@ Real-time systems fail fastest when they do not control pressure. Nalix integrat
 | Component | Layer | Purpose |
 | :--- | :--- | :--- |
 | `ConnectionGuard` | Socket | Reject endpoints before resource allocation |
+| `DatagramRateLimiter` | Transport | Lock-free per-IP UDP packet throttling (UDP Flood protection) |
 | `TokenBucketLimiter` | Dispatch | Protect against request spikes with burst budgets |
 | `PolicyRateLimiter` | Dispatch | Per-opcode and per-endpoint rate limiting |
 | `ConcurrencyGate` | Dispatch | Limit concurrent in-flight handlers |

@@ -4,8 +4,8 @@
 using System;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Identity;
-using Nalix.Common.Security;
 using Nalix.Common.Primitives;
+using Nalix.Common.Security;
 
 namespace Nalix.Common.Networking;
 
@@ -14,6 +14,11 @@ namespace Nalix.Common.Networking;
 /// </summary>
 public partial interface IConnection : IDisposable, IConnectionErrorTracked
 {
+    /// <summary>
+    /// Checks if the connection has been disposed.
+    /// </summary>
+    bool IsDisposed { get; }
+
     /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>

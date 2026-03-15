@@ -168,9 +168,9 @@ This page provides a comprehensive index of all documentation available for the 
 
 ## 🛠️ Developer Tools
 
-- [**Tools Overview**](./tools/index.md) — Landing page for internal utilities.
-- [**Identity Certificate Tool**](./tools/certificate-tool.md) — Generating X25519 keys.
-- [**Packet Visualizer**](./tools/packet-visualizer.md) — Debugging network frames in real-time.
+- [**Tools Overview**](./guides/tools/index.md) — Landing page for internal utilities.
+- [**Identity Certificate Tool**](./guides/tools/certificate-tool.md) — Generating X25519 keys.
+- [**Packet Visualizer**](./guides/tools/packet-visualizer.md) — Debugging network frames in real-time.
 
 ---
 

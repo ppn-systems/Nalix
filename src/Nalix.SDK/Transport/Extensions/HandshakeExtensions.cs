@@ -24,9 +24,13 @@ public static class HandshakeExtensions
     /// Performs the client-side X25519 handshake asynchronously over the connected <see cref="TransportSession"/>.
     /// </summary>
     /// <remarks>
-    /// This method performs an anonymous Elliptic Curve Diffie-Hellman (ECDH) handshake using Curve25519.
-    /// It generates an ephemeral key pair, exchanges public keys with the server, verifies server proofs, 
-    /// and derives a shared session key.
+    /// This method performs an authenticated Elliptic Curve Diffie-Hellman (ECDH) handshake using Curve25519.
+    /// It generates an ephemeral key pair, exchanges public keys with the server, verifies server proofs 
+    /// against a pinned <see cref="TransportOptions.ServerPublicKey"/>, and derives a shared session key.
+    /// <para>
+    /// Anonymous handshakes are forbidden for security reasons. The client MUST provide the expected 
+    /// server public key in the session options to prevent Man-in-the-Middle (MitM) attacks.
+    /// </para>
     /// Upon a successful handshake, the session's encryption settings (<see cref="TransportOptions.Secret"/>, 
     /// <see cref="TransportOptions.Algorithm"/>, and <see cref="TransportOptions.EncryptionEnabled"/>) 
     /// are automatically updated to enable secure communication using ChaCha20Poly1305.
@@ -76,15 +80,16 @@ public static class HandshakeExtensions
             throw new NetworkException("Handshake key agreement failed: Ephemeral shared secret is all zero.");
         }
 
-        Bytes32 pinnedServerKey = string.IsNullOrEmpty(session.Options.ServerPublicKey)
-            ? Bytes32.Zero
-            : Bytes32.Parse(session.Options.ServerPublicKey);
+        if (string.IsNullOrEmpty(session.Options.ServerPublicKey))
+        {
+            throw new NetworkException("Handshake failed: ServerPublicKey must be configured. Anonymous handshakes are forbidden for security.");
+        }
 
-        Bytes32 sharedSecretSE = pinnedServerKey.IsZero
-            ? Bytes32.Zero
-            : X25519.Agreement(clientKey.PrivateKey, pinnedServerKey);
+        Bytes32 pinnedServerKey = Bytes32.Parse(session.Options.ServerPublicKey);
 
-        if (!pinnedServerKey.IsZero && sharedSecretSE.IsZero)
+        Bytes32 sharedSecretSE = X25519.Agreement(clientKey.PrivateKey, pinnedServerKey);
+
+        if (sharedSecretSE.IsZero)
         {
             throw new NetworkException("Handshake key agreement failed: Static shared secret is all zero.");
         }

@@ -16,9 +16,9 @@ flowchart TD
     A["Transport / Listener"] --> B["Connection Guard"]
     B --> C["Connection State"]
     C --> D["Protocol Rules"]
-    D --> E["Buffer Middleware"]
+    D --> E["FramePipeline (Low-level)"]
     E --> F["Packet Metadata"]
-    F --> G["Packet Middleware"]
+    F --> G["MiddlewarePipeline"]
     G --> H["Handler"]
 ```
 
@@ -76,7 +76,7 @@ Packet middleware is where request-level enforcement lives. Built-in middleware 
 | `PolicyRateLimiter` | Per-opcode and per-endpoint rate limiting |
 | `TokenBucketLimiter` | Global or per-connection token-bucket throttling |
 
-Buffer middleware can enforce earlier transport-level rules (decryption validation, frame integrity) before packet deserialization occurs.
+Low-level transport rules (decryption validation, frame integrity) are enforced by the **`FramePipeline`** and **`Protocol`** layer before packet deserialization occurs.
 
 ## Handshake and Cryptography
 

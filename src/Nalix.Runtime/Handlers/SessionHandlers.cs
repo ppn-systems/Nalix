@@ -88,8 +88,9 @@ public sealed class SessionHandlers
             return;
         }
 
-        Span<byte> expectedProofBytes = stackalloc byte[32];
         Span<byte> tokenBytes = stackalloc byte[8];
+        Span<byte> expectedProofBytes = stackalloc byte[32];
+
         _ = packet.SessionToken.TryWriteBytes(tokenBytes);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption to prevent DoS.
@@ -105,7 +106,7 @@ public sealed class SessionHandlers
 
         // Token was already consumed atomically by ConsumeAsync — no separate RemoveAsync needed.
 
-        ApplySession(context.Connection, session);
+        RestoreSessionSnapshot(context.Connection, session);
 
         // Generate and store a new session entry with a rotated token for subsequent resume attempts.
         SessionEntry newEntry = Hub.SessionStore.CreateSession(context.Connection);
@@ -129,7 +130,7 @@ public sealed class SessionHandlers
     /// </summary>
     /// <param name="connection">The connection being resumed.</param>
     /// <param name="session">The stored session entry.</param>
-    private static void ApplySession(IConnection connection, SessionEntry session)
+    private static void RestoreSessionSnapshot(IConnection connection, SessionEntry session)
     {
         SessionSnapshot snapshot = session.Snapshot;
 

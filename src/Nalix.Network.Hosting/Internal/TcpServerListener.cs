@@ -10,8 +10,8 @@ namespace Nalix.Network.Hosting.Internal;
 internal sealed class TcpServerListener : TcpListenerBase
 {
     /// <inheritdoc />
-    public TcpServerListener(IProtocol protocol) : base(protocol) { }
+    public TcpServerListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub) { }
 
     /// <inheritdoc />
-    public TcpServerListener(ushort port, IProtocol protocol) : base(port, protocol) { }
+    public TcpServerListener(ushort port, IProtocol protocol, IConnectionHub hub) : base(port, protocol, hub) { }
 }
