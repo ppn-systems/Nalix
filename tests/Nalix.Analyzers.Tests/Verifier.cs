@@ -174,7 +174,6 @@ internal static class Verifier<TCodeFix>
             "Nalix.Framework.DataFrames.PacketRegistryFactory",
             "Nalix.Common.Networking.Packets.IPacketDeserializer`1",
             "Nalix.Runtime.Middleware.IPacketMiddleware`1",
-            "Nalix.Runtime.Middleware.INetworkBufferMiddleware",
             "Nalix.Common.Serialization.SerializeOrderAttribute",
             "Nalix.Common.Middleware.MiddlewareOrderAttribute",
             "Nalix.Common.Middleware.MiddlewareStageAttribute",

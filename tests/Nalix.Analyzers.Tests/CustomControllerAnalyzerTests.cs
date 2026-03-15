@@ -149,29 +149,4 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
             "NALIX038");
     }
 
-    [Fact]
-    public async Task BufferLeaseLeak_ProducesDiagnostic()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Common.Abstractions;
-using Nalix.Runtime.Middleware;
-using Nalix.Common.Networking;
-
-public sealed class LeakMiddleware : INetworkBufferMiddleware
-{
-    public ValueTask<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, ValueTask<IBufferLease?>> next, CancellationToken ct)
-    {
-        // Leak: buffer is not disposed and not passed to next
-        return ValueTask.FromResult<IBufferLease?>(null);
-    }
-}
-""";
-
-        await Verifier<CodeFixes.PacketOpcodeCodeFixProvider>.VerifyAnalyzerAsync(
-            source,
-            "NALIX031", // Missing MiddlewareOrder
-            "NALIX039"  // Leak
-        );
-    }
 }

@@ -132,27 +132,15 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (HasAttribute(typeSymbol, symbols.ControllerAttribute))
-        {
-            AnalyzeControllerType(context, typeSymbol, symbols, globalOpcodes, controllerNames);
-        }
-
         AnalyzePacketType(context, typeSymbol, symbols);
         AnalyzeSerializationType(context, typeSymbol, symbols);
         AnalyzeConfigurationType(context, typeSymbol, symbols);
         AnalyzeMetadataProviderType(context, typeSymbol, symbols);
         AnalyzeMiddlewareType(context, typeSymbol, symbols);
-
-        if (Implements(typeSymbol, symbols.NetworkBufferMiddlewareType) && HasAttribute(typeSymbol, symbols.MiddlewareStageAttribute))
+ 
+        if (HasAttribute(typeSymbol, symbols.ControllerAttribute))
         {
-            Location? location = typeSymbol.Locations.FirstOrDefault(static l => l.IsInSource);
-            if (location is not null)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.BufferMiddlewareShouldNotUseStageAttribute,
-                    location,
-                    typeSymbol.Name));
-            }
+            AnalyzeControllerType(context, typeSymbol, symbols, globalOpcodes, controllerNames);
         }
     }
 
@@ -242,10 +230,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeMiddlewareType(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols)
     {
-        bool isPacketMiddleware = ImplementsOpenGeneric(typeSymbol, symbols.PacketMiddlewareType);
-        bool isBufferMiddleware = Implements(typeSymbol, symbols.NetworkBufferMiddlewareType);
-
-        if (!isPacketMiddleware && !isBufferMiddleware)
+        if (!ImplementsOpenGeneric(typeSymbol, symbols.PacketMiddlewareType))
         {
             return;
         }
@@ -255,22 +240,9 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         AttributeData? stageAttribute = typeSymbol.GetAttributes()
             .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.MiddlewareStageAttribute));
 
-        if (isPacketMiddleware && orderAttribute is null)
+        if (orderAttribute is null)
         {
             Report(context, DiagnosticDescriptors.PacketMiddlewareMissingOrder, typeSymbol, typeSymbol.Name);
-        }
-
-        if (isBufferMiddleware)
-        {
-            if (orderAttribute is null)
-            {
-                Report(context, DiagnosticDescriptors.BufferMiddlewareMissingOrder, typeSymbol, typeSymbol.Name);
-            }
-
-            if (stageAttribute is not null)
-            {
-                return;
-            }
         }
 
         if (stageAttribute is not null && IsInboundAlwaysExecute(stageAttribute, symbols.MiddlewareStageType))
@@ -1009,7 +981,13 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return null;
         }
 
-        return attribute.ConstructorArguments[0].Value is ushort opcode ? opcode : null;
+        object? value = attribute.ConstructorArguments[0].Value;
+        return value switch
+        {
+            ushort u => u,
+            int i => (ushort)i,
+            _ => null
+        };
     }
 
     private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol? attributeSymbol)
@@ -1451,7 +1429,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        if (method.Name == "InvokeAsync" && (ImplementsOpenGeneric(method.ContainingType, symbols.PacketMiddlewareType) || Implements(method.ContainingType, symbols.NetworkBufferMiddlewareType)))
+        if (method.Name == "InvokeAsync" && ImplementsOpenGeneric(method.ContainingType, symbols.PacketMiddlewareType))
         {
             return true;
         }

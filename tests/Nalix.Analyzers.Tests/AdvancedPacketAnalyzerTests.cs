@@ -34,34 +34,4 @@ public sealed class Example
             "NALIX018");
     }
 
-    [Fact]
-    public async Task WithBufferMiddlewareTypeMismatch_ProducesDiagnostic()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Runtime.Dispatching;
-
-public sealed class SomePacket : Nalix.Framework.DataFrames.PacketBase<SomePacket>
-{
-    public static new SomePacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<SomePacket>.Deserialize(buffer);
-}
-
-public sealed class NotBufferMiddleware
-{
-}
-
-public sealed class Example
-{
-    public void Run()
-    {
-        new PacketDispatchOptions<SomePacket>().WithBufferMiddleware((Nalix.Runtime.Middleware.INetworkBufferMiddleware)(object)new NotBufferMiddleware());
-    }
-}
-""";
-
-        await Verifier<CodeFixes.PacketRegistryDeserializerCodeFixProvider>.VerifyAnalyzerAsync(
-            source,
-            "NALIX019");
-    }
 }

@@ -164,7 +164,6 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? packetRegistryFactoryType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketRegistryFactory");
             INamedTypeSymbol? packetDeserializerType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacketDeserializer`1");
             INamedTypeSymbol? packetMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Runtime.Middleware.IPacketMiddleware`1");
-            INamedTypeSymbol? networkBufferMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Runtime.Middleware.INetworkBufferMiddleware");
             INamedTypeSymbol? networkApplicationBuilderType = compilation.GetTypeByMetadataName("Nalix.Network.Hosting.NetworkApplicationBuilder");
             INamedTypeSymbol? middlewareOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareOrderAttribute");
             INamedTypeSymbol? middlewareStageAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStageAttribute");
@@ -225,7 +224,7 @@ public sealed partial class NalixUsageAnalyzer
                     packetRegistryFactoryType,
                     packetDeserializerType,
                     packetMiddlewareType,
-                    networkBufferMiddlewareType,
+                    null, // networkBufferMiddlewareType removed
                     networkApplicationBuilderType,
                     middlewareOrderAttribute,
                     middlewareStageAttribute,
