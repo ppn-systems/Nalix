@@ -40,7 +40,7 @@ For more examples, see [docs/README.md](./docs/README.md).
 ## Architecture Reference
 
 For a deep dive into Nalix’s system architecture and design philosophy,  
-see [docs/Architecture.md](./docs/Architecture.md).
+see [docs/Nalix.Network/Architecture.md](./docs/Nalix.Network/Architecture.md).
 
 ---
 
