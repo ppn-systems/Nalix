@@ -28,9 +28,23 @@ internal static class EnvelopeValueCodec
     /// returning the ciphertext as a Base64 string.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Called exclusively through a cached delegate in <see cref="EnvelopeDelegateStore"/>.
     /// The method signature must remain compatible with
     /// <c>Func&lt;object, byte[], CipherSuiteType, byte[], string&gt;</c>.
+    /// </para>
+    /// <para>
+    /// <b>Stack path (payload ≤ StackAllocThreshold / 2):</b>
+    /// A single <c>stackalloc</c> buffer is split into a plaintext half and a ciphertext half.
+    /// <see cref="DataWriter(System.Span{System.Byte})"/> writes directly into the plaintext half —
+    /// no heap allocation, no copy. The ciphertext half receives the encrypted output in-place.
+    /// Zero alloc on the hot path (excluding the returned <see cref="System.String"/>).
+    /// </para>
+    /// <para>
+    /// <b>Heap fallback path (payload &gt; threshold):</b>
+    /// Both buffers are rented from <see cref="BufferLease"/> (ArrayPool-backed).
+    /// One additional <c>new byte[]</c> for <c>ToArray()</c> is acceptable at this size.
+    /// </para>
     /// </remarks>
     /// <exception cref="System.InvalidOperationException">
     /// Thrown when <paramref name="value"/> cannot be cast to <typeparamref name="T"/>.
@@ -47,72 +61,80 @@ internal static class EnvelopeValueCodec
                 $"Cannot cast value of type '{value.GetType().Name}' to expected type '{typeof(T).Name}'.");
         }
 
-        // Retrieve the formatter — FormatterCache<T>.Formatter is already populated
-        // by FormatterProvider.Get<T>() the first time it is requested.
-        // Access the static field directly to avoid a dictionary lookup on every call.
+        System.Int32 cipherOverhead =
+            EnvelopeCipher.HeaderSize +
+            EnvelopeCipher.GetNonceLength(algorithm) +
+            EnvelopeCipher.GetTagLength(algorithm);
 
-        // Use a small initial capacity; DataWriter grows automatically if needed.
-        DataWriter writer = new(64);
-        try
+        // ── Stack path ────────────────────────────────────────────────────────
+        // Estimate: half the threshold for plaintext, half for ciphertext (+overhead).
+        // We use StackAllocThreshold / 2 as the plaintext budget so that both spans
+        // fit comfortably within the threshold without risking stack overflow.
+        System.Int32 ptBudget = BufferLease.StackAllocThreshold / 2;
+
+        if (ptBudget > cipherOverhead) // sanity: overhead must fit in the cipher half
         {
-            // Serialize into the writer's pooled buffer — no intermediate array allocation.
-            FormatterProvider.Get<T>()
-                             .Serialize(ref writer, typedValue);
+            // Allocate one contiguous block: [plaintext | ciphertext]
+            // ptBudget bytes for plaintext, (ptBudget + cipherOverhead) for ciphertext.
+            System.Int32 cipherBudget = ptBudget + cipherOverhead;
+            System.Span<System.Byte> ptStack = stackalloc System.Byte[ptBudget];
+            System.Span<System.Byte> cipherStack = stackalloc System.Byte[cipherBudget];
 
+            // Serialize directly into the stack span — zero alloc, zero copy.
+            DataWriter writer = new(ptStack);
+            FormatterProvider.Get<T>().Serialize(ref writer, typedValue);
             System.Int32 plaintextLen = writer.WrittenCount;
+            // writer.Dispose() is a no-op here (_rent = false, _owner = null) but keep for clarity.
+            writer.Dispose();
 
-            // ── Written data lives in _span[0..WrittenCount], NOT in FreeBuffer ──
-            // DataWriter.FreeBuffer = _span[WrittenCount..] (the unused tail).
-            // We need _span[0..WrittenCount], exposed via the DataReader or ToArray().
-            // The cleanest zero-copy path: get a ReadOnlySpan over the written region
-            // by subtracting FreeBuffer length from the total span.
-            // writer.FreeBuffer starts right after the last written byte, so:
-            //   written region = full_span[0..plaintextLen]
-            //                  = full_span[..( full_span.Length - FreeBuffer.Length )] — same thing
-            // We derive it as: (full capacity span)[..plaintextLen]
-            // Since writer exposes FreeBuffer = _span[WrittenCount..], the written span
-            // is _span[..WrittenCount]. We reconstruct it as:
-            //   _span[..WrittenCount] == FreeBuffer.Slice(-WrittenCount) — unsafe
-            // Safest API: use MemoryMarshal to get ref to _span start, then slice.
-            // But DataWriter doesn't expose the full span. Use the public written span trick:
-            //   FreeBuffer[-(plaintextLen)..0] — not valid in C#.
-            // SOLUTION: DataWriter exposes GetFreeBufferReference() which is ref to FreeBuffer[0].
-            // The written region is immediately before FreeBuffer in memory.
-            // Cast to byte* and step back — unsafe and fragile.
-            // CLEANEST SOLUTION: Call writer.ToArray() only if needed, OR use a local
-            // fixed-size span that we pass to DataWriter directly.
-
-            // Use a dedicated stack/pooled buffer and wrap DataWriter around it for zero-copy:
-            System.Int32 estimatedCipherCapacity = plaintextLen + EnvelopeCipher.HeaderSize + EnvelopeCipher.GetNonceLength(algorithm) + EnvelopeCipher.GetTagLength(algorithm);
-
-            if (estimatedCipherCapacity <= BufferLease.StackAllocThreshold)
+            // If the actual serialized size exceeds our stack budget, fall through to heap path.
+            if (plaintextLen <= ptBudget)
             {
-                // Fast path: both plaintext and ciphertext fit on the stack.
-                System.Span<System.Byte> ptStack = stackalloc System.Byte[plaintextLen];
-                System.Span<System.Byte> cipherStack = stackalloc System.Byte[estimatedCipherCapacity];
-
-                // Copy written bytes from writer into our plaintext stack buffer.
-                // writer.FreeBuffer is _span[WrittenCount..]; the written part is _span[..WrittenCount].
-                // We can get a ReadOnlySpan over the written region via:
-                //   MemoryMarshal.CreateReadOnlySpan(ref writer.GetFreeBufferReference() - plaintextLen, ...)
-                // This is unsafe. Instead, use the safe path: copy from writer directly.
-                CopyWrittenBytes(ref writer, ptStack, plaintextLen);
-
-                EnvelopeCipher.Encrypt(key, ptStack, cipherStack, aad, null, algorithm, out System.Int32 written);
+                System.ReadOnlySpan<System.Byte> ptSpan = ptStack[..plaintextLen];
+                EnvelopeCipher.Encrypt(key, ptSpan, cipherStack, aad, null, algorithm, out System.Int32 written);
 
                 System.String result = System.Convert.ToBase64String(cipherStack[..written]);
+
                 // Defense-in-depth: zero sensitive bytes before stack frame unwinds.
-                ptStack.Clear();
+                ptStack[..plaintextLen].Clear();
                 cipherStack[..written].Clear();
 
                 return result;
             }
 
-            // Fallback: use pooled heap buffers for larger payloads.
-            System.Byte[] ptArray = writer.ToArray(); // allocates once; acceptable for large payloads
+            // Actual size exceeded budget — clear partial writes and fall through.
+            ptStack.Clear();
+            cipherStack.Clear();
+        }
+
+        // ── Heap fallback path ────────────────────────────────────────────────
+        // Both buffers rented from ArrayPool via BufferLease — no managed heap alloc
+        // beyond the final Base64 string and the DataWriter's internal rented array.
+        return SerializeHeapPath<T>(typedValue, key, algorithm, aad, cipherOverhead);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static System.String SerializeHeapPath<T>(
+        T typedValue,
+        System.Byte[] key,
+        CipherSuiteType algorithm,
+        System.Byte[] aad,
+        System.Int32 cipherOverhead)
+    {
+        // Rent a pooled writer — grows automatically if the formatter needs more space.
+        DataWriter writer = new(256);
+        try
+        {
+            FormatterProvider.Get<T>().Serialize(ref writer, typedValue);
+            System.Int32 plaintextLen = writer.WrittenCount;
+
+            // ptArray is the one unavoidable alloc on the large path.
+            System.Byte[] ptArray = writer.ToArray();
             try
             {
-                BufferLease cipherLease = BufferLease.Rent(estimatedCipherCapacity);
+                System.Int32 cipherCapacity = plaintextLen + cipherOverhead;
+                BufferLease cipherLease = BufferLease.Rent(cipherCapacity);
                 try
                 {
                     System.Span<System.Byte> dst = cipherLease.SpanFull;
@@ -129,7 +151,6 @@ internal static class EnvelopeValueCodec
             }
             finally
             {
-                // Zero plaintext array before it is GC-eligible.
                 System.Array.Clear(ptArray);
             }
         }
@@ -172,39 +193,6 @@ internal static class EnvelopeValueCodec
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Copies the written region of <paramref name="writer"/> into <paramref name="destination"/>.
-    /// <para>
-    /// <b>Why this helper exists:</b> <see cref="DataWriter.FreeBuffer"/> exposes only the
-    /// <em>unwritten</em> tail of the internal span. The written region
-    /// (<c>_span[0..WrittenCount]</c>) is not directly accessible via a public API.
-    /// The safest zero-copy workaround is to use <see cref="DataWriter.ToArray"/> (one allocation)
-    /// for the fallback path, and this helper for the stack path where we can call
-    /// <see cref="DataWriter.FreeBuffer"/> after temporarily "rewinding" by reading
-    /// the span reference. In practice we just call <c>ToArray</c> for correctness and
-    /// accept the one allocation on the warm path; the real win is avoiding it for the
-    /// common &lt;512-byte case by using a pre-allocated stack buffer passed to a
-    /// <see cref="DataWriter"/> constructor overload that accepts a
-    /// <see cref="System.Span{Byte}"/>.
-    /// </para>
-    /// <para>
-    /// For the stack-fast-path we instead construct <see cref="DataWriter"/> directly over he stack span.
-    /// </para>
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void CopyWrittenBytes(
-        ref DataWriter writer,
-        scoped System.Span<System.Byte> destination, System.Int32 count)
-    {
-        // writer.ToArray() copies _span[..WrittenCount] into a new array.
-        // For the stack path the count is ≤ 512, so this one small allocation is acceptable
-        // and avoids unsafe pointer arithmetic.
-        System.Byte[] written = writer.ToArray();
-        System.MemoryExtensions.AsSpan(written, 0, count).CopyTo(destination);
-        System.Array.Clear(written); // zero before GC
-    }
-
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Object DeserializeStackPath<T>(
@@ -237,11 +225,8 @@ internal static class EnvelopeValueCodec
         DataReader reader = new(plainSpan[..written]);
         try
         {
-            // Use FormatterCache<T>.Formatter for zero-lookup access on the hot path.
-            T result = FormatterProvider.Get<T>()
-                                        .Deserialize(ref reader);
+            T result = FormatterProvider.Get<T>().Deserialize(ref reader);
 
-            // Zero sensitive plaintext before returning.
             plainSpan[..written].Clear();
             cipherStack[..cipherLen].Clear();
 
@@ -289,9 +274,7 @@ internal static class EnvelopeValueCodec
             DataReader reader = new(plainSpan[..written]);
             try
             {
-                T result = FormatterProvider.Get<T>()
-                                            .Deserialize(ref reader);
-
+                T result = FormatterProvider.Get<T>().Deserialize(ref reader);
                 plainSpan[..written].Clear();
                 return result!;
             }
@@ -304,7 +287,6 @@ internal static class EnvelopeValueCodec
         {
             try
             {
-                // Defense-in-depth: zero full buffers before returning to pool.
                 cipherLease.SpanFull.Clear();
                 plainLease.SpanFull.Clear();
             }
