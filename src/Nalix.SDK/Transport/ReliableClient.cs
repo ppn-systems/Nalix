@@ -18,6 +18,7 @@ using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Extensions;
 using Nalix.SDK.Transport.Internal;
 using Nalix.Shared.Frames.Controls;
+using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.SDK.Transport;
 
@@ -70,6 +71,7 @@ public sealed class ReliableClient : IClientConnection
     private System.Int64 _bytesReceived;
 
     // Per-interval counters reset by RATE_SAMPLER_TICK
+    private System.Int64 _lastSampleTick;
     private System.Int64 _sendCounterForInterval;
     private System.Int64 _receiveCounterForInterval;
 
@@ -78,8 +80,8 @@ public sealed class ReliableClient : IClientConnection
     private System.Int64 _lastReceiveBps;
 
     // RTT (ms) của lần heartbeat gần nhất
-    private System.Double _lastHeartbeatRtt;
     private Control _lastHeartbeatPong;
+    private System.Double _lastHeartbeatRtt;
     private readonly System.Threading.Lock _heartbeatLock = new();
 
     // Cached logger — resolved once to avoid repeated DI lookups on hot paths.
@@ -93,10 +95,7 @@ public sealed class ReliableClient : IClientConnection
     public event System.EventHandler OnConnected;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Exception> OnDisconnected;
-
-    /// <inheritdoc/>
-    public event System.EventHandler<IBufferLease> OnMessageReceived;
+    public event System.EventHandler<System.Exception> OnError;
 
     /// <inheritdoc/>
     public event System.EventHandler<System.Int64> OnBytesSent;
@@ -105,7 +104,10 @@ public sealed class ReliableClient : IClientConnection
     public event System.EventHandler<System.Int64> OnBytesReceived;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Exception> OnError;
+    public event System.EventHandler<IBufferLease> OnMessageReceived;
+
+    /// <inheritdoc/>
+    public event System.EventHandler<System.Exception> OnDisconnected;
 
     /// <summary>
     /// Optional asynchronous message handler.
@@ -115,7 +117,7 @@ public sealed class ReliableClient : IClientConnection
     /// Unlike the event, this is a single-delegate slot to avoid multicast complications with async.
     /// The caller is responsible for disposing the <see cref="IBufferLease"/> if they consume it here.
     /// </remarks>
-    public System.Func<ReliableClient, IBufferLease, System.Threading.Tasks.Task> OnMessageReceivedAsync;
+    public System.Func<ReliableClient, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> OnMessageReceivedAsync;
 
     #endregion Events
 
@@ -208,12 +210,9 @@ public sealed class ReliableClient : IClientConnection
         // IPacketCatalog is required for deserialization; fail fast with a clear message.
         if (InstanceManager.Instance.GetExistingInstance<IPacketRegistry>() is null)
         {
-            _log?.Error(
-                $"[SDK.{nameof(ReliableClient)}] No IPacketRegistry instance found; " +
-                "this is a fatal configuration error. The process will terminate.");
+            _log?.Error($"[SDK.{nameof(ReliableClient)}] No IPacketRegistry instance found; this is a fatal configuration error. The process will terminate.");
 
-            System.Environment.FailFast(
-                $"[SDK.{nameof(ReliableClient)}] Missing required service: IPacketRegistry.");
+            System.Environment.FailFast($"[SDK.{nameof(ReliableClient)}] Missing required service: IPacketRegistry.");
         }
     }
 
@@ -241,9 +240,7 @@ public sealed class ReliableClient : IClientConnection
 
         if (System.String.IsNullOrWhiteSpace(effectiveHost))
         {
-            throw new System.ArgumentException(
-                "A host must be provided either as a parameter or via TransportOptions.Address.",
-                nameof(host));
+            throw new System.ArgumentException("A host must be provided either as a parameter or via TransportOptions.Address.", nameof(host));
         }
 
         // Guard: already connected to the same endpoint — no-op.
@@ -258,8 +255,7 @@ public sealed class ReliableClient : IClientConnection
             CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
         }
 
-        using System.Threading.CancellationTokenSource connectCts =
-            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using System.Threading.CancellationTokenSource connectCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         if (Options.ConnectTimeoutMillis > 0)
         {
@@ -268,8 +264,7 @@ public sealed class ReliableClient : IClientConnection
 
         System.Exception lastEx = null;
 
-        System.Net.IPAddress[] addrs =
-            await System.Net.Dns.GetHostAddressesAsync(effectiveHost, ct).ConfigureAwait(false);
+        System.Net.IPAddress[] addrs = await System.Net.Dns.GetHostAddressesAsync(effectiveHost, ct).ConfigureAwait(false);
 
         foreach (System.Net.IPAddress addr in addrs)
         {
@@ -319,15 +314,16 @@ public sealed class ReliableClient : IClientConnection
 
                 return; // Connected successfully.
             }
-            catch (System.Exception ex) when (
-                ex is not System.OperationCanceledException oce ||
-                !connectCts.IsCancellationRequested)
+            catch (System.Exception ex) when (ex is not System.OperationCanceledException oce || !connectCts.IsCancellationRequested)
             {
                 lastEx = ex;
-                _log?.Warn(
-                    $"[SDK.{nameof(ReliableClient)}] connect-failed addr={addr}:{effectivePort} ex={ex.Message}");
+                _log?.Warn($"[SDK.{nameof(ReliableClient)}] connect-failed addr={addr}:{effectivePort} ex={ex.Message}");
 
-                try { s.Dispose(); } catch { /* best-effort */ }
+                try
+                {
+                    s.Dispose();
+                }
+                catch { /* best-effort */ }
             }
         }
 
@@ -359,8 +355,9 @@ public sealed class ReliableClient : IClientConnection
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableClient));
+        FRAME_SENDER sender = System.Threading.Volatile.Read(ref _sender);
 
-        return _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(payload, ct);
+        return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(payload, ct);
     }
 
     /// <inheritdoc/>
@@ -371,8 +368,9 @@ public sealed class ReliableClient : IClientConnection
     {
         System.ArgumentNullException.ThrowIfNull(packet);
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableClient));
+        FRAME_SENDER sender = System.Threading.Volatile.Read(ref _sender);
 
-        return _sender is null ? throw new System.InvalidOperationException("Client not connected.") : _sender.SendAsync(packet, ct);
+        return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(packet, ct);
     }
 
     /// <inheritdoc/>
@@ -409,7 +407,7 @@ public sealed class ReliableClient : IClientConnection
     {
         try
         {
-            _rateSamplerName = $"ReliableClient-{addr}:{port}";
+            _rateSamplerName = $"ReliableClient_Rate-{addr}:{port}";
 
             InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: _rateSamplerName,
@@ -447,7 +445,7 @@ public sealed class ReliableClient : IClientConnection
         try
         {
             _receiveHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                name: $"ReliableClient-{addr}:{port}",
+                name: $"ReliableClient-Receive-{addr}:{port}",
                 group: "client",
                 work: async (_, workerCt) =>
                 {
@@ -476,9 +474,9 @@ public sealed class ReliableClient : IClientConnection
     /// No-op when <see cref="TransportOptions.KeepAliveIntervalMillis"/> is zero.
     /// </summary>
     private void START_HEARTBEAT(
-    System.Net.IPAddress addr,
-    System.UInt16 port,
-    System.Threading.CancellationToken loopToken)
+        System.Net.IPAddress addr,
+        System.UInt16 port,
+        System.Threading.CancellationToken loopToken)
     {
         if (Options.KeepAliveIntervalMillis <= 0)
         {
@@ -502,13 +500,14 @@ public sealed class ReliableClient : IClientConnection
                     try
                     {
                         // Build PING — dùng như ControlExtensions PingAsync nhưng không cần trả về tuple.
-                        Control ping = this.NewControl(0, ControlType.PING)
-                            .WithSeq(sequenceId)
-                            .StampNow()
-                            .Build();
+                        Control ping = this.NewControl(0, ControlType.PING).WithSeq(sequenceId)
+                                                                           .StampNow()
+                                                                           .Build();
+
                         System.Int64 sendMono = ping.MonoTicks != 0 ? ping.MonoTicks : Clock.MonoTicksNow();
 
-                        await this.SendAsync(ping, effective).ConfigureAwait(false);
+                        await this.SendAsync(ping, effective)
+                                  .ConfigureAwait(false);
 
                         var pong = await this.AwaitControlAsync(
                             predicate: c => c.Type == ControlType.PONG && c.SequenceId == sequenceId,
@@ -568,8 +567,20 @@ public sealed class ReliableClient : IClientConnection
         {
             CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
 
-            try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
-            try { _socket?.Close(); _socket?.Dispose(); } catch { }
+            System.Threading.Interlocked.Exchange(ref _sender, null)?.Dispose();
+
+            try
+            {
+                _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both);
+            }
+            catch { }
+
+            try
+            {
+                _socket?.Close(); _socket?.Dispose();
+            }
+            catch { }
+
             _socket = null;
         }
 
@@ -624,29 +635,106 @@ public sealed class ReliableClient : IClientConnection
     {
         System.Threading.Interlocked.Add(ref _bytesSent, count);
         System.Threading.Interlocked.Add(ref _sendCounterForInterval, count);
-        try { OnBytesSent?.Invoke(this, count); } catch { /* swallow subscriber exceptions */ }
+
+        try
+        {
+            OnBytesSent?.Invoke(this, count);
+        }
+        catch { /* swallow subscriber exceptions */ }
     }
 
     private void ReportBytesReceived(System.Int32 count)
     {
         System.Threading.Interlocked.Add(ref _bytesReceived, count);
         System.Threading.Interlocked.Add(ref _receiveCounterForInterval, count);
-        try { OnBytesReceived?.Invoke(this, count); } catch { /* swallow subscriber exceptions */ }
+
+        try
+        {
+            OnBytesReceived?.Invoke(this, count);
+        }
+        catch { /* swallow subscriber exceptions */ }
     }
 
     private void HandleSendError(System.Exception ex)
     {
-        try { OnError?.Invoke(this, ex); } catch { }
+        try
+        {
+            OnError?.Invoke(this, ex);
+        }
+        catch { }
+
         _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
     }
 
     private void HandleReceiveError(System.Exception ex)
     {
-        try { OnError?.Invoke(this, ex); } catch { }
+        try
+        {
+            OnError?.Invoke(this, ex);
+        }
+        catch { }
+
         _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
     }
 
-    private void HandleReceiveMessage(IBufferLease lease) => OnMessageReceived?.Invoke(this, lease);
+    private void HandleReceiveMessage(Nalix.Shared.Memory.Buffers.BufferLease lease)
+    {
+        // ── Snapshot invocation list ─────────────────────────────────────
+        // GetInvocationList() trả về array snapshot tại thời điểm gọi.
+        // An toàn với concurrent subscribe/unsubscribe vì delegate là immutable.
+        System.Delegate[] syncHandlers = OnMessageReceived?.GetInvocationList() ?? [];
+        System.Func<ReliableClient, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> asyncHandler = OnMessageReceivedAsync;
+
+        // ── Chuẩn bị data cho async handler TRƯỚC KHI dispose lease ─────
+        // ToArray() copy Span ra heap — không cần pool, không cần dispose.
+        // Chỉ allocate nếu thực sự có asyncHandler để tránh alloc vô ích.
+        System.ReadOnlyMemory<System.Byte> asyncData = asyncHandler is not null ? lease.Span.ToArray() : System.ReadOnlyMemory<System.Byte>.Empty;
+
+        try
+        {
+            // ── Deliver tới từng sync subscriber ─────────────────────────
+            // Mỗi subscriber nhận BufferLease COPY RIÊNG — sở hữu và dispose độc lập.
+            // Wrapper trong ReliableClientSubscriptions đã có finally { buffer.Dispose(); }
+            // nên copy sẽ được trả về pool đúng cách sau khi handler chạy xong.
+            foreach (System.Delegate d in syncHandlers)
+            {
+                // CopyFrom: rent buffer mới từ pool + copy nội dung lease gốc vào.
+                // Đây là zero-copy đối với lease gốc (chỉ đọc Span), không cần lock.
+                Nalix.Shared.Memory.Buffers.BufferLease copy =
+                    Nalix.Shared.Memory.Buffers.BufferLease.CopyFrom(lease.Span);
+
+                try
+                {
+                    ((System.EventHandler<BufferLease>)d).Invoke(this, copy);
+                }
+                catch (System.Exception ex)
+                {
+                    // Subscriber faulted — wrapper của nó có thể đã không chạy finally.
+                    // Dispose copy ngay tại đây để không leak pool buffer.
+                    try { copy.Dispose(); } catch { }
+
+                    _log?.Error($"[SDK.{nameof(ReliableClient)}] sync-handler-faulted: {ex.Message}", ex);
+                }
+            }
+        }
+        finally
+        {
+            // ── Dispose lease gốc — đúng 1 lần, đúng chỗ ───────────────
+            // Dù có bao nhiêu subscriber, dù subscriber nào throw,
+            // lease gốc luôn được dispose tại đây.
+            try { lease.Dispose(); } catch { }
+        }
+
+        // ── Fire async handler ───────────────────────────────────────────
+        // Nằm ngoài try/finally vì lease đã được dispose an toàn rồi.
+        // asyncData là heap copy độc lập — không cần dispose.
+        if (asyncHandler is not null && asyncData.Length > 0)
+        {
+            _ = asyncHandler(this, asyncData).ContinueWith(
+                t => _log?.Error($"[SDK.{nameof(ReliableClient)}] OnMessageReceivedAsync faulted: {t.Exception?.GetBaseException().Message}"),
+                System.Threading.Tasks.TaskContinuationOptions.OnlyOnFaulted);
+        }
+    }
 
     #endregion Private — Callbacks
 
@@ -656,8 +744,7 @@ public sealed class ReliableClient : IClientConnection
     /// Fallback heartbeat loop used when <see cref="TaskManager"/> scheduling fails.
     /// Sends a CONTROL PING at the configured interval until canceled.
     /// </summary>
-    private async System.Threading.Tasks.Task HEARTBEAT_LOOP_ASYNC(
-        System.Threading.CancellationToken token)
+    private async System.Threading.Tasks.Task HEARTBEAT_LOOP_ASYNC(System.Threading.CancellationToken token)
     {
         System.Int32 intervalMs = System.Math.Max(1, Options.KeepAliveIntervalMillis);
 
@@ -709,19 +796,28 @@ public sealed class ReliableClient : IClientConnection
             return System.Threading.Tasks.Task.CompletedTask;
         }
 
+        System.Int64 now = Clock.MonoTicksNow();
+        System.Double elapsedSec = Clock.MonoTicksToMilliseconds(now - _lastSampleTick) / 1000.0;
+
+        _lastSampleTick = now;
+
         try
         {
             System.Int64 sent = System.Threading.Interlocked.Exchange(ref _sendCounterForInterval, 0);
             System.Int64 recv = System.Threading.Interlocked.Exchange(ref _receiveCounterForInterval, 0);
-            System.Threading.Interlocked.Exchange(ref _lastSendBps, sent);
+
+            System.Threading.Interlocked.Exchange(ref _lastSendBps, (System.Int64)(sent / elapsedSec));
             System.Threading.Interlocked.Exchange(ref _lastReceiveBps, recv);
         }
         catch (System.Exception ex)
         {
-            _log?.Warn(
-                $"[SDK.{nameof(ReliableClient)}.{nameof(RATE_SAMPLER_TICK_ASYNC)}] sampler-error: {ex.Message}");
+            _log?.Warn($"[SDK.{nameof(ReliableClient)}.{nameof(RATE_SAMPLER_TICK_ASYNC)}] sampler-error: {ex.Message}");
 
-            try { OnError?.Invoke(this, ex); } catch { }
+            try
+            {
+                OnError?.Invoke(this, ex);
+            }
+            catch { }
         }
 
         return System.Threading.Tasks.Task.CompletedTask;
@@ -775,23 +871,27 @@ public sealed class ReliableClient : IClientConnection
                 $"[SDK.{nameof(ReliableClient)}] Reconnect attempt={attempt} delay={delayMs} ms.");
 
             // Safe cast: delayMs is clamped to maxDelayMs which is derived from an int option.
-            await System.Threading.Tasks.Task.Delay(
-                (System.Int32)System.Math.Min(delayMs, System.Int32.MaxValue))
-                .ConfigureAwait(false);
+            System.Int64 jitter = (System.Int64)(Csprng.NextDouble() * delayMs * 0.3);
+            await System.Threading.Tasks.Task.Delay((System.Int32)System.Math
+                                             .Min(delayMs + jitter, System.Int32.MaxValue))
+                                             .ConfigureAwait(false);
 
             try
             {
                 await ConnectAsync(_host, _port).ConfigureAwait(false);
-                _log?.Info(
-                    $"[SDK.{nameof(ReliableClient)}] Reconnect-success attempt={attempt}.");
+                _log?.Info($"[SDK.{nameof(ReliableClient)}] Reconnect-success attempt={attempt}.");
+
                 return;
             }
             catch (System.Exception ex)
             {
-                _log?.Warn(
-                    $"[SDK.{nameof(ReliableClient)}] Reconnect-failed attempt={attempt} ex={ex.Message}");
+                _log?.Warn($"[SDK.{nameof(ReliableClient)}] Reconnect-failed attempt={attempt} ex={ex.Message}");
 
-                try { OnError?.Invoke(this, ex); } catch { }
+                try
+                {
+                    OnError?.Invoke(this, ex);
+                }
+                catch { }
 
                 // Exponential backoff — doubles each attempt, capped at maxDelayMs.
                 delayMs = System.Math.Min(maxDelayMs, delayMs * 2);
