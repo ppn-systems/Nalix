@@ -142,36 +142,15 @@ public static class ControlExtensions
         System.Threading.Tasks.TaskCompletionSource<TPkt> tcs =
             new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
 
-        void OnMessageReceived(System.Object _, IBufferLease buffer)
-        {
-            // Always dispose the lease; deserialize takes a ReadOnlySpan copy.
-            using (buffer)
-            {
-                if (!catalog.TryDeserialize(buffer.Span, out IPacket p))
-                {
-                    return;
-                }
 
-                if (p is TPkt pp && predicate(pp))
-                {
-                    tcs.TrySetResult(pp);
-                }
-            }
-        }
 
-        void OnDisconnected(System.Object _, System.Exception ex)
-            => tcs.TrySetException(
-                ex ?? new System.InvalidOperationException("Disconnected before a matching packet arrived."));
-
-        client.OnMessageReceived += OnMessageReceived;
-        client.OnDisconnected += OnDisconnected;
-
-        using System.Threading.CancellationTokenSource lcts =
-            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using System.Threading.CancellationTokenSource lcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
         lcts.CancelAfter(timeoutMs);
 
-        await using System.Threading.CancellationTokenRegistration reg =
-            lcts.Token.Register(() => tcs.TrySetCanceled(lcts.Token));
+        await using System.Threading.CancellationTokenRegistration reg = lcts.Token.Register(() => tcs.TrySetCanceled(lcts.Token));
+
+        client.OnDisconnected += OnDisconnected;
+        client.OnMessageReceived += OnMessageReceived;
 
         try
         {
@@ -189,9 +168,28 @@ public static class ControlExtensions
         }
         finally
         {
-            client.OnMessageReceived -= OnMessageReceived;
             client.OnDisconnected -= OnDisconnected;
+            client.OnMessageReceived -= OnMessageReceived;
         }
+
+        void OnMessageReceived(System.Object _, IBufferLease buffer)
+        {
+            // Always dispose the lease; deserialize takes a ReadOnlySpan copy.
+            using (buffer)
+            {
+                if (!catalog.TryDeserialize(buffer.Span, out IPacket p))
+                {
+                    return;
+                }
+
+                if (p is TPkt pp && predicate(pp))
+                {
+                    tcs.TrySetResult(pp);
+                }
+            }
+        }
+
+        void OnDisconnected(System.Object _, System.Exception ex) => tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected before a matching packet arrived."));
     }
 
     /// <summary>
