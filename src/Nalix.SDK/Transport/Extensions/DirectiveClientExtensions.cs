@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics.Abstractions;
@@ -119,7 +119,7 @@ public static class DirectiveClientExtensions
                     System.Int64 delayTicks = delayMs * Clock.TicksPerSecond / 1000L;
 
                     ClientState state = _states.GetOrCreateValue(client);
-                    System.Threading.Volatile.Write(ref state.ThrottleUntilMonoTicks, nowTicks + delayTicks);
+                    System.Threading.Interlocked.Exchange(ref state.ThrottleUntilMonoTicks, nowTicks + delayTicks);
 
                     callbacks?.OnThrottle?.Invoke(d, System.TimeSpan.FromMilliseconds(delayMs));
                     Log?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (SEQ={d.SequenceId})");
@@ -262,7 +262,7 @@ public static class DirectiveClientExtensions
 
         if (_states.TryGetValue(client, out ClientState s))
         {
-            System.Threading.Volatile.Write(ref s.ThrottleUntilMonoTicks, 0L);
+            System.Threading.Interlocked.Exchange(ref s.ThrottleUntilMonoTicks, 0L);
         }
     }
 }
