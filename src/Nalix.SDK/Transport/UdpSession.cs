@@ -137,6 +137,7 @@ public class UdpSession : TransportSession
         catch (Exception ex)
         {
             this.OnError?.Invoke(this, ex);
+            this.DisconnectAsync().ConfigureAwait(false).GetAwaiter().GetResult();
             throw new NetworkException($"UDP Connection failed: {ex.Message}", ex);
         }
     }
@@ -157,7 +158,7 @@ public class UdpSession : TransportSession
         {
             _socket.Dispose();
             _socket = null;
-            this.OnDisconnected?.Invoke(this, new InvalidOperationException("The UDP session was disconnected."));
+            this.OnDisconnected?.Invoke(this, new NetworkException("The UDP session was disconnected."));
         }
 
         return Task.CompletedTask;
@@ -268,6 +269,7 @@ public class UdpSession : TransportSession
         catch (Exception ex)
         {
             this.OnError?.Invoke(this, ex);
+            _ = this.DisconnectAsync();
         }
     }
 
@@ -300,6 +302,7 @@ public class UdpSession : TransportSession
                 if (!ct.IsCancellationRequested)
                 {
                     this.OnError?.Invoke(this, ex);
+                    _ = this.DisconnectAsync();
                 }
                 break;
             }

@@ -64,8 +64,8 @@ public static class RequestExtensions
     /// <exception cref="ArgumentNullException">
     /// <paramref name="client"/> or <paramref name="request"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    /// Client not connected, or <c>SendAsync</c> returned <see langword="false"/>.
+    /// <exception cref="NetworkException">
+    /// Client not connected, transport disconnected during send/wait, or <c>SendAsync</c> returned <see langword="false"/>.
     /// </exception>
     /// <exception cref="TimeoutException">
     /// No response arrived within the allotted timeout on all attempts.
@@ -150,7 +150,7 @@ public static class RequestExtensions
             catch (TimeoutException tex) when (attempt < totalAttempts)
             {
                 // Only TimeoutException is retryable.
-                // OperationCanceledException, InvalidOperationException, etc. propagate immediately.
+                // OperationCanceledException, NetworkException, etc. propagate immediately.
                 lastException = tex;
             }
         }

@@ -75,12 +75,30 @@ public sealed class PingHandler
 
 ### The Program
 ```csharp
+using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Network.Hosting;
+using Nalix.Network.Options;
+using Nalix.Runtime.Dispatching;
+
 using var app = NetworkApplication.CreateBuilder()
     .AddHandlers<PingHandler>()
-    .AddTcp<DefaultProtocol>(options => options.Port = 5000)
+    .Configure<NetworkSocketOptions>(options => options.Port = 5000)
+    .AddTcp<PingProtocol>()
     .Build();
 
 await app.RunAsync();
+
+public sealed class PingProtocol : IProtocol
+{
+    private readonly IPacketDispatch _dispatch;
+
+    public PingProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
+
+    public void ProcessMessage(object sender, IConnectEventArgs args)
+        => _dispatch.HandlePacket(args.Lease, args.Connection);
+}
 ```
 
 ## 3. Connect the Client
@@ -88,18 +106,25 @@ await app.RunAsync();
 Use the `Nalix.SDK` for a thread-safe, high-level client experience.
 
 ```csharp
+using Nalix.SDK.Options;
+using Nalix.SDK.Transport;
+using Nalix.SDK.Transport.Extensions;
+
 // 1. Build the registry
-var registry = new PacketRegistryBuilder()
-    .AddPacket<PingRequest>()
-    .AddPacket<PingResponse>()
-    .Build();
+var registry = new PacketRegistry(cfg =>
+{
+    cfg.RegisterPacket<PingRequest>()
+       .RegisterPacket<PingResponse>();
+});
 
 // 2. Initialize session
-await using var client = new TcpSession("127.0.0.1", 5000, registry);
+await using var client = new TcpSession(new TransportOptions { Address = "127.0.0.1", Port = 5000 }, registry);
 await client.ConnectAsync();
 
 // 3. Request/Response
-var response = await client.RequestAsync<PingResponse>(new PingRequest { Message = "Hello Nalix!" });
+var response = await client.RequestAsync<PingResponse>(
+    new PingRequest { Message = "Hello Nalix!" },
+    options: RequestOptions.Default.WithTimeout(5_000));
 Console.WriteLine(response.Message); // Output: Pong: Hello Nalix!
 ```
 

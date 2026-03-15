@@ -59,7 +59,8 @@ public sealed class DataResponse : PacketBase<DataResponse>
 
 ## 3. Server Implementation (`MyNet.Server`)
 
-In production, use the `NetworkApplication.CreateBuilder()` to orchestrate services and protection policies.
+In production, use `NetworkApplication.CreateBuilder()` to orchestrate services and protection policies.
+The builder auto-registers the built-in handshake, session, and system-control handlers, so your guide only needs to add the domain-specific packets and controllers.
 
 ### Handler
 
@@ -91,6 +92,8 @@ public sealed class DataHandlers
 ```csharp
 using Nalix.Network.Hosting;
 using Nalix.Logging;
+using Nalix.Network.Options;
+using Nalix.Runtime.Dispatching;
 
 var logger = NLogix.Host.Instance;
 
@@ -111,10 +114,20 @@ using var app = NetworkApplication.CreateBuilder()
                 .WithErrorHandling((ex, cmd) => logger.Error("Unhandled!", ex));
     })
     // 4. Bind Transport
-    .AddTcp<DefaultProtocol>()
+    .AddTcp<ProductionProtocol>()
     .Build();
 
 await app.RunAsync();
+
+public sealed class ProductionProtocol : IProtocol
+{
+    private readonly IPacketDispatch _dispatch;
+
+    public ProductionProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
+
+    public void ProcessMessage(object sender, IConnectEventArgs args)
+        => _dispatch.HandlePacket(args.Lease, args.Connection);
+}
 ```
 
 ## 4. Client Integration (`MyNet.Client`)
@@ -143,7 +156,7 @@ Console.WriteLine($"Server said: {response.Message}");
 ## 5. Production Checklist
 
 - [ ] **Logging**: Ensure `NLogix` is configured with a high-performance sink (e.g., `BatchConsoleLogTarget`).
-- [ ] **Timeouts**: Set `RequestOptions.Timeout` on all client calls.
+- [ ] **Timeouts**: Set `TimeoutMs` on all client calls via `RequestOptions`.
 - [ ] **Backpressure**: Configure `NetworkSocketOptions.Backlog` and `PacketDispatchOptions.ConcurrencyLimit`.
 - [ ] **Health Checks**: Use `IConnectionHub` to monitor live sessions.
 - [ ] **Resource Cleanup**: Ensure all `IBufferLease` objects are disposed (handled automatically if using `IPacketContext<T>`).
