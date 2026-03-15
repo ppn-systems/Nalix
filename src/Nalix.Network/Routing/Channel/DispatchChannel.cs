@@ -95,6 +95,38 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// </summary>
     public System.Boolean HasPacket => System.Threading.Interlocked.Read(ref _packetCount) > 0;
 
+    internal System.Int32 TotalConnections => _queues.Count;
+
+    internal System.Int32 ReadyConnections => _inReady.Count;
+
+    internal System.Int32[] PendingPerPriority
+    {
+        get
+        {
+            var arr = new System.Int32[_readyByPrio.Length];
+            for (System.Int32 i = 0; i < _readyByPrio.Length; i++)
+            {
+                arr[i] = _readyByPrio[i].Count;
+            }
+
+            return arr;
+        }
+    }
+
+    internal System.Collections.Generic.IReadOnlyDictionary<IConnection, System.Int32> PendingPerConnection
+    {
+        get
+        {
+            var dict = new System.Collections.Generic.Dictionary<IConnection, System.Int32>();
+            foreach (var kv in _states)
+            {
+                dict[kv.Key] = kv.Value.ApproxTotal;
+            }
+
+            return dict;
+        }
+    }
+
     #endregion
 
     #region Constructors
