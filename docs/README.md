@@ -114,18 +114,20 @@ Each module's documentation (linked below) includes code samples and usage scena
 | [Logging](./Nalix.Logging/README.md)                                          | Logging API, batch sinks, config              |
 | [Middleware Pipeline](./Nalix.Network/Middleware/README.md)                   | Packet middleware, stages, attributes         |
 | [Packet Dispatch & Handler](./Nalix.Network/Routing/PacketDispatchChannel.md) | Attribute-driven handler registration, routing|
-| [Send from handler](./Nalix.Network/Routing/PacketDispatchChannel.md#send-from-handler)           | Gửi packet trong handler qua `context.Sender.SendAsync`       |
+| [Protocol](./Nalix.Network/Protocol/README.md)                                | Abstract protocol OnAccept, ProcessMessage    |
+| [Connection & IConnection](./Nalix.Network/Connections/Connection.md)         | Socket connection, TCP/UDP transport, Secret, |
 | [TCP/Connection](./Nalix.Network/Listeners/TcpListenerBase.md)                | Listener setup and connection lifecycle       |
 | [ConnectionHub](./Nalix.Network/Connections/ConnectionHub.md)                 | Sharded, high-throughput connection manager   |
+| [PacketContext](./Nalix.Network/Routing/PacketContext.md)                     | Handler context: Packet, Conn, Send, Attribute|
 | [BufferLease](./Nalix.Shared/Memory/BufferLease.md)                           | Zero-copy buffer pool, secure                 |
 | [ObjectPoolManager](./Nalix.Shared/Memory/ObjectPoolManager.md)               | Generic object pooling, preallocation         |
 | [LiteSerializer](./Nalix.Shared/LiteSerializer.md)                            | Serialization of structs, arrays, primitives  |
 | [PacketRegistry](./Nalix.Shared/PacketRegistry.md)                            | Typed packet registry and deserialization     |
 | [EnvelopeCipher & Encryptor](./Nalix.Shared/Security/EnvelopeCipher.md)       | Envelope/AEAD encryption/decryption           |
-| [CSPRNG](./Csprng.md)                                                         | Secure random numbers, nonces, integers       |
-| [Snowflake ID](./Snowflake.md)                                                | Unique distributed ID generator (Snowflake)   |
-| [Configuration](./Configuration.md)                                           | Thread-safe INI management, container binding |
-| [TaskManager](./TaskManager.md)                                               | Background scheduling, recurring tasks        |
+| [CSPRNG](./Nalix.Framework/Csprng.md)                                         | Secure random numbers, nonces, integers       |
+| [Snowflake ID](./Nalix.Framework/Snowflake.md)                                | Unique distributed ID generator (Snowflake)   |
+| [Configuration](./Nalix.Framework/Configuration.md)                           | Thread-safe INI management, container binding |
+| [TaskManager](./Nalix.Framework/TaskManager.md)                               | Background scheduling, recurring tasks        |
 | [Full Architecture](./Nalix.Network/Architecture.md)                          | Layered design, DDD/Clean, flows & diagrams   |
 
 ---
