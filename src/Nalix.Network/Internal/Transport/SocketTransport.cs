@@ -1,5 +1,6 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+#if DEBUG
 
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Framework.Injection;
@@ -20,9 +21,10 @@ internal sealed class SocketTransport : System.IDisposable
 {
     #region Fields
 
-    private readonly System.Net.Sockets.Socket _socket;
+    [System.Diagnostics.CodeAnalysis.AllowNull]
     private readonly ILogger _logger;
     private readonly BufferPoolManager _bufferPool;
+    private readonly System.Net.Sockets.Socket _socket;
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
     private readonly System.Threading.Channels.Channel<SendItem> _sendChannel;
@@ -69,8 +71,7 @@ internal sealed class SocketTransport : System.IDisposable
     internal SocketTransport(System.Net.Sockets.Socket socket, System.Int32 receiveBufferSize = 4096)
     {
         _socket = socket ?? throw new System.ArgumentNullException(nameof(socket));
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>()
-                   ?? throw new System.InvalidOperationException("ILogger is not configured.");
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         _bufferPool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
 
         _receiveBufferSize = receiveBufferSize > 0 ? receiveBufferSize : 4096;
@@ -212,7 +213,7 @@ internal sealed class SocketTransport : System.IDisposable
                     }
                     catch (System.Exception ex)
                     {
-                        _logger.Error("[NW.SocketTransport:Internal] send-loop faulted", ex);
+                        _logger?.Error("[NW.SocketTransport:Internal] send-loop faulted", ex);
                         CANCEL_ONCE();
                         INVOKE_CLOSE_ONCE(ex);
                         return;
@@ -229,11 +230,11 @@ internal sealed class SocketTransport : System.IDisposable
         }
         catch (System.OperationCanceledException)
         {
-            _logger.Trace("[NW.SocketTransport:Internal] send-loop cancelled");
+            _logger?.Trace("[NW.SocketTransport:Internal] send-loop cancelled");
         }
         catch (System.Exception ex)
         {
-            _logger.Error("[NW.SocketTransport:Internal] send-loop faulted (outer)", ex);
+            _logger?.Error("[NW.SocketTransport:Internal] send-loop faulted (outer)", ex);
             INVOKE_CLOSE_ONCE(ex);
         }
     }
@@ -265,7 +266,7 @@ internal sealed class SocketTransport : System.IDisposable
                 if (handler is null)
                 {
                     // No handler registered; drop data but keep running.
-                    _logger.Warn("[NW.SocketTransport:ReceiveLoop] No receive handler registered. Dropping bytes.");
+                    _logger?.Warn("[NW.SocketTransport:ReceiveLoop] No receive handler registered. Dropping bytes.");
                     continue;
                 }
 
@@ -279,11 +280,11 @@ internal sealed class SocketTransport : System.IDisposable
         }
         catch (System.OperationCanceledException)
         {
-            _logger.Trace("[NW.SocketTransport:ReceiveLoop] receive-loop cancelled");
+            _logger?.Trace("[NW.SocketTransport:ReceiveLoop] receive-loop cancelled");
         }
         catch (System.Exception ex)
         {
-            _logger.Error("[NW.SocketTransport:ReceiveLoop] receive-loop faulted", ex);
+            _logger?.Error("[NW.SocketTransport:ReceiveLoop] receive-loop faulted", ex);
             INVOKE_CLOSE_ONCE(ex);
         }
         finally
@@ -389,3 +390,5 @@ internal sealed class SocketTransport : System.IDisposable
 
     #endregion Private - Helpers
 }
+
+#endif

@@ -40,8 +40,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
     private readonly System.Net.Sockets.Socket _socket = socket;
     private readonly System.Threading.CancellationTokenSource _cts = new();
 
-    [System.Diagnostics.CodeAnalysis.AllowNull] private IConnection _sender;
-    [System.Diagnostics.CodeAnalysis.AllowNull] private IConnectEventArgs _cachedArgs;
+    private IConnection _sender;
+    private IConnectEventArgs _cachedArgs;
     [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackPost;
     [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackClose;
 

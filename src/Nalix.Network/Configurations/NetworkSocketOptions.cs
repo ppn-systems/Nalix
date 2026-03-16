@@ -110,6 +110,18 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     [IniComment("Apply thread pool tuning optimized for high-throughput network workloads")]
     public System.Boolean TuneThreadPool { get; set; } = false;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the DualMode feature is enabled (for IPv6 sockets).
+    /// </summary>
+    [IniComment("Enable DualMode to support both IPv4 and IPv6 connections on the same socket (defaults: true for IPv6)")]
+    public System.Boolean DualMode { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether only one socket can bind to the address (exclusive use).
+    /// </summary>
+    [IniComment("Specify whether ExclusiveAddressUse is enabled (default: true unless ReuseAddress is true)")]
+    public System.Boolean ExclusiveAddressUse { get; set; } = true;
+
     #endregion Properties
 
     /// <summary>

@@ -111,6 +111,132 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
 
 ---
 
+## CustomAttributes in Metadata
+
+The `CustomAttributes` feature allows dynamic extensions of packet metadata to add additional handler-specific properties beyond standard attributes such as `Timeout`, `Permission`, or `Encryption`. This is especially useful for advanced use cases like:
+
+- Supporting **third-party systems**.
+- **Experimental features** without modifying primary metadata structures.
+- Adding **tags or flags** specific to business logic.
+
+### How to Use CustomAttributes
+
+1. **Add Custom Attribute to the Builder**  
+   During metadata creation, use `PacketMetadataBuilder.Add` to add custom attributes dynamically. Example:
+
+   ```csharp
+   builder.Add(new PacketRateLimitAttribute(requestsPerSecond: 50));
+   builder.Add(new ExampleCustomAttribute("Version", "v1.1"));
+   ```
+
+2. **Get Custom Attribute**  
+   Retrieve custom attributes during pipeline execution using `PacketMetadata.GetCustomAttribute<T>`. Example:
+
+   ```csharp
+   var versionAttribute = metadata.GetCustomAttribute<ExampleCustomAttribute>();
+   if (versionAttribute != null)
+   {
+       Console.WriteLine($"Packet Version: {versionAttribute.Value}");
+   }
+   ```
+
+### Full CustomAttributes Example
+
+Here’s an end-to-end example demonstrating the definition and usage of `CustomAttributes`:
+
+#### Step 1: Define a Custom Attribute  
+
+You can define your custom attribute class:
+
+```csharp
+public class PacketTagAttribute : Attribute
+{
+    public string Tag { get; }
+
+    public PacketTagAttribute(string tag)
+    {
+        Tag = tag;
+    }
+}
+```
+
+#### Step 2: Attach Custom Attributes in Metadata Provider  
+
+Use `IPacketMetadataProvider` to assign your custom attributes dynamically for packets:
+
+```csharp
+public class ExampleMetadataProvider : IPacketMetadataProvider
+{
+    public void Populate(MethodInfo method, PacketMetadataBuilder builder)
+    {
+        // Assign a custom tag attribute
+        builder.Add(new PacketTagAttribute("Experimental"));
+
+        // Add more optional attributes based on the method
+        if (method.Name == "HandleCritical")
+        {
+            builder.Add(new PacketTagAttribute("Critical"));
+        }
+    }
+}
+```
+
+#### Step 3: Retrieve Custom Attributes During Execution  
+
+Access and process the custom attributes during middleware execution:
+
+```csharp
+[MiddlewareOrder(-25)]
+[MiddlewareStage(MiddlewareStage.Inbound)]
+public class LogPacketTagMiddleware : IPacketMiddleware<IPacket>
+{
+    public async Task InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, Task> next)
+    {
+        var builder = new PacketMetadataBuilder();
+        foreach (var provider in PacketMetadataProviders.Providers)
+        {
+            provider.Populate(context.Method, builder);
+        }
+
+        // Build metadata
+        var metadata = builder.Build();
+
+        // Log custom attributes (e.g., PacketTag)
+        var tag = metadata.GetCustomAttribute<PacketTagAttribute>()?.Tag;
+        if (tag != null)
+        {
+            Console.WriteLine($"Processing packet with Tag: {tag}");
+        }
+
+        // Continue the pipeline
+        await next(context.CancellationToken);
+    }
+}
+```
+
+---
+
+### CustomAttributes Use Cases
+
+Here are some practical examples leveraging `CustomAttributes`:
+
+| Use Case                        | Attribute                                                   | Example                                   |
+|---------------------------------|-------------------------------------------------------------|-------------------------------------------|
+| **Tagging packets**             | `PacketTagAttribute`                                        | Add tags like "HighPriority" or "System"  |
+| **Packet versioning**           | `PacketVersionAttribute`                                    | Track experimental packet versions        |
+| **Third-party integrations**    | `PacketExternalSystemAttribute` (link to external tool ID)  | Integrate with external analytics tools   |
+| **Tracing/Diagnostics**         | Add unique diagnostic flags                                 | Debugging server message paths            |
+
+---
+
+### Best Practices for CustomAttributes
+
+- Use `CustomAttributes` for extending existing metadata **without breaking core functionality**.
+- Dynamically add attributes using `PacketMetadataBuilder.Add()` in combination with specific `MethodInfo` metadata.
+- Always include a fallback mechanism in case a `CustomAttribute` is missing while retrieving it.
+
+---
+
 ## License
 
 Licensed under the Apache License, Version 2.0.  

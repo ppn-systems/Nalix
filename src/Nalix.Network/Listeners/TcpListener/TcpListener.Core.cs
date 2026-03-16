@@ -152,11 +152,15 @@ public abstract partial class TcpListenerBase : IListener, IReportable
                                     .SetMaxCapacity<PooledAcceptContext>(options.AcceptContextMaxCapacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsMaxCapacity);
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.ProcessContextMaxCapacity);
 
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.ProcessContextPreallocate);
     }
 
     /// <summary>
