@@ -1,18 +1,18 @@
 # Nalix.Network
 
-`Nalix.Network` is the core transport layer of the Nalix framework. It handles listeners (TCP/UDP), connection management, and protocol logic.
+`Nalix.Network` is the core transport layer of the Nalix framework. It handles TCP and UDP listeners, connection lifecycle management, protocol bridge logic, session storage, and socket-level infrastructure.
 
-!!! note "This package is the networking core"
-    Concerns such as accepting socket traffic, managing the lifecycle of connections, and tracking active sessions live here.
+!!! note "For most projects, start with Nalix.Network.Hosting"
+    `Nalix.Network.Hosting` wraps this package with a fluent builder that handles startup wiring automatically. Use `Nalix.Network` directly only when you need full control over listener and protocol construction.
 
-## Runtime map
+## Where It Fits
 
 ```mermaid
 flowchart LR
     A["TcpListenerBase / UdpListenerBase"] --> B["Protocol"]
     B --> C["IPacketDispatch"]
-    subgraph Nalix.Runtime
-        C --> D["Handlers"]
+    subgraph Runtime ["Nalix.Runtime"]
+        C --> D["Middleware + Handlers"]
     end
 ```
 
@@ -20,41 +20,95 @@ flowchart LR
 
 ### Listeners
 
-- `TcpListenerBase`: High-performance TCP listener using `SocketAsyncEventArgs`.
-- `UdpListenerBase`: High-performance UDP listener using `SocketAsyncEventArgs`.
+| Listener | Transport | Description |
+|---|---|---|
+| `TcpListenerBase` | TCP | High-performance listener using `SocketAsyncEventArgs`. Handles socket acceptance, connection lifecycle, and framed receive loops. |
+| `UdpListenerBase` | UDP | Stateless datagram listener with session-authenticated endpoint mapping. |
 
-### [Protocol](../api/network/protocol.md)
+Both listeners support:
 
-The `IProtocol` interface and `Protocol` base class define how raw network data is interpreted and passed to the dispatcher.
+- `Activate(CancellationToken)` / `Deactivate(CancellationToken)`
+- `GenerateReport()` for runtime diagnostics
+- Configurable backlog, timeout enforcement, and time synchronization
 
-### [Connections](../api/network/connection/connection.md)
+### Protocol
 
-- `IConnection`: Abstract representation of a client connection.
-- `SocketConnection`: Concrete implementation for socket-based transports.
-- `ConnectionHub`: Manages collections of active connections.
+The `IProtocol` interface and `Protocol` base class define how raw network data is interpreted and forwarded to the dispatch layer.
 
-### [Session Store](../api/network/session-store.md)
+Key responsibilities:
 
-`Nalix.Network.Sessions` contains the default runtime session-store implementations.
-It covers the shared creation flow, the in-memory implementation, and the TTL-based session retention options.
+- **Connection acceptance** — `ValidateConnection(IConnection)` controls whether new connections are accepted
+- **Receive loop management** — `OnAccept(IConnection)` starts listening for incoming frames
+- **Frame forwarding** — `ProcessMessage(object sender, IConnectEventArgs args)` pushes validated frames into `PacketDispatchChannel`
+- **Connection state** — `IsAccepting` controls whether the protocol accepts new connections
+
+```csharp
+public sealed class MyProtocol : Protocol
+{
+    private readonly IPacketDispatch _dispatch;
+
+    public MyProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
+
+    public override void ProcessMessage(object sender, IConnectEventArgs args)
+        => _dispatch.HandlePacket(args.Lease, args.Connection);
+
+    protected override bool ValidateConnection(IConnection connection)
+    {
+        // Custom admission control
+        return true;
+    }
+}
+```
+
+### Connections
+
+- **`IConnection`** — Abstract representation of a client connection with identity, transport adapters, permission level, and cipher state.
+- **`SocketConnection`** — Concrete socket-based implementation.
+- **`ConnectionHub`** — In-memory registry of active connections. Supports lookup by ID, username mapping, forced disconnects, bulk broadcast, and `GenerateReport()`.
+- **`ConnectionGuard`** — Socket-level admission control that rejects endpoints before application resources are allocated.
+
+### Session Store
+
+`Nalix.Network.Sessions` contains the runtime session-store implementations. The `ISessionStore` interface provides:
+
+- Session creation and retrieval
+- TTL-based session retention
+- Connection state snapshot and restore (for session resume flows)
+
+## Options
+
+Nalix.Network provides focused option types for each transport concern:
+
+| Options class | Controls |
+|---|---|
+| `NetworkSocketOptions` | Port, backlog, timeout enforcement |
+| `ConnectionLimitOptions` | Maximum connections, per-IP limits |
+| `ConnectionHubOptions` | Hub behavior and capacity |
+| `TimingWheelOptions` | Idle timeout configuration |
+| `PoolingOptions` | Buffer pool, accept context pool, receive context pool sizes |
+| `NetworkCallbackOptions` | Callback flood protection thresholds |
+| `CompressionOptions` | LZ4 compression settings |
+| `TokenBucketOptions` | Rate limiter configuration |
+
+All option types support `Validate()` for startup-time verification.
 
 ## Relationship with Nalix.Runtime
 
-`Nalix.Network` focuses on **how** data is moved between the network and the server. It delegates **what** to do with that data to the `IPacketDispatch` interface, which is typically implemented in `Nalix.Runtime`.
-
-## Usage
-
-Typically, you don't use this package directly unless you are building a custom host. Instead, use `Nalix.Network.Hosting`.
-
-```csharp
-// Example of concrete listener implementation
-var protocol = new MyProtocol(dispatcher);
-var listener = new MyTcpListener(protocol);
-listener.Activate();
-```
+`Nalix.Network` focuses on **how** data moves between the network and the server. It delegates **what** to do with that data to `IPacketDispatch`, which is implemented in `Nalix.Runtime` via `PacketDispatchChannel`.
 
 ## Related Packages
 
-- [Nalix.Runtime](./nalix-runtime.md): The request pipeline and dispatcher.
-- [Nalix.Network.Hosting](./nalix-network-hosting.md): Standard bootstrap.
-- [Nalix.Common](./nalix-common.md): Shared primitives and attributes.
+- [Nalix.Runtime](./nalix-runtime.md) — Dispatch pipeline and middleware
+- [Nalix.Network.Hosting](./nalix-network-hosting.md) — Fluent bootstrap
+- [Nalix.Network.Pipeline](./nalix-network-pipeline.md) — Built-in middleware
+- [Nalix.Common](./nalix-common.md) — Shared contracts and primitives
+
+## Key API Pages
+
+- [Protocol](../api/network/protocol.md)
+- [TCP Listener](../api/network/tcp-listener.md)
+- [UDP Listener](../api/network/udp-listener.md)
+- [Connection](../api/network/connection/connection.md)
+- [Connection Hub](../api/network/connection/connection-hub.md)
+- [Session Store](../api/network/session-store.md)
+- [Network Options](../api/network/options/options.md)

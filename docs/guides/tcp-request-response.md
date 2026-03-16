@@ -139,8 +139,8 @@ Use this style when:
 - `PacketDispatchChannel` owns middleware, deserialization, handler invocation, and result handling
 - the same pattern works for custom packet types if you swap `Control` for your own packet contract
 
-## Related pages
+## Recommended Next Pages
 
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
-- [Handler Return Types](../api/runtime/routing/handler-results.md)
-- [TCP Listener](../api/network/tcp-listener.md)
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
+- [Handler Return Types](../api/runtime/routing/handler-results.md) — Supported return shapes
+- [TCP Listener](../api/network/tcp-listener.md) — Listener API reference

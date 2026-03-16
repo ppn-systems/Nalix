@@ -1,10 +1,8 @@
 # Packet Lifecycle
 
-This page explains what happens to a request after bytes arrive at the server.
+This page traces the complete journey of a network request from raw socket bytes to handler invocation and reply. Understanding this path is essential for effective debugging, middleware placement, and performance optimization.
 
-Use it when you want one clear mental model for how transport, dispatch, metadata, middleware, and handlers connect.
-
-## The request path
+## Request Path Overview
 
 ```mermaid
 flowchart LR
@@ -123,20 +121,22 @@ The internal return handler converts them into outbound behavior, for example:
 
 This is why the handler does not need to manually build every reply path.
 
-## The practical takeaway
+## Summary
 
 The request path is easiest to reason about in three phases:
 
-1. transport phase: listener, protocol, raw frame handling
-2. dispatch phase: queueing, worker loop, deserialization, metadata, middleware
-3. application phase: handler, return handling, reply
+| Phase | Components | Your extension point |
+|---|---|---|
+| **Transport** | Listener → Protocol → Raw frame | Custom `Protocol`, buffer middleware |
+| **Dispatch** | Queue → Worker → Deserialize → Metadata → Middleware | Packet middleware, metadata providers |
+| **Application** | Handler → Return handler → Reply | Handler classes, return type selection |
 
 If you know which phase your problem belongs to, you usually know which Nalix component to customize.
 
-## Read this next
+## Recommended Next Pages
 
-- [Architecture](./architecture.md)
-- [Middleware](./middleware.md)
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
-- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
-- [TCP Request/Response](../guides/tcp-request-response.md)
+- [Architecture](./architecture.md) — Layered component overview
+- [Middleware](./middleware.md) — Buffer vs. packet middleware
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
+- [Packet Metadata](../api/runtime/routing/packet-metadata.md) — Metadata resolution details
+- [TCP Request/Response](../guides/tcp-request-response.md) — TCP pattern guide

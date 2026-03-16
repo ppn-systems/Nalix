@@ -158,8 +158,8 @@ When you are debugging, these usually give the fastest signal:
 - `packetDispatchChannel.GenerateReport()`
 - `concurrencyGate.GenerateReport()`
 
-## Read this next
+## Recommended Next Pages
 
-- [TCP Request/Response](./tcp-request-response.md)
-- [UDP Auth Flow](./udp-auth-flow.md)
-- [Handler Return Types](../api/runtime/routing/handler-results.md)
+- [TCP Request/Response](./tcp-request-response.md) — TCP pattern guide
+- [UDP Auth Flow](./udp-auth-flow.md) — UDP authentication guide
+- [Handler Return Types](../api/runtime/routing/handler-results.md) — Supported return shapes

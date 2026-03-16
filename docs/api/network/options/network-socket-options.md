@@ -1,62 +1,51 @@
-# NetworkSocketOptions
+# Network Socket Options
 
-`NetworkSocketOptions` controls how Nalix.Network opens and tunes its TCP or UDP socket runtime.
+`NetworkSocketOptions` configures listener socket behavior and receive/accept runtime limits.
 
-## Source mapping
+## Audit Summary
+
+- Existing page mostly correct but had stale defaults and less explicit validation context.
+
+## Missing Content Identified
+
+- Accurate defaults from current implementation.
+- Explicit note that options are shared across TCP/UDP listener setup.
+
+## Improvement Rationale
+
+Accurate defaults are critical for production rollout and troubleshooting.
+
+## Source Mapping
 
 - `src/Nalix.Network/Options/NetworkSocketOptions.cs`
 
-## Important properties
+## Key Properties (Current Defaults)
 
 | Property | Meaning | Default |
 |---|---|---:|
-| `Port` | Listening port. | `57206` |
-| `Backlog` | Pending connection queue length. | `512` |
-| `EnableTimeout` | Enables idle timeout enforcement. | `true` |
-| `EnableIPv6` | Uses IPv6 listen sockets. | `false` |
-| `NoDelay` | Disables Nagle for lower latency. | `true` |
-| `MaxParallel` | Number of parallel accept workers. | `5` |
-| `BufferSize` | Send/receive buffer size in bytes. | `4096` |
-| `KeepAlive` | Enables TCP keep-alive probes. | `false` |
-| `ReuseAddress` | Allows address reuse. | `true` |
-| `MaxGroupConcurrency` | Group concurrency for socket-related workers. | `8` |
-| `TuneThreadPool` | Applies Windows thread-pool tuning. | `false` |
-| `DualMode` | Supports IPv4 and IPv6 on one IPv6 socket. | `true` |
+| `Port` | Listen port. | `57206` |
+| `Backlog` | Pending accept queue length. | `512` |
+| `EnableTimeout` | Enable idle-timeout subsystem integration. | `true` |
+| `EnableIPv6` | Use IPv6 socket family. | `false` |
+| `NoDelay` | Disable Nagle algorithm. | `true` |
+| `MaxParallel` | Parallel accept workers. | `5` |
+| `BufferSize` | Socket buffer size in bytes. | `1500` |
+| `KeepAlive` | TCP keepalive behavior. | `true` |
+| `ReuseAddress` | Address reuse behavior. | `true` |
+| `MaxGroupConcurrency` | Worker group concurrency cap. | `8` |
+| `TuneThreadPool` | Thread pool tuning switch. | `true` |
+| `DualMode` | IPv4+IPv6 dual mode. | `true` |
 | `ExclusiveAddressUse` | Exclusive bind behavior. | `true` |
-| `ProcessChannelCapacity` | Bounded queue for accepted connections awaiting protocol setup. | `128` |
-| `MaxUdpDatagramSize` | Maximum allowed UDP datagram size in bytes. | `1400` |
+| `ProcessChannelCapacity` | Accepted-connection process queue size. | `128` |
+| `MaxUdpDatagramSize` | Max inbound UDP datagram bytes. | `1400` |
 
-## Where it matters
+## Best Practices
 
-- `TcpListenerBase` uses it heavily during socket initialization and accept scheduling.
-- `UdpListenerBase` reads the shared socket settings for UDP runtime behavior.
-
-## Client guidance
-
-Start by tuning:
-
-- `Port`
-- `MaxParallel`
-- `BufferSize`
-- `EnableTimeout`
-- `ProcessChannelCapacity`
-
-Change the others only when you know the deployment/network constraints.
-
-## Example
-
-```csharp
-var options = new NetworkSocketOptions
-{
-    Port = 57206,
-    Backlog = 1024,
-    MaxParallel = 8,
-    BufferSize = 8192,
-    ProcessChannelCapacity = 256
-};
-```
+- Validate options before listener activation.
+- Tune `MaxParallel`, `ProcessChannelCapacity`, and connection limits together.
+- Keep `MaxUdpDatagramSize` below fragmentation-prone values for your network profile.
 
 ## Related APIs
 
-- [Tcp Listener](../tcp-listener.md)
-- [Udp Listener](../udp-listener.md)
+- [TCP Listener](../tcp-listener.md)
+- [UDP Listener](../udp-listener.md)

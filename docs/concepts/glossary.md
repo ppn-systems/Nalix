@@ -1,134 +1,117 @@
 # Glossary
 
-This page defines the core Nalix terms that appear repeatedly across the docs.
+This page defines the core Nalix terms that appear across the documentation. Use it as a quick reference when API pages become implementation-heavy.
 
-Use it as a quick refresher when the API pages start to feel too implementation-heavy.
+---
 
-## Protocol
+## BufferLease
 
-`Protocol` is the bridge between a live connection and the dispatch pipeline.
-
-In practice it:
-
-- accepts or rejects new connections
-- starts receive loops
-- forwards incoming message frames into dispatch
-- controls whether connections stay open after processing
-
-## PacketContext
-
-`PacketContext<TPacket>` is the per-request object passed to context-aware handlers and packet middleware.
-
-It gives access to:
-
-- the packet
-- the current connection
-- resolved packet metadata
-- cancellation
-- a pooled sender for manual replies
-
-## Dispatch
-
-In the docs, “dispatch” usually means `PacketDispatchChannel` plus its options/runtime.
-
-This is the part that:
-
-- queues incoming work
-- deserializes packets
-- runs middleware
-- invokes handlers
-- handles supported return types
+A pooled byte buffer rented from `BufferPoolManager`. Must be disposed after use to return the buffer to the pool. Used throughout the hot path to avoid `byte[]` allocation.
 
 ## Connection
 
-`Connection` is the runtime session object for one remote client.
+`Connection` is the runtime session object for one remote client. It holds:
 
-It holds:
-
-- connection ID
-- remote endpoint
+- Connection ID
+- Remote endpoint
 - TCP/UDP transport adapters
-- permission level
-- cipher/secret state
-- runtime counters and events
+- Permission level
+- Cipher and secret state
+- Runtime counters (bytes sent, uptime, ping time, error count)
 
 ## ConnectionHub
 
-`ConnectionHub` is the in-memory registry of active connections.
+`ConnectionHub` is the in-memory registry of active connections. Use it for:
 
-Use it for:
+- Connection lookup by ID or username
+- Forced disconnects
+- Bulk broadcast
+- Connection-level reporting via `GenerateReport()`
 
-- connection lookup
-- username mapping
-- forced disconnects
-- bulk broadcast
-- connection-level reporting
+## Dispatch
 
-## TimingWheel
+In the docs, "dispatch" usually means `PacketDispatchChannel` and its associated options and runtime. This is the component that:
 
-`TimingWheel` is the idle-timeout scheduler used by the network layer.
+- Queues incoming work across sharded workers
+- Deserializes packets via the packet registry
+- Runs middleware chains
+- Invokes handlers
+- Processes supported return types
 
-It helps detect and close dead or inactive connections efficiently.
+## InstanceManager
 
-## Middleware
-
-Middleware is logic inserted before or around handler execution.
-
-Nalix has two middleware layers:
-
-- buffer middleware for raw frame processing
-- packet middleware for packet-level policy and request flow
+The runtime service registry used across the Nalix stack. A service-locator pattern optimized for allocation-free resolution. Not a traditional DI container — designed for performance on the networking hot path.
 
 ## Metadata Provider
 
-A metadata provider is a component that adds extra metadata to handler methods while the runtime builds `PacketMetadata`.
+A component that adds extra metadata to handler methods during `PacketMetadata` construction. Implement `IPacketMetadataProvider` when handler attributes alone are not sufficient and you need conventions or custom policy tags.
 
-Use it when attributes alone are not enough and you want conventions or custom policy tags.
+## Middleware
+
+Logic inserted before or around handler execution. Nalix has two middleware layers:
+
+- **Buffer middleware** — Operates on raw `IBufferLease` data before packet deserialization
+- **Packet middleware** — Operates on `PacketContext<TPacket>` after deserialization, with access to handler metadata
+
+## PacketBase\<T\>
+
+The base class for all Nalix packets. Provides system header management (magic, opcode, protocol, priority) and pooling support via `ResetForPool()`.
+
+## PacketContext
+
+`PacketContext<TPacket>` is the per-request object passed to context-aware handlers and packet middleware. It provides access to:
+
+- The deserialized packet
+- The current connection
+- Resolved packet metadata (attributes)
+- Cancellation token
+- A pooled sender for manual replies
+
+## PacketPool
+
+`PacketPool<TPacket>` / `PacketLease<TPacket>` — Thread-safe pooling for reusable packet instances. Rent a packet, populate it, send it, then dispose the lease to return it.
+
+## PacketRegistry
+
+An immutable, `FrozenDictionary`-backed catalog of packet deserializers built by `PacketRegistryFactory`. Provides O(1) lookup by magic number (FNV-1a hash of the packet type's full name).
+
+## Protocol
+
+`Protocol` is the bridge between a live connection and the dispatch pipeline. In practice it:
+
+- Accepts or rejects new connections via `ValidateConnection()`
+- Starts receive loops
+- Forwards incoming message frames into dispatch via `ProcessMessage()`
+- Controls whether connections stay open after processing
 
 ## Return Handler
 
-A return handler is the internal component that translates a handler's return type into a send action.
+The internal component that translates a handler's return type into a send action. Supported return types include:
 
-Examples:
-
-- `TPacket`
-- `Task<TPacket>`
+- `TPacket` / `Task<TPacket>` / `ValueTask<TPacket>`
 - `string`
-- `byte[]`
-- `Memory<byte>`
+- `byte[]` / `Memory<byte>`
+- `void` / `Task` / `ValueTask` (no response)
+
+## Snowflake
+
+A customized 56-bit distributed identifier used for internal task tracking and packet correlation. Provides 1 ms timestamp resolution with 12 bits for sequence (4,096 IDs per millisecond per shard).
 
 ## TCP vs UDP
 
-- use **TCP** for reliable request/response and ordered traffic
-- use **UDP** for low-latency datagrams where loss is acceptable and session/auth rules are handled separately
+| Transport | Use when |
+|---|---|
+| **TCP** | Reliable, ordered request/response. The default and recommended starting point. |
+| **UDP** | Low-latency datagrams where packet loss is acceptable. Requires pre-established session identity and authentication. |
 
-## Read this next
+## TimingWheel
 
-- [Choose the Right Building Block](./choose-the-right-building-block.md)
-- [Architecture](./architecture.md)
-- [Middleware](./middleware.md)
+The idle-timeout scheduler used by the network layer. Manages connection timeouts with O(1) scheduling complexity. Detects and closes dead or inactive connections efficiently.
 
-## Reading paths by persona
+---
 
-```mermaid
-flowchart TD
-    A["Server dev"] --> B["Introduction"]
-    B --> C["Quickstart"]
-    C --> D["Architecture"]
-    D --> E["Server Blueprint"]
+## Recommended Next Pages
 
-    F["Client dev"] --> G["Introduction"]
-    G --> H["Quickstart"]
-    H --> I["SDK Overview"]
-    I --> J["TCP Session"]
-
-    K["Middleware author"] --> L["Choose the Right Building Block"]
-    L --> M["Middleware"]
-    M --> N["Custom Middleware End-to-End"]
-    N --> O["Custom Metadata Provider"]
-
-    P["Packet author"] --> Q["Packet Contracts"]
-    Q --> R["Serialization Attributes"]
-    R --> S["Frame Model"]
-    S --> T["Packet Registry"]
-```
+- [Choose the Right Building Block](./choose-the-right-building-block.md) — Decision guide for component selection
+- [Architecture](./architecture.md) — Layered component overview
+- [Middleware](./middleware.md) — Buffer vs. packet middleware

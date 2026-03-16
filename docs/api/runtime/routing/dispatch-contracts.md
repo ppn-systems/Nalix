@@ -1,56 +1,76 @@
 # Dispatch Contracts
 
-This page covers the public routing contracts that sit below `PacketDispatchChannel`.
+This page covers the public dispatch contracts used by `Nalix.Runtime` routing components.
 
-## Source mapping
+## Audit Summary
 
-- `src/Nalix.Network/Routing/IDispatchChannel.cs`
-- `src/Nalix.Network/Routing/IPacketDispatch.cs`
+- Existing source mapping pointed to `Nalix.Network` paths for contracts that are defined in `Nalix.Runtime`.
+- Contract responsibilities were described at a high level but did not call out operational boundaries.
 
-## Main types
+## Missing Content Identified
 
-- `IDispatchChannel<TPacket>`
-- `IPacketDispatch`
+- Clear separation between queue contract (`IDispatchChannel<TPacket>`) and runtime entry contract (`IPacketDispatch`).
+- Practical guidance on when each contract should be implemented directly.
 
-## IDispatchChannel<TPacket>
+## Improvement Rationale
 
-`IDispatchChannel<TPacket>` is the low-level queue contract used by routing internals.
-It moves `IBufferLease` instances through the queueing stage before the dispatch runtime turns them into packets.
-The generic parameter reflects the packet type flowing through the route, so the same contract can back built-in or custom packet pipelines.
+Accurate source mapping and boundary-focused descriptions reduce integration errors when extending dispatch behavior.
 
-## Basic usage
+## Source Mapping
 
-```csharp
-channel.Push(connection, lease);
+- `src/Nalix.Runtime/Dispatching/IDispatchChannel.cs`
+- `src/Nalix.Runtime/Dispatching/IPacketDispatch.cs`
+- `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs`
 
-if (channel.Pull(out IConnection nextConnection, out IBufferLease nextLease))
-{
-    // consume work item
-}
-```
+## `IDispatchChannel<TPacket>`
 
-## Public members
+`IDispatchChannel<TPacket>` is the queue abstraction for connection-aware packet scheduling.
+
+### Why it exists
+
+Dispatch runtime needs a consistent contract for enqueue/dequeue behavior without coupling higher layers to a specific queue implementation.
+
+### Key members
 
 - `TotalPackets`
-- `Push(connection, raw)`
-- `Pull(out connection, out raw)`
+- `Push(IConnection connection, IBufferLease raw)`
+- `Pull(out IConnection connection, out IBufferLease raw)`
 
-## IPacketDispatch
+### When to use
 
-`IPacketDispatch` is the higher-level packet handling contract implemented by dispatchers that can process:
+- Use when implementing custom queueing/scheduling internals.
+- Most applications should use the provided `DispatchChannel<TPacket>` implementation through `PacketDispatchChannel`.
 
-- raw `IBufferLease`
-- deserialized `IPacket`
-- packet-specific handler pipelines for built-in or custom packet types
+## `IPacketDispatch`
 
-## Example
+`IPacketDispatch` is the runtime-facing dispatch entry contract.
+
+### Why it exists
+
+Transport components should forward incoming work to a stable interface regardless of whether data is still raw (`IBufferLease`) or already deserialized (`IPacket`).
+
+### Key members
+
+- `HandlePacket(IBufferLease packet, IConnection connection)`
+- `HandlePacket(IPacket packet, IConnection connection)`
+
+`IPacketDispatch` also inherits:
+
+- `IActivatable` for lifecycle start/stop
+- `IReportable` for diagnostics/reporting
+
+## Practical Example
 
 ```csharp
-dispatch.HandlePacket(lease, connection);
-dispatch.HandlePacket(packet, connection);
+// Raw inbound from transport
+packetDispatch.HandlePacket(lease, connection);
+
+// Typed fast-path
+packetDispatch.HandlePacket(packet, connection);
 ```
 
 ## Related APIs
 
 - [Packet Dispatch](./packet-dispatch.md)
 - [Dispatch Channel and Router](./dispatch-channel-and-router.md)
+- [Packet Context](./packet-context.md)

@@ -1,6 +1,6 @@
 # Packet System
 
-The Packet System is the core of Nalix. It provides a declarative way to define network messages that are high-performance, version-safe, and zero-allocation.
+The Packet System is the foundation of Nalix's networking model. It provides a declarative way to define network messages that are high-performance, version-safe, and zero-allocation.
 
 ## 1. Defining Packets
 
@@ -12,7 +12,7 @@ public sealed class TradePacket : PacketBase<TradePacket>
 {
     public const ushort OpCodeValue = 0x5001;
 
-    [SerializeOrder(0)] // Starts immediately after system header (offset 13)
+    [SerializeOrder(0)]
     public long TradeId { get; set; }
 
     [SerializeOrder(1)]
@@ -26,63 +26,65 @@ public sealed class TradePacket : PacketBase<TradePacket>
 
 | Attribute | Purpose |
 | :--- | :-- |
-| `[SerializePackable]` | Marks a class for source-generated serialization. |
+| `[SerializePackable]` | Marks a class for serialization. Required on all packet types. |
 | `[SerializeOrder(int)]` | Sets the explicit position of a field in the byte stream (Explicit layout only). |
 | `[SerializeDynamicSize(int)]` | Defines the maximum size (bytes) for variable-length strings or arrays. |
 | `[SerializeIgnore]` | Excludes a property from network serialization. |
-| `[SerializeHeader]` | Maps a property to a specific header region (Advanced). |
+| `[SerializeHeader]` | Maps a property to a specific header region (advanced use). |
 
 ---
 
 ## 2. Serialization Layouts
 
-The `[SerializePackable]` attribute allows you to choose how fields are ordered in the byte stream. Choosing the right layout is critical for performance and version stability.
+The `[SerializePackable]` attribute requires a `SerializeLayout` value that controls how fields are ordered in the byte stream.
 
-| Layout | Behavior | Member Discovery | Use Case |
+| Layout | Behavior | Member Discovery | Recommended for |
 |---|---|---|---|
-| `SerializeLayout.Auto` | **Default.** Reorders fields to minimize padding (usually by size: 8-byte, 4-byte, 1-byte). | Includes **all** public properties/fields except those marked with `[SerializeIgnore]`. | DTOs where size is critical. |
-| `SerializeLayout.Sequential` | Preserves source code order. | Includes **all** public properties/fields except those marked with `[SerializeIgnore]`. | Simple packets. |
-| `SerializeLayout.Explicit` | Requires `[SerializeOrder]` on every member. Fields are ordered by metadata values. | **Only** includes members decorated with `[SerializeOrder]`. | **Production Packets.** Best for stability. |
+| `SerializeLayout.Auto` | Reorders fields to minimize padding (typically by size descending). | All public properties/fields except those marked with `[SerializeIgnore]`. | Internal DTOs where compact size matters and version stability is not critical. |
+| `SerializeLayout.Sequential` | Preserves source code order. | All public properties/fields except those marked with `[SerializeIgnore]`. | Simple packets where source order is intuitive. |
+| `SerializeLayout.Explicit` | Orders fields by `[SerializeOrder]` values. Only includes annotated members. | Only members decorated with `[SerializeOrder]`. | **Production packets.** Recommended for all public-facing network definitions. |
 
 ```csharp
 [SerializePackable(SerializeLayout.Sequential)]
 public sealed class SimplePacket : PacketBase<SimplePacket>
 {
-    public int Id { get; set; }     // Byte 13-16
-    public string Name { get; set; } // Byte 17+
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 ```
 
-> [!WARNING]
-> In `SerializeLayout.Auto`, adding a new field might change the offsets of ALL existing fields because the serializer re-sorts them. **Always use `Explicit` for public-facing network packets.**
+!!! warning "Auto layout and version stability"
+    In `SerializeLayout.Auto`, adding a new field may change the byte offsets of all existing fields because the serializer re-sorts them. **Always use `Explicit` for public-facing network packets.**
 
 ---
 
 ## 3. Common Use Cases
 
 ### Case A: Strings and Arrays
-Variable-length data requires `[SerializeDynamicSize]` to protect against buffer overflow and large allocation attacks.
+
+Variable-length data requires `[SerializeDynamicSize]` to define a maximum byte size. This protects against buffer overflow and large-allocation attacks.
 
 ```csharp
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class ChatMessage : PacketBase<ChatMessage>
 {
     [SerializeOrder(0)]
-    [SerializeDynamicSize(32)] // Max 32 bytes for nickname
+    [SerializeDynamicSize(32)]
     public string From { get; set; } = string.Empty;
 
     [SerializeOrder(1)]
-    [SerializeDynamicSize(1024)] // Max 1KB for message
+    [SerializeDynamicSize(1024)]
     public string Text { get; set; } = string.Empty;
 
     [SerializeOrder(2)]
-    [SerializeDynamicSize(5)] // Max 5 items in array
+    [SerializeDynamicSize(5)]
     public int[] RecipientIds { get; set; } = [];
 }
 ```
 
 ### Case B: Enums
-Enums are serialized as their underlying numeric type (usually `int32` or `uint8`).
+
+Enums are serialized as their underlying numeric type.
 
 ```csharp
 public enum OrderStatus : byte { PENDING = 1, FILLED = 2, CANCELED = 3 }
@@ -95,76 +97,118 @@ public sealed class OrderUpdate : PacketBase<OrderUpdate>
 }
 ```
 
-### Case C: Explicit Layout & Relative Positioning
-In Nalix, `[SerializeOrder]` is relative to the start of the payload. The system automatically handles the preceding header.
+### Case C: SerializeOrder and the Header
+
+`[SerializeOrder]` values are relative to the start of the payload. The system header (magic number, opcode, protocol metadata) is managed internally by `PacketBase<T>`. Always start your payload order from 0.
 
 ```csharp
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class RegionalPacket : PacketBase<RegionalPacket>
 {
-    // Order 0 starts at offset 13 (immediately after header)
     [SerializeOrder(0)]
-    public ushort RegionId { get; set; } 
+    public ushort RegionId { get; set; }
 
     [SerializeOrder(1)]
+    [SerializeDynamicSize(256)]
     public string Data { get; set; } = string.Empty;
 }
 ```
 
-> [!IMPORTANT]
-> `[SerializeOrder]` values do not overlap with the system header. The header fields (Magic, OpCode, etc.) are managed internally. Always start your payload `Order` from 0.
+!!! note "Header layout"
+    `[SerializeOrder]` values do not overlap with the system header. The header fields (magic, opcode, protocol, priority) are managed by the framework. Always start payload fields from order `0`.
 
 ---
 
 ## 4. Packet Versioning
 
-Nalix supports versioning through **Additive Evolution**:
+Nalix supports versioning through **additive evolution**:
 
-1. **Explicit Order**: Always use `[SerializeOrder]`. Never change the order of existing fields.
-2. **Backward Compatibility**: To add a new field, simply use a higher `SerializeOrder`. Older clients reading newer packets will simply ignore the trailing bytes. Newer clients reading older packets will receive default values for the missing fields.
-
-**Example: Adding a field**
+1. **Use Explicit layout.** Never change the order of existing fields.
+2. **Append new fields.** Add new fields with a higher `[SerializeOrder]` value.
+3. **Backward compatibility.** Older clients reading newer packets will ignore trailing bytes. Newer clients reading older packets will receive default values for missing fields.
 
 ```csharp
 // Version 1
 [SerializeOrder(0)] public int Id { get; set; }
 
-// Version 2 (SAFE)
+// Version 2 — adding a field at the end is safe
 [SerializeOrder(0)] public int Id { get; set; }
-[SerializeOrder(1)] public string? Tags { get; set; } // Added at the end
+[SerializeOrder(1)] public string? Tags { get; set; }
 ```
+
+!!! warning "Breaking changes"
+    The following changes break wire compatibility:
+    
+    - Changing the `[SerializeOrder]` of an existing field
+    - Removing a field without renumbering successors
+    - Changing a field's type
+    - Switching from `Explicit` to `Auto` layout
+
+---
+
+## 5. Packet Registration
+
+Packets must be registered with the `PacketRegistry` before they can be deserialized at runtime. The `PacketRegistryFactory` discovers packet types, binds their deserializers, and builds an immutable `FrozenDictionary`-backed catalog.
+
+### Automatic registration (hosted server)
+
+When using `Nalix.Network.Hosting`, use the builder to scan assemblies:
+
+```csharp
+var app = NetworkApplication.CreateBuilder()
+    .AddPacket<PingRequest>()        // Scans the assembly containing PingRequest
+    .AddHandlers<PingHandler>()
+    .Build();
+```
+
+### Manual registration
+
+When building the dispatch manually, create the registry explicitly:
+
+```csharp
+PacketRegistryFactory factory = new();
+factory.RegisterPacket<PingRequest>()
+       .RegisterPacket<PingResponse>();
+
+// Or scan by namespace
+factory.IncludeAssembly(typeof(PingRequest).Assembly);
+factory.IncludeNamespaceRecursive("MyApp.Packets");
+
+IPacketRegistry catalog = factory.CreateCatalog();
+```
+
+Built-in signal packets (`Control`, `Handshake`, `SessionResume`, `Directive`) are registered automatically by the `PacketRegistryFactory` constructor.
 
 ---
 
 ## 6. Custom Formatters
 
-If your data type is not supported out-of-the-box (e.g., a third-party GeoLocation struct), you can implement a custom formatter.
-
-### Steps:
+If your data type is not supported by the built-in serializer (e.g., a third-party struct), you can implement a custom formatter.
 
 1. Implement `IFormatter<T>`.
 2. Register it using `LiteSerializer.Register<T>(formatter)`.
 
 ```csharp
-public class MyCustomFormatter : IFormatter<MyCustomData>
+public class GeoLocationFormatter : IFormatter<GeoLocation>
 {
-    public void Serialize(ref DataWriter writer, MyCustomData value)
+    public void Serialize(ref DataWriter writer, GeoLocation value)
     {
         writer.WriteInt32(value.X);
         writer.WriteInt32(value.Y);
     }
 
-    public MyCustomData Deserialize(ref DataReader reader)
+    public GeoLocation Deserialize(ref DataReader reader)
     {
         int x = reader.ReadInt32();
         int y = reader.ReadInt32();
-        return new MyCustomData(x, y);
+        return new GeoLocation(x, y);
     }
 }
 ```
 
 ## Recommended Next Steps
 
-- [Performance Optimizations](./performance-optimizations.md)
-- [Middleware Implementation](./middleware.md)
-- [Production End-to-End Guide](../guides/production-end-to-end.md)
+- [Packet Lifecycle](./packet-lifecycle.md) — How packets move through the dispatch pipeline
+- [Serialization Attributes](../api/common/serialization-attributes.md) — Full attribute reference
+- [Packet Registry](../api/framework/packets/packet-registry.md) — Registry API details
+- [Performance Optimizations](./performance-optimizations.md) — Zero-allocation design

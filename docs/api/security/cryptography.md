@@ -4,13 +4,14 @@ Nalix ships several cryptography primitives in `Nalix.Framework.Security`, but t
 
 ## Source mapping
 
-- `src/Nalix.Framework/Security/Asymmetric/*`
-- `src/Nalix.Framework/Security/Hashing/*`
-- `src/Nalix.Framework/Security/Symmetric/*`
-- `src/Nalix.Framework/Security/Aead/*`
-- `src/Nalix.Framework/Security/Engine/*`
-- `src/Nalix.Framework/Security/Credentials/*`
+- `src/Nalix.Framework/Security/Asymmetric`
+- `src/Nalix.Framework/Security/Hashing`
+- `src/Nalix.Framework/Security/Symmetric`
+- `src/Nalix.Framework/Security/Aead`
+- `src/Nalix.Framework/Security/Engine`
+- `src/Nalix.Framework/Security/Primitives`
 - `src/Nalix.Framework/Security/EnvelopeCipher.cs`
+- `src/Nalix.Framework/Security/HandshakeX25519.cs`
 
 ## What is in this package
 

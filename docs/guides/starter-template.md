@@ -105,8 +105,13 @@ static ILogger BuildLogger()
 
 static IPacketRegistry BuildPacketRegistry()
 {
-    // Replace with your packet catalog registration
-    throw new NotImplementedException();
+    PacketRegistryFactory factory = new();
+    // Register your custom packet types here:
+    // factory.RegisterPacket<MyPacket>();
+    // Or scan by namespace:
+    // factory.IncludeAssembly(typeof(MyPacket).Assembly);
+    // factory.IncludeNamespaceRecursive("MyApp.Packets");
+    return factory.CreateCatalog();
 }
 ```
 
