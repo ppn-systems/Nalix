@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Shared.LZ4.Encoders;
+using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Internal;
 
 namespace Nalix.Shared.LZ4.Engine;
@@ -48,15 +49,7 @@ internal static class LZ4Decoder
         output = null;
         bytesWritten = 0;
 
-        if (input.Length < LZ4BlockHeader.Size)
-        {
-            return false;
-        }
-
-        LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
-        if (header.OriginalLength < 0
-            || header.CompressedLength < LZ4BlockHeader.Size
-            || header.CompressedLength != input.Length)
+        if (!TryReadAndValidateHeader(input, out LZ4BlockHeader header))
         {
             return false;
         }
@@ -65,11 +58,6 @@ internal static class LZ4Decoder
         {
             output = [];
             return true;
-        }
-
-        if (header.OriginalLength > LZ4CompressionConstants.MaxBlockSize)
-        {
-            return false;
         }
 
         output = new System.Byte[header.OriginalLength];
@@ -82,9 +70,82 @@ internal static class LZ4Decoder
         return true;
     }
 
+    /// <summary>
+    /// Decompresses the provided compressed data into a <see cref="BufferLease"/> rented from the pool.
+    /// Caller is responsible for disposing the lease when done.
+    /// </summary>
+    /// <param name="input">The compressed data, including the header.</param>
+    /// <param name="lease">
+    /// On success, a <see cref="BufferLease"/> whose <see cref="BufferLease.Span"/> contains
+    /// exactly <c>bytesWritten</c> bytes of decompressed data. Must be disposed by the caller.
+    /// On failure, <c>null</c>.
+    /// </param>
+    /// <param name="bytesWritten">The number of bytes written to the lease.</param>
+    /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    public static System.Boolean Decode(
+        System.ReadOnlySpan<System.Byte> input,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out BufferLease? lease,
+        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 bytesWritten)
+    {
+        lease = null;
+        bytesWritten = 0;
+
+        if (!TryReadAndValidateHeader(input, out LZ4BlockHeader header))
+        {
+            return false;
+        }
+
+        // OriginalLength == 0: data rỗng hợp lệ — lease = null, bytesWritten = 0, return true
+        if (header.OriginalLength == 0)
+        {
+            lease = BufferLease.Empty;
+            return true;
+        }
+
+        BufferLease rentedLease = BufferLease.Rent(header.OriginalLength);
+
+        if (!DecodeInternal(input, rentedLease.SpanFull, out bytesWritten))
+        {
+            rentedLease.Dispose();
+            return false;
+        }
+
+        rentedLease.CommitLength(bytesWritten);
+        lease = rentedLease;
+        return true;
+    }
+
     #endregion APIs
 
     #region Private Methods
+
+    /// <summary>
+    /// Validates input length and reads the LZ4 block header.
+    /// Centralises header checks shared by all three Decode overloads.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.Boolean TryReadAndValidateHeader(
+        System.ReadOnlySpan<System.Byte> input,
+        out LZ4BlockHeader header)
+    {
+        header = default;
+
+        if (input.Length < LZ4BlockHeader.Size)
+        {
+            return false;
+        }
+
+        header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
+
+        return header.OriginalLength >= 0
+            && header.CompressedLength >= LZ4BlockHeader.Size
+            && header.CompressedLength == input.Length
+            && header.OriginalLength <= LZ4CompressionConstants.MaxBlockSize;
+    }
 
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -124,12 +185,6 @@ internal static class LZ4Decoder
 
                 while (inputPtr < inputEnd)
                 {
-                    if (inputPtr >= inputEnd)
-                    {
-                        MemorySecurity.ZeroMemory(output);
-                        return false;
-                    }
-
                     System.Byte token = *inputPtr++;
 
                     System.Int32 literalLength = (token >> 4) & LZ4CompressionConstants.TokenLiteralMask;

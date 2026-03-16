@@ -46,7 +46,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     private System.Threading.CancellationTokenRegistration _cancelReg;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     #endregion Fields
 

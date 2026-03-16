@@ -1,16 +1,19 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Shared.LZ4;
+using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.Shared.Extensions;
 
 /// <summary>
 /// Provides string helpers to compress/decompress UTF-8 text using LZ4 and encode/decode as Base64.
+/// All intermediate buffers are rented from <see cref="BufferLease"/> to avoid heap allocations.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 public static class StringCompressionExtensions
 {
+    // Strings nhỏ hơn ngưỡng này dùng stackalloc cho UTF-8 buffer, tránh pool overhead
     private const System.Int32 StackAllocThreshold = 256;
 
     /// <summary>
@@ -22,15 +25,10 @@ public static class StringCompressionExtensions
     /// Returns <see cref="System.String.Empty"/> when <paramref name="this"/> is null or empty.
     /// </returns>
     /// <remarks>
-    /// This method allocates for the UTF-8 bytes, the compressed buffer, and the Base64 output string.
-    /// For most application scenarios, this is sufficient and performant.
+    /// All intermediate buffers (UTF-8 bytes, compressed bytes) are rented from <see cref="BufferLease"/>
+    /// and returned to the pool after use. The only unavoidable allocation is the final Base64 string.
     /// </remarks>
-    /// <example>
-    /// <code>
-    /// string packed = "hello".CompressToBase64();
-    /// </code>
-    /// </example>
-    /// <exception cref="System.InvalidOperationException">Thrown when compression fails.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown when LZ4 compression fails.</exception>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -41,18 +39,27 @@ public static class StringCompressionExtensions
             return System.String.Empty;
         }
 
-        // Encode UTF-8 → use stackalloc if small
         System.Int32 maxUtf8Len = System.Text.Encoding.UTF8.GetMaxByteCount(@this.Length);
-        System.Span<System.Byte> utf8Buffer = maxUtf8Len <= StackAllocThreshold
-            ? stackalloc System.Byte[maxUtf8Len] : new System.Byte[maxUtf8Len];
 
-        System.Int32 utf8Len = System.Text.Encoding.UTF8.GetBytes(System.MemoryExtensions.AsSpan(@this), utf8Buffer);
+        if (maxUtf8Len <= StackAllocThreshold)
+        {
+            // Path ngắn: UTF-8 trên stack, chỉ 1 BufferLease cho compressed
+            System.Span<System.Byte> utf8Stack = stackalloc System.Byte[maxUtf8Len];
+            System.Int32 utf8Len = System.Text.Encoding.UTF8.GetBytes(
+                System.MemoryExtensions.AsSpan(@this), utf8Stack);
 
-        // LZ4 encode
-        System.Byte[] compressed = LZ4Codec.Encode(utf8Buffer[..utf8Len]);
+            return CompressSpanToBase64(utf8Stack[..utf8Len]);
+        }
 
-        // Base64 encode
-        return System.Convert.ToBase64String(compressed);
+        // Path dài: rent buffer cho UTF-8
+        using BufferLease utf8Lease = BufferLease.Rent(maxUtf8Len);
+
+        System.Int32 utf8Written = System.Text.Encoding.UTF8.GetBytes(
+            System.MemoryExtensions.AsSpan(@this), utf8Lease.SpanFull);
+
+        utf8Lease.CommitLength(utf8Written);
+
+        return CompressSpanToBase64(utf8Lease.Span);
     }
 
     /// <summary>
@@ -66,15 +73,12 @@ public static class StringCompressionExtensions
     /// Returns <see cref="System.String.Empty"/> when <paramref name="this"/> is null or empty.
     /// </returns>
     /// <remarks>
-    /// Internally performs Base64 decode, LZ4 decode, then converts bytes to UTF-8 text.
+    /// All intermediate buffers (Base64 decoded bytes, decompressed bytes) are rented from
+    /// <see cref="BufferLease"/> and returned to the pool after use.
+    /// The only unavoidable allocation is the final UTF-8 string.
     /// </remarks>
-    /// <example>
-    /// <code>
-    /// string text = packed.DecompressFromBase64();
-    /// </code>
-    /// </example>
     /// <exception cref="System.InvalidOperationException">
-    /// Thrown when Base64 is invalid or decompression fails.
+    /// Thrown when Base64 input is invalid or LZ4 decompression fails.
     /// </exception>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -86,26 +90,52 @@ public static class StringCompressionExtensions
             return System.String.Empty;
         }
 
-        // Base64 decode avoid throw
-        System.Int32 base64Len = @this.Length;
-        System.Span<System.Byte> compressedBuffer = base64Len <= StackAllocThreshold
-            ? stackalloc System.Byte[base64Len]
-            : new System.Byte[base64Len];
+        // Base64 decoded size luôn ≤ (base64Len / 4) * 3
+        System.Int32 decodedMaxLen = @this.Length / 4 * 3;
 
-        if (!System.Convert.TryFromBase64String(@this, compressedBuffer, out System.Int32 compressedLen))
+        using BufferLease compressedLease = BufferLease.Rent(decodedMaxLen);
+
+        if (!System.Convert.TryFromBase64String(@this, compressedLease.SpanFull, out System.Int32 compressedLen))
         {
             throw new System.InvalidOperationException("Invalid Base64 input.");
         }
 
-        // LZ4 decode
-        if (!LZ4Codec.Decode(compressedBuffer[..compressedLen],
-            out System.Byte[]? output,
-            out System.Int32 written) || output is null || written <= 0)
+        compressedLease.CommitLength(compressedLen);
+
+        // LZ4 decode → BufferLease (pool, không alloc byte[])
+        if (!LZ4Codec.Decode(compressedLease.Span, out BufferLease? decompressedLease, out System.Int32 written)
+            || decompressedLease is null
+            || written <= 0)
         {
             throw new System.InvalidOperationException("LZ4 decompression failed.");
         }
 
-        // UTF-8 decode
-        return System.Text.Encoding.UTF8.GetString(output, 0, written);
+        using (decompressedLease)
+        {
+            // UTF-8 decode → string (allocation không tránh được)
+            return System.Text.Encoding.UTF8.GetString(decompressedLease.Span);
+        }
+    }
+
+    // ── Helper ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// LZ4-compresses <paramref name="utf8"/> via a pooled <see cref="BufferLease"/>,
+    /// then Base64-encodes the result into a new string.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static System.String CompressSpanToBase64(System.ReadOnlySpan<System.Byte> utf8)
+    {
+        if (!LZ4Codec.Encode(utf8, out BufferLease? compressedLease, out _))
+        {
+            throw new System.InvalidOperationException("LZ4 compression failed.");
+        }
+
+        using (compressedLease)
+        {
+            // Base64 encode — string là allocation duy nhất không tránh được
+            return System.Convert.ToBase64String(compressedLease!.Span);
+        }
     }
 }

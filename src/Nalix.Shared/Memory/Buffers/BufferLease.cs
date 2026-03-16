@@ -18,6 +18,12 @@ public sealed class BufferLease : IBufferLease
     // ====== Static ======
 
     /// <summary>
+    /// Empty, immutable lease with no buffer. Useful as a singleton for empty cases to avoid allocations.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    public static readonly BufferLease Empty = new(System.Array.Empty<System.Byte>(), start: 0, length: 0, zeroOnDispose: false);
+
+    /// <summary>
     /// Gets the shared <see cref="BufferPoolManager"/> instance used for buffer pooling.
     /// </summary>
     internal static readonly BufferPoolManager BufferPool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
