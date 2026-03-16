@@ -1,5 +1,4 @@
-﻿using Nalix.Common.Connection;
-using Nalix.Common.Infrastructure.Connection;
+﻿using Nalix.Common.Networking.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Network.Connections;
 using Nalix.Network.Protocols;
