@@ -24,7 +24,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// </para>
 /// </remarks>
 [System.Runtime.CompilerServices.SkipLocalsInit]
-public static class ReliableClientSubscriptions
+public static class TcpSessionSubscriptions
 {
     private static readonly IPacketRegistry s_catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
     // ── On<TPacket> ──────────────────────────────────────────────────────────

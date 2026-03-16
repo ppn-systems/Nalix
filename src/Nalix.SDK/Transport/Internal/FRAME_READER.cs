@@ -67,11 +67,11 @@ internal sealed class FRAME_READER(
             {
                 // 1) Đọc 2-byte length header
                 System.Byte[] headerBuffer =
-                    System.Buffers.ArrayPool<System.Byte>.Shared.Rent(ReliableClient.HeaderSize);
+                    System.Buffers.ArrayPool<System.Byte>.Shared.Rent(TcpSession.HeaderSize);
                 try
                 {
                     var headerMemory = new System.Memory<System.Byte>(
-                        headerBuffer, 0, ReliableClient.HeaderSize);
+                        headerBuffer, 0, TcpSession.HeaderSize);
 
                     await RECEIVE_EXACTLY_ASYNC(s, headerMemory, token).ConfigureAwait(false);
 
@@ -79,13 +79,13 @@ internal sealed class FRAME_READER(
                         System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(
                             headerMemory.Span);
 
-                    if (totalLen < ReliableClient.HeaderSize || totalLen > _options.MaxPacketSize)
+                    if (totalLen < TcpSession.HeaderSize || totalLen > _options.MaxPacketSize)
                     {
                         throw new System.Net.Sockets.SocketException(
                             (System.Int32)System.Net.Sockets.SocketError.ProtocolNotSupported);
                     }
 
-                    System.Int32 payloadLen = totalLen - ReliableClient.HeaderSize;
+                    System.Int32 payloadLen = totalLen - TcpSession.HeaderSize;
 
                     // 2) Rent buffer cho full frame, đọc payload
                     System.Byte[] rented = _bufferPool.Rent(totalLen);
@@ -93,7 +93,7 @@ internal sealed class FRAME_READER(
                     try
                     {
                         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
-                            System.MemoryExtensions.AsSpan(rented, 0, ReliableClient.HeaderSize),
+                            System.MemoryExtensions.AsSpan(rented, 0, TcpSession.HeaderSize),
                             totalLen);
 
                         if (payloadLen > 0)
@@ -101,7 +101,7 @@ internal sealed class FRAME_READER(
                             await RECEIVE_EXACTLY_ASYNC(
                                 s,
                                 System.MemoryExtensions.AsMemory(
-                                    rented, ReliableClient.HeaderSize, payloadLen),
+                                    rented, TcpSession.HeaderSize, payloadLen),
                                 token).ConfigureAwait(false);
                         }
 
@@ -115,7 +115,7 @@ internal sealed class FRAME_READER(
                         //      b) Dispose lease gốc trong finally của chính nó
                         //    FRAME_READER không được đụng vào lease sau điểm này.
                         BufferLease lease = BufferLease.TakeOwnership(
-                            rented, ReliableClient.HeaderSize, payloadLen);
+                            rented, TcpSession.HeaderSize, payloadLen);
                         ownershipTransferred = true;
 
                         // 4) Deliver — bắt exception để bảo vệ receive loop.

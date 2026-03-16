@@ -7,14 +7,14 @@ using Nalix.SDK.Transport;
 namespace Nalix.SDK.Diagnostics;
 
 /// <summary>
-/// An immutable point-in-time snapshot of <see cref="ReliableClient"/> metrics.
+/// An immutable point-in-time snapshot of <see cref="TcpSession"/> metrics.
 /// All values are captured atomically from the client at the moment
-/// <see cref="DiagnosticsExtensions.GetDiagnostics(ReliableClient)"/> is called.
+/// <see cref="DiagnosticsExtensions.GetDiagnostics(TcpSession)"/> is called.
 /// </summary>
 [System.Diagnostics.DebuggerDisplay(
     "Connected={IsConnected}, RTT={HeartbeatRttMs:F1} ms, " +
     "Tx={SendBytesPerSecond} B/s, Rx={ReceiveBytesPerSecond} B/s")]
-public readonly struct ReliableClientDiagnostics
+public readonly struct TcpSessionDiagnostics
 {
     /// <summary>
     /// Whether the client is currently connected.

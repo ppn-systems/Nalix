@@ -14,9 +14,9 @@ using Nalix.Shared.Memory.Buffers;
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// This class is thread-safe. Many APIs/fields copied from <see cref="ReliableClient"/>.
+/// This class is thread-safe. Many APIs/fields copied from <see cref="TcpSession"/>.
 /// </summary>
-public sealed class ReliableIoTClient : IClientConnection
+public sealed class IoTTcpSession : IClientConnection
 {
     #region Fields
 
@@ -78,9 +78,9 @@ public sealed class ReliableIoTClient : IClientConnection
     #region Constructor
 
     /// <summary>
-    /// Constructs a new <see cref="ReliableIoTClient"/> instance; loads <see cref="TransportOptions"/>.
+    /// Constructs a new <see cref="IoTTcpSession"/> instance; loads <see cref="TransportOptions"/>.
     /// </summary>
-    public ReliableIoTClient()
+    public IoTTcpSession()
     {
         _log = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
@@ -117,7 +117,7 @@ public sealed class ReliableIoTClient : IClientConnection
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task ConnectAsync(System.String host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableIoTClient));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(IoTTcpSession));
 
         System.String effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
         System.UInt16 effectivePort = port ?? Options.Port;
@@ -176,7 +176,7 @@ public sealed class ReliableIoTClient : IClientConnection
                     }
 
                     // Notify connection successful
-                    _log?.Info($"[SDK.{nameof(ReliableIoTClient)}] Connected to {address}:{effectivePort}");
+                    _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Connected to {address}:{effectivePort}");
                     OnConnected?.Invoke(this, System.EventArgs.Empty);
 
                     START_RECEIVE_WORKER_IOT(_loopCts.Token);
@@ -186,7 +186,7 @@ public sealed class ReliableIoTClient : IClientConnection
             catch (System.Exception ex) when (ex is not System.OperationCanceledException)
             {
                 lastException = ex;
-                _log?.Warn($"[SDK.{nameof(ReliableIoTClient)}] Connection attempt {retryCount + 1}/{maxRetries} failed: {ex.Message}");
+                _log?.Warn($"[SDK.{nameof(IoTTcpSession)}] Connection attempt {retryCount + 1}/{maxRetries} failed: {ex.Message}");
 
                 // Wait for increasing "backoff" time before retrying
                 await System.Threading.Tasks.Task.Delay((retryCount + 1) * 1000, ct).ConfigureAwait(false);
@@ -205,7 +205,7 @@ public sealed class ReliableIoTClient : IClientConnection
         }
 
         CLEANUP_CONNECTION();
-        _log?.Info($"[SDK.{nameof(ReliableIoTClient)}] Disconnected (requested).");
+        _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Disconnected (requested).");
         OnDisconnected?.Invoke(this, null);
         return System.Threading.Tasks.Task.CompletedTask;
     }
@@ -213,7 +213,7 @@ public sealed class ReliableIoTClient : IClientConnection
     /// <inheritdoc/>
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableIoTClient));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(IoTTcpSession));
         var sender = System.Threading.Volatile.Read(ref _sender);
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(payload, ct);
     }
@@ -222,7 +222,7 @@ public sealed class ReliableIoTClient : IClientConnection
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(ReliableIoTClient));
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(IoTTcpSession));
         var sender = System.Threading.Volatile.Read(ref _sender);
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(packet, ct);
     }
@@ -237,7 +237,7 @@ public sealed class ReliableIoTClient : IClientConnection
 
         CLEANUP_CONNECTION();
         _receiveTask.Dispose();
-        _log?.Info($"[SDK.{nameof(ReliableIoTClient)}] Disposed.");
+        _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Disposed.");
         System.GC.SuppressFinalize(this);
     }
 

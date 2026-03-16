@@ -21,7 +21,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// </remarks>
 /// <seealso cref="Directive"/>
 /// <seealso cref="Clock"/>
-/// <seealso cref="ReliableClient"/>
+/// <seealso cref="TcpSession"/>
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public static class DirectiveClientExtensions
 {

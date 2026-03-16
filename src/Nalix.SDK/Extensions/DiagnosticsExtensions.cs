@@ -8,8 +8,8 @@ using Nalix.SDK.Transport;
 namespace Nalix.SDK.Extensions;
 
 /// <summary>
-/// Extension method that captures a <see cref="ReliableClientDiagnostics"/> from a
-/// <see cref="ReliableClient"/> in a single call.
+/// Extension method that captures a <see cref="TcpSessionDiagnostics"/> from a
+/// <see cref="TcpSession"/> in a single call.
 /// </summary>
 public static class DiagnosticsExtensions
 {
@@ -18,7 +18,7 @@ public static class DiagnosticsExtensions
     /// </summary>
     /// <param name="client">The client to snapshot.</param>
     /// <returns>
-    /// A <see cref="ReliableClientDiagnostics"/> with all metrics captured at this instant.
+    /// A <see cref="TcpSessionDiagnostics"/> with all metrics captured at this instant.
     /// </returns>
     /// <exception cref="System.ArgumentNullException">
     /// Thrown when <paramref name="client"/> is <c>null</c>.
@@ -35,11 +35,11 @@ public static class DiagnosticsExtensions
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ReliableClientDiagnostics GetDiagnostics(this ReliableClient client)
+    public static TcpSessionDiagnostics GetDiagnostics(this TcpSession client)
     {
         System.ArgumentNullException.ThrowIfNull(client);
 
-        return new ReliableClientDiagnostics
+        return new TcpSessionDiagnostics
         {
             IsConnected = client.IsConnected,
             Endpoint = $"{client.Options.Address}:{client.Options.Port}",
@@ -53,23 +53,23 @@ public static class DiagnosticsExtensions
 
     /// <summary>
     /// Captures a diagnostics snapshot via the <see cref="IClientConnection"/> interface.
-    /// Only <see cref="ReliableClient"/> instances expose the full metric set;
+    /// Only <see cref="TcpSession"/> instances expose the full metric set;
     /// other implementations receive a partial snapshot (RTT = 0, BPS = 0).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ReliableClientDiagnostics GetDiagnostics(this IClientConnection client)
+    public static TcpSessionDiagnostics GetDiagnostics(this IClientConnection client)
     {
         System.ArgumentNullException.ThrowIfNull(client);
 
         // Fast path: full metrics available.
-        if (client is ReliableClient rc)
+        if (client is TcpSession rc)
         {
             return rc.GetDiagnostics();
         }
 
         // Partial snapshot for other IClientConnection implementations.
-        return new ReliableClientDiagnostics
+        return new TcpSessionDiagnostics
         {
             IsConnected = client.IsConnected,
             Endpoint = $"{client.Options.Address}:{client.Options.Port}",

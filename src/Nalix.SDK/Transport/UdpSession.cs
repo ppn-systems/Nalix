@@ -24,8 +24,8 @@ namespace Nalix.SDK.Transport;
 /// - Rate sampler scheduled as TaskManager recurring job
 /// - Use BufferPoolManager and BufferLease for received payloads
 /// </summary>
-[System.Obsolete("UnreliableClient is intended for testing and diagnostics only. It does not implement reliability features such as retransmission, ordering, or congestion control. Use ReliableClient for production scenarios.", error: false)]
-public sealed class UnreliableClient : IClientConnection
+[System.Obsolete("UdpSession is intended for testing and diagnostics only. It does not implement reliability features such as retransmission, ordering, or congestion control. Use TcpSession for production scenarios.", error: false)]
+public sealed class UdpSession : IClientConnection
 {
     #region Fields
 
@@ -107,7 +107,7 @@ public sealed class UnreliableClient : IClientConnection
     /// <summary>
     /// Construct UnreliableClient using TransportOptions from ConfigurationManager if available.
     /// </summary>
-    public UnreliableClient()
+    public UdpSession()
     {
         try
         {
@@ -134,10 +134,10 @@ public sealed class UnreliableClient : IClientConnection
         if (InstanceManager.Instance.GetExistingInstance<IPacketRegistry>() == null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[SDK.{nameof(ReliableClient)}] no IPacketRegistry instance found; this is a fatal configuration error. The process will terminate.");
+                                    .Error($"[SDK.{nameof(TcpSession)}] no IPacketRegistry instance found; this is a fatal configuration error. The process will terminate.");
 
             // Fail fast with a clear message so operator/collector can see cause.
-            System.Environment.FailFast($"[SDK.{nameof(ReliableClient)}] missing required service: IPacketRegistry. Terminating process.");
+            System.Environment.FailFast($"[SDK.{nameof(TcpSession)}] missing required service: IPacketRegistry. Terminating process.");
         }
     }
 
@@ -161,7 +161,7 @@ public sealed class UnreliableClient : IClientConnection
             throw new System.ArgumentOutOfRangeException(nameof(port));
         }
 
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(UnreliableClient));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(UdpSession));
 
         // store remote
         _remoteEndPoint = new System.Net.IPEndPoint(await RESOLVE_HOST_ASYNC(host, cancellationToken).ConfigureAwait(false), (System.Int32)port);
@@ -196,7 +196,7 @@ public sealed class UnreliableClient : IClientConnection
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SDK.{nameof(UnreliableClient)}] connected remote={_remoteEndPoint}");
+                                .Info($"[SDK.{nameof(UdpSession)}] connected remote={_remoteEndPoint}");
 
         OnConnected?.Invoke(this, System.EventArgs.Empty);
 
@@ -219,7 +219,7 @@ public sealed class UnreliableClient : IClientConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SDK.{nameof(UnreliableClient)}] schedule-receive-failed ex={ex.Message}");
+                                    .Warn($"[SDK.{nameof(UdpSession)}] schedule-receive-failed ex={ex.Message}");
 
             // fallback: start as Task.Run only if TaskManager unavailable (retain behavior similar to ReliableClient)
             _ = System.Threading.Tasks.Task.Run(() => RECEIVE_LOOP_ASYNC(loopToken), System.Threading.CancellationToken.None);
@@ -243,7 +243,7 @@ public sealed class UnreliableClient : IClientConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SDK.{nameof(UnreliableClient)}] schedule-rate-sampler-failed ex={ex.Message}");
+                                    .Warn($"[SDK.{nameof(UdpSession)}] schedule-rate-sampler-failed ex={ex.Message}");
             // per earlier requirement: prefer TaskManager; do not fallback
         }
     }
@@ -278,7 +278,7 @@ public sealed class UnreliableClient : IClientConnection
         catch { }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SDK.{nameof(UnreliableClient)}] disconnected (requested)");
+                                .Info($"[SDK.{nameof(UdpSession)}] disconnected (requested)");
 
         OnDisconnected?.Invoke(this, null);
         return System.Threading.Tasks.Task.CompletedTask;
@@ -289,7 +289,7 @@ public sealed class UnreliableClient : IClientConnection
     {
         System.ArgumentNullException.ThrowIfNull(packet);
 
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(UnreliableClient));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(UdpSession));
         if (_udpClient is null)
         {
             throw new System.InvalidOperationException("Client not connected.");
@@ -337,7 +337,7 @@ public sealed class UnreliableClient : IClientConnection
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(_disposed, nameof(UnreliableClient));
+        System.ObjectDisposedException.ThrowIf(_disposed, nameof(UdpSession));
         if (_udpClient is null)
         {
             throw new System.InvalidOperationException("Client not connected.");
@@ -410,7 +410,7 @@ public sealed class UnreliableClient : IClientConnection
         catch { }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SDK.{nameof(UnreliableClient)}] disposed");
+                                .Info($"[SDK.{nameof(UdpSession)}] disposed");
 
         System.GC.SuppressFinalize(this);
     }
@@ -447,7 +447,7 @@ public sealed class UnreliableClient : IClientConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SDK.{nameof(UnreliableClient)}:{nameof(RATE_SAMPLER_TICK_ASYNC)}] sampler-error {ex.Message}");
+                                    .Warn($"[SDK.{nameof(UdpSession)}:{nameof(RATE_SAMPLER_TICK_ASYNC)}] sampler-error {ex.Message}");
 
             try { OnError?.Invoke(this, ex); } catch { }
         }
@@ -475,7 +475,7 @@ public sealed class UnreliableClient : IClientConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[SDK.{nameof(UnreliableClient)}] receive-start-error {ex.Message}", ex);
+                                    .Error($"[SDK.{nameof(UdpSession)}] receive-start-error {ex.Message}", ex);
 
             try { OnError?.Invoke(this, ex); } catch { }
             return;
@@ -503,7 +503,7 @@ public sealed class UnreliableClient : IClientConnection
                 catch (System.Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[SDK.{nameof(UnreliableClient)}] receive failed: {ex.Message}");
+                                            .Warn($"[SDK.{nameof(UdpSession)}] receive failed: {ex.Message}");
 
                     try { OnError?.Invoke(this, ex); } catch { }
                     if (token.IsCancellationRequested)
@@ -565,7 +565,7 @@ public sealed class UnreliableClient : IClientConnection
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[SDK.{nameof(UnreliableClient)}:{nameof(RECEIVE_LOOP_ASYNC)}] faulted msg={ex.Message}", ex);
+                                    .Error($"[SDK.{nameof(UdpSession)}:{nameof(RECEIVE_LOOP_ASYNC)}] faulted msg={ex.Message}", ex);
 
             try { OnError?.Invoke(this, ex); } catch { }
         }
