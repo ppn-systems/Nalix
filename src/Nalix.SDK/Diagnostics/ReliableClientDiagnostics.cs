@@ -47,12 +47,6 @@ public readonly struct ReliableClientDiagnostics
     public System.Int64 ReceiveBytesPerSecond { get; init; }
 
     /// <summary>
-    /// RTT in milliseconds from the most recent heartbeat PING/PONG exchange.
-    /// <c>0</c> when no heartbeat has completed yet or after a timeout.
-    /// </summary>
-    public System.Double HeartbeatRttMs { get; init; }
-
-    /// <summary>
     /// UTC time when the snapshot was taken.
     /// </summary>
     public System.DateTime CapturedAt { get; init; }
@@ -64,6 +58,5 @@ public readonly struct ReliableClientDiagnostics
         => $"[Diagnostics @ {CapturedAt:HH:mm:ss.fff}] " +
            $"Connected={IsConnected} Endpoint={Endpoint} " +
            $"Sent={TotalBytesSent:N0} B Recv={TotalBytesReceived:N0} B " +
-           $"TxBps={SendBytesPerSecond:N0} RxBps={ReceiveBytesPerSecond:N0} " +
-           $"RTT={HeartbeatRttMs:F1} ms";
+           $"TxBps={SendBytesPerSecond:N0} RxBps={ReceiveBytesPerSecond:N0} ";
 }

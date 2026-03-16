@@ -47,7 +47,6 @@ public static class DiagnosticsExtensions
             TotalBytesReceived = client.BytesReceived,
             SendBytesPerSecond = client.SendBytesPerSecond,
             ReceiveBytesPerSecond = client.ReceiveBytesPerSecond,
-            HeartbeatRttMs = client.LastHeartbeatRtt,
             CapturedAt = System.DateTime.UtcNow,
         };
     }
