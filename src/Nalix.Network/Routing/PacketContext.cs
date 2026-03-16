@@ -8,7 +8,7 @@ using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
-using Nalix.Network.Routing.Delegates;
+using Nalix.Network.Routing.Metadata;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Routing;

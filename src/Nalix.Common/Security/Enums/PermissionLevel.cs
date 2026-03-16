@@ -19,45 +19,45 @@ public enum PermissionLevel : System.Byte
     /// Guest access with minimal or no permissions.
     /// Typically for users who are not logged in or registered.
     /// </summary>
-    GUEST = 1,
+    GUEST = 25,
 
     /// <summary>
     /// Read-only access, no modifications allowed.
     /// Suitable for auditors or strictly view-only users.
     /// </summary>
-    READ_ONLY = 2,
+    READ_ONLY = 50,
 
     /// <summary>
     /// Standard registered user with access to general features
     /// within a single tenant or organization.
     /// </summary>
-    USER = 3,
+    USER = 100,
 
     /// <summary>
     /// Elevated privileges for managing content or users
     /// within a limited scope such as a module, department, or project.
     /// Less authority than a tenant administrator.
     /// </summary>
-    SUPERVISOR = 4,
+    SUPERVISOR = 175,
 
     /// <summary>
     /// Administrative control over a single tenant or organization.
     /// Can manage users and settings within that tenant, but has no
     /// authority over other tenants or global platform configuration.
     /// </summary>
-    TENANT_ADMINISTRATOR = 5,
+    TENANT_ADMINISTRATOR = 200,
 
     /// <summary>
     /// System-wide administrative authority across all tenants.
     /// Can manage global configuration, tenants, and system-level policies.
     /// Typically used by the operations or platform team.
     /// </summary>
-    SYSTEM_ADMINISTRATOR = 6,
+    SYSTEM_ADMINISTRATOR = 225,
 
     /// <summary>
     /// Highest authority level with unrestricted control over all
     /// system settings and data.
     /// Typically reserved for the system owner or creator.
     /// </summary>
-    OWNER = 7
+    OWNER = 255
 }
