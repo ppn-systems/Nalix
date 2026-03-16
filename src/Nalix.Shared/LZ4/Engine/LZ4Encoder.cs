@@ -31,7 +31,6 @@ internal static class LZ4Encoder
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static unsafe System.Int32 Encode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output)
     {
-        // Token empty input
         if (input.IsEmpty)
         {
             return WriteEmptyHeader(output);
@@ -42,35 +41,29 @@ internal static class LZ4Encoder
             return -1;
         }
 
+#if DEBUG
         if (output.Length < LZ4BlockEncoder.GetMaxLength(input.Length))
         {
             System.Diagnostics.Debug.WriteLine(
                 $"Warning: Output buffer may be too small. Required: {LZ4BlockEncoder.GetMaxLength(input.Length)}, Available: {output.Length}");
         }
+#endif
 
-        // Rent hash table once per call, reuse across the whole encode.
-        // Table size equals MatchFinder.HashTableSize.
-        System.Int32[] table = System.Buffers.ArrayPool<System.Int32>.Shared.Rent(MatchFinder.HashTableSize);
+        // LZ4HashTablePool dùng [ThreadStatic] — không có lock/CAS overhead như ArrayPool.Shared,
+        // và tự Clear() bên trong Rent() nên không cần clear thủ công sau khi lấy ra.
+        System.Int32[] table = LZ4HashTablePool.Rent();
+
         try
         {
-            // Clear using vectorized Span.Clear() (fast in CoreCLR)
-            System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref table[0], MatchFinder.HashTableSize)
-                                                        .Clear();
-
-            // Pin to obtain a stable pointer for the duration of EncodeBlock
             fixed (System.Int32* hashTable = table)
             {
 #if DEBUG
                 System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table pinning failed");
 #endif
-                if (hashTable == null)
-                {
-                    throw new System.InvalidOperationException("Failed to pin hash table");
-                }
 
                 System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
                 System.Int32 compressedDataLength =
-                    Encoders.LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
+                    LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
 
                 if (compressedDataLength < 0)
                 {
@@ -78,9 +71,11 @@ internal static class LZ4Encoder
                 }
 
                 System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
+
 #if DEBUG
-                System.Boolean isValid = totalCompressedLength <= output.Length;
-                System.Diagnostics.Debug.Assert(isValid);
+                System.Diagnostics.Debug.Assert(
+                    totalCompressedLength <= output.Length,
+                    $"Compressed data ({totalCompressedLength} bytes) exceeds output buffer ({output.Length} bytes)");
 #endif
 
                 if (totalCompressedLength > output.Length)
@@ -95,7 +90,9 @@ internal static class LZ4Encoder
         }
         finally
         {
-            System.Buffers.ArrayPool<System.Int32>.Shared.Return(table, clearArray: false);
+            // No-op cho thread-static pool, nhưng giữ để API consistent
+            // và dễ swap sang implementation khác sau này
+            LZ4HashTablePool.Return(table);
         }
     }
 
@@ -103,11 +100,6 @@ internal static class LZ4Encoder
 
     #region Private Methods
 
-    /// <summary>
-    /// Writes a header for an empty input to the output buffer.
-    /// </summary>
-    /// <param name="output">The output buffer to write the header into.</param>
-    /// <returns>The size of the header, or -1 if the buffer is too small.</returns>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -123,12 +115,6 @@ internal static class LZ4Encoder
         return LZ4BlockHeader.Size;
     }
 
-    /// <summary>
-    /// Writes the header to the output buffer.
-    /// </summary>
-    /// <param name="output">The output buffer to write the header into.</param>
-    /// <param name="originalLength">The original length of the input data.</param>
-    /// <param name="compressedLength">The total compressed length, including the header.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
