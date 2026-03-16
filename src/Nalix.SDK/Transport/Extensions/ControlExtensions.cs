@@ -139,7 +139,7 @@ public static class ControlExtensions
 
         // Delegate all TCS + subscribe + timeout logic to PacketAwaiter.
         // sendAsync = no-op because the caller has already sent (or will send externally).
-        return PacketAwaiter.AwaitAsync(
+        return PACKET_AWAITER.AwaitAsync(
             client,
             predicate,
             timeoutMs,
