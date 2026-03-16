@@ -53,6 +53,9 @@ public class MyPacketController
 
     [PacketOpcode(0x1001)]
     public async Task OnChat(MyChatPacket packet, IConnection conn) { ... }
+
+      [PacketOpcode(0x1003)]
+    public async Task OnFly(PacketContext<MyChatPacket> ctx) { ... }
 }
 
 // Registration:

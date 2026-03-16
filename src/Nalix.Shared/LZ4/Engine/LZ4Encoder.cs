@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Shared.LZ4.Encoders;
@@ -7,8 +7,7 @@ using Nalix.Shared.Memory.Internal;
 namespace Nalix.Shared.LZ4.Engine;
 
 /// <summary>
-/// Provides functionality to compress data using the LZ4 algorithm,
-/// optimized for zero-allocation and high efficiency.
+/// Provides functionality to compress data using the LZ4 algorithm, optimized for zero-allocation and high efficiency.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
@@ -19,18 +18,20 @@ internal static class LZ4Encoder
     /// <summary>
     /// Compresses the provided input data into the specified output buffer.
     /// </summary>
+    /// <param name="input">The input data to compress as a <see cref="System.ReadOnlySpan{T}"/>.</param>
+    /// <param name="output">The buffer where the compressed data will be written. Must have enough capacity.</param>
     /// <returns>
-    /// Total bytes written (including header), or -1 on failure.
+    /// The total number of bytes written to the output buffer (including the header),
+    /// or -1 if the output buffer is too small or compression fails.
     /// </returns>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static unsafe System.Int32 Encode(
-        System.ReadOnlySpan<System.Byte> input,
-        System.Span<System.Byte> output)
+    public static unsafe System.Int32 Encode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output)
     {
+        // Token empty input
         if (input.IsEmpty)
         {
             return WriteEmptyHeader(output);
@@ -47,47 +48,66 @@ internal static class LZ4Encoder
                 $"Warning: Output buffer may be too small. Required: {LZ4BlockEncoder.GetMaxLength(input.Length)}, Available: {output.Length}");
         }
 
-        // Rent a thread-local hash table — O(1) logical clear via generation counter,
-        // no ArrayPool contention, no 256 KB memset on every call.
-        LZ4HashTablePool.LZ4HashTable hashTableHandle = LZ4HashTablePool.Rent();
-        System.Int32[] tableArray = hashTableHandle.RawTable;
-
-        fixed (System.Int32* hashTable = tableArray)
+        // Rent hash table once per call, reuse across the whole encode.
+        // Table size equals MatchFinder.HashTableSize.
+        System.Int32[] table = System.Buffers.ArrayPool<System.Int32>.Shared.Rent(MatchFinder.HashTableSize);
+        try
         {
-#if DEBUG
-            System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table pinning failed");
-#endif
-            System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
-            System.Int32 compressedDataLength =
-                LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
+            // Clear using vectorized Span.Clear() (fast in CoreCLR)
+            System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref table[0], MatchFinder.HashTableSize)
+                                                        .Clear();
 
-            if (compressedDataLength < 0)
+            // Pin to obtain a stable pointer for the duration of EncodeBlock
+            fixed (System.Int32* hashTable = table)
             {
-                return -1;
-            }
-
-            System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
-
 #if DEBUG
-            System.Diagnostics.Debug.Assert(totalCompressedLength <= output.Length);
+                System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table pinning failed");
 #endif
-            if (totalCompressedLength > output.Length)
-            {
-                throw new System.InvalidOperationException(
-                    $"Compressed data ({totalCompressedLength} bytes) " +
-                    $"exceeds output buffer ({output.Length} bytes)");
-            }
+                if (hashTable == null)
+                {
+                    throw new System.InvalidOperationException("Failed to pin hash table");
+                }
 
-            WriteHeader(output, input.Length, totalCompressedLength);
-            return totalCompressedLength;
+                System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
+                System.Int32 compressedDataLength =
+                    Encoders.LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
+
+                if (compressedDataLength < 0)
+                {
+                    return -1;
+                }
+
+                System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
+#if DEBUG
+                System.Boolean isValid = totalCompressedLength <= output.Length;
+                System.Diagnostics.Debug.Assert(isValid);
+#endif
+
+                if (totalCompressedLength > output.Length)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Compressed data ({totalCompressedLength} bytes) exceeds output buffer ({output.Length} bytes)");
+                }
+
+                WriteHeader(output, input.Length, totalCompressedLength);
+                return totalCompressedLength;
+            }
         }
-        // LZ4HashTable is a ref struct — no Dispose needed; pool state is thread-local.
+        finally
+        {
+            System.Buffers.ArrayPool<System.Int32>.Shared.Return(table, clearArray: false);
+        }
     }
 
     #endregion APIs
 
     #region Private Methods
 
+    /// <summary>
+    /// Writes a header for an empty input to the output buffer.
+    /// </summary>
+    /// <param name="output">The output buffer to write the header into.</param>
+    /// <returns>The size of the header, or -1 if the buffer is too small.</returns>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -103,13 +123,16 @@ internal static class LZ4Encoder
         return LZ4BlockHeader.Size;
     }
 
+    /// <summary>
+    /// Writes the header to the output buffer.
+    /// </summary>
+    /// <param name="output">The output buffer to write the header into.</param>
+    /// <param name="originalLength">The original length of the input data.</param>
+    /// <param name="compressedLength">The total compressed length, including the header.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void WriteHeader(
-        System.Span<System.Byte> output,
-        System.Int32 originalLength,
-        System.Int32 compressedLength)
+    private static void WriteHeader(System.Span<System.Byte> output, System.Int32 originalLength, System.Int32 compressedLength)
     {
         LZ4BlockHeader header = new(originalLength, compressedLength);
         MemOps.WriteUnaligned(output, header);
