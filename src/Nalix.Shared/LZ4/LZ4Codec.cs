@@ -164,6 +164,5 @@ public static class LZ4Codec
     public static System.Boolean Decode(
         [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Byte> input,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out BufferLease? lease,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 bytesWritten)
-        => LZ4Decoder.Decode(input, out lease, out bytesWritten);
+        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 bytesWritten) => LZ4Decoder.Decode(input, out lease, out bytesWritten);
 }

@@ -87,7 +87,7 @@ internal static class LZ4Decoder
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static System.Boolean Decode(
         System.ReadOnlySpan<System.Byte> input,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out BufferLease? lease,
+        out BufferLease? lease,
         [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 bytesWritten)
     {
         lease = null;
@@ -101,7 +101,6 @@ internal static class LZ4Decoder
         // OriginalLength == 0: data rỗng hợp lệ — lease = null, bytesWritten = 0, return true
         if (header.OriginalLength == 0)
         {
-            lease = BufferLease.Empty;
             return true;
         }
 
