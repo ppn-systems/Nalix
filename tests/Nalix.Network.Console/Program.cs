@@ -57,10 +57,6 @@ internal static class Program
             };
 
             listener.Activate(cts.Token);
-
-            TestBufferRent();
-
-            TestBufferRent();
             QuitEvent.WaitOne();
         }
         catch (Exception ex)
@@ -74,43 +70,6 @@ internal static class Program
             keyThread.Join();
             Console.WriteLine("Listener stopped.");
         }
-    }
-
-    public static void TestBufferRent()
-    {
-        var logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        var pool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
-
-        logger.Info("=== Buffer Rent Test ===");
-
-        // Rent nhiều size khác nhau để trigger các pool
-        for (Int32 i = 0; i < 10_000; i++)
-        {
-            var buffers = new System.Byte[][]
-            {
-                pool.Rent(256),
-                pool.Rent(256),
-                pool.Rent(512),
-                pool.Rent(1024),
-                pool.Rent(1024),
-                pool.Rent(1024),
-                pool.Rent(2048),
-                pool.Rent(4096),
-            };
-
-            foreach (var buffer in buffers)
-            {
-                pool.Return(buffer);
-            }
-        }
-
-        // In report lúc đang giữ buffer — Usage > 0
-        logger.Info("--- After Rent (buffers in use) ---");
-        logger.Info(pool.GenerateReport());
-
-        // In report sau khi return — Free tăng lại
-        logger.Info("--- After Return ---");
-        logger.Info(pool.GenerateReport());
     }
 
     public static void GenerateReport()

@@ -83,7 +83,7 @@ public static class RequestExtensions
         }
 
         // PacketAwaiter handles: subscribe → send → await → timeout → unsubscribe.
-        return PacketAwaiter.AwaitAsync(
+        return PACKET_AWAITER.AwaitAsync(
             client,
             predicate,
             timeoutMs,

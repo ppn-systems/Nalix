@@ -220,11 +220,11 @@ public sealed class ReliableClient : IClientConnection
 
         try
         {
-            Options = ConfigurationManager.Instance.Get<TransportOptions>();
+            this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         }
         catch
         {
-            Options = new TransportOptions
+            this.Options = new TransportOptions
             {
                 NoDelay = true,
                 BufferSize = 8192,
@@ -237,6 +237,8 @@ public sealed class ReliableClient : IClientConnection
                 MaxPacketSize = PacketConstants.PacketSizeLimit
             };
         }
+
+        this.Options.Validate();
 
         // IPacketCatalog is required for deserialization; fail fast with a clear message.
         if (InstanceManager.Instance.GetExistingInstance<IPacketRegistry>() is null)

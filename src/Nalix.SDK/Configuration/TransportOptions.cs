@@ -5,6 +5,7 @@ using Nalix.Common.Networking.Transport;
 using Nalix.Common.Security.Enums;
 using Nalix.Common.Shared.Attributes;
 using Nalix.Framework.Configuration.Binding;
+using System.ComponentModel.DataAnnotations;
 
 namespace Nalix.SDK.Configuration;
 
@@ -20,12 +21,14 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// Gets the port number for the connection.
     /// </summary>
     [IniComment("Server port to connect to (1–65535)")]
+    [Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
     public System.UInt16 Port { get; set; } = 57206;
 
     /// <summary>
     /// Gets the server address or hostname.
     /// </summary>
     [IniComment("Server IP address or hostname")]
+    [Required(ErrorMessage = "Address is required.")]
     public System.String Address { get; set; } = "127.0.0.1";
 
     // Basic connectivity
@@ -34,6 +37,7 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// Timeout for connect attempts in milliseconds. A value of 0 means no timeout.
     /// </summary>
     [IniComment("Connect attempt timeout in milliseconds (0 = no timeout)")]
+    [Range(0, System.Int32.MaxValue, ErrorMessage = "ConnectTimeoutMillis must be non-negative.")]
     public System.Int32 ConnectTimeoutMillis { get; set; } = 5000;
 
     /// <summary>
@@ -46,18 +50,21 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// Maximum number of reconnect attempts. 0 indicates unlimited attempts.
     /// </summary>
     [IniComment("Max reconnect attempts (0 = unlimited)")]
+    [Range(0, System.Int32.MaxValue, ErrorMessage = "ReconnectMaxAttempts must be non-negative.")]
     public System.Int32 ReconnectMaxAttempts { get; set; } = 0;
 
     /// <summary>
     /// Base delay (in milliseconds) used for exponential backoff between reconnect attempts.
     /// </summary>
     [IniComment("Base delay in milliseconds for exponential backoff between reconnect attempts")]
+    [Range(0, 30000, ErrorMessage = "ReconnectBaseDelayMillis must be between 0 and 30000.")]
     public System.Int32 ReconnectBaseDelayMillis { get; set; } = 500;
 
     /// <summary>
     /// Maximum delay (in milliseconds) allowed between reconnect attempts.
     /// </summary>
     [IniComment("Maximum delay in milliseconds between reconnect attempts")]
+    [Range(0, 30000, ErrorMessage = "ReconnectMaxDelayMillis must be between 0 and 30000.")]
     public System.Int32 ReconnectMaxDelayMillis { get; set; } = 30000;
 
     // Keep-alive / heartbeat (ms). 0 = disabled.
@@ -66,6 +73,7 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// Interval in milliseconds to send keep-alive (heartbeat) packets. 0 disables heartbeats.
     /// </summary>
     [IniComment("Heartbeat interval in milliseconds (0 = disabled)")]
+    [Range(0, System.Int32.MaxValue, ErrorMessage = "KeepAliveIntervalMillis must be non-negative.")]
     public System.Int32 KeepAliveIntervalMillis { get; set; } = 20_000;
 
     // Socket tuning
@@ -80,6 +88,7 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// Size (in bytes) of the socket send and receive buffer.
     /// </summary>
     [IniComment("Socket send and receive buffer size in bytes")]
+    [Range(1024, 1048576, ErrorMessage = "BufferSize must be between 1024 and 1048576 bytes.")]
     public System.Int32 BufferSize { get; set; } = 8192;
 
     // Limits
@@ -88,6 +97,7 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// Maximum allowed packet size (header + payload) in bytes.
     /// </summary>
     [IniComment("Maximum packet size in bytes including header and payload")]
+    [Range(512, 65536, ErrorMessage = "MaxPacketSize must be between 512 and 65536 bytes.")]
     public System.Int32 MaxPacketSize { get; set; } = 64 * 1024;
 
     /// <summary>
@@ -101,4 +111,26 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// </summary>
     [IniComment("Cipher suite used for packet encryption (e.g., CHACHA20, SALSA20, CHACHA20_POLY1305, SALSA20_POLY1305)")]
     public CipherSuiteType EncryptionMode { get; set; } = CipherSuiteType.CHACHA20_POLY1305;
+
+    /// <summary>
+    /// Validates the configuration options and throws an exception if validation fails.
+    /// </summary>
+    /// <exception cref="ValidationException">
+    /// Thrown when one or more validation attributes fail.
+    /// </exception>
+    public void Validate()
+    {
+        if (ReconnectBaseDelayMillis > ReconnectMaxDelayMillis)
+        {
+            throw new ValidationException("ReconnectBaseDelayMillis cannot be greater than ReconnectMaxDelayMillis.");
+        }
+        if (BufferSize is < 1024 or > 1048576)
+        {
+            throw new ValidationException("BufferSize must be between 1024 and 1048576 bytes.");
+        }
+        if (MaxPacketSize is < 512 or > 65536)
+        {
+            throw new ValidationException("MaxPacketSize must be between 512 and 65536 bytes.");
+        }
+    }
 }

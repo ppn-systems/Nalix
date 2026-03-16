@@ -26,7 +26,7 @@ namespace Nalix.SDK.Transport.Internal;
 /// Unsubscription is automatic — SubscribeTemp disposes when the
 /// <c>using</c> block exits, regardless of outcome.
 /// </remarks>
-internal static class PacketAwaiter
+internal static class PACKET_AWAITER
 {
     /// <summary>
     /// Subscribes for a matching packet, invokes <paramref name="sendAsync"/>,
