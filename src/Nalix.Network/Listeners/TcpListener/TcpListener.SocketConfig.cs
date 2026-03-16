@@ -21,8 +21,8 @@ public abstract partial class TcpListenerBase
                     System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
                 {
                     Blocking = true,
-                    DualMode = s_config.DualMode,
-                    ExclusiveAddressUse = s_config.ExclusiveAddressUse,
+                    DualMode = s_config.DualMode,                 // Must set before Bind
+                    ExclusiveAddressUse = !s_config.ReuseAddress, // fast rebind combo with ReuseAddress
                     LingerState = new System.Net.Sockets.LingerOption(false, 0)
                 };
 
@@ -74,8 +74,7 @@ public abstract partial class TcpListenerBase
             System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
         {
             Blocking = true,
-            DualMode = s_config.DualMode,
-            ExclusiveAddressUse = s_config.ExclusiveAddressUse,
+            ExclusiveAddressUse = !s_config.ReuseAddress,
             LingerState = new System.Net.Sockets.LingerOption(false, 0)
         };
 
@@ -87,7 +86,7 @@ public abstract partial class TcpListenerBase
             System.Net.Sockets.SocketOptionLevel.Socket,
             System.Net.Sockets.SocketOptionName.ReceiveBuffer, s_config.BufferSize);
 
-        System.Net.IPEndPoint epV4Any = new(System.Net.IPAddress.Any, this._port);
+        System.Net.IPEndPoint epV4Any = new(System.Net.IPAddress.Any, _port);
 
         s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
 

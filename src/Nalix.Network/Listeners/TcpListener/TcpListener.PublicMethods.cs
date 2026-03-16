@@ -171,10 +171,10 @@ public abstract partial class TcpListenerBase
                     work: async (ctx, ct) => await AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
+                        Tag = NetTaskNames.Net,
+                        IdType = SnowflakeType.System,
                         CancellationToken = linkedToken,
                         RetainFor = System.TimeSpan.FromSeconds(30),
-                        IdType = SnowflakeType.System,
-                        Tag = NetTaskNames.Net
                     }
                 );
 
@@ -219,7 +219,7 @@ public abstract partial class TcpListenerBase
         // Skip throwing if already disposed; just return calmly or let ListenerState check handle it.
         if (System.Threading.Volatile.Read(ref this._isDisposed) != 0 && State == ListenerState.STOPPED)
         {
-             return;
+            return;
         }
 
         s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
