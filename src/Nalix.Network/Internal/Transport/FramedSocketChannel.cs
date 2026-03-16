@@ -100,6 +100,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
     public void BeginReceive(System.Threading.CancellationToken cancellationToken = default)
     {
+        THROW_IF_NOT_CONFIGURED();
+
         if (System.Threading.Volatile.Read(ref _disposed) != 0)
         {
             return;
@@ -140,6 +142,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public System.Boolean Send(System.ReadOnlySpan<System.Byte> data)
     {
+        THROW_IF_NOT_CONFIGURED();
+
         if (System.Threading.Volatile.Read(ref _disposed) != 0)
         {
             return false;
@@ -246,6 +250,8 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         System.ReadOnlyMemory<System.Byte> data,
         System.Threading.CancellationToken cancellationToken)
     {
+        THROW_IF_NOT_CONFIGURED();
+
         if (System.Threading.Volatile.Read(ref _disposed) != 0)
         {
             return false;
@@ -309,14 +315,30 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
 
     #endregion Public Methods
 
+    #region Dispose Pattern
+
+    /// <summary>
+    /// Disposes the resources used by the <see cref="FramedSocketChannel"/> instance.
+    /// </summary>
+    public void Dispose()
+    {
+        this.DISPOSE(true);
+        System.GC.SuppressFinalize(this);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public override System.String ToString()
+        => $"FramedSocketChannel (Client={_socket.RemoteEndPoint}, " +
+           $"Disposed={System.Threading.Volatile.Read(ref _disposed) != 0}, " +
+           $"UpTime={Cache.Uptime}ms, LastPing={Cache.LastPingTime}ms, " +
+           $"IncomingCount={Cache.Incoming.Count})";
+
+    #endregion Dispose Pattern
+
     #region Private Methods
 
-    private static System.Boolean IS_VALID_PACKET_SIZE(System.UInt16 size)
-    {
-        return size is >= HeaderSize and
-               <= PacketConstants.PacketSizeLimit and
-               <= System.UInt16.MaxValue;
-    }
+    private static System.Boolean IS_VALID_PACKET_SIZE(System.UInt16 size) => size is >= HeaderSize and <= PacketConstants.PacketSizeLimit;
 
     [System.Diagnostics.DebuggerStepThrough]
     private static System.String FORMAT_ENDPOINT(System.Net.Sockets.Socket s)
@@ -520,9 +542,6 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
             // 1. Stop receive loop first
             this.CANCEL_RECEIVE_ONCE();
 
-            // 2. Wait a bit for async operations to complete
-            System.Threading.Thread.Sleep(100);
-
             // 3. Shutdown socket
             try
             {
@@ -588,26 +607,13 @@ internal class FramedSocketChannel(System.Net.Sockets.Socket socket) : System.ID
         try { _cts.Cancel(); } catch { /* ignore */ }
     }
 
-    #endregion Private Methods
-
-    #region Dispose Pattern
-
-    /// <summary>
-    /// Disposes the resources used by the <see cref="FramedSocketChannel"/> instance.
-    /// </summary>
-    public void Dispose()
+    private void THROW_IF_NOT_CONFIGURED()
     {
-        this.DISPOSE(true);
-        System.GC.SuppressFinalize(this);
+        if (_sender is null || _cachedArgs is null)
+        {
+            throw new System.InvalidOperationException("SetCallback must be called before use");
+        }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.String ToString()
-        => $"FramedSocketChannel (Client={_socket.RemoteEndPoint}, " +
-           $"Disposed={System.Threading.Volatile.Read(ref _disposed) != 0}, " +
-           $"UpTime={Cache.Uptime}ms, LastPing={Cache.LastPingTime}ms, " +
-           $"IncomingCount={Cache.Incoming.Count})";
-
-    #endregion Dispose Pattern
+    #endregion Private Methods
 }

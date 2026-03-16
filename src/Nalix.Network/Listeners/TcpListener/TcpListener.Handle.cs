@@ -4,13 +4,10 @@
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Identity.Enums;
 using Nalix.Common.Networking.Abstractions;
+using Nalix.Common.Networking.Caching;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Options;
-using Nalix.Framework.Tasks;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Timekeeping;
 using Nalix.Shared.Memory.Pooling;
@@ -19,6 +16,19 @@ namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
+    internal sealed class ProcessContext : IPoolable
+    {
+        public IConnection Connection;
+        public TcpListenerBase Listener;
+
+        public void ResetForPool()
+        {
+            Listener = null;
+            Connection = null;
+        }
+    }
+
+
     [System.Diagnostics.DebuggerStepThrough]
     private void ProcessConnection(
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
@@ -80,7 +90,7 @@ public abstract partial class TcpListenerBase
         connection.OnProcessEvent += _protocol.ProcessMessage;
         connection.OnPostProcessEvent += _protocol.PostProcessMessage;
 
-        if (_config.EnableTimeout)
+        if (s_config.EnableTimeout)
         {
             InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                     .Register(connection);
@@ -139,21 +149,23 @@ public abstract partial class TcpListenerBase
                     IConnection connection = this.InitializeConnection(socket, context);
 
                     // Process the connection
-                    _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                        name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Accept}",
-                        group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}",
-                        work: async (_, _) =>
+                    ProcessContext ctx = s_pool.Get<ProcessContext>();
+
+                    ctx.Listener = this;
+                    ctx.Connection = connection;
+
+                    System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
+                    {
+                        ProcessContext c = state!;
+                        try
                         {
-                            ProcessConnection(connection);
-                            await System.Threading.Tasks.Task.CompletedTask;
-                        },
-                        options: new WorkerOptions
-                        {
-                            RetainFor = System.TimeSpan.Zero,
-                            IdType = SnowflakeType.System,
-                            Tag = NetTaskNames.Net
+                            c.Listener!.ProcessConnection(c.Connection!);
                         }
-                    );
+                        finally
+                        {
+                            s_pool.Return<ProcessContext>(c);
+                        }
+                    }, ctx, preferLocal: true);
 
                     // Rebind a fresh context for the next accept on this args
                     PooledAcceptContext nextCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -346,18 +358,23 @@ public abstract partial class TcpListenerBase
 
                 IConnection connection = await acceptTask.ConfigureAwait(false);
 
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                    name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Process}.Protocol",
-                    group: $"{NetTaskNames.Net}/{NetTaskNames.Tcp}/{_port}",
-                    work: async (_, _) => this.ProcessConnection(connection),
-                    options: new WorkerOptions
+                ProcessContext pctx = s_pool.Get<ProcessContext>();
+
+                pctx.Listener = this;
+                pctx.Connection = connection;
+
+                System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
+                {
+                    ProcessContext c = state!;
+                    try
                     {
-                        Tag = NetTaskNames.Net,
-                        IdType = SnowflakeType.System,
-                        RetainFor = System.TimeSpan.Zero,
-                        CancellationToken = cancellationToken,
+                        c.Listener!.ProcessConnection(c.Connection!);
                     }
-                );
+                    finally
+                    {
+                        s_pool.Return<ProcessContext>(c);
+                    }
+                }, pctx, preferLocal: true);
 
                 ctx.Advance(1, note: "accepted");
 

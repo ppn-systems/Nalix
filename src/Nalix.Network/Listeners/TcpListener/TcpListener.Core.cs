@@ -29,7 +29,8 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
     #region Fields
 
-    private static readonly NetworkSocketOptions _config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+    private static readonly NetworkSocketOptions s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
@@ -103,9 +104,9 @@ public abstract partial class TcpListenerBase : IListener, IReportable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private TcpListenerBase()
     {
-        _config.Validate();
+        s_config.Validate();
 
-        if (System.OperatingSystem.IsWindows() && _config.TuneThreadPool)
+        if (System.OperatingSystem.IsWindows() && s_config.TuneThreadPool)
         {
             System.Int32 parallelism = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
             // Thread pool optimization for IOCP
@@ -137,9 +138,9 @@ public abstract partial class TcpListenerBase : IListener, IReportable
         _state = (System.Int32)ListenerState.STOPPED;
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>();
 
-        _config.Validate();
+        s_config.Validate();
 
-        _acceptWorkerIds = new(_config.MaxParallel);
+        _acceptWorkerIds = new(s_config.MaxParallel);
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
@@ -165,7 +166,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
     /// <param name="protocol">The protocol to handle the connections.</param>
     [System.Diagnostics.DebuggerStepThrough]
     protected TcpListenerBase(IProtocol protocol)
-        : this(_config.Port, protocol)
+        : this(s_config.Port, protocol)
     {
     }
 
