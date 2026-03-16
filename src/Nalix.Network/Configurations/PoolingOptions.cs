@@ -37,6 +37,13 @@ public class PoolingOptions : ConfigurationLoader
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "SocketArgsMaxCapacity must be between 1 and 1,000,000.")]
     public System.Int32 SocketArgsMaxCapacity { get; set; } = 1024;
 
+    /// <summary>
+    /// Process context pooling is currently disabled, but this option is reserved for future use to control the maximum capacity of pooled process contexts.
+    /// </summary>
+    [IniComment("Max pooled ProcessContextMaxCapacity instances (1–1,000,000)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "ProcessContextMaxCapacity must be between 1 and 1,000,000.")]
+    public System.Int32 ProcessContextMaxCapacity { get; set; } = 1024;
+
     #endregion Max Capacity
 
     #region Preallocate
@@ -61,6 +68,13 @@ public class PoolingOptions : ConfigurationLoader
     [IniComment("SocketAsyncEventArgs instances to preallocate at startup (0–SocketArgsMaxCapacity)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000, ErrorMessage = "SocketArgsPreallocate must be between 0 and 1,000,000.")]
     public System.Int32 SocketArgsPreallocate { get; set; } = 16;
+
+    /// <summary>
+    /// Process context pooling is currently disabled, but this option is reserved for future use to control the maximum capacity of pooled process contexts.
+    /// </summary>
+    [IniComment("Max pooled ProcessContextPreallocate instances (1–1,000,000)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "ProcessContextPreallocate must be between 1 and 1,000,000.")]
+    public System.Int32 ProcessContextPreallocate { get; set; } = 16;
 
     #endregion Preallocate
 
@@ -88,6 +102,11 @@ public class PoolingOptions : ConfigurationLoader
         if (SocketArgsPreallocate > SocketArgsMaxCapacity)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("SocketArgsPreallocate cannot be greater than SocketArgsMaxCapacity.");
+        }
+
+        if (ProcessContextPreallocate > ProcessContextMaxCapacity)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("ProcessContextPreallocate cannot be greater than ProcessContextMaxCapacity.");
         }
     }
 }

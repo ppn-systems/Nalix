@@ -21,8 +21,8 @@ public abstract partial class TcpListenerBase
                     System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
                 {
                     Blocking = true,
-                    DualMode = true,                            // Must set before Bind
-                    ExclusiveAddressUse = !s_config.ReuseAddress, // fast rebind combo with ReuseAddress
+                    DualMode = s_config.DualMode,
+                    ExclusiveAddressUse = s_config.ExclusiveAddressUse,
                     LingerState = new System.Net.Sockets.LingerOption(false, 0)
                 };
 
@@ -74,7 +74,8 @@ public abstract partial class TcpListenerBase
             System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
         {
             Blocking = true,
-            ExclusiveAddressUse = !s_config.ReuseAddress,
+            DualMode = s_config.DualMode,
+            ExclusiveAddressUse = s_config.ExclusiveAddressUse,
             LingerState = new System.Net.Sockets.LingerOption(false, 0)
         };
 
