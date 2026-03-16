@@ -21,7 +21,7 @@ public sealed class BufferConfig : ConfigurationLoader
     /// </summary>
     [IniComment("Total buffers to create across all pools (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, System.Int32.MaxValue, ErrorMessage = "TotalBuffers must be greater than 0.")]
-    public System.Int32 TotalBuffers { get; set; } = 100;
+    public System.Int32 TotalBuffers { get; set; } = 1024;
 
     /// <summary>
     /// Enables memory trimming to periodically recover unused buffers.
@@ -122,7 +122,7 @@ public sealed class BufferConfig : ConfigurationLoader
     [IniComment("Semicolon-separated size,ratio pairs for pool allocation (e.g. 1024,0.25; 4096,0.15)\nSizes must be strictly increasing and ratios must sum to <= 1.0")]
     [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "BufferAllocations is required.")]
     [System.ComponentModel.DataAnnotations.MinLength(1, ErrorMessage = "BufferAllocations cannot be empty.")]
-    public System.String BufferAllocations { get; set; } = "256,0.05; 512,0.10; 1024,0.25; 2048,0.20; 4096,0.15; 8192,0.10; 16384,0.10; 32768,0.03; 65536,0.02";
+    public System.String BufferAllocations { get; set; } = "256,0.10; 512,0.15; 1024,0.20; 2048,0.20; 4096,0.15; 8192,0.10; 16384,0.10";
 
     /// <summary>
     /// Maximum memory in bytes that buffer pools can use. 0 means no limit.

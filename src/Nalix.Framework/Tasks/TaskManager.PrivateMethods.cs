@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Concurrency;
@@ -31,9 +31,14 @@ public partial class TaskManager
 
     #region Fields (CPU Monitoring)
 
-    private System.Int64 _lastCpuProcessorTime;
     private System.Int64 _lastCpuWallClockMs;
+    private System.Int64 _lastCpuProcessorTime;
     private readonly System.Diagnostics.Stopwatch _cpuMeasureStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+    private System.Int32 _lowCpuStreak;
+    private System.Int32 _highCpuStreak;
+
+    private volatile System.Boolean _cpuWarmupDone;
 
     #endregion Fields (CPU Monitoring)
 
@@ -328,41 +333,63 @@ public partial class TaskManager
         }
     }
 
-    /// <summary>
-    /// Monitors and dynamically adjusts concurrency based on REAL CPU usage.
-    /// Uses delta-based CPU calculation instead of cumulative TotalProcessorTime.
-    /// </summary>
     private async System.Threading.Tasks.Task MONITOR_CONCURRENCY_ASYNC(IWorkerContext ctx, System.Threading.CancellationToken ct)
     {
         TaskManagerOptions options = _options;
 
-        // Initialize CPU measurement baseline
+        // Số lần liên tiếp vượt ngưỡng trước khi hành động (hysteresis)
+        const System.Int32 StreakRequired = 3;
+
+        // Normalize threshold: config là % trên 1 core → scale lên toàn bộ core
+        System.Double coreCount = System.Environment.ProcessorCount;
+        System.Double threshHigh = options.ThresholdHighCpu * coreCount;
+        System.Double threshLow = options.ThresholdLowCpu * coreCount;
+
+        // Khởi tạo baseline CPU trước khi vòng lặp bắt đầu
         INITIALIZE_CPU_MEASUREMENT();
 
         while (!ct.IsCancellationRequested && options.DynamicAdjustmentEnabled)
         {
             try
             {
-                // Get real-time CPU usage (delta-based, not cumulative)
                 System.Double cpuUsage = MEASURE_CPU_USAGE_PERCENT();
 
-                // Log CPU metric for diagnostics
-                if (cpuUsage > 80.0)
+                if (cpuUsage > threshHigh)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}%");
+                                            .Trace($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}% threshold={threshHigh:F1}%");
                 }
 
-                // Adjust based on CPU thresholds with safety bounds
-                if (cpuUsage > options.ThresholdHighCpu && _currentConcurrencyLimit > 1)
+                // --- Hysteresis: tích streak, chỉ hành động khi đủ N lần liên tiếp ---
+                if (cpuUsage > threshHigh && _currentConcurrencyLimit > 1)
                 {
-                    System.Int32 newLimit = System.Math.Max(1, _currentConcurrencyLimit - 1);
-                    ADJUST_CONCURRENCY(newLimit);
+                    _lowCpuStreak = 0;
+                    _highCpuStreak++;
+
+                    if (_highCpuStreak >= StreakRequired)
+                    {
+                        _highCpuStreak = 0; // reset sau khi hành động
+                        System.Int32 newLimit = System.Math.Max(1, _currentConcurrencyLimit - 1);
+                        ADJUST_CONCURRENCY(newLimit);
+                    }
                 }
-                else if (cpuUsage < options.ThresholdLowCpu && _currentConcurrencyLimit < options.MaxWorkers)
+                else if (cpuUsage < threshLow && _currentConcurrencyLimit < options.MaxWorkers)
                 {
-                    System.Int32 newLimit = System.Math.Min(options.MaxWorkers, _currentConcurrencyLimit + 1);
-                    ADJUST_CONCURRENCY(newLimit);
+                    _highCpuStreak = 0;
+                    _lowCpuStreak++;
+
+                    if (_lowCpuStreak >= StreakRequired)
+                    {
+                        _lowCpuStreak = 0; // reset sau khi hành động
+                        System.Int32 newLimit = System.Math.Min(options.MaxWorkers, _currentConcurrencyLimit + 1);
+                        ADJUST_CONCURRENCY(newLimit);
+                    }
+                }
+                else
+                {
+                    // CPU trong vùng ổn định → reset cả hai streak
+                    _highCpuStreak = 0;
+                    _lowCpuStreak = 0;
                 }
 
                 ctx.Beat();
@@ -379,61 +406,69 @@ public partial class TaskManager
         }
     }
 
-    /// <summary>
-    /// Initializes CPU measurement baseline using delta-based calculation.
-    /// Call once at monitor start.
-    /// </summary>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void INITIALIZE_CPU_MEASUREMENT()
     {
         System.Diagnostics.Process proc = System.Diagnostics.Process.GetCurrentProcess();
-        _lastCpuProcessorTime = (System.Int64)proc.TotalProcessorTime.TotalMilliseconds;
-        _lastCpuWallClockMs = _cpuMeasureStopwatch.ElapsedMilliseconds;
+        System.Threading.Volatile.Write(ref _lastCpuProcessorTime, (System.Int64)proc.TotalProcessorTime.TotalMilliseconds);
+        System.Threading.Volatile.Write(ref _lastCpuWallClockMs, _cpuMeasureStopwatch.ElapsedMilliseconds);
+        _cpuWarmupDone = false;
     }
 
-    /// <summary>
-    /// Measures real-time CPU usage as a percentage (0-100+).
-    /// Uses delta calculation: (delta_cpu_time / delta_wall_clock) * processor_count * 100.
-    /// </summary>
-    /// <returns>CPU usage percentage. Values > 100 indicate multi-core saturation.</returns>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private System.Double MEASURE_CPU_USAGE_PERCENT()
     {
-        System.Diagnostics.Process proc = System.Diagnostics.Process.GetCurrentProcess();
-        System.Int64 currentCpuMs = (System.Int64)proc.TotalProcessorTime.TotalMilliseconds;
         System.Int64 currentWallMs = _cpuMeasureStopwatch.ElapsedMilliseconds;
 
-        System.Int64 cpuDelta = currentCpuMs - _lastCpuProcessorTime;
-        System.Int64 wallDelta = currentWallMs - _lastCpuWallClockMs;
+        // Warmup: trong 60 giây đầu, bỏ qua và KHÔNG cập nhật baseline
+        // Điều này để lần đo sau warmup tính delta đúng kể từ lúc baseline được init
+        if (!_cpuWarmupDone)
+        {
+            if (currentWallMs < 60_000)
+            {
+                return 0.0;
+            }
 
-        // Update baseline for next measurement
-        _lastCpuProcessorTime = currentCpuMs;
-        _lastCpuWallClockMs = currentWallMs;
+            // Đánh dấu đã xong warmup, cập nhật baseline một lần ngay lúc này
+            System.Diagnostics.Process proc0 = System.Diagnostics.Process.GetCurrentProcess();
+            System.Threading.Volatile.Write(ref _lastCpuProcessorTime, (System.Int64)proc0.TotalProcessorTime.TotalMilliseconds);
+            System.Threading.Volatile.Write(ref _lastCpuWallClockMs, currentWallMs);
+            _cpuWarmupDone = true;
+            return 0.0;
+        }
 
-        // Avoid division by zero
-        if (wallDelta <= 0)
+        System.Diagnostics.Process proc = System.Diagnostics.Process.GetCurrentProcess();
+        System.Int64 currentCpuMs = (System.Int64)proc.TotalProcessorTime.TotalMilliseconds;
+
+        System.Int64 prevWallMs = System.Threading.Volatile.Read(ref _lastCpuWallClockMs);
+        System.Int64 prevCpuMs = System.Threading.Volatile.Read(ref _lastCpuProcessorTime);
+
+        System.Int64 wallDelta = currentWallMs - prevWallMs;
+        System.Int64 cpuDelta = currentCpuMs - prevCpuMs;
+
+        // Cập nhật baseline cho lần đo tiếp theo
+        System.Threading.Volatile.Write(ref _lastCpuWallClockMs, currentWallMs);
+        System.Threading.Volatile.Write(ref _lastCpuProcessorTime, currentCpuMs);
+
+        // Tránh chia cho 0 hoặc delta âm (clock skew, process refresh lag)
+        if (wallDelta <= 0 || cpuDelta < 0)
         {
             return 0.0;
         }
 
-        // CPU % = (cpu_time_delta / wall_time_delta) * processor_count * 100
-        // With multi-core, can exceed 100%
         System.Double processorCount = System.Environment.ProcessorCount;
+
+        // cpuDelta / wallDelta = tỷ lệ sử dụng trên 1 core → nhân processorCount → % trên toàn bộ core
         System.Double cpuUsagePercent = cpuDelta / (System.Double)wallDelta * processorCount * 100.0;
 
-        // Clamp to reasonable range (0-500% for 8 cores = max reasonable)
-        return System.Math.Min(cpuUsagePercent, 500.0);
+        return System.Math.Min(cpuUsagePercent, processorCount * 100.0);
     }
 
-    /// <summary>
-    /// Adjusts the SemaphoreSlim concurrency limit dynamically with safety checks.
-    /// </summary>
-    /// <param name="newLimit">The new concurrency limit (will be clamped to [1, MaxWorkers]).</param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -457,20 +492,28 @@ public partial class TaskManager
         {
             if (delta > 0)
             {
-                // Increase capacity
+                // Tăng capacity: release thêm slot vào semaphore
                 _globalConcurrencyGate.Release(delta);
             }
             else if (delta < 0)
             {
-                // Decrease capacity (acquire semaphore slots)
-                for (System.Int32 i = 0; i < -delta; i++)
+                // Giảm capacity: thu hồi slot bằng Wait(0) non-blocking
+                // Nếu slot đang bị giữ (worker đang chạy), chấp nhận revert một phần
+                // thay vì block — tránh deadlock
+                System.Int32 i;
+                for (i = 0; i < -delta; i++)
                 {
-                    _globalConcurrencyGate.Wait();
+                    if (!_globalConcurrencyGate.Wait(0))
+                    {
+                        // Không còn slot rảnh → revert về số đã thu hồi được thực tế
+                        _currentConcurrencyLimit = previousLimit - i;
+                        break;
+                    }
                 }
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{newLimit}]");
+                                    .Info($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
         }
         catch (System.Exception ex)
         {

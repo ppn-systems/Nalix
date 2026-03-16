@@ -504,11 +504,11 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine();
 
         // Pool Details
-        _ = sb.AppendLine("======================================================================");
+        _ = sb.AppendLine("==============================================================================================");
         _ = sb.AppendLine("Pool Details:");
-        _ = sb.AppendLine("======================================================================");
+        _ = sb.AppendLine("==============================================================================================");
         _ = sb.AppendLine("TYPE                     | Available | Max Cap | Gets    | Hits    | Misses  | Hit%   | Status");
-        _ = sb.AppendLine("----------------------------------------------------------------------");
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
 
         System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<System.Type, ObjectPool>> sortedPools = [.. _poolDict];
         sortedPools.Sort((a, b) => System.String.CompareOrdinal(a.Key.Name, b.Key.Name));
@@ -545,7 +545,7 @@ public sealed class ObjectPoolManager : IReportable
             _ = sb.AppendLine($"{typeName} | {available,9} | {maxCap,7} | {gets,7} | {hits,7} | {misses,7} | {hitPercent,6:F1}% | {status}");
         }
 
-        _ = sb.AppendLine("----------------------------------------------------------------------");
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
         _ = sb.AppendLine();
 
         // Pool Health Details

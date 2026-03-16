@@ -721,7 +721,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             _ = sb.AppendLine($"{PadName(r.Name, 28)} | {r.ConsecutiveFailures,8} | {r.LastRunUtc?.ToString("u"),-20} | {r.Options.Tag ?? "-"}");
         }
-        _ = sb.AppendLine("----------------------------------------------------------------------------");
+        _ = sb.AppendLine("------------------------------------------------------------------------------");
         _ = sb.AppendLine();
 
         // Workers summary by group

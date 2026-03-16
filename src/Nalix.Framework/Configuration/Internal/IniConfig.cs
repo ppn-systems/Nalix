@@ -1,10 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-#if DEBUG
-
 using Nalix.Common.Exceptions;
 
+#if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests.")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
@@ -36,6 +35,8 @@ internal sealed class IniConfig
     #endregion Constants
 
     #region Fields
+
+    private static readonly System.String SectionSeparator = "; " + new System.String('=', 78);
 
     // Thread synchronization for file operations
     private readonly System.Threading.ReaderWriterLockSlim _fileLock;
@@ -1069,6 +1070,7 @@ internal sealed class IniConfig
 
         _fileLock.EnterReadLock();
 
+        System.Text.StringBuilder pendingComments = new();
         System.String currentSection = System.String.Empty;
         System.Collections.Generic.Dictionary<System.String, System.String> currentSectionData;
 
@@ -1093,11 +1095,24 @@ internal sealed class IniConfig
                 lineNumber++;
                 System.String trimmedLine = line.Trim();
 
-                // Skip empty lines or comments
-                if (System.String.IsNullOrEmpty(trimmedLine) || trimmedLine[0] == CommentChar)
+                if (System.String.IsNullOrEmpty(trimmedLine))
                 {
+                    pendingComments.Clear(); // blank line → reset comment buffer
                     continue;
                 }
+
+                // Skip empty lines or comments
+                if (trimmedLine[0] == CommentChar)
+                {
+                    if (pendingComments.Length > 0)
+                    {
+                        pendingComments.Append('\n');
+                    }
+
+                    pendingComments.Append(trimmedLine[1..].Trim()); // remove ';'
+                    continue;
+                }
+
 
                 // Process section
                 if (trimmedLine[0] == SectionStart && trimmedLine[^1] == SectionEnd)
@@ -1105,10 +1120,10 @@ internal sealed class IniConfig
                     currentSection = trimmedLine[1..^1].Trim();
 
                     // Validate section name
-                    if (System.String.IsNullOrWhiteSpace(currentSection))
+                    if (pendingComments.Length > 0)
                     {
-                        // Skip invalid section but continue parsing
-                        continue;
+                        _comments[currentSection] = pendingComments.ToString();
+                        pendingComments.Clear();
                     }
 
                     if (!_iniData.TryGetValue(currentSection, out currentSectionData!))
@@ -1116,24 +1131,24 @@ internal sealed class IniConfig
                         currentSectionData = new(System.StringComparer.OrdinalIgnoreCase);
                         _iniData[currentSection] = currentSectionData;
                     }
+
+                    continue;
                 }
-                else
+
+                // Handle key-value pairs with optimized parsing
+                System.Int32 separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
+                if (separatorIndex > 0 && separatorIndex < trimmedLine.Length - 1)
                 {
-                    // Handle key-value pairs with optimized parsing
-                    System.Int32 separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
-                    if (separatorIndex > 0 && separatorIndex < trimmedLine.Length - 1)
+                    System.String key = trimmedLine[..separatorIndex].Trim();
+                    System.String value = trimmedLine[(separatorIndex + 1)..].Trim();
+
+                    currentSectionData[key] = value;
+
+                    // Lưu comment của key này
+                    if (pendingComments.Length > 0)
                     {
-                        System.String key = trimmedLine[..separatorIndex].Trim();
-                        System.String value = trimmedLine[(separatorIndex + 1)..].Trim();
-
-                        // Skip if key is empty
-                        if (System.String.IsNullOrWhiteSpace(key))
-                        {
-                            continue;
-                        }
-
-                        // Store the key-value pair in the current section
-                        currentSectionData[key] = value;
+                        _comments[CreateCacheKey(currentSection, key)] = pendingComments.ToString();
+                        pendingComments.Clear();
                     }
                 }
             }
@@ -1174,6 +1189,7 @@ internal sealed class IniConfig
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private void WriteInlineComment(
         System.IO.StreamWriter writer,
         System.String section,
@@ -1288,29 +1304,68 @@ internal sealed class IniConfig
             using (System.IO.StreamWriter writer = new(
                 tempFileName, false, System.Text.Encoding.UTF8, DefaultBufferSize))
             {
+                System.Boolean isFirstSection = true;
                 foreach (var section in _iniData)
                 {
                     if (section.Key != System.String.Empty)
                     {
-                        // Write section-level comment (keyed by section name only)
-                        WriteInlineComment(writer, section.Key, commentKey: section.Key);
+                        if (!isFirstSection)
+                        {
+                            writer.WriteLine();
+                        }
+
+                        System.String sectionCommentKey = section.Key;
+                        System.Boolean hasSectionComment = _comments.ContainsKey(sectionCommentKey);
+
+                        if (hasSectionComment)
+                        {
+                            // Có comment → 3 dòng: separator + comment + separator
+                            writer.WriteLine(SectionSeparator);
+                            WriteInlineComment(writer, section.Key, commentKey: sectionCommentKey);
+                            writer.WriteLine(SectionSeparator);
+                        }
+                        else
+                        {
+                            // Không có comment → chỉ 1 dòng separator
+                            writer.WriteLine(SectionSeparator);
+                        }
 
                         writer.Write(SectionStart);
                         writer.Write(section.Key);
                         writer.WriteLine(SectionEnd);
+
+                        isFirstSection = false;
                     }
 
+                    System.Int32 maxKeyLength = 0;
+                    foreach (var kv in section.Value)
+                    {
+                        if (kv.Key.Length > maxKeyLength)
+                        {
+                            maxKeyLength = kv.Key.Length;
+                        }
+                    }
+
+                    System.Boolean isFirstKey = true;
                     foreach (var keyValue in section.Value)
                     {
+                        System.String cacheKey = CreateCacheKey(section.Key, keyValue.Key);
+                        System.Boolean hasComment = _comments.ContainsKey(cacheKey);
+
+                        if (!isFirstKey && hasComment)
+                        {
+                            writer.WriteLine();
+                        }
+
+                        isFirstKey = false;
+
                         // Write property-level comment (keyed by "Section:Key")
                         WriteInlineComment(writer, section.Key, commentKey: CreateCacheKey(section.Key, keyValue.Key));
 
-                        writer.Write(keyValue.Key);
-                        writer.Write(KeyValueSeparator);
+                        writer.Write(keyValue.Key.PadRight(maxKeyLength));
+                        writer.Write(" = ");
                         writer.WriteLine(keyValue.Value);
                     }
-
-                    writer.WriteLine(); // Empty line between sections
                 }
 
                 // Ensure all data is written to disk
