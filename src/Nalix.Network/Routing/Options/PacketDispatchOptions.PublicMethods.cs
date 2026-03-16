@@ -9,7 +9,7 @@ using Nalix.Common.Networking.Packets.Attributes;
 using Nalix.Framework.Injection;
 using Nalix.Network.Abstractions;
 using Nalix.Network.Internal.Compilation;
-using Nalix.Network.Routing.Delegates;
+using Nalix.Network.Routing.Metadata;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Routing.Options;

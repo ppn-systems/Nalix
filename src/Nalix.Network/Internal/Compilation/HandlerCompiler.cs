@@ -6,8 +6,9 @@ using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Attributes;
 using Nalix.Framework.Injection;
+using Nalix.Network.Abstractions;
 using Nalix.Network.Routing;
-using Nalix.Network.Routing.Delegates;
+using Nalix.Network.Routing.Metadata;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
@@ -524,16 +525,29 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static PacketMetadata GetPacketMetadata(System.Reflection.MethodInfo x02)
+    private static PacketMetadata GetPacketMetadata(System.Reflection.MethodInfo method)
     {
-        return _attributeCache.GetOrAdd(x02, static x03 => new PacketMetadata(
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(x03)!,
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(x03),
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(x03),
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(x03),
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(x03),
-            System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketConcurrencyLimitAttribute>(x03)
-        ));
+        return _attributeCache.GetOrAdd(method, static m =>
+        {
+            PacketMetadataBuilder builder = new()
+            {
+                // Core attributes – always populated from the method itself.
+                Opcode = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m)!,
+                Timeout = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(m),
+                Permission = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(m),
+                Encryption = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(m),
+                RateLimit = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(m),
+                ConcurrencyLimit = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketConcurrencyLimitAttribute>(m)
+            };
+
+            // Let external providers extend or override metadata.
+            foreach (IPacketMetadataProvider provider in PacketMetadataProviders.Providers)
+            {
+                provider.Populate(m, builder);
+            }
+
+            return builder.Build();
+        });
     }
 
     [System.Diagnostics.Contracts.Pure]

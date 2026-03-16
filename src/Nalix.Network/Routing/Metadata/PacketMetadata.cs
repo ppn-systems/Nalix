@@ -3,7 +3,7 @@
 
 using Nalix.Common.Networking.Packets.Attributes;
 
-namespace Nalix.Network.Routing.Delegates;
+namespace Nalix.Network.Routing.Metadata;
 
 /// <summary>
 /// Represents a fully attributed packet descriptor used to define behavior and metadata
@@ -24,7 +24,8 @@ public readonly struct PacketMetadata(
     [System.Diagnostics.CodeAnalysis.AllowNull] PacketPermissionAttribute permission,
     [System.Diagnostics.CodeAnalysis.AllowNull] PacketEncryptionAttribute encryption,
     [System.Diagnostics.CodeAnalysis.AllowNull] PacketRateLimitAttribute rateLimit,
-    [System.Diagnostics.CodeAnalysis.AllowNull] PacketConcurrencyLimitAttribute concurrencyLimit)
+    [System.Diagnostics.CodeAnalysis.AllowNull] PacketConcurrencyLimitAttribute concurrencyLimit,
+    System.Collections.Generic.IReadOnlyDictionary<System.Type, System.Attribute> customAttributes = null)
 {
     /// <summary>
     /// Gets the operation code attribute which uniquely identifies the type of packet.
@@ -60,4 +61,21 @@ public readonly struct PacketMetadata(
     /// operations allowed for this packet, and optionally the queuing behavior if the limit is reached.
     /// </summary>
     public readonly PacketConcurrencyLimitAttribute ConcurrencyLimit = concurrencyLimit;
+
+    /// <summary>
+    /// Gets a read-only dictionary of custom metadata attributes,
+    /// keyed by their concrete <see cref="System.Type"/>.
+    /// </summary>
+    public readonly System.Collections.Generic.IReadOnlyDictionary<System.Type, System.Attribute> CustomAttributes = customAttributes
+        ?? new System.Collections.Generic.Dictionary<System.Type, System.Attribute>();
+
+    /// <summary>
+    /// Gets a custom attribute of the specified type if it exists.
+    /// </summary>
+    /// <typeparam name="TAttribute">The attribute type to retrieve.</typeparam>
+    /// <returns>
+    /// The attribute instance if it exists; otherwise, <see langword="null"/>.
+    /// </returns>
+    public TAttribute GetCustomAttribute<TAttribute>() where TAttribute : System.Attribute
+        => CustomAttributes.TryGetValue(typeof(TAttribute), out System.Attribute value) ? (TAttribute)value : null;
 }

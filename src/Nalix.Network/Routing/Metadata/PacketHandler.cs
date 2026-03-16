@@ -3,7 +3,7 @@
 
 using Nalix.Common.Networking.Packets.Abstractions;
 
-namespace Nalix.Network.Routing.Delegates;
+namespace Nalix.Network.Routing.Metadata;
 
 /// <summary>
 /// Enhanced version of <c>PacketHandler</c> using compiled delegates for zero-allocation execution.
