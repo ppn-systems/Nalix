@@ -47,6 +47,13 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager);
 
     /// <summary>
+    /// Configures the server identity certificate path.
+    /// </summary>
+    /// <param name="certificatePath">The absolute path to the certificate file.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureCertificate(string certificatePath);
+
+    /// <summary>
     /// Configures a Nalix options object before the host starts.
     /// </summary>
     /// <typeparam name="TOptions">The configuration type to mutate.</typeparam>

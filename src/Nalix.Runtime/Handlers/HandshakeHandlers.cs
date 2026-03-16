@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
@@ -30,19 +31,127 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Handshake")]
 public sealed class HandshakeHandlers
 {
+    #region Fields
+
     private static IConnectionHub? Hub => InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
 
-    private static readonly Bytes32 s_certificate = Bytes32.Zero;
+    private static Bytes32 s_certificate = Bytes32.Zero;
+    private static bool s_isInitialized;
+    private static readonly Lock s_initLock = new();
 
-    /// <inheritdoc/>
-    static HandshakeHandlers()
+    #endregion Fields
+
+    #region APIs
+
+    /// <summary>
+    /// Initializes the handshake handlers with the default certificate.
+    /// </summary>
+    /// <remarks>
+    /// This is called automatically by the host builder if no custom certificate path is specified.
+    /// </remarks>
+    public static void Initialize()
     {
-        string certPath = Path.Combine(Directories.ConfigurationDirectory, "certificate.private");
+        if (s_isInitialized)
+        {
+            return;
+        }
 
+        lock (s_initLock)
+        {
+            if (s_isInitialized)
+            {
+                return;
+            }
+
+            LOAD_CERTIFICATE(Path.Combine(Directories.ConfigurationDirectory, "certificate.private"));
+            s_isInitialized = true;
+        }
+    }
+
+    /// <summary>
+    /// Sets a custom path for the server identity certificate and initializes it.
+    /// </summary>
+    /// <param name="path">The absolute path to the certificate file.</param>
+    public static void SetCertificatePath(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        lock (s_initLock)
+        {
+            LOAD_CERTIFICATE(path);
+            s_isInitialized = true;
+        }
+    }
+
+    /// <summary>
+    /// Handles incoming handshake signal packets.
+    /// </summary>
+    /// <param name="context">The packet context containing the handshake metadata.</param>
+    /// <returns>A responding handshake packet or null if rejected/disconnected.</returns>
+    [ReservedOpcodePermitted]
+    [PacketEncryption(false)]
+    [PacketPermission(PermissionLevel.NONE)]
+    [PacketOpcode((ushort)ProtocolOpCode.HANDSHAKE)]
+    public static async ValueTask HandleAsync(IPacketContext<Handshake> context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        Handshake packet = context.Packet;
+        IConnection connection = context.Connection;
+
+        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        {
+            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
+        }
+
+        switch (packet.Stage)
+        {
+            case HandshakeStage.CLIENT_HELLO:
+                await HandleClientHelloAsync(connection, packet).ConfigureAwait(false);
+                break;
+
+            case HandshakeStage.CLIENT_FINISH:
+                await HandleClientFinishAsync(connection, packet).ConfigureAwait(false);
+                break;
+
+            case HandshakeStage.ERROR:
+                connection.Disconnect("Handshake error received from peer.");
+                break;
+
+            case HandshakeStage.NONE:
+            case HandshakeStage.SERVER_HELLO:
+            case HandshakeStage.SERVER_FINISH:
+            default:
+                await RejectHandshakeAsync(connection, ProtocolReason.UNEXPECTED_MESSAGE).ConfigureAwait(false);
+                break;
+        }
+    }
+
+    #endregion APIs
+
+    #region Private Methods
+
+    #region Nested Types
+
+    private sealed record HandshakeContext
+    {
+        public Bytes32 ClientPublicKey { get; init; }
+        public Bytes32 ClientNonce { get; init; }
+        public Bytes32 ServerPublicKey { get; init; }
+        public Bytes32 ServerNonce { get; init; }
+        public Bytes32 SharedSecret { get; init; }
+        public Bytes32 TranscriptHash { get; init; }
+        public Bytes32 SessionKey { get; init; }
+    }
+
+    #endregion Nested Types
+
+    private static void LOAD_CERTIFICATE(string certPath)
+    {
         if (!File.Exists(certPath))
         {
             throw new InternalErrorException(
-                $"Handshake failed: certificate file 'certificate.private' was not found in '{Directories.ConfigurationDirectory}'. "
+                $"Handshake failed: certificate file was not found at '{certPath}'. "
                 + "Please provide a valid server identity file.");
         }
 
@@ -93,53 +202,6 @@ public sealed class HandshakeHandlers
                 $"Handshake failed: Invalid server identity format in '{certPath}'. Exception detail: " + ex.Message, ex);
         }
     }
-
-    /// <summary>
-    /// Handles incoming handshake signal packets.
-    /// </summary>
-    /// <param name="context">The packet context containing the handshake metadata.</param>
-    /// <returns>A responding handshake packet or null if rejected/disconnected.</returns>
-    [ReservedOpcodePermitted]
-    [PacketEncryption(false)]
-    [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode((ushort)ProtocolOpCode.HANDSHAKE)]
-    public static async ValueTask HandleAsync(IPacketContext<Handshake> context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-
-        Handshake packet = context.Packet;
-        IConnection connection = context.Connection;
-
-        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
-        {
-            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
-        }
-
-        switch (packet.Stage)
-        {
-            case HandshakeStage.CLIENT_HELLO:
-                await HandleClientHelloAsync(connection, packet).ConfigureAwait(false);
-                break;
-
-            case HandshakeStage.CLIENT_FINISH:
-                await HandleClientFinishAsync(connection, packet).ConfigureAwait(false);
-                break;
-
-            case HandshakeStage.ERROR:
-                connection.Disconnect("Handshake error received from peer.");
-                break;
-
-            case HandshakeStage.NONE:
-            case HandshakeStage.SERVER_HELLO:
-            case HandshakeStage.SERVER_FINISH:
-            default:
-                await RejectHandshakeAsync(connection, ProtocolReason.UNEXPECTED_MESSAGE).ConfigureAwait(false);
-                break;
-        }
-    }
-
-    #region Private Methods
 
     private static async ValueTask HandleClientHelloAsync(IConnection connection, Handshake packet)
     {
@@ -281,17 +343,6 @@ public sealed class HandshakeHandlers
 
         state = null;
         return false;
-    }
-
-    private sealed record HandshakeContext
-    {
-        public Bytes32 ClientPublicKey { get; init; }
-        public Bytes32 ClientNonce { get; init; }
-        public Bytes32 ServerPublicKey { get; init; }
-        public Bytes32 ServerNonce { get; init; }
-        public Bytes32 SharedSecret { get; init; }
-        public Bytes32 TranscriptHash { get; init; }
-        public Bytes32 SessionKey { get; init; }
     }
 
     #endregion Private Methods

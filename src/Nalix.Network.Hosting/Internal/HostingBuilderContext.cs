@@ -77,6 +77,11 @@ internal sealed class HostingBuilderContext
     /// Defaults to <see cref="NullLogger.Instance"/> when no logger is provided.
     /// </value>
     public ILogger Logger { get; set; } = NullLogger.Instance;
+
+    /// <summary>
+    /// Gets or sets the optional path to the server identity certificate.
+    /// </summary>
+    public string? IdentityCertificatePath { get; set; }
 }
 
 /// <summary>

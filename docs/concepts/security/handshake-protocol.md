@@ -8,7 +8,9 @@ Nalix implements a high-security, zero-trust handshake protocol based on **X2551
 - [x] **Identity Verification**: Requires pinned server public keys to prevent Man-in-the-Middle (MitM) attacks. Anonymous handshakes are strictly forbidden; both the client and server must load valid identities from standardized storage.
 
 !!! critical "Mandatory Identity"
-    Every Nalix server must possess a `certificate.private` file. Clients must be configured with the server's `certificate.public` hash (or the full key) during the connection setup to enable public key pinning.
+    Every Nalix server must possess a `certificate.private` file. By default, the server looks for this file in the standardized configuration directory. You can override this path using `builder.ConfigureCertificate("path/to/identity")` during host construction.
+    
+    Clients must be configured with the server's `certificate.public` hash (or the full key) during the connection setup to enable public key pinning.
 
 - [x] **Transcript Integrity**: All handshake messages are hashed into a transcript to prevent tampering or replay attacks.
 

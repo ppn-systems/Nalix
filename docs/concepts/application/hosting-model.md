@@ -21,9 +21,10 @@ var builder = NetworkApplication.CreateBuilder(args);
 InstanceManager.Instance.Register<IDatabase>(new MyMongoDatabase());
 
 // 2. Configure Listeners
-builder.AddTcpListener(options => {
-    options.Port = 8080;
-});
+builder.ConfigureCertificate("path/to/certificate.private")
+       .AddTcpListener(options => {
+           options.Port = 8080;
+       });
 
 var app = builder.Build();
 
