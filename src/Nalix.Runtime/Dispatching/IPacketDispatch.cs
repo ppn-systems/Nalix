@@ -3,7 +3,6 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
 
 namespace Nalix.Runtime.Dispatching;
 
@@ -27,15 +26,4 @@ public interface IPacketDispatch : IActivatable, IReportable
     /// The connection from which the packet was received.
     /// </param>
     void HandlePacket(IBufferLease packet, IConnection connection);
-
-    /// <summary>
-    /// Handles a fully deserialized packet instance.
-    /// </summary>
-    /// <param name="packet">
-    /// The deserialized packet to be processed.
-    /// </param>
-    /// <param name="connection">
-    /// The connection from which the packet was received.
-    /// </param>
-    void HandlePacket(IPacket packet, IConnection connection);
 }

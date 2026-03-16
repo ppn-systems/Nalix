@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
+using Nalix.Framework.Injection;
 using Nalix.Network.Hosting.Internal;
 using Nalix.Runtime.Dispatching;
 
@@ -137,6 +138,15 @@ public sealed class NetworkApplication : IActivatableAsync
             _prepareCallbacks();
 
             _packetDispatch = _dispatchFactory();
+
+            try
+            {
+                InstanceManager.Instance.Register<IPacketDispatch>(_packetDispatch);
+            }
+            catch
+            {
+            }
+
             _packetDispatch.Activate(cancellationToken);
 
             for (int i = 0; i < _serverFactories.Count; i++)

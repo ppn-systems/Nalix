@@ -39,9 +39,6 @@ public sealed class ExamplePacketProtocol : Protocol
             return;
         }
 
-        // This log line helps readers see when the protocol hands control over to packet routing.
-        Console.WriteLine($"[ExamplePacketProtocol] Packet received from connection {args.Connection.ID}.");
-
         // The dispatch pipeline owns validation, middleware, and routing concerns.
         // The protocol should stay thin and only coordinate the flow.
         _packetDispatch.HandlePacket(args.Lease, args.Connection);

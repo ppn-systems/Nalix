@@ -289,7 +289,10 @@ public sealed class PacketAwaiterTests
         public override Task SendAsync(IPacket packet, CancellationToken ct = default)
             => Task.CompletedTask;
 
-        public override Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
+        public override Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
+            => Task.CompletedTask;
+
+        public override Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
             => Task.CompletedTask;
 
         public override void Dispose()

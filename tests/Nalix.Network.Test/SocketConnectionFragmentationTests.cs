@@ -43,11 +43,11 @@ public sealed class SocketConnectionFragmentationTests
         };
 
         connection.Socket.BeginReceive();
-        await scope.ClientSocket.SendAsync(CreateFrame([1, 2, 3, 4]));
+        await scope.ClientSocket.SendAsync(CreateFrame([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
 
         int receivedLength = await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
-        receivedLength.Should().Be(4);
+        receivedLength.Should().Be(10);
         s_fragmentAssemblerField.GetValue(connection.Socket).Should().BeNull();
     }
 

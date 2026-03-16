@@ -10,10 +10,12 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Extensions.Logging;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Framework.DataFrames;
 
@@ -254,6 +256,7 @@ public sealed class PacketRegistryFactory
 
         Dictionary<uint, PacketDeserializer> deserializers = new(estimated);
         Dictionary<uint, PacketDeserializerInto<IPacket>> deserializersInto = new(estimated);
+        Dictionary<uint, (Func<IPacket> Rent, Action<IPacket> Return)> poolOps = new(estimated);
 
         // ── 1. Collect candidates ────────────────────────────────────────────────
         HashSet<Type> candidates = [.. _explicitPacketTypes];
@@ -379,6 +382,13 @@ public sealed class PacketRegistryFactory
                 deserializers[key] = (PacketDeserializer)Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
                 deserializersInto[key] = (PacketDeserializerInto<IPacket>)Delegate.CreateDelegate(typeof(PacketDeserializerInto<IPacket>), doDeserializeIntoMi);
                 magicTypes[key] = type;
+
+                // Build pool rent/return delegates for this type (created once, zero alloc on hot path).
+                MethodInfo bindPoolMi = typeof(PacketRegistryFactory)
+                    .GetMethod(nameof(BUILD_POOL_OPS_FOR), StaticNonPublic)!
+                    .MakeGenericMethod(type);
+                var ops = ((Func<IPacket>, Action<IPacket>))bindPoolMi.Invoke(null, null)!;
+                poolOps[key] = ops;
             }
             catch (Exception ex)
             {
@@ -392,7 +402,8 @@ public sealed class PacketRegistryFactory
 
         return new PacketRegistry(
             FrozenDictionary.ToFrozenDictionary(deserializers),
-            FrozenDictionary.ToFrozenDictionary(deserializersInto));
+            FrozenDictionary.ToFrozenDictionary(deserializersInto),
+            FrozenDictionary.ToFrozenDictionary(poolOps));
     }
 
     /// <summary>
@@ -577,5 +588,20 @@ public sealed class PacketRegistryFactory
 
         Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+ des_ref=+");
     }
+
+    /// <summary>
+    /// Builds Rent and Return delegates for <typeparamref name="TPacket"/> using the shared pool.
+    /// Called once per packet type at catalog build time — never on the hot path.
+    /// </summary>
+    private static (Func<IPacket> Rent, Action<IPacket> Return) BUILD_POOL_OPS_FOR<TPacket>()
+        where TPacket : class, IPacket, IPoolable, new()
+    {
+        ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        return (
+            Rent: () => pool.Get<TPacket>(),
+            Return: obj => pool.Return((TPacket)obj)
+        );
+    }
+
     #endregion Private: Binding Helpers
 }

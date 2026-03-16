@@ -19,34 +19,37 @@ Traditional networking stacks suffer from GC pressure due to frequent buffer all
 
 For a complete end-to-end walkthrough of how these optimizations work together in a production scenario, see the [Zero-Allocation Design](./zero-allocation.md) guide.
 
-### Buffer Pooling (BufferLease)
+### Buffer Pooling (Slab-Based)
 
-Instead of allocating `byte[]` per request, Nalix uses `BufferPoolManager`. Every incoming packet is leased into a pre-sized, memory-aligned buffer and must be returned via `Dispose()`.
+Instead of allocating `byte[]` per request, Nalix uses a slab-based `BufferPoolManager`. Every incoming packet is leased into a segment of a large, pre-allocated memory slab (`ArraySegment<byte>`). This ensures strict $O(1)$ lease/release performance and zero heap fragmentation.
 
-- **Pre-sized buckets** — Minimize internal fragmentation by using size-class buckets.
+- **Lock-free slab allocation** — Minimizes thread contention during high-frequency leasing.
 - **Span-first API** — Leverages `Span<byte>` and `ReadOnlySpan<byte>` for slicing without copying data.
-- **Deterministic lifetime** — `BufferLease` implements `IDisposable`, ensuring buffers return to the pool after handler execution.
+- **Deterministic lifetime** — `BufferLease` implements `IDisposable`, ensuring buffers return to the slab after handler execution.
 
 ### Poolable Contexts (IPacketContext)
 
 The `PacketContext<TPacket>` object itself is poolable. When a handler is invoked, the context is fetched from a thread-safe pool and reset after the handler completes. This avoids per-request allocations for the most frequently created object in the dispatch path.
 
-## 2. Shard-Aware Dispatching
+## 2. Dedicated OS Thread Dispatching
 
-To prevent head-of-line blocking — where a single slow handler stalls all incoming packets — Nalix implements a multi-worker sharded dispatch system.
+To minimize context-switching overhead and maximize CPU cache affinity, Nalix binds its dispatch loops to dedicated OS threads rather than the standard `.NET ThreadPool`.
 
 ```mermaid
 graph LR
-    Incoming["Incoming Packets"] --> Shard0["Worker 0"]
-    Incoming --> Shard1["Worker 1"]
-    Incoming --> ShardN["Worker N"]
+    Incoming["Incoming Packets"] --> Shard0["Worker 0 (Core 0)"]
+    Incoming --> Shard1["Worker 1 (Core 1)"]
+    Incoming --> ShardN["Worker N (Core N)"]
     Shard0 --> Handler0["Handler"]
     Shard1 --> Handler1["Handler"]
     ShardN --> HandlerN["Handler"]
 ```
 
-- **Parallel execution** — Workers are scaled to match logical CPU cores in auto mode (`WithDispatchLoopCount(null)` on `PacketDispatchOptions<TPacket>`).
-- **Wake-signaling** — Uses `System.Threading.Channels` for coalesced signaling. Under bursty traffic, multiple enqueue operations may trigger a single wake, reducing unnecessary CPU wake-ups.
+- **Processor Affinity** — Dispatch workers can be configured to stay on specific logical CPU cores, reducing L1/L2 cache misses.
+- **Managed Drain Budget** — A "drain budget" ensures that each wake cycle processes a batch of packets before yielding, balancing latency and throughput.
+
+- **Parallel execution** — Workers are scaled to match logical CPU cores in auto mode.
+- **Low-latency wake** — Uses specialized signaling to wake dedicated threads immediately upon packet arrival, bypassing the non-deterministic scheduling of the standard thread pool.
 
 ## 3. 56-Bit Snowflake Identifiers
 

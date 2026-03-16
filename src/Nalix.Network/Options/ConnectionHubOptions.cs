@@ -21,14 +21,14 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Maximum concurrent connections (-1 = unlimited, must not be 0)")]
     [System.ComponentModel.DataAnnotations.Range(-1, int.MaxValue, ErrorMessage = "MaxConnections must be -1 (unlimited) or positive.")]
-    public int MaxConnections { get; init; } = -1;
+    public int MaxConnections { get; set; } = -1;
 
     /// <summary>
     /// Gets or sets the policy for handling connection rejection when limits are reached.
     /// </summary>
     [IniComment("Rejection strategy when the connection limit is reached (e.g. DropNewest, DropOldest)")]
     [System.ComponentModel.DataAnnotations.EnumDataType(typeof(DropPolicy), ErrorMessage = "Invalid drop policy.")]
-    public DropPolicy DropPolicy { get; init; } = DropPolicy.DropNewest;
+    public DropPolicy DropPolicy { get; set; } = DropPolicy.DropNewest;
 
     // Concurrency
 
@@ -37,21 +37,21 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Parallel tasks for bulk disconnect (-1 = ThreadPool default, must not be 0)")]
     [System.ComponentModel.DataAnnotations.Range(-1, int.MaxValue, ErrorMessage = "ParallelDisconnectDegree must be -1 (default) or positive.")]
-    public int ParallelDisconnectDegree { get; init; } = -1;
+    public int ParallelDisconnectDegree { get; set; } = -1;
 
     /// <summary>
     /// Gets or sets the batch size for broadcast operations.
     /// </summary>
     [IniComment("Connections processed per broadcast batch (0 = no batching)")]
     [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "BroadcastBatchSize cannot be negative.")]
-    public int BroadcastBatchSize { get; init; }
+    public int BroadcastBatchSize { get; set; }
 
     /// <summary>
     /// Gets or sets the number of shards used for connection dictionaries.
     /// </summary>
     [IniComment("Shard count for connection storage (uses connection ID hash, minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ShardCount must be at least 1.")]
-    public int ShardCount { get; init; } = System.Math.Max(1, System.Environment.ProcessorCount);
+    public int ShardCount { get; set; } = System.Math.Max(1, System.Environment.ProcessorCount);
 
     // Dispose behavior
 
@@ -59,7 +59,7 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// Gets a value indicating whether latency measurement is enabled.
     /// </summary>
     [IniComment("Enable latency measurement for diagnostic and performance monitoring")]
-    public bool IsEnableLatency { get; init; } = true;
+    public bool IsEnableLatency { get; set; } = true;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.

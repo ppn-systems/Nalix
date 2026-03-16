@@ -17,18 +17,18 @@ The following diagram illustrates how a raw network buffer is transformed into a
 ```mermaid
 sequenceDiagram
     participant OS as Network Stack
-    participant LP as Local Pool (BufferPoolManager)
-    participant DC as Dispatch Channel (Sharded)
+    participant LP as Local Pool (SlabPool)
+    participant DC as Dispatch Loop (OS Thread)
     participant FR as Frozen Registry (O(1))
     participant CH as Compiled Handler (Expression Trees)
     participant CP as Context Pool (ObjectPoolManager)
 
     OS->>LP: Receive raw bytes
-    LP-->>OS: Return IBufferLease (Pooled)
+    LP-->>OS: Return IBufferLease (Slab Segment)
     OS->>DC: Push(Lease)
-    DC->>DC: Hash Connection to Shard
+    DC->>DC: Affinity to Dedicated CPU Core
     DC->>FR: TryDeserialize(Lease.Span)
-    FR-->>DC: IPacket (Flyweight/Pooled)
+    FR-->>DC: IPacket (Pooled Deserialization)
     DC->>CP: Get<PacketContext<T>>()
     CP-->>DC: Context instance (Reset)
     DC->>CH: Invoke Compiled Delegate
@@ -88,8 +88,8 @@ This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ looku
 
 ## 3. The Pooling Pipeline
 
-### Buffer Leasing
-Incoming data is always stored in a `BufferLease`.
+### Buffer Leasing (Slab-Based)
+Incoming data is always stored in a `BufferLease` backed by a large, pre-allocated memory slab (`ArraySegment<byte>`). This minimizes fragmentation and ensures $O(1)$ lease times.
 ```csharp
 // Shared memory pool access
 using var lease = bufferPool.Lease(1024);
@@ -252,6 +252,7 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 
 ## Summary Checklist
 - [x] Use `struct` or pooled `class` for packets.
+- [x] Use `IPacketContext<T>` to leverage frame-level pooling.
 - [x] Annotate controllers with `[PacketController]`.
 - [x] Use `[PacketOpcode]` for zero-reflection routing.
 - [x] Return `ValueTask` from handlers.

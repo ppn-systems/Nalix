@@ -6,6 +6,8 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Tasks;
 using Nalix.Logging;
 using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
@@ -16,15 +18,16 @@ using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Hosting;
 using Nalix.Network.Options;
+using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Options;
 
 internal class Program
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>")]
     private static async Task Main(string[] args)
     {
-        // Turn on debug logs so the sample shows the full packet and connection flow.
+        // Turn off noisy logs for peak performance testing.
         ConfigurationManager.Instance.Get<NLogixOptions>()
-                            .MinLevel = LogLevel.Trace;
+                            .MinLevel = LogLevel.Warning;
 
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ConnectionHub hub = new();
@@ -35,16 +38,45 @@ internal class Program
             .ConfigureLogging(logger)
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(buffer)
-            .Configure<NetworkSocketOptions>(options => options.Port = 57206)
+            .Configure<NetworkSocketOptions>(options =>
+            {
+                options.Port = 57206;
+                options.MaxPacketPerSecond = int.MaxValue;
+                options.BufferSize = 1024 * 64; // 64KB buffers
+                options.Backlog = 1024;         // Increase OS backlog for high burst connection attempts
+            })
+            .Configure<ConnectionHubOptions>(options =>
+            {
+                options.MaxConnections = -1;
+            })
+            .Configure<ConnectionLimitOptions>(options =>
+            {
+                options.MaxConnectionsPerIpAddress = 10_000;
+                options.MaxConnectionsPerWindow = 10_000_000;
+            })
+            .Configure<NetworkCallbackOptions>(options =>
+            {
+                options.MaxPerConnectionPendingPackets = 512;
+                options.MaxPendingPerIp = 10000;
+                options.MaxPendingNormalCallbacks = 100000;
+            })
+            .Configure<DispatchOptions>(options =>
+            {
+                options.MaxPerConnectionQueue = 0;
+            })
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
             .AddPacket<Handshake>()
             .AddHandler<PacketCommandHandler>()
             .AddMetadataProvider<PacketTagMetadataProvider>()
-            .ConfigureDispatch(dispatchOptions =>
+            .ConfigureDispatch(options =>
             {
-                _ = dispatchOptions.WithMiddleware(new PacketTagMiddleware());
-                _ = dispatchOptions.WithErrorHandling((exception, command) =>
-                    logger.Error($"Error handling command: {command}", exception));
+                // Increase dispatch loops and batch processing capacity
+                options.MaxDrainPerWakeMultiplier = 16;
+                options.MaxDrainPerWake = 4096;
+
+                _ = options.WithDispatchLoopCount(8);
+                _ = options.WithMiddleware(new PacketTagMiddleware());
+                _ = options.WithErrorHandling((exception, command) => logger.Error($"Error handling command: {command}", exception));
             })
             .AddTcp<ExamplePacketProtocol>()
             .Build();
@@ -61,6 +93,56 @@ internal class Program
 
         Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
         Console.WriteLine("Press Ctrl+C to stop.");
+        Console.WriteLine("Press Ctrl+, or 'R' to print instance report.");
+
+        // Register a background task to listen for report requests (shortcuts)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!shutdown.IsCancellationRequested)
+                {
+                    if (Console.KeyAvailable)
+                    {
+                        ConsoleKeyInfo key = Console.ReadKey(true);
+                        // Trigger report on Ctrl + R or simply 'R'
+                        if ((key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R) || key.Key == ConsoleKey.R)
+                        {
+                            PRINT_REPORT();
+                        }
+                    }
+                    await Task.Delay(100, shutdown.Token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException) { }
+        }, shutdown.Token);
+
+        static void PRINT_REPORT()
+        {
+            Console.WriteLine("\n" + new string('-', 20) + " LIVE REPORT " + new string('-', 20));
+
+            //if (InstanceManager.Instance.GetExistingInstance<IPacketDispatch>() is IPacketDispatch dispatcher)
+            //{
+            //    Console.WriteLine(dispatcher.GenerateReport());
+            //}
+
+            if (InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>() is ObjectPoolManager objectPoolManager)
+            {
+                Console.WriteLine(objectPoolManager.GenerateReport());
+            }
+
+            if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is BufferPoolManager bufferPoolManager)
+            {
+                Console.WriteLine(bufferPoolManager.GenerateReport());
+            }
+
+            if (InstanceManager.Instance.GetExistingInstance<TaskManager>() is TaskManager taskManager)
+            {
+                Console.WriteLine(taskManager.GenerateReport());
+            }
+
+            Console.WriteLine(new string('-', 53) + "\n");
+        }
 
         await host.RunAsync(shutdown.Token).ConfigureAwait(false);
     }

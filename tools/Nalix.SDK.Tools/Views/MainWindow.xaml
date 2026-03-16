@@ -66,6 +66,8 @@
 
             <StatusBar DockPanel.Dock="Bottom" Padding="8,4" Background="{DynamicResource StatusBarBackgroundBrush}">
                 <StatusBarItem Content="{Binding PacketBuilder.CurrentPacketSummary}" />
+                <Separator />
+                <StatusBarItem HorizontalAlignment="Right" Content="{Binding PacketBuilder.LastPingText}" />
             </StatusBar>
 
             <TabControl Margin="16">

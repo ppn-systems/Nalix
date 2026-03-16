@@ -49,7 +49,10 @@ public abstract partial class TcpListenerBase
             throw new InternalErrorException("s_config.MaxParallel must be at least 1.");
         }
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        {
+            s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
+        }
 
         // Acquire the mutex with CancellationToken.None.
         // Activate() must be allowed to finish its state transition even if the

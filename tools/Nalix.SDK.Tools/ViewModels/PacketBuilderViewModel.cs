@@ -72,6 +72,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         this.RepeatSendCommand = new AsyncRelayCommand(this.RepeatSendAsync, this.CanRepeatSend);
         this.HandshakeCommand = new AsyncRelayCommand(this.HandshakeAsync, this.CanHandshake);
         this.ResumeCommand = new AsyncRelayCommand(this.ResumeAsync, this.CanResume);
+        this.PingCommand = new AsyncRelayCommand(this.PingAsync, this.CanPing);
 
         _tcpClientService.StatusChanged += this.HandleStatusChanged;
 
@@ -157,6 +158,11 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     /// Gets the resume command.
     /// </summary>
     public AsyncRelayCommand ResumeCommand { get; }
+
+    /// <summary>
+    /// Gets the ping command.
+    /// </summary>
+    public AsyncRelayCommand PingCommand { get; }
 
     /// <summary>
     /// Gets or sets the connection host.
@@ -381,6 +387,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>
+    /// Gets the formatted last ping round-trip time.
+    /// </summary>
+    public string LastPingText => _tcpClientService.IsConnected && _tcpClientService.LastRtt > 0 
+        ? string.Format(CultureInfo.CurrentCulture, _texts.PingRttFormat, _tcpClientService.LastRtt)
+        : string.Empty;
+
+    /// <summary>
     /// Gets a value indicating whether the TCP client is connected.
     /// </summary>
     public bool IsConnected
@@ -478,6 +491,8 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 
     private bool CanResume() => this.IsConnected;
 
+    private bool CanPing() => this.IsConnected && this.SelectedTransport == PacketFlags.RELIABLE;
+
     private async Task ConnectAsync()
     {
         if (!this.TryParsePort(out ushort port))
@@ -493,8 +508,9 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
                 Host = this.Host.Trim(),
                 Port = port,
                 Transport = this.SelectedTransport,
-                SessionToken = this.SessionToken.Trim()
-            }).ConfigureAwait(true);
+                SessionToken = this.SessionToken.Trim(),
+                ServerPublicKey = "2CBA6DF1C0440662D7FAD1DFC59640C5669C4B5A03885813C9DF20CE69832274"
+            }).ConfigureAwait(false);
             this.IsConnected = _tcpClientService.IsConnected;
         }
         catch (Exception exception)
@@ -507,7 +523,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            await _tcpClientService.DisconnectAsync().ConfigureAwait(true);
+            await _tcpClientService.DisconnectAsync().ConfigureAwait(false);
             this.IsConnected = _tcpClientService.IsConnected;
         }
         catch (Exception exception)
@@ -521,7 +537,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         try
         {
             this.RaiseStatusRequested(_texts.StatusHandshakeStarted);
-            await _tcpClientService.HandshakeAsync().ConfigureAwait(true);
+            await _tcpClientService.HandshakeAsync().ConfigureAwait(false);
 
             // Auto-fill SessionToken if it was received (common for UDP)
             if (_tcpClientService is NetworkClientService service && !service.SessionToken.IsEmpty)
@@ -543,7 +559,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         try
         {
             this.RaiseStatusRequested(_texts.StatusHandshakeStarted);
-            await _tcpClientService.ResumeAsync().ConfigureAwait(true);
+            await _tcpClientService.ResumeAsync().ConfigureAwait(false);
 
             // Auto-fill SessionToken if it was rotated/updated
             if (!string.IsNullOrEmpty(_tcpClientService.SessionToken.ToString()))
@@ -556,6 +572,20 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         catch (Exception exception)
         {
             this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusResumeFailedFormat, exception.Message));
+        }
+    }
+
+    private async Task PingAsync()
+    {
+        try
+        {
+            double rtt = await _tcpClientService.PingAsync().ConfigureAwait(false);
+            this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusPingSuccessFormat, rtt));
+            this.OnPropertyChanged(nameof(this.LastPingText));
+        }
+        catch (Exception exception)
+        {
+            this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusPingFailedFormat, exception.Message));
         }
     }
 
@@ -594,7 +624,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
                 2 => true,
                 _ => null
             };
-            await _tcpClientService.SendPacketAsync(_currentPacket, encryptOverride).ConfigureAwait(true);
+            await _tcpClientService.SendPacketAsync(_currentPacket, encryptOverride).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
@@ -634,12 +664,12 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
                     2 => true,
                     _ => null
                 };
-                await _tcpClientService.SendPacketAsync(_currentPacket, encryptOverride, token).ConfigureAwait(true);
+                await _tcpClientService.SendPacketAsync(_currentPacket, encryptOverride, token).ConfigureAwait(false);
                 sentCount++;
 
                 if (delayMs > 0 && index < count - 1)
                 {
-                    await Task.Delay(delayMs, token).ConfigureAwait(true);
+                    await Task.Delay(delayMs, token).ConfigureAwait(false);
                 }
             }
 
@@ -675,11 +705,14 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 
     private void RefreshPacketTypes(System.Collections.Generic.IReadOnlyList<PacketTypeDescriptor> packetTypes, PacketTypeDescriptor? previousSelection)
     {
-        this.PacketTypes.Clear();
-        foreach (PacketTypeDescriptor descriptor in packetTypes)
+        this.Dispatch(() =>
         {
-            this.PacketTypes.Add(descriptor);
-        }
+            this.PacketTypes.Clear();
+            foreach (PacketTypeDescriptor descriptor in packetTypes)
+            {
+                this.PacketTypes.Add(descriptor);
+            }
+        });
 
         PacketTypeDescriptor? selection = previousSelection is null
             ? this.PacketTypes.FirstOrDefault()
@@ -723,20 +756,23 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 
     private void RebuildPropertyNodes(IPacket packet, PacketTypeDescriptor descriptor, bool isReadOnly)
     {
-        this.CurrentProperties.Clear();
-        foreach (PropertyNodeViewModel node in PropertyNodeViewModel.CreateNodes(
-                     packet,
-                     [.. descriptor.Properties],
-                     isReadOnly,
-                     !isReadOnly,
-                     this.HandleCurrentPacketChanged))
+        this.Dispatch(() =>
         {
-            this.CurrentProperties.Add(node);
-        }
+            this.CurrentProperties.Clear();
+            foreach (PropertyNodeViewModel node in PropertyNodeViewModel.CreateNodes(
+                         packet,
+                         [.. descriptor.Properties],
+                         isReadOnly,
+                         !isReadOnly,
+                         this.HandleCurrentPacketChanged))
+            {
+                this.CurrentProperties.Add(node);
+            }
 
-        this.CurrentPacketTitle = isReadOnly
-            ? $"{descriptor.Name} ({_texts.ReadOnlySuffix})"
-            : descriptor.Name;
+            this.CurrentPacketTitle = isReadOnly
+                ? $"{descriptor.Name} ({_texts.ReadOnlySuffix})"
+                : descriptor.Name;
+        });
     }
 
     private void HandleCurrentPacketChanged() => _ = this.TryRefreshSerializedPacket(out _);
@@ -795,6 +831,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     private void HandleStatusChanged(object? sender, string status)
     {
         this.IsConnected = _tcpClientService.IsConnected;
+        this.OnPropertyChanged(nameof(this.LastPingText));
         this.NotifyCommandStates();
     }
 
@@ -815,14 +852,29 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 
     private void NotifyCommandStates()
     {
-        this.ConnectCommand.NotifyCanExecuteChanged();
-        this.DisconnectCommand.NotifyCanExecuteChanged();
-        this.ResetPacketCommand.NotifyCanExecuteChanged();
-        this.SerializePacketCommand.NotifyCanExecuteChanged();
-        this.SendPacketCommand.NotifyCanExecuteChanged();
-        this.RepeatSendCommand.NotifyCanExecuteChanged();
-        this.HandshakeCommand.NotifyCanExecuteChanged();
-        this.ResumeCommand.NotifyCanExecuteChanged();
+        this.Dispatch(() =>
+        {
+            this.ConnectCommand.NotifyCanExecuteChanged();
+            this.DisconnectCommand.NotifyCanExecuteChanged();
+            this.ResetPacketCommand.NotifyCanExecuteChanged();
+            this.SerializePacketCommand.NotifyCanExecuteChanged();
+            this.SendPacketCommand.NotifyCanExecuteChanged();
+            this.RepeatSendCommand.NotifyCanExecuteChanged();
+            this.HandshakeCommand.NotifyCanExecuteChanged();
+            this.ResumeCommand.NotifyCanExecuteChanged();
+            this.PingCommand.NotifyCanExecuteChanged();
+        });
+    }
+
+    private void Dispatch(Action action)
+    {
+        if (System.Windows.Application.Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(action);
+            return;
+        }
+
+        action();
     }
 
     /// <inheritdoc/>

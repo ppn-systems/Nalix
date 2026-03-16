@@ -260,7 +260,7 @@ internal static class AsyncCallback
         bool isHigh,
         bool releasePendingPacketOnCompletion)
     {
-        PooledConnectEventContext wrapper = PooledConnectEventContext.Get();
+        PooledConnectEventContext? wrapper = (sender as Connection)?.AcquireContext() ?? PooledConnectEventContext.Get();
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
         if (!ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false))

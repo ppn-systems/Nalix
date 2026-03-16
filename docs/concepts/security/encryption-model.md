@@ -10,6 +10,10 @@ By default, Nalix uses **ChaCha20-Poly1305**. This cipher suite was selected for
 - **Security**: Provides high security margins and is resistant to many common side-channel attacks.
 - **AEAD Support**: Automatically provides integrity checking—if a single bit of the packet is tampered with over the wire, the decryption will fail.
 
+### Optional Cipher: None
+
+For local development, internal trusted networks, or extreme performance scenarios, Nalix supports a `None` cipher suite. When selected, data is transmitted in the clear while still maintaining the packet framing and routing logic.
+
 ## Nonce Management
 
 Correct nonce management is critical to the security of any stream cipher. Nalix manages nonces internally to prevent reuse (nonce misuse):
@@ -38,9 +42,18 @@ public class HeartbeatPacket : PacketBase<HeartbeatPacket> { ... }
 public class PrivateMessage : PacketBase<PrivateMessage> { ... }
 ```
 
+### Dynamic Overrides
+
+In addition to static attributes, the **Nalix SDK** allows for per-call encryption control using the `encrypt` parameter in `SendAsync` methods.
+
+```csharp
+// Override the default/attribute policy for this specific call
+await session.SendAsync(myPacket, encrypt: false);
+```
+
 !!! warning "Security First"
     By default, Nalix assumes all packets should be encrypted.  
-    Disabling encryption should only be done for high-frequency, non-sensitive data where the overhead of AEAD is a bottleneck.
+    Disabling encryption (via attribute or parameter) should only be done for high-frequency, non-sensitive data where the overhead of AEAD is a bottleneck.
 
 ## Mathematical Correctness
 

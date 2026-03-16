@@ -6,12 +6,10 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Identifiers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;
@@ -32,8 +30,6 @@ public abstract class SessionStoreBase : ISessionStore
     {
         ArgumentNullException.ThrowIfNull(connection);
 
-        UInt56 sessionToken = Snowflake.NewId(SnowflakeType.Session).ToUInt56();
-
         long now = Clock.UnixMillisecondsNow();
 
         ObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
@@ -44,7 +40,7 @@ public abstract class SessionStoreBase : ISessionStore
 
         SessionSnapshot snapshot = new()
         {
-            SessionToken = sessionToken,
+            SessionToken = connection.ID.ToUInt56(),
             CreatedAtUnixMilliseconds = now,
             ExpiresAtUnixMilliseconds = now + (long)_options.SessionTtl.TotalMilliseconds,
             Secret = connection.Secret,
@@ -54,8 +50,6 @@ public abstract class SessionStoreBase : ISessionStore
         };
 
         SessionEntry entry = new(snapshot, connection.ID.ToUInt56());
-
-        connection.Attributes[ConnectionAttributes.SessionToken] = sessionToken;
 
         return entry;
     }

@@ -3,6 +3,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Memory;

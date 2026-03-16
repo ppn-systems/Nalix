@@ -12,8 +12,9 @@ This guide walks you through building a complete **Ping/Pong service** using Nal
 ## 🗺️ Roadmap
 
 1.  **Define Packets**: Create shared data contracts.
-2.  **Server Setup**: Route packets to a handler.
-3.  **Client Connectivity**: Send requests and await replies.
+2.  **Identity Setup**: Generate server security keys.
+3.  **Server Setup**: Route packets to a handler.
+4.  **Client Connectivity**: Send requests and await replies.
 
 ---
 
@@ -88,6 +89,19 @@ Create the shared packet contracts in the `Contracts` project. Both server and c
 
 !!! tip "Layout Strategy"
     By default, `[SerializePackable]` uses `SerializeLayout.Auto`, which automatically orders fields for optimal packing. In production environments where binary stability is critical (e.g., cross-version compatibility), you can switch to `SerializeLayout.Explicit` and use `[SerializeOrder(n)]` to lock field positions.
+
+---
+
+## Step 3: Identity Setup
+
+Nalix enforces mandatory security. Before running the server, you must generate a cryptographic identity.
+
+```bash
+# Clean and run the certificate tool
+dotnet run --project tools/Nalix.Certificate
+```
+
+This will generate `certificate.private` and `certificate.public` in your application's identity folder. The server will automatically load these at startup.
 
 ---
 
@@ -172,10 +186,12 @@ var options = new TransportOptions { Address = "127.0.0.1", Port = 5000 };
 await using var client = new TcpSession(options, registry);
 await client.ConnectAsync();
 
-// 3. Request/Response in one line
+// 3. Request/Response (Type-Safe)
 var response = await client.RequestAsync<PingResponse>(
-    new PingRequest { Message = "Hello Nalix!" },
-    options: RequestOptions.Default.WithTimeout(5_000));
+    new PingRequest { Message = "Hello Nalix!" });
+
+// 4. Fire-and-forget (Optional Encryption)
+await client.SendAsync(new PingRequest { Message = "Silent Ping" }, encrypt: false);
 
 Console.WriteLine(response.Message); // "Pong: Hello Nalix!"
 ```

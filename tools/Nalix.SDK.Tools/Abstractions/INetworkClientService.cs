@@ -84,6 +84,11 @@ public interface INetworkClientService : IDisposable
     Task<double> PingAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the most recent round-trip time in milliseconds.
+    /// </summary>
+    double LastRtt { get; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether auto-ping is enabled.
     /// </summary>
     bool AutoPingEnabled { get; set; }

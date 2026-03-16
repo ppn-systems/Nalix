@@ -24,8 +24,6 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
 {
     #region Fields
 
-    private static readonly ObjectPoolManager s_object = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-
     private int _state;
     private bool _isInitialized;
 
@@ -129,11 +127,11 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     {
         _state = (int)PacketContextState.Pooled;
 
-        this.Sender = default!;
+        this.Sender = new PacketSender<TPacket>();
         this.Packet = default!;
+        this.IsReliable = false;
         this.Connection = default!;
         this.Attributes = default!;
-        this.IsReliable = false;
     }
 
     #endregion Constructor
@@ -164,9 +162,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
         this.IsReliable = reliable;
         this.CancellationToken = token;
 
-        PacketSender<TPacket> sender = s_object.Get<PacketSender<TPacket>>();
-        sender.Initialize(this);
-        this.Sender = sender;
+        this.Sender.Initialize(this);
 
         _isInitialized = true;
     }
@@ -187,16 +183,13 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     {
         if (_isInitialized)
         {
-            if (this.Sender is PacketSender<TPacket> concreteSender)
-            {
-                s_object.Return(concreteSender);
-            }
-
-            this.Sender = default!;
             this.Packet = default!;
+            this.IsReliable = false;
             this.Attributes = default!;
             this.Connection = default!;
-            this.IsReliable = false;
+
+
+            this.Sender.ResetForPool();
 
             _isInitialized = false;
         }

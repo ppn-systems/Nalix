@@ -18,6 +18,7 @@ using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
@@ -43,12 +44,26 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     private int _errorCount;
     private int _closeSignaled;
     private long _bytesSent;
+    private long _argsPoolMask; // Bitmask for free/busy status.
 
     private volatile bool _disposed;
 
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
     private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
+
+    // Per-connection local pool for packet arguments to avoid global pool contention.
+    // Size 8 matches the default MaxPerConnectionPendingPackets.
+    private readonly ConnectionEventArgs[] _argsPool;
+
+    private readonly PooledConnectEventContext[] _contextPool;
+    private long _contextPoolMask;
+
+    /// <summary>
+    /// Tracks the current timeout task in the TimingWheel.
+    /// Used for manual reference breaking during Dispose to allow instant GC.
+    /// </summary>
+    internal Internal.Time.TimingWheel.TimeoutTask? _timeoutTask;
 
     #endregion Fields
 
@@ -71,6 +86,24 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."));
 
         _args = new ConnectionEventArgs(this);
+        _argsPool = new ConnectionEventArgs[8];
+        for (int i = 0; i < _argsPool.Length; i++)
+        {
+            _argsPool[i] = new ConnectionEventArgs(this)
+            {
+                OnDisposedCallback = this.ReturnEventArgsSync
+            };
+        }
+
+        _contextPool = new PooledConnectEventContext[8];
+        for (int i = 0; i < _contextPool.Length; i++)
+        {
+            _contextPool[i] = new PooledConnectEventContext
+            {
+                OnDisposedCallback = this.ReturnContextSync
+            };
+        }
+
         this.Socket = new SocketConnection(socket, logger);
 
         // Wire the socket-level events into the connection-level callback pipeline.
@@ -258,6 +291,16 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
             this.Disconnect();
 
+            // High-Performance Cleanup: Break the TimingWheel reference chain instantly.
+            // This allows the GC to collect the Connection immediately instead of 
+            // waiting for the 102s wheel rotation.
+            Internal.Time.TimingWheel.TimeoutTask? task = _timeoutTask;
+            if (task is not null)
+            {
+                task.Conn = null;
+                _timeoutTask = null;
+            }
+
             this.Socket.Dispose();
 
             if (this.UdpTransport != null)
@@ -275,6 +318,76 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     }
 
     #endregion Dispose Pattern
+
+    #region Internal Pooling
+
+    /// <summary>
+    /// Acquires an EventArgs from the connection's local pool for packet processing.
+    /// Returns null if the local pool is exhausted (throttle reached).
+    /// </summary>
+    internal ConnectionEventArgs? AcquireEventArgs()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            long bit = 1L << i;
+            if ((Interlocked.Read(ref _argsPoolMask) & bit) == 0 &&
+                (Interlocked.Or(ref _argsPoolMask, bit) & bit) == 0)
+            {
+                return _argsPool[i];
+            }
+        }
+        return null;
+    }
+
+    private void ReturnEventArgsSync(ConnectionEventArgs args)
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            if (ReferenceEquals(_argsPool[i], args))
+            {
+                long bit = 1L << i;
+                _argsPool[i].ResetForPool();
+                _ = Interlocked.And(ref _argsPoolMask, ~bit);
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Acquires a transition context from the connection's local pool.
+    /// Used by AsyncCallback to execute packet handoffs without global pooling.
+    /// </summary>
+    internal PooledConnectEventContext? AcquireContext()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            long bit = 1L << i;
+            if ((Interlocked.Read(ref _contextPoolMask) & bit) == 0)
+            {
+                if ((Interlocked.Or(ref _contextPoolMask, bit) & bit) == 0)
+                {
+                    return _contextPool[i];
+                }
+            }
+        }
+        return null;
+    }
+
+    private void ReturnContextSync(PooledConnectEventContext context)
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            if (ReferenceEquals(_contextPool[i], context))
+            {
+                long bit = 1L << i;
+                _contextPool[i].ResetForPool();
+                _ = Interlocked.And(ref _contextPoolMask, ~bit);
+                return;
+            }
+        }
+    }
+
+    #endregion Internal Pooling
 
     #region Event Bridges
 

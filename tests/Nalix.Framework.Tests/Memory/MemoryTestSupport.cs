@@ -1,6 +1,6 @@
 
 using Nalix.Common.Abstractions;
-using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 
 namespace Nalix.Framework.Tests.Memory;
 

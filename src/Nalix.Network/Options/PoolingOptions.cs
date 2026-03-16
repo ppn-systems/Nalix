@@ -103,7 +103,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     #region Timeout Task — one per active connection registered with TimingWheel
 
     /// <summary>
-    /// Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 4096).
+    /// Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 1024 ).
     /// <para>
     /// <see cref="TimingWheel"/> allocates one task per registered connection and keeps it
     /// alive until the connection times out or disconnects. Under sustained load the pool
@@ -111,14 +111,14 @@ public sealed class PoolingOptions : ConfigurationLoader
     /// </para>
     /// <para>
     /// Set this to at least the peak concurrent connection count. If the server sees bursts
-    /// (e.g. DDoS) followed by mass disconnect, a higher value (e.g. 4096) avoids repeated
+    /// (e.g. DDoS) followed by mass disconnect, a higher value (e.g. 1024 ) avoids repeated
     /// allocation/GC cycles during the burst.
     /// </para>
     /// </summary>
-    [IniComment("Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 4096)")]
+    [IniComment("Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 1024 )")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "TimeoutTask.Capacity must be between 1 and 1,000,000.")]
-    public int TimeoutTaskCapacity { get; set; } = 4096;
+    public int TimeoutTaskCapacity { get; set; } = 1024;
 
     /// <summary>
     /// TimeoutTask instances to warm up at startup (default 64).

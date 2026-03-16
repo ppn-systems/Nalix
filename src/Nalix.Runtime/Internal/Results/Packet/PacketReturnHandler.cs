@@ -4,7 +4,6 @@
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Runtime.Internal.Results.Packet;
@@ -26,7 +25,7 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             await context.Sender.SendAsync((TPacket)packet).ConfigureAwait(false);
             return;
         }
- 
+
         if (packet.Flags.HasFlag(PacketFlags.UNRELIABLE))
         {
             await context.Connection.UDP.SendAsync(packet).ConfigureAwait(false);

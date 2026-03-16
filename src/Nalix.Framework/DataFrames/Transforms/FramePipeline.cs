@@ -28,6 +28,11 @@ public static class FramePipeline
 
         if (flags.HasFlag(PacketFlags.ENCRYPTED))
         {
+            if (algorithm == CipherSuiteType.None)
+            {
+                throw new InvalidOperationException("Encrypted frame received but no cipher suite has been negotiated.");
+            }
+
             if (secret.IsEmpty)
             {
                 throw new InvalidOperationException("Encrypted frame received before session key establishment.");
@@ -69,6 +74,11 @@ public static class FramePipeline
 
         if (enableEncrypt)
         {
+            if (algorithm == CipherSuiteType.None)
+            {
+                throw new InvalidOperationException("Encryption requested but no cipher suite has been negotiated.");
+            }
+
             IBufferLease next = PacketCipher.EncryptFrame(current, secret, algorithm);
             current.Dispose();
             current = next;

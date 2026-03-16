@@ -28,6 +28,12 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     private readonly bool _poolManaged;
     private int _returnedToPool;
 
+    /// <summary>
+    /// For local pooling! If set, calling Dispose() will invoke this callback
+    /// instead of returning to the global ObjectPoolManager.
+    /// </summary>
+    internal Action<ConnectionEventArgs>? OnDisposedCallback { get; set; }
+
     #endregion Fields
 
     #region Constructors
@@ -107,16 +113,23 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     /// <inheritdoc />
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _returnedToPool, 1) != 0)
+        {
+            return;
+        }
+
+        // Local pool priority
+        if (this.OnDisposedCallback is { } callback)
+        {
+            callback(this);
+            return;
+        }
+
         if (!_poolManaged)
         {
             _lease?.Dispose();
             _lease = null;
             this.Connection = null;
-            return;
-        }
-
-        if (Interlocked.Exchange(ref _returnedToPool, 1) != 0)
-        {
             return;
         }
 

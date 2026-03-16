@@ -48,9 +48,10 @@
                             <Button Command="{Binding DisconnectCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonDisconnect}" />
                         </UniformGrid>
 
-                        <UniformGrid Grid.Row="6" Grid.ColumnSpan="2" Columns="2">
+                        <UniformGrid Grid.Row="6" Grid.ColumnSpan="2" Columns="3">
                             <Button Margin="0,0,8,0" Command="{Binding HandshakeCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonHandshake}" />
-                            <Button Command="{Binding ResumeCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonResume}" />
+                            <Button Margin="0,0,8,0" Command="{Binding ResumeCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonResume}" />
+                            <Button Command="{Binding PingCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonPing}" />
                         </UniformGrid>
                     </Grid>
                 </GroupBox>

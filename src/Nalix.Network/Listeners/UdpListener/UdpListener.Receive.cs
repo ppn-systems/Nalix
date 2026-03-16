@@ -244,28 +244,36 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        // Create a new lease for the payload (7 bytes offset)
-        BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
-        incomingLease.IsReliable = false;
-
-        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-        args.Initialize(incomingLease, connection);
-
         try
         {
-            // Route through the full frame pipeline so args/lease ownership matches the TCP path.
-            this.ProcessFrame(this, args);
-        }
-        catch (Exception ex)
-        {
-            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] protocol-error id={connection.ID}", ex);
-        }
+            // Create a new lease for the payload (7 bytes offset)
+            BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
+            incomingLease.IsReliable = false;
+
+            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+            args.Initialize(incomingLease, connection);
+
+            try
+            {
+                // Route through the full frame pipeline so args/lease ownership matches the TCP path.
+                this.ProcessFrame(this, args);
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] protocol-error id={connection.ID}", ex);
+            }
 
 #if DEBUG
-        s_logger?.Trace(
-            $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-            $"bound+protocol id={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
+            s_logger?.Trace(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                $"bound+protocol id={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
 #endif
+        }
+        finally
+        {
+            // Dispose the original wrapping lease; the inner buffer was either transferred or rejected.
+            lease.Dispose();
+        }
     }
 
     /// <summary>
@@ -310,7 +318,7 @@ public abstract partial class UdpListenerBase
     /// <exception cref="SerializationFailureException">Thrown when deserialization fails.</exception>
     /// <exception cref="Exception">Unhandled exceptions are logged and reported to connection error handler.</exception>
     [DebuggerStepThrough]
-    protected void ProcessFrame(object? sender, IConnectEventArgs args)
+    protected void ProcessFrame(object? sender, ConnectionEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
@@ -328,22 +336,26 @@ public abstract partial class UdpListenerBase
 
             if (current != lease)
             {
-                IBufferLease? old = replaceable.ExchangeLease(current);
-                old?.Dispose();
+                replaceable.ExchangeLease(current)?.Dispose();
             }
 
             _protocol.ProcessMessage(sender, args);
         }
         catch (Exception ex)
         {
-            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException)
+            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
-                s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+#if DEBUG
+                s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+#endif
             }
             else
             {
                 args.Connection.ThrottledError(s_logger, "protocol.process_error", $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
             }
+
+            // Path failed before handoff to ProtocolHandler could guarantee disposal
+            args.Dispose();
         }
     }
 }

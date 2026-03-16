@@ -89,9 +89,18 @@ public abstract class TransportSession : IDisposable
     /// <summary>
     /// Asynchronously sends raw binary data to the remote endpoint.
     /// </summary>
-    /// <param name="payload">The payload to send.</param>
+    /// <param name="packet">The packet to send.</param>
+    /// <param name="encrypt">A value that overrides the default encryption behavior.</param>
     /// <param name="ct">The token to observe while sending.</param>
-    public abstract Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default);
+    public abstract Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Asynchronously sends raw binary data to the remote endpoint.
+    /// </summary>
+    /// <param name="payload">The payload to send.</param>
+    /// <param name="encrypt">A value that overrides the default encryption behavior.</param>
+    /// <param name="ct">The token to observe while sending.</param>
+    public abstract Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default);
 
     /// <summary>
     /// Releases all resources used by the session.

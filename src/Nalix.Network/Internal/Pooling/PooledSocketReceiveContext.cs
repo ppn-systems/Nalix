@@ -124,22 +124,6 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
     /// </summary>
     private ManualResetValueTaskSourceCore<int> _receiveSource;
 
-    /// <summary>
-    /// Signaled when _activeOps == 0. ResetForPool() waits on this before cleanup.
-    /// It starts signaled because a newly created context has no in-flight receive.
-    /// </summary>
-    private readonly ManualResetEventSlim _idle =
-        new(initialState: true);
-
-    /// <summary>
-    /// Signaled when the consumer has observed the result of the current async
-    /// receive via <see cref="IValueTaskSource{TResult}.GetResult(short)"/>.
-    /// This prevents the context from being recycled while an await continuation
-    /// still references the current value-task source version.
-    /// </summary>
-    private readonly ManualResetEventSlim _consumerIdle =
-        new(initialState: true);
-
     private int _consumerAwaitPending;
 
     // -------------------------------------------------------------------------
@@ -193,11 +177,16 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BindArgs(SocketAsyncEventArgs newArgs)
     {
-        _args?.Completed -= AsyncReceiveCompleted;
-
         _args = newArgs ?? throw new ArgumentNullException(nameof(newArgs));
         _args.UserToken = this;
-        _args.Completed += AsyncReceiveCompleted;
+
+        // One-time registration of the persistent completion handler to avoid
+        // delegate churn. Once bound, the handler stays with the pooled SAEA.
+        if (newArgs is PooledSocketAsyncEventArgs pooled && !pooled.IsHandlerBound)
+        {
+            pooled.Completed += AsyncReceiveCompleted;
+            pooled.IsHandlerBound = true;
+        }
 
 #if DEBUG
         Debug.WriteLine($"[PooledSocketReceiveContext] BindArgs ctx={RuntimeHelpers.GetHashCode(this)}");
@@ -295,31 +284,26 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
             $"[PooledSocketReceiveContext] ResetForPool begin activeOps={_activeOps} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
-        TimeSpan timeout = TimeSpan.FromSeconds(5);
-
         // Wait for the in-flight operation to finish. Five seconds is generous;
         // a real teardown should cancel the socket first so the OS aborts the op.
+        if (Volatile.Read(ref _activeOps) != 0 || Volatile.Read(ref _consumerAwaitPending) != 0)
+        {
+            long start = Stopwatch.GetTimestamp();
+            SpinWait sw = new();
 
+            while (Volatile.Read(ref _activeOps) != 0 || Volatile.Read(ref _consumerAwaitPending) != 0)
+            {
+                if (Stopwatch.GetElapsedTime(start).TotalSeconds > 5)
+                {
 #if DEBUG
-        if (!_idle.Wait(timeout))
-        {
-            Debug.WriteLine(
-                $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for idle activeOps={_activeOps} ctx={RuntimeHelpers.GetHashCode(this)}");
-
-            // Still proceed — better to risk a brief race than to leak the context
-            // forever if the kernel or caller fails to complete promptly.
-        }
-
-        if (!_consumerIdle.Wait(timeout))
-        {
-            Debug.WriteLine(
-                $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for consumer idle pending={_consumerAwaitPending} ctx={RuntimeHelpers.GetHashCode(this)}");
-
-        }
-#else
-        _idle.Wait(timeout);
-        _consumerIdle.Wait(timeout);
+                    Debug.WriteLine(
+                        $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for idle ops={_activeOps} pending={_consumerAwaitPending} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
+                    break;
+                }
+                sw.SpinOnce();
+            }
+        }
 
         if (_args != null)
         {
@@ -337,11 +321,9 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
             _args = null;
         }
 
-        // Re-arm for next use: reset counter and event to idle state.
+        // Re-arm for next use: reset counter to idle state.
         Volatile.Write(ref _activeOps, 0);
         Volatile.Write(ref _consumerAwaitPending, 0);
-        _idle.Set();
-        _consumerIdle.Set();
 
 #if DEBUG
         Debug.WriteLine($"[PooledSocketReceiveContext] ResetForPool done ctx={RuntimeHelpers.GetHashCode(this)}");
@@ -355,41 +337,25 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void BeginOperation()
     {
-        // First in-flight operation clears the idle signal so ResetForPool knows
-        // there is still an outstanding receive.
-        if (Interlocked.Increment(ref _activeOps) == 1)
-        {
-            _idle.Reset();
-        }
+        _ = Interlocked.Increment(ref _activeOps);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EndOperation()
     {
-        // Last completing operation sets the idle signal so ResetForPool can
-        // safely clear and return the pooled SAEA.
-        if (Interlocked.Decrement(ref _activeOps) == 0)
-        {
-            _idle.Set();
-        }
+        _ = Interlocked.Decrement(ref _activeOps);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void BeginConsumerAwait()
     {
         Volatile.Write(ref _consumerAwaitPending, 1);
-        _consumerIdle.Reset();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EndConsumerAwait()
     {
-        if (Interlocked.Exchange(ref _consumerAwaitPending, 0) == 0)
-        {
-            return;
-        }
-
-        _consumerIdle.Set();
+        _ = Interlocked.Exchange(ref _consumerAwaitPending, 0);
     }
 
     ValueTaskSourceStatus IValueTaskSource<int>.GetStatus(short token)

@@ -171,8 +171,11 @@ public sealed class MainWindowViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            this.PacketRegistryBrowser.SelectedPacketType = this.PacketBuilder.SelectedPacketType;
-            this.UpdateStatus(_texts.LogSourceHistory, this.PacketBuilder.CurrentPacketSummary);
+            this.Dispatch(() =>
+            {
+                this.PacketRegistryBrowser.SelectedPacketType = this.PacketBuilder.SelectedPacketType;
+                this.UpdateStatus(_texts.LogSourceHistory, this.PacketBuilder.CurrentPacketSummary);
+            });
         }
         catch (Exception exception)
         {
@@ -182,41 +185,67 @@ public sealed class MainWindowViewModel : ViewModelBase, IDisposable
 
     private void HandlePacketSent(object? sender, PacketLogEntry entry)
     {
-        this.SentHistory.AddEntry(entry);
-        this.UpdateStatus(_texts.LogSourceTcp, string.Format(CultureInfo.CurrentCulture, _texts.StatusSentPacketSuccessFormat, entry.PacketName));
+        this.Dispatch(() =>
+        {
+            this.SentHistory.AddEntry(entry);
+            this.UpdateStatus(_texts.LogSourceTcp, string.Format(CultureInfo.CurrentCulture, _texts.StatusSentPacketSuccessFormat, entry.PacketName));
+        });
     }
 
     private void HandlePacketReceived(object? sender, PacketLogEntry entry)
     {
-        this.ReceiveHistory.AddEntry(entry);
-        this.UpdateStatus(_texts.LogSourceTcp, string.Format(CultureInfo.CurrentCulture, _texts.StatusReceivedPacketSuccessFormat, entry.PacketName, entry.DecodeStatus));
+        this.Dispatch(() =>
+        {
+            this.ReceiveHistory.AddEntry(entry);
+            this.UpdateStatus(_texts.LogSourceTcp, string.Format(CultureInfo.CurrentCulture, _texts.StatusReceivedPacketSuccessFormat, entry.PacketName, entry.DecodeStatus));
+        });
     }
 
     private void HandleCatalogReloaded(PacketCatalog catalog, int addedCount)
     {
-        this.PacketBuilder.ReloadPacketCatalog(catalog);
-        this.PacketRegistryBrowser.ReloadFromPacketTypes(catalog.PacketTypes);
-        this.PacketRegistryBrowser.SelectedPacketType = this.PacketBuilder.SelectedPacketType;
-
-        if (addedCount > 0 && this.PacketBuilder.IsConnected)
+        this.Dispatch(() =>
         {
-            this.UpdateStatus(_texts.LogSourceRegistry, _texts.StatusPacketAssemblyReconnectRequired);
-        }
+            this.PacketBuilder.ReloadPacketCatalog(catalog);
+            this.PacketRegistryBrowser.ReloadFromPacketTypes(catalog.PacketTypes);
+            this.PacketRegistryBrowser.SelectedPacketType = this.PacketBuilder.SelectedPacketType;
+
+            if (addedCount > 0 && this.PacketBuilder.IsConnected)
+            {
+                this.UpdateStatus(_texts.LogSourceRegistry, _texts.StatusPacketAssemblyReconnectRequired);
+            }
+        });
     }
 
     private void HandleRegistryLoadFailed(string statusMessage, string detailMessage)
     {
-        this.StatusText = statusMessage;
-        this.Log.Add(_texts.LogSourceRegistry, $"{statusMessage} {detailMessage}");
+        this.Dispatch(() =>
+        {
+            this.StatusText = statusMessage;
+            this.Log.Add(_texts.LogSourceRegistry, $"{statusMessage} {detailMessage}");
+        });
     }
 
     private void UpdateStatus(string source, string message)
     {
-        this.StatusText = message;
-        this.Log.Add(source, message);
+        this.Dispatch(() =>
+        {
+            this.StatusText = message;
+            this.Log.Add(source, message);
+        });
     }
 
-    private void ShowHexViewer(string title, string hex) => this.HexViewer.Show(title, hex);
+    private void Dispatch(Action action)
+    {
+        if (System.Windows.Application.Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(action);
+            return;
+        }
+
+        action();
+    }
+
+    private void ShowHexViewer(string title, string hex) => this.Dispatch(() => this.HexViewer.Show(title, hex));
 
     private void HandlePacketBuilderPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
