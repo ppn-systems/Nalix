@@ -132,15 +132,15 @@ internal sealed class FRAME_SENDER : System.IDisposable
         // We materialise the frame here (on the caller's thread) so the drain loop
         // only has to write bytes — no serialisation work on the hot path.
 
-        System.Int32 totalLen = ReliableClient.HeaderSize + payload.Length;
+        System.Int32 totalLen = TcpSession.HeaderSize + payload.Length;
         System.Byte[] frame = _bufferPool.Rent(totalLen);
 
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
-            System.MemoryExtensions.AsSpan(frame, 0, ReliableClient.HeaderSize),
+            System.MemoryExtensions.AsSpan(frame, 0, TcpSession.HeaderSize),
             (System.UInt16)totalLen);
 
         payload.Span.CopyTo(
-            System.MemoryExtensions.AsSpan(frame, ReliableClient.HeaderSize, payload.Length));
+            System.MemoryExtensions.AsSpan(frame, TcpSession.HeaderSize, payload.Length));
 
         // ── 2. Enqueue and await the result ───────────────────────────────
         //
