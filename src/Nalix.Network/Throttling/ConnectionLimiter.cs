@@ -216,7 +216,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         }
 
         System.DateTime now = Clock.NowUtc();
-        INetworkEndpoint key = Connections.Connection.NetworkEndpoint.FromIpAddress(
+        INetworkEndpoint key = Connection.NetworkEndpoint.FromIpAddress(
             System.Net.IPAddress.Parse(args.Connection.EndPoint.Address)
         );
 

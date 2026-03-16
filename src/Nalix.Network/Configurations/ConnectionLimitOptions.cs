@@ -72,45 +72,5 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     {
         System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-
-        if (MaxConnectionsPerIpAddress < 1)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxConnectionsPerIpAddress must be at least 1.");
-        }
-
-        if (MaxConnectionsPerWindow < 1)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxConnectionsPerWindow must be at least 1.");
-        }
-
-        if (ConnectionRateWindow.TotalSeconds > 600)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("ConnectionRateWindow should not exceed 10 minutes.");
-        }
-
-        if (BanDuration < System.TimeSpan.FromSeconds(1))
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("BanDuration must be at least 1 second.");
-        }
-
-        if (BanDuration > System.TimeSpan.FromDays(1))
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("BanDuration is unrealistically long (over 1 day).");
-        }
-
-        if (CleanupInterval < System.TimeSpan.FromSeconds(1) || CleanupInterval > System.TimeSpan.FromHours(1))
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("CleanupInterval must be between 1 second and 1 hour.");
-        }
-
-        if (InactivityThreshold <= System.TimeSpan.Zero)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("InactivityThreshold must be a positive TimeSpan.");
-        }
-
-        if (InactivityThreshold < System.TimeSpan.FromSeconds(1))
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("InactivityThreshold must be at least 1 second.");
-        }
     }
 }

@@ -103,21 +103,6 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
         System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
 
-        if (InitialConnectionCapacity < 1 || InitialUsernameCapacity < 1)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("Initial capacities must be at least 1.");
-        }
-
-        if (MaxUsernameLength < 1)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxUsernameLength must be a positive integer.");
-        }
-
-        if (MaxUsernameLength > 1024)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxUsernameLength is unreasonably large (over 1024).");
-        }
-
         if (ParallelDisconnectDegree == 0)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("ParallelDisconnectDegree cannot be zero. Use -1 for default or a positive value.");

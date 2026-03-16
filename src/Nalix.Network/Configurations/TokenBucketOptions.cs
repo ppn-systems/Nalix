@@ -53,7 +53,7 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     /// Gets or sets the fixed-point resolution for token arithmetic (micro-tokens per token).
     /// </summary>
     [IniComment("Fixed-point precision for token arithmetic (1–1,000,000; higher = more precise)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 10_000, ErrorMessage = "TokenScale must be positive")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "TokenScale must be positive")]
     public System.Int32 TokenScale { get; set; } = 1_000;
 
     /// <summary>
@@ -122,20 +122,9 @@ public sealed class TokenBucketOptions : ConfigurationLoader
             throw new System.ComponentModel.DataAnnotations.ValidationException("ShardCount must be a power of two (e.g., 16, 32, 64) to ensure correct shard distribution.");
         }
 
-        if (RefillTokensPerSecond < 0.0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("RefillTokensPerSecond cannot be negative.");
-        }
-
-        const System.Int64 maxSafe = System.Int64.MaxValue;
-        if (CapacityTokens * (System.Int64)TokenScale > maxSafe)
+        if (CapacityTokens * (System.Int64)TokenScale > System.Int64.MaxValue)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("CapacityTokens * TokenScale is too large and may overflow Int64. Reduce values.");
-        }
-
-        if (TokenScale is <= 0 or > 1_000_000)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("TokenScale must be between 1 and 1_000_000.");
         }
     }
 }

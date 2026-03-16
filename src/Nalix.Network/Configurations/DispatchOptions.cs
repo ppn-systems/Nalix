@@ -42,12 +42,7 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
-        var context = new System.ComponentModel.DataAnnotations.ValidationContext(this);
+        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-
-        if (MaxPerConnectionQueue < 0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxPerConnectionQueue must be 0, or a positive number.");
-        }
     }
 }

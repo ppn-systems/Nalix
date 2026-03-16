@@ -122,25 +122,5 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     {
         System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-
-        if (this.Port is < 1 or > 65535)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("Port must be between 1 and 65535.");
-        }
-
-        if (this.Backlog < 1)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("Backlog must be positive.");
-        }
-
-        if (this.MaxParallel < 1)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxParallel must be at least 1.");
-        }
-
-        if (this.BufferSize < 64)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("BufferSize must be at least 64 bytes.");
-        }
     }
 }
