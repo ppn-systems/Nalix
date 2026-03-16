@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Security.Enums;
@@ -108,7 +109,7 @@ public static class EnvelopeEncryptor
     /// <exception cref="System.ArgumentNullException">
     /// Thrown when <paramref name="obj"/> or <paramref name="key"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="System.Security.SecurityException">
+    /// <exception cref="CryptoException">
     /// Thrown when authentication fails for any member.
     /// <b>The object may be partially decrypted</b>; callers requiring atomicity should clone first.
     /// </exception>
@@ -273,7 +274,7 @@ public static class EnvelopeEncryptor
             catch (System.Exception ex)
             {
                 System.String memberKind = isMemberProperty ? "property" : "field";
-                throw new System.Security.SecurityException(
+                throw new CryptoException(
                     $"Decryption failed on {memberKind} '{member.Name}' of '{typeName}'. " +
                     $"Object is partially decrypted ({successCount}/{totalCount} members done). " +
                     $"Inner: {ex.Message}", ex);

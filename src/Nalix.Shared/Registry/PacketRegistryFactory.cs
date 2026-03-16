@@ -74,11 +74,10 @@ public sealed class PacketRegistryFactory
     static PacketRegistryFactory()
     {
         BuiltInNamespaces = System.Collections.Frozen.FrozenSet.ToFrozenSet(
-            new System.String[]
-            {
+            [
                 typeof(Text256).Namespace!,
                 typeof(Control).Namespace!
-            },
+            ],
             System.StringComparer.Ordinal);
 
         BindAllPtrsMi = typeof(PacketRegistryFactory)
@@ -327,15 +326,37 @@ public sealed class PacketRegistryFactory
             }
 
             // Bind deserialize pointer into PacketFunctionTable<TPacket>
-            BindAllPtrsMi.MakeGenericMethod(type).Invoke(
-                null, [miDeserialize, null, null, null, null]);
+            try
+            {
+                BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize, null, null, null, null]);
+            }
+            catch (System.Exception ex)
+            {
+                INFO($"bind-deserialize-fail type={type.Name} err={ex.Message}");
+                continue;
+            }
 
             System.Type tbl = typeof(PacketFunctionTable<>).MakeGenericType(type);
-            System.Reflection.MethodInfo doDeserializeMi =
-                tbl.GetMethod(nameof(PacketFunctionTable<IPacket>.InvokeDeserialize), StaticNonPublic)!;
+            System.Reflection.MethodInfo doDeserializeMi = null!;
+            try
+            {
+                doDeserializeMi = tbl.GetMethod(nameof(PacketFunctionTable<>.InvokeDeserialize), StaticNonPublic | StaticPublic)!;
+            }
+            catch (System.Exception ex)
+            {
+                INFO($"get-method-fail type={type.Name} method=InvokeDeserialize err={ex.Message}");
+                continue;
+            }
 
-            deserializers[key] = (PacketDeserializer)
-                System.Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
+            try
+            {
+                deserializers[key] = (PacketDeserializer)System.Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
+            }
+            catch (System.Exception ex)
+            {
+                INFO($"delegate-create-fail type={type.Name} err={ex.Message}");
+                continue;
+            }
 
             // ── Transformer ──────────────────────────────────────────────────────
             if (pipelineManaged)
@@ -345,8 +366,15 @@ public sealed class PacketRegistryFactory
                 continue;
             }
 
-            BindAllPtrsMi.MakeGenericMethod(type).Invoke(
-                null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
+            try
+            {
+                BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
+            }
+            catch (System.Exception ex)
+            {
+                INFO($"bind-transform-fail type={type.Name} err={ex.Message}");
+                continue;
+            }
 
             System.Type fnType = typeof(PacketFunctionTable<>).MakeGenericType(type);
 
@@ -355,10 +383,10 @@ public sealed class PacketRegistryFactory
             System.Func<IPacket, System.Byte[], IPacket>? decryptDel = null;
             System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>? encryptDel = null;
 
-            System.Reflection.MethodInfo invokeEncryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeEncrypt), StaticNonPublic)!;
-            System.Reflection.MethodInfo invokeDecryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecrypt), StaticNonPublic)!;
-            System.Reflection.MethodInfo invokeCompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeCompress), StaticNonPublic)!;
-            System.Reflection.MethodInfo invokeDecompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecompress), StaticNonPublic)!;
+            System.Reflection.MethodInfo invokeEncryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeEncrypt), StaticNonPublic | StaticPublic)!;
+            System.Reflection.MethodInfo invokeDecryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecrypt), StaticNonPublic | StaticPublic)!;
+            System.Reflection.MethodInfo invokeCompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeCompress), StaticNonPublic | StaticPublic)!;
+            System.Reflection.MethodInfo invokeDecompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecompress), StaticNonPublic | StaticPublic)!;
 
             if (miCompress is not null)
             {

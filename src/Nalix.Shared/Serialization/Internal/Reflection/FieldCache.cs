@@ -45,8 +45,6 @@ internal static partial class FieldCache<
     static FieldCache()
     {
         _layout = GetSerializeLayout();
-        _metadata = DiscoverFields<T>();
-        _fieldIndex = BuildFieldIndex();
 
         _propertyCache = new System.Collections.Generic.Dictionary<System.String, System.Reflection.PropertyInfo>(
             capacity: 32,
@@ -60,6 +58,9 @@ internal static partial class FieldCache<
         {
             _propertyCache[p.Name] = p;
         }
+
+        _metadata = DiscoverFields<T>();
+        _fieldIndex = BuildFieldIndex();
 
         // Create compiled getters/setters for each field
         _getters = new System.Delegate[_metadata.Length];
@@ -140,6 +141,7 @@ internal static partial class FieldCache<
         if (includedFields.Count == 0)
         {
             // Log warning or throw exception
+            System.Diagnostics.Debug.WriteLine($"[FieldCache<{typeof(TField).Name}>] WARNING: Type {typeof(TField).Name} has no serializable fields.");
             throw new System.InvalidOperationException($"Type {typeof(TField).Name} has no serializable fields.");
         }
 

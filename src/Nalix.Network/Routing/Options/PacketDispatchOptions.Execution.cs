@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Network.Connections;
@@ -146,7 +147,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         // 3) Unauthorized / security
-        if (ex is System.UnauthorizedAccessException or System.Security.SecurityException)
+        if (ex is System.UnauthorizedAccessException or CryptoException)
         {
             return (ProtocolReason.ACCOUNT_LOCKED, ProtocolAdvice.NONE, ControlFlags.NONE);
         }

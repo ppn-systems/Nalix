@@ -3,6 +3,8 @@
 
 #if DEBUG
 
+using Nalix.Common.Exceptions;
+
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests.")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
@@ -76,7 +78,7 @@ internal sealed class IniConfig
     /// <param name="path">The path to the INI file.</param>
     /// <exception cref="System.ArgumentNullException">Thrown when path is null.</exception>
     /// <exception cref="System.ArgumentException">Thrown when path is invalid.</exception>
-    /// <exception cref="System.Security.SecurityException">Thrown when path contains path traversal attempts.</exception>
+    /// <exception cref="InternalErrorException">Thrown when path contains path traversal attempts.</exception>
     public IniConfig(System.String path)
     {
         if (path == null)
@@ -98,9 +100,9 @@ internal sealed class IniConfig
         {
             throw new System.ArgumentException($"Invalid configuration file path: {path}", nameof(path), ex);
         }
-        catch (System.Security.SecurityException ex)
+        catch (InternalErrorException ex)
         {
-            throw new System.Security.SecurityException($"Security error accessing path: {path}", ex);
+            throw new InternalErrorException($"Security error accessing path: {path}", ex);
         }
         catch (System.NotSupportedException ex)
         {
