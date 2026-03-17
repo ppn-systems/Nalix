@@ -26,7 +26,6 @@ namespace Nalix.SDK.Transport.Extensions;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 public static class TcpSessionSubscriptions
 {
-    private static IPacketRegistry? s_catalog => InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
     // ── On<TPacket> ──────────────────────────────────────────────────────────
 
     /// <summary>
@@ -48,12 +47,7 @@ public static class TcpSessionSubscriptions
             // Wrapper is the sole owner of the lease; always dispose in finally.
             try
             {
-                if (s_catalog is null)
-                {
-                    throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
-                }
-
-                if (!s_catalog.TryDeserialize(buffer.Span, out IPacket p) || p is not TPacket t)
+                if (!TcpSession.Catalog.TryDeserialize(buffer.Span, out IPacket p) || p is not TPacket t)
                 {
                     return;
                 }
@@ -98,12 +92,7 @@ public static class TcpSessionSubscriptions
         {
             try
             {
-                if (s_catalog is null)
-                {
-                    throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
-                }
-
-                if (!s_catalog.TryDeserialize(buffer.Span, out IPacket p))
+                if (!TcpSession.Catalog.TryDeserialize(buffer.Span, out IPacket p))
                 {
                     return;
                 }
@@ -149,18 +138,13 @@ public static class TcpSessionSubscriptions
 
         System.Int32 fired = 0;
 
-        void Wrapper(System.Object? sender, IBufferLease buffer)
+        void Wrapper(System.Object? _, IBufferLease buffer)
         {
             // Wrapper is the sole owner of the lease — dispose in finally, always, exactly once.
             try
             {
-                if (s_catalog is null)
-                {
-                    throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
-                }
-
                 // Deserialize — if it fails, we still fall through to finally and dispose.
-                if (!s_catalog.TryDeserialize(buffer.Span, out IPacket p))
+                if (!TcpSession.Catalog.TryDeserialize(buffer.Span, out IPacket p))
                 {
                     return;
                 }
