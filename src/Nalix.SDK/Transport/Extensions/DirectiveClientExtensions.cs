@@ -26,7 +26,7 @@ namespace Nalix.SDK.Transport.Extensions;
 public static class DirectiveClientExtensions
 {
     // Lazily resolved to avoid hard startup failure if logger is registered after this type loads.
-    private static ILogger Log => InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static ILogger? Log => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Optional callbacks for specific directive types.
@@ -36,23 +36,23 @@ public static class DirectiveClientExtensions
         /// <summary>
         /// Callback invoked when a <see cref="ControlType.NOTICE"/> directive is received.
         /// </summary>
-        public System.Action<Directive> OnNotice { get; init; }
+        public required System.Action<Directive> OnNotice { get; init; }
 
         /// <summary>
         /// Callback invoked when a <see cref="ControlType.NACK"/> directive is received.
         /// </summary>
-        public System.Action<Directive> OnNack { get; init; }
+        public required System.Action<Directive> OnNack { get; init; }
 
         /// <summary>
         /// Callback invoked when a <see cref="ControlType.THROTTLE"/> directive is received.
         /// </summary>
-        public System.Action<Directive, System.TimeSpan> OnThrottle { get; init; }
+        public required System.Action<Directive, System.TimeSpan> OnThrottle { get; init; }
 
         /// <summary>
         /// Callback invoked when a <see cref="ControlType.REDIRECT"/> directive is received.
         /// Returns <c>true</c> if the redirect was fully handled (skips default reconnect).
         /// </summary>
-        public System.Func<Directive, System.Threading.CancellationToken,
+        public required System.Func<Directive, System.Threading.CancellationToken,
             System.Threading.Tasks.Task<System.Boolean>> OnRedirectAsync
         { get; init; }
     }
@@ -95,8 +95,8 @@ public static class DirectiveClientExtensions
     public static async System.Threading.Tasks.Task<System.Boolean> TryHandleDirectiveAsync(
         this IClientConnection client,
         IPacket packet,
-        DirectiveCallbacks callbacks = null,
-        RedirectResolver resolveRedirect = null,
+        DirectiveCallbacks? callbacks = null,
+        RedirectResolver? resolveRedirect = null,
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -198,7 +198,7 @@ public static class DirectiveClientExtensions
         System.ArgumentNullException.ThrowIfNull(client);
         remaining = System.TimeSpan.Zero;
 
-        if (!_states.TryGetValue(client, out ClientState s))
+        if (!_states.TryGetValue(client, out ClientState? s))
         {
             return false;
         }
@@ -260,7 +260,7 @@ public static class DirectiveClientExtensions
     {
         System.ArgumentNullException.ThrowIfNull(client);
 
-        if (_states.TryGetValue(client, out ClientState s))
+        if (_states.TryGetValue(client, out ClientState? s))
         {
             System.Threading.Interlocked.Exchange(ref s.ThrottleUntilMonoTicks, 0L);
         }

@@ -38,19 +38,19 @@ public abstract partial class TcpListenerBase
 
                 System.Net.IPEndPoint epV6Any = new(System.Net.IPAddress.IPv6Any, this._port);
 
-                s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
+                s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
 
                 sock.Bind(epV6Any);
                 sock.Listen(s_config.Backlog);
 
                 _listener = sock;
-                s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
+                s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
 
                 return;
             }
             catch (System.Exception ex)
             {
-                s_logger.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
+                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
 
                 // Clean up the half-initialized IPv6 socket before falling back
                 try
@@ -88,12 +88,12 @@ public abstract partial class TcpListenerBase
 
         System.Net.IPEndPoint epV4Any = new(System.Net.IPAddress.Any, _port);
 
-        s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
+        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
 
         _listener.Bind(epV4Any);
         _listener.Listen(s_config.Backlog);
 
-        s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
+        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]

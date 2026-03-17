@@ -73,14 +73,14 @@ public abstract partial class TcpListenerBase
     {
         if (_processChannel.Writer.TryWrite(connection))
         {
-            s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] queued remote={connection.EndPoint} port={_port}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] queued remote={connection.EndPoint} port={_port}");
             return;
         }
 
         // Channel full → DDoS backpressure: drop the new connection immediately.
         // Existing legitimate connections already in the channel are unaffected.
         _metrics.RECORD_REJECTED();
-        s_logger.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] channel-full remote={connection.EndPoint} port={_port} — dropped");
+        s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] channel-full remote={connection.EndPoint} port={_port} — dropped");
 
         connection.Close();
     }
@@ -91,7 +91,7 @@ public abstract partial class TcpListenerBase
 
     private void PROCESS_CHANNEL_LOOP(System.Threading.CancellationToken cancellationToken)
     {
-        s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
+        s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
                        $"thread-started port={_port} priority={System.Threading.Thread.CurrentThread.Priority}");
 
         System.Threading.Channels.ChannelReader<IConnection> reader = _processChannel.Reader;
