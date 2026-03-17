@@ -148,6 +148,16 @@ public sealed class TimingWheel : IActivatable
     {
         s_options.Validate();
 
+        PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
+        options.Validate();
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .SetMaxCapacity<TimeoutTask>(options.TimeoutTask_Capacity);
+
+        // Preallocate objects in the pools to improve performance and reduce latency during runtime.
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .SetMaxCapacity<TimeoutTask>(options.TimeoutTask_Preallocate);
+
         _wheelSize = s_options.BucketCount;
         _tickMs = s_options.TickDuration;
         _idleTimeoutMs = s_options.IdleTimeoutMs;

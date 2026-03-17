@@ -140,18 +140,7 @@ public abstract partial class TcpListenerBase
                     ctx.Listener = this;
                     ctx.Connection = connection;
 
-                    System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
-                    {
-                        PooledProcessContext c = state!;
-                        try
-                        {
-                            c.Listener!.ProcessConnection(c.Connection!);
-                        }
-                        finally
-                        {
-                            s_pool.Return<PooledProcessContext>(c);
-                        }
-                    }, ctx, preferLocal: true);
+                    DISPATCH_CONNECTION(connection);
 
                     // Rebind a fresh context for the next accept on this args
                     PooledAcceptContext nextCtx = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -320,8 +309,8 @@ public abstract partial class TcpListenerBase
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private async System.Threading.Tasks.Task AcceptConnectionsAsync(
-    [System.Diagnostics.CodeAnalysis.NotNull] IWorkerContext ctx,
-    [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
+        [System.Diagnostics.CodeAnalysis.NotNull] IWorkerContext ctx,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
     {
         System.TimeSpan heartbeatInterval = System.TimeSpan.FromSeconds(2);
 
@@ -388,13 +377,7 @@ public abstract partial class TcpListenerBase
             pctx.Listener = this;
             pctx.Connection = connection;
 
-            System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
-            {
-                PooledProcessContext c = state!;
-                try { c.Listener!.ProcessConnection(c.Connection!); }
-                finally { s_pool.Return<PooledProcessContext>(c); }
-            }, pctx, preferLocal: true);
-
+            DISPATCH_CONNECTION(connection);
             ctx.Advance(1, note: "accepted");
         }
 
@@ -427,7 +410,7 @@ public abstract partial class TcpListenerBase
             }
 
             // Wait async accept:
-            socket = await context.BeginAcceptAsync(_listener)
+            socket = await context.BeginAcceptAsync(_listener, cancellationToken)
                                   .ConfigureAwait(false);
 
             if (!_limiter.IsConnectionAllowed(socket.RemoteEndPoint))

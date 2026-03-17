@@ -153,19 +153,19 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
         // Configure object pools for accept contexts and socket async event args based on the provided options.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledAcceptContext>(options.AcceptContextMaxCapacity);
+                                    .SetMaxCapacity<PooledAcceptContext>(options.AcceptContext_Capacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsMaxCapacity);
+                                    .SetMaxCapacity<PooledProcessContext>(options.ProcessContext_Capacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.ProcessContextMaxCapacity);
+                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgs_Capacity);
 
         // Preallocate objects in the pools to improve performance and reduce latency during runtime.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
+                                    .Prealloc<PooledAcceptContext>(options.AcceptContext_Preallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
+                                    .Prealloc<PooledProcessContext>(options.ProcessContext_Preallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledSocketAsyncEventArgs>(options.ProcessContextPreallocate);
+                                    .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgs_Preallocate);
     }
 
     /// <summary>
