@@ -1183,6 +1183,12 @@ internal sealed class IniConfig
     /// <summary>
     /// Writes the stored comment for <paramref name="commentKey"/> to <paramref name="writer"/>,
     /// emitting one <c>; line</c> per newline segment. Does nothing when no comment is registered.
+    /// <para>
+    /// For property-level comments (i.e. <paramref name="commentKey"/> contains a <c>':'</c>),
+    /// the key name is extracted from <paramref name="commentKey"/> and prepended to the first
+    /// comment line as <c>; KeyName: first comment line</c> so readers can immediately see
+    /// which setting each comment describes.
+    /// </para>
     /// Must only be called from inside a write lock (i.e. from <see cref="WriteFile"/>).
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -1200,18 +1206,42 @@ internal sealed class IniConfig
             return;
         }
 
-        // Support multi-line comments embedded via \n in the attribute string
+        // Extract key name from "Section:Key" so we can prefix the first comment line.
+        // Section-level comments have no ':' → keyPrefix stays empty.
+        System.String keyPrefix = System.String.Empty;
+        System.Int32 colonIdx = commentKey.IndexOf(':');
+        if (colonIdx >= 0 && colonIdx < commentKey.Length - 1)
+        {
+            keyPrefix = commentKey[(colonIdx + 1)..];
+        }
+
+        // Support multi-line comments embedded via \n in the attribute string.
+        // First line gets the "KeyName: " prefix; subsequent lines are indented with spaces
+        // to align with the text after the prefix so the block stays readable.
         System.ReadOnlySpan<System.Char> remaining = System.MemoryExtensions.AsSpan(comment);
+        System.Boolean isFirstLine = true;
         while (!remaining.IsEmpty)
         {
             System.Int32 nl = System.MemoryExtensions.IndexOf(remaining, '\n');
-            System.ReadOnlySpan<System.Char> segment = nl < 0 ? remaining : remaining[..nl];
+            System.ReadOnlySpan<System.Char> segment =
+                nl < 0 ? remaining : remaining[..nl];
 
             writer.Write(CommentChar);
             writer.Write(' ');
+
+            if (isFirstLine && !System.String.IsNullOrEmpty(keyPrefix))
+            {
+                // e.g. "; MaxConnectionsPerIp: Max concurrent connections …"
+                writer.Write(keyPrefix);
+                writer.Write(": ");
+                isFirstLine = false;
+            }
+
             writer.WriteLine(System.MemoryExtensions.Trim(segment).ToString());
 
-            remaining = nl < 0 ? System.ReadOnlySpan<System.Char>.Empty : remaining[(nl + 1)..];
+            remaining = nl < 0
+                ? System.ReadOnlySpan<System.Char>.Empty
+                : remaining[(nl + 1)..];
         }
     }
 
@@ -1313,37 +1343,51 @@ internal sealed class IniConfig
                     {
                         if (section.Key != System.String.Empty)
                         {
+                            // Blank line between sections (except before the first)
                             if (!isFirstSection)
                             {
-                                writer.WriteLine("\n");
+                                writer.WriteLine();
                             }
 
                             System.String sectionCommentKey = section.Key;
                             System.Boolean hasSectionComment = _comments.ContainsKey(sectionCommentKey);
 
+                            // Check whether any key in this section has a comment
+                            System.Boolean hasAnyKeyComment = false;
+                            foreach (var kv in section.Value)
+                            {
+                                if (_comments.ContainsKey(CreateCacheKey(section.Key, kv.Key)))
+                                {
+                                    hasAnyKeyComment = true;
+                                    break;
+                                }
+                            }
+
+                            System.Boolean hasAnyComment = hasSectionComment || hasAnyKeyComment;
+
+                            // ── Opening separator ────────────────────────────────────
+                            writer.WriteLine(SectionSeparator);
+
+                            // ── Section-level comment lines ──────────────────────────
                             if (hasSectionComment)
                             {
-                                // Has comment → 3 lines: separator + comment + separator
-                                writer.WriteLine(SectionSeparator);
                                 WriteInlineComment(writer, section.Key, commentKey: sectionCommentKey);
-
-                                foreach (var keyValue in section.Value)
-                                {
-                                    System.String cacheKey = CreateCacheKey(section.Key, keyValue.Key);
-                                    System.Boolean hasComment = _comments.ContainsKey(cacheKey);
-
-                                    // Write property-level comment (keyed by "Section:Key")
-                                    WriteInlineComment(writer, section.Key, commentKey: CreateCacheKey(section.Key, keyValue.Key));
-                                }
-
-                                writer.WriteLine(SectionSeparator);
                             }
-                            else
+
+                            // ── Property-level comment lines (above the section header)
+                            foreach (var keyValue in section.Value)
                             {
-                                // No comment → single separator line
+                                WriteInlineComment(writer, section.Key,
+                                    commentKey: CreateCacheKey(section.Key, keyValue.Key));
+                            }
+
+                            // ── Closing separator (only when there were comment lines) ─
+                            if (hasAnyComment)
+                            {
                                 writer.WriteLine(SectionSeparator);
                             }
 
+                            // ── [Section] header ─────────────────────────────────────
                             writer.Write(SectionStart);
                             writer.Write(section.Key);
                             writer.WriteLine(SectionEnd);
@@ -1351,6 +1395,7 @@ internal sealed class IniConfig
                             isFirstSection = false;
                         }
 
+                        // Align '=' by padding keys to the longest key in this section
                         System.Int32 maxKeyLength = 0;
                         foreach (var kv in section.Value)
                         {
