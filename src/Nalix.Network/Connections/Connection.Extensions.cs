@@ -16,6 +16,9 @@ namespace Nalix.Network.Connections;
 /// </summary>
 public static class ConnectionExtensions
 {
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
     /// <summary>
     /// Sends a control directive asynchronously over the connection.
     /// </summary>
@@ -42,8 +45,7 @@ public static class ConnectionExtensions
     {
         System.ArgumentNullException.ThrowIfNull(connection);
 
-        Directive directive = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                      .Get<Directive>();
+        Directive directive = s_pool.Get<Directive>();
 
         try
         {
@@ -64,9 +66,8 @@ public static class ConnectionExtensions
                 }
                 catch (System.Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed type={controlType} " +
-                                                   $"reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
+                    s_logger?.Error($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed type={controlType} " +
+                                    $"reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
                 }
             }
             else
@@ -78,23 +79,20 @@ public static class ConnectionExtensions
                                                               .ConfigureAwait(false);
                     if (!sent)
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Warn($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed (small-path) " +
-                                                      $"type={controlType} reason={reason} action={action} seq={sequenceId}");
+                        s_logger?.Warn($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed (small-path) " +
+                                       $"type={controlType} reason={reason} action={action} seq={sequenceId}");
                     }
                 }
                 catch (System.Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed (small-path) " +
-                                                   $"type={controlType} reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
+                    s_logger?.Error($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed (small-path) " +
+                                    $"type={controlType} reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
                 }
             }
         }
         finally
         {
-            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return(directive);
+            s_pool.Return(directive);
         }
     }
 }

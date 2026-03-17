@@ -41,63 +41,63 @@ public sealed class TcpSession : IClientConnection
     private readonly System.Threading.Lock _sync = new();
 
     // Internal frame helpers
-    private FRAME_SENDER _sender;
-    private FRAME_READER _receiver;
+    private FRAME_SENDER? _sender;
+    private FRAME_READER? _receiver;
 
     // Socket + loop control
-    private System.Net.Sockets.Socket _socket;
-    private System.Threading.CancellationTokenSource _loopCts;
+    private System.Net.Sockets.Socket? _socket;
+    private System.Threading.CancellationTokenSource? _loopCts;
 
     // TaskManager-managed worker/recurring handles
-    private IWorkerHandle _receiveHandle;
+    private IWorkerHandle? _receiveHandle;
 
     // Last known endpoint — stored for automatic reconnection.
-    private System.String _host;
-    private System.UInt16 _port;
+    private System.String? _host;
+    private System.UInt16? _port = 0;
 
     // Dispose guard: 0 = live, 1 = disposed.
     // Using int instead of volatile bool enables Interlocked.CompareExchange for atomic flip.
-    private System.Int32 _disposed;
+    private System.Int32 _disposed = 0;
 
     // Cumulative byte counters (Interlocked)
-    internal System.Int64 _bytesSent;
-    internal System.Int64 _bytesReceived;
+    internal System.Int64 _bytesSent = 0;
+    internal System.Int64 _bytesReceived = 0;
 
     // Per-interval counters reset by RATE_SAMPLER_TICK
-    internal System.Int64 _lastSampleTick;
-    internal System.Int64 _sendCounterForInterval;
-    internal System.Int64 _receiveCounterForInterval;
+    internal System.Int64? _lastSampleTick = 0;
+    internal System.Int64 _sendCounterForInterval = 0;
+    internal System.Int64 _receiveCounterForInterval = 0;
 
     // Last computed bandwidth samples (bytes/s)
-    internal System.Int64 _lastSendBps;
-    internal System.Int64 _lastReceiveBps;
+    internal System.Int64 _lastSendBps = 0;
+    internal System.Int64 _lastReceiveBps = 0;
 
     // RTT (ms) của lần heartbeat gần nhất
 
     // Cached logger — resolved once to avoid repeated DI lookups on hot paths.
-    internal static readonly ILogger s_log = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    internal static readonly ILogger? s_log = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     #endregion Fields
 
     #region Events
 
     /// <inheritdoc/>
-    public event System.EventHandler OnConnected;
+    public event System.EventHandler? OnConnected;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Exception> OnError;
+    public event System.EventHandler<System.Exception>? OnError;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Int64> OnBytesSent;
+    public event System.EventHandler<System.Int64>? OnBytesSent;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Int64> OnBytesReceived;
+    public event System.EventHandler<System.Int64>? OnBytesReceived;
 
     /// <inheritdoc/>
-    public event System.EventHandler<IBufferLease> OnMessageReceived;
+    public event System.EventHandler<IBufferLease>? OnMessageReceived;
 
     /// <inheritdoc/>
-    public event System.EventHandler<System.Exception> OnDisconnected;
+    public event System.EventHandler<System.Exception>? OnDisconnected;
 
     /// <summary>
     /// Raised after a successful automatic reconnection.
@@ -128,7 +128,7 @@ public sealed class TcpSession : IClientConnection
     /// };
     /// </code>
     /// </example>
-    public event System.EventHandler<System.Int32> OnReconnected;
+    public event System.EventHandler<System.Int32>? OnReconnected;
 
     /// <summary>
     /// Optional asynchronous message handler.
@@ -138,7 +138,7 @@ public sealed class TcpSession : IClientConnection
     /// Unlike the event, this is a single-delegate slot to avoid multicast complications with async.
     /// The caller is responsible for disposing the <see cref="IBufferLease"/> if they consume it here.
     /// </remarks>
-    public System.Func<TcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> OnMessageReceivedAsync;
+    public System.Func<TcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task>? OnMessageReceivedAsync;
 
     #endregion Events
 
@@ -237,12 +237,12 @@ public sealed class TcpSession : IClientConnection
     /// </remarks>
     /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been disposed.</exception>
     /// <exception cref="System.Net.Sockets.SocketException">Thrown when all resolved addresses fail to connect.</exception>
-    public async System.Threading.Tasks.Task ConnectAsync(System.String host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
+    public async System.Threading.Tasks.Task ConnectAsync(System.String? host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
 
         // Resolve effective endpoint, falling back to Options.
-        System.String effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
+        System.String? effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
         System.UInt16 effectivePort = port ?? Options.Port;
 
         if (System.String.IsNullOrWhiteSpace(effectiveHost))
@@ -259,7 +259,10 @@ public sealed class TcpSession : IClientConnection
         // Atomically cancel any previous receive/heartbeat loops.
         lock (_sync)
         {
-            CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            if (_loopCts is not null)
+            {
+                CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            }
         }
 
         using System.Threading.CancellationTokenSource connectCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -269,7 +272,7 @@ public sealed class TcpSession : IClientConnection
             connectCts.CancelAfter(Options.ConnectTimeoutMillis);
         }
 
-        System.Exception lastEx = null;
+        System.Exception? lastEx = null;
 
         System.Net.IPAddress[] addrs = await System.Net.Dns.GetHostAddressesAsync(effectiveHost, ct).ConfigureAwait(false);
 
@@ -349,7 +352,7 @@ public sealed class TcpSession : IClientConnection
         CLEANUP_CONNECTION();
 
         s_log?.Info($"[SDK.{nameof(TcpSession)}] Disconnected (requested).");
-        OnDisconnected?.Invoke(this, null);
+        OnDisconnected?.Invoke(this, null!);
 
         return System.Threading.Tasks.Task.CompletedTask;
     }
@@ -360,7 +363,7 @@ public sealed class TcpSession : IClientConnection
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
-        FRAME_SENDER sender = System.Threading.Volatile.Read(ref _sender);
+        FRAME_SENDER? sender = System.Threading.Volatile.Read(ref _sender);
 
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(payload, ct);
     }
@@ -369,11 +372,11 @@ public sealed class TcpSession : IClientConnection
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="packet"/> is <c>null</c>.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been disposed.</exception>
     /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
-    public System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
+    public System.Threading.Tasks.Task<System.Boolean> SendAsync([System.Diagnostics.CodeAnalysis.NotNull] IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
-        FRAME_SENDER sender = System.Threading.Volatile.Read(ref _sender);
+        FRAME_SENDER? sender = System.Threading.Volatile.Read(ref _sender);
 
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(packet, ct);
     }
@@ -422,7 +425,7 @@ public sealed class TcpSession : IClientConnection
                 {
                     System.Threading.CancellationToken effective =
                         workerCt.CanBeCanceled ? workerCt : loopToken;
-                    await _receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
+                    await _receiver!.ReceiveLoopAsync(effective).ConfigureAwait(false);
                 },
                 options: new WorkerOptions { CancellationToken = loopToken, Tag = TaskNaming.Tags.Service }
             );
@@ -434,7 +437,7 @@ public sealed class TcpSession : IClientConnection
 
             // Receive is critical — must run even if TaskManager is unavailable.
             _ = System.Threading.Tasks.Task.Run(
-                () => _receiver.ReceiveLoopAsync(loopToken),
+                () => _receiver!.ReceiveLoopAsync(loopToken),
                 System.Threading.CancellationToken.None);
         }
     }
@@ -447,7 +450,10 @@ public sealed class TcpSession : IClientConnection
     {
         lock (_sync)
         {
-            CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            if (_loopCts is not null)
+            {
+                CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            }
 
             System.Threading.Interlocked.Exchange(ref _sender, null)?.Dispose();
 
@@ -463,7 +469,7 @@ public sealed class TcpSession : IClientConnection
             }
             catch { }
 
-            _socket = null;
+            _socket = null!;
         }
 
         // Cancel TaskManager handles (best-effort; individual failures must not abort cleanup).
@@ -473,7 +479,7 @@ public sealed class TcpSession : IClientConnection
             {
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                             .CancelWorker(_receiveHandle.Id);
-                _receiveHandle = null;
+                _receiveHandle = null!;
             }
         }
         catch { /* best-effort; swallow */ }
@@ -492,7 +498,7 @@ public sealed class TcpSession : IClientConnection
 
         try { cts.Cancel(); } catch { }
         try { cts.Dispose(); } catch { }
-        cts = null;
+        cts = null!;
     }
 
     #endregion Private — Connection Lifecycle
@@ -552,7 +558,7 @@ public sealed class TcpSession : IClientConnection
         // An toàn với concurrent subscribe/unsubscribe vì delegate là immutable.
         System.Delegate[] syncHandlers = OnMessageReceived?.GetInvocationList() ?? [];
 
-        System.Func<TcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> asyncHandler = OnMessageReceivedAsync;
+        System.Func<TcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task>? asyncHandler = OnMessageReceivedAsync;
 
         // ── Chuẩn bị data cho async handler TRƯỚC KHI dispose lease ─────
         // ToArray() copy Span ra heap — không cần pool, không cần dispose.
@@ -624,10 +630,14 @@ public sealed class TcpSession : IClientConnection
         // Tear down the current socket.
         lock (_sync)
         {
-            CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            if (_loopCts is not null)
+            {
+                CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+            }
+
             try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
             try { _socket?.Close(); _socket?.Dispose(); } catch { }
-            _socket = null;
+            _socket = null!;
         }
 
         if (!Options.ReconnectEnabled || System.Threading.Volatile.Read(ref _disposed) == 1)
@@ -699,7 +709,7 @@ public sealed class TcpSession : IClientConnection
     /// </summary>
     private System.Net.Sockets.Socket GET_CONNECTED_SOCKET_OR_THROW()
     {
-        System.Net.Sockets.Socket s = _socket;
+        System.Net.Sockets.Socket? s = _socket;
 
         return s?.Connected == true
             ? s

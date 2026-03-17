@@ -104,7 +104,7 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// Gets the encryption key used for secure communication.
     /// </summary>
     [ConfiguredIgnore]
-    public System.Byte[] EncryptionKey { get; set; }
+    public System.Byte[] EncryptionKey { get; set; } = [];
 
     /// <summary>
     /// Gets the encryption mode for the connection.

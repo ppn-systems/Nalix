@@ -79,7 +79,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled = value;
 
-            s_logger.Info($"[NW.{nameof(TcpListenerBase)}] timesync={value}");
+            s_logger?.Info($"[NW.{nameof(TcpListenerBase)}] timesync={value}");
         }
     }
 
@@ -298,7 +298,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
             this._lock.Dispose();
         }
 
-        s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
+        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion IDispose

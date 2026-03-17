@@ -64,7 +64,7 @@ public sealed class PacketDispatcher : IPacketDispatcher
         }
 
         System.Type t = packet.GetType();
-        if (!_map.TryGetValue(t, out Handlers handlers))
+        if (!_map.TryGetValue(t, out Handlers? handlers))
         {
             // No handlers -- nothing to do
             return;

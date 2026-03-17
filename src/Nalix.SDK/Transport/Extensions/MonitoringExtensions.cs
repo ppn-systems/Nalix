@@ -32,7 +32,7 @@ public static class MonitoringExtensions
 
         // Get the current tick time
         System.Int64 now = Clock.MonoTicksNow();
-        System.Double elapsedSec = Clock.MonoTicksToMilliseconds(now - client._lastSampleTick) / 1000.0;
+        System.Double elapsedSec = Clock.MonoTicksToMilliseconds((now - client._lastSampleTick) ?? 0) / 1000.0;
 
         client._lastSampleTick = now;
 

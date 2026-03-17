@@ -60,7 +60,8 @@ internal static class PACKET_AWAITER
         System.Threading.CancellationToken ct)
         where TPkt : class, IPacket
     {
-        IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
+        IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
+            ?? throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
 
         System.Threading.Tasks.TaskCompletionSource<TPkt> tcs =
             new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
@@ -98,7 +99,7 @@ internal static class PACKET_AWAITER
 
         // ── Local handlers ────────────────────────────────────────────────────
 
-        void OnMessageReceived(System.Object _, IBufferLease buffer)
+        void OnMessageReceived(System.Object? _, IBufferLease buffer)
         {
             using (buffer)
             {
@@ -111,7 +112,7 @@ internal static class PACKET_AWAITER
             }
         }
 
-        void OnDisconnected(System.Object _, System.Exception ex)
+        void OnDisconnected(System.Object? _, System.Exception ex)
             => tcs.TrySetException(
                 ex ?? new System.InvalidOperationException(
                     $"Disconnected while waiting for {typeof(TPkt).Name}."));
