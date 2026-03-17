@@ -22,6 +22,14 @@ namespace Nalix.Network.Internal.Transport;
 /// The receive path uses <see cref="PooledReceiveContext"/> (SAEA-backed, pooled via
 /// <see cref="ObjectPoolManager"/>) to eliminate per-receive allocations and scale
 /// stably at 10 000+ concurrent connections.
+///
+/// <para><b>DDoS Protection (Layer 1 — Per-Connection Throttle):</b><br/>
+/// Each connection tracks how many packets are currently pending processing via
+/// <c>_pendingProcessCallbacks</c>. If a single connection floods packets faster
+/// than the handler can process them, incoming packets are dropped at the receive
+/// loop level — before they ever reach <see cref="AsyncCallback"/> or the ThreadPool.
+/// This prevents a single abusive IP from consuming the global callback quota and
+/// starving legitimate connections.</para>
 /// </summary>
 /// <param name="socket">The accepted, connected socket.</param>
 [System.Diagnostics.DebuggerNonUserCode]
@@ -33,6 +41,18 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     #region Const
 
     private const System.Byte HeaderSize = sizeof(System.UInt16);
+
+    /// <summary>
+    /// Maximum number of packets that may be queued-but-not-yet-processed
+    /// for a single connection at any moment.
+    /// <para>
+    /// When a connection sends packets faster than <see cref="AsyncCallback"/>
+    /// can dispatch them, excess packets are dropped and a warning is logged.
+    /// Legitimate clients rarely queue more than 1–2 packets simultaneously;
+    /// a value of 8 gives generous headroom while blocking flood attacks.
+    /// </para>
+    /// </summary>
+    private const System.Int32 MaxPerConnectionPendingPackets = 8;
 
     #endregion Const
 
@@ -49,6 +69,8 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     private IConnectEventArgs _cachedArgs;
     [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackPost;
     [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackClose;
+
+    private System.Int32 _pendingProcessCallbacks;
 
     private System.Int32 _disposed;        // 0 = no, 1 = yes
     private System.Int32 _closeSignaled;
@@ -72,6 +94,14 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     /// <summary>Caches incoming packets.</summary>
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     public BufferLeaseCache Cache { get; } = new();
+
+    /// <summary>
+    /// Returns the number of packets dispatched to <see cref="AsyncCallback"/>
+    /// that have not yet been processed by the protocol handler.
+    /// Used by diagnostics and the per-connection throttle check.
+    /// </summary>
+    public System.Int32 PendingPackets
+        => System.Threading.Volatile.Read(ref _pendingProcessCallbacks);
 
     #endregion Properties
 
@@ -97,6 +127,16 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                         $"configured ep={_socket.RemoteEndPoint}");
 #endif
     }
+
+    /// <summary>
+    /// Called by the protocol handler (via the wrapped process callback in Connection.cs)
+    /// after each packet has been fully processed. Decrements the per-connection pending
+    /// counter so the receive loop can accept the next packet from this connection.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal void OnPacketProcessed()
+        => System.Threading.Interlocked.Decrement(ref _pendingProcessCallbacks);
 
     /// <summary>
     /// Starts the SAEA-backed receive loop exactly once.
@@ -132,7 +172,6 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         // Acquire PooledReceiveContext from ObjectPoolManager — same pattern as
         // PooledAcceptContext usage in the accept loop.
         _recvCtx = s_pool.Get<PooledReceiveContext>();
-
         _recvCtx.EnsureArgsBound();
 
 #if DEBUG
@@ -230,7 +269,6 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
         // ── Slow path: pooled heap buffer ──────────────────────────────────
         System.Byte[] heapBuf = s_buffer.Rent(totalLength);
-
         try
         {
 #if DEBUG
@@ -328,7 +366,6 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                     INVOKE_CLOSE_ONCE();
                     return false;
                 }
-
                 sent += n;
             }
 
@@ -347,43 +384,29 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         }
     }
 
-    /// <summary>
-    /// Sends data synchronously from an <see cref="System.ArraySegment{T}"/>.
-    /// Thin wrapper for SAEA callers.
-    /// </summary>
+    /// <summary>Sends data synchronously from an <see cref="System.ArraySegment{T}"/>.</summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean Send(System.ArraySegment<System.Byte> segment)
-    {
-        return segment.Array is not null && Send(new System.ReadOnlySpan<System.Byte>(
+        => segment.Array is not null && Send(new System.ReadOnlySpan<System.Byte>(
             segment.Array, segment.Offset, segment.Count));
-    }
 
-    /// <summary>
-    /// Sends data asynchronously from an <see cref="System.ArraySegment{T}"/>.
-    /// Thin wrapper for SAEA callers.
-    /// </summary>
+    /// <summary>Sends data asynchronously from an <see cref="System.ArraySegment{T}"/>.</summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(
         System.ArraySegment<System.Byte> segment,
         System.Threading.CancellationToken cancellationToken)
-    {
-        return segment.Array is null
+        => segment.Array is null
             ? System.Threading.Tasks.Task.FromResult(false)
-            : SendAsync(
-            new System.ReadOnlyMemory<System.Byte>(
-                segment.Array, segment.Offset, segment.Count),
-            cancellationToken);
-    }
+            : SendAsync(new System.ReadOnlyMemory<System.Byte>(
+                segment.Array, segment.Offset, segment.Count), cancellationToken);
 
     #endregion Public Methods
 
     #region Dispose Pattern
 
-    /// <summary>
-    /// Disposes the resources used by this instance.
-    /// </summary>
+    /// <summary>Disposes the resources used by this instance.</summary>
     public void Dispose()
     {
         DISPOSE(true);
@@ -396,6 +419,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         => $"FramedSocketConnection (Client={_socket.RemoteEndPoint}, " +
            $"Disposed={System.Threading.Volatile.Read(ref _disposed) != 0}, " +
            $"UpTime={Cache.Uptime}ms, LastPing={Cache.LastPingTime}ms, " +
+           $"PendingPackets={PendingPackets}, " +
            $"IncomingCount={Cache.Incoming.Count})";
 
     #endregion Dispose Pattern
@@ -436,28 +460,20 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                     $"partial recv got={n} need={count} offset={offset} ep={_socket.RemoteEndPoint}");
             }
 #endif
-
             read += n;
         }
     }
 
     /// <summary>
     /// Main receive loop — uses <see cref="PooledReceiveContext"/> (SAEA) for zero-alloc receives.
-    /// <para>
-    /// Why this scales to 10 000+ connections:
-    /// <list type="bullet">
-    ///   <item><b>Zero per-receive allocation</b> — one <see cref="PooledReceiveContext"/> per
-    ///         connection, backed by a pooled <see cref="PooledSocketAsyncEventArgs"/>.</item>
-    ///   <item><b>Direct-to-buffer DMA</b> — OS writes into the pooled <see cref="buffer"/>
-    ///         without an intermediate copy.</item>
-    ///   <item><b>Sync-completion fast path</b> — <see cref="PooledReceiveContext.ReceiveAsync"/>
-    ///         returns <see cref="System.Threading.Tasks.ValueTask{T}"/> immediately
-    ///         when data is already in the kernel buffer, skipping TCS entirely.</item>
-    ///   <item><b>Zero-copy handoff</b> — buffer ownership transfers to <see cref="Cache"/>
-    ///         via <see cref="BufferLease.TakeOwnership"/>; a fresh buffer is rented after
-    ///         every packet.</item>
-    /// </list>
-    /// </para>
+    ///
+    /// <para><b>Layer 1 throttle:</b> before handing a packet off to the cache, this loop
+    /// checks <c>_pendingProcessCallbacks</c>. If the connection has
+    /// <see cref="MaxPerConnectionPendingPackets"/> packets already queued in
+    /// <see cref="AsyncCallback"/> awaiting a ThreadPool thread, the current packet is
+    /// dropped and a warning is emitted. The buffer is returned to the pool immediately and
+    /// a fresh one is rented so the loop can continue receiving (and discarding) the flood
+    /// without stalling or allocating.</para>
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -509,7 +525,6 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                     System.MemoryExtensions.AsSpan(oldBuf, 0, HeaderSize)
                         .CopyTo(System.MemoryExtensions.AsSpan(newBuf));
 
-                    // Atomic swap — prevents Dispose from double-returning.
                     System.Byte[] swapped =
                         System.Threading.Interlocked.Exchange(ref buffer, newBuf);
 
@@ -530,7 +545,36 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                     $"recv-frame size={size} payload={payload} ep={_sender.EndPoint.Address}");
 #endif
 
-                // ── Step 4: zero-copy handoff to session cache ────────────
+                // ── Step 4: Layer 1 per-connection throttle ───────────────
+                // Try to reserve a pending slot. If the connection already has
+                // MaxPerConnectionPendingPackets in-flight, drop this packet and
+                // return the buffer immediately — flood traffic never reaches
+                // AsyncCallback or the ThreadPool.
+                System.Int32 pending =
+                    System.Threading.Interlocked.Increment(ref _pendingProcessCallbacks);
+
+                if (pending > MaxPerConnectionPendingPackets)
+                {
+                    System.Threading.Interlocked.Decrement(ref _pendingProcessCallbacks);
+
+                    s_logger?.Warn(
+                        $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                        $"per-conn-throttle pending={pending} max={MaxPerConnectionPendingPackets} " +
+                        $"ep={_sender.EndPoint.Address} — packet dropped");
+
+                    // Return buffer to pool — rent a fresh one for next receive.
+                    System.Byte[] dropped =
+                        System.Threading.Interlocked.Exchange(ref buffer, null!);
+                    if (dropped is not null)
+                    {
+                        s_buffer.Return(dropped);
+                    }
+
+                    buffer = s_buffer.Rent();
+                    continue;
+                }
+
+                // ── Step 5: zero-copy handoff to session cache ────────────
                 // Interlocked.Exchange(null) prevents Dispose from double-returning.
                 System.Byte[] currentBuf =
                     System.Threading.Interlocked.Exchange(ref buffer, null!);
@@ -544,8 +588,14 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 #if DEBUG
                     s_logger?.Debug(
                         $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"handoff-to-cache payload={payload} ep={_sender.EndPoint.Address}");
+                        $"handoff-to-cache payload={payload} pending={pending} ep={_sender.EndPoint.Address}");
 #endif
+                }
+                else
+                {
+                    // Buffer was swapped out by Dispose racing with the loop.
+                    // The increment must be undone since no callback will fire.
+                    System.Threading.Interlocked.Decrement(ref _pendingProcessCallbacks);
                 }
 
                 // Rent a fresh buffer for the next receive.
@@ -608,9 +658,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
             try { _socket.Close(); } catch { /* ignore */ }
 
-            // 3. Return PooledReceiveContext to ObjectPoolManager — mirrors
-            //    how PooledAcceptContext is returned in the accept loop.
-            //    ResetForPool() waits for any in-flight SAEA op to finish.
+            // 3. Return PooledReceiveContext to ObjectPoolManager.
             if (_recvCtx is not null)
             {
                 _recvCtx.ResetForPool();
@@ -621,7 +669,6 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             // 4. Return the receive buffer (Interlocked prevents double-return).
             System.Byte[] bufToReturn =
                 System.Threading.Interlocked.Exchange(ref buffer, null!);
-
             if (bufToReturn is not null)
             {
                 s_buffer.Return(bufToReturn);
@@ -740,8 +787,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     {
         if (_sender is null || _cachedArgs is null)
         {
-            throw new System.InvalidOperationException(
-                "SetCallback must be called before use");
+            throw new System.InvalidOperationException("SetCallback must be called before use");
         }
     }
 

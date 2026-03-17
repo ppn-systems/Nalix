@@ -54,18 +54,24 @@ public sealed partial class Connection : IConnection
     public Connection(System.Net.Sockets.Socket socket)
     {
         _lock = new System.Threading.Lock();
-
         _secret = [];
         _disposed = false;
-
-        _evtArgs = new ConnectionEventArgs(this);
-        _cstream = new FramedSocketConnection(socket);
-        _cstream.Cache.SetCallback(OnProcessEventBridge, this, _evtArgs);
-        _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.EndPoint = NetworkEndpoint.FromEndPoint(socket.RemoteEndPoint);
+
+        _evtArgs = new ConnectionEventArgs(this);
+        _cstream = new FramedSocketConnection(socket);
+        _cstream.Cache.SetCallback(
+            (sender, e) =>
+            {
+                try { OnProcessEventBridge(sender, e); }
+                finally { _cstream.OnPacketProcessed(); }
+            },
+            this, _evtArgs);
+
+        _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
 
         this.TCP = new TcpTransport(this);
 
@@ -277,7 +283,8 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        AsyncCallback.Invoke(_onCloseEvent, e.Connection, e);
+        // Close events bypas backpressure — cleanup must never be delayed
+        AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -292,7 +299,7 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        AsyncCallback.Invoke(self._onProcessEvent, self, e);
+        AsyncCallback.Invoke(self._onProcessEvent, self, e, e.Connection.EndPoint);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
