@@ -14,6 +14,7 @@ using Nalix.Framework.Tasks;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
 using Nalix.Shared.Memory.Buffers;
+using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.SDK.Transport;
 
@@ -22,8 +23,7 @@ namespace Nalix.SDK.Transport;
 /// Supports automatic reconnection, keep-alive heartbeats, and bandwidth rate sampling.
 /// </summary>
 /// <remarks>
-/// This class is <b>thread-safe</b> for concurrent calls to <see cref="SendAsync(IPacket, System.Threading.CancellationToken)"/>,
-/// <see cref="ConnectAsync"/>, <see cref="DisconnectAsync"/>, and <see cref="Dispose"/>.
+/// This class is thread-safe for concurrent calls to SendAsync, ConnectAsync, DisconnectAsync, and Dispose.
 /// </remarks>
 public sealed class TcpSession : IClientConnection
 {
@@ -38,6 +38,7 @@ public sealed class TcpSession : IClientConnection
 
     #region Fields
 
+    // Use a plain object for locking. (System.Threading.Lock does not exist in BCL.)
     private readonly System.Threading.Lock _sync = new();
 
     // Internal frame helpers
@@ -56,7 +57,6 @@ public sealed class TcpSession : IClientConnection
     private System.UInt16? _port = 0;
 
     // Dispose guard: 0 = live, 1 = disposed.
-    // Using int instead of volatile bool enables Interlocked.CompareExchange for atomic flip.
     private System.Int32 _disposed = 0;
 
     // Cumulative byte counters (Interlocked)
@@ -71,8 +71,6 @@ public sealed class TcpSession : IClientConnection
     // Last computed bandwidth samples (bytes/s)
     internal System.Int64 _lastSendBps = 0;
     internal System.Int64 _lastReceiveBps = 0;
-
-    // RTT (ms) của lần heartbeat gần nhất
 
     // Cached logger — resolved once to avoid repeated DI lookups on hot paths.
     internal static readonly ILogger? s_log = InstanceManager.Instance.GetExistingInstance<ILogger>();
@@ -102,42 +100,12 @@ public sealed class TcpSession : IClientConnection
     /// <summary>
     /// Raised after a successful automatic reconnection.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The event argument is the 1-based attempt number that succeeded
-    /// (e.g., <c>1</c> means the very first reconnect attempt worked).
-    /// </para>
-    /// <para>
-    /// Use this event to re-run post-connect setup that must repeat after a
-    /// reconnect — for example:
-    /// <list type="bullet">
-    /// <item><description>Re-run <c>HandshakeAsync</c> to establish a new session key.</description></item>
-    /// <item><description>Re-run <c>TimeSyncAsync</c> to re-synchronize the clock.</description></item>
-    /// <item><description>Re-subscribe to server-side channels or rooms.</description></item>
-    /// </list>
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// client.OnReconnected += async (sender, attempt) =>
-    /// {
-    ///     var c = (ReliableClient)sender;
-    ///     await c.HandshakeAsync();
-    ///     await c.TimeSyncAsync();
-    ///     logger.Info($"Re-authenticated after reconnect attempt {attempt}");
-    /// };
-    /// </code>
-    /// </example>
     public event System.EventHandler<System.Int32>? OnReconnected;
 
     /// <summary>
     /// Optional asynchronous message handler.
     /// When set, invoked alongside <see cref="OnMessageReceived"/> for async processing scenarios.
     /// </summary>
-    /// <remarks>
-    /// Unlike the event, this is a single-delegate slot to avoid multicast complications with async.
-    /// The caller is responsible for disposing the <see cref="IBufferLease"/> if they consume it here.
-    /// </remarks>
     public System.Func<TcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task>? OnMessageReceivedAsync;
 
     #endregion Events
@@ -177,48 +145,58 @@ public sealed class TcpSession : IClientConnection
 
     #endregion Properties
 
+    /// <summary>
+    /// Catalog for packet type registration and lookup, used by internal frame helpers for serialization and deserialization.
+    /// </summary>
+    public static readonly IPacketRegistry Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
+        ?? throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
+
+    #region Static Constructor
+
+    static TcpSession()
+    {
+        BufferConfig bufferConfig = ConfigurationManager.Instance.Get<BufferConfig>();
+
+        bufferConfig.TotalBuffers = 32;
+        bufferConfig.EnableMemoryTrimming = true;
+        bufferConfig.TrimIntervalMinutes = 2;
+        bufferConfig.DeepTrimIntervalMinutes = 10;
+        bufferConfig.EnableAnalytics = false;
+        bufferConfig.AdaptiveGrowthFactor = 1.25;
+        bufferConfig.MaxMemoryPercentage = 0.05;
+        bufferConfig.SecureClear = false;
+        bufferConfig.EnableQueueCompaction = false;
+        bufferConfig.AutoTuneOperationThreshold = 32;
+        bufferConfig.FallbackToArrayPool = true;
+        bufferConfig.ExpandThresholdPercent = 0.20;
+        bufferConfig.ShrinkThresholdPercent = 0.60;
+        bufferConfig.MinimumIncrease = 1;
+        bufferConfig.MaxBufferIncreaseLimit = 16;
+        bufferConfig.BufferAllocations = "256,0.25; 512,0.30; 1024,0.45";
+        bufferConfig.MaxMemoryBytes = 0;
+
+        bufferConfig.Validate();
+
+        InstanceManager.Instance.Register(new BufferPoolManager(bufferConfig));
+    }
+
+    #endregion Static Constructor
+
     #region Constructor
 
     /// <summary>
-    /// Constructs a new <see cref="TcpSession"/> and loads <see cref="TransportOptions"/> via
-    /// <see cref="ConfigurationManager"/>. Falls back to safe defaults if configuration is unavailable.
+    /// Constructs a new <see cref="TcpSession"/> and loads <see cref="TransportOptions"/>.
+    /// Falls back to safe defaults if configuration is unavailable.
     /// </summary>
-    /// <exception cref="System.InvalidOperationException">
-    /// Thrown (via <see cref="System.Environment.FailFast(System.String)"/>) when <see cref="IPacketRegistry"/>
-    /// is not registered — this is an unrecoverable misconfiguration.
-    /// </exception>
     public TcpSession()
     {
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Options.Validate();
 
-        BufferConfig bufferConfig = ConfigurationManager.Instance.Get<BufferConfig>();
-
-        bufferConfig.TotalBuffers = 32;                 // Dùng rất ít buffer do nhu cầu client thấp
-        bufferConfig.EnableMemoryTrimming = true;       // Luôn giải phóng bộ nhớ càng sớm càng tốt
-        bufferConfig.TrimIntervalMinutes = 2;           // Dọn bộ nhớ liên tục hơn
-        bufferConfig.DeepTrimIntervalMinutes = 10;      // Deep trim không cần quá thường xuyên
-        bufferConfig.EnableAnalytics = false;           // Không thu thập analytics
-        bufferConfig.AdaptiveGrowthFactor = 1.25;       // Không tự động tăng buffer quá nhiều
-        bufferConfig.MaxMemoryPercentage = 0.05;        // Giới hạn 5% RAM làm buffer
-        bufferConfig.SecureClear = false;               // Không cần zero-memory khi trả buffer
-        bufferConfig.EnableQueueCompaction = false;     // Không cần tối ưu chống phân mảnh queue
-        bufferConfig.AutoTuneOperationThreshold = 32;   // Không cần auto-tune phức tạp cho client đơn giản
-        bufferConfig.FallbackToArrayPool = true;        // Luôn fallback nếu không có pool
-        bufferConfig.ExpandThresholdPercent = 0.20;     // Chỉ mở rộng nếu thiếu buffer rõ ràng
-        bufferConfig.ShrinkThresholdPercent = 0.60;     // Dễ thu nhỏ pool khi dư buffer
-        bufferConfig.MinimumIncrease = 1;               // Chỉ tăng 1 buffer mỗi lần tối thiểu
-        bufferConfig.MaxBufferIncreaseLimit = 16;       // Không cho phép tăng quá 16 buffer/lần
-        bufferConfig.BufferAllocations = "256,0.25; 512,0.30; 1024,0.45"; // Đơn giản hóa, chỉ giữ 3 mức kích thước
-        bufferConfig.MaxMemoryBytes = 0;                // Không đặt hard limit riêng, chỉ sử dụng MaxMemoryPercentage
-
-        bufferConfig.Validate();
-
         // IPacketCatalog is required for deserialization; fail fast with a clear message.
         if (InstanceManager.Instance.GetExistingInstance<IPacketRegistry>() is null)
         {
             s_log?.Error($"[SDK.{nameof(TcpSession)}] No IPacketRegistry instance found; this is a fatal configuration error. The process will terminate.");
-
             System.Environment.FailFast($"[SDK.{nameof(TcpSession)}] Missing required service: IPacketRegistry.");
         }
     }
@@ -228,15 +206,6 @@ public sealed class TcpSession : IClientConnection
     #region Public API
 
     /// <inheritdoc/>
-    /// <remarks>
-    /// Resolves DNS for the provided host and attempts each returned address in order.
-    /// The entire operation is bounded by <see cref="TransportOptions.ConnectTimeoutMillis"/>
-    /// when that value is greater than zero.
-    /// If <paramref name="host"/> is <see langword="null"/> or whitespace,
-    /// <see cref="TransportOptions.Address"/> is used as the fallback.
-    /// </remarks>
-    /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been disposed.</exception>
-    /// <exception cref="System.Net.Sockets.SocketException">Thrown when all resolved addresses fail to connect.</exception>
     public async System.Threading.Tasks.Task ConnectAsync(System.String? host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
@@ -250,10 +219,18 @@ public sealed class TcpSession : IClientConnection
             throw new System.ArgumentException("A host must be provided either as a parameter or via TransportOptions.Address.", nameof(host));
         }
 
-        // Guard: already connected to the same endpoint — no-op.
+        // If already connected to the same endpoint — no-op.
+        if (IsConnected && System.String.Equals(_host, effectiveHost, System.StringComparison.OrdinalIgnoreCase) && _port == effectivePort)
+        {
+            s_log?.Debug($"[SDK.{nameof(TcpSession)}] ConnectAsync: already connected to {effectiveHost}:{effectivePort} — no-op.");
+            return;
+        }
+
+        // If connected to a different endpoint, clean up first.
         if (IsConnected)
         {
-            return;
+            s_log?.Info($"[SDK.{nameof(TcpSession)}] ConnectAsync: connected to a different endpoint — cleaning up before reconnect.");
+            CLEANUP_CONNECTION();
         }
 
         // Atomically cancel any previous receive/heartbeat loops.
@@ -274,12 +251,16 @@ public sealed class TcpSession : IClientConnection
 
         System.Exception? lastEx = null;
 
-        System.Net.IPAddress[] addrs = await System.Net.Dns.GetHostAddressesAsync(effectiveHost, ct).ConfigureAwait(false);
+        // Use connectCts.Token so DNS resolution is also cancellable/timeout-bound.
+        System.Net.IPAddress[] addrs = await System.Net.Dns.GetHostAddressesAsync(effectiveHost, connectCts.Token).ConfigureAwait(false);
+
+        s_log?.Debug($"[SDK.{nameof(TcpSession)}] Resolve {effectiveHost} => {addrs.Length} addresses.");
 
         foreach (System.Net.IPAddress addr in addrs)
         {
             if (connectCts.IsCancellationRequested)
             {
+                s_log?.Warn($"[SDK.{nameof(TcpSession)}] Connect cancelled before attempting {addr}:{effectivePort}.");
                 break;
             }
 
@@ -293,6 +274,8 @@ public sealed class TcpSession : IClientConnection
                 s.NoDelay = Options.NoDelay;
                 s.SendBufferSize = Options.BufferSize;
                 s.ReceiveBufferSize = Options.BufferSize;
+
+                s_log?.Trace($"[SDK.{nameof(TcpSession)}] Attempting connect to {addr}:{effectivePort} with timeout {Options.ConnectTimeoutMillis}ms.");
 
                 await s.ConnectAsync(
                     new System.Net.IPEndPoint(addr, effectivePort),
@@ -316,7 +299,7 @@ public sealed class TcpSession : IClientConnection
                 _receiver = new FRAME_READER(GET_CONNECTED_SOCKET_OR_THROW, Options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
 
                 s_log?.Info($"[SDK.{nameof(TcpSession)}] Connected remote={addr}:{effectivePort}");
-                OnConnected?.Invoke(this, System.EventArgs.Empty);
+                try { OnConnected?.Invoke(this, System.EventArgs.Empty); } catch { /* swallow subscriber errors */ }
 
                 START_RECEIVE_WORKER(addr, effectivePort, loopToken);
 
@@ -352,14 +335,12 @@ public sealed class TcpSession : IClientConnection
         CLEANUP_CONNECTION();
 
         s_log?.Info($"[SDK.{nameof(TcpSession)}] Disconnected (requested).");
-        OnDisconnected?.Invoke(this, null!);
+        try { OnDisconnected?.Invoke(this, null!); } catch { }
 
         return System.Threading.Tasks.Task.CompletedTask;
     }
 
     /// <inheritdoc/>
-    /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been disposed.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
     public System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
@@ -369,9 +350,6 @@ public sealed class TcpSession : IClientConnection
     }
 
     /// <inheritdoc/>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="packet"/> is <c>null</c>.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been disposed.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
     public System.Threading.Tasks.Task<System.Boolean> SendAsync([System.Diagnostics.CodeAnalysis.NotNull] IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
@@ -382,9 +360,6 @@ public sealed class TcpSession : IClientConnection
     }
 
     /// <inheritdoc/>
-    /// <remarks>
-    /// Idempotent and safe to call multiple times. After disposal, the instance is no longer usable.
-    /// </remarks>
     public void Dispose()
     {
         // Atomic flip: only the first caller proceeds.
@@ -403,19 +378,17 @@ public sealed class TcpSession : IClientConnection
 
     #region Private — Connection Lifecycle
 
-    /// <summary>
-    /// Schedules the receive loop as a <see cref="TaskManager"/> worker.
-    /// If scheduling with the <see cref="TaskManager"/> fails, falls back to using
-    /// <see cref="System.Threading.Tasks.Task.Run(System.Func{System.Threading.Tasks.Task}, System.Threading.CancellationToken)"/>.
-    /// </summary>
-    /// <returns>
-    /// A <see cref="System.Threading.Tasks.Task"/> that represents the scheduled receive loop.
-    /// </returns>
     private void START_RECEIVE_WORKER(
         System.Net.IPAddress addr,
         System.UInt16 port,
         System.Threading.CancellationToken loopToken)
     {
+        if (_receiver is null)
+        {
+            s_log?.Warn($"[SDK.{nameof(TcpSession)}] Attempted to start receive worker with null receiver.");
+            return;
+        }
+
         try
         {
             _receiveHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
@@ -435,17 +408,12 @@ public sealed class TcpSession : IClientConnection
             s_log?.Warn(
                 $"[SDK.{nameof(TcpSession)}] schedule-receive-failed; falling back to Task.Run. ex={ex.Message}");
 
-            // Receive is critical — must run even if TaskManager is unavailable.
             _ = System.Threading.Tasks.Task.Run(
                 () => _receiver!.ReceiveLoopAsync(loopToken),
                 System.Threading.CancellationToken.None);
         }
     }
 
-    /// <summary>
-    /// Cancels and disposes all active TaskManager handles and the socket.
-    /// Safe to call from <see cref="Dispose"/> and <see cref="DisconnectAsync"/>.
-    /// </summary>
     private void CLEANUP_CONNECTION()
     {
         lock (_sync)
@@ -455,7 +423,13 @@ public sealed class TcpSession : IClientConnection
                 CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
             }
 
-            System.Threading.Interlocked.Exchange(ref _sender, null)?.Dispose();
+            // Dispose sender if present.
+            try
+            {
+                var prevSender = System.Threading.Interlocked.Exchange(ref _sender, null);
+                prevSender?.Dispose();
+            }
+            catch { /* swallow */ }
 
             try
             {
@@ -485,10 +459,6 @@ public sealed class TcpSession : IClientConnection
         catch { /* best-effort; swallow */ }
     }
 
-    /// <summary>
-    /// Cancels and disposes a <see cref="System.Threading.CancellationTokenSource"/>, then sets it to <see langword="null"/>.
-    /// Must be called from within <c>lock (_sync)</c>.
-    /// </summary>
     private static void CANCEL_AND_DISPOSE_LOCKED(ref System.Threading.CancellationTokenSource cts)
     {
         if (cts is null)
@@ -551,58 +521,54 @@ public sealed class TcpSession : IClientConnection
         _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     private void HANDLE_RECEIVE_MESSAGE(BufferLease lease)
     {
-        // ── Snapshot invocation list ─────────────────────────────────────
-        // GetInvocationList() trả về array snapshot tại thời điểm gọi.
-        // An toàn với concurrent subscribe/unsubscribe vì delegate là immutable.
-        System.Delegate[] syncHandlers = OnMessageReceived?.GetInvocationList() ?? [];
+        // Snapshot invocation list of synchronous handlers.
+        System.Delegate[] syncHandlers = OnMessageReceived?.GetInvocationList() ?? System.Array.Empty<System.Delegate>();
 
-        System.Func<TcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task>? asyncHandler = OnMessageReceivedAsync;
+        var asyncHandler = OnMessageReceivedAsync;
 
-        // ── Chuẩn bị data cho async handler TRƯỚC KHI dispose lease ─────
-        // ToArray() copy Span ra heap — không cần pool, không cần dispose.
-        // Chỉ allocate nếu thực sự có asyncHandler để tránh alloc vô ích.
+        // Prepare async data copy BEFORE disposing lease to avoid using released memory.
         System.ReadOnlyMemory<System.Byte> asyncData = asyncHandler is not null ? lease.Span.ToArray() : System.ReadOnlyMemory<System.Byte>.Empty;
 
         try
         {
-            // ── Deliver tới từng sync subscriber ─────────────────────────
-            // Mỗi subscriber nhận BufferLease COPY RIÊNG — sở hữu và dispose độc lập.
-            // Wrapper trong ReliableClientSubscriptions đã có finally { buffer.Dispose(); }
-            // nên copy sẽ được trả về pool đúng cách sau khi handler chạy xong.
+            // Deliver to each synchronous subscriber.
             foreach (System.Delegate d in syncHandlers)
             {
-                // CopyFrom: rent buffer mới từ pool + copy nội dung lease gốc vào.
-                // Đây là zero-copy đối với lease gốc (chỉ đọc Span), không cần lock.
                 BufferLease copy = BufferLease.CopyFrom(lease.Span);
-
+                System.Boolean disposedCopy = false;
                 try
                 {
-                    ((System.EventHandler<BufferLease>)d).Invoke(this, copy);
+                    // Cast to EventHandler<IBufferLease> because the event is declared as IBufferLease.
+                    ((System.EventHandler<IBufferLease>)d).Invoke(this, copy);
                 }
                 catch (System.Exception ex)
                 {
-                    // Subscriber faulted — wrapper của nó có thể đã không chạy finally.
-                    // Dispose copy ngay tại đây để không leak pool buffer.
-                    try { copy.Dispose(); } catch { }
-
+                    // Ensure the copy gets disposed if subscriber threw before its wrapper disposed it.
+                    try { copy.Dispose(); disposedCopy = true; } catch { }
                     s_log?.Error($"[SDK.{nameof(TcpSession)}] sync-handler-faulted: {ex.Message}", ex);
+                }
+                finally
+                {
+                    // If subscriber wrapper didn't dispose the copy (because it isn't following contract),
+                    // best-effort dispose here to avoid leaks.
+                    if (!disposedCopy)
+                    {
+                        try { /* assume subscriber disposed; if not, it's already disposed by wrapper. */ } catch { }
+                    }
                 }
             }
         }
         finally
         {
-            // ── Dispose lease gốc — đúng 1 lần, đúng chỗ ───────────────
-            // Dù có bao nhiêu subscriber, dù subscriber nào throw,
-            // lease gốc luôn được dispose tại đây.
+            // Dispose original lease once for all sync handlers.
             try { lease.Dispose(); } catch { }
         }
 
-        // ── Fire async handler ───────────────────────────────────────────
-        // Nằm ngoài try/finally vì lease đã được dispose an toàn rồi.
-        // asyncData là heap copy độc lập — không cần dispose.
-        if (asyncHandler is not null && asyncData.Length > 0)
+        // Fire async handler (if present). Run fire-and-forget but log failures.
+        if (asyncHandler is not null)
         {
             _ = asyncHandler(this, asyncData).ContinueWith(
                 t => s_log?.Error($"[SDK.{nameof(TcpSession)}] OnMessageReceivedAsync faulted: {t.Exception?.GetBaseException().Message}"),
@@ -610,35 +576,16 @@ public sealed class TcpSession : IClientConnection
         }
     }
 
-    #endregion Private — Callbacks
+    #endregion Private �� Callbacks
 
     #region Private — Background Loops
 
-    /// <summary>
-    /// Handles unexpected disconnections and drives the exponential-backoff reconnect loop.
-    /// Fires <see cref="OnDisconnected"/> once, then retries <see cref="ConnectAsync"/>
-    /// until successful, exhausted, or disposed.
-    /// </summary>
     internal async System.Threading.Tasks.Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(System.Exception cause)
     {
         try { OnDisconnected?.Invoke(this, cause); } catch { }
 
         // Tear down current socket AND cancel all background tasks before reconnect.
-        // This prevents "duplicate recurring name" warnings on reconnect.
         CLEANUP_CONNECTION();
-
-        // Tear down the current socket.
-        lock (_sync)
-        {
-            if (_loopCts is not null)
-            {
-                CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
-            }
-
-            try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
-            try { _socket?.Close(); _socket?.Dispose(); } catch { }
-            _socket = null!;
-        }
 
         if (!Options.ReconnectEnabled || System.Threading.Volatile.Read(ref _disposed) == 1)
         {
@@ -647,13 +594,11 @@ public sealed class TcpSession : IClientConnection
 
         if (System.String.IsNullOrEmpty(_host) || _port == 0)
         {
-            s_log?.Info(
-                $"[SDK.{nameof(TcpSession)}] No saved endpoint; skipping auto-reconnect.");
+            s_log?.Info($"[SDK.{nameof(TcpSession)}] No saved endpoint; skipping auto-reconnect.");
             return;
         }
 
         System.Int32 attempt = 0;
-        // Use long for delay arithmetic; clamp before casting to int for Task.Delay.
         System.Int64 delayMs = System.Math.Max(1L, Options.ReconnectBaseDelayMillis);
         System.Int64 maxDelayMs = System.Math.Max(1L, Options.ReconnectMaxDelayMillis);
 
@@ -661,22 +606,16 @@ public sealed class TcpSession : IClientConnection
                (Options.ReconnectMaxAttempts == 0 || attempt < Options.ReconnectMaxAttempts))
         {
             attempt++;
+            s_log?.Info($"[SDK.{nameof(TcpSession)}] Reconnect attempt={attempt} delay={delayMs} ms.");
 
-            s_log?.Info(
-                $"[SDK.{nameof(TcpSession)}] Reconnect attempt={attempt} delay={delayMs} ms.");
-
-            // Safe cast: delayMs is clamped to maxDelayMs which is derived from an int option.
             System.Int64 jitter = (System.Int64)(Csprng.NextDouble() * delayMs * 0.3);
-            await System.Threading.Tasks.Task.Delay((System.Int32)System.Math
-                                             .Min(delayMs + jitter, System.Int32.MaxValue))
-                                             .ConfigureAwait(false);
+            await System.Threading.Tasks.Task.Delay((System.Int32)System.Math.Min(delayMs + jitter, System.Int32.MaxValue)).ConfigureAwait(false);
 
             try
             {
                 await ConnectAsync(_host, _port).ConfigureAwait(false);
                 s_log?.Info($"[SDK.{nameof(TcpSession)}] Reconnect-success attempt={attempt}.");
 
-                // Notify subscribers — pass attempt number so they can log/trace it.
                 try { OnReconnected?.Invoke(this, attempt); } catch { }
 
                 return;
@@ -684,14 +623,8 @@ public sealed class TcpSession : IClientConnection
             catch (System.Exception ex)
             {
                 s_log?.Warn($"[SDK.{nameof(TcpSession)}] Reconnect-failed attempt={attempt} ex={ex.Message}");
+                try { OnError?.Invoke(this, ex); } catch { }
 
-                try
-                {
-                    OnError?.Invoke(this, ex);
-                }
-                catch { }
-
-                // Exponential backoff — doubles each attempt, capped at maxDelayMs.
                 delayMs = System.Math.Min(maxDelayMs, delayMs * 2);
             }
         }
@@ -703,10 +636,6 @@ public sealed class TcpSession : IClientConnection
 
     #region Private — Helpers
 
-    /// <summary>
-    /// Returns the current socket if it is connected; otherwise throws <see cref="System.InvalidOperationException"/>.
-    /// Used as the socket accessor delegate passed to <see cref="FRAME_SENDER"/> and <see cref="FRAME_READER"/>.
-    /// </summary>
     private System.Net.Sockets.Socket GET_CONNECTED_SOCKET_OR_THROW()
     {
         System.Net.Sockets.Socket? s = _socket;

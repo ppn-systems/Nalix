@@ -13,6 +13,10 @@ using Nalix.Network.Routing;
 using Nalix.Network.Routing.Metadata;
 using Nalix.Shared.Registry;
 
+InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
+IPacketRegistry packetRegistry = new PacketRegistryFactory().CreateCatalog();
+InstanceManager.Instance.Register(packetRegistry);
+
 // Setup configuration and dependency injection
 NetworkSocketOptions listenerOptions = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 listenerOptions.Port = 12345; // Set listening port
@@ -22,12 +26,6 @@ listenerOptions.Port = 12345; // Set listening port
 // Windwow: C:\ProgramData\Nalix\config\default.ini
 // Linux: If XDG_DATA_HOME is not set → use ~/.local/share → for example /home/<Username>/.local/share/Nalix
 // Container (Docker/Kubernetes): /data
-
-
-IPacketRegistry packetRegistry = new PacketRegistryFactory().CreateCatalog();
-InstanceManager.Instance.Register(packetRegistry);
-InstanceManager.Instance.Register(NLogix.Host.Instance);
-
 
 // register the custom metadata provider to enable processing of PacketCustomAttribute on handler methods
 PacketMetadataProviders.Register(new PacketCustomAttributeProvider());
@@ -63,4 +61,5 @@ AutoXListener xListener = new(xProtocol);
 // Start listening for incoming connections
 xListener.Activate();
 
+Console.WriteLine(xListener.GenerateReport());
 Console.ReadLine();

@@ -43,7 +43,7 @@ internal static class Program
         keyThread.Start();
 
         Console.WriteLine("Starting Custom TCP Listener...");
-        const UInt16 port = 8080;
+        const UInt16 port = 57206;
 
         var protocol = new EchoProtocol();
         var listener = new CustomTcpListener(port, protocol);

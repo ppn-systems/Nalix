@@ -288,7 +288,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[SDK.{nameof(FRAME_SENDER)}:{nameof(SEND_FRAME_ASYNC)}] send-error: {ex.Message}", ex);
+                                    .Error($"[SDK.{nameof(FRAME_SENDER)}:{nameof(SEND_FRAME_ASYNC)}] send-error: {ex.Message}", ex);
 
             tcs.TrySetResult(false);
             _onError(ex);
