@@ -10,10 +10,10 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>11.6.1</Version>
-		<FileVersion>11.6.1.0</FileVersion>
-		<PackageVersion>11.6.1</PackageVersion>
-		<InformationalVersion>11.6.1+$(SourceRevisionId)</InformationalVersion>
+		<Version>11.7.0</Version>
+		<FileVersion>11.7.0.0</FileVersion>
+		<PackageVersion>11.7.0</PackageVersion>
+		<InformationalVersion>11.7.0+$(SourceRevisionId)</InformationalVersion>
 
 		<Description>
 Nalix.Common defines the fundamental abstractions, enums, and shared contracts
