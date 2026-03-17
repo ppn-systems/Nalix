@@ -138,116 +138,6 @@ public ref struct ChaCha20
     #region Encryption Methods
 
     /// <summary>
-    /// Encrypts <paramref name="numBytes"/> bytes from <paramref name="input"/> into the
-    /// preallocated <paramref name="output"/> buffer.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void EncryptBytes(
-        System.Byte[] output,
-        System.Byte[] input,
-        System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-    {
-        ThrowIfCleared();
-        System.ArgumentNullException.ThrowIfNull(output);
-        System.ArgumentNullException.ThrowIfNull(input);
-
-        if (numBytes < 0 || numBytes > input.Length)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(numBytes), "The number of bytes to read must be between [0..input.Length]");
-        }
-
-        if (output.Length < numBytes)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(output), $"Output byte array should be able to take at least {numBytes}");
-        }
-
-        if (simdMode is SimdMode.AUTO_DETECT)
-        {
-            simdMode = DetectSimdMode();
-        }
-
-        EncryptBytesInternal(output, input, numBytes, simdMode);
-    }
-
-    /// <summary>
-    /// Encrypts all bytes from <paramref name="input"/> into the preallocated
-    /// <paramref name="output"/> buffer.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void EncryptBytes(
-        System.Byte[] output,
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-    {
-        ThrowIfCleared();
-        System.ArgumentNullException.ThrowIfNull(output);
-        System.ArgumentNullException.ThrowIfNull(input);
-
-        if (simdMode is SimdMode.AUTO_DETECT)
-        {
-            simdMode = DetectSimdMode();
-        }
-
-        EncryptBytesInternal(output, input, input.Length, simdMode);
-    }
-
-    /// <summary>
-    /// Encrypts <paramref name="numBytes"/> bytes from <paramref name="input"/> and returns a
-    /// newly allocated byte array containing the ciphertext.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Byte[] EncryptBytes(
-        System.Byte[] input,
-        System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-    {
-        ThrowIfCleared();
-        System.ArgumentNullException.ThrowIfNull(input);
-
-        if (numBytes < 0 || numBytes > input.Length)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(numBytes), "The number of bytes to read must be between [0..input.Length]");
-        }
-
-        if (simdMode is SimdMode.AUTO_DETECT)
-        {
-            simdMode = DetectSimdMode();
-        }
-
-        System.Byte[] result = new System.Byte[numBytes];
-        EncryptBytesInternal(result, input, numBytes, simdMode);
-        return result;
-    }
-
-    /// <summary>
-    /// Encrypts all bytes from <paramref name="input"/> and returns a newly allocated byte array.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Byte[] EncryptBytes(
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-    {
-        ThrowIfCleared();
-        System.ArgumentNullException.ThrowIfNull(input);
-
-        if (simdMode is SimdMode.AUTO_DETECT)
-        {
-            simdMode = DetectSimdMode();
-        }
-
-        System.Byte[] result = new System.Byte[input.Length];
-        EncryptBytesInternal(result, input, input.Length, simdMode);
-        return result;
-    }
-
-    /// <summary>
     /// Encrypts <paramref name="src"/> into <paramref name="dst"/>.
     /// Returns number of bytes written.
     /// </summary>
@@ -273,151 +163,16 @@ public ref struct ChaCha20
     #region Decryption Methods
 
     /// <summary>
-    /// Decrypts <paramref name="numBytes"/> bytes from <paramref name="input"/> into
-    /// <paramref name="output"/>.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void DecryptBytes(
-        System.Byte[] output,
-        System.Byte[] input,
-        System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-        => EncryptBytes(output, input, numBytes, simdMode);
-
-    /// <summary>
-    /// Decrypts all bytes from <paramref name="input"/> into <paramref name="output"/>.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void DecryptBytes(
-        System.Byte[] output,
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-        => EncryptBytes(output, input, simdMode);
-
-    /// <summary>
-    /// Decrypts <paramref name="numBytes"/> bytes and returns a newly allocated byte array.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Byte[] DecryptBytes(
-        System.Byte[] input,
-        System.Int32 numBytes,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-        => EncryptBytes(input, numBytes, simdMode);
-
-    /// <summary>
-    /// Decrypts all bytes from <paramref name="input"/> and returns a newly allocated byte array.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Byte[] DecryptBytes(
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-        => EncryptBytes(input, simdMode);
-
-    /// <summary>
     /// Decrypts <paramref name="src"/> into <paramref name="dst"/>.
     /// Identical to <see cref="Encrypt(System.ReadOnlySpan{System.Byte}, System.Span{System.Byte})"/>.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Int32 Decrypt(
-        System.ReadOnlySpan<System.Byte> src,
-        System.Span<System.Byte> dst)
-        => Encrypt(src, dst);
+    public System.Int32 Decrypt(System.ReadOnlySpan<System.Byte> src, System.Span<System.Byte> dst) => Encrypt(src, dst);
 
     #endregion Decryption Methods
 
-    #region In-Place Methods
-
-    /// <summary>
-    /// In-place encryption/decryption (XOR with keystream) of <paramref name="buffer"/>.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void EncryptInPlace(System.Span<System.Byte> buffer)
-    {
-        System.Span<System.UInt32> stateSpan = _state;
-        System.Span<System.UInt32> workingSpan = _working;
-        System.Span<System.Byte> keystreamSpan = _keystream;
-
-        System.Int32 offset = 0;
-        System.Int32 remaining = buffer.Length;
-
-        while (remaining >= BlockSize)
-        {
-            GenerateBlock(stateSpan, workingSpan, keystreamSpan);
-            for (System.Int32 i = 0; i < BlockSize; i++)
-            {
-                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ keystreamSpan[i]);
-            }
-
-            offset += BlockSize;
-            remaining -= BlockSize;
-        }
-
-        if (remaining > 0)
-        {
-            GenerateBlock(stateSpan, workingSpan, keystreamSpan);
-            for (System.Int32 i = 0; i < remaining; i++)
-            {
-                buffer[offset + i] = (System.Byte)(buffer[offset + i] ^ keystreamSpan[i]);
-            }
-        }
-    }
-
-    /// <summary>
-    /// In-place decryption (identical to <see cref="EncryptInPlace"/>).
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void DecryptInPlace(System.Span<System.Byte> buffer) => EncryptInPlace(buffer);
-
-    #endregion In-Place Methods
-
-    #region Static One-Shot API
-
-    /// <summary>
-    /// One-shot static API: encrypts (or decrypts) <paramref name="input"/> using ChaCha20.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Encrypt(
-        System.Byte[] key,
-        System.Byte[] nonce,
-        System.UInt32 counter,
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-    {
-        ChaCha20 chacha = new(key, nonce, counter);
-        try { return chacha.EncryptBytes(input, simdMode); }
-        finally { chacha.Clear(); }
-    }
-
-    /// <summary>
-    /// One-shot static API: decrypts <paramref name="input"/> using ChaCha20.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Decrypt(
-        System.Byte[] key,
-        System.Byte[] nonce,
-        System.UInt32 counter,
-        System.Byte[] input,
-        SimdMode simdMode = SimdMode.AUTO_DETECT)
-    {
-        ChaCha20 chacha = new(key, nonce, counter);
-        try { return chacha.DecryptBytes(input, simdMode); }
-        finally { chacha.Clear(); }
-    }
-
-    #endregion Static One-Shot API
+    #region Public — Reset
 
     /// <summary>
     /// Securely zeroes all sensitive key material and internal state.
@@ -433,6 +188,8 @@ public ref struct ChaCha20
             _cleared = true;
         }
     }
+
+    #endregion Public — Reset
 
     #region Private — Guard
 

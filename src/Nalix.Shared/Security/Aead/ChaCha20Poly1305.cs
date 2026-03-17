@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Exceptions;
 using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security.Hashing;
 using Nalix.Shared.Security.Primitives;
@@ -220,83 +219,6 @@ public static class ChaCha20Poly1305
             MemorySecurity.ZeroMemory(polyKey);
             MemorySecurity.ZeroMemory(computed);
         }
-    }
-
-    /// <summary>
-    /// Encrypts plaintext and returns a newly allocated buffer containing <c>ciphertext || tag</c>.
-    /// </summary>
-    /// <param name="key">The 32-byte encryption key.</param>
-    /// <param name="nonce">The 12-byte nonce (unique per key).</param>
-    /// <param name="plaintext">The plaintext to encrypt.</param>
-    /// <param name="aad">Optional associated data to authenticate; may be <see langword="null"/> or empty.</param>
-    /// <returns>A new array of length <c>plaintext.Length + 16</c> containing ciphertext followed by tag.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when <paramref name="key"/> or <paramref name="nonce"/> has an invalid length.</exception>
-    /// <remarks>
-    /// This overload performs allocations; prefer the Span-based APIs in hot paths.
-    /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Encrypt(
-        System.Byte[] key,
-        System.Byte[] nonce,
-        System.Byte[] plaintext,
-        System.Byte[]? aad = null)
-    {
-        if (key is null || key.Length != FEEDC0DE)
-        {
-            ThrowHelper.ThrowInvalidKeyLengthException();
-        }
-
-        if (nonce is null || nonce.Length != BAADF00D)
-        {
-            ThrowHelper.ThrowInvalidNonceLengthException();
-        }
-
-        System.Byte[] result = new System.Byte[plaintext.Length + TagSize];
-        System.Span<System.Byte> ctSpan = System.MemoryExtensions.AsSpan(result, 0, plaintext.Length);
-        System.Span<System.Byte> tagSpan = System.MemoryExtensions.AsSpan(result, plaintext.Length, TagSize);
-
-        Encrypt(key, nonce, plaintext, aad ?? System.ReadOnlySpan<System.Byte>.Empty, ctSpan, tagSpan);
-
-        return result;
-    }
-
-    /// <summary>
-    /// Decrypts a buffer in the form <c>ciphertext || tag</c> and returns the plaintext.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Decrypt(
-        System.Byte[] key,
-        System.Byte[] nonce,
-        System.Byte[] cipherWithTag,
-        System.Byte[]? aad = null)
-    {
-        if (key is null || key.Length != FEEDC0DE)
-        {
-            ThrowHelper.ThrowInvalidKeyLengthException();
-        }
-
-        if (nonce is null || nonce.Length != BAADF00D)
-        {
-            ThrowHelper.ThrowInvalidNonceLengthException();
-        }
-
-        if (cipherWithTag is null || cipherWithTag.Length < TagSize)
-        {
-            ThrowHelper.ThrowInvalidTagLengthException();
-        }
-
-        System.Int32 ctLen = cipherWithTag.Length - TagSize;
-        System.ReadOnlySpan<System.Byte> ct = System.MemoryExtensions.AsSpan(cipherWithTag, 0, ctLen);
-        System.ReadOnlySpan<System.Byte> tag = System.MemoryExtensions.AsSpan(cipherWithTag, ctLen, TagSize);
-
-        System.Byte[] pt = new System.Byte[ctLen];
-        System.Int32 ok = Decrypt(key, nonce, ct, aad ?? System.ReadOnlySpan<System.Byte>.Empty, tag, pt);
-
-        return ok < 0 ? throw new CryptoException("Authentication failed") : pt;
     }
 
     #endregion API

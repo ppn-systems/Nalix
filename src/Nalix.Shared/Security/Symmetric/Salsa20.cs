@@ -21,34 +21,6 @@ public static class Salsa20
     #region Encryption/Decryption Methods
 
     /// <summary>
-    /// Encrypts plaintext using the Salsa20 stream cipher.
-    /// </summary>
-    /// <param name="key">A 16-byte (128-bit) or 32-byte (256-bit) key.</param>
-    /// <param name="nonce">An 8-byte (64-bit) nonce. For 24-byte nonces, use XSalsa20.</param>
-    /// <param name="counter">Initial 64-bit block counter value, typically 0.</param>
-    /// <param name="plaintext">The data to encrypt.</param>
-    /// <returns>A newly allocated byte array containing the encrypted data.</returns>
-    /// <exception cref="System.ArgumentException">
-    /// Thrown when <paramref name="key"/> is not 16 or 32 bytes,
-    /// or <paramref name="nonce"/> is not 8 bytes.
-    /// </exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext)
-    {
-        ValidateKeyAndNonce(key, nonce);
-
-        System.Byte[] ciphertext = new System.Byte[plaintext.Length];
-        ProcessData(key, nonce, counter, plaintext, ciphertext);
-        return ciphertext;
-    }
-
-    /// <summary>
     /// Encrypts plaintext using the Salsa20 stream cipher, writing the result to a provided buffer.
     /// </summary>
     /// <param name="key">A 16-byte (128-bit) or 32-byte (256-bit) key.</param>
@@ -76,25 +48,6 @@ public static class Salsa20
         ProcessData(key, nonce, counter, plaintext, ciphertext);
         return plaintext.Length;
     }
-
-    /// <summary>
-    /// Decrypts ciphertext using the Salsa20 stream cipher.
-    /// Salsa20 decryption is identical to encryption (symmetric XOR).
-    /// </summary>
-    /// <param name="key">A 16-byte (128-bit) or 32-byte (256-bit) key.</param>
-    /// <param name="nonce">An 8-byte (64-bit) nonce; must match the value used during encryption.</param>
-    /// <param name="counter">Initial 64-bit block counter; must match the value used during encryption.</param>
-    /// <param name="ciphertext">The data to decrypt.</param>
-    /// <returns>A newly allocated byte array containing the decrypted data.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext)
-        => Encrypt(key, nonce, counter, ciphertext);
 
     /// <summary>
     /// Decrypts ciphertext using the Salsa20 stream cipher, writing the result to a provided buffer.
