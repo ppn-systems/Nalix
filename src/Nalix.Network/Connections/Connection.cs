@@ -25,7 +25,7 @@ public sealed partial class Connection : IConnection
 
     private readonly System.Threading.Lock _lock;
     private readonly ConnectionEventArgs _evtArgs;
-    private readonly FramedSocketChannel _cstream;
+    private readonly FramedSocketConnection _cstream;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
@@ -59,7 +59,7 @@ public sealed partial class Connection : IConnection
         _disposed = false;
 
         _evtArgs = new ConnectionEventArgs(this);
-        _cstream = new FramedSocketChannel(socket);
+        _cstream = new FramedSocketConnection(socket);
         _cstream.Cache.SetCallback(OnProcessEventBridge, this, _evtArgs);
         _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
 
@@ -195,7 +195,7 @@ public sealed partial class Connection : IConnection
         _cstream.Cache.PushIncoming(BufferLease.CopyFrom(bytes));
 
 #if DEBUG
-        s_logger.Debug($"[NW.{nameof(FramedSocketChannel)}:{InjectIncoming}] inject-bytes len={bytes.Length}");
+        s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{InjectIncoming}] inject-bytes len={bytes.Length}");
 #endif
     }
 
