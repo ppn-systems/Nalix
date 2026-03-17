@@ -99,6 +99,7 @@ public sealed class TimingWheel : IActivatable
 
     private System.Int64 _tick;
     private System.Int32 _disposed;
+    private IWorkerHandle _worker;
     private System.Threading.CancellationTokenSource _cts;
 
     #endregion Fields
@@ -192,7 +193,7 @@ public sealed class TimingWheel : IActivatable
 
         _cts = linkedCts;
 
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+        _worker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: $"{NetTaskNames.Time}.{NetTaskNames.Wheel}",
             group: NetTaskNames.Time,
             work: async (ctx, ct) => await RUN_LOOP(ctx, ct).ConfigureAwait(false),
@@ -221,6 +222,15 @@ public sealed class TimingWheel : IActivatable
         if (cts is null)
         {
             return;
+        }
+
+        if (_worker != null)
+        {
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                    .CancelWorker(_worker.Id);
+
+            _worker.Dispose();
+            _worker = null;
         }
 
         try { cts.Cancel(); } catch { }
@@ -370,6 +380,7 @@ public sealed class TimingWheel : IActivatable
                     // future code path that might return a task to the pool prematurely.
                     if (task.Conn is null)
                     {
+                        s_poolManager.Return(task);
                         continue;
                     }
 

@@ -151,6 +151,7 @@ public abstract partial class TcpListenerBase : IListener, IReportable
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();
 
+        // Configure object pools for accept contexts and socket async event args based on the provided options.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledAcceptContext>(options.AcceptContextMaxCapacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -158,12 +159,13 @@ public abstract partial class TcpListenerBase : IListener, IReportable
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.ProcessContextMaxCapacity);
 
+        // Preallocate objects in the pools to improve performance and reduce latency during runtime.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.ProcessContextPreallocate);
+                                    .Prealloc<PooledSocketAsyncEventArgs>(options.ProcessContextPreallocate);
     }
 
     /// <summary>

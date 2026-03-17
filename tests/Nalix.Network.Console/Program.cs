@@ -4,6 +4,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Logging;
 using Nalix.Shared.Memory.Pooling;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -78,12 +79,31 @@ internal static class Program
 
         var instanceReport = InstanceManager.Instance.GenerateReport();
         var bufferReport = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>().GenerateReport();
-        //var objectPoolReport = InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>().GenerateReport();
-        //var taskReport = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().GenerateReport();
+        var objectPoolReport = InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>().GenerateReport();
+        var taskReport = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().GenerateReport();
 
-        logger.Info(instanceReport);
-        logger.Info(bufferReport);
-        //logger.Info(objectPoolReport);
-        //logger.Info(taskReport);
+        logger.Info(objectPoolReport);
+
+        PrintPoolOutstanding(InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>());
+
+        void PrintPoolOutstanding(ObjectPoolManager poolManager)
+        {
+            var stats = poolManager.GetDetailedStatistics();
+            if (stats.TryGetValue("Pools", out var poolsObj) &&
+                poolsObj is Dictionary<String, Dictionary<String, Object>> pools)
+            {
+                Console.WriteLine("Type                      | Outstanding | CacheHits | CacheMisses");
+                Console.WriteLine("---------------------------------------------------------------");
+                foreach (var kv in pools)
+                {
+                    var name = kv.Key.PadRight(24);
+                    var p = kv.Value;
+                    var outst = p.ContainsKey("Outstanding") ? p["Outstanding"] : 0;
+                    var hits = p.ContainsKey("CacheHits") ? p["CacheHits"] : 0;
+                    var misses = p.ContainsKey("CacheMisses") ? p["CacheMisses"] : 0;
+                    Console.WriteLine($"{name} | {outst,10} | {hits,8} | {misses,10}");
+                }
+            }
+        }
     }
 }

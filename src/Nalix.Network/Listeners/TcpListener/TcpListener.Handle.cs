@@ -320,63 +320,41 @@ public abstract partial class TcpListenerBase
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private async System.Threading.Tasks.Task AcceptConnectionsAsync(
-        [System.Diagnostics.CodeAnalysis.NotNull] IWorkerContext ctx,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
+    [System.Diagnostics.CodeAnalysis.NotNull] IWorkerContext ctx,
+    [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
     {
-        // Beat even when idle (no incoming connections).
         System.TimeSpan heartbeatInterval = System.TimeSpan.FromSeconds(2);
 
         while (!cancellationToken.IsCancellationRequested)
         {
+            ctx.Beat();
+
+#if DEBUG
+            s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] waiting-accept port={_port}");
+#endif
+
+            IConnection connection;
             try
             {
-                ctx.Beat();
-
-                System.Threading.Tasks.Task<IConnection> acceptTask = this.CreateConnectionAsync(cancellationToken).AsTask();
-                System.Threading.Tasks.Task delayTask = System.Threading.Tasks.Task.Delay(heartbeatInterval, cancellationToken);
-                System.Threading.Tasks.Task completed = await System.Threading.Tasks.Task.WhenAny(acceptTask, delayTask).ConfigureAwait(false);
-
-                if (completed != acceptTask)
-                {
-                    // No connection yet; loop again to update Beat.
-                    continue;
-                }
-
-                IConnection connection = await acceptTask.ConfigureAwait(false);
-
-                PooledProcessContext pctx = s_pool.Get<PooledProcessContext>();
-
-                pctx.Listener = this;
-                pctx.Connection = connection;
-
-                System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
-                {
-                    PooledProcessContext c = state!;
-                    try
-                    {
-                        c.Listener!.ProcessConnection(c.Connection!);
-                    }
-                    finally
-                    {
-                        s_pool.Return<PooledProcessContext>(c);
-                    }
-                }, pctx, preferLocal: true);
-
-                ctx.Advance(1, note: "accepted");
-
-                continue;
+                connection = await this.CreateConnectionAsync(cancellationToken)
+                                       .ConfigureAwait(false);
+            }
+            catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+#if DEBUG
+                s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] shutdown-requested port={_port}");
+#endif
+                break;
             }
             catch (InternalErrorException)
             {
+                // Rate-limited / rejected connection — tiếp tục
                 await System.Threading.Tasks.Task.Delay(10, System.Threading.CancellationToken.None)
                                                  .ConfigureAwait(false);
                 continue;
             }
-            catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break; // Exit loop on cancellation
-            }
-            catch (System.Net.Sockets.SocketException ex) when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
+            catch (System.Net.Sockets.SocketException ex)
+                when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
             {
                 if (cancellationToken.IsCancellationRequested || State != ListenerState.RUNNING)
                 {
@@ -384,8 +362,10 @@ public abstract partial class TcpListenerBase
                 }
 
                 _metrics.RECORD_ERROR();
+#if DEBUG
+                s_logger.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] transient-socket-error={ex.SocketErrorCode} port={_port}");
+#endif
 
-                // Transient: Gentle backoff to avoid spam
                 await System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
                                                  .ConfigureAwait(false);
                 continue;
@@ -395,11 +375,32 @@ public abstract partial class TcpListenerBase
                 _metrics.RECORD_ERROR();
                 s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accept-error port={_port}", ex);
 
-                // Brief delay to prevent CPU spinning on repeated errors
                 await System.Threading.Tasks.Task.Delay(50, cancellationToken)
                                                  .ConfigureAwait(false);
+                continue;
             }
+
+#if DEBUG
+            s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accepted remote={connection.EndPoint} port={_port}");
+#endif
+
+            PooledProcessContext pctx = s_pool.Get<PooledProcessContext>();
+            pctx.Listener = this;
+            pctx.Connection = connection;
+
+            System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static state =>
+            {
+                PooledProcessContext c = state!;
+                try { c.Listener!.ProcessConnection(c.Connection!); }
+                finally { s_pool.Return<PooledProcessContext>(c); }
+            }, pctx, preferLocal: true);
+
+            ctx.Advance(1, note: "accepted");
         }
+
+#if DEBUG
+        s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] loop-exited port={_port}");
+#endif
     }
 
     [System.Diagnostics.DebuggerStepThrough]
