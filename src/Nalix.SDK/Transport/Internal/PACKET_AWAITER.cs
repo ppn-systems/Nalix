@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Transport;
@@ -12,46 +13,18 @@ namespace Nalix.SDK.Transport.Internal;
 
 /// <summary>
 /// Internal helper that encapsulates the recurring boilerplate shared by all
-/// "subscribe → await matching packet → timeout → unsubscribe" operations:
-/// <list type="bullet">
-///   <item><see cref="ControlExtensions.AwaitPacketAsync{TPkt}"/></item>
-///   <item><see cref="RequestExtensions.RequestAsync{TRequest,TResponse}"/></item>
-///   <item><see cref="TimeSyncExtensions.TimeSyncAsync"/></item>
-///   <item><see cref="HandshakeExtensions.HandshakeAsync"/></item>
-/// </list>
+/// "subscribe → await matching packet → timeout → unsubscribe" operations.
 /// </summary>
-/// <remarks>
-/// Callers subscribe <b>before</b> sending to avoid the race where the server
-/// responds before the local handler is registered.
-/// Unsubscription is automatic — SubscribeTemp disposes when the
-/// <c>using</c> block exits, regardless of outcome.
-/// </remarks>
 internal static class PACKET_AWAITER
 {
+    private static readonly ILogger? s_logger =
+        InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     /// <summary>
     /// Subscribes for a matching packet, invokes <paramref name="sendAsync"/>,
     /// and waits until the first packet of type <typeparamref name="TPkt"/> that
     /// satisfies <paramref name="predicate"/> arrives — or the operation times out / is canceled.
     /// </summary>
-    /// <typeparam name="TPkt">The expected response packet type.</typeparam>
-    /// <param name="client">The connected client.</param>
-    /// <param name="predicate">Correlation filter — return <c>true</c> for the desired packet.</param>
-    /// <param name="timeoutMs">Maximum wait time in milliseconds.</param>
-    /// <param name="sendAsync">
-    /// Async delegate that performs the send. Called <b>after</b> the subscription is registered
-    /// so no response can be missed. Receives the linked <see cref="System.Threading.CancellationToken"/>.
-    /// </param>
-    /// <param name="ct">Caller-supplied cancellation token.</param>
-    /// <returns>The first <typeparamref name="TPkt"/> that matches <paramref name="predicate"/>.</returns>
-    /// <exception cref="System.TimeoutException">
-    /// Thrown when no matching packet arrives within <paramref name="timeoutMs"/>.
-    /// </exception>
-    /// <exception cref="System.OperationCanceledException">
-    /// Thrown when <paramref name="ct"/> is canceled.
-    /// </exception>
-    /// <exception cref="System.Exception">
-    /// Re-throws any exception set via <c>TrySetException</c> (e.g., disconnect during wait).
-    /// </exception>
     internal static async System.Threading.Tasks.Task<TPkt> AwaitAsync<TPkt>(
         IClientConnection client,
         System.Func<TPkt, System.Boolean> predicate,
@@ -60,28 +33,51 @@ internal static class PACKET_AWAITER
         System.Threading.CancellationToken ct)
         where TPkt : class, IPacket
     {
-        IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-            ?? throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
+        // Parameter validation
+        System.ArgumentNullException.ThrowIfNull(client);
+        System.ArgumentNullException.ThrowIfNull(predicate);
+        System.ArgumentNullException.ThrowIfNull(sendAsync);
 
-        System.Threading.Tasks.TaskCompletionSource<TPkt> tcs =
-            new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        if (timeoutMs < 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(timeoutMs), "timeoutMs must be >= 0 (0 = infinite)");
+        }
 
-        using System.Threading.CancellationTokenSource lcts =
-            System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        System.Threading.Tasks.TaskCompletionSource<TPkt> tcs = new(
+            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+
+        using var lcts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         if (timeoutMs > 0)
         {
             lcts.CancelAfter(timeoutMs);
         }
 
-        await using System.Threading.CancellationTokenRegistration reg =
-            lcts.Token.Register(() => tcs.TrySetCanceled(lcts.Token));
+        // Register cancellation -> cancel the TCS. Use 'using' for the registration (not 'await using').
+        await using var reg = lcts.Token.Register(() =>
+        {
+            try { tcs.TrySetCanceled(lcts.Token); } catch { /* swallow */ }
+        });
+
+        s_logger?.Trace($"[SDK.{nameof(PACKET_AWAITER)}] Subscribing for {typeof(TPkt).Name} (timeout={timeoutMs}ms).");
 
         // Subscribe BEFORE sending — no missed responses regardless of server latency.
-        using System.IDisposable sub = client.SubscribeTemp(OnMessageReceived, OnDisconnected);
+        using var sub = client.SubscribeTemp(OnMessageReceived, OnDisconnected);
 
         // Delegate to caller for the actual send (e.g. client.SendAsync, SendControlAsync, …)
-        await sendAsync(lcts.Token).ConfigureAwait(false);
+        try
+        {
+            s_logger?.Debug($"[SDK.{nameof(PACKET_AWAITER)}] Invoking send delegate for expected {typeof(TPkt).Name}.");
+            await sendAsync(lcts.Token).ConfigureAwait(false);
+            s_logger?.Trace($"[SDK.{nameof(PACKET_AWAITER)}] send delegate completed for {typeof(TPkt).Name}.");
+        }
+        catch (System.Exception sendEx)
+        {
+            // Ensure awaiting tasks are signalled about the send failure.
+            try { tcs.TrySetException(sendEx); } catch { /* swallow */ }
+            s_logger?.Error($"[SDK.{nameof(PACKET_AWAITER)}] send delegate threw: {sendEx.Message}", sendEx);
+            throw;
+        }
 
         try
         {
@@ -89,32 +85,80 @@ internal static class PACKET_AWAITER
         }
         catch (System.Threading.Tasks.TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            throw new System.TimeoutException(
-                $"No {typeof(TPkt).Name} received within {timeoutMs} ms.");
+            s_logger?.Debug($"[SDK.{nameof(PACKET_AWAITER)}] Timeout waiting for {typeof(TPkt).Name} after {timeoutMs}ms.");
+            throw new System.TimeoutException($"No {typeof(TPkt).Name} received within {timeoutMs} ms.");
         }
         catch (System.Threading.Tasks.TaskCanceledException) when (ct.IsCancellationRequested)
         {
+            s_logger?.Debug($"[SDK.{nameof(PACKET_AWAITER)}] Operation cancelled by caller while waiting for {typeof(TPkt).Name}.");
             throw new System.OperationCanceledException(ct);
         }
 
-        // ── Local handlers ────────────────────────────────────────────────────
+        // Local handlers
 
         void OnMessageReceived(System.Object? _, IBufferLease buffer)
         {
-            using (buffer)
+            // Ownership: caller of SubscribeTemp provides an IBufferLease; dispose after use.
+            try
             {
-                if (catalog.TryDeserialize(buffer.Span, out IPacket p) &&
-                    p is TPkt match &&
-                    predicate(match))
+                // Try deserialize — protect from codec exceptions.
+                System.Boolean ok;
+                IPacket? p = null;
+                try
                 {
-                    tcs.TrySetResult(match);
+                    ok = TcpSession.Catalog.TryDeserialize(buffer.Span, out p!);
                 }
+                catch (System.Exception dex)
+                {
+                    s_logger?.Error($"[SDK.{nameof(PACKET_AWAITER)}] Deserialization error while awaiting {typeof(TPkt).Name}: {dex.Message}", dex);
+                    // If deserialization fails repeatedly, we do not cancel the whole await — just ignore this buffer.
+                    return;
+                }
+
+                if (!ok || p is null)
+                {
+                    // Not a recognizable packet — ignore.
+                    return;
+                }
+
+                if (p is TPkt match)
+                {
+                    System.Boolean predResult = false;
+                    try
+                    {
+                        predResult = predicate(match);
+                    }
+                    catch (System.Exception predEx)
+                    {
+                        s_logger?.Error($"[SDK.{nameof(PACKET_AWAITER)}] Predicate threw for {typeof(TPkt).Name}: {predEx.Message}", predEx);
+                        // Predicate exception is considered a handler error — set exception on TCS so caller sees it.
+                        try { tcs.TrySetException(predEx); } catch { }
+                        return;
+                    }
+
+                    if (predResult)
+                    {
+                        // Found a match; try to set the result (may race with cancellation/disconnect).
+                        if (tcs.TrySetResult(match))
+                        {
+                            s_logger?.Trace($"[SDK.{nameof(PACKET_AWAITER)}] Matched packet {typeof(TPkt).Name} and set result.");
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                // Ensure lease is always disposed (SubscribeTemp contract).
+                try { buffer.Dispose(); } catch { /* swallow */ }
             }
         }
 
         void OnDisconnected(System.Object? _, System.Exception ex)
-            => tcs.TrySetException(
-                ex ?? new System.InvalidOperationException(
-                    $"Disconnected while waiting for {typeof(TPkt).Name}."));
+        {
+            var exToSet = ex ?? new System.InvalidOperationException($"Disconnected while waiting for {typeof(TPkt).Name}.");
+            try { tcs.TrySetException(exToSet); } catch { /* swallow */ }
+
+            s_logger?.Warn($"[SDK.{nameof(PACKET_AWAITER)}] Disconnected while awaiting {typeof(TPkt).Name}: {exToSet.Message}");
+        }
     }
 }

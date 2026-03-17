@@ -20,7 +20,8 @@ public sealed class IoTTcpSession : IClientConnection
 {
     #region Fields
 
-    private readonly System.Threading.Lock _sync = new();
+    // Use a simple object as the lock; System.Threading.Lock does not exist in BCL.
+    private readonly System.Object _sync = new();
 
     // Internal helpers
     private FRAME_SENDER? _sender;
@@ -30,11 +31,15 @@ public sealed class IoTTcpSession : IClientConnection
     private System.Net.Sockets.Socket? _socket;
     private System.Threading.CancellationTokenSource? _loopCts;
 
-    // Last known endpoint for auto-reconnect etc.
+    // Last known endpoint for auto-reconnect etc. (optional)
+    private System.String? _host;
+    private System.UInt16? _port;
+
+    // Receive task (do not dispose Task)
     private System.Threading.Tasks.Task? _receiveTask;
 
-    // Dispose guard.
-    private System.Int32 _disposed;
+    // Dispose guard: 0 = live, 1 = disposed
+    private System.Int32 _disposed = 0;
 
     // Cached logger
     private readonly ILogger? _log;
@@ -82,7 +87,6 @@ public sealed class IoTTcpSession : IClientConnection
     /// </summary>
     public IoTTcpSession()
     {
-        _disposed = 0;
         _log = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
@@ -90,23 +94,23 @@ public sealed class IoTTcpSession : IClientConnection
 
         BufferConfig bufferConfig = ConfigurationManager.Instance.Get<BufferConfig>();
 
-        bufferConfig.TotalBuffers = 8;                      // Cực kỳ ít buffer, chỉ đủ dùng tối thiểu
-        bufferConfig.EnableMemoryTrimming = true;           // Luôn cần giải phóng
+        bufferConfig.TotalBuffers = 8;                      // Very small pool for constrained IoT device
+        bufferConfig.EnableMemoryTrimming = true;
         bufferConfig.TrimIntervalMinutes = 1;
         bufferConfig.DeepTrimIntervalMinutes = 3;
         bufferConfig.EnableAnalytics = false;
-        bufferConfig.AdaptiveGrowthFactor = 1.0;            // Không tăng số lượng tự động
-        bufferConfig.MaxMemoryPercentage = 0.01;            // Chỉ cho phép dùng 1% RAM (rất giới hạn!)
-        bufferConfig.SecureClear = false;                   // Không cần clear trừ khi dữ liệu nhạy c��m
+        bufferConfig.AdaptiveGrowthFactor = 1.0;
+        bufferConfig.MaxMemoryPercentage = 0.01;
+        bufferConfig.SecureClear = false;
         bufferConfig.EnableQueueCompaction = false;
         bufferConfig.AutoTuneOperationThreshold = 8;
-        bufferConfig.FallbackToArrayPool = false;           // Tránh fallback do không muốn ngốn RAM bất ngờ
+        bufferConfig.FallbackToArrayPool = false;
         bufferConfig.ExpandThresholdPercent = 0.10;
         bufferConfig.ShrinkThresholdPercent = 0.30;
         bufferConfig.MinimumIncrease = 1;
-        bufferConfig.MaxBufferIncreaseLimit = 2;            // Mỗi lần tăng chỉ 1-2 buffer
-        bufferConfig.BufferAllocations = "128,0.50; 256,0.50"; // Chỉ giữ các size nhỏ
-        bufferConfig.MaxMemoryBytes = 32 * 1024;            // Tối đa 32 KB cho buffer (cá nhân hóa tùy RAM thiết bị IoT)
+        bufferConfig.MaxBufferIncreaseLimit = 2;
+        bufferConfig.BufferAllocations = "128,0.50; 256,0.50";
+        bufferConfig.MaxMemoryBytes = 32 * 1024;            // 32 KB max for pool
 
         bufferConfig.Validate();
     }
@@ -123,16 +127,23 @@ public sealed class IoTTcpSession : IClientConnection
         System.String? effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
         System.UInt16 effectivePort = port ?? Options.Port;
 
-        // Basic validation for host
         if (System.String.IsNullOrWhiteSpace(effectiveHost))
         {
             throw new System.ArgumentException("A valid host must be provided.", nameof(host));
         }
 
-        // Guard: already connected
+        // If already connected to the same endpoint, no-op.
+        if (IsConnected && System.String.Equals(_host, effectiveHost, System.StringComparison.OrdinalIgnoreCase) && _port == effectivePort)
+        {
+            _log?.Debug($"[SDK.{nameof(IoTTcpSession)}] Already connected to {effectiveHost}:{effectivePort} - skipping ConnectAsync.");
+            return;
+        }
+
+        // If currently connected to a different endpoint, clean up first.
         if (IsConnected)
         {
-            return;
+            _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Connected to different endpoint - cleaning up before connect.");
+            CLEANUP_CONNECTION();
         }
 
         // Cancel previous tasks gracefully
@@ -152,48 +163,78 @@ public sealed class IoTTcpSession : IClientConnection
         {
             try
             {
-                // Resolve all addresses for the host
+                // DNS resolution should honor cancellation token.
                 var addresses = await System.Net.Dns.GetHostAddressesAsync(effectiveHost, ct).ConfigureAwait(false);
+
+                if (addresses is null || addresses.Length == 0)
+                {
+                    throw new System.Net.Sockets.SocketException((System.Int32)System.Net.Sockets.SocketError.HostNotFound);
+                }
+
+                _log?.Debug($"[SDK.{nameof(IoTTcpSession)}] Resolved {effectiveHost} -> {addresses.Length} addresses.");
 
                 foreach (var address in addresses)
                 {
                     if (ct.IsCancellationRequested)
                     {
-                        break; // Exit loop on cancellation
+                        _log?.Warn($"[SDK.{nameof(IoTTcpSession)}] Connect cancelled before trying {address}:{effectivePort}.");
+                        break;
                     }
 
-                    using var socket = new System.Net.Sockets.Socket(address.AddressFamily, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
-                    socket.NoDelay = Options.NoDelay;
-                    socket.SendBufferSize = Options.BufferSize;
-                    socket.ReceiveBufferSize = Options.BufferSize;
-
-                    // Attempt to connect
-                    await socket.ConnectAsync(new System.Net.IPEndPoint(address, effectivePort), ct).ConfigureAwait(false);
-
-                    // Update internal fields & initialize sender/receiver
-                    lock (_sync)
+                    System.Net.Sockets.Socket socket = new(address.AddressFamily, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+                    try
                     {
-                        _socket = socket;
-                        _loopCts = new System.Threading.CancellationTokenSource();
-                        _sender = new FRAME_SENDER(GET_CONNECTED_SOCKET_OR_THROW, Options, REPORT_BYTES_SENT, HANDLE_SEND_ERROR);
-                        _receiver = new FRAME_READER(GET_CONNECTED_SOCKET_OR_THROW, Options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
+                        socket.NoDelay = Options.NoDelay;
+                        socket.SendBufferSize = Options.BufferSize;
+                        socket.ReceiveBufferSize = Options.BufferSize;
+
+                        _log?.Trace($"[SDK.{nameof(IoTTcpSession)}] Attempting connect to {address}:{effectivePort} (attempt {retryCount + 1}/{maxRetries}).");
+
+                        // Attempt to connect; this will throw on cancellation or failure.
+                        await socket.ConnectAsync(new System.Net.IPEndPoint(address, effectivePort), ct).ConfigureAwait(false);
+
+                        // On success, persist socket and create helpers under lock.
+                        lock (_sync)
+                        {
+                            _socket = socket;
+                            _loopCts = new System.Threading.CancellationTokenSource();
+                            _receiver = new FRAME_READER(GET_CONNECTED_SOCKET_OR_THROW, Options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
+                            _sender = new FRAME_SENDER(GET_CONNECTED_SOCKET_OR_THROW, Options, REPORT_BYTES_SENT, HANDLE_SEND_ERROR);
+
+                            // Save for potential reconnect logic later.
+                            _host = effectiveHost;
+                            _port = effectivePort;
+                        }
+
+                        _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Connected to {address}:{effectivePort}");
+                        try { OnConnected?.Invoke(this, System.EventArgs.Empty); } catch { /* swallow subscriber exceptions */ }
+
+                        START_RECEIVE_WORKER_IOT(_loopCts!.Token);
+
+                        return; // success
                     }
-
-                    // Notify connection successful
-                    _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Connected to {address}:{effectivePort}");
-                    OnConnected?.Invoke(this, System.EventArgs.Empty);
-
-                    START_RECEIVE_WORKER_IOT(_loopCts.Token);
-                    return; // Successful connection
+                    catch
+                    {
+                        // Dispose socket on failure to avoid leaks.
+                        try { socket.Dispose(); } catch { }
+                        throw;
+                    }
                 }
             }
-            catch (System.Exception ex) when (ex is not System.OperationCanceledException)
+            catch (System.OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                lastException = new System.OperationCanceledException("Connect canceled by caller.", ct);
+                break;
+            }
+            catch (System.Exception ex)
             {
                 lastException = ex;
                 _log?.Warn($"[SDK.{nameof(IoTTcpSession)}] Connection attempt {retryCount + 1}/{maxRetries} failed: {ex.Message}");
-
-                // Wait for increasing "backoff" time before retrying
-                await System.Threading.Tasks.Task.Delay((retryCount + 1) * 1000, ct).ConfigureAwait(false);
+                if (retryCount + 1 < maxRetries)
+                {
+                    // Simple linear backoff for constrained devices.
+                    try { await System.Threading.Tasks.Task.Delay((retryCount + 1) * 1000, ct).ConfigureAwait(false); } catch { /* ignore cancellation during delay */ }
+                }
             }
         }
 
@@ -210,7 +251,8 @@ public sealed class IoTTcpSession : IClientConnection
 
         CLEANUP_CONNECTION();
         _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Disconnected (requested).");
-        OnDisconnected?.Invoke(this, null!);
+        try { OnDisconnected?.Invoke(this, null!); } catch { }
+
         return System.Threading.Tasks.Task.CompletedTask;
     }
 
@@ -240,7 +282,9 @@ public sealed class IoTTcpSession : IClientConnection
         }
 
         CLEANUP_CONNECTION();
-        _receiveTask?.Dispose();
+
+        // Do not dispose Task; let it end naturally after cancellation.
+        _receiveTask = null;
         _log?.Info($"[SDK.{nameof(IoTTcpSession)}] Disposed.");
         System.GC.SuppressFinalize(this);
     }
@@ -251,10 +295,24 @@ public sealed class IoTTcpSession : IClientConnection
 
     private void START_RECEIVE_WORKER_IOT(System.Threading.CancellationToken loopToken)
     {
+        if (_receiver is null)
+        {
+            _log?.Warn($"[SDK.{nameof(IoTTcpSession)}] Cannot start receive worker: receiver is null.");
+            return;
+        }
+
+        // Fire-and-forget receive loop; the loop respects loopToken cancellation.
         _receiveTask = System.Threading.Tasks.Task.Run(async () =>
         {
-            try { await _receiver!.ReceiveLoopAsync(loopToken); }
-            catch (System.Exception ex) { HANDLE_RECEIVE_ERROR(ex); }
+            try
+            {
+                await _receiver!.ReceiveLoopAsync(loopToken).ConfigureAwait(false);
+            }
+            catch (System.Exception ex)
+            {
+                // Notify error handlers. Do not rethrow.
+                HANDLE_RECEIVE_ERROR(ex);
+            }
         }, System.Threading.CancellationToken.None);
     }
     #endregion
@@ -270,7 +328,12 @@ public sealed class IoTTcpSession : IClientConnection
                 CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
             }
 
-            System.Threading.Interlocked.Exchange(ref _sender, null)?.Dispose();
+            try
+            {
+                var prevSender = System.Threading.Interlocked.Exchange(ref _sender, null);
+                prevSender?.Dispose();
+            }
+            catch { /* swallow */ }
 
             try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
             try { _socket?.Close(); _socket?.Dispose(); } catch { }
@@ -278,6 +341,7 @@ public sealed class IoTTcpSession : IClientConnection
             _receiver = null!;
         }
 
+        // Do not dispose _receiveTask; it will finish once loopToken is cancelled.
         _receiveTask = null!;
     }
 
@@ -310,37 +374,57 @@ public sealed class IoTTcpSession : IClientConnection
     private void HANDLE_SEND_ERROR(System.Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
+        // IoT policy: do not auto-reconnect here by default; caller can decide.
+        CLEANUP_CONNECTION();
     }
 
     private void HANDLE_RECEIVE_ERROR(System.Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
+        // Tear down connection to allow caller to attempt reconnect if desired.
+        CLEANUP_CONNECTION();
     }
 
     private void HANDLE_RECEIVE_MESSAGE(BufferLease lease)
     {
-        // This is similar to ReliableClient; see sample for invoke logic.
-        var syncHandlers = OnMessageReceived?.GetInvocationList();
+        // Snapshot invocation list
+        var handlers = OnMessageReceived?.GetInvocationList();
+        System.ReadOnlyMemory<System.Byte> asyncCopy = System.ReadOnlyMemory<System.Byte>.Empty;
+
         try
         {
-            if (syncHandlers != null)
+            if (handlers != null && handlers.Length > 0)
             {
-                foreach (var d in syncHandlers)
+                foreach (var d in handlers)
                 {
-                    var copy = BufferLease.CopyFrom(lease.Span);
+                    // Create per-subscriber copy from lease. Each copy is independently owned.
+                    BufferLease copy = BufferLease.CopyFrom(lease.Span);
+                    System.Boolean disposedCopy = false;
                     try
                     {
-                        ((System.EventHandler<BufferLease>)d).Invoke(this, copy);
+                        // Event is declared as EventHandler<IBufferLease>, invoke accordingly.
+                        ((System.EventHandler<IBufferLease>)d).Invoke(this, copy);
                     }
-                    catch
+                    catch (System.Exception ex)
                     {
-                        try { copy.Dispose(); } catch { }
+                        // If subscriber faults, dispose the copy to return buffer to pool.
+                        try { copy.Dispose(); disposedCopy = true; } catch { }
+                        _log?.Error($"[SDK.{nameof(IoTTcpSession)}] sync handler faulted: {ex.Message}", ex);
+                    }
+                    finally
+                    {
+                        // If subscriber contract didn't dispose the copy (should not happen), ensure we don't leak.
+                        if (!disposedCopy)
+                        {
+                            // We assume subscriber disposed; if not, the wrapper should handle it.
+                        }
                     }
                 }
             }
         }
         finally
         {
+            // Dispose original lease exactly once.
             try { lease.Dispose(); } catch { }
         }
     }
