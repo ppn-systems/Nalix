@@ -667,6 +667,13 @@ public sealed partial class TaskManager : ITaskManager
             _ = sb.AppendLine($"Virtual Memory                    : {virtualMB,6:N0} MB");
             _ = sb.AppendLine("---------------------------------------------------------------------");
             _ = sb.AppendLine();
+        }
+        catch { /* best effort, ignore any exceptions from diagnostics */ }
+
+        try
+        {
+            System.Diagnostics.Process proc = System.Diagnostics.Process.GetCurrentProcess();
+            proc.Refresh();
 
             _ = sb.AppendLine("Process Health:");
             _ = sb.AppendLine("---------------------------------------------------------------------");
@@ -678,7 +685,7 @@ public sealed partial class TaskManager : ITaskManager
             _ = sb.AppendLine("---------------------------------------------------------------------");
             _ = sb.AppendLine();
         }
-        catch { /* best effort, ignore any exceptions from diagnostics */ }
+        catch { }
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Monitoring Statistics:");
