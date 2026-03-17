@@ -107,6 +107,7 @@ Attributes declare **policy** at registration time. The runtime uses this metada
 | `[PacketPermission]` | Restricts access by `PermissionLevel`. | Public-facing or sensitive logic. |
 | `[PacketRateLimit]` | Applies per-connection throttling. | Protecting high-cost operations. |
 | `[PacketEncryption]` | Requires the packet to be encrypted. | GDPR/Security sensitive data. |
+| `[PacketTransport]` | Sets preferred protocol (TCP/UDP). | High-concurrency or low-latency logic. |
 
 ---
 

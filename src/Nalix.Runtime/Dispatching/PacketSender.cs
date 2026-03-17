@@ -126,9 +126,14 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         }
     }
 
-    private static IConnection.ITransport GetTransport(IPacketContext<TPacket> context) =>
-        // BUG-76: Reply via the same transport the packet came from.
-        !context.IsReliable ? context.Connection.UDP : context.Connection.TCP;
+    private static IConnection.ITransport GetTransport(IPacketContext<TPacket> context)
+    {
+        // BUG-76: Prioritize the transport specified on the handler attribute.
+        // If no attribute is present, default to TCP as per requirements.
+        NetworkTransport transport = context.Attributes.Transport?.TransportType ?? NetworkTransport.TCP;
+
+        return transport == NetworkTransport.UDP ? context.Connection.UDP : context.Connection.TCP;
+    }
 
     private IPacketContext<TPacket> GET_CONTEXT_OR_THROW()
         => _context ?? throw new InternalErrorException($"{nameof(PacketSender<>)} must be initialized before sending.");

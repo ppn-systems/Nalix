@@ -868,7 +868,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 Permission = CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(m),
                 Encryption = CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(m),
                 RateLimit = CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(m),
-                ConcurrencyLimit = CustomAttributeExtensions.GetCustomAttribute<PacketConcurrencyLimitAttribute>(m)
+                ConcurrencyLimit = CustomAttributeExtensions.GetCustomAttribute<PacketConcurrencyLimitAttribute>(m),
+                Transport = CustomAttributeExtensions.GetCustomAttribute<PacketTransportAttribute>(m)
             };
 
             // Let external providers extend or override metadata.
