@@ -29,9 +29,6 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
     #region Fields
 
-    private static readonly NetworkSocketOptions s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-
     private readonly System.UInt16 _port;
     private readonly IProtocol _protocol;
     private readonly ConnectionLimiter _limiter;
@@ -48,6 +45,8 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly NetworkSocketOptions s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     #endregion Fields
 
@@ -100,15 +99,18 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
     #region Constructors
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private TcpListenerBase()
+    static TcpListenerBase()
     {
         s_config.Validate();
 
         InstanceManager.Instance.Register(new ObjectPoolManager());
         InstanceManager.Instance.Register(new BufferPoolManager());
+    }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private TcpListenerBase()
+    {
         if (System.OperatingSystem.IsWindows() && s_config.TuneThreadPool)
         {
             System.Int32 parallelism = System.Math.Max(System.Environment.ProcessorCount * MinWorkerThreads, 16);
