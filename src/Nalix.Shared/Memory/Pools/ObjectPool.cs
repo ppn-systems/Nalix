@@ -491,5 +491,24 @@ public sealed class ObjectPool(System.Int32 defaultMaxItemsPerType)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TypedObjectPool<T> CreateTypedPool<T>() where T : IPoolable, new() => new(this);
 
+    internal System.Collections.Generic.Dictionary<System.String, System.Object> GetTypeInfoByType(System.Type type)
+    {
+        return _typePools.TryGetValue(type, out TypePool? typePool)
+            ? new System.Collections.Generic.Dictionary<System.String, System.Object>
+            {
+                ["TypeName"] = type.Name,
+                ["AvailableCount"] = typePool.AvailableCount,
+                ["MaxCapacity"] = typePool.MaxCapacity,
+                ["IsActive"] = true
+            }
+            : new System.Collections.Generic.Dictionary<System.String, System.Object>
+            {
+                ["TypeName"] = type.Name,
+                ["AvailableCount"] = 0,
+                ["MaxCapacity"] = _defaultMaxItemsPerType,
+                ["IsActive"] = false
+            };
+    }
+
     #endregion Public Methods
 }

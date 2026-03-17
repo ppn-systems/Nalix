@@ -3,6 +3,11 @@
 
 using Nalix.Common.Networking.Caching;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+#endif
+
 namespace Nalix.Shared.Memory.PoolTypes;
 
 /// <summary>
@@ -18,6 +23,7 @@ internal class TypePool(System.Int32 maxCapacity)
 {
     #region Fields
 
+    private System.Int32 _count = 0;
     private System.Int32 _maxCapacity = maxCapacity;
     private readonly System.Collections.Concurrent.ConcurrentStack<IPoolable> _objects = new();
 
@@ -70,8 +76,11 @@ internal class TypePool(System.Int32 maxCapacity)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Boolean TryPush(IPoolable obj)
     {
-        if (_objects.Count >= MaxCapacity)
+        System.Int32 newCount = System.Threading.Interlocked.Increment(ref _count);
+
+        if (newCount > _maxCapacity)
         {
+            System.Threading.Interlocked.Decrement(ref _count);
             return false;
         }
 
@@ -86,7 +95,16 @@ internal class TypePool(System.Int32 maxCapacity)
     /// <returns>True if an object was retrieved, false if the pool is empty.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean TryPop(out IPoolable? obj) => _objects.TryPop(out obj);
+    public System.Boolean TryPop(out IPoolable? obj)
+    {
+        if (_objects.TryPop(out obj))
+        {
+            System.Threading.Interlocked.Decrement(ref _count);
+            return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Clears all objects from this pool.
@@ -98,6 +116,7 @@ internal class TypePool(System.Int32 maxCapacity)
     {
         System.Int32 count = _objects.Count;
         _objects.Clear();
+        System.Threading.Interlocked.Exchange(ref _count, 0);
         return count;
     }
 
@@ -141,11 +160,11 @@ internal class TypePool(System.Int32 maxCapacity)
         {
             if (_objects.TryPop(out _))
             {
+                System.Threading.Interlocked.Decrement(ref _count);
                 removed++;
             }
             else
             {
-                // No more objects to remove
                 break;
             }
         }

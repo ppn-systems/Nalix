@@ -932,6 +932,13 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _metricsCache.Clear();
         _poolManager.Dispose();
 
+        if (_config.EnableMemoryTrimming)
+        {
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                    .CancelRecurring(TaskNaming.Recurring
+                                    .CleanupJobId(RecurringName, this.GetHashCode()));
+        }
+
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[SH.{nameof(BufferPoolManager)}:{nameof(Dispose)}] disposed");
 
