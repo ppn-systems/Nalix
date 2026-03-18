@@ -42,6 +42,16 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private readonly BufferPoolCollection _poolManager;
     private readonly ShrinkSafetyPolicy _shrinkPolicy;
 
+    /// <summary>
+    /// Slab-based segment pool for the <see cref="RentSegment"/> / <see cref="BufferLease.Rent"/> path.
+    /// Each bucket manages a single buffer size class backed by large pinned slabs,
+    /// with thread-local caching for hot-path performance. This eliminates per-buffer
+    /// POH allocations for the high-frequency segment path.
+    /// The <c>byte[]</c> <see cref="Rent(int)"/> path retains per-buffer pinned arrays
+    /// via <see cref="BufferPoolCollection"/> for backward compatibility.
+    /// </summary>
+    private readonly Internal.Buffers.SlabPoolManager _slabPool;
+
     private int _trimCycleCount;
     private int _disposed;
     private bool _isInitialized;
@@ -217,6 +227,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _suitablePoolSizeCache = new();
         _metricsCache = new();
         _shrinkPolicy = new ShrinkSafetyPolicy();
+        _slabPool = new Internal.Buffers.SlabPoolManager();
 
         _bufferAllocations = BufferConfig.ParseBufferAllocations(config.BufferAllocations);
 
@@ -359,7 +370,14 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ArraySegment<byte> RentSegment(int size = 256)
     {
-        // Directly return the slab segment — no double-wrapping needed.
+        // Primary path: slab-backed segments with thread-local caching.
+        // Slab segments carry correct (Array, Offset, Count) for shared slab arrays.
+        if (_slabPool.TryRent(size, out ArraySegment<byte> slabSeg))
+        {
+            return slabSeg;
+        }
+
+        // Fallback: per-buffer pools (produces offset=0 segments from standalone arrays).
         if (IS_FAST_COMMON_SIZE(size))
         {
             return _poolManager.RentBuffer(size);
@@ -378,10 +396,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     /// <summary>
     /// Returns a buffer that was rented via <see cref="RentSegment"/> back to the pool.
-    /// Only the underlying <see cref="ArraySegment{T}.Array"/> is returned;
-    /// <c>Offset</c> and <c>Count</c> are ignored.
+    /// Tries the slab pool first (routes by <see cref="ArraySegment{T}.Count"/>),
+    /// then falls back to the per-buffer managed pools.
     /// </summary>
-    /// <param name="segment">The segment whose backing array will be returned.</param>
+    /// <param name="segment">The segment to return.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(ArraySegment<byte> segment)
@@ -391,6 +409,13 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             return;
         }
 
+        // Fast path: slab-backed segments are routed by Count to their owning bucket.
+        if (_slabPool.TryReturn(segment))
+        {
+            return;
+        }
+
+        // Fallback: per-buffer pools.
         try
         {
             this.RETURN_TO_MANAGED_POOLS(segment);
@@ -730,12 +755,20 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         foreach ((int bufferSize, double allocation) in _bufferAllocations)
         {
             int capacity = Math.Max(1, (int)(_config.TotalBuffers * allocation));
+
+            // Per-buffer pool: serves the byte[] Rent() API (callers write from offset 0).
             _poolManager.CreatePool(bufferSize, capacity);
+
+            // Slab pool: serves the RentSegment() API (callers handle ArraySegment offsets).
+            // Gets the same initial capacity — segments are allocated in large pinned slabs
+            // instead of individual GC.AllocateArray calls, reducing POH fragmentation.
+            _slabPool.CreateBucket(bufferSize, capacity);
         }
 
         _isInitialized = true;
         _logger?.Info($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                      $"init-ok total={_config.TotalBuffers} pools={_bufferAllocations.Length} min={this.MinBufferSize} max={this.MaxBufferSize}");
+                                      $"init-ok total={_config.TotalBuffers} pools={_bufferAllocations.Length} " +
+                                      $"slabs={_bufferAllocations.Length} min={this.MinBufferSize} max={this.MaxBufferSize}");
     }
 
     [StackTraceHidden]
@@ -1165,6 +1198,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         _suitablePoolSizeCache.Clear();
         _metricsCache.Clear();
+        _slabPool.Dispose();
         _poolManager.Dispose();
 
         if (_config.EnableMemoryTrimming)

@@ -17,7 +17,7 @@ The following diagram illustrates how a raw network buffer is transformed into a
 ```mermaid
 sequenceDiagram
     participant OS as Network Stack
-    participant LP as Local Pool (SlabPool)
+    participant LP as Slab Pool (SlabPoolManager)
     participant DC as Dispatch Loop (OS Thread)
     participant FR as Frozen Registry (O(1))
     participant CH as Compiled Handler (Expression Trees)
@@ -89,10 +89,13 @@ This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ looku
 ## 3. The Pooling Pipeline
 
 ### Buffer Leasing (Slab-Based)
-Incoming data is always stored in a `BufferLease` backed by a large, pre-allocated memory slab (`ArraySegment<byte>`). This minimizes fragmentation and ensures $O(1)$ lease times.
+Incoming data is always stored in a `BufferLease` backed by a large, pre-allocated memory slab (`ArraySegment<byte>`). This eliminates **POH (Pinned Object Heap)** churn by allocating large blocks of memory once and carving them into segments.
+
+To further eliminate overhead, `BufferLease` instances (shells) are themselves pooled using a lock-free free-list. The depth of this free-list is tracked via an **O(1) atomic counter**, avoiding the linear-time cost of `ConcurrentStack.Count` in high-throughput hot paths.
+
 ```csharp
-// Shared memory pool access
-using var lease = bufferPool.Lease(1024);
+// Optimized buffer leasing
+using var lease = bufferPool.RentSegment(1024);
 // Use lease.Span for zero-copy slicing
 ```
 
