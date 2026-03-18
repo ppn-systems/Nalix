@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Networking.Packets.Enums;
+using Nalix.Common.Serialization.Attributes;
+
 namespace Nalix.Common.Networking.Packets.Abstractions;
 
 /// <summary>
@@ -10,8 +13,9 @@ namespace Nalix.Common.Networking.Packets.Abstractions;
 public interface IPacketSequenced
 {
     /// <summary>
-    /// Gets the sequence identifier of the packet. 
+    /// Gets the sequence identifier of the packet.
     /// This is used to correlate requests with their responses.
     /// </summary>
+    [SerializeOrder(PacketHeaderOffset.SEQUENCE_ID)]
     System.UInt32 SequenceId { get; }
 }

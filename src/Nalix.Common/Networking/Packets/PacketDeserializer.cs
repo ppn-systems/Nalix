@@ -3,7 +3,7 @@
 
 using Nalix.Common.Networking.Packets.Abstractions;
 
-namespace Nalix.Common.Networking.Packets.Transformation;
+namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
 /// Represents a delegate that constructs an <see cref="IPacket"/> 

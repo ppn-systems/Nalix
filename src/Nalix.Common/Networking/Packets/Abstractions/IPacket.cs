@@ -16,7 +16,7 @@ namespace Nalix.Common.Networking.Packets.Abstractions;
 /// for transmission or storage and later deserialized for processing.
 /// </remarks>
 [SerializePackable(SerializeLayout.Explicit)]
-public interface IPacket
+public interface IPacket : IPacketSequenced
 {
     #region Metadata
 
