@@ -70,6 +70,23 @@ public static class HeaderExtensions
     }
 
     /// <summary>
+    /// Writes the <see cref="PacketFlags"/> value at offset 6.
+    /// </summary>
+    /// <param name="this">The destination buffer.</param>
+    /// <param name="flags">The packet flags to write.</param>
+    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void WriteFlagsLE(this System.Span<System.Byte> @this, PacketFlags flags)
+    {
+        const System.Int32 offs = (System.Int32)PacketHeaderOffset.FLAGS;
+        CheckSize(@this, offs, sizeof(System.Byte));
+        @this[offs] = (System.Byte)flags;
+    }
+
+    /// <summary>
     /// Reads the <see cref="PacketPriority"/> at offset 7.
     /// </summary>
     /// <param name="this">The source buffer.</param>

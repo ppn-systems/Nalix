@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Shared.Abstractions;
+using Nalix.Common.Shared.Caching;
 
 namespace Nalix.Network.Abstractions;
 
