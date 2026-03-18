@@ -11,6 +11,7 @@ namespace Nalix.Shared.Security.Asymmetric;
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
+[System.Obsolete("Ed25519 is deprecated in favor of more modern algorithms like Ed448 or post-quantum schemes. Use with caution and consider future-proof alternatives.")]
 public static class Ed25519
 {
     #region Constants

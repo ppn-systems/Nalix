@@ -14,7 +14,7 @@ using Nalix.Common.Security.Enums;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Security;
+namespace Nalix.Shared.Security.Internal;
 
 [System.Diagnostics.DebuggerNonUserCode]
 internal static class EnvelopeFormat

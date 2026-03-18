@@ -3,6 +3,7 @@
 
 using Nalix.Common.Security.Enums;
 using Nalix.Shared.Memory.Internal;
+using Nalix.Shared.Security.Internal;
 using Nalix.Shared.Security.Primitives;
 
 namespace Nalix.Shared.Security.Symmetric;
