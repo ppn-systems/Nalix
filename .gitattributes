@@ -1,0 +1,92 @@
+# ------------------------------------------------------------------------------
+# Global Defaults
+# ------------------------------------------------------------------------------
+
+# Handle line endings automatically for every text file. 
+# Normalize to LF in the repo, native on checkout.
+* text=auto eol=lf
+
+# ------------------------------------------------------------------------------
+# Source Code (C# / .NET)
+# ------------------------------------------------------------------------------
+
+*.cs     diff=csharp text
+*.sln    merge=union
+*.csproj merge=union
+*.vbproj merge=union
+*.fsproj merge=union
+*.props  merge=union
+*.targets merge=union
+*.config merge=union
+*.xml    text
+
+# ------------------------------------------------------------------------------
+# Scripts
+# ------------------------------------------------------------------------------
+
+# Force CRLF for Windows scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Force LF for Unix scripts
+*.sh  text eol=lf
+
+# ------------------------------------------------------------------------------
+# Data and Documentation
+# ------------------------------------------------------------------------------
+
+*.json text
+*.yml  text
+*.yaml text
+*.md   text
+*.txt  text
+*.csv  text
+
+# ------------------------------------------------------------------------------
+# Binary Files
+# ------------------------------------------------------------------------------
+
+# Images
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.svg  text
+
+# Assets & Executables
+*.dll  binary
+*.exe  binary
+*.pdb  binary
+*.bin  binary
+*.zip  binary
+*.tar  binary
+*.gz   binary
+*.7z   binary
+*.nupkg binary
+*.pdf  binary
+*.pfx  binary
+*.snk  binary
+
+# ------------------------------------------------------------------------------
+# Git Hygiene & Exporting
+# ------------------------------------------------------------------------------
+
+# Files to exclude from source distributions (git archive)
+/.github       export-ignore
+/tests         export-ignore
+/docs          export-ignore
+/benchmarks    export-ignore
+/artifacts     export-ignore
+/.editorconfig export-ignore
+/.gitignore    export-ignore
+/.gitattributes export-ignore
+
+# ------------------------------------------------------------------------------
+# GitHub Linguist Overrides
+# ------------------------------------------------------------------------------
+
+# Mark tests and benchmarks as non-primary code for repo statistics
+/tests/* linguist-documentation
+/benchmarks/* linguist-documentation

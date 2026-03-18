@@ -1,0 +1,46 @@
+name: "Release: Source ZIP"
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-source:
+    name: "Attach src ZIP to GitHub Release (tag only)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Extract version from tag
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+
+      - name: Create source archive
+        shell: bash
+        run: |
+          archive="nalix-src-v${VERSION}.zip"
+          cd src
+          zip -r "../${archive}" .
+          echo "ARCHIVE=${archive}" >> "$GITHUB_ENV"
+
+      - name: Verify archive exists
+        shell: bash
+        run: |
+          if [ ! -f "./${ARCHIVE}" ]; then
+            echo "❌ Source archive not found: ./${ARCHIVE}" && exit 1
+          fi
+          echo "✅ Source archive created: ./${ARCHIVE}"
+          ls -lh "./${ARCHIVE}"
+
+      - name: Upload archive to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./${{ env.ARCHIVE }}
