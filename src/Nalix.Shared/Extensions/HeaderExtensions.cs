@@ -103,6 +103,23 @@ public static class HeaderExtensions
         return (ProtocolType)@this[offs];
     }
 
+    /// <summary>
+    /// Reads the 32‑bit <c>SequenceId</c> at its fixed offset in little‑endian format.
+    /// </summary>
+    /// <param name="this">The source buffer.</param>
+    /// <returns>The sequence identifier.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.UInt32 ReadSequenceIdLE(this System.ReadOnlySpan<System.Byte> @this)
+    {
+        const System.Int32 offs = (System.Int32)PacketHeaderOffset.SEQUENCE_ID;
+        CheckSize(@this, offs, sizeof(System.UInt32));
+        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(@this.Slice(offs, sizeof(System.UInt32)));
+    }
+
     #endregion Little‑endian header readers (fixed offsets)
 
     #region Helpers
