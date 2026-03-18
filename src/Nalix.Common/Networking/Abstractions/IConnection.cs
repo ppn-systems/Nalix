@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Identity.Abstractions;
-using Nalix.Common.Networking.Caching;
 using Nalix.Common.Security.Enums;
+using Nalix.Common.Shared.Caching;
 
 namespace Nalix.Common.Networking.Abstractions;
 

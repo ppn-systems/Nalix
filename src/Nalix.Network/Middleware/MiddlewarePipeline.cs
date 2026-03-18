@@ -30,7 +30,7 @@ namespace Nalix.Network.Middleware;
 /// The pipeline creates immutable execution snapshots to avoid locking during execution.
 /// </para>
 /// </remarks>
-public class MiddlewarePipeline<TPacket> where TPacket : IPacket
+internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
 {
     #region Fields
 
@@ -337,8 +337,6 @@ public class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
         return next(startToken);
     }
-
-    internal static void ClearMetadataCache() => s_metadataCache.Clear();
 
     #endregion Private Methods
 

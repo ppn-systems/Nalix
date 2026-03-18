@@ -4,10 +4,10 @@
 using Nalix.Common.Concurrency;
 using Nalix.Common.Identity.Enums;
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Networking.Caching;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Shared.Abstractions;
+using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -16,6 +16,7 @@ using Nalix.Network.Internal;
 using Nalix.Network.Routing.Channel;
 using Nalix.Network.Routing.Options;
 using Nalix.Shared.Extensions;
+using System;
 using System.Linq;
 
 namespace Nalix.Network.Routing;
@@ -80,7 +81,7 @@ public sealed class PacketDispatchChannel
                        $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager. Make sure to build and register IPacketRegistry before starting dispatcher.");
 
         // Push any additional initialization here if needed
-        Logger?.Debug($"[{nameof(PacketDispatchChannel)}] init");
+        Logging?.Debug($"[{nameof(PacketDispatchChannel)}] init");
     }
 
     #endregion Constructors
@@ -99,7 +100,7 @@ public sealed class PacketDispatchChannel
     {
         if (System.Threading.Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
-            Logger?.Debug($"[{nameof(PacketDispatchChannel)}:{Activate}] already-running");
+            Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{Activate}] already-running");
             return;
         }
 
@@ -140,7 +141,7 @@ public sealed class PacketDispatchChannel
             );
         }
 
-        Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Activate}] start");
+        Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{Activate}] start");
     }
 
     /// <summary>
@@ -170,7 +171,7 @@ public sealed class PacketDispatchChannel
             if (!_cts.IsCancellationRequested)
             {
                 _cts.Cancel();
-                Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop");
+                Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop");
             }
 
             try
@@ -185,11 +186,11 @@ public sealed class PacketDispatchChannel
         }
         catch (System.ObjectDisposedException)
         {
-            Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-on-disposed-cts");
+            Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-on-disposed-cts");
         }
         catch (System.Exception ex)
         {
-            Logger?.Error($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-error", ex);
+            Logging?.Error($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-error", ex);
         }
     }
 
@@ -203,7 +204,7 @@ public sealed class PacketDispatchChannel
     {
         if (lease is null || lease.Length <= 0)
         {
-            Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.EndPoint}");
+            Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.EndPoint}");
             lease?.Dispose();
 
             return;
@@ -343,6 +344,7 @@ public sealed class PacketDispatchChannel
                     continue;
                 }
 
+
                 // Pull from channel (priority-aware)
                 if (!_dispatch.Pull(out IConnection connection, out IBufferLease lease))
                 {
@@ -354,21 +356,45 @@ public sealed class PacketDispatchChannel
                     }
 
                     // Rare: signaled but nothing pulled (remove/drain race)
-                    Logger?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
+                    Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
                     lease?.Dispose();
 
+                    continue;
+                }
+
+                try
+                {
+                    IBufferLease afterMw = await Options.NetworkPipeline.ExecuteAsync(lease, connection, ct).ConfigureAwait(false);
+                    if (afterMw is null)
+                    {
+                        Logging?.Warn($"[PacketDispatchChannel:RunLoop] middleware-reject ep={connection.EndPoint}");
+                        lease.Dispose();
+                        continue;
+                    }
+
+                    lease.Dispose();
+                    lease = afterMw;
+                }
+                catch (Exception ex)
+                {
+                    // Count error nếu có connection
+                    connection?.IncrementErrorCount();
+                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection?.EndPoint} leaseLen={lease.Length}", ex);
+
+                    lease.Dispose();
                     continue;
                 }
 
                 // Deserialize late (zero-alloc header reads were already done in the channel)
                 try
                 {
+
                     if (!_catalog.TryDeserialize(lease.Span, out IPacket packet) || packet is null)
                     {
                         // Warn with small head preview
                         System.Int32 len = lease.Length;
                         System.String head = System.Convert.ToHexString(lease.Span[..System.Math.Min(16, len)]);
-                        Logger?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.EndPoint} len={len} head={head}");
+                        Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.EndPoint} len={len} head={head}");
 
                         continue;
                     }
@@ -378,11 +404,11 @@ public sealed class PacketDispatchChannel
                 catch (System.Exception ex)
                 {
                     connection.IncrementErrorCount();
-                    Logger?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.EndPoint}", ex);
+                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.EndPoint}", ex);
                 }
                 finally
                 {
-                    lease?.Dispose();
+                    lease.Dispose();
                 }
 
                 ctx.Advance(1);
@@ -394,7 +420,7 @@ public sealed class PacketDispatchChannel
         }
         catch (System.Exception ex)
         {
-            Logger?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] loop-error", ex);
+            Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] loop-error", ex);
         }
         finally
         {

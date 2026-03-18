@@ -4,6 +4,7 @@
 using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Network.Middleware;
+using Nalix.Network.Middleware.Internal;
 using Nalix.Network.Routing.Metadata;
 
 namespace Nalix.Network.Routing.Options;
@@ -23,6 +24,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     private readonly System.Collections.Generic.Dictionary<System.UInt16, PacketHandler<TPacket>> _handlerCache;
 
     /// <summary>
+    /// Network buffer middleware pipeline for processing raw byte buffers before packet transformation.
+    /// </summary>
+    public readonly NetworkBufferMiddlewarePipeline NetworkPipeline;
+
+    /// <summary>
     /// Gets or sets a custom error-handling delegate invoked when packet processing fails.
     /// </summary>
     /// <remarks>
@@ -38,6 +44,12 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     {
         _handlerCache = [];
         _pipeline = new MiddlewarePipeline<TPacket>();
+
+        NetworkPipeline = new NetworkBufferMiddlewarePipeline();
+
+        // Add default network middleware for frame processing. You can customize this pipeline as needed.
+        NetworkPipeline.Use(new FrameDecryptionMiddleware());
+        NetworkPipeline.Use(new FrameDecompressMiddleware());
     }
 
     #endregion Fields

@@ -1,19 +1,13 @@
-﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Transformation;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Network.Connections;
-using Nalix.Network.Middleware.Outbound;
 
 namespace Nalix.Network.Routing;
 
 /// <summary>
 /// Default implementation of <see cref="IPacketSender{TPacket}"/>.
-/// Reads encryption/compression requirements from <see cref="PacketContext{TPacket}"/>
-/// and applies transforms before sending — mirrors the logic in
-/// <see cref="WrapPacketMiddleware"/> but works for direct sends inside handlers.
+/// Reads encryption/compression requirements from <see cref="PacketContext{TPacket}"/>.
 /// </summary>
 public sealed class PacketSender<TPacket> : IPacketSender<TPacket> where TPacket : IPacket
 {
@@ -52,22 +46,22 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket> where TPacket
     {
         TPacket current = packet;
 
-        if (needEncrypt)
-        {
-            if (!_catalog.TryGetTransformer(packet.GetType(), out PacketTransformer transformer) || !transformer.HasEncrypt)
-            {
-                await _context.Connection.SendAsync(
-                    ControlType.FAIL,
-                    ProtocolReason.CRYPTO_UNSUPPORTED,
-                    ProtocolAdvice.NONE,
-                    flags: ControlFlags.NONE,
-                    arg0: _context.Attributes.PacketOpcode.OpCode).ConfigureAwait(false);
+        //if (needEncrypt)
+        //{
+        //    if (!_catalog.TryGetTransformer(packet.GetType(), out PacketTransformer transformer) || !transformer.HasEncrypt)
+        //    {
+        //        await _context.Connection.SendAsync(
+        //            ControlType.FAIL,
+        //            ProtocolReason.CRYPTO_UNSUPPORTED,
+        //            ProtocolAdvice.NONE,
+        //            flags: ControlFlags.NONE,
+        //            arg0: _context.Attributes.PacketOpcode.OpCode).ConfigureAwait(false);
 
-                return;
-            }
+        //        return;
+        //    }
 
-            current = (TPacket)transformer.Encrypt(current, _context.Connection.Secret, _context.Connection.Algorithm);
-        }
+        //    current = (TPacket)transformer.Encrypt(current, _context.Connection.Secret, _context.Connection.Algorithm);
+        //}
 
         await _context.Connection.TCP.SendAsync(current, ct).ConfigureAwait(false);
     }

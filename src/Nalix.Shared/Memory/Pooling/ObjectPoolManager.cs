@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics.Abstractions;
-using Nalix.Common.Networking.Caching;
 using Nalix.Common.Shared.Abstractions;
+using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pools;
 using Nalix.Shared.Memory.PoolTypes;

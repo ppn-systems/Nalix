@@ -3,8 +3,8 @@
 
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Security.Enums;
+using Nalix.Common.Shared.Caching;
 using Nalix.Shared.LZ4;
-using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Security;
 
 namespace Nalix.Shared.Frames;
@@ -42,8 +42,8 @@ public static class FrameTransformer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Encrypt(
-        BufferLease src,
-        BufferLease dest,
+        IBufferLease src,
+        IBufferLease dest,
         System.ReadOnlySpan<System.Byte> key,
         CipherSuiteType suite, out System.Int32 written)
     {
@@ -89,8 +89,8 @@ public static class FrameTransformer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Decrypt(
-        BufferLease src,
-        BufferLease dest,
+        IBufferLease src,
+        IBufferLease dest,
         System.ReadOnlySpan<System.Byte> key, out System.Int32 written)
     {
         written = 0;
@@ -133,8 +133,8 @@ public static class FrameTransformer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Compress(
-        BufferLease src,
-        BufferLease dest, out System.Int32 written)
+        IBufferLease src,
+        IBufferLease dest, out System.Int32 written)
     {
         written = 0;
 
@@ -176,8 +176,8 @@ public static class FrameTransformer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean Decompress(
-        BufferLease src,
-        BufferLease dest, out System.Int32 written)
+        IBufferLease src,
+        IBufferLease dest, out System.Int32 written)
     {
         written = 0;
 
@@ -210,8 +210,8 @@ public static class FrameTransformer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean TryEncrypt(
-        BufferLease src,
-        BufferLease dest,
+        IBufferLease src,
+        IBufferLease dest,
         System.ReadOnlySpan<System.Byte> key,
         CipherSuiteType suite,
         out System.Int32 written)
@@ -233,8 +233,8 @@ public static class FrameTransformer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean TryDecrypt(
-        BufferLease src,
-        BufferLease dest,
+        IBufferLease src,
+        IBufferLease dest,
         System.ReadOnlySpan<System.Byte> key,
         out System.Int32 written)
     {
@@ -255,8 +255,8 @@ public static class FrameTransformer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean TryCompress(
-        BufferLease src,
-        BufferLease dest,
+        IBufferLease src,
+        IBufferLease dest,
         out System.Int32 written)
     {
         try
@@ -276,8 +276,8 @@ public static class FrameTransformer
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean TryDecompress(
-        BufferLease src,
-        BufferLease dest,
+        IBufferLease src,
+        IBufferLease dest,
         out System.Int32 written)
     {
         try

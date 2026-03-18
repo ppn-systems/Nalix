@@ -238,7 +238,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         this.Logging?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
-                          $"reg-handlers count={handlerDescriptors.Length} controller={controllerType.Name}");
+                           $"reg-handlers count={handlerDescriptors.Length} controller={controllerType.Name}");
 
         return this;
     }
@@ -264,8 +264,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         [System.Diagnostics.CodeAnalysis.AllowNull]
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler)
     {
-        if (TryResolveHandlerDescriptor(opCode,
-            out PacketHandler<TPacket> descriptor))
+        if (TryResolveHandlerDescriptor(opCode, out PacketHandler<TPacket> descriptor))
         {
             handler = async (packet, connection) =>
             {
@@ -310,7 +309,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         [System.Diagnostics.CodeAnalysis.NotNull] System.UInt16 opCode,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketHandler<TPacket> descriptor)
     {
-        if (this._handlerCache.TryGetValue(opCode, out descriptor))
+        if (_handlerCache.TryGetValue(opCode, out descriptor))
         {
             return true;
         }
