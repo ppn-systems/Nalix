@@ -6,12 +6,11 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Security.Enums;
 using Nalix.Common.Serialization.Attributes;
+using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Registry;
-using Nalix.Shared.Security;
 using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Frames;
@@ -24,18 +23,18 @@ namespace Nalix.Shared.Frames;
 /// full type name via FNV-1a hash — no <c>[MagicNumber]</c> attribute needed.
 /// </para>
 /// </summary>
-public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeserializer<TSelf>
+public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPacketDeserializer<TSelf>
     where TSelf : PacketBase<TSelf>, new()
 {
     #region Static Cache
 
     // Computed once per concrete type at class-load time.
-    private static readonly System.UInt32 AutoMagic = PacketRegistryFactory.Compute(typeof(TSelf));
+    private static readonly System.UInt32 s_autoMagic = PacketRegistryFactory.Compute(typeof(TSelf));
 
     // All serializable properties as pre-compiled PropertyMetadata.
     // Lazy<T> guarantees thread-safe single initialization without explicit locking.
     // Using System.Linq only at startup (inside the Lazy factory) — never in hot paths.
-    private static readonly System.Lazy<PropertyMetadata[]> _metadata = new(
+    private static readonly System.Lazy<PropertyMetadata[]> s_metadata = new(
         static () =>
         [
             .. System.Linq.Enumerable.Select(
@@ -72,7 +71,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
         static () =>
         {
             System.UInt16 size = PacketConstants.HeaderSize;
-            foreach (PropertyMetadata meta in _metadata.Value)
+            foreach (PropertyMetadata meta in s_metadata.Value)
             {
                 if (meta.IsDynamic)
                 {
@@ -101,7 +100,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     /// Assigns the automatically derived <see cref="FrameBase.MagicNumber"/>
     /// so that every packet is self-identifying on the wire without any attribute.
     /// </summary>
-    protected PacketBase() => MagicNumber = AutoMagic;
+    protected PacketBase() => MagicNumber = s_autoMagic;
 
     #endregion Constructor
 
@@ -132,7 +131,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     {
         System.UInt16 size = PacketConstants.HeaderSize;
 
-        foreach (PropertyMetadata meta in _metadata.Value)
+        foreach (PropertyMetadata meta in s_metadata.Value)
         {
             if (!meta.IsDynamic)
             {
@@ -172,8 +171,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.Byte[] Serialize()
-        => LiteSerializer.Serialize<TSelf>((TSelf)this);
+    public override System.Byte[] Serialize() => LiteSerializer.Serialize<TSelf>((TSelf)this);
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -235,55 +233,14 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
         }
     }
 
-    /// <summary>
-    /// Attempts to deserialize a <typeparamref name="TSelf"/> packet without throwing.
-    /// </summary>
-    /// <param name="buffer">The raw wire bytes.</param>
-    /// <param name="packet">
-    /// When this method returns <see langword="true"/>, the deserialized packet;
-    /// otherwise <see langword="null"/>.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> on success; <see langword="false"/> on any failure.
-    /// </returns>
-    public static System.Boolean TryDeserialize(
-        System.ReadOnlySpan<System.Byte> buffer,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TSelf? packet)
-    {
-        try
-        {
-            packet = Deserialize(buffer);
-            return true;
-        }
-        catch
-        {
-            packet = null;
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Encrypts the provided packet using the specified symmetric key and cipher suite.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TSelf Encrypt(TSelf packet, System.Byte[] key, CipherSuiteType algorithm)
-        => EnvelopeEncryptor.Encrypt<TSelf>(packet, key, algorithm);
-
-    /// <summary>
-    /// Decrypts the provided packet using the specified symmetric key.
-    /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TSelf Decrypt(TSelf packet, System.Byte[] key)
-        => EnvelopeEncryptor.Decrypt<TSelf>(packet, key);
-
     /// <inheritdoc/>
     public override void ResetForPool()
     {
+        MagicNumber = s_autoMagic; // Restore type identity — never reset to 0.
+
         // Reset all user-defined serializable properties via compiled delegates.
         // No GetCustomAttribute calls in this path.
-        foreach (PropertyMetadata meta in _metadata.Value)
+        foreach (PropertyMetadata meta in s_metadata.Value)
         {
             if (meta.IsWritable)
             {
@@ -298,7 +255,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
         Flags = PacketFlags.NONE;
         Protocol = ProtocolType.NONE;
         Priority = PacketPriority.NONE;
-        MagicNumber = AutoMagic; // Restore type identity — never reset to 0.
     }
 
     #endregion APIs
@@ -309,18 +265,21 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPacketDeseriali
     /// Returns a debug-friendly description of this packet's metadata.
     /// Not intended for production logging — allocates strings.
     /// </summary>
-    public System.String DetailsMetadata()
+    public System.String GenerateReport()
     {
-        var sb = new System.Text.StringBuilder(128);
-        sb.AppendLine($"[{typeof(TSelf).Name}] AutoMagic=0x{AutoMagic:X8} FixedSize={_cachedFixedSize.Value?.ToString() ?? "dynamic"} Properties={_metadata.Value.Length}");
+        System.Text.StringBuilder sb = new(128);
+        sb.AppendLine($"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={_cachedFixedSize.Value?.ToString() ?? "dynamic"} Properties={s_metadata.Value.Length}");
 
-        foreach (PropertyMetadata meta in _metadata.Value)
+        foreach (PropertyMetadata meta in s_metadata.Value)
         {
             sb.AppendLine($"  {meta}");
         }
 
         return sb.ToString();
     }
+
+    /// <inheritdoc/>
+    public override System.String ToString() => $"{typeof(TSelf).Name}(Magic=0x{MagicNumber:X8}, OpCode={OpCode}, Flags={Flags}, Priority={Priority}, Protocol={Protocol})";
 
     #endregion Diagnostics
 }

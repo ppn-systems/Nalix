@@ -50,6 +50,12 @@ public abstract class FrameBase : IPacket
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.TRANSPORT)] public ProtocolType Protocol { get; set; }
 
+
+    /// <summary>
+    /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
+    /// </summary>
+    [SerializeOrder(PacketHeaderOffset.SEQUENCE_ID)] public System.UInt32 SequenceId { get; set; }
+
     /// <inheritdoc/>
     public abstract void ResetForPool();
 

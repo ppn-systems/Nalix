@@ -3,7 +3,6 @@
 
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Transformation;
 using Nalix.Shared.Extensions;
 
 namespace Nalix.Shared.Registry;
@@ -29,7 +28,6 @@ public sealed class PacketRegistry : IPacketRegistry
 {
     #region Fields
 
-    private readonly System.Collections.Frozen.FrozenDictionary<System.Type, PacketTransformer> _transformers;
     private readonly System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> _deserializers;
 
     #endregion Fields
@@ -40,10 +38,6 @@ public sealed class PacketRegistry : IPacketRegistry
     /// Initializes a new instance of the <see cref="PacketRegistry"/> class using
     /// pre-built frozen lookup tables.
     /// </summary>
-    /// <param name="transformers">
-    /// A frozen dictionary mapping packet <see cref="System.Type"/> to
-    /// <see cref="PacketTransformer"/> delegates.
-    /// </param>
     /// <param name="deserializers">
     /// A frozen dictionary mapping magic numbers to <see cref="PacketDeserializer"/> delegates.
     /// </param>
@@ -51,13 +45,10 @@ public sealed class PacketRegistry : IPacketRegistry
     /// Thrown when either argument is <see langword="null"/>.
     /// </exception>
     public PacketRegistry(
-        System.Collections.Frozen.FrozenDictionary<System.Type, PacketTransformer> transformers,
         System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> deserializers)
     {
-        System.ArgumentNullException.ThrowIfNull(transformers);
         System.ArgumentNullException.ThrowIfNull(deserializers);
 
-        _transformers = transformers;
         _deserializers = deserializers;
     }
 
@@ -81,7 +72,6 @@ public sealed class PacketRegistry : IPacketRegistry
         configure(factory);
         PacketRegistry built = factory.CreateCatalog();
 
-        _transformers = built._transformers;
         _deserializers = built._deserializers;
     }
 
@@ -91,9 +81,6 @@ public sealed class PacketRegistry : IPacketRegistry
 
     /// <inheritdoc/>
     public System.Int32 DeserializerCount => _deserializers.Count;
-
-    /// <inheritdoc/>
-    public System.Int32 TransformerCount => _transformers.Count;
 
     #endregion Diagnostic Properties
 
@@ -137,15 +124,6 @@ public sealed class PacketRegistry : IPacketRegistry
         System.UInt32 magic,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketDeserializer? deserializer)
         => _deserializers.TryGetValue(magic, out deserializer);
-
-    /// <inheritdoc/>
-    public System.Boolean TryGetTransformer(
-        System.Type packetType,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketTransformer transformer)
-    {
-        System.ArgumentNullException.ThrowIfNull(packetType);
-        return _transformers.TryGetValue(packetType, out transformer);
-    }
 
     #endregion Public API
 }
