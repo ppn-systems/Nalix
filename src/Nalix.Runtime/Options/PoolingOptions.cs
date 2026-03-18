@@ -34,7 +34,7 @@ public class PoolingOptions : ConfigurationLoader
     [IniComment("Max pooled IPacketContext instances (default 1024)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "IPacketContext.Capacity must be between 1 and 1,000,000.")]
-    public int PacketContextCapacity { get; set; } = 1024;
+    public int PacketContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PacketContext{T}"/> instances to create at startup.

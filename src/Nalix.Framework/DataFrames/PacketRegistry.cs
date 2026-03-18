@@ -297,13 +297,32 @@ public sealed class PacketRegistry : IPacketRegistry
             return false;
         }
 
-        // Fast path: pool ops available for this type — rent + fill in-place.
+        // Fast path: pool ops available for this type — rent + fill.
         if (_poolOps.TryGetValue(magic, out (Func<IPacket> Rent, Action<IPacket> Return) ops))
         {
-            IPacket pooled = ops.Rent();   // pool.Get<TPacket>() — no new()
-            _ = deserializerInto(raw, ref pooled);
-            packet = pooled;
-            return true;
+            IPacket rented = ops.Rent();   // pool.Get<TPacket>() — no new()
+            IPacket current = rented;
+            try
+            {
+                // The trampoline now returns the actual data-populated instance (Instance B).
+                current = deserializerInto(raw, ref current);
+
+                // IDENTITY SWAP: If the deserializer layer substituted the instance (A -> B),
+                // we must return the original rented instance (A) to the pool immediately.
+                if (!ReferenceEquals(rented, current))
+                {
+                    ops.Return(rented);
+                }
+
+                packet = current;
+                return true;
+            }
+            catch
+            {
+                // Guaranteed return of the original rented instance on catastrophic failure.
+                ops.Return(rented);
+                throw;
+            }
         }
 
         // Fallback: no pool ops (e.g. created from raw FrozenDict ctor) — plain deserialize.

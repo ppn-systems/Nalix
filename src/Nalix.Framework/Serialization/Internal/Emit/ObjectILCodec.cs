@@ -10,11 +10,13 @@ using Nalix.Framework.Serialization.Internal.Reflection;
 /// </summary>
 internal static class ObjectILCodec<T> where T : class, new()
 {
-    public static readonly SerializeDelegate Serialize;
-    public static readonly DeserializeDelegate Deserialize;
-
     public delegate void SerializeDelegate(ref DataWriter writer, T value);
     public delegate T DeserializeDelegate(ref DataReader reader);
+    public delegate void FillDelegate(ref DataReader reader, T value);
+
+    public static readonly SerializeDelegate Serialize;
+    public static readonly DeserializeDelegate Deserialize;
+    public static readonly FillDelegate Fill;
 
     private static readonly FieldSchema[] s_fields;
     private static readonly MethodInfo?[] s_directWriteMethods;
@@ -43,6 +45,7 @@ internal static class ObjectILCodec<T> where T : class, new()
 
         Serialize = GenerateSerialize();
         Deserialize = GenerateDeserialize();
+        Fill = GenerateFill();
     }
 
     private static SerializeDelegate GenerateSerialize()
@@ -93,5 +96,34 @@ internal static class ObjectILCodec<T> where T : class, new()
         il.Emit(OpCodes.Ret);
 
         return (DeserializeDelegate)dm.CreateDelegate(typeof(DeserializeDelegate));
+    }
+
+    private static FillDelegate GenerateFill()
+    {
+        // Emit a high-performance in-place population path. This method takes
+        // an existing instance (arg 1) and writes field data directly into it,
+        // skipping the allocation cost of 'newobj'.
+        DynamicMethod dm = new(
+            $"ObjectFill_{typeof(T).Name}",
+            typeof(void),
+            [typeof(DataReader).MakeByRefType(), typeof(T)],
+            typeof(ObjectILCodec<T>).Module,
+            skipVisibility: true);
+
+        ILGenerator il = dm.GetILGenerator();
+
+        // We copy arg 1 (the instance) to a local to mirror the Deserialize logic exactly.
+        LocalBuilder obj = il.DeclareLocal(typeof(T));
+        il.Emit(OpCodes.Ldarg_1);
+        il.Emit(OpCodes.Stloc, obj);
+
+        for (int i = 0; i < s_fields.Length; i++)
+        {
+            FieldILCodec.EmitReadFieldRef(il, s_fields[i], s_directReadMethods[i], obj);
+        }
+
+        il.Emit(OpCodes.Ret);
+
+        return (FillDelegate)dm.CreateDelegate(typeof(FillDelegate));
     }
 }

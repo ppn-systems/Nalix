@@ -8,7 +8,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
@@ -39,7 +38,7 @@ public sealed class PacketDispatchChannel
     private readonly IPacketRegistry _catalog;
     private readonly DispatchChannel<IPacket> _dispatch;
 
-    private readonly Channel<byte> _wakeChannel;
+    private readonly SemaphoreSlim _wakeSignal;
     private readonly int _maxDrainPerWake;
 
     private int _running;
@@ -70,13 +69,7 @@ public sealed class PacketDispatchChannel
 
         _dispatch = new DispatchChannel<IPacket>();
 
-        _wakeChannel = Channel.CreateUnbounded<byte>(
-            new UnboundedChannelOptions
-            {
-                AllowSynchronousContinuations = false,
-                SingleReader = false,
-                SingleWriter = false
-            });
+        _wakeSignal = new SemaphoreSlim(0, int.MaxValue);
 
         _maxDrainPerWake = Math.Clamp(Environment.ProcessorCount * this.Options.MaxDrainPerWakeMultiplier, this.Options.MinDrainPerWake, this.Options.MaxDrainPerWake);
     }
@@ -134,45 +127,12 @@ public sealed class PacketDispatchChannel
             _workerHandle[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"{TaskNaming.Tags.Dispatch}.{TaskNaming.Tags.Process}.{i}",
                 group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Dispatch}",
-                work: (ctx, ct) =>
+                work: async (ctx, ct) =>
                 {
-                    // This is the TaskManager worker thread (TaskPool).
-                    using ManualResetEventSlim completion = new(false);
-
-                    Thread osThread = new Thread(() =>
-                    {
-                        try
-                        {
-                            this.RunLoopSync(ctx, ct, loopIndex);
-                        }
-                        finally
-                        {
-                            completion.Set();
-                        }
-                    })
-                    {
-                        IsBackground = true,
-                        Name = $"{TaskNaming.Tags.Dispatch}.{TaskNaming.Tags.Process}.{loopIndex}",
-                        Priority = ThreadPriority.Normal
-                    };
-
-                    osThread.Start();
-
-                    // Keep the TaskManager worker alive and beating while the OS thread works.
-                    // This satisfies both Dedicated Thread performance and TaskManager observability.
-                    try
-                    {
-                        while (!completion.Wait(3000, ct))
-                        {
-                            ctx.Beat();
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Signal received from TaskManager or external source.
-                    }
-
-                    return ValueTask.CompletedTask;
+                    // This is now a truly asynchronous worker managed by TaskManager.
+                    // By removing the manual OS thread, we reduce context switching and 
+                    // allow .NET's thread pool to optimize the execution of the async state machine.
+                    await this.RunLoopAsync(ctx, ct, loopIndex).ConfigureAwait(false);
                 },
                 options: new WorkerOptions
                 {
@@ -221,10 +181,7 @@ public sealed class PacketDispatchChannel
             }
 
             int wakeCount = Math.Max(_dispatchLoops, 1);
-            for (int i = 0; i < wakeCount; i++)
-            {
-                _ = _wakeChannel.Writer.TryWrite(0);
-            }
+            _ = _wakeSignal.Release(wakeCount);
         }
         catch (Exception)
         {
@@ -385,80 +342,67 @@ public sealed class PacketDispatchChannel
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private void RunLoopSync(IWorkerContext ctx, CancellationToken ct, int index)
+    private async ValueTask RunLoopAsync(IWorkerContext ctx, CancellationToken ct, int index)
     {
-        // THIS IS THE DEDICATED OS THREAD.
-        // Performance is maximized by omitting async state machines.
+        // PURE ASYNC LOOP.
+        // Performance is maintained by pooled async state machines in .NET 10.
+        // Eliminates Gen 1 GC pressure by removing '.AsTask()' allocations.
 
         try
         {
-            ChannelReader<byte> reader = _wakeChannel.Reader;
-
+            // Loop while work is available, with occasional yields to TaskManager.
             while (Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
             {
-                ctx.Beat();
-
-                ValueTask<bool> wait = reader.WaitToReadAsync(ct);
-                if (wait.IsCompletedSuccessfully)
-                {
-                    if (!wait.Result)
-                    {
-                        break;
-                    }
-                }
-                else
-                {
-                    try
-                    {
-                        if (!wait.AsTask().GetAwaiter().GetResult())
-                        {
-                            break;
-                        }
-                    }
-                    catch (OperationCanceledException) { break; }
-                }
-
-                int wakes = this.DrainWakeSignals();
-                if (wakes > 0)
-                {
-                    _ = Interlocked.Add(ref _wakeReadSignals, wakes);
-                }
-
-                _ = Interlocked.Exchange(ref _wakeRequested, 0);
-
                 int processed = 0;
                 while (processed < _maxDrainPerWake &&
                        _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
                 {
-                    ValueTask pending = this.DispatchLeaseAsync(connection, lease, ct);
-
-                    if (pending.IsCompletedSuccessfully)
-                    {
-                        pending.GetAwaiter().GetResult();
-                    }
-                    else
-                    {
-                        pending.AsTask().GetAwaiter().GetResult();
-                    }
-
+                    // Dispatch directly using await. 
+                    // Zero-allocation for sync completion; Pooled for async.
+                    await this.DispatchLeaseAsync(connection, lease, ct).ConfigureAwait(false);
                     processed++;
                 }
 
                 if (processed > 0)
                 {
                     ctx.Advance(processed);
+                    // If we processed some but were capped by _maxDrainPerWake,
+                    // continue immediately to finish draining without waiting for signal.
+                    if (processed >= _maxDrainPerWake)
+                    {
+                        continue;
+                    }
                 }
 
-                if (_dispatch.HasPacket)
+                // No more packets immediately available.
+                // Reset wake requested flag before waiting.
+                _ = Interlocked.Exchange(ref _wakeRequested, 0);
+
+                // Check again before waiting to avoid lost wake-up.
+                if (_dispatch.TotalPackets > 0)
                 {
-                    this.RequestWake();
+                    continue;
                 }
+
+                try
+                {
+                    // Zero-allocation asynchronous wait.
+                    await _wakeSignal.WaitAsync(ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                ctx.Beat();
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
         catch (Exception ex)
         {
-            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoopSync)}] loop-error index={index}", ex);
+            this.Logging?.Error($"[NW.{nameof(PacketDispatchChannel)}:RunLoopAsync] fatal-loop-error index={index}", ex);
         }
         finally
         {
@@ -473,80 +417,74 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private ValueTask DispatchLeaseAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
+        // 1. Acquire pooled packet via registry (zero alloc)
+        // If TryDeserializePooled fails, it has already returned any partially-deserialized pooled objects.
+        if (!_catalog.TryDeserializePooled(lease.Span, out IPacket? packet) || packet is null)
+        {
+            connection.IncrementErrorCount();
+            lease.Dispose();
+            return ValueTask.CompletedTask;
+        }
+
         try
         {
-            // Use pooled deserialize: Get from pool, fill in-place — no new() per packet.
-            if (!_catalog.TryDeserializePooled(lease.Span, out IPacket? packet) || packet is null)
+            // 2. Execute packet handler
+            ValueTask pending = this.ExecutePacketHandlerAsync(packet, connection, ct);
+
+            // 3. Fast-path: handler completed synchronously
+            if (pending.IsCompletedSuccessfully)
             {
-                connection.IncrementErrorCount();
+                pending.GetAwaiter().GetResult();
+                _catalog.ReturnPacket(packet);
                 lease.Dispose();
                 return ValueTask.CompletedTask;
             }
 
-            ValueTask dispatchPending = this.ExecutePacketHandlerAsync(packet, connection, ct);
-            if (dispatchPending.IsCompletedSuccessfully)
-            {
-                try
-                {
-                    dispatchPending.GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested)
-                {
-                }
-                catch (Exception ex)
-                {
-                    connection.IncrementErrorCount();
-                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
-                }
-                finally
-                {
-                    _catalog.ReturnPacket(packet);   // Return pooled packet after sync handler.
-                    lease.Dispose();
-                }
-
-                return ValueTask.CompletedTask;
-            }
-
-            return AwaitDispatchAsync(this, connection, lease, packet, dispatchPending, ct);
+            // 4. Slow-path: async completion (AwaitDispatchAsync handles Return/Dispose)
+            return AwaitDispatchAsync(this, connection, lease, packet, pending, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            lease.Dispose();
-            return ValueTask.CompletedTask;
+            // External cancellation during sync execution
         }
         catch (Exception ex)
         {
             connection.IncrementErrorCount();
             this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
-            lease.Dispose();
-            return ValueTask.CompletedTask;
         }
 
-        static async ValueTask AwaitDispatchAsync(
-            PacketDispatchChannel owner,
-            IConnection connection,
-            IBufferLease lease,
-            IPacket packet,
-            ValueTask pending,
-            CancellationToken ct)
+        // 5. Cleanup for synchronous errors/cancellation
+        _catalog.ReturnPacket(packet);
+        lease.Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    private static async ValueTask AwaitDispatchAsync(
+        PacketDispatchChannel owner,
+        IConnection connection,
+        IBufferLease lease,
+        IPacket packet,
+        ValueTask pending,
+        CancellationToken ct)
+    {
+        try
         {
-            try
-            {
-                await pending.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-            }
-            catch (Exception ex)
-            {
-                connection.IncrementErrorCount();
-                owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
-            }
-            finally
-            {
-                owner._catalog.ReturnPacket(packet);  // Return pooled packet after async handler.
-                lease.Dispose();
-            }
+            await pending.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Async cancellation
+        }
+        catch (Exception ex)
+        {
+            connection.IncrementErrorCount();
+            owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+        }
+        finally
+        {
+            // Guaranteed release for async path
+            owner._catalog.ReturnPacket(packet);
+            lease.Dispose();
         }
     }
 
@@ -558,23 +496,22 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        if (_wakeChannel.Writer.TryWrite(0))
+        // Wake all workers to ensure maximum throughput under load.
+        // This mimics the old ManualResetEventSlim.Set() behavior where
+        // all threads are released to drain the prioritized queues in parallel.
+        int count = _dispatchLoops;
+        if (count > 0)
         {
-            _ = Interlocked.Increment(ref _wakeSignals);
+            _ = _wakeSignal.Release(count);
         }
+        _ = Interlocked.Increment(ref _wakeSignals);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int DrainWakeSignals()
-    {
-        int drained = 0;
-        while (_wakeChannel.Reader.TryRead(out _))
-        {
-            drained++;
-        }
-
-        return drained;
-    }
+    private int DrainWakeSignals() =>
+        // For SemaphoreSlim, we just clear the requested flag.
+        // The semaphore count will be consumed by the threads.
+        0;
 
     #endregion Private Methods
 
@@ -587,6 +524,7 @@ public sealed class PacketDispatchChannel
     public void Dispose()
     {
         this.Deactivate();
+        _wakeSignal.Dispose();
         _linkedCts?.Dispose();
         _cts?.Dispose();
     }

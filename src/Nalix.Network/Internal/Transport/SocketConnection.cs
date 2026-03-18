@@ -69,7 +69,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     private readonly Socket _socket = socket;
     private readonly ILogger? _logger = logger;
     private FragmentAssembler? _fragmentAssembler;
-    private readonly CancellationTokenSource _cts = new();
 
     /// <summary>
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
@@ -243,24 +242,18 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                         $"saea-receive-loop started ep={_endpointString}");
 #endif
 
-        CancellationTokenSource linked =
-            CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
-
-        Task receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(linked.Token);
+        Task receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(cancellationToken);
         _receiveLoopTask = receiveLoopTask;
 
         _ = receiveLoopTask.ContinueWith(static (t, state) =>
         {
-            (ILogger l, CancellationTokenSource link) =
-                ((ILogger, CancellationTokenSource))state!;
+            ILogger l = (ILogger)state!;
 
             if (t.IsFaulted)
             {
                 l?.Error($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] saea-receive-loop faulted", t.Exception!);
             }
-
-            link.Dispose();
-        }, (_logger, linked), TaskScheduler.Default);
+        }, _logger, TaskScheduler.Default);
     }
     #endregion Public Methods
 
@@ -311,7 +304,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         try
         {
             // The opportunistic loop: read as much as possible, then parse as many frames as possible.
-            while (!token.IsCancellationRequested)
+            while (Volatile.Read(ref _disposed) == 0 && !token.IsCancellationRequested)
             {
                 // Step 1: Parse all complete frames currently in the buffer.
                 int consumed = 0;
@@ -653,7 +646,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             this.INVOKE_CLOSE_ONCE();
 
             // 7. Dispose remaining resources.
-            _cts.Dispose();
             _socket.Dispose();
             Interlocked.Exchange(ref _fragmentAssembler, null)?.Dispose();
         }
@@ -771,8 +763,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         {
             return;
         }
-
-        try { _cts.Cancel(); } catch { /* ignore */ }
     }
 
     private void THROW_IF_NOT_CONFIGURED()

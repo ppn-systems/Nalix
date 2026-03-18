@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -90,22 +89,6 @@ internal sealed class TimingWheel : IActivatable
     /// Uses a custom MPSC structure to avoid the overhead of ConcurrentQueue.
     /// </summary>
     private readonly MpscBucket[] _wheel;
-
-    /// <summary>
-    /// Maps each active connection to the <em>expected</em> version of its live <see cref="TimeoutTask"/>.
-    /// <para>
-    /// When a task is re-scheduled, its <see cref="TimeoutTask.Version"/> is incremented and
-    /// this dictionary is updated to match. Any older task still sitting in a wheel bucket will
-    /// carry a stale version and be discarded (and returned to the pool) by <see cref="RUN_LOOP"/>
-    /// the next time it is dequeued.
-    /// </para>
-    /// <para>
-    /// When <see cref="Unregister"/> is called, the entry is removed entirely. The loop detects
-    /// the missing key via <c>TryGetValue</c> -> <c>false</c> and returns the task to the pool
-    /// without ever touching <c>task.Conn</c> after it might have been reset.
-    /// </para>
-    /// </summary>
-    private readonly ConcurrentDictionary<IConnection, int> _active;
 
     private int _activeListeners;
     private long _tick;
@@ -196,12 +179,8 @@ internal sealed class TimingWheel : IActivatable
         _useMask = (_wheelSize & (_wheelSize - 1)) == 0 && _wheelSize > 0;
         _mask = _useMask ? (_wheelSize - 1) : 0;
 
-        _wheel = new MpscBucket[_wheelSize];
 
-        // Value = expected Version of the live task for this connection.
-        _active = new ConcurrentDictionary<IConnection, int>(
-            Environment.ProcessorCount * 2,
-            1024);
+        _wheel = new MpscBucket[_wheelSize];
 
         _disposed = 0;
     }
@@ -285,7 +264,6 @@ internal sealed class TimingWheel : IActivatable
         try { _worker?.Dispose(); } catch { }
 
         this.DRAIN_AND_RELEASE_ALL_BUCKETS();
-        this.CLEAR_ACTIVE_REGISTRATIONS();
 
         s_logger?.Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
     }
@@ -314,11 +292,12 @@ internal sealed class TimingWheel : IActivatable
         }
 
         // Fast-path: already registered or raced with another register call.
-        // TryAdd makes duplicate Register calls effectively no-ops.
-        if (!_active.TryAdd(connection, 0))
+        if (connection.IsRegisteredInWheel)
         {
             return;
         }
+
+        connection.IsRegisteredInWheel = true;
 
         TimeoutTask? task = null;
         bool subscribed = false;
@@ -328,9 +307,11 @@ internal sealed class TimingWheel : IActivatable
         {
             task = s_poolManager.Get<TimeoutTask>();
             task.Conn = connection;
-            // ResetForPool guarantees this starts at zero, but write it explicitly
-            // so the initial version is obvious in the code path.
-            task.Version = 0;
+
+            // Set version to match current connection version.
+            // When we Register, we use the current version.
+            // When we Unregister, we increment the connection version.
+            task.Version = connection.TimeoutVersion;
 
             long baseTick = Volatile.Read(ref _tick);
             long ticks = Math.Max(1, _idleTimeoutMs / (long)_tickMs);
@@ -365,7 +346,7 @@ internal sealed class TimingWheel : IActivatable
                 connection.OnCloseEvent -= this.OnConnectionClosed;
             }
 
-            _ = _active.TryRemove(connection, out _);
+            connection.IsRegisteredInWheel = false;
             throw;
         }
     }
@@ -397,8 +378,14 @@ internal sealed class TimingWheel : IActivatable
         // Remove from _active so RUN_LOOP knows this task is dead.
         // Do NOT call s_poolManager.Return here — the task is still in the wheel queue.
         // RUN_LOOP will Return it once it dequeues it and finds no matching _active entry.
-        if (_active.TryRemove(connection, out _))
+        if (connection.IsRegisteredInWheel)
         {
+            connection.IsRegisteredInWheel = false;
+
+            // Incrementing the version logically invalidates any task for this connection
+            // currently sitting in the wheel.
+            connection.TimeoutVersion++;
+
             connection.OnCloseEvent -= this.OnConnectionClosed;
         }
     }
@@ -414,7 +401,6 @@ internal sealed class TimingWheel : IActivatable
         }
 
         this.Deactivate();
-        _active.Clear();
     }
 
     #endregion Public APIs
@@ -469,8 +455,8 @@ internal sealed class TimingWheel : IActivatable
                         }
 
                         // ── Stale-task check ──────────────────────────────────────────────
-                        if (!_active.TryGetValue(task.Conn, out int liveVersion)
-                            || liveVersion != task.Version)
+                        // If version mismatch or connection is marked as not in wheel, it's stale.
+                        if (task.Conn.TimeoutVersion != task.Version || !task.Conn.IsRegisteredInWheel)
                         {
                             if (task.Conn is Connection conn)
                             {
@@ -514,7 +500,9 @@ internal sealed class TimingWheel : IActivatable
                                     $"remote={task.Conn.NetworkEndpoint?.Address}", ex);
                             }
 
-                            _ = _active.TryRemove(task.Conn, out _);
+                            task.Conn.IsRegisteredInWheel = false;
+                            task.Conn.TimeoutVersion++;
+
                             if (task.Conn is Connection conn)
                             {
                                 conn._timeoutTask = null;
@@ -528,15 +516,13 @@ internal sealed class TimingWheel : IActivatable
                         long remainingMs = _idleTimeoutMs - idleMs;
                         long ticksMore = Math.Max(1, remainingMs / _tickMs);
 
-                        int newVersion = task.Version + 1;
-                        task.Version = newVersion;
+                        task.Version = task.Conn.TimeoutVersion;
                         task.Rounds = (int)(ticksMore / _wheelSize);
 
                         int nextBucket = _useMask
                             ? (int)((tickToProcess + ticksMore) & _mask)
                             : (int)((tickToProcess + ticksMore) % _wheelSize);
 
-                        _active[task.Conn] = newVersion;
                         _wheel[nextBucket].Enqueue(task);
 
                         task = next;
@@ -594,23 +580,6 @@ internal sealed class TimingWheel : IActivatable
                 task = next;
             }
         }
-    }
-
-    private void CLEAR_ACTIVE_REGISTRATIONS()
-    {
-        foreach (IConnection connection in _active.Keys)
-        {
-            try
-            {
-                connection.OnCloseEvent -= this.OnConnectionClosed;
-            }
-            catch
-            {
-                // Best-effort cleanup only.
-            }
-        }
-
-        _active.Clear();
     }
 
     #endregion Helpers

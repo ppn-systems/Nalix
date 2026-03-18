@@ -127,7 +127,7 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20Poly1305:
                     _ = Salsa20Poly1305.Encrypt(key, nonce, plaintext, authenticatedData, ctDestination, tagDestination);
                     break;
-
+                case CipherSuiteType.None:
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
 
@@ -214,10 +214,10 @@ public static class AeadEngine
                     result = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, authenticatedData, env.Tag, ptSlice);
                     break;
 
+                case CipherSuiteType.None:
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                     throw new System.NotSupportedException("Authenticated decryption is not supported for the selected non-AEAD algorithm.");
-
                 default:
                     ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
                     return;

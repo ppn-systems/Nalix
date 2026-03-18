@@ -37,10 +37,10 @@ public sealed class PoolingOptions : ConfigurationLoader
     /// Set this to at least the number of accept workers (default 20) plus a small buffer.
     /// </para>
     /// </summary>
-    [IniComment("Max pooled AcceptContext instances — set to accept-worker count + buffer (default 1024)")]
+    [IniComment("Max pooled AcceptContext instances — set to accept-worker count + buffer (default 4096)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "AcceptContext.Capacity must be between 1 and 1,000,000.")]
-    public int AcceptContextCapacity { get; set; } = 1024;
+    public int AcceptContextCapacity { get; set; } = 4096;
 
     /// <summary>
     /// Number of <see cref="PooledAcceptContext"/> instances to create at startup.
@@ -61,10 +61,10 @@ public sealed class PoolingOptions : ConfigurationLoader
     /// (one per active connection). Peak usage ≈ accept workers + peak concurrent connections.
     /// </para>
     /// </summary>
-    [IniComment("Max pooled SocketAsyncEventArgs — accept workers + peak connections (default 256)")]
+    [IniComment("Max pooled SocketAsyncEventArgs — accept workers + peak connections (default 4096)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "SocketArgs.Capacity must be between 1 and 1,000,000.")]
-    public int SocketArgsCapacity { get; set; } = 256;
+    public int SocketArgsCapacity { get; set; } = 4096;
 
     /// <summary>
     /// Number of <see cref="PooledSocketAsyncEventArgs"/> instances to create at startup.
@@ -85,10 +85,10 @@ public sealed class PoolingOptions : ConfigurationLoader
     /// Set this to the expected peak concurrent connection count.
     /// </para>
     /// </summary>
-    [IniComment("Max pooled ReceiveContext instances — set to peak concurrent connections (default 256)")]
+    [IniComment("Max pooled ReceiveContext instances — set to peak concurrent connections (default 4096)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "ReceiveContext.Capacity must be between 1 and 1,000,000.")]
-    public int ReceiveContextCapacity { get; set; } = 256;
+    public int ReceiveContextCapacity { get; set; } = 4096;
 
     /// <summary>
     /// Number of <see cref="PooledSocketReceiveContext"/> instances to create at startup.
@@ -103,7 +103,7 @@ public sealed class PoolingOptions : ConfigurationLoader
     #region Timeout Task — one per active connection registered with TimingWheel
 
     /// <summary>
-    /// Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 1024 ).
+    /// Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 8192 ).
     /// <para>
     /// <see cref="TimingWheel"/> allocates one task per registered connection and keeps it
     /// alive until the connection times out or disconnects. Under sustained load the pool
@@ -111,14 +111,14 @@ public sealed class PoolingOptions : ConfigurationLoader
     /// </para>
     /// <para>
     /// Set this to at least the peak concurrent connection count. If the server sees bursts
-    /// (e.g. DDoS) followed by mass disconnect, a higher value (e.g. 1024 ) avoids repeated
+    /// (e.g. DDoS) followed by mass disconnect, a higher value (e.g. 8192 ) avoids repeated
     /// allocation/GC cycles during the burst.
     /// </para>
     /// </summary>
-    [IniComment("Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 1024 )")]
+    [IniComment("Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 8192 )")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "TimeoutTask.Capacity must be between 1 and 1,000,000.")]
-    public int TimeoutTaskCapacity { get; set; } = 1024;
+    public int TimeoutTaskCapacity { get; set; } = 8192;
 
     /// <summary>
     /// TimeoutTask instances to warm up at startup (default 64).
@@ -139,10 +139,10 @@ public sealed class PoolingOptions : ConfigurationLoader
     /// Set this to the expected peak number of queued connection callbacks.
     /// </para>
     /// </summary>
-    [IniComment("Max pooled ConnectEventContext instances — set to peak queued connection callbacks (default 256)")]
+    [IniComment("Max pooled ConnectEventContext instances — set to peak queued connection callbacks (default 4096)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "ConnectEventContext.Capacity must be between 1 and 1,000,000.")]
-    public int ConnectEventContextCapacity { get; set; } = 256;
+    public int ConnectEventContextCapacity { get; set; } = 4096;
 
     /// <summary>
     /// Number of <see cref="PooledConnectEventContext"/> instances to create at startup.

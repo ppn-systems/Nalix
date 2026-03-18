@@ -20,6 +20,18 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     bool IsDisposed { get; }
 
     /// <summary>
+    /// Gets or sets the expected timeout version for this connection.
+    /// Used by TimingWheel to validate if a scheduled timeout task is still current
+    /// without using an external dictionary.
+    /// </summary>
+    int TimeoutVersion { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether this connection is currently registered in the timing wheel.
+    /// </summary>
+    bool IsRegisteredInWheel { get; set; }
+
+    /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>
     ISnowflake ID { get; }

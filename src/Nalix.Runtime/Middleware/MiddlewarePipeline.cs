@@ -149,10 +149,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         }
 
         PooledPipelineContext? runner = this.AcquireRunner();
-        if (runner is null)
-        {
-            runner = s_pool.Get<PooledPipelineContext>();
-        }
+        runner ??= s_pool.Get<PooledPipelineContext>();
 
         // Initialize for full pipeline execution to avoid intermediate closures.
         runner.InitializeFull(this, snapshot, context, handler, ct);
@@ -248,10 +245,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 if ((Interlocked.Or(ref _localPoolMask, bit) & bit) == 0)
                 {
                     ref PooledPipelineContext r = ref _localPool[i];
-                    if (r is null)
-                    {
-                        r = new PooledPipelineContext();
-                    }
+                    r ??= new PooledPipelineContext();
                     return r;
                 }
             }
@@ -267,7 +261,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             {
                 long bit = 1L << i;
                 _localPool[i].ResetForPool();
-                Interlocked.And(ref _localPoolMask, ~bit);
+                _ = Interlocked.And(ref _localPoolMask, ~bit);
                 return;
             }
         }
@@ -452,6 +446,9 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 PipelineStage.Inbound => _snapshot!.Inbound,
                 PipelineStage.OutboundAlways => _snapshot!.OutboundAlways,
                 PipelineStage.Outbound => _snapshot!.Outbound,
+                PipelineStage.None => throw new NotImplementedException(),
+                PipelineStage.Mid => throw new NotImplementedException(),
+                PipelineStage.Finished => throw new NotImplementedException(),
                 _ => []
             };
 
@@ -543,6 +540,14 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
                 case PipelineStage.Outbound:
                     _currentStage = PipelineStage.Finished;
+                    break;
+                case PipelineStage.None:
+                    break;
+                case PipelineStage.Mid:
+                    break;
+                case PipelineStage.Finished:
+                    break;
+                default:
                     break;
             }
         }

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -168,7 +167,7 @@ internal sealed class BufferPoolShared : IDisposable
         // But what if a pinned slab segment fails TryEnqueue because the ring is full?
         // Then we MUST NOT pass the pinned slab array to ArrayPool.Return!
         // For now, we just decrement the counter and let it be collected.
-        
+
         // _arrayPool.Return(buffer.Array); // DANGEROUS for slabs! Removed.
         _ = Interlocked.Decrement(ref _totalBuffers);
     }
@@ -227,7 +226,7 @@ internal sealed class BufferPoolShared : IDisposable
 
             for (int i = 0; i < target; i++)
             {
-                if (_freeBuffers.TryDequeue(out ArraySegment<byte> buf))
+                if (_freeBuffers.TryDequeue(out _))
                 {
                     // We just drop the reference here instead of trying to return it to ArrayPool.
                     // This allows the GC to clean up the pinned slab once all segments are freed.

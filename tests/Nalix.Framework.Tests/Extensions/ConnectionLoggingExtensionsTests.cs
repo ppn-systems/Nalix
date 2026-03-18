@@ -113,6 +113,8 @@ public sealed class ConnectionLoggingExtensionsTests
         public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
         public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.Chacha20Poly1305;
         public int ErrorCount { get; private set; }
+        public int TimeoutVersion { get; set; }
+        public bool IsRegisteredInWheel { get; set; }
         public bool IsDisposed => false;
 
         public event EventHandler<IConnectEventArgs>? OnCloseEvent { add { } remove { } }

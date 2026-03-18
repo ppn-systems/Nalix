@@ -335,28 +335,16 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
     // -------------------------------------------------------------------------
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void BeginOperation()
-    {
-        _ = Interlocked.Increment(ref _activeOps);
-    }
+    private void BeginOperation() => _ = Interlocked.Increment(ref _activeOps);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void EndOperation()
-    {
-        _ = Interlocked.Decrement(ref _activeOps);
-    }
+    private void EndOperation() => _ = Interlocked.Decrement(ref _activeOps);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void BeginConsumerAwait()
-    {
-        Volatile.Write(ref _consumerAwaitPending, 1);
-    }
+    private void BeginConsumerAwait() => Volatile.Write(ref _consumerAwaitPending, 1);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void EndConsumerAwait()
-    {
-        _ = Interlocked.Exchange(ref _consumerAwaitPending, 0);
-    }
+    private void EndConsumerAwait() => _ = Interlocked.Exchange(ref _consumerAwaitPending, 0);
 
     ValueTaskSourceStatus IValueTaskSource<int>.GetStatus(short token)
         => _receiveSource.GetStatus(token);

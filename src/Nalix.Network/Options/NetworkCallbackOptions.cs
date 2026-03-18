@@ -107,6 +107,14 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
         ErrorMessage = "MaxPooledCallbackStates must be between 64 and 100,000.")]
     public int MaxPooledCallbackStates { get; set; } = 1_000;
 
+    /// <summary>
+    /// Size of the fixed-size array used for Layer 2 per-IP fairness tracking.
+    /// Larger values reduce hash collisions (false backpressure) but consume more memory.
+    /// </summary>
+    [IniComment("Size of the fixed-size fairness map array (default 4096)")]
+    [System.ComponentModel.DataAnnotations.Range(1024, 65536, ErrorMessage = "FairnessMapSize must be between 1024 and 65536.")]
+    public int FairnessMapSize { get; set; } = 4096;
+
     #endregion Layer 2 — Global and per-IP callback caps
 
     /// <summary>

@@ -855,7 +855,7 @@ public struct Poly1305
         uint h2 = (product[6] >> 2) | (product[7] << 30);
         uint h3 = (product[7] >> 2) | (product[8] << 30);
         uint h4 = (product[8] >> 2) | (product[9] << 30);
-        uint h5 = (product[9] >> 2);
+        uint h5 = product[9] >> 2;
 
         result[0] = product[0];
         result[1] = product[1];
@@ -864,19 +864,19 @@ public struct Poly1305
         result[4] = product[4] & 3;
 
         // result += H * 5
-        ulong c = (ulong)h0 * 5 + result[0];
+        ulong c = ((ulong)h0 * 5) + result[0];
         result[0] = (uint)c;
         c >>= 32;
-        c += (ulong)h1 * 5 + result[1];
+        c += ((ulong)h1 * 5) + result[1];
         result[1] = (uint)c;
         c >>= 32;
-        c += (ulong)h2 * 5 + result[2];
+        c += ((ulong)h2 * 5) + result[2];
         result[2] = (uint)c;
         c >>= 32;
-        c += (ulong)h3 * 5 + result[3];
+        c += ((ulong)h3 * 5) + result[3];
         result[3] = (uint)c;
         c >>= 32;
-        c += (ulong)h4 * 5 + result[4];
+        c += ((ulong)h4 * 5) + result[4];
         result[4] = (uint)c;
         c >>= 32;
         c += (ulong)h5 * 5;
