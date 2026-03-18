@@ -9,7 +9,6 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Extensions;
 using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Serialization;
 
@@ -21,7 +20,7 @@ namespace Nalix.Shared.Frames.Text;
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("TEXT512 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
-public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>, IPacketCompressor<Text512>
+public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
 {
     /// <inheritdoc/>
     public const System.Int32 DynamicSize = 512;
@@ -88,42 +87,6 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>, IPack
                                     .Return(packet);
             throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.");
         }
-
-        return packet;
-    }
-
-    /// <summary>
-    /// Compresses the packet content (UTF-8 → LZ4 → Base64).
-    /// </summary>
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static Text512 Compress(Text512 packet)
-    {
-        if (packet?.Content == null)
-        {
-            throw new System.ArgumentNullException(nameof(packet));
-        }
-
-        packet.Content = packet.Content.CompressToBase64();
-        packet.Flags = packet.Flags.AddFlag(PacketFlags.COMPRESSED);
-
-        return packet;
-    }
-
-    /// <summary>
-    /// Decompresses the packet content (Base64 → LZ4 → UTF-8).
-    /// </summary>
-    /// <remarks><b>Internal infrastructure API. Do not call directly.</b></remarks>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public static Text512 Decompress(Text512 packet)
-    {
-        if (packet?.Content == null)
-        {
-            throw new System.ArgumentNullException(nameof(packet));
-        }
-
-        packet.Content = packet.Content.DecompressFromBase64();
-        packet.Flags = packet.Flags.RemoveFlag(PacketFlags.COMPRESSED);
 
         return packet;
     }

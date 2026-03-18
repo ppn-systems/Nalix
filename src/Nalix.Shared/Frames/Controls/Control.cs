@@ -19,33 +19,27 @@ namespace Nalix.Shared.Frames.Controls;
 public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned, IPacketSequenced
 {
     /// <summary>
-    /// Gets or sets the sequence identifier for this packet.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 0)]
-    public System.UInt32 SequenceId { get; set; }
-
-    /// <summary>
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 0)]
     public ProtocolReason Reason { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 2)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the timestamp associated with this packet.s
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 3)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 2)]
     public System.Int64 Timestamp { get; set; }
 
     /// <summary>
     /// Gets or sets the monotonic timestamp (in ticks) for RTT measurement.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 4)]
+    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 3)]
     public System.Int64 MonoTicks { get; set; }
 
     /// <summary>

@@ -246,17 +246,9 @@ internal sealed class PropertyMetadata
     /// </summary>
     private static System.Object? ComputeDefaultValue(System.Type type)
     {
-        if (type == typeof(System.Byte[]))
-        {
-            return System.Array.Empty<System.Byte>();
-        }
-
-        if (type == typeof(System.String))
-        {
-            return System.String.Empty;
-        }
-
-        return type.IsValueType ? System.Activator.CreateInstance(type) : null;
+        return type == typeof(System.Byte[])
+            ? System.Array.Empty<System.Byte>()
+            : type == typeof(System.String) ? System.String.Empty : type.IsValueType ? System.Activator.CreateInstance(type) : null;
     }
 
     #endregion Private Static Helpers

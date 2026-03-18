@@ -2,10 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics.Abstractions;
-using Nalix.Common.Middleware.Attributes;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Transformation;
-using Nalix.Common.Security.Enums;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Frames.Text;
@@ -14,11 +12,11 @@ namespace Nalix.Shared.Registry;
 
 /// <summary>
 /// Builds an immutable <see cref="PacketRegistry"/> by scanning packet types and
-/// binding their static transformation functions with maximum performance.
+/// binding their static deserialize functions with maximum performance.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This implementation binds packet transformation methods using <b>unsafe function
+/// This implementation binds packet deserialize methods using <b>unsafe function
 /// pointers</b> (<c>delegate*</c>) to eliminate delegate allocation and reduce
 /// indirection in the hot path. Public-facing delegates are created only once at
 /// build time as thin facades that jump directly to these function pointers.
@@ -28,26 +26,16 @@ namespace Nalix.Shared.Registry;
 /// <list type="bullet">
 ///   <item>Implements <see cref="IPacket"/>.</item>
 ///   <item>Implements the static abstract members defined by
-///         <see cref="IPacketTransformer{TPacket}"/> on the concrete packet type.</item>
+///         <see cref="IPacketDeserializer{TPacket}"/> on the concrete packet type.</item>
 /// </list>
 /// </para>
-/// <para>
-/// If <see cref="PipelineManagedTransformAttribute"/> is present on a packet type,
-/// transformer binding is skipped (deserializer may still be bound).
-/// </para>
 /// </remarks>
-[System.Diagnostics.DebuggerDisplay("C={HasCompress}, D={HasDecompress}, E={HasEncrypt}, R={HasDecrypt}")]
 public sealed class PacketRegistryFactory
 {
     #region Static: Defaults & Utilities
 
-    private const System.Reflection.BindingFlags StaticNonPublic =
-        System.Reflection.BindingFlags.NonPublic |
-        System.Reflection.BindingFlags.Static;
-
-    private const System.Reflection.BindingFlags StaticPublic =
-        System.Reflection.BindingFlags.Public |
-        System.Reflection.BindingFlags.Static;
+    private const System.Reflection.BindingFlags StaticPublic = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static;
+    private const System.Reflection.BindingFlags StaticNonPublic = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
 
     private static readonly System.Reflection.MethodInfo BindAllPtrsMi;
 
@@ -64,8 +52,7 @@ public sealed class PacketRegistryFactory
 
     // namespace → recursive flag
     // Key: namespace string (exact or prefix match when recursive=true)
-    private readonly System.Collections.Generic.Dictionary<System.String, System.Boolean> _namespaceScan
-        = new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.Dictionary<System.String, System.Boolean> _namespaceScan = new(System.StringComparer.Ordinal);
 
     #endregion Fields
 
@@ -206,7 +193,7 @@ public sealed class PacketRegistryFactory
     }
 
     /// <summary>
-    /// Builds an immutable catalog of packet deserializers and transformers.
+    /// Builds an immutable catalog of packet deserializers.
     /// </summary>
     /// <exception cref="System.InvalidOperationException">
     /// Thrown when duplicate magic numbers are detected.
@@ -216,7 +203,6 @@ public sealed class PacketRegistryFactory
         System.Int32 estimated =
             System.Math.Max(16, _explicitPacketTypes.Count + System.Math.Min(64, _assemblies.Count * 8));
 
-        System.Collections.Generic.Dictionary<System.Type, PacketTransformer> transformers = new(estimated);
         System.Collections.Generic.Dictionary<System.UInt32, PacketDeserializer> deserializers = new(estimated);
 
         // ── 1. Collect candidates ────────────────────────────────────────────────
@@ -282,32 +268,11 @@ public sealed class PacketRegistryFactory
         foreach (System.Type type in candidates)
         {
             System.UInt32 key = Compute(type);
-            System.Boolean pipelineManaged = type.IsDefined(typeof(PipelineManagedTransformAttribute), inherit: false);
 
             System.Reflection.MethodInfo? miDeserialize = FIND_STATIC_METHOD(
                 type, StaticPublic,
                 nameof(IPacketDeserializer<>.Deserialize),
                 [typeof(System.ReadOnlySpan<System.Byte>)]);
-
-            System.Reflection.MethodInfo? miEncrypt = FIND_STATIC_METHOD(
-                type, StaticPublic,
-                nameof(IPacketEncryptor<>.Encrypt),
-                [type, typeof(System.Byte[]), typeof(CipherSuiteType)]);
-
-            System.Reflection.MethodInfo? miDecrypt = FIND_STATIC_METHOD(
-                type, StaticPublic,
-                nameof(IPacketEncryptor<>.Decrypt),
-                [type, typeof(System.Byte[])]);
-
-            System.Reflection.MethodInfo? miCompress = FIND_STATIC_METHOD(
-                type, StaticPublic,
-                nameof(IPacketCompressor<>.Compress),
-                [type]);
-
-            System.Reflection.MethodInfo? miDecompress = FIND_STATIC_METHOD(
-                type, StaticPublic,
-                nameof(IPacketCompressor<>.Decompress),
-                [type]);
 
             // ── Deserializer (required) ──────────────────────────────────────────
             if (miDeserialize is null)
@@ -328,7 +293,7 @@ public sealed class PacketRegistryFactory
             // Bind deserialize pointer into PacketFunctionTable<TPacket>
             try
             {
-                BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize, null, null, null, null]);
+                BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize]);
             }
             catch (System.Exception ex)
             {
@@ -337,7 +302,7 @@ public sealed class PacketRegistryFactory
             }
 
             System.Type tbl = typeof(PacketFunctionTable<>).MakeGenericType(type);
-            System.Reflection.MethodInfo doDeserializeMi = null!;
+            System.Reflection.MethodInfo doDeserializeMi;
             try
             {
                 doDeserializeMi = tbl.GetMethod(nameof(PacketFunctionTable<>.InvokeDeserialize), StaticNonPublic | StaticPublic)!;
@@ -357,64 +322,11 @@ public sealed class PacketRegistryFactory
                 INFO($"delegate-create-fail type={type.Name} err={ex.Message}");
                 continue;
             }
-
-            // ── Transformer ──────────────────────────────────────────────────────
-            if (pipelineManaged)
-            {
-                INFO($"pipeline-managed type={type.Name}");
-                transformers[type] = new PacketTransformer(null, null, null, null);
-                continue;
-            }
-
-            try
-            {
-                BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [null, miCompress, miDecompress, miEncrypt, miDecrypt]);
-            }
-            catch (System.Exception ex)
-            {
-                INFO($"bind-transform-fail type={type.Name} err={ex.Message}");
-                continue;
-            }
-
-            System.Type fnType = typeof(PacketFunctionTable<>).MakeGenericType(type);
-
-            System.Func<IPacket, IPacket>? compressDel = null;
-            System.Func<IPacket, IPacket>? decompressDel = null;
-            System.Func<IPacket, System.Byte[], IPacket>? decryptDel = null;
-            System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>? encryptDel = null;
-
-            System.Reflection.MethodInfo invokeEncryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeEncrypt), StaticNonPublic | StaticPublic)!;
-            System.Reflection.MethodInfo invokeDecryptMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecrypt), StaticNonPublic | StaticPublic)!;
-            System.Reflection.MethodInfo invokeCompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeCompress), StaticNonPublic | StaticPublic)!;
-            System.Reflection.MethodInfo invokeDecompressMi = fnType.GetMethod(nameof(PacketFunctionTable<>.InvokeDecompress), StaticNonPublic | StaticPublic)!;
-
-            if (miCompress is not null)
-            {
-                compressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), invokeCompressMi);
-            }
-
-            if (miDecompress is not null)
-            {
-                decompressDel = (System.Func<IPacket, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, IPacket>), invokeDecompressMi);
-            }
-
-            if (miEncrypt is not null)
-            {
-                encryptDel = (System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], CipherSuiteType, IPacket>), invokeEncryptMi);
-            }
-
-            if (miDecrypt is not null)
-            {
-                decryptDel = (System.Func<IPacket, System.Byte[], IPacket>)System.Delegate.CreateDelegate(typeof(System.Func<IPacket, System.Byte[], IPacket>), invokeDecryptMi);
-            }
-
-            transformers[type] = new PacketTransformer(compressDel, decompressDel, encryptDel, decryptDel);
         }
 
-        INFO($"build-ok packets={deserializers.Count} transformers={transformers.Count}");
+        INFO($"build-ok packets={deserializers.Count}");
 
         return new PacketRegistry(
-            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(transformers),
             System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers));
     }
 
@@ -577,54 +489,14 @@ public sealed class PacketRegistryFactory
     private static unsafe class PacketFunctionTable<TPacket> where TPacket : IPacket
     {
         public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializePtr;
-        public static delegate* managed<TPacket, TPacket> CompressPtr;
-        public static delegate* managed<TPacket, TPacket> DecompressPtr;
-        public static delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket> EncryptPtr;
-        public static delegate* managed<TPacket, System.Byte[], TPacket> DecryptPtr;
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static IPacket InvokeDeserialize(System.ReadOnlySpan<System.Byte> raw) => DeserializePtr(raw);
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeCompress(IPacket p) => CompressPtr((TPacket)p);
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeDecompress(IPacket p) => DecompressPtr((TPacket)p);
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeEncrypt(IPacket p, System.Byte[] key, CipherSuiteType alg) => EncryptPtr((TPacket)p, key, alg);
-
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeDecrypt(IPacket p, System.Byte[] key) => DecryptPtr((TPacket)p, key);
     }
 
     #endregion Private: Function Pointer Table
 
     #region Private: Binding Helpers
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, TPacket>
-        BindUnaryPtr<TPacket>(System.Reflection.MethodInfo mi)
-    {
-        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
-        return (delegate* managed<TPacket, TPacket>)ptr;
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket>
-        BindEncryptPtr<TPacket>(System.Reflection.MethodInfo mi)
-    {
-        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
-        return (delegate* managed<TPacket, System.Byte[], CipherSuiteType, TPacket>)ptr;
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<TPacket, System.Byte[], TPacket>
-        BindDecryptPtr<TPacket>(System.Reflection.MethodInfo mi)
-    {
-        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
-        return (delegate* managed<TPacket, System.Byte[], TPacket>)ptr;
-    }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>
@@ -636,48 +508,15 @@ public sealed class PacketRegistryFactory
 
     /// <summary>
     /// Generic trampoline invoked via reflected <see cref="BindAllPtrsMi"/>.
-    /// Assigns function pointers to <see cref="PacketFunctionTable{TPacket}"/>
-    /// for each non-null method info provided.
+    /// Assigns the deserialize function pointer to <see cref="PacketFunctionTable{TPacket}"/>.
     /// </summary>
     private static unsafe void BindPtrs<TPacket>(
-        System.Reflection.MethodInfo? miDeserialize,
-        System.Reflection.MethodInfo? miCompress,
-        System.Reflection.MethodInfo? miDecompress,
-        System.Reflection.MethodInfo? miEncrypt,
-        System.Reflection.MethodInfo? miDecrypt) where TPacket : IPacket
+        System.Reflection.MethodInfo miDeserialize) where TPacket : IPacket
     {
-        if (miDeserialize is not null)
-        {
-            PacketFunctionTable<TPacket>.DeserializePtr = BindDeserializePtr<TPacket>(miDeserialize);
-        }
-
-        if (miCompress is not null)
-        {
-            PacketFunctionTable<TPacket>.CompressPtr = BindUnaryPtr<TPacket>(miCompress);
-        }
-
-        if (miDecompress is not null)
-        {
-            PacketFunctionTable<TPacket>.DecompressPtr = BindUnaryPtr<TPacket>(miDecompress);
-        }
-
-        if (miEncrypt is not null)
-        {
-            PacketFunctionTable<TPacket>.EncryptPtr = BindEncryptPtr<TPacket>(miEncrypt);
-        }
-
-        if (miDecrypt is not null)
-        {
-            PacketFunctionTable<TPacket>.DecryptPtr = BindDecryptPtr<TPacket>(miDecrypt);
-        }
+        PacketFunctionTable<TPacket>.DeserializePtr = BindDeserializePtr<TPacket>(miDeserialize);
 
         Logger?.Meta(
-            $"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} " +
-            $"des={(miDeserialize is not null ? "+" : "-")} " +
-            $"cmp={(miCompress is not null ? "+" : "-")} " +
-            $"dcmp={(miDecompress is not null ? "+" : "-")} " +
-            $"enc={(miEncrypt is not null ? "+" : "-")} " +
-            $"dec={(miDecrypt is not null ? "+" : "-")}");
+            $"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
     }
 
     #endregion Private: Binding Helpers
