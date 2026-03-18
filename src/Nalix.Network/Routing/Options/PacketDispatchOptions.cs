@@ -48,7 +48,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// Gets the logger instance used for logging within the packet dispatch options.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    public ILogger Logger { get; private set; }
+    public ILogger Logging { get; private set; }
 
     #endregion Properties
 }
