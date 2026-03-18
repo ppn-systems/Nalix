@@ -7,6 +7,7 @@
 
 using Nalix.Common.Security.Enums;
 using Nalix.Framework.Random;
+using Nalix.Shared.Security.Internal;
 using Nalix.Shared.Security.Symmetric;
 
 namespace Nalix.Shared.Security.Engine;
@@ -135,17 +136,10 @@ public static class SymmetricEngine
         System.UInt64 counter = seqVal;
         System.Span<System.Byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + nonce.Length, plaintext.Length);
 
-        try
-        {
-            Encrypt(algorithm, key, nonce, counter, plaintext, ctSlice, out _);
-            EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctSlice);
-            written = total;
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        Encrypt(algorithm, key, nonce, counter, plaintext, ctSlice, out _);
+        EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctSlice);
+        written = total;
+        return true;
     }
 
     /// <summary>
@@ -168,15 +162,8 @@ public static class SymmetricEngine
             return false;
         }
 
-        try
-        {
-            Encrypt(env.AeadType, key, env.Nonce, env.Seq, env.Ciphertext, plaintext, out written);
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        Encrypt(env.AeadType, key, env.Nonce, env.Seq, env.Ciphertext, plaintext, out written);
+        return true;
     }
 
     #endregion Envelope API

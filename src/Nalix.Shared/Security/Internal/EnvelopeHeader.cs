@@ -14,13 +14,12 @@
 
 using Nalix.Common.Security.Enums;
 
-
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Security;
+namespace Nalix.Shared.Security.Internal;
 
 [System.Diagnostics.DebuggerNonUserCode]
 internal readonly struct EnvelopeHeader
