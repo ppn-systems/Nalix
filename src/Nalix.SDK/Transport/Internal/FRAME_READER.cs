@@ -5,7 +5,6 @@ using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
 using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.SDK.Transport.Internal;
 
@@ -25,9 +24,6 @@ internal sealed class FRAME_READER(
     System.Action<System.Exception> onError,
     System.Action<System.Int32> reportBytesReceived)
 {
-    private readonly BufferPoolManager _bufferPool =
-        InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
-
     private readonly TransportOptions _options =
         options ?? throw new System.ArgumentNullException(nameof(options));
 
@@ -101,7 +97,7 @@ internal sealed class FRAME_READER(
                     System.Int32 payloadLen = totalLen - TcpSession.HeaderSize;
 
                     // 2) Rent buffer for full frame and read payload
-                    System.Byte[] rented = _bufferPool.Rent(totalLen);
+                    System.Byte[] rented = BufferLease.ByteArrayPool.Rent(totalLen);
                     System.Boolean ownershipTransferred = false;
                     try
                     {
@@ -168,7 +164,7 @@ internal sealed class FRAME_READER(
                         {
                             try
                             {
-                                _bufferPool.Return(rented);
+                                BufferLease.ByteArrayPool.Return(rented);
                                 _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] returned-rented-buffer size={rented?.Length} endpoint={FORMAT_ENDPOINT(s)}");
                             }
                             catch (System.Exception returnEx)

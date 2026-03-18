@@ -149,19 +149,19 @@ public abstract partial class TcpListenerBase : IListener, IReportable
 
         // Configure object pools for accept contexts and socket async event args based on the provided options.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledAcceptContext>(options.AcceptContext_Capacity);
+                                    .SetMaxCapacity<PooledAcceptContext>(options.AcceptContextCapacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledProcessContext>(options.ProcessContext_Capacity);
+                                    .SetMaxCapacity<PooledListenerProcessContext>(options.ListenerContextCapacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgs_Capacity);
+                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsCapacity);
 
         // Preallocate objects in the pools to improve performance and reduce latency during runtime.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledAcceptContext>(options.AcceptContext_Preallocate);
+                                    .Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledProcessContext>(options.ProcessContext_Preallocate);
+                                    .Prealloc<PooledListenerProcessContext>(options.ListenerContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgs_Preallocate);
+                                    .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
     }
 
     /// <summary>
