@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Internal.PoolTypes;
 using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 
