@@ -33,10 +33,10 @@ internal sealed class BufferLeaseCache : System.IDisposable
     private readonly System.Int64 _startTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
     private readonly System.Threading.ReaderWriterLockSlim _callbackLock = new();
 
-    private System.Int32 _isCallbackSet;
-    private System.Int64 _lastPingTime;
-    private System.Int64 _droppedPackets;
     private System.Int32 _disposed;
+    private System.Int64 _lastPingTime;
+    private System.Int32 _isCallbackSet;
+    private System.Int64 _droppedPackets;
 
     #endregion Fields
 
@@ -138,8 +138,7 @@ internal sealed class BufferLeaseCache : System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void PushIncoming(BufferLease data)
     {
-        if (data == null)
-            throw new System.ArgumentNullException(nameof(data));
+        System.ArgumentNullException.ThrowIfNull(data);
 
         if (System.Threading.Volatile.Read(ref _disposed) != 0)
         {
@@ -157,7 +156,7 @@ internal sealed class BufferLeaseCache : System.IDisposable
         // Handle cache overflow
         if (this.Incoming.IsFull)
         {
-            if (this.Incoming.TryPop(out BufferLease oldLease))
+            if (this.Incoming.TryPop(out BufferLease oldLease) && oldLease != null)
             {
                 (oldLease as System.IDisposable)?.Dispose();
                 System.Threading.Interlocked.Increment(ref _droppedPackets);
@@ -205,7 +204,7 @@ internal sealed class BufferLeaseCache : System.IDisposable
             _cachedArgs = null;
 
             // Dispose all cached items before clearing
-            while (this.Incoming.TryPop(out BufferLease lease))
+            while (this.Incoming.TryPop(out BufferLease lease) && lease != null)
             {
                 (lease as System.IDisposable)?.Dispose();
             }

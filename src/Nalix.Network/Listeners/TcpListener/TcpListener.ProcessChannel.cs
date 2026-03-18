@@ -9,11 +9,11 @@ public abstract partial class TcpListenerBase
 {
     #region Fields
 
-    // Bounded channel: N producers (accept-loop workers) → 1 consumer (BelowNormal thread).
-    private System.Threading.Channels.Channel<IConnection> _processChannel;
-
     // Dedicated consumer thread — drains the channel at BelowNormal priority.
     private System.Threading.Thread _processThread;
+
+    // Bounded channel: N producers (accept-loop workers) → 1 consumer (BelowNormal thread).
+    private System.Threading.Channels.Channel<IConnection> _processChannel;
 
     #endregion Fields
 

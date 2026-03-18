@@ -133,7 +133,7 @@ public abstract partial class TcpListenerBase
                     IConnection connection = this.InitializeConnection(socket, context);
 
                     // Process the connection
-                    PooledProcessContext ctx = s_pool.Get<PooledProcessContext>();
+                    PooledListenerProcessContext ctx = s_pool.Get<PooledListenerProcessContext>();
 
                     ctx.Listener = this;
                     ctx.Connection = connection;
@@ -323,6 +323,11 @@ public abstract partial class TcpListenerBase
             }
             catch (InternalErrorException)
             {
+                if (cancellationToken.IsCancellationRequested || State != ListenerState.RUNNING)
+                {
+                    break;
+                }
+
                 // Rate-limited / rejected connection — tiếp tục
                 await System.Threading.Tasks.Task.Delay(10, System.Threading.CancellationToken.None)
                                                  .ConfigureAwait(false);
@@ -359,7 +364,7 @@ public abstract partial class TcpListenerBase
             s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accepted remote={connection.EndPoint} port={_port}");
 #endif
 
-            PooledProcessContext pctx = s_pool.Get<PooledProcessContext>();
+            PooledListenerProcessContext pctx = s_pool.Get<PooledListenerProcessContext>();
             pctx.Listener = this;
             pctx.Connection = connection;
 
@@ -411,6 +416,19 @@ public abstract partial class TcpListenerBase
             }
 
             return this.InitializeConnection(socket, context);
+        }
+        catch (System.OperationCanceledException)
+        {
+            if (!contextReturned)
+            {
+                s_pool.Return<PooledAcceptContext>(context);
+            }
+
+            throw;
+        }
+        catch (InternalErrorException)
+        {
+            throw;
         }
         catch (System.Exception ex)
         {

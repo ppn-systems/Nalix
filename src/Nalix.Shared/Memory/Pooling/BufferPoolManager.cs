@@ -180,25 +180,25 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Byte[] Rent([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 size = 256)
+    public System.Byte[] Rent([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 minimumLength = 256)
     {
-        if (IS_FAST_COMMON_SIZE(size))
+        if (IS_FAST_COMMON_SIZE(minimumLength))
         {
-            return _poolManager.RentBuffer(size);
+            return _poolManager.RentBuffer(minimumLength);
         }
 
-        if (_suitablePoolSizeCache.TryGetValue(size, out System.Int32 cachedPoolSize))
+        if (_suitablePoolSizeCache.TryGetValue(minimumLength, out System.Int32 cachedPoolSize))
         {
             return _poolManager.RentBuffer(cachedPoolSize);
         }
 
         try
         {
-            return RENT_FROM_POOLS_WITH_CACHING(size);
+            return RENT_FROM_POOLS_WITH_CACHING(minimumLength);
         }
         catch (System.ArgumentException ex)
         {
-            return HANDLE_RENT_FAILURE(size, ex);
+            return HANDLE_RENT_FAILURE(minimumLength, ex);
         }
     }
 
@@ -208,20 +208,22 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Return([System.Diagnostics.CodeAnalysis.MaybeNull] System.Byte[]? buffer)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    public void Return(System.Byte[]? array, System.Boolean arrayClear = false)
     {
-        if (buffer is null)
+        if (array is null)
         {
             return;
         }
 
         try
         {
-            RETURN_TO_MANAGED_POOLS(buffer);
+            RETURN_TO_MANAGED_POOLS(array);
         }
         catch (System.ArgumentException ex)
         {
-            HANDLE_RETURN_FAILURE(buffer, ex);
+            HANDLE_RETURN_FAILURE(array, ex);
         }
     }
 
@@ -256,8 +258,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Return(System.ArraySegment<System.Byte> segment)
-        => this.Return(segment.Array);
+    public void Return(System.ArraySegment<System.Byte> segment) => this.Return(segment.Array);
 
     /// <summary>
     /// Rents a buffer from the pool and assigns it to the given
@@ -393,7 +394,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         if (_config.EnableAnalytics)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(BufferPoolManager)}:Internal] rent-fast size={size}");
+                                    .Trace($"[{nameof(BufferPoolManager)}:Internal] rent-fast minimumLength={size}");
         }
 
         CACHE_SUITABLE_POOL_SIZE(size, buffer.Length);
@@ -430,13 +431,13 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         if (_config.FallbackToArrayPool)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] fallback size={size} msg={ex.Message}");
+                                    .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
 
             return _fallbackArrayPool.Rent(size);
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error($"[SH.{nameof(BufferPoolManager)}:Internal] rent-fail size={size} msg={ex.Message}", ex);
+                                .Error($"[SH.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}", ex);
         throw ex;
     }
 
@@ -453,7 +454,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         if (_config.EnableAnalytics)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] return size={buffer.Length}");
+                                    .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] return minimumLength={buffer.Length}");
         }
     }
 
@@ -476,13 +477,13 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
             _fallbackArrayPool.Return(buffer, clearArray: false);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(BufferPoolManager)}:Internal] return-fallback size={buffer.Length}");
+                                    .Debug($"[SH.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
 
             return;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] return-fail size={buffer.Length} msg={ex.Message}");
+                                .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] return-fail minimumLength={buffer.Length} msg={ex.Message}");
     }
 
     #endregion Private: Rent / Return helpers
@@ -681,7 +682,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Meta($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                      $"trim-shrink size={info.BufferSize} step={shrinkStep} usage={usage:F2}% " +
+                                      $"trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}% " +
                                       $"remain={info.TotalBuffers - shrinkStep}");
     }
 
@@ -734,7 +735,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink size={latest.BufferSize} by={buffersToShrink}");
+                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={latest.BufferSize} by={buffersToShrink}");
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -783,7 +784,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         if (IS_OVER_MEMORY_BUDGET())
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] skip-increase size={poolInfo.BufferSize} over budget");
+                                    .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] skip-increase minimumLength={poolInfo.BufferSize} over budget");
             return;
         }
 
@@ -803,7 +804,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                       $"increase size={poolInfo.BufferSize} by={increaseStep} usage={usage:F2}% miss={missRatio:F2}%");
+                                       $"increase minimumLength={poolInfo.BufferSize} by={increaseStep} usage={usage:F2}% miss={missRatio:F2}%");
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -868,7 +869,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void APPEND_REPORT_POOL_DETAILS(System.Text.StringBuilder sb)
     {
-        _ = sb.AppendLine("BufferPool Details:");
+        _ = sb.AppendLine("s_pool Details:");
         _ = sb.AppendLine("----------------------------------------------------------------------");
         _ = sb.AppendLine("SIZE     | Total  | Free   | In Use  | Usage %  | MissRate");
         _ = sb.AppendLine("----------------------------------------------------------------------");
@@ -893,7 +894,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     private void APPEND_REPORT_METRICS(System.Text.StringBuilder sb)
     {
         _ = sb.AppendLine();
-        _ = sb.AppendLine("Pool Metrics (Shrink/Expand Operations):");
+        _ = sb.AppendLine("s_pool Metrics (Shrink/Expand Operations):");
         _ = sb.AppendLine("----------------------------------------------------------------------");
         _ = sb.AppendLine("SIZE     | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
         _ = sb.AppendLine("----------------------------------------------------------------------");

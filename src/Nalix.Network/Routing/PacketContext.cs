@@ -118,10 +118,10 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PacketContext<TPacket>>(options.PacketContext_Capacity);
+                                    .Prealloc<PacketContext<TPacket>>(options.PacketContextCapacity);
 
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PacketContext<TPacket>>(options.PacketContext_Preallocate);
+                                    .SetMaxCapacity<PacketContext<TPacket>>(options.PacketContextPreallocate);
     }
 
 

@@ -30,7 +30,7 @@ public readonly struct PacketMetadata(
     /// <summary>
     /// Gets the operation code attribute which uniquely identifies the type of packet.
     /// </summary>
-    public readonly PacketOpcodeAttribute OpCode = opCode;
+    public readonly PacketOpcodeAttribute PacketOpcode = opCode;
 
     /// <summary>
     /// Gets the optional timeout attribute which defines the time duration

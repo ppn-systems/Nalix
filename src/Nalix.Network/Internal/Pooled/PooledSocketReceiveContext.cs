@@ -32,7 +32,7 @@ namespace Nalix.Network.Internal.Pooled;
 /// <b>Bug fixes vs previous revision:</b>
 /// <list type="bullet">
 ///   <item>
-///     Static <c>AsyncReceiveCompleted</c> now carries the <see cref="PooledReceiveContext"/>
+///     Static <c>AsyncReceiveCompleted</c> now carries the <see cref="PooledSocketReceiveContext"/>
 ///     reference via a dedicated wrapper object stored in <see cref="System.Net.Sockets.SocketAsyncEventArgs.UserToken"/>,
 ///     so <c>EndOperation()</c> is correctly called on every async completion path.
 ///   </item>
@@ -48,7 +48,7 @@ namespace Nalix.Network.Internal.Pooled;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}")]
-internal sealed class PooledReceiveContext : IPoolable
+internal sealed class PooledSocketReceiveContext : IPoolable
 {
     // -------------------------------------------------------------------------
     // Token wrapper — stored in SAEA.UserToken so the static handler can reach
@@ -57,16 +57,16 @@ internal sealed class PooledReceiveContext : IPoolable
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Carries the per-receive TCS and the owning <see cref="PooledReceiveContext"/>
+    /// Carries the per-receive TCS and the owning <see cref="PooledSocketReceiveContext"/>
     /// so the static completion handler can resolve the TCS AND call
     /// <see cref="EndOperation"/> without a closure.
     /// </summary>
     private sealed class ReceiveToken(
         System.Threading.Tasks.TaskCompletionSource<System.Int32> tcs,
-        PooledReceiveContext owner)
+        PooledSocketReceiveContext owner)
     {
         public readonly System.Threading.Tasks.TaskCompletionSource<System.Int32> Tcs = tcs;
-        public readonly PooledReceiveContext Owner = owner;
+        public readonly PooledSocketReceiveContext Owner = owner;
     }
 
     // -------------------------------------------------------------------------
@@ -81,7 +81,7 @@ internal sealed class PooledReceiveContext : IPoolable
 
 #if DEBUG
             System.Diagnostics.Debug.WriteLine(
-                $"[PooledReceiveContext] async-complete " +
+                $"[PooledSocketReceiveContext] async-complete " +
                 $"err={e.SocketError} bytes={e.BytesTransferred} " +
                 $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(token.Owner)}");
 #endif
@@ -145,9 +145,8 @@ internal sealed class PooledReceiveContext : IPoolable
             return;
         }
 
-        PooledSocketAsyncEventArgs pooledArgs = InstanceManager.Instance
-            .GetOrCreateInstance<ObjectPoolManager>()
-            .Get<PooledSocketAsyncEventArgs>();
+        PooledSocketAsyncEventArgs pooledArgs = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                                        .Get<PooledSocketAsyncEventArgs>();
 
         if (pooledArgs == null)
         {
@@ -157,7 +156,7 @@ internal sealed class PooledReceiveContext : IPoolable
 
 #if DEBUG
         System.Diagnostics.Debug.WriteLine(
-            $"[PooledReceiveContext] EnsureArgsBound acquired saea " +
+            $"[PooledSocketReceiveContext] EnsureArgsBound acquired saea " +
             $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
 #endif
 
@@ -181,7 +180,7 @@ internal sealed class PooledReceiveContext : IPoolable
 
 #if DEBUG
         System.Diagnostics.Debug.WriteLine(
-            $"[PooledReceiveContext] BindArgs " +
+            $"[PooledSocketReceiveContext] BindArgs " +
             $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
 #endif
     }
@@ -254,7 +253,7 @@ internal sealed class PooledReceiveContext : IPoolable
 
 #if DEBUG
             System.Diagnostics.Debug.WriteLine(
-                $"[PooledReceiveContext] recv-sync " +
+                $"[PooledSocketReceiveContext] recv-sync " +
                 $"err={err} bytes={bytes} offset={offset} count={count} " +
                 $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
 #endif
@@ -267,7 +266,7 @@ internal sealed class PooledReceiveContext : IPoolable
 
 #if DEBUG
         System.Diagnostics.Debug.WriteLine(
-            $"[PooledReceiveContext] recv-async-pending " +
+            $"[PooledSocketReceiveContext] recv-async-pending " +
             $"offset={offset} count={count} " +
             $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
 #endif
@@ -286,7 +285,7 @@ internal sealed class PooledReceiveContext : IPoolable
     {
 #if DEBUG
         System.Diagnostics.Debug.WriteLine(
-            $"[PooledReceiveContext] ResetForPool begin activeOps={_activeOps} " +
+            $"[PooledSocketReceiveContext] ResetForPool begin activeOps={_activeOps} " +
             $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
 #endif
 
@@ -296,7 +295,7 @@ internal sealed class PooledReceiveContext : IPoolable
         {
 #if DEBUG
             System.Diagnostics.Debug.WriteLine(
-                $"[PooledReceiveContext] ResetForPool TIMEOUT waiting for idle " +
+                $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for idle " +
                 $"activeOps={_activeOps} " +
                 $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
 #endif
@@ -325,7 +324,7 @@ internal sealed class PooledReceiveContext : IPoolable
 
 #if DEBUG
         System.Diagnostics.Debug.WriteLine(
-            $"[PooledReceiveContext] ResetForPool done " +
+            $"[PooledSocketReceiveContext] ResetForPool done " +
             $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
 #endif
     }

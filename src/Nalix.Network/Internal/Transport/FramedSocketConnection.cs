@@ -15,11 +15,13 @@ using Nalix.Shared.Memory.Pooling;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
+#nullable enable
+
 namespace Nalix.Network.Internal.Transport;
 
 /// <summary>
 /// Manages the socket connection and handles sending/receiving data with caching and logging.
-/// The receive path uses <see cref="PooledReceiveContext"/> (SAEA-backed, pooled via
+/// The receive path uses <see cref="PooledSocketReceiveContext"/> (SAEA-backed, pooled via
 /// <see cref="ObjectPoolManager"/>) to eliminate per-receive allocations and scale
 /// stably at 10 000+ concurrent connections.
 ///
@@ -63,10 +65,9 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
     // PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
     // One context per connection; returned to the pool on Dispose.
-    private PooledReceiveContext _recvCtx;
-
-    private IConnection _sender;
-    private IConnectEventArgs _cachedArgs;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private IConnection _sender;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private IConnectEventArgs _cachedArgs;
+    [System.Diagnostics.CodeAnalysis.AllowNull] private PooledSocketReceiveContext _recvCtx;
     [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackPost;
     [System.Diagnostics.CodeAnalysis.AllowNull] private System.EventHandler<IConnectEventArgs> _callbackClose;
 
@@ -78,14 +79,13 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     private System.Int32 _cancelSignaled;  // 0 = not yet, 1 = started
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>();
-    private static readonly BufferPoolManager s_buffer = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     // Receive buffer — owned by this connection during its lifetime.
     // Swapped atomically when a larger packet arrives (rare).
     [System.Diagnostics.CodeAnalysis.AllowNull]
-    private System.Byte[] buffer = s_buffer.Rent();
+    private System.Byte[] buffer = BufferLease.ByteArrayPool.Rent();
 
     #endregion Fields
 
@@ -171,7 +171,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
         // Acquire PooledReceiveContext from ObjectPoolManager — same pattern as
         // PooledAcceptContext usage in the accept loop.
-        _recvCtx = s_pool.Get<PooledReceiveContext>();
+        _recvCtx = s_pool.Get<PooledSocketReceiveContext>();
         _recvCtx.EnsureArgsBound();
 
 #if DEBUG
@@ -244,8 +244,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 {
                     var payloadSpan = frameS.Slice(HeaderSize, data.Length);
                     s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
-                                   $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
-                                   $"ep={_socket.RemoteEndPoint}");
+                                   $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} ep={_socket.RemoteEndPoint}");
                 }
 
                 System.Int32 sent = 0;
@@ -277,7 +276,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         }
 
         // ── Slow path: pooled heap buffer ──────────────────────────────────
-        System.Byte[] heapBuf = s_buffer.Rent(totalLength);
+        System.Byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
         try
         {
 #if DEBUG
@@ -326,7 +325,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         }
         finally
         {
-            s_buffer.Return(heapBuf);
+            BufferLease.ByteArrayPool.Return(heapBuf);
         }
     }
 
@@ -356,7 +355,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         }
 
         System.UInt16 totalLength = (System.UInt16)(data.Length + HeaderSize);
-        System.Byte[] heapBuf = s_buffer.Rent(totalLength);
+        System.Byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
 
         try
         {
@@ -407,7 +406,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         }
         finally
         {
-            s_buffer.Return(heapBuf);
+            BufferLease.ByteArrayPool.Return(heapBuf);
         }
     }
 
@@ -455,7 +454,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
     /// <summary>
     /// Reads exactly <paramref name="count"/> bytes at <paramref name="offset"/>
-    /// via <see cref="PooledReceiveContext.ReceiveAsync"/>.
+    /// via <see cref="PooledSocketReceiveContext.ReceiveAsync"/>.
     /// Loops internally to handle partial receives (common under load).
     /// </summary>
     private async System.Threading.Tasks.ValueTask SAEA_RECEIVE_EXACTLY_ASYNC(
@@ -492,7 +491,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
     }
 
     /// <summary>
-    /// Main receive loop — uses <see cref="PooledReceiveContext"/> (SAEA) for zero-alloc receives.
+    /// Main receive loop — uses <see cref="PooledSocketReceiveContext"/> (SAEA) for zero-alloc receives.
     ///
     /// <para><b>Layer 1 throttle:</b> before handing a packet off to the cache, this loop
     /// checks <c>_pendingProcessCallbacks</c>. If the connection has
@@ -523,7 +522,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 #if DEBUG
                 s_logger?.Meta(
                     $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"recv-header size(le)={size} ep={_sender.EndPoint.Address}");
+                    $"recv-header size(le)={size} ep={_sender?.EndPoint.Address}");
 #endif
 
                 if (!IS_VALID_PACKET_SIZE(size))
@@ -531,7 +530,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 #if DEBUG
                     s_logger?.Debug(
                         $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"invalid-size={size} ep={_sender.EndPoint.Address}");
+                        $"invalid-size={size} ep={_sender?.EndPoint.Address}");
 #endif
                     throw new System.Net.Sockets.SocketException(
                         (System.Int32)System.Net.Sockets.SocketError.ProtocolNotSupported);
@@ -543,10 +542,10 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 #if DEBUG
                     s_logger?.Debug(
                         $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"grow-buffer old={buffer.Length} new={size} ep={_sender.EndPoint.Address}");
+                        $"grow-buffer old={buffer.Length} new={size} ep={_sender?.EndPoint.Address}");
 #endif
                     System.Byte[] oldBuf = buffer;
-                    System.Byte[] newBuf = s_buffer.Rent(size);
+                    System.Byte[] newBuf = BufferLease.ByteArrayPool.Rent(size);
 
                     // Preserve the already-read header bytes in the new buffer.
                     System.MemoryExtensions.AsSpan(oldBuf, 0, HeaderSize)
@@ -557,7 +556,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 
                     if (swapped is not null && swapped != newBuf)
                     {
-                        s_buffer.Return(swapped);
+                        BufferLease.ByteArrayPool.Return(swapped);
                     }
                 }
 
@@ -569,7 +568,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 #if DEBUG
                 s_logger?.Debug(
                     $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"recv-frame size={size} payload={payload} ep={_sender.EndPoint.Address}");
+                    $"recv-frame size={size} payload={payload} ep={_sender?.EndPoint.Address}");
 #endif
 
                 // ── Step 4: Layer 1 per-connection throttle ───────────────
@@ -587,17 +586,17 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                     s_logger?.Warn(
                         $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                         $"per-conn-throttle pending={pending} max={MaxPerConnectionPendingPackets} " +
-                        $"ep={_sender.EndPoint.Address} — packet dropped");
+                        $"ep={_sender?.EndPoint.Address} — packet dropped");
 
                     // Return buffer to pool — rent a fresh one for next receive.
                     System.Byte[] dropped =
                         System.Threading.Interlocked.Exchange(ref buffer, null!);
                     if (dropped is not null)
                     {
-                        s_buffer.Return(dropped);
+                        BufferLease.ByteArrayPool.Return(dropped);
                     }
 
-                    buffer = s_buffer.Rent();
+                    buffer = BufferLease.ByteArrayPool.Rent();
                     continue;
                 }
 
@@ -615,7 +614,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
 #if DEBUG
                     s_logger?.Debug(
                         $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"handoff-to-cache payload={payload} pending={pending} ep={_sender.EndPoint.Address}");
+                        $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.EndPoint.Address}");
 #endif
                 }
                 else
@@ -626,27 +625,27 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 }
 
                 // Rent a fresh buffer for the next receive.
-                buffer = s_buffer.Rent();
+                buffer = BufferLease.ByteArrayPool.Rent();
             }
         }
         catch (System.Exception ex) when (IS_BENIGN_DISCONNECT(ex))
         {
             s_logger?.Trace(
                 $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                $"ended (peer closed/shutdown) ep={_sender.EndPoint.Address}");
+                $"ended (peer closed/shutdown) ep={_sender?.EndPoint.Address}");
         }
         catch (System.OperationCanceledException)
         {
             s_logger?.Trace(
                 $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                $"cancelled ep={_sender.EndPoint.Address}");
+                $"cancelled ep={_sender?.EndPoint.Address}");
         }
         catch (System.Exception ex)
         {
             System.Exception e = (ex as System.AggregateException)?.Flatten() ?? ex;
             s_logger?.Error(
                 $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                $"faulted ep={_sender.EndPoint.Address}", e);
+                $"faulted ep={_sender?.EndPoint.Address}", e);
         }
         finally
         {
@@ -689,7 +688,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
             if (_recvCtx is not null)
             {
                 _recvCtx.ResetForPool();
-                s_pool.Return<PooledReceiveContext>(_recvCtx);
+                s_pool.Return<PooledSocketReceiveContext>(_recvCtx);
                 _recvCtx = null;
             }
 
@@ -698,7 +697,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                 System.Threading.Interlocked.Exchange(ref buffer, null!);
             if (bufToReturn is not null)
             {
-                s_buffer.Return(bufToReturn);
+                BufferLease.ByteArrayPool.Return(bufToReturn);
             }
 
             // 5. Dispose the packet cache (returns any lease buffers it holds).

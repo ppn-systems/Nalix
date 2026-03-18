@@ -5,6 +5,7 @@ using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
+using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.SDK.Transport.Internal;
@@ -36,7 +37,6 @@ internal sealed class FRAME_SENDER : System.IDisposable
 
     // ── Fields ───────────────────────────────────────────────────────────────
 
-    private readonly BufferPoolManager _bufferPool;
     private readonly TransportOptions _options;
     private readonly System.Func<System.Net.Sockets.Socket> _getSocket;
     private readonly System.Action<System.Int32> _reportBytesSent;
@@ -46,7 +46,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// Each item carries:
     /// <list type="bullet">
     ///   <item><description><c>frame</c>  — rented buffer containing the complete framed packet
-    ///         (2-byte header + payload). Must be returned to <see cref="_bufferPool"/> by the drain loop.</description></item>
+    ///         (2-byte header + payload). Must be returned to <see cref="BufferLease.ByteArrayPool"/> by the drain loop.</description></item>
     ///   <item><description><c>frameLen</c> — number of valid bytes in <c>frame</c>.</description></item>
     ///   <item><description><c>tcs</c>    — completed with <c>true/false</c> when the drain loop
     ///         finishes or fails the send. The caller awaits this to get the send result.</description></item>
@@ -73,7 +73,6 @@ internal sealed class FRAME_SENDER : System.IDisposable
         System.Action<System.Int32> reportBytesSent,
         System.Action<System.Exception> onError)
     {
-        _bufferPool = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
         _options = options ?? throw new System.ArgumentNullException(nameof(options));
         _getSocket = getSocket ?? throw new System.ArgumentNullException(nameof(getSocket));
         _reportBytesSent = reportBytesSent ?? throw new System.ArgumentNullException(nameof(reportBytesSent));
@@ -133,7 +132,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
         // only has to write bytes — no serialisation work on the hot path.
 
         System.Int32 totalLen = TcpSession.HeaderSize + payload.Length;
-        System.Byte[] frame = _bufferPool.Rent(totalLen);
+        System.Byte[] frame = BufferLease.ByteArrayPool.Rent(totalLen);
 
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
             System.MemoryExtensions.AsSpan(frame, 0, TcpSession.HeaderSize),
@@ -160,7 +159,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
         {
             // Enqueue failed (canceled or channel completed) — return the buffer now
             // because the drain loop will never see this item.
-            try { _bufferPool.Return(frame); } catch { }
+            try { BufferLease.ByteArrayPool.Return(frame); } catch { }
             throw;
         }
 
@@ -195,7 +194,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
 
         while (_sendQueue.Reader.TryRead(out var item))
         {
-            try { _bufferPool.Return(item.frame); } catch { }
+            try { BufferLease.ByteArrayPool.Return(item.frame); } catch { }
             item.tcs.TrySetResult(false);
         }
     }
@@ -244,7 +243,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
             // plus anything still sitting in the channel.
             while (reader.TryRead(out var leftover))
             {
-                try { _bufferPool.Return(leftover.frame); } catch { }
+                try { BufferLease.ByteArrayPool.Return(leftover.frame); } catch { }
                 leftover.tcs.TrySetResult(false);
             }
         }
@@ -299,7 +298,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
         finally
         {
             // Buffer ownership always returns here — regardless of success or failure.
-            try { _bufferPool.Return(frame); } catch { }
+            try { BufferLease.ByteArrayPool.Return(frame); } catch { }
         }
     }
 }
