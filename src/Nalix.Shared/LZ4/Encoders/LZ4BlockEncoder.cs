@@ -26,11 +26,12 @@ public static class LZ4BlockEncoder
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.Int32 GetMaxLength(System.Int32 input) => input + (input / 255) + 16 + LZ4BlockHeader.Size;
 
+    /// <inheritdoc />
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.Int32 GetMinOutputBufferSize(System.Int32 inputLength) => inputLength + (inputLength / 255) + 16;
+    public static System.Int32 GetMinOutputBufferSize(System.Int32 inputLength) => inputLength + (inputLength / 255) + 16;
 
     /// <summary>
     /// Compresses a block of input data into the output buffer using the LZ4 greedy algorithm.

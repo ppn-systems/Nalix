@@ -5,7 +5,10 @@ using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Security.Enums;
 using Nalix.Common.Shared.Caching;
 using Nalix.Shared.LZ4;
+using Nalix.Shared.LZ4.Encoders;
+using Nalix.Shared.Memory.Internal;
 using Nalix.Shared.Security;
+using Nalix.Shared.Security.Internal;
 
 namespace Nalix.Shared.Frames;
 
@@ -22,7 +25,51 @@ namespace Nalix.Shared.Frames;
 /// </remarks>
 public static class FrameTransformer
 {
-    private const System.Int32 Offset = (System.Int32)PacketHeaderOffset.DATA_REGION;
+    /// <summary>
+    /// Offset in bytes where the payload (DATA_REGION) starts in the packet.
+    /// </summary>
+    public const System.Int32 Offset = (System.Int32)PacketHeaderOffset.DATA_REGION;
+
+    /// <summary>
+    /// Calculates the maximum ciphertext size required for encrypting a plaintext of the given size
+    /// with the specified cipher suite type.
+    /// </summary>
+    /// <param name="type">The cipher suite type.</param>
+    /// <param name="plaintextSize">Size of the plaintext input in bytes.</param>
+    /// <returns>
+    /// Maximum bytes required for the ciphertext buffer, i.e., encrypted envelope size.
+    /// </returns>
+    public static System.Int32 GetMaxCiphertextSize(CipherSuiteType type, System.Int32 plaintextSize)
+    {
+        System.Int32 tagSize = EnvelopeCipher.GetTagLength(type);
+        System.Int32 nonceSize = EnvelopeCipher.GetNonceLength(type);
+
+        // Total envelope size: header + nonce + ciphertext + tag (if any)
+        return EnvelopeFormat.HeaderSize + nonceSize + plaintextSize + tagSize;
+    }
+
+    /// <summary>
+    /// Returns the size of plaintext from an encrypted envelope (header || nonce || ciphertext [|| tag]).
+    /// </summary>
+    /// <param name="envelope">The input envelope.</param>
+    public static System.Int32 GetPlaintextLength(System.ReadOnlySpan<System.Byte> envelope)
+        => !EnvelopeFormat.TryParseEnvelope(envelope[Offset..], out var parsed)
+        ? throw new System.ArgumentException("Malformed envelope", nameof(envelope)) : parsed.Ciphertext.Length;
+
+    /// <summary>
+    /// Calculates the maximum compressed size for a given plaintext size using LZ4 compression.
+    /// </summary>
+    /// <param name="plaintextSize">Size of the plaintext input in bytes.</param>
+    /// <returns></returns>
+    public static System.Int32 GetMaxCompressedSize(System.Int32 plaintextSize) => LZ4BlockEncoder.GetMinOutputBufferSize(plaintextSize);
+
+    /// <inheritdoc/>
+    public static System.Int32 GetDecompressedLength(System.ReadOnlySpan<System.Byte> src)
+    {
+        LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(src);
+
+        return header.OriginalLength;
+    }
 
     /// <summary>
     /// Encrypts the payload (DATA_REGION) of a packet while preserving the header.
@@ -31,7 +78,6 @@ public static class FrameTransformer
     /// <param name="dest">The destination buffer to write the encrypted packet.</param>
     /// <param name="key">The encryption key.</param>
     /// <param name="suite">The cipher suite used for encryption.</param>
-    /// <param name="written">Outputs the total number of bytes written to <paramref name="dest"/>.</param>
     /// <returns>
     /// <c>true</c> if encryption succeeds; otherwise, <c>false</c>.
     /// </returns>
@@ -45,30 +91,24 @@ public static class FrameTransformer
         IBufferLease src,
         IBufferLease dest,
         System.ReadOnlySpan<System.Byte> key,
-        CipherSuiteType suite, out System.Int32 written)
+        CipherSuiteType suite)
     {
-        written = 0;
-
         // Validate buffer sizes
-        if (src.Length <= Offset || dest.Length < Offset)
+        if (src.Length <= Offset || dest.Capacity < Offset)
         {
             return false;
         }
 
         // Copy header
-        src.Span[..Offset].CopyTo(dest.Span[..Offset]);
+        src.SpanFull[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
-        var plainData = src.Span[Offset..];
-        var outData = dest.Span.Slice(Offset, plainData.Length);
+        System.Span<System.Byte> plainData = src.Span[Offset..];
+        System.Span<System.Byte> outData = dest.SpanFull[Offset..];
 
-        // Encrypt payload
-        if (!EnvelopeCipher.Encrypt(key, plainData, outData, null, null, suite, out System.Int32 encrypted))
-        {
-            return false;
-        }
+        // Encrypt
+        EnvelopeCipher.Encrypt(key, plainData, outData, null, null, suite, out System.Int32 encrypted);
+        dest.CommitLength(Offset + encrypted);
 
-        written = Offset + encrypted;
-        dest.CommitLength(written);
         return true;
     }
 
@@ -78,7 +118,6 @@ public static class FrameTransformer
     /// <param name="src">The source buffer containing the encrypted packet.</param>
     /// <param name="dest">The destination buffer to write the decrypted packet.</param>
     /// <param name="key">The decryption key.</param>
-    /// <param name="written">Outputs the total number of bytes written to <paramref name="dest"/>.</param>
     /// <returns>
     /// <c>true</c> if decryption succeeds; otherwise, <c>false</c>.
     /// </returns>
@@ -91,21 +130,19 @@ public static class FrameTransformer
     public static System.Boolean Decrypt(
         IBufferLease src,
         IBufferLease dest,
-        System.ReadOnlySpan<System.Byte> key, out System.Int32 written)
+        System.ReadOnlySpan<System.Byte> key)
     {
-        written = 0;
-
         // Validate buffer sizes
-        if (src.Length <= Offset || dest.Length < Offset)
+        if (src.Length <= Offset || dest.Capacity < Offset)
         {
             return false;
         }
 
         // Copy header
-        src.Span[..Offset].CopyTo(dest.Span[..Offset]);
+        src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
         System.Span<System.Byte> cipherData = src.Span[Offset..];
-        System.Span<System.Byte> outData = dest.Span.Slice(Offset, cipherData.Length);
+        System.Span<System.Byte> outData = dest.SpanFull[Offset..];
 
         // Decrypt payload
         if (!EnvelopeCipher.Decrypt(key, cipherData, outData, null, out System.Int32 decrypted))
@@ -113,8 +150,8 @@ public static class FrameTransformer
             return false;
         }
 
-        written = Offset + decrypted;
-        dest.CommitLength(written);
+        dest.CommitLength(Offset + decrypted);
+
         return true;
     }
 
@@ -123,7 +160,6 @@ public static class FrameTransformer
     /// </summary>
     /// <param name="src">The source buffer containing the original packet.</param>
     /// <param name="dest">The destination buffer to write the compressed packet.</param>
-    /// <param name="written">Outputs the total number of bytes written.</param>
     /// <returns>
     /// <c>true</c> if compression succeeds; otherwise, <c>false</c>.
     /// </returns>
@@ -132,23 +168,20 @@ public static class FrameTransformer
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Compress(
-        IBufferLease src,
-        IBufferLease dest, out System.Int32 written)
+    public static System.Boolean Compress(IBufferLease src, IBufferLease dest)
     {
-        written = 0;
 
-        if (src.Length <= Offset || dest.Length <= Offset)
+        if (src.Length <= Offset || dest.Capacity <= Offset)
         {
             return false;
         }
 
         // Copy header
-        src.Span[..Offset].CopyTo(dest.Span[..Offset]);
+        src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
         // Compress payload
-        System.Span<System.Byte> input = src.Span[Offset..src.Length];
-        System.Span<System.Byte> output = dest.Span[Offset..];
+        System.Span<System.Byte> input = src.Span[Offset..];
+        System.Span<System.Byte> output = dest.SpanFull[Offset..];
 
         System.Int32 compressed = LZ4Codec.Encode(input, output);
         if (compressed < 0)
@@ -156,8 +189,7 @@ public static class FrameTransformer
             return false;
         }
 
-        written = Offset + compressed;
-        dest.CommitLength(written);
+        dest.CommitLength(Offset + compressed);
         return true;
     }
 
@@ -166,7 +198,6 @@ public static class FrameTransformer
     /// </summary>
     /// <param name="src">The source buffer containing the compressed packet.</param>
     /// <param name="dest">The destination buffer to write the decompressed packet.</param>
-    /// <param name="written">Outputs the total number of bytes written.</param>
     /// <returns>
     /// <c>true</c> if decompression succeeds; otherwise, <c>false</c>.
     /// </returns>
@@ -175,32 +206,28 @@ public static class FrameTransformer
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Decompress(
-        IBufferLease src,
-        IBufferLease dest, out System.Int32 written)
+    public static System.Boolean Decompress(IBufferLease src, IBufferLease dest)
     {
-        written = 0;
-
-        if (src.Length <= Offset || dest.Length <= Offset)
+        if (src.Length <= Offset || dest.Capacity <= Offset)
         {
             return false;
         }
 
         // Copy header
-        src.Span[..Offset].CopyTo(dest.Span[..Offset]);
+        src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
         // Decompress payload
-        System.Span<System.Byte> input = src.Span[Offset..src.Length];
-        System.Span<System.Byte> output = dest.Span[Offset..];
+        System.Span<System.Byte> input = src.Span[Offset..];
+        System.Span<System.Byte> output = dest.SpanFull[Offset..];
 
         System.Int32 decoded = LZ4Codec.Decode(input, output);
+
         if (decoded < 0)
         {
             return false;
         }
 
-        written = Offset + decoded;
-        dest.CommitLength(written);
+        dest.CommitLength(Offset + decoded);
         return true;
     }
 
@@ -213,16 +240,14 @@ public static class FrameTransformer
         IBufferLease src,
         IBufferLease dest,
         System.ReadOnlySpan<System.Byte> key,
-        CipherSuiteType suite,
-        out System.Int32 written)
+        CipherSuiteType suite)
     {
         try
         {
-            return Encrypt(src, dest, key, suite, out written);
+            return Encrypt(src, dest, key, suite);
         }
         catch
         {
-            written = 0;
             return false;
         }
     }
@@ -235,16 +260,14 @@ public static class FrameTransformer
     public static System.Boolean TryDecrypt(
         IBufferLease src,
         IBufferLease dest,
-        System.ReadOnlySpan<System.Byte> key,
-        out System.Int32 written)
+        System.ReadOnlySpan<System.Byte> key)
     {
         try
         {
-            return Decrypt(src, dest, key, out written);
+            return Decrypt(src, dest, key);
         }
         catch
         {
-            written = 0;
             return false;
         }
     }
@@ -254,18 +277,14 @@ public static class FrameTransformer
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean TryCompress(
-        IBufferLease src,
-        IBufferLease dest,
-        out System.Int32 written)
+    public static System.Boolean TryCompress(IBufferLease src, IBufferLease dest)
     {
         try
         {
-            return Compress(src, dest, out written);
+            return Compress(src, dest);
         }
         catch
         {
-            written = 0;
             return false;
         }
     }
@@ -275,18 +294,14 @@ public static class FrameTransformer
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean TryDecompress(
-        IBufferLease src,
-        IBufferLease dest,
-        out System.Int32 written)
+    public static System.Boolean TryDecompress(IBufferLease src, IBufferLease dest)
     {
         try
         {
-            return Decompress(src, dest, out written);
+            return Decompress(src, dest);
         }
         catch
         {
-            written = 0;
             return false;
         }
     }
