@@ -23,15 +23,15 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
         if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED))
         {
 
-            BufferLease dest = BufferLease.Rent(lease.Length * 2);
+            BufferLease dest = BufferLease.Rent(FrameTransformer
+                                          .GetDecompressedLength(lease.Span[FrameTransformer.Offset..]));
 
-            if (!FrameTransformer.TryDecompress(lease, dest, out System.Int32 written))
+            if (!FrameTransformer.TryDecompress(lease, dest))
             {
                 dest.Dispose();
                 return null;
             }
 
-            dest.CommitLength(written);
             dest.Span.WriteFlagsLE(dest.Span
                      .ReadFlagsLE()
                      .RemoveFlag(PacketFlags.COMPRESSED));

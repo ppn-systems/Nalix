@@ -16,17 +16,16 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
         IBufferLease lease, IConnection connection, System.Threading.CancellationToken ct,
         System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next)
     {
-        if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.COMPRESSED))
+        if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED))
         {
-            BufferLease dest = BufferLease.Rent(lease.Length);
+            BufferLease dest = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
 
-            if (!FrameTransformer.TryDecrypt(lease, dest, connection.Secret, out System.Int32 written))
+            if (!FrameTransformer.TryDecrypt(lease, dest, connection.Secret))
             {
                 dest.Dispose();
                 return null; // fallback if failed
             }
 
-            dest.CommitLength(written);
             dest.Span.WriteFlagsLE(lease.Span
                      .ReadFlagsLE()
                      .RemoveFlag(PacketFlags.ENCRYPTED));
