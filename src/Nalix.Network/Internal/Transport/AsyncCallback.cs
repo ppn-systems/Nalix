@@ -264,9 +264,6 @@ internal static class AsyncCallback
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void EXECUTE_AND_RETURN(PooledConnectEventContext w)
     {
-#if DEBUG
-        s_logger?.Trace($"[NW.{nameof(AsyncCallback)}:{nameof(EXECUTE_AND_RETURN)}] executing callback ip={w.Args.NetworkEndpoint} sender={w.Sender}");
-#endif
         try
         {
             w.Callback?.Invoke(w.Sender, w.Args);
