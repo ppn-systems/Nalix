@@ -3,7 +3,6 @@
 
 using Nalix.Common.Identity.Abstractions;
 using Nalix.Common.Security.Enums;
-using Nalix.Common.Shared.Caching;
 
 namespace Nalix.Common.Networking.Abstractions;
 
@@ -38,7 +37,7 @@ public partial interface IConnection : System.IDisposable, IConnectionErrorTrack
     /// <summary>
     /// Key identifying the endpoint associated with the connection.
     /// </summary>
-    INetworkEndpoint EndPoint { get; }
+    INetworkEndpoint NetworkEndpoint { get; }
 
     /// <summary>
     /// Gets the encryption key used for securing communication.
@@ -49,11 +48,6 @@ public partial interface IConnection : System.IDisposable, IConnectionErrorTrack
     /// Gets the authority levels associated with the connection.
     /// </summary>
     PermissionLevel Level { get; set; }
-
-    /// <summary>
-    /// Gets the incoming packet of data.
-    /// </summary>
-    IBufferLease IncomingPacket { get; }
 
     /// <summary>
     /// Gets or sets the encryption mode used.
