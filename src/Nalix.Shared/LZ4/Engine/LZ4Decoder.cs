@@ -163,7 +163,7 @@ internal static class LZ4Decoder
         }
 
         LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
-        if (header.OriginalLength != output.Length || header.OriginalLength < 0)
+        if (header.OriginalLength > output.Length || header.OriginalLength < 0)
         {
             return false;
         }
