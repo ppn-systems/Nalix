@@ -12,14 +12,14 @@ public interface IPacketSender<TPacket>
     /// Sends a packet, applying encryption/compression automatically
     /// based on the metadata of the current handler.
     /// </summary>
-    System.Threading.Tasks.ValueTask SendAsync(
+    System.Threading.Tasks.ValueTask<System.Boolean> SendAsync(
         TPacket packet,
         System.Threading.CancellationToken ct = default);
 
     /// <summary>
     /// Sends a packet, explicitly overriding the encryption flag.
     /// </summary>
-    System.Threading.Tasks.ValueTask SendAsync(
+    System.Threading.Tasks.ValueTask<System.Boolean> SendAsync(
         TPacket packet,
         System.Boolean forceEncrypt,
         System.Threading.CancellationToken ct = default);
