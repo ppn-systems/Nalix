@@ -33,7 +33,9 @@ public abstract class BaseTcpSession : IClientConnection
     internal System.Threading.CancellationTokenSource? _loopCts;
 
     internal System.Int32 _disposed = 0;
-    internal readonly ILogger? Logging;
+
+    /// <inheritdoc/>
+    internal static readonly ILogger? Logging;
 
     #endregion Fields
 
@@ -75,13 +77,14 @@ public abstract class BaseTcpSession : IClientConnection
 
     #region Construction
 
+    static BaseTcpSession() => Logging = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     /// <summary>
     /// Constructs base session and loads TransportOptions from configuration.
     /// Derived classes are responsible for buffer configuration if needed.
     /// </summary>
     protected BaseTcpSession()
     {
-        Logging = InstanceManager.Instance.GetExistingInstance<ILogger>();
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Options.Validate();
     }

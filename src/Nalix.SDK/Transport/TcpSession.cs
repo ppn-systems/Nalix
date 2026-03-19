@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Concurrency;
-using Nalix.Common.Diagnostics.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
@@ -26,12 +25,10 @@ public sealed class TcpSession : BaseTcpSession
     /// <inheritdoc/>
     public const System.Byte HeaderSize = 2;
 
-    internal static new readonly ILogger? Logging;
     internal static readonly IPacketRegistry Catalog;
 
     static TcpSession()
     {
-        Logging = InstanceManager.Instance.GetExistingInstance<ILogger>();
         Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
             ?? throw new System.InvalidOperationException("IPacketRegistry instance not found.");
 
@@ -115,8 +112,15 @@ public sealed class TcpSession : BaseTcpSession
     /// <inheritdoc/>
     public TcpSession() : base()
     {
-        Options = ConfigurationManager.Instance.Get<TransportOptions>();
-        Options.Validate();
+        try
+        {
+            Options = ConfigurationManager.Instance.Get<TransportOptions>();
+            Options.Validate();
+        }
+        catch (System.Exception ex)
+        {
+            throw new System.InvalidOperationException("Failed to load TransportOptions", ex);
+        }
 
         if (Catalog is null)
         {
@@ -301,10 +305,18 @@ public sealed class TcpSession : BaseTcpSession
         {
             if (_receiveHandle != null)
             {
-                InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                    .CancelWorker(_receiveHandle.Id);
+                try
+                {
 
-                _receiveHandle = null;
+                    InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                            .CancelWorker(_receiveHandle.Id);
+
+                    _receiveHandle = null;
+                }
+                catch
+                {
+                    Logging?.Warn($"Failed to cancel receive worker for {_host}:{_port}");
+                }
             }
         }
         catch { }
