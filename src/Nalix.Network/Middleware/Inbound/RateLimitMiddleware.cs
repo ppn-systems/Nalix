@@ -65,7 +65,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             else
             {
                 // No attribute: fallback to a global per-endpoint limiter
-                decision = s_Global.Check(context.Connection.EndPoint);
+                decision = s_Global.Check(context.Connection.NetworkEndpoint);
             }
         }
         catch (System.ObjectDisposedException)
