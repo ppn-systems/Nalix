@@ -65,13 +65,6 @@ public sealed class BufferLease : IBufferLease
         private static Func<int, byte[]> s_rentFunc = System.Buffers.ArrayPool<byte>.Shared.Rent;
         private static Action<byte[], bool> s_returnFunc = System.Buffers.ArrayPool<byte>.Shared.Return;
 
-        // Segment-aware rent: returns the exact ArraySegment(slab, offset, count) from the
-        // managed pool. Used by Rent() / CopyFrom() to capture correct offset+count without
-        // any external metadata tracking. Falls back to null (byte[] path) when no managed pool.
-        private static Func<int, ArraySegment<byte>>? s_rentSegmentFunc;
-
-        // Segment-aware return: routes exact ArraySegment back to the correct ring.
-        private static Action<ArraySegment<byte>>? s_returnSegmentFunc;
 
         static ByteArrayPool()
         {
@@ -92,8 +85,6 @@ public sealed class BufferLease : IBufferLease
 
             Volatile.Write(ref s_rentFunc, manager.Rent);
             Volatile.Write(ref s_returnFunc, manager.Return);
-            Volatile.Write(ref s_rentSegmentFunc, manager.RentSegment);
-            Volatile.Write(ref s_returnSegmentFunc, seg => manager.Return(seg));
         }
 
         /// <summary>Rents a raw buffer (fallback / legacy callers).</summary>
@@ -104,40 +95,6 @@ public sealed class BufferLease : IBufferLease
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Return(byte[] array) => Volatile.Read(ref s_returnFunc)(array, true);
 
-        /// <summary>
-        /// Rents an ArraySegment carrying the exact slab offset+count.
-        /// Used by <see cref="BufferLease.Rent"/> and <see cref="BufferLease.CopyFrom"/>
-        /// so <see cref="BufferLease.Dispose"/> can return the correct segment.
-        /// Falls back to a full-array segment from System.Buffers.ArrayPool when no managed pool is active.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static ArraySegment<byte> RentSegment(int capacity)
-        {
-            Func<int, ArraySegment<byte>>? segRent = Volatile.Read(ref s_rentSegmentFunc);
-            if (segRent is not null)
-            {
-                return segRent(capacity);
-            }
-
-            // Fallback: no managed pool — use shared ArrayPool, full array span.
-            byte[] arr = System.Buffers.ArrayPool<byte>.Shared.Rent(capacity);
-            return new ArraySegment<byte>(arr, 0, arr.Length);
-        }
-
-        /// <summary>Returns a slab-backed segment to the pool.</summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void ReturnSegment(ArraySegment<byte> segment)
-        {
-            Action<ArraySegment<byte>>? segReturn = Volatile.Read(ref s_returnSegmentFunc);
-            if (segReturn is not null)
-            {
-                segReturn(segment);
-            }
-            else if (segment.Array is not null)
-            {
-                System.Buffers.ArrayPool<byte>.Shared.Return(segment.Array);
-            }
-        }
     }
 
     /// <summary>
@@ -165,11 +122,6 @@ public sealed class BufferLease : IBufferLease
 
     private byte[]? _buffer;
 
-    // Slab segment metadata — populated when rented from the managed pool.
-    // Enables Dispose() to return the exact ArraySegment without metadata lookup.
-    private int _poolSegmentOffset;
-    private int _poolSegmentCount;
-
     #endregion Fields
 
     #region Constructors
@@ -180,7 +132,7 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     public BufferLease() { }
 
-    private void Initialize(byte[] buffer, int start, int length, bool zeroOnDispose, int poolSegmentOffset = 0, int poolSegmentCount = 0)
+    private void Initialize(byte[] buffer, int start, int length, bool zeroOnDispose)
     {
         if ((uint)start > (uint)buffer.Length)
         {
@@ -196,8 +148,6 @@ public sealed class BufferLease : IBufferLease
         _detached = 0;
         _start = start;
         _buffer = buffer;
-        _poolSegmentOffset = poolSegmentOffset;
-        _poolSegmentCount = poolSegmentCount;
 
         this.Length = length;
         this.ZeroOnDispose = zeroOnDispose;
@@ -210,8 +160,6 @@ public sealed class BufferLease : IBufferLease
         _start = 0;
         _refCount = 0;
         _detached = 0;
-        _poolSegmentOffset = 0;
-        _poolSegmentCount = 0;
         this.Length = 0;
         this.ZeroOnDispose = false;
         this.IsReliable = false;
@@ -375,13 +323,6 @@ public sealed class BufferLease : IBufferLease
         byte[]? buf = Interlocked.Exchange(ref _buffer, null);
         int start = _start;
         int len = this.Length;
-        int segOffset = _poolSegmentOffset;
-        int segCount = _poolSegmentCount;
-
-        _start = 0;
-        this.Length = 0;
-        _poolSegmentOffset = 0;
-        _poolSegmentCount = 0;
 
         if (buf is not null)
         {
@@ -401,18 +342,7 @@ public sealed class BufferLease : IBufferLease
 #endif
             }
 
-            // Use the slab-aware segment path when available (segCount > 0).
-            // This returns the exact ArraySegment(array, slabOffset, slabCount)
-            // so the pool matches on Count instead of array.Length, enabling
-            // correct batch-slab return without any external metadata tracking.
-            if (segCount > 0)
-            {
-                ByteArrayPool.ReturnSegment(new ArraySegment<byte>(buf, segOffset, segCount));
-            }
-            else
-            {
-                ByteArrayPool.Return(buf);
-            }
+            ByteArrayPool.Return(buf);
         }
 
         // Return the BufferLease shell to the free-list for reuse (single CAS, zero alloc).
@@ -473,13 +403,9 @@ public sealed class BufferLease : IBufferLease
         int capacity,
         bool zeroOnDispose = false)
     {
-        ArraySegment<byte> seg = ByteArrayPool.RentSegment(capacity);
+        byte[] arr = ByteArrayPool.Rent(capacity);
         BufferLease lease = RentLeaseShell();
-        // Use the slab segment offset as the slice start so Span/Memory views
-        // point to the correct region of the (potentially shared) backing array.
-        // poolSegmentOffset + poolSegmentCount enable correct slab-aware return
-        // in Dispose() via ByteArrayPool.ReturnSegment().
-        lease.Initialize(seg.Array!, start: seg.Offset, length: 0, zeroOnDispose, seg.Offset, seg.Count);
+        lease.Initialize(arr, start: 0, length: 0, zeroOnDispose);
         return lease;
     }
 
@@ -491,11 +417,10 @@ public sealed class BufferLease : IBufferLease
     /// <exception cref="OutOfMemoryException">Thrown when no backing array can be rented for the copied data.</exception>
     public static BufferLease CopyFrom(ReadOnlySpan<byte> src, bool zeroOnDispose = false)
     {
-        ArraySegment<byte> seg = ByteArrayPool.RentSegment(src.Length);
-        // Copy into the correct offset of the (potentially shared) slab array.
-        src.CopyTo(new Span<byte>(seg.Array!, seg.Offset, seg.Count));
+        byte[] arr = ByteArrayPool.Rent(src.Length);
+        src.CopyTo(arr);
         BufferLease lease = RentLeaseShell();
-        lease.Initialize(seg.Array!, start: seg.Offset, length: src.Length, zeroOnDispose, seg.Offset, seg.Count);
+        lease.Initialize(arr, start: 0, length: src.Length, zeroOnDispose);
         return lease;
     }
 
@@ -516,7 +441,7 @@ public sealed class BufferLease : IBufferLease
     {
         ArgumentNullException.ThrowIfNull(buffer);
         BufferLease lease = RentLeaseShell();
-        lease.Initialize(buffer, start: 0, length: length, zeroOnDispose, 0, 0);
+        lease.Initialize(buffer, start: 0, length: length, zeroOnDispose);
         return lease;
     }
 
@@ -539,7 +464,7 @@ public sealed class BufferLease : IBufferLease
     {
         ArgumentNullException.ThrowIfNull(buffer);
         BufferLease lease = RentLeaseShell();
-        lease.Initialize(buffer, start, length, zeroOnDispose, 0, 0);
+        lease.Initialize(buffer, start, length, zeroOnDispose);
         return lease;
     }
 

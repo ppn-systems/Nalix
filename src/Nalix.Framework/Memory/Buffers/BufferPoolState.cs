@@ -43,6 +43,17 @@ public readonly record struct BufferPoolState : IEquatable<BufferPoolState>
     public required int TotalBuffers { get; init; }
 
     /// <summary>
+    /// Initial number of buffers the pool started with.
+    /// </summary>
+    public int InitialCapacity { get; init; }
+
+    /// <summary>Number of times the pool has expanded.</summary>
+    public int Expands { get; init; }
+
+    /// <summary>Number of times the pool has shrunk.</summary>
+    public int Shrinks { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the pool can be shrunk (free &gt;= 50%).
     /// </summary>
     public bool CanShrink => this.FreeBuffers > (this.TotalBuffers * 0.5);

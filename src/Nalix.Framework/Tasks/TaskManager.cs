@@ -500,7 +500,7 @@ public sealed partial class TaskManager : ITaskManager
         // ========== CPU Monitoring Section ==========
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("CPU Monitoring:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Dynamic Adjustment Enabled       : {_options.DynamicAdjustmentEnabled}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Dynamic Adjustment Enabled        : {_options.DynamicAdjustmentEnabled}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Current Concurrency Limit         : {_currentConcurrencyLimit}/{_options.MaxWorkers}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"High CPU Threshold                : {_options.ThresholdHighCpu:F1}%");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Low CPU Threshold                 : {_options.ThresholdLowCpu:F1}%");
@@ -901,7 +901,7 @@ public sealed partial class TaskManager : ITaskManager
 
         try
         {
-            _cleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            _ = _cleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
         }
         catch (Exception ex)
         {

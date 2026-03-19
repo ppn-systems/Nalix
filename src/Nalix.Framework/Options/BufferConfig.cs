@@ -70,17 +70,18 @@ public sealed class BufferConfig : ConfigurationLoader
     public double MaxMemoryPercentage { get; set; } = 0.25;
 
     /// <summary>
-    /// Enable queue compaction to reduce memory fragmentation.
+    /// Maximum depth for the per-thread buffer cache.
     /// </summary>
-    [IniComment("Compact internal queues to reduce memory fragmentation")]
-    public bool EnableQueueCompaction { get; set; } = false;
+    [IniComment("Max buffers held in thread-local cache for O(1) access (1–64)")]
+    [Range(1, 64, ErrorMessage = "ThreadCacheDepth must be between 1 and 64.")]
+    public int ThreadCacheDepth { get; set; } = 8;
 
     /// <summary>
-    /// The number of buffer rent/return operations between auto-tuning cycles.
+    /// Maximum size of the internal suitable pool size cache.
     /// </summary>
-    [IniComment("Rent/return operations between auto-tune cycles (minimum 10, should be >= TotalBuffers)")]
-    [Range(10, int.MaxValue, ErrorMessage = "AutoTuneOperationThreshold must be >= 10.")]
-    public int AutoTuneOperationThreshold { get; set; } = 20_000;
+    [IniComment("Max entries in the suitable size lookup cache")]
+    [Range(100, 5000, ErrorMessage = "SuitablePoolSizeCacheLimit must be between 100 and 5000.")]
+    public int SuitablePoolSizeCacheLimit { get; set; } = 1000;
 
     /// <summary>
     /// Whether to fall back to <see cref="System.Buffers.ArrayPool{T}.Shared"/> when no suitable pool exists.
@@ -132,12 +133,36 @@ public sealed class BufferConfig : ConfigurationLoader
     public long MaxMemoryBytes { get; set; } = 0;
 
     /// <summary>
-    /// Enables capturing stack traces for buffer leaks (DEBUG only).
+    /// Enable capturing stack traces for buffer leaks (DEBUG only).
     /// capturing stack trace is extremely expensive and should be disabled 
     /// during high-concurrency benchmarks.
     /// </summary>
     [IniComment("Enable expensive stack trace capture for buffer leak detection (DEBUG only)")]
     public bool EnableBufferLeakStackTrace { get; set; } = false;
+
+    /// <summary>
+    /// Multiplier for usage-based growth acceleration.
+    /// </summary>
+    [IniComment("Aggressiveness of growth based on usage (higher = grows faster under load)")]
+    public double UsageAggressiveFactor { get; set; } = 0.75;
+
+    /// <summary>
+    /// Multiplier for miss-rate based growth acceleration.
+    /// </summary>
+    [IniComment("Aggressiveness of growth based on misses")]
+    public double MissRateAggressiveFactor { get; set; } = 2.0;
+
+    /// <summary>
+    /// Soft cap ratio for pool expansion relative to current total buffers.
+    /// </summary>
+    [IniComment("Max expansion step as fraction of current pool size")]
+    public double ExpansionSoftCapRatio { get; set; } = 0.25;
+
+    /// <summary>
+    /// Initial internal capacity for the slab tracking dictionary.
+    /// </summary>
+    [IniComment("Initial capacity for internal slab tracking (power of 2)")]
+    public int InitialSlabTrackingCapacity { get; set; } = 8;
 
     #endregion Properties
 
@@ -203,12 +228,6 @@ public sealed class BufferConfig : ConfigurationLoader
         {
             throw new ValidationException(
                 "AdaptiveGrowthFactor * MinimumIncrease must be <= MaxBufferIncreaseLimit.");
-        }
-
-        if (this.AutoTuneOperationThreshold < this.TotalBuffers)
-        {
-            throw new ValidationException(
-                "AutoTuneOperationThreshold should normally be >= TotalBuffers.");
         }
     }
 

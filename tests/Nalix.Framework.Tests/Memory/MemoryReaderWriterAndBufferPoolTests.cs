@@ -1,7 +1,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
@@ -9,6 +8,7 @@ using Xunit;
 
 namespace Nalix.Framework.Tests.Memory;
 
+[Trait("Category", "Memory")]
 public sealed partial class MemoryTests
 {
     [Theory]
@@ -159,33 +159,6 @@ public sealed partial class MemoryTests
         Assert.Equal("buf.trim", BufferPoolManager.RecurringName);
     }
 
-    [Fact]
-    public void RentSegment_StateUnderTest_ReturnsAndClearsSocketBuffers()
-    {
-        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
-        using SocketAsyncEventArgs saea = new();
-
-        ArraySegment<byte> segment = manager.RentSegment(128);
-        manager.Return(segment);
-        manager.RentForSaea(saea, 64);
-        byte[]? rentedBuffer = saea.Buffer;
-        manager.ReturnFromSaea(saea);
-
-        Assert.NotNull(segment.Array);
-        Assert.True(segment.Count >= 128);
-        Assert.NotNull(rentedBuffer);
-        Assert.Null(saea.Buffer);
-        Assert.Equal(0, saea.Count);
-    }
-
-    [Fact]
-    public void RentForSaea_SaeaIsNull_ThrowsArgumentNullException()
-    {
-        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
-
-        _ = Assert.Throws<ArgumentNullException>(() => manager.RentForSaea(null!, 32));
-        _ = Assert.Throws<ArgumentNullException>(() => manager.ReturnFromSaea(null!));
-    }
 
     [Fact]
     public void GenerateReport_StateUnderTest_ReturnsReportAndData()
