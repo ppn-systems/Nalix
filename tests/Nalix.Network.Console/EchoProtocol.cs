@@ -27,10 +27,10 @@ public class EchoProtocol : Protocol
     {
         try
         {
-            Console.WriteLine($"[Server] Received message from client {args.Connection.EndPoint}");
+            Console.WriteLine($"[Server] Received message from client {args.Connection.RemoteEndPoint}");
 
             // Defensive copy: avoid pooled-buffer lifetime issues.
-            ReadOnlySpan<Byte> incomingSpan = args.Connection.IncomingPacket.Span;
+            ReadOnlySpan<Byte> incomingSpan = args.Lease.Span;
             Byte[] payload = incomingSpan.ToArray();
 
             // Log raw bytes (hex) truncated for safety.
@@ -67,13 +67,13 @@ public class EchoProtocol : Protocol
 
             // Log outgoing payload details (truncated hex and length).
             String responseHex = ToHexString(responseData, 64);
-            Console.WriteLine($"[Server][DEBUG] Sending {responseData.Length} bytes to {args.Connection.EndPoint} hex={responseHex}");
+            Console.WriteLine($"[Server][DEBUG] Sending {responseData.Length} bytes to {args.Connection.RemoteEndPoint} hex={responseHex}");
 
             // Send and verify result.
             Boolean sent = args.Connection.TCP.Send(responseData);
             if (!sent)
             {
-                Console.WriteLine($"[Server][ERROR] Send returned false for {args.Connection.EndPoint}. Connection may be closed or reset. outgoingHex={responseHex}");
+                Console.WriteLine($"[Server][ERROR] Send returned false for {args.Connection.RemoteEndPoint}. Connection may be closed or reset. outgoingHex={responseHex}");
             }
         }
         catch (ObjectDisposedException ode)
@@ -83,12 +83,16 @@ public class EchoProtocol : Protocol
         }
         catch (SocketException se)
         {
-            Console.WriteLine($"[Server][SOCKET] SocketException when sending to {args.Connection.EndPoint}: SocketErrorCode={se.SocketErrorCode} ErrorCode={se.ErrorCode} Message={se.Message}");
+            Console.WriteLine($"[Server][SOCKET] SocketException when sending to {args.Connection.RemoteEndPoint}: SocketErrorCode={se.SocketErrorCode} ErrorCode={se.ErrorCode} Message={se.Message}");
             Console.WriteLine(se.ToString());
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[Server][ERROR] Exception in {nameof(ProcessMessage)}: {ex}");
+        }
+        finally
+        {
+            args.Dispose();
         }
     }
 

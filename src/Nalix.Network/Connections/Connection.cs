@@ -6,12 +6,10 @@ using Nalix.Common.Identity.Abstractions;
 using Nalix.Common.Identity.Enums;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Security.Enums;
-using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Network.Internal.Transport;
-using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Network.Connections;
@@ -63,13 +61,6 @@ public sealed partial class Connection : IConnection
 
         _evtArgs = new ConnectionEventArgs(this);
         _cstream = new FramedSocketConnection(socket);
-        _cstream.Cache.SetCallback(
-            (sender, e) =>
-            {
-                try { OnProcessEventBridge(sender, e); }
-                finally { _cstream.OnPacketProcessed(); }
-            },
-            this, _evtArgs);
 
         _cstream.SetCallback(this, _evtArgs, OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 

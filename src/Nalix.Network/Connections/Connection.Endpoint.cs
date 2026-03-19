@@ -12,7 +12,7 @@ public sealed partial class Connection
     [System.Runtime.CompilerServices.SkipLocalsInit]
     [System.Diagnostics.DebuggerDisplay("{ToString()}")]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    internal readonly struct NetworkEndpoint : INetworkEndpoint, System.IEquatable<NetworkEndpoint>
+    internal readonly struct Endpoint : INetworkEndpoint, System.IEquatable<Endpoint>
     {
         #region Fields
 
@@ -29,11 +29,11 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public static NetworkEndpoint FromIpAddress(
+        public static Endpoint FromIpAddress(
             [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress ip)
         {
             NormalizeAddress(ip, out System.UInt64 hi, out System.UInt64 lo, out System.Boolean isV6);
-            return new NetworkEndpoint(hi, lo, 0, isV6, hasPort: false);
+            return new Endpoint(hi, lo, 0, isV6, hasPort: false);
         }
 
         /// <inheritdoc />
@@ -42,7 +42,7 @@ public sealed partial class Connection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public static NetworkEndpoint FromEndPoint(
+        public static Endpoint FromEndPoint(
             [System.Diagnostics.CodeAnalysis.AllowNull] System.Net.EndPoint endpoint)
         {
             if (endpoint is not System.Net.IPEndPoint ipEndPoint)
@@ -51,7 +51,7 @@ public sealed partial class Connection
             }
 
             NormalizeAddress(ipEndPoint.Address, out System.UInt64 hi, out System.UInt64 lo, out System.Boolean isV6);
-            return new NetworkEndpoint(hi, lo, ipEndPoint.Port, isV6, hasPort: true);
+            return new Endpoint(hi, lo, ipEndPoint.Port, isV6, hasPort: true);
         }
 
         [System.Diagnostics.Contracts.Pure]
@@ -96,7 +96,7 @@ public sealed partial class Connection
 
         #region Constructor
 
-        private NetworkEndpoint(System.UInt64 hi, System.UInt64 lo, System.Int32 port, System.Boolean isV6, System.Boolean hasPort)
+        private Endpoint(System.UInt64 hi, System.UInt64 lo, System.Int32 port, System.Boolean isV6, System.Boolean hasPort)
         {
             _hi = hi;
             _lo = lo;
@@ -173,7 +173,7 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public System.Boolean Equals(NetworkEndpoint other)
+        public System.Boolean Equals(Endpoint other)
         {
             return _hi == other._hi &&
                    _lo == other._lo &&
@@ -186,7 +186,7 @@ public sealed partial class Connection
         /// Compares this instance to another <see cref="INetworkEndpoint"/>.
         /// </summary>
         /// <remarks>
-        /// Fast path is used when <paramref name="other"/> is also a <see cref="NetworkEndpoint"/>.
+        /// Fast path is used when <paramref name="other"/> is also a <see cref="INetworkEndpoint"/>.
         /// Otherwise, comparison falls back to the interface properties.
         /// </remarks>
         [System.Diagnostics.Contracts.Pure]
@@ -201,7 +201,7 @@ public sealed partial class Connection
             }
 
             // Fast path for same concrete type
-            return other is NetworkEndpoint concrete
+            return other is Endpoint concrete
                 ? Equals(concrete)
                 : System.String.Equals(
                 Address,
@@ -215,7 +215,7 @@ public sealed partial class Connection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         public override System.Boolean Equals([System.Diagnostics.CodeAnalysis.AllowNull] System.Object obj) =>
-            obj is NetworkEndpoint k && Equals(k);
+            obj is Endpoint k && Equals(k);
 
         /// <inheritdoc />
         [System.Diagnostics.Contracts.Pure]
@@ -232,13 +232,13 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public static System.Boolean operator ==(NetworkEndpoint left, NetworkEndpoint right) => left.Equals(right);
+        public static System.Boolean operator ==(Endpoint left, Endpoint right) => left.Equals(right);
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public static System.Boolean operator !=(NetworkEndpoint left, NetworkEndpoint right) => !left.Equals(right);
+        public static System.Boolean operator !=(Endpoint left, Endpoint right) => !left.Equals(right);
 
         #endregion
 

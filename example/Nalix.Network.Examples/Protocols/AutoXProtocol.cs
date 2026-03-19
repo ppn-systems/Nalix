@@ -50,9 +50,9 @@ public sealed class AutoXProtocol : Protocol
         System.ArgumentNullException.ThrowIfNull(args);
 
         // TODO: Parse message and implement business logic here
-
+        System.Console.WriteLine($"[AutoX.{nameof(AutoXProtocol)}:{nameof(ProcessMessage)}] Received message from connection id={args.Connection.ID}");
         // Auto dispose the incoming packet after processing
-        s_Dispatch.HandlePacket(args.Connection.IncomingPacket, args.Connection);
+        s_Dispatch.HandlePacket(args.Lease, args.Connection);
     }
 
     /// <summary>
