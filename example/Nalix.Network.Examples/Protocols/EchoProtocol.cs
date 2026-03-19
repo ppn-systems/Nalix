@@ -8,7 +8,7 @@
 // Note: Replace mocks with real Nalix types in your project.
 
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Networking.Caching;
+using Nalix.Common.Shared.Caching;
 using Nalix.Network.Protocols;
 using System.Text;
 
@@ -29,7 +29,7 @@ public class EchoProtocol : Protocol
         if (args != null)
         {
             // Assume IConnectEventArgs exposes a ReadOnlyMemory<byte> Payload (this is a mock).
-            using IBufferLease incoming = args.Connection.IncomingPacket;
+            using IBufferLease incoming = args.Lease;
             ReadOnlyMemory<Byte> payload = incoming.Memory;
 
             // Convert to string for logging/debugging.
