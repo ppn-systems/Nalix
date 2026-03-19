@@ -1,134 +1,154 @@
-# ![Icon](https://raw.githubusercontent.com/ppn-systems/Nalix/refs/heads/master/docs/assets/nalix.ico) **Nalix**
+<p align="center">
+  <img src="docs/assets/!/banner.svg" alt="Nalix Banner" width="100%">
+  <img src="docs/assets/!/claude.svg" alt="Claude Code mascot jumping" width="120" height="100"><br>
+</p>
 
-![.NET](https://img.shields.io/badge/.NET-10.0-blueviolet?logo=dotnet&logoColor=white)
+<p align="center">
+  <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-blueviolet?logo=dotnet&logoColor=white" alt=".NET"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/Nalix?style=flat-square" alt="License"></a>
+  <a href="https://www.nuget.org/packages/Nalix.Common"><img src="https://img.shields.io/nuget/v/Nalix.Common?style=flat-square&logo=nuget&label=NuGet" alt="NuGet"></a>
+  <a href="https://www.nuget.org/packages/Nalix.Common"><img src="https://img.shields.io/nuget/dt/Nalix.Common?style=flat-square&logo=nuget&label=Downloads" alt="Downloads"></a>
+</p>
 
-![GitHub License](https://img.shields.io/github/license/phcnguyen/Nalix?style=flat-square)
-![NuGet Version](https://img.shields.io/nuget/v/Nalix.Common?style=flat-square&logo=nuget)
-![NuGet Downloads](https://img.shields.io/nuget/dt/Nalix.Common?style=flat-square&logo=nuget)
+<p align="center">
+  <a href="https://github.com/ppn-systems/Nalix/issues"><img src="https://img.shields.io/github/issues/ppn-systems/Nalix?style=flat-square" alt="Issues"></a>
+  <a href="https://github.com/ppn-systems/Nalix/pulls"><img src="https://img.shields.io/github/issues-pr/ppn-systems/Nalix?style=flat-square" alt="PRs"></a>
+  <a href="https://github.com/ppn-systems/Nalix"><img src="https://img.shields.io/github/repo-size/ppn-systems/Nalix?style=flat-square" alt="Repo Size"></a>
+  <a href="https://github.com/ppn-systems/Nalix/commits/master"><img src="https://img.shields.io/github/commit-activity/m/ppn-systems/Nalix?style=flat-square&logo=github" alt="Commit Activity"></a>
+</p>
 
-![Issues](https://img.shields.io/github/issues/ppn-systems/Nalix)
-![PRs](https://img.shields.io/github/issues-pr/ppn-systems/Nalix)
-![GitHub file size in bytes](https://img.shields.io/github/repo-size/ppn-systems/Nalix)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/m/phcnguyen/Nalix?style=flat-square&logo=github)
+<p align="center">
+  <b><a href="DOCUMENTATION.md">Documentation</a></b> · <b><a href="example/">Examples</a></b> · <b><a href="#-benchmarks">Benchmarks</a></b> · <b><a href="CONTRIBUTING.md">Contributing</a></b>
+</p>
+
+---
 
 ## 📖 About
 
-Nalix is a real-time server solution designed for efficient communication and data sharing. It enables instant messaging, data synchronization, and secure networking, making it ideal for applications requiring live updates.
+**Nalix** is a modular, high-performance networking framework for .NET 10. It provides a complete stack for building real-time server applications — from low-level transport (TCP/UDP) to middleware pipelines, packet routing, and client SDKs — with a focus on zero-allocation hot paths, pluggable protocols, and enterprise-grade security.
 
-[**Explore the Docs**](DOCUMENTATION.md) • [**View Examples**](example/) • [**Benchmarks**](#-benchmarks) • [**Contributing**](CONTRIBUTING.md)
+---
 
-## 🛠️ Latest Builds
+## 🛠️ Build Status
 
-| Environment | Status |
-|-------------|--------|
-|![linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange)|[![Nalix](https://github.com/ppn-systems/Nalix/actions/workflows/ci-linux.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/ci-linux.yml)|
-|![win](https://badgen.net/badge/icon/Windows,.NET%2010?icon=windows&label&list=1)|[![Nalix](https://github.com/ppn-systems/Nalix/actions/workflows/ci-windows.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/ci-windows.yml)|
+| Platform | Status |
+| :--- | :--- |
+| ![Linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange) | [![CI](https://github.com/ppn-systems/Nalix/actions/workflows/ci-linux.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/ci-linux.yml) |
+| ![Windows](https://badgen.net/badge/icon/Windows,.NET%2010?icon=windows&label&list=1) | [![CI](https://github.com/ppn-systems/Nalix/actions/workflows/ci-windows.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/ci-windows.yml) |
+
+---
 
 ## ✨ Features
 
-- 🖥️ **Cross-Platform** – Runs on Windows, Linux, and macOS with .NET 10+.
-- 🔄 **Real-time communication** – Supports instant messaging and state synchronization.
-- 🔌 **Pluggable Protocols** – Easily add and swap network, serialization, or security protocols without modifying core logic.
-- 🛤️ **Custom Middleware** – Define middleware to control authentication, validation, transformation, throttling, and more.
-- ⚡ **High performance** – Designed to handle thousands of concurrent connections.
-- 🔐 **Security-focused** – Implements encryption (ChaCha20-Poly1305, Salsa20-Poly1305) to protect data.
-- 🛠️ **Extensible** – Easily customizable with your own protocols and handlers.
-- 📡 **Live Updates** – Stay up to date with real-time updates, ensuring dynamic and responsive experiences.
-- 💻 **Modern C# Implementation** – Leveraging cutting-edge C# features for clean, efficient, and maintainable code.
-- 🧩 **SOLID & DDD Principles** – Adhering to SOLID principles and Domain-Driven Design for a robust and scalable architecture.
+| Category | Highlights |
+| :--- | :--- |
+| 🖥️ **Cross-Platform** | Runs on Windows, Linux, and macOS with .NET 10+. |
+| ⚡ **High Performance** | Zero-allocation serialization, shard-aware dispatch, and buffer pooling for thousands of concurrent connections. |
+| 🔐 **Security-First** | AEAD encryption (ChaCha20-Poly1305, Salsa20-Poly1305), X25519 key exchange, and zero-RTT session resumption. |
+| 🔌 **Pluggable Protocols** | Swap network, serialization, or security protocols without modifying core logic. |
+| 🛤️ **Middleware Pipeline** | Built-in authentication, rate limiting, traffic shaping, and audit logging — or write your own. |
+| 📡 **Real-Time Updates** | Instant messaging, state synchronization, and live event broadcasting. |
+| 🛠️ **Extensible** | Attribute-based packet routing, auto-discovered controllers, and fluent builder APIs. |
+| 🧩 **SOLID & DDD** | Clean architecture following SOLID principles and Domain-Driven Design patterns. |
+| 💻 **Modern C#** | Leverages C# 14 features — `Span<T>`, `ref struct`, pattern matching, and more. |
+
+---
 
 ## 🔧 Requirements
 
-- .NET 10 and C# 14 support
-- Install .NET SDK 10 from [dotnet.microsoft.com](https://dotnet.microsoft.com/)
-- `Visual Studio 2026` [**Download Visual Studio**](https://visualstudio.microsoft.com/downloads/)
+| Requirement | Version |
+| :--- | :--- |
+| .NET SDK | [10.0+](https://dotnet.microsoft.com/download/dotnet/10.0) |
+| C# Language | 14+ |
+| IDE | [Visual Studio 2026](https://visualstudio.microsoft.com/downloads/) / [VS Code](https://code.visualstudio.com/) / [Rider](https://www.jetbrains.com/rider/) |
+
+---
 
 ## 💻 Technologies
 
-- C#
-- .Net 10
-- Console Debug Logging
-- XUnit Testing
-- BenchmarkDotNet
+<p align="center">
+  <a href="https://skillicons.dev"><img src="https://skillicons.dev/icons?i=dotnet,cs,docker,git" alt="Technologies"></a>
+</p>
 
-    [![Technologies](https://skillicons.dev/icons?i=dotnet,cs,docker,git)](https://skillicons.dev)
+- **Language**: C# 14 on .NET 10
+- **Testing**: xUnit + BenchmarkDotNet
+- **CI/CD**: GitHub Actions (Linux & Windows)
+- **Packaging**: NuGet
+
+---
 
 ## 📈 Benchmarks
 
-> **Note:** All benchmarks are performed on **.NET 10.0**, **Intel i7-13620H**, **Windows 11**, using **BenchmarkDotNet v0.15.8**.
+> All benchmarks run on **.NET 10.0**, **Intel i7-13620H**, **Windows 11**, using **BenchmarkDotNet v0.15.8**.
 
 ### 🔒 Envelope Encryption
 
-| **Method**              | **Payload** | **Algorithm**         | **Mean**    | **Allocated** |
-|-------------------------|:-----------:|:---------------------:|------------:|--------------:|
-| Encrypt                 |    128      | SALSA20               |   356 ns    |    -          |
-| Decrypt                 |    128      | SALSA20               |   281 ns    |    48 B       |
-| Encrypt                 |   8192      | CHACHA20_POLY1305     | 48,649 ns   |    -          |
-| Decrypt                 |   8192      | CHACHA20_POLY1305     | 26,153 ns   |    48 B       |
-
----
+| Method | Payload (B) | Algorithm | Mean | Allocated |
+| :--- | :---: | :---: | ---: | ---: |
+| Encrypt | 128 | SALSA20 | 356 ns | — |
+| Decrypt | 128 | SALSA20 | 281 ns | 48 B |
+| Encrypt | 8192 | CHACHA20_POLY1305 | 48,649 ns | — |
+| Decrypt | 8192 | CHACHA20_POLY1305 | 26,153 ns | 48 B |
 
 ### 🏎️ X25519 ECC
 
-| **Method**                                     | **KeyPairCount** | **Mean**   | **Allocated** |
-|------------------------------------------------|:----------------:|-----------:|--------------:|
-| X25519.GenerateKeyPair (CSPRNG + scalar mult)  |        1         | 65.36 μs   |   112 B       |
-| X25519.GenerateKeyFromPrivateKey (scalar only) |        1         | 67.35 μs   |   112 B       |
-| X25519.Agreement (shared secret)               |        1         | 66.59 μs   |    56 B       |
-
----
+| Method | Keys | Mean | Allocated |
+| :--- | :---: | ---: | ---: |
+| GenerateKeyPair (CSPRNG + scalar mult) | 1 | 65.36 μs | 112 B |
+| GenerateKeyFromPrivateKey (scalar only) | 1 | 67.35 μs | 112 B |
+| Agreement (shared secret) | 1 | 66.59 μs | 56 B |
 
 ### 🔄 Serialization
 
-| **Method**                                                | **ArrayLength** | **Mean (ns)** | **Allocated** |
-|-----------------------------------------------------------|----------------:|--------------:|--------------:|
-| Serialize<`int`[]> ➔ byte[]                               |       256       |    0.0476     |      -        |
-| Deserialize<`int`> <- ReadOnlySpan<`byte`> (ref)          |       256       |    0.1097     |      -        |
-| Serialize<`LargeStruct`> ➔ existing `byte`[] buffer       |      2048       |    0.0396     |      -        |
-| Deserialize<`LargeStruct`> <- ReadOnlySpan<`byte`> (ref)  |      2048       |    0.2274     |     1 B       |
+| Method | Array Length | Mean (ns) | Allocated |
+| :--- | ---: | ---: | ---: |
+| Serialize\<`int`[]> → byte[] | 256 | 0.0476 | — |
+| Deserialize\<`int`> ← ReadOnlySpan\<`byte`> (ref) | 256 | 0.1097 | — |
+| Serialize\<`LargeStruct`> → existing buffer | 2048 | 0.0396 | — |
+| Deserialize\<`LargeStruct`> ← ReadOnlySpan\<`byte`> (ref) | 2048 | 0.2274 | 1 B |
 
-... *See more in the detailed benchmark report file.*
-
----
-
-> **More details:** See the `docs/benchmarks` folder in the repository for full data and additional test cases.
+> **More details:** See the [`docs/benchmarks`](docs/benchmarks/) folder for full data and additional test cases.
 
 ---
 
-## 📦 Available NuGet Packages
+## 📦 NuGet Packages
 
-Nalix is composed of several modular packages to keep your dependencies lean.
+Nalix is composed of several modular packages — install only what you need.
 
 ### 🏗️ Foundation
-| Package ID | Description |
+
+| Package | Description |
 | :--- | :--- |
 | **[Nalix.Common](src/Nalix.Common)** | Base abstractions, enums, and shared contracts for the Nalix ecosystem. |
-| **[Nalix.Framework](src/Nalix.Framework)** | High-performance core: cryptography, identity, DI, and task orchestration. |
-| **[Nalix.Runtime](src/Nalix.Runtime)** | Core packet processing, middleware pipeline, and execution infrastructure. |
+| **[Nalix.Framework](src/Nalix.Framework)** | High-performance core: cryptography, identity, DI, serialization, and task orchestration. |
+| **[Nalix.Runtime](src/Nalix.Runtime)** | Packet dispatching, middleware pipelines, and handler compilation. |
 
 ### 📡 Networking & Hosting
-| Package ID | Description |
+
+| Package | Description |
 | :--- | :--- |
-| **[Nalix.Network](src/Nalix.Network)** | High-performance transport runtime (TCP/UDP), connection management, and throttling. |
+| **[Nalix.Network](src/Nalix.Network)** | High-performance TCP/UDP transport, connection management, and session persistence. |
 | **[Nalix.Network.Hosting](src/Nalix.Network.Hosting)** | Microsoft-style host and builder APIs for quick bootstrapping. |
-| **[Nalix.Network.Pipeline](src/Nalix.Network.Pipeline)** | Reusable middleware, traffic shaping, and time-keeping primitives. |
+| **[Nalix.Network.Pipeline](src/Nalix.Network.Pipeline)** | Reusable middleware: rate limiting, traffic shaping, and time-keeping primitives. |
 
 ### 🛠️ Utilities & Tooling
-| Package ID | Description |
+
+| Package | Description |
 | :--- | :--- |
-| **[Nalix.Logging](src/Nalix.Logging)** | Asynchronous logging subsystem with pluggable sinks and high-throughput batching. |
-| **[Nalix.SDK](src/Nalix.SDK)** | Client-side SDK offering controllers, time sync, and localization utilities. |
-| **[Nalix.Analyzers](src/Nalix.Analyzers)** | Roslyn analyzers and code fixes to ensure best practices when using Nalix. |
+| **[Nalix.Logging](src/Nalix.Logging)** | Asynchronous logging with pluggable sinks and high-throughput batching. |
+| **[Nalix.SDK](src/Nalix.SDK)** | Client-side SDK: transport sessions, request/response patterns, and encryption. |
+| **[Nalix.Analyzers](src/Nalix.Analyzers)** | Roslyn analyzers and code fixes to enforce Nalix best practices. |
+
+---
 
 ## 🚀 Quick Start
 
-Build a high-performance network application in minutes using the **Hosting** package:
+Build a high-performance network application in minutes:
 
 ```csharp
 using Nalix.Network.Hosting;
-using Microsoft.Extensions.Logging;
 
-// Initialize the application host
+// Initialize and configure the application host
 using var host = NetworkApplication.CreateBuilder()
     .AddTcp<MyPacketProtocol>()
     .AddHandler<MyPacketHandler>()
@@ -139,21 +159,39 @@ using var host = NetworkApplication.CreateBuilder()
 await host.RunAsync();
 ```
 
-> **Note:** See the [examples](example/) directory for complete implementation details.
+> See the [examples](example/) directory for complete implementation details.
+
+---
 
 ## 📦 Installation
 
-Add the required packages to your project:
-
 ```bash
-# For a full server setup:
+# Core server setup
 dotnet add package Nalix.Network.Hosting
+
+# Optional: structured logging
 dotnet add package Nalix.Logging
+
+# Optional: client SDK
+dotnet add package Nalix.SDK
+
+# Optional: Roslyn analyzers
+dotnet add package Nalix.Analyzers
 ```
+
+---
+
+## 🏗️ Architecture Overview
+
+<p align="center">
+  <img src="docs/assets/!/architecture.svg" alt="Nalix Architecture" width="100%">
+</p>
+
+---
 
 ## 🛠️ Contributing
 
-When contributing, please read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, commit convention, and pull request guidelines. Please also follow our [Code of Conduct](CODE_OF_CONDUCT.md) and submit PRs with proper documentation and tests.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, commit conventions, and pull request guidelines. Follow our [Code of Conduct](CODE_OF_CONDUCT.md) and submit PRs with proper documentation and tests.
 
 ## 🛡️ Security
 
@@ -161,7 +199,7 @@ Please review our [Security Policy](SECURITY.md) for supported versions and vuln
 
 ## 📜 License
 
-_Nalix is copyright &copy; PhcNguyen - Provided under the [Apache License, Version 2.0](http://apache.org/licenses/LICENSE-2.0.html)._
+Nalix is copyright &copy; PhcNguyen — provided under the [Apache License, Version 2.0](http://apache.org/licenses/LICENSE-2.0.html).
 
 ## 📬 Contact
 
@@ -171,4 +209,7 @@ For questions, suggestions, or support, open an issue on [GitHub](https://github
 
 <p align="center">
   Give a ⭐️ if this project helped you!
+  <img src="docs/assets/!/footer.svg" alt="Footer" width="100%">
 </p>
+
+<img src="docs/assets/!/divider.svg" alt="Nalix divider" width="100%">

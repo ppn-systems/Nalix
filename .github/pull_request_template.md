@@ -1,29 +1,26 @@
-# 📋 Summary
+## Summary
 
-> Briefly describe the purpose of this PR and what it implements or fixes.  
-> *Example: This PR introduces a new user authentication feature, fixes a bug in the payment processing module, or refactors the database connection logic for better performance.*
-
-Briefly describe what this PR does and why.
+<!-- Briefly describe the purpose of this PR and what it implements or fixes. -->
 
 Closes #<!-- issue number -->
 
 ---
 
-## 🔄 Type of Change
+## Type of Change
 
-* [ ] 🐛 Bug fix
-* [ ] 🚀 Feature / enhancement
-* [ ] ⚡ Performance improvement
-* [ ] 🔧 Refactor
-* [ ] 📚 Documentation update
-* [ ] 🔒 Security fix
-* [ ] 🧪 Tests
+- [ ] 🐛 Bug fix
+- [ ] 🚀 Feature / enhancement
+- [ ] ⚡ Performance improvement
+- [ ] 🔧 Refactor
+- [ ] 📚 Documentation update
+- [ ] 🔒 Security fix
+- [ ] 🧪 Tests
 
 ---
 
-## 🧪 How to Test
+## How to Test
 
-Describe steps to verify this PR:
+<!-- Describe steps to verify this PR. -->
 
 1.
 2.
@@ -31,26 +28,23 @@ Describe steps to verify this PR:
 
 ---
 
-## 📸 Screenshots (if applicable)
+## Screenshots (if applicable)
 
-Add screenshots or videos for UI changes.
-
----
-
-## 📂 Additional Notes (Optional)
-
-* Breaking changes:
-* Dependencies:
-* Deployment notes:
-* Anything reviewers should know:
+<!-- Add screenshots or videos for UI changes. Remove this section if not applicable. -->
 
 ---
 
-## ✅ Checklist
+## Additional Notes
 
-* [ ] Code follows project style guidelines.
-* [ ] Tests cover all changes.
-* [ ] All tests pass locally.
-* [ ] Documentation updated (if applicable).
-* [ ] Self-reviewed my code.
-* [ ] No merge conflicts with the `master` branch.
+<!-- Optional: breaking changes, dependencies, deployment notes, anything reviewers should know. -->
+
+---
+
+## Checklist
+
+- [ ] Code follows project style guidelines (`.editorconfig`).
+- [ ] Tests cover all changes.
+- [ ] All tests pass locally (`dotnet test`).
+- [ ] Documentation updated (if applicable).
+- [ ] Self-reviewed my own code.
+- [ ] No merge conflicts with `master`.
