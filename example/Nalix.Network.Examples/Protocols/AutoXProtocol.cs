@@ -53,6 +53,8 @@ public sealed class AutoXProtocol : Protocol
         System.Console.WriteLine($"[AutoX.{nameof(AutoXProtocol)}:{nameof(ProcessMessage)}] Received message from connection id={args.Connection.ID}");
         // Auto dispose the incoming packet after processing
         s_Dispatch.HandlePacket(args.Lease, args.Connection);
+
+        args.Dispose();
     }
 
     /// <summary>

@@ -22,22 +22,17 @@ internal sealed class FRAME_READER(
     System.Action<System.Exception> onError,
     System.Action<System.Int32> reportBytesReceived)
 {
-    private readonly TransportOptions _options =
-        options ?? throw new System.ArgumentNullException(nameof(options));
+    private readonly TransportOptions _options = options ?? throw new System.ArgumentNullException(nameof(options));
 
-    private readonly System.Func<System.Net.Sockets.Socket> _getSocket =
-        getSocket ?? throw new System.ArgumentNullException(nameof(getSocket));
+    private readonly System.Func<System.Net.Sockets.Socket> _getSocket = getSocket ?? throw new System.ArgumentNullException(nameof(getSocket));
 
-    private readonly System.Action<System.Exception> _onError =
-        onError ?? throw new System.ArgumentNullException(nameof(onError));
+    private readonly System.Action<System.Exception> _onError = onError ?? throw new System.ArgumentNullException(nameof(onError));
 
     // Concrete type BufferLease — HandleReceiveMessage should call CopyFrom(lease.Span)
     // without casts.
-    private readonly System.Action<BufferLease> _onMessage =
-        onMessage ?? throw new System.ArgumentNullException(nameof(onMessage));
+    private readonly System.Action<BufferLease> _onMessage = onMessage ?? throw new System.ArgumentNullException(nameof(onMessage));
 
-    private readonly System.Action<System.Int32> _reportBytesReceived =
-        reportBytesReceived ?? throw new System.ArgumentNullException(nameof(reportBytesReceived));
+    private readonly System.Action<System.Int32> _reportBytesReceived = reportBytesReceived ?? throw new System.ArgumentNullException(nameof(reportBytesReceived));
 
     /// <summary>
     /// Main receive loop. Reads framed messages with a 2-byte little-endian total-length header.
