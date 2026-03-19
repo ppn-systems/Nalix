@@ -47,4 +47,8 @@ between clients and servers under heavy concurrency.
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Middleware\Outbound\" />
+	</ItemGroup>
+
 </Project>
