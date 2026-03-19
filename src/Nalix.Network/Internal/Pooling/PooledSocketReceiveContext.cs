@@ -14,6 +14,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Internal.Pooling;
 
@@ -87,7 +88,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
             }
             else
             {
-                owner._receiveSource.SetException(new SocketException((int)e.SocketError));
+                owner._receiveSource.SetException(NetworkErrors.GetSocketError(e.SocketError));
             }
         }
         finally
@@ -254,8 +255,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
 #endif
 
             return err != SocketError.Success
-                ? ValueTask.FromException<int>(
-                    new SocketException((int)err))
+                ? ValueTask.FromException<int>(NetworkErrors.GetSocketError(err))
                 : ValueTask.FromResult(bytes);
         }
 
@@ -299,14 +299,32 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
                     Debug.WriteLine(
                         $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for idle ops={_activeOps} pending={_consumerAwaitPending} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
+                    // If we are still pending after 5 seconds, we MUST wake up the 
+                    // consumer now, otherwise the state machine will be leaked 
+                    // (suspended forever) because it's rooted by this context.
+                    if (Interlocked.Exchange(ref _consumerAwaitPending, 0) != 0)
+                    {
+                        try { _receiveSource.SetException(NetworkErrors.PooledContextDisposed); }
+                        catch { /* ignore — might have raced with completion */ }
+                    }
                     break;
                 }
                 sw.SpinOnce();
             }
         }
 
+        // IMPORTANT: Reset the ValueTaskSource core. This clears the continuation 
+        // delegate (releasing the state machine) and increments the version 
+        // to invalidate any in-flight ValueTasks.
+        _receiveSource.Reset();
+
         if (_args != null)
         {
+            // If we are still busy after the wait loop, we cannot safely return 
+            // the SAEA to the pool because the kernel might still write to its 
+            // buffer window. We unsubscribe and let it go to be GC'd later.
+            bool isBusy = Volatile.Read(ref _activeOps) != 0;
+
             _args.Completed -= AsyncReceiveCompleted;
             _args.UserToken = null;
             _args.SetBuffer(null, 0, 0);
@@ -314,8 +332,18 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
             if (_args is PooledSocketAsyncEventArgs pooled)
             {
                 pooled.ResetForPool();
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return(pooled);
+                if (!isBusy)
+                {
+                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                            .Return(pooled);
+                }
+#if DEBUG
+                else
+                {
+                    Debug.WriteLine(
+                        $"[PooledSocketReceiveContext] LEAKING busy SAEA to prevent corruption ctx={RuntimeHelpers.GetHashCode(this)}");
+                }
+#endif
             }
 
             _args = null;

@@ -14,7 +14,7 @@ namespace Nalix.Framework.Memory.Internal.Buffers;
 
 /// <summary>
 /// Manages a pool of standalone pinned byte arrays for a single buffer size class.
-/// Each buffer is an independent <see cref="MemorySlab"/> allocated on the Pinned Object Heap.
+/// Each buffer is an independent pinned array allocated on the Pinned Object Heap.
 /// This ensures that the public <c>byte[]</c> API always delivers arrays where data starts
 /// at offset 0, while maintaining the diagnostic and metrics benefits of slab management.
 /// </summary>
@@ -44,7 +44,6 @@ internal sealed class SlabBucket : IDisposable
     private readonly int _cacheDepth;
     private readonly Lock _slabLock;
     private readonly SlabBucketRing _freeRing;
-    private readonly Dictionary<byte[], MemorySlab> _slabLookup = new();
     private readonly ThreadLocal<ThreadLocalCache> _threadCache;
 
     private int _totalBuffers;
@@ -247,13 +246,7 @@ internal sealed class SlabBucket : IDisposable
             {
                 if (_freeRing.TryDequeue(out byte[]? array))
                 {
-                    lock (_slabLock)
-                    {
-                        if (array != null && _slabLookup.Remove(array))
-                        {
-                            removed++;
-                        }
-                    }
+                    removed++;
                 }
                 else
                 {
@@ -298,9 +291,9 @@ internal sealed class SlabBucket : IDisposable
         {
             for (int i = 0; i < count; i++)
             {
-                MemorySlab slab = new(_segmentSize);
-                byte[] array = slab.GetArray();
-                _slabLookup[array] = slab;
+                // Single pinned allocation — the entire point of standalone slab-based pooling.
+                // The array lives on the Pinned Object Heap and stays pinned for its lifetime.
+                byte[] array = GC.AllocateArray<byte>(_segmentSize, pinned: true);
 
                 if (_freeRing.TryEnqueue(array))
                 {
@@ -380,7 +373,6 @@ internal sealed class SlabBucket : IDisposable
             }
 
             _ = _freeRing.DrainAll();
-            _slabLookup.Clear();
             _threadCache.Dispose();
             _disposed = true;
         }

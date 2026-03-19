@@ -20,56 +20,6 @@ namespace Nalix.Framework.Tests.Memory;
 [Trait("Category", "Memory")]
 public sealed class SlabAllocationTests
 {
-    #region MemorySlab Tests
-
-    [Theory]
-    [InlineData(256)]
-    [InlineData(1024)]
-    [InlineData(4096)]
-    public void MemorySlab_Init_AllocatesCorrectBackingSize(int size)
-    {
-        MemorySlab slab = new(size);
-
-        Assert.Equal(size, slab.TotalBytes);
-        Assert.True(slab.SlabId > 0);
-        Assert.True(slab.IsIdle);
-    }
-
-    [Fact]
-    public void MemorySlab_GetArray_ReturnsCorrectArray()
-    {
-        const int size = 512;
-        MemorySlab slab = new(size);
-
-        byte[] arr = slab.GetArray();
-        Assert.NotNull(arr);
-        Assert.Equal(size, arr.Length);
-    }
-
-    [Fact]
-    public void MemorySlab_ActiveStateTracking_UpdatesCorrectly()
-    {
-        MemorySlab slab = new(128);
-
-        Assert.True(slab.IsIdle);
-        
-        slab.MarkActive();
-        Assert.False(slab.IsIdle);
-
-        slab.MarkIdle();
-        Assert.True(slab.IsIdle);
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public void MemorySlab_InvalidParams_Throws(int size)
-    {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new MemorySlab(size));
-    }
-
-    #endregion MemorySlab Tests
-
     #region SlabBucket Tests
 
     [Fact]
@@ -195,7 +145,7 @@ public sealed class SlabAllocationTests
         const int opsPerThread = 200;
         int errors = 0;
 
-        Parallel.For(0, threads, _ =>
+        _ = Parallel.For(0, threads, _ =>
         {
             for (int i = 0; i < opsPerThread; i++)
             {
@@ -204,7 +154,7 @@ public sealed class SlabAllocationTests
                     byte[] arr = bucket.Rent();
                     if (arr.Length < 256)
                     {
-                        Interlocked.Increment(ref errors);
+                        _ = Interlocked.Increment(ref errors);
                     }
                     else
                     {
@@ -216,7 +166,7 @@ public sealed class SlabAllocationTests
                 }
                 catch
                 {
-                    Interlocked.Increment(ref errors);
+                    _ = Interlocked.Increment(ref errors);
                 }
             }
         });
@@ -284,7 +234,7 @@ public sealed class SlabAllocationTests
         BufferLease lease = BufferLease.Rent(256);
 
         Assert.True(lease.Capacity >= 256);
-        
+
 #if DEBUG
         Assert.Equal(0, lease.AsSegment().Offset);
 #endif

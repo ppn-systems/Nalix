@@ -111,7 +111,6 @@ public sealed class PacketDispatchChannel
         _ = Interlocked.Exchange(ref _wakeRequested, 0);
         _ = Interlocked.Exchange(ref _wakeSignals, 0);
         _ = Interlocked.Exchange(ref _wakeReadSignals, 0);
-        _ = this.DrainWakeSignals();
 
         Volatile.Write(ref _activeLoops, 0);
 
@@ -132,7 +131,7 @@ public sealed class PacketDispatchChannel
                     // This is now a truly asynchronous worker managed by TaskManager.
                     // By removing the manual OS thread, we reduce context switching and 
                     // allow .NET's thread pool to optimize the execution of the async state machine.
-                    await this.RunLoopAsync(ctx, ct, loopIndex).ConfigureAwait(false);
+                    await this.DispatchWorkerLoopAsync(ctx, ct, loopIndex).ConfigureAwait(false);
                 },
                 options: new WorkerOptions
                 {
@@ -342,7 +341,7 @@ public sealed class PacketDispatchChannel
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private async ValueTask RunLoopAsync(IWorkerContext ctx, CancellationToken ct, int index)
+    private async ValueTask DispatchWorkerLoopAsync(IWorkerContext ctx, CancellationToken ct, int index)
     {
         // PURE ASYNC LOOP.
         // Performance is maintained by pooled async state machines in .NET 10.
@@ -359,7 +358,7 @@ public sealed class PacketDispatchChannel
                 {
                     // Dispatch directly using await. 
                     // Zero-allocation for sync completion; Pooled for async.
-                    await this.DispatchLeaseAsync(connection, lease, ct).ConfigureAwait(false);
+                    await this.ExecutePacketAsync(connection, lease, ct).ConfigureAwait(false);
                     processed++;
                 }
 
@@ -386,8 +385,26 @@ public sealed class PacketDispatchChannel
 
                 try
                 {
+                    int spins = 0;
+                    while (_dispatch.TotalPackets == 0 && spins < 16)
+                    {
+                        Thread.SpinWait(8);
+                        spins++;
+                    }
+
+                    if (_dispatch.TotalPackets > 0)
+                    {
+                        continue;
+                    }
+
                     // Zero-allocation asynchronous wait.
-                    await _wakeSignal.WaitAsync(ct).ConfigureAwait(false);
+                    _ = await _wakeSignal.WaitAsync(millisecondsTimeout: 50)
+                                         .ConfigureAwait(false);
+
+                    if (ct.IsCancellationRequested)
+                    {
+                        break;
+                    }
                 }
                 catch (OperationCanceledException)
                 {
@@ -402,7 +419,7 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex)
         {
-            this.Logging?.Error($"[NW.{nameof(PacketDispatchChannel)}:RunLoopAsync] fatal-loop-error index={index}", ex);
+            this.Logging?.Error($"[NW.{nameof(PacketDispatchChannel)}:DispatchWorkerLoopAsync] fatal-loop-error index={index}", ex);
         }
         finally
         {
@@ -415,7 +432,7 @@ public sealed class PacketDispatchChannel
 
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private ValueTask DispatchLeaseAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
+    private ValueTask ExecutePacketAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
         // 1. Acquire pooled packet via registry (zero alloc)
         // If TryDeserializePooled fails, it has already returned any partially-deserialized pooled objects.
@@ -434,14 +451,13 @@ public sealed class PacketDispatchChannel
             // 3. Fast-path: handler completed synchronously
             if (pending.IsCompletedSuccessfully)
             {
-                pending.GetAwaiter().GetResult();
                 _catalog.ReturnPacket(packet);
                 lease.Dispose();
                 return ValueTask.CompletedTask;
             }
 
             // 4. Slow-path: async completion (AwaitDispatchAsync handles Return/Dispose)
-            return AwaitDispatchAsync(this, connection, lease, packet, pending, ct);
+            return AwaitPacketHandlerCompletionAsync(this, connection, lease, packet, pending, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -450,7 +466,7 @@ public sealed class PacketDispatchChannel
         catch (Exception ex)
         {
             connection.IncrementErrorCount();
-            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
         }
 
         // 5. Cleanup for synchronous errors/cancellation
@@ -459,13 +475,9 @@ public sealed class PacketDispatchChannel
         return ValueTask.CompletedTask;
     }
 
-    private static async ValueTask AwaitDispatchAsync(
-        PacketDispatchChannel owner,
-        IConnection connection,
-        IBufferLease lease,
-        IPacket packet,
-        ValueTask pending,
-        CancellationToken ct)
+    private static async ValueTask AwaitPacketHandlerCompletionAsync(
+        PacketDispatchChannel owner, IConnection connection,
+        IBufferLease lease, IPacket packet, ValueTask pending, CancellationToken ct)
     {
         try
         {
@@ -478,7 +490,7 @@ public sealed class PacketDispatchChannel
         catch (Exception ex)
         {
             connection.IncrementErrorCount();
-            owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+            owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
         }
         finally
         {
@@ -496,22 +508,16 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        // Wake all workers to ensure maximum throughput under load.
-        // This mimics the old ManualResetEventSlim.Set() behavior where
-        // all threads are released to drain the prioritized queues in parallel.
-        int count = _dispatchLoops;
-        if (count > 0)
-        {
-            _ = _wakeSignal.Release(count);
-        }
+        // Calculate how many wake signals to release.
+        // Wake less frequently when the queue is not full.
+        // If there are too many packets, wake all dispatch loops. 
+        // Otherwise, wake just enough based on the number of packets.
+        long total = _dispatch.TotalPackets;
+        int count = total > _maxDrainPerWake ? _dispatchLoops : Math.Max(1, (int)(total / _maxDrainPerWake * _dispatchLoops) + 1);
+
+        _ = _wakeSignal.Release(count);
         _ = Interlocked.Increment(ref _wakeSignals);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int DrainWakeSignals() =>
-        // For SemaphoreSlim, we just clear the requested flag.
-        // The semaphore count will be consumed by the threads.
-        0;
 
     #endregion Private Methods
 

@@ -386,11 +386,18 @@ public sealed class PacketRegistryFactory
                 magicTypes[key] = type;
 
                 // Build pool rent/return delegates for this type (created once, zero alloc on hot path).
-                MethodInfo bindPoolMi = typeof(PacketRegistryFactory)
-                    .GetMethod(nameof(BUILD_POOL_OPS_FOR), StaticNonPublic)!
-                    .MakeGenericMethod(type);
-                (Func<IPacket>, Action<IPacket>) ops = ((Func<IPacket>, Action<IPacket>))bindPoolMi.Invoke(null, null)!;
-                poolOps[key] = ops;
+                bool isPoolable = typeof(IPoolable).IsAssignableFrom(type)
+                                  && type.IsClass
+                                  && type.GetConstructor(Type.EmptyTypes) is not null;
+
+                if (isPoolable)
+                {
+                    MethodInfo bindPoolMi = typeof(PacketRegistryFactory).GetMethod(nameof(BUILD_POOL_OPS_FOR), StaticNonPublic)!
+                                                                         .MakeGenericMethod(type);
+
+                    (Func<IPacket>, Action<IPacket>) ops = ((Func<IPacket>, Action<IPacket>))bindPoolMi.Invoke(null, null)!;
+                    poolOps[key] = ops;
+                }
             }
             catch (Exception ex)
             {
@@ -421,18 +428,35 @@ public sealed class PacketRegistryFactory
         // Standard FNV-1a hashes BYTES, not chars. For ASCII-safe type names the result
         // is the same, but for any non-ASCII char the high byte was silently dropped.
         ReadOnlySpan<char> name = MemoryExtensions.AsSpan(type.FullName ?? type.Name);
-        Span<byte> buf = stackalloc byte[Encoding.UTF8.GetMaxByteCount(name.Length)];
 
-        int written = Encoding.UTF8.GetBytes(name, buf);
+        const int MaxStackAlloc = 512;
+        int maxBytes = Encoding.UTF8.GetMaxByteCount(name.Length);
 
-        uint hash = 2166136261u; // FNV-1a 32-bit offset basis
-        foreach (byte b in buf[..written])
+        byte[]? rented = null;
+        Span<byte> buf = maxBytes <= MaxStackAlloc
+            ? stackalloc byte[maxBytes]
+            : (rented = System.Buffers.ArrayPool<byte>.Shared.Rent(maxBytes));
+
+        try
         {
-            hash ^= b;
-            hash *= 16777619u; // FNV-1a 32-bit prime
-        }
+            int written = Encoding.UTF8.GetBytes(name, buf);
 
-        return hash;
+            uint hash = 2166136261u; // FNV-1a 32-bit offset basis
+            foreach (byte b in buf[..written])
+            {
+                hash ^= b;
+                hash *= 16777619u; // FNV-1a 32-bit prime
+            }
+
+            return hash;
+        }
+        finally
+        {
+            if (rented is not null)
+            {
+                System.Buffers.ArrayPool<byte>.Shared.Return(rented);
+            }
+        }
     }
 
     #endregion Public API
@@ -555,6 +579,7 @@ public sealed class PacketRegistryFactory
             // High-Performance Path: Try true zero-allocation rehydration if supported.
             if (value is TPacket existing)
             {
+                // FormatterProvider is static and cached, so this is a fast call that does not allocate if the formatter already exists.
                 IFormatter<TPacket> formatter = FormatterProvider.GetComplex<TPacket>();
                 if (formatter is IFillableFormatter<TPacket> fillable)
                 {

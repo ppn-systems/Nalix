@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Identity;
@@ -11,7 +12,6 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
 using Xunit;
@@ -30,7 +30,7 @@ public sealed class ConnectionLoggingExtensionsTests
         connection.ThrottledWarn(logger, "dup", "first");
         connection.ThrottledWarn(logger, "dup", "first");
 
-        Assert.Single(logger.Entries);
+        _ = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Warning, logger.Entries[0].Level);
         Assert.Equal("first", logger.Entries[0].Message);
     }
@@ -66,7 +66,7 @@ public sealed class ConnectionLoggingExtensionsTests
 
         connection.ThrottledError(logger, "err", "failed", error);
 
-        Assert.Single(logger.Entries);
+        _ = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Error, logger.Entries[0].Level);
         Assert.Equal("failed", logger.Entries[0].Message);
         Assert.Same(error, logger.Entries[0].Exception);
@@ -77,9 +77,9 @@ public sealed class ConnectionLoggingExtensionsTests
     {
         TestLogger logger = new();
 
-        global::Microsoft.Extensions.Logging.ThrottleLogExtensions.ThrottledTrace(null!, logger, "trace", "ping");
+        ThrottleLogExtensions.ThrottledTrace(null!, logger, "trace", "ping");
 
-        Assert.Single(logger.Entries);
+        _ = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Trace, logger.Entries[0].Level);
         Assert.Equal("ping", logger.Entries[0].Message);
     }
@@ -127,7 +127,7 @@ public sealed class ConnectionLoggingExtensionsTests
 
         public void Dispose() { }
 
-        public void IncrementErrorCount() => ErrorCount++;
+        public void IncrementErrorCount() => this.ErrorCount++;
     }
 
     private sealed class TestTransport : IConnection.ITransport
@@ -138,11 +138,11 @@ public sealed class ConnectionLoggingExtensionsTests
 
         public void Send(ReadOnlySpan<byte> message) { }
 
-        public System.Threading.Tasks.Task SendAsync(IPacket packet, System.Threading.CancellationToken cancellationToken = default) =>
-            System.Threading.Tasks.Task.CompletedTask;
+        public ValueTask SendAsync(IPacket packet, System.Threading.CancellationToken cancellationToken = default) =>
+            ValueTask.CompletedTask;
 
-        public System.Threading.Tasks.Task SendAsync(ReadOnlyMemory<byte> message, System.Threading.CancellationToken cancellationToken = default) =>
-            System.Threading.Tasks.Task.CompletedTask;
+        public ValueTask SendAsync(ReadOnlyMemory<byte> message, System.Threading.CancellationToken cancellationToken = default) =>
+            ValueTask.CompletedTask;
     }
 
     private sealed class TestEndpoint : INetworkEndpoint
@@ -177,7 +177,7 @@ public sealed class ConnectionLoggingExtensionsTests
 
         public bool TryWriteBytes(Span<byte> destination, out int bytesWritten)
         {
-            bool ok = TryWriteBytes(destination);
+            bool ok = this.TryWriteBytes(destination);
             bytesWritten = ok ? 7 : 0;
             return ok;
         }
@@ -196,10 +196,7 @@ public sealed class ConnectionLoggingExtensionsTests
             EventId eventId,
             TState state,
             Exception? exception,
-            Func<TState, Exception?, string> formatter)
-        {
-            Entries.Add(new LogEntry(logLevel, formatter(state, exception), exception));
-        }
+            Func<TState, Exception?, string> formatter) => this.Entries.Add(new LogEntry(logLevel, formatter(state, exception), exception));
     }
 
     private readonly record struct LogEntry(LogLevel Level, string Message, Exception? Exception);

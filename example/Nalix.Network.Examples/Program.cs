@@ -7,11 +7,8 @@ using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Logging;
 using Nalix.Logging.Options;
-using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Examples.Attributes;
 using Nalix.Network.Examples.Handlers;
@@ -32,10 +29,10 @@ internal class Program
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ConnectionHub hub = new();
         BufferPoolManager buffer = new();
-        ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
+        //ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
+        ILogger? logger = null;
 
         using NetworkApplication host = NetworkApplication.CreateBuilder()
-            .ConfigureLogging(logger)
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(buffer)
             .Configure<NetworkSocketOptions>(options =>
@@ -64,12 +61,6 @@ internal class Program
             {
                 options.MaxPerConnectionQueue = 0;
             })
-            //.Configure<ObjectPoolConfig>(options =>
-            //{
-            //    options.EnableDiagnostics = true;
-            //    options.CaptureStackTraces = true;
-            //    options.EnableLeakDetection = true;
-            //})
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
             .AddPacket<Handshake>()
             .AddHandler<PacketCommandHandler>()
@@ -82,7 +73,7 @@ internal class Program
 
                 _ = options.WithDispatchLoopCount(8);
                 _ = options.WithMiddleware(new PacketTagMiddleware());
-                _ = options.WithErrorHandling((exception, command) => logger.Error($"Error handling command: {command}", exception));
+                _ = options.WithErrorHandling((exception, command) => logger?.Error($"Error handling command: {command}", exception));
             })
             .AddTcp<ExamplePacketProtocol>()
             .Build();
@@ -94,8 +85,6 @@ internal class Program
             eventArgs.Cancel = true;
             shutdown.Cancel();
         };
-
-        Console.WriteLine(InstanceManager.Instance.GenerateReport());
 
         Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
         Console.WriteLine("Press Ctrl+C to stop.");
@@ -112,7 +101,7 @@ internal class Program
                     {
                         ConsoleKeyInfo key = Console.ReadKey(true);
                         // Trigger report on Ctrl + R or simply 'R'
-                        if ((key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R))
+                        if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R)
                         {
                             PRINT_REPORT();
                         }
@@ -127,13 +116,6 @@ internal class Program
 
         static void PRINT_REPORT()
         {
-            Console.WriteLine("\n" + new string('-', 20) + " LIVE REPORT " + new string('-', 20));
-
-            //if (InstanceManager.Instance.GetExistingInstance<IPacketDispatch>() is IPacketDispatch dispatcher)
-            //{
-            //    Console.WriteLine(dispatcher.GenerateReport());
-            //}
-
             if (InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>() is ObjectPoolManager objectPoolManager)
             {
                 Console.WriteLine(objectPoolManager.GenerateReport());
@@ -148,8 +130,6 @@ internal class Program
             {
                 Console.WriteLine(taskManager.GenerateReport());
             }
-
-            Console.WriteLine(new string('-', 53) + "\n");
         }
 
         await host.RunAsync(shutdown.Token).ConfigureAwait(false);

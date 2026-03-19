@@ -242,18 +242,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                         $"saea-receive-loop started ep={_endpointString}");
 #endif
 
-        Task receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(cancellationToken);
-        _receiveLoopTask = receiveLoopTask;
-
-        _ = receiveLoopTask.ContinueWith(static (t, state) =>
-        {
-            ILogger l = (ILogger)state!;
-
-            if (t.IsFaulted)
-            {
-                l?.Error($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] saea-receive-loop faulted", t.Exception!);
-            }
-        }, _logger, TaskScheduler.Default);
+        _receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(cancellationToken);
     }
     #endregion Public Methods
 
@@ -264,12 +253,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     {
         this.DISPOSE(true);
         GC.SuppressFinalize(this);
-    }
-
-    /// <summary>Finalizes an instance of the <see cref="SocketConnection"/> class.</summary>
-    ~SocketConnection()
-    {
-        this.DISPOSE(false);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -324,7 +307,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                             _logger.Debug($"[NW.{nameof(SocketConnection)}] invalid-size={size} ep={_endpointString}");
                         }
 #endif
-                        throw new SocketException((int)SocketError.ProtocolNotSupported);
+                        throw NetworkErrors.ProtocolNotSupported;
                     }
 
                     // Check if the full frame (header + payload) is present in the buffer.
@@ -413,12 +396,13 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         }
     }
 
-    /// <summary>
-    /// Performs an opportunistic read to fill the persistent buffer as much as possible.
-    /// </summary>
-    private async ValueTask RECEIVE_OPPORTUNISTIC_ASYNC(CancellationToken token)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private ValueTask RECEIVE_OPPORTUNISTIC_ASYNC(CancellationToken token)
     {
-        token.ThrowIfCancellationRequested();
+        if (token.IsCancellationRequested)
+        {
+            return ValueTask.FromCanceled(token);
+        }
 
         int freeSpace = _buffer!.Length - _bufferDataLength;
         if (freeSpace == 0)
@@ -426,18 +410,36 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             // If the buffer is full but we haven't parsed a complete frame, it means a single 
             // frame has exceeded our buffer capacity (MaxChunkSize * 2). 
             // Since the system is configured to never send frames > 1400 bytes, this is a protocol violation.
-            throw new SocketException((int)SocketError.MessageSize);
+            return ValueTask.FromException(NetworkErrors.MessageSize);
         }
 
         ValueTask<int> vt = _recvCtx.ReceiveAsync(_socket, _buffer, _bufferDataLength, freeSpace);
-        int n = vt.IsCompletedSuccessfully ? vt.Result : await vt.ConfigureAwait(false);
 
-        if (n == 0)
+        if (vt.IsCompletedSuccessfully)
         {
-            throw new NetworkException("Connection closed by peer.", new SocketException((int)SocketError.ConnectionReset));
+            int n = vt.Result;
+            if (n == 0)
+            {
+                return ValueTask.FromException(NetworkErrors.ConnectionReset);
+            }
+
+            _bufferDataLength += n;
+            return default;
         }
 
-        _bufferDataLength += n;
+        return AWAIT_RECEIVE(this, vt);
+
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
+        static async ValueTask AWAIT_RECEIVE(SocketConnection self, ValueTask<int> vt)
+        {
+            int n = await vt.ConfigureAwait(false);
+            if (n == 0)
+            {
+                throw NetworkErrors.ConnectionReset;
+            }
+
+            self._bufferDataLength += n;
+        }
     }
 
     /// <summary>
@@ -626,6 +628,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             if (receiveLoopTask is not null)
             {
                 _receiveLoopTask = null;
+
+                // Wait for the loop to exit. Since we closed the socket above, 
+                // the loop should exit almost immediately. This ensures that 
+                // any pending AWAIT_RECEIVE has finished and released its 
+                // references to this connection.
+                try { receiveLoopTask.GetAwaiter().GetResult(); } catch { /* ignore */ }
             }
 
             // 3. Return the pooled receive context only after the socket can no
