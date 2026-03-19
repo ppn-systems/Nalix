@@ -59,7 +59,7 @@ public sealed partial class Connection : IConnection
 
         this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.ID = Snowflake.NewId(SnowflakeType.Session);
-        this.EndPoint = NetworkEndpoint.FromEndPoint(socket.RemoteEndPoint);
+        this.NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint);
 
         _evtArgs = new ConnectionEventArgs(this);
         _cstream = new FramedSocketConnection(socket);
@@ -71,11 +71,11 @@ public sealed partial class Connection : IConnection
             },
             this, _evtArgs);
 
-        _cstream.SetCallback(OnCloseEventBridge, OnPostProcessEventBridge, this, _evtArgs);
+        _cstream.SetCallback(this, _evtArgs, OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 
         this.TCP = new TcpTransport(this);
 
-        s_logger.Debug($"[NW.{nameof(Connection)}] created remote={this.EndPoint} id={this.ID}");
+        s_logger.Debug($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
     }
 
     #endregion Constructor
@@ -92,7 +92,7 @@ public sealed partial class Connection : IConnection
     public IConnection.IUdp UDP => _udp;
 
     /// <inheritdoc />
-    public INetworkEndpoint EndPoint { get; }
+    public INetworkEndpoint NetworkEndpoint { get; }
 
     /// <inheritdoc />
     public System.Int32 ErrorCount => _errorCount;
@@ -102,11 +102,6 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     public System.Int64 UpTime => this._cstream.Cache.Uptime;
-
-    /// <inheritdoc />
-
-    [System.Diagnostics.CodeAnalysis.AllowNull]
-    public IBufferLease IncomingPacket => _cstream.Cache.Incoming.Pop();
 
     /// <inheritdoc />
     public System.Int64 LastPingTime => this._cstream.Cache.LastPingTime;
@@ -190,6 +185,7 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Obsolete]
     internal void InjectIncoming(System.Byte[] bytes)
     {
         if (bytes.Length == 0 || this._disposed)
@@ -198,12 +194,16 @@ public sealed partial class Connection : IConnection
         }
 
         _cstream.Cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-        _cstream.Cache.PushIncoming(BufferLease.CopyFrom(bytes));
+        //_cstream.Cache.PushIncoming(BufferLease.CopyFrom(bytes));
 
 #if DEBUG
         s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{InjectIncoming}] inject-bytes len={bytes.Length}");
 #endif
     }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal void ReleasePendingPacket() => _cstream.OnPacketProcessed();
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
@@ -218,7 +218,7 @@ public sealed partial class Connection : IConnection
         this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
 #if DEBUG
-        s_logger.Debug($"[NW.{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.EndPoint}");
+        s_logger.Debug($"[NW.{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
 #endif
     }
 
@@ -299,7 +299,7 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        AsyncCallback.Invoke(self._onProcessEvent, self, e, e.Connection.EndPoint);
+        AsyncCallback.Invoke(self._onProcessEvent, self, e);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(

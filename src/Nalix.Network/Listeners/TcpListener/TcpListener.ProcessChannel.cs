@@ -73,14 +73,14 @@ public abstract partial class TcpListenerBase
     {
         if (_processChannel.Writer.TryWrite(connection))
         {
-            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] queued remote={connection.EndPoint} port={_port}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] queued remote={connection.NetworkEndpoint} port={_port}");
             return;
         }
 
         // Channel full → DDoS backpressure: drop the new connection immediately.
         // Existing legitimate connections already in the channel are unaffected.
         _metrics.RECORD_REJECTED();
-        s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] channel-full remote={connection.EndPoint} port={_port} — dropped");
+        s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] channel-full remote={connection.NetworkEndpoint} port={_port} — dropped");
 
         connection.Close();
     }
@@ -157,7 +157,7 @@ public abstract partial class TcpListenerBase
         }
         catch (System.Exception ex)
         {
-            s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] error remote={connection.EndPoint} port={_port}", ex);
+            s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] error remote={connection.NetworkEndpoint} port={_port}", ex);
             connection.Close();
         }
     }

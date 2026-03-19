@@ -204,7 +204,7 @@ public sealed class PacketDispatchChannel
     {
         if (lease is null || lease.Length <= 0)
         {
-            Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.EndPoint}");
+            Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.NetworkEndpoint}");
             lease?.Dispose();
 
             return;
@@ -270,7 +270,7 @@ public sealed class PacketDispatchChannel
         sb.AppendLine("----------------------|----------");
         foreach (var kv in _dispatch.PendingPerConnection.OrderByDescending(x => x.Value).Take(10))
         {
-            sb.AppendLine($"{kv.Key.EndPoint,-22}| {kv.Value,6}");
+            sb.AppendLine($"{kv.Key.NetworkEndpoint,-22}| {kv.Value,6}");
         }
 
         sb.AppendLine();
@@ -367,7 +367,7 @@ public sealed class PacketDispatchChannel
                     IBufferLease afterMw = await Options.NetworkPipeline.ExecuteAsync(lease, connection, ct).ConfigureAwait(false);
                     if (afterMw is null)
                     {
-                        Logging?.Warn($"[PacketDispatchChannel:RunLoop] middleware-reject ep={connection.EndPoint}");
+                        Logging?.Warn($"[PacketDispatchChannel:RunLoop] middleware-reject ep={connection.NetworkEndpoint}");
                         lease.Dispose();
                         continue;
                     }
@@ -379,7 +379,7 @@ public sealed class PacketDispatchChannel
                 {
                     // Count error nếu có connection
                     connection?.IncrementErrorCount();
-                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection?.EndPoint} leaseLen={lease.Length}", ex);
+                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection?.NetworkEndpoint} leaseLen={lease.Length}", ex);
 
                     lease.Dispose();
                     continue;
@@ -394,7 +394,7 @@ public sealed class PacketDispatchChannel
                         // Warn with small head preview
                         System.Int32 len = lease.Length;
                         System.String head = System.Convert.ToHexString(lease.Span[..System.Math.Min(16, len)]);
-                        Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.EndPoint} len={len} head={head}");
+                        Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
 
                         continue;
                     }
@@ -404,7 +404,7 @@ public sealed class PacketDispatchChannel
                 catch (System.Exception ex)
                 {
                     connection.IncrementErrorCount();
-                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.EndPoint}", ex);
+                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.NetworkEndpoint}", ex);
                 }
                 finally
                 {

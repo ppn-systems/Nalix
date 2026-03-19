@@ -515,7 +515,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     private CheckResult PERFORM_RATE_LIMIT_CHECK(System.UInt16 opCode, PacketContext<IPacket> context, Policy policy)
     {
-        if (context.Connection?.EndPoint is null)
+        if (context.Connection?.NetworkEndpoint is null)
         {
             s_logger?.Warn($"[NW.{nameof(PolicyRateLimiter)}] missing-endpoint opCode={opCode}");
 
@@ -539,7 +539,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
         try
         {
-            var subject = new RateLimitSubject(opCode, context.Connection.EndPoint);
+            var subject = new RateLimitSubject(opCode, context.Connection.NetworkEndpoint);
             var decision = entry.Limiter.Check(subject);
 
             return new CheckResult

@@ -418,7 +418,7 @@ public sealed class TimingWheel : IActivatable
                     {
                         s_logger?.Debug(
                             $"[NW.{nameof(TimingWheel)}] timeout " +
-                            $"remote={task.Conn.EndPoint?.Address} idle={idleMs}ms");
+                            $"remote={task.Conn.NetworkEndpoint?.Address} idle={idleMs}ms");
 
                         try
                         {
@@ -428,7 +428,7 @@ public sealed class TimingWheel : IActivatable
                         {
                             s_logger?.Warn(
                                 $"[NW.{nameof(TimingWheel)}] close-error " +
-                                $"remote={task.Conn.EndPoint?.Address} ex={ex.Message}");
+                                $"remote={task.Conn.NetworkEndpoint?.Address} ex={ex.Message}");
                         }
 
                         // Close() fires OnCloseEvent → Unregister() → _active entry removed.

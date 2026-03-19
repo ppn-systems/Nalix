@@ -116,7 +116,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
 
         if (endPoint is null)
         {
-            throw new InternalErrorException("EndPoint cannot be null", nameof(endPoint));
+            throw new InternalErrorException("NetworkEndpoint cannot be null", nameof(endPoint));
         }
 
         SAFE_INCREMENT(ref _totalConnectionAttempts);
@@ -172,7 +172,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     {
         if (endPoint is null)
         {
-            throw new InternalErrorException("EndPoint cannot be null", nameof(endPoint));
+            throw new InternalErrorException("NetworkEndpoint cannot be null", nameof(endPoint));
         }
 
         if (endPoint is not System.Net.IPEndPoint ipEndPoint)
@@ -193,7 +193,6 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "Event handler signature")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Event handler signature")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
     public void OnConnectionClosed(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
@@ -203,21 +202,21 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
             return;
         }
 
-        if (args?.Connection?.EndPoint is null)
+        if (args?.Connection?.NetworkEndpoint is null)
         {
             s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-null args/connection/endpoint");
             return;
         }
 
-        if (System.String.IsNullOrWhiteSpace(args.Connection.EndPoint.Address))
+        if (System.String.IsNullOrWhiteSpace(args.Connection.NetworkEndpoint.Address))
         {
             s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-empty-address");
             return;
         }
 
         System.DateTime now = Clock.NowUtc();
-        INetworkEndpoint key = Connection.NetworkEndpoint.FromIpAddress(
-            System.Net.IPAddress.Parse(args.Connection.EndPoint.Address)
+        INetworkEndpoint key = Connection.Endpoint.FromIpAddress(
+            System.Net.IPAddress.Parse(args.Connection.NetworkEndpoint.Address)
         );
 
         System.Boolean released = TRY_RELEASE_CONNECTION_SLOT(key, now);
@@ -274,7 +273,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1859", Justification = "Interface required")]
     private static INetworkEndpoint CONVERT_TO_NETWORK_ENDPOINT(System.Net.IPEndPoint endPoint)
-        => Connections.Connection.NetworkEndpoint.FromIpAddress(endPoint.Address);
+        => Connection.Endpoint.FromIpAddress(endPoint.Address);
 
     /// <summary>
     /// Attempts to acquire a connection slot.

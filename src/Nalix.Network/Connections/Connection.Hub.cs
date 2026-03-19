@@ -605,7 +605,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         {
             foreach (IConnection conn in shard.Values)
             {
-                System.String connAddress = conn?.EndPoint?.Address ?? "null";
+                System.String connAddress = conn?.NetworkEndpoint?.Address ?? "null";
 
                 if (connAddress != targetAddress)
                 {

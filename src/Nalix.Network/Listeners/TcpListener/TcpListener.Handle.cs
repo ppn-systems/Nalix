@@ -23,11 +23,11 @@ public abstract partial class TcpListenerBase
             _protocol.OnAccept(connection, _cancellationToken);
 
             _metrics.RECORD_ACCEPTED();
-            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.EndPoint}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.NetworkEndpoint}");
         }
         catch (System.Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.EndPoint}", ex);
+            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.NetworkEndpoint}", ex);
 
             connection.Close();
         }
@@ -52,7 +52,7 @@ public abstract partial class TcpListenerBase
 
         args.Connection.Dispose();
 
-        s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] close={args.Connection.EndPoint}");
+        s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] close={args.Connection.NetworkEndpoint}");
     }
 
     [System.Diagnostics.DebuggerStepThrough]
@@ -361,7 +361,7 @@ public abstract partial class TcpListenerBase
             }
 
 #if DEBUG
-            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accepted remote={connection.EndPoint} port={_port}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accepted remote={connection.NetworkEndpoint} port={_port}");
 #endif
 
             PooledListenerProcessContext pctx = s_pool.Get<PooledListenerProcessContext>();
