@@ -8,6 +8,7 @@ namespace Nalix.Shared.Extensions;
 /// <summary>
 /// Extension methods for writing primitive and common types to <see cref="DataWriter"/>.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class DataWriterExtensions
 {
     #region Primitive Types

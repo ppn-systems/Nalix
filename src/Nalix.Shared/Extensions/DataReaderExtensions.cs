@@ -8,6 +8,7 @@ namespace Nalix.Shared.Extensions;
 /// <summary>
 /// Extension methods for reading primitive and common types from <see cref="DataReader"/>.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class DataReaderExtensions
 {
     #region Primitive Types

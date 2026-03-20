@@ -27,6 +27,7 @@ namespace Nalix.Shared.Security.Symmetric;
 /// See <see href="https://tools.ietf.org/html/rfc7539">RFC 7539</see> for the full specification.
 /// </para>
 /// </remarks>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public ref struct ChaCha20
 {
     #region Constants

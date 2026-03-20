@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Primitives;
 using Nalix.Common.Serialization.Attributes;
 using Nalix.Framework.Injection;
@@ -12,11 +12,12 @@ using Nalix.Shared.Serialization.Formatters.Primitives;
 using Nalix.Shared.Serialization.Internal.Types;
 using System.Collections.Concurrent;
 
-namespace Nalix.Shared.Serialization.Formatters;
+namespace Nalix.Shared.Serialization;
 
 /// <summary>
 /// Provides a global registry for registering and retrieving formatters without boxing.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class FormatterProvider
 {
     #region Fields

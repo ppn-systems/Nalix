@@ -1,6 +1,18 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+
+// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using Nalix.Common.Exceptions;
 
 namespace Nalix.Shared.Memory.Buffers;
@@ -12,6 +24,7 @@ namespace Nalix.Shared.Memory.Buffers;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 [System.Diagnostics.DebuggerDisplay("Len={_length}, Read={BytesRead}, Rem={BytesRemaining}, Pinned={_pinned}")]
 public unsafe struct DataReader : System.IDisposable

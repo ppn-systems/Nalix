@@ -36,6 +36,7 @@ namespace Nalix.Shared.Security.Asymmetric;
 /// All carry temporaries are scalar locals rather than <c>new int[10]</c> arrays.
 /// </remarks>
 [System.Runtime.CompilerServices.SkipLocalsInit]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal struct FieldElement
 {
     // 10 limbs, 26/25-bit alternating radix-2^25.5 representation.

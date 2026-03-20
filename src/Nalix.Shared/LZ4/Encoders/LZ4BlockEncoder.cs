@@ -10,6 +10,7 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// This encoder is designed to achieve high performance and efficient compression.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class LZ4BlockEncoder
 {
     #region APIs

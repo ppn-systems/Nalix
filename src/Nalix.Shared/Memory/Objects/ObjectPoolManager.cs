@@ -1,17 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Shared.Abstractions;
 using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Pools;
-using Nalix.Shared.Memory.PoolTypes;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace Nalix.Shared.Memory.Pooling;
+namespace Nalix.Shared.Memory.Objects;
 
 /// <summary>
 /// Provides thread-safe access to a collection of object pools containing instances of <see cref="IPoolable"/>.

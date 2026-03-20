@@ -7,6 +7,7 @@ namespace Nalix.Shared.Security.Primitives;
 /// High-performance bitwise utilities for cryptographic operations.
 /// Uses hardware intrinsics when available for maximum efficiency.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static class BitwiseOperations
 {
     /// <summary>

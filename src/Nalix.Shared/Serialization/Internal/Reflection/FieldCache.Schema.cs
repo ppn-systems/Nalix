@@ -11,6 +11,7 @@ namespace Nalix.Shared.Serialization.Internal.Reflection;
 /// <summary>
 /// Represents metadata for a field, including its type and ordering.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal readonly record struct FieldSchema(
     // The order of the field in the serialized structure.
     System.Int32 Order,

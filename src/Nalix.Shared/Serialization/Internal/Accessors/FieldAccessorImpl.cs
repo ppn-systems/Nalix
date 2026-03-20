@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Serialization.Formatters;
 using Nalix.Shared.Serialization.Internal.Reflection;
 
 #if DEBUG

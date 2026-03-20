@@ -50,6 +50,7 @@ namespace Nalix.Shared.Security.Aead;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("CHACHA20-Poly1305 AEAD")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class ChaCha20Poly1305
 {
     #region Constants

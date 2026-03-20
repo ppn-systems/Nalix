@@ -8,7 +8,8 @@ namespace Nalix.Shared.LZ4.Engine;
 /// <summary>
 /// Provides pooled hash tables for LZ4 compression to avoid repeated allocations.
 /// </summary>
-public static class LZ4HashTablePool
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+internal static class LZ4HashTablePool
 {
     #region Fields
 
