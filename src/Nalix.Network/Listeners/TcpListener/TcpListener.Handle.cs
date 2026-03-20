@@ -4,6 +4,7 @@
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Network.Connections;

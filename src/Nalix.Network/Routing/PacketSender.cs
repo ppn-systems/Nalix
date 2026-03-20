@@ -1,8 +1,7 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Enums;
+using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Network.Configurations;
 using Nalix.Shared.Extensions;
