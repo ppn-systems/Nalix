@@ -1,7 +1,10 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Configuration;
+using Nalix.Shared.Extensions;
+using Nalix.Shared.Frames;
 using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.SDK.Transport.Internal;
@@ -88,7 +91,8 @@ internal sealed class FRAME_READER(
 
                     // 2) Rent buffer for full frame and read payload
                     System.Byte[] rented = BufferLease.ByteArrayPool.Rent(totalLen);
-                    System.Boolean ownershipTransferred = false;
+                    const System.Boolean ownershipTransferred = false;
+
                     try
                     {
                         BaseTcpSession.Logging?.Trace(
@@ -124,10 +128,41 @@ internal sealed class FRAME_READER(
                         // CONTRACT: HandleReceiveMessage is the SOLE OWNER and must Dispose the lease.
                         BufferLease lease = BufferLease.TakeOwnership(
                             rented, TcpSession.HeaderSize, payloadLen);
-                        ownershipTransferred = true;
 
-                        BaseTcpSession.Logging?.Debug(
-                            $"[SDK.{nameof(FRAME_READER)}] delivering-lease payload={payloadLen} endpoint={FORMAT_ENDPOINT(s)}");
+                        // Xử lý DECODE trực tiếp
+                        PacketFlags flags = lease.Span.ReadFlagsLE();
+
+                        // Giải mã nếu cần
+                        if (flags.HasFlag(PacketFlags.ENCRYPTED))
+                        {
+                            BufferLease decryptedLease = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
+                            if (!FrameTransformer.TryDecrypt(lease, decryptedLease, _options.EncryptionKey))
+                            {
+                                decryptedLease.Dispose();
+                                lease.Dispose();
+                                throw new System.Exception("Failed to decrypt");
+                            }
+                            decryptedLease.Span.WriteFlagsLE(decryptedLease.Span.ReadFlagsLE().RemoveFlag(PacketFlags.ENCRYPTED));
+                            lease.Dispose();
+                            lease = decryptedLease;
+                            flags = lease.Span.ReadFlagsLE(); // Update flags
+                        }
+
+                        // Giải nén nếu cần
+                        if (flags.HasFlag(PacketFlags.COMPRESSED))
+                        {
+                            BufferLease decomLease = BufferLease.Rent(FrameTransformer.GetDecompressedLength(lease.Span));
+                            if (!FrameTransformer.TryDecompress(lease, decomLease))
+                            {
+                                decomLease.Dispose();
+                                lease.Dispose();
+                                throw new System.Exception("Failed to decompress");
+                            }
+                            decomLease.Span.WriteFlagsLE(decomLease.Span.ReadFlagsLE().RemoveFlag(PacketFlags.COMPRESSED));
+                            lease.Dispose();
+                            lease = decomLease;
+                            flags = lease.Span.ReadFlagsLE(); // Update flags
+                        }
 
                         // 4) Deliver — catch exceptions from handler to protect loop.
                         // DO NOT dispose lease here — handler is responsible.

@@ -8,6 +8,7 @@ using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
+using Nalix.SDK.Transport.Extensions;
 using Nalix.SDK.Transport.Internal;
 using Nalix.Shared.Memory.Buffers;
 using System.Threading.Tasks;
@@ -114,6 +115,61 @@ public abstract class BaseTcpSession : IClientConnection
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(BaseTcpSession));
         var sender = System.Threading.Volatile.Read(ref _sender);
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(packet, ct);
+    }
+
+    /// <summary>
+    /// Kiểm soát gửi với option compress/encrypt.
+    /// Compress trước, sau đó encrypt – đúng thứ tự.
+    /// </summary>
+    /// <param name="packet">Gói tin.</param>
+    /// <param name="compress">Nén payload.</param>
+    /// <param name="encrypt">Mã hóa payload.</param>
+    /// <param name="cancellationToken">Token huỷ.</param>
+    /// <returns>
+    /// <c>true</c> nếu gửi thành công; <c>false</c> nếu lỗi socket.
+    /// </returns>
+    public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
+        IPacket packet,
+        System.Boolean compress,
+        System.Boolean encrypt,
+        System.Threading.CancellationToken cancellationToken = default)
+    {
+        // --- Encode payload ---
+        System.ReadOnlyMemory<System.Byte> payload = packet.Serialize();
+
+        BufferLease lease = BufferLease.CopyFrom(payload.Span);
+        try
+        {
+            if (compress)
+            {
+                BufferLease? compressed = lease.CompressPayload();
+                lease.Dispose();
+                if (compressed == null)
+                {
+                    throw new System.Exception("Compression failed");
+                }
+
+                lease = compressed;
+            }
+
+            if (encrypt)
+            {
+                BufferLease? encrypted = lease.EncryptPayload(this);
+                lease.Dispose();
+                if (encrypted == null)
+                {
+                    throw new System.Exception("Encryption failed");
+                }
+
+                lease = encrypted;
+            }
+
+            return await SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            lease.Dispose();
+        }
     }
 
     /// <inheritdoc/>
