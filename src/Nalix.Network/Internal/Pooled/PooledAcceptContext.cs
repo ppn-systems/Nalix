@@ -21,6 +21,7 @@ namespace Nalix.Network.Internal.Pooled;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("Args={Args}")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class PooledAcceptContext : IPoolable
 {
     private static readonly System.EventHandler<System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>

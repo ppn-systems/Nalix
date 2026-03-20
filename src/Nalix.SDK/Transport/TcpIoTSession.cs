@@ -4,11 +4,13 @@
 using Nalix.Framework.Configuration;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
-using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.SDK.Transport;
 
 /// <inheritdoc/>
+[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 public sealed class TcpIoTSession : BaseTcpSession
 {
     #region Fields
@@ -46,28 +48,6 @@ public sealed class TcpIoTSession : BaseTcpSession
     {
         Options = ConfigurationManager.Instance.Get<TransportOptions>();
         Options.Validate();
-
-        BufferConfig bufferConfig = ConfigurationManager.Instance.Get<BufferConfig>();
-
-        bufferConfig.TotalBuffers = 8;                      // Very small pool for constrained IoT device
-        bufferConfig.EnableMemoryTrimming = true;
-        bufferConfig.TrimIntervalMinutes = 1;
-        bufferConfig.DeepTrimIntervalMinutes = 3;
-        bufferConfig.EnableAnalytics = false;
-        bufferConfig.AdaptiveGrowthFactor = 1.0;
-        bufferConfig.MaxMemoryPercentage = 0.01;
-        bufferConfig.SecureClear = false;
-        bufferConfig.EnableQueueCompaction = false;
-        bufferConfig.AutoTuneOperationThreshold = 8;
-        bufferConfig.FallbackToArrayPool = false;
-        bufferConfig.ExpandThresholdPercent = 0.10;
-        bufferConfig.ShrinkThresholdPercent = 0.30;
-        bufferConfig.MinimumIncrease = 1;
-        bufferConfig.MaxBufferIncreaseLimit = 2;
-        bufferConfig.BufferAllocations = "128,0.50; 256,0.50";
-        bufferConfig.MaxMemoryBytes = 32 * 1024;            // 32 KB max for pool
-
-        bufferConfig.Validate();
     }
 
     #endregion Constructor

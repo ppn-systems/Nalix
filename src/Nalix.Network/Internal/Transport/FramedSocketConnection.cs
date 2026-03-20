@@ -39,6 +39,7 @@ namespace Nalix.Network.Internal.Transport;
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{ToString()}")]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) : System.IDisposable
 {
     #region Const

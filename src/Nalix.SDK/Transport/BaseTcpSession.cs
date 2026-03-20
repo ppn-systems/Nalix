@@ -20,6 +20,9 @@ namespace Nalix.SDK.Transport;
 /// Contains common socket lifecycle, cleanup, send/receive glue, and event wiring.
 /// Derived classes implement receive scheduling and framing construction.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
+    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 public abstract class BaseTcpSession : IClientConnection
 {
     #region Fields
