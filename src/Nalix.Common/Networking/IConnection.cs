@@ -4,7 +4,7 @@
 using Nalix.Common.Identity;
 using Nalix.Common.Security;
 
-namespace Nalix.Common.Networking.Abstractions;
+namespace Nalix.Common.Networking;
 
 /// <summary>
 /// Represents an interface for managing a network connection.

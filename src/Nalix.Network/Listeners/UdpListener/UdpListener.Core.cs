@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
-using Nalix.Network.Protocols;
 using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Listeners.Udp;

@@ -1,5 +1,5 @@
 ﻿using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Security.Enums;
+using Nalix.Common.Security;
 using Nalix.Shared.Frames;
 using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Memory.Buffers;

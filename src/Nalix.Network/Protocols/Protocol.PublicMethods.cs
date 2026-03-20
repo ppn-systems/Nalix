@@ -3,7 +3,6 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
-using Nalix.Common.Networking.Abstractions;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Protocols;

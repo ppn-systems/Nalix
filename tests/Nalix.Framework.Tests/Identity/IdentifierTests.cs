@@ -1,4 +1,4 @@
-﻿using Nalix.Common.Identity.Enums;
+﻿using Nalix.Common.Identity;
 using Nalix.Framework.Identifiers;
 using System;
 using System.Collections.Generic;

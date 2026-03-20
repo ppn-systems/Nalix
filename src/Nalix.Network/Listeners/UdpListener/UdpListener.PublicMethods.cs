@@ -3,7 +3,7 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
-using Nalix.Common.Networking.Abstractions;
+using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -29,6 +29,7 @@ public abstract partial class UdpListenerBase : IListener
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Obsolete]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
