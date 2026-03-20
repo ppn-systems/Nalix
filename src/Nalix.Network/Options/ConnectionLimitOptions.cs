@@ -63,6 +63,36 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     public System.TimeSpan InactivityThreshold { get; set; } = System.TimeSpan.FromMinutes(5);
 
     /// <summary>
+    /// Gets or sets the maximum size (in bytes) allowed for a single UDP datagram.
+    /// Default 1400 avoids IP fragmentation.
+    /// </summary>
+    [IniComment("Maximum allowed UDP datagram size in bytes to avoid fragmentation (default 1400)")]
+    [System.ComponentModel.DataAnnotations.Range(64, 65507, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65507.")]
+    public int MaxUdpDatagramSize { get; set; } = 1400;
+
+    /// <summary>
+    /// Gets or sets the maximum allowed error count before a connection is automatically severed.
+    /// SEC-54: Prevents persistent noisy or malformed connections from consuming CPU/logs.
+    /// </summary>
+    [IniComment("Maximum cumulative errors allowed per connection before disconnection (SEC-54, default 50)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxErrorThreshold must be at least 1.")]
+    public int MaxErrorThreshold { get; set; } = 50;
+
+    /// <summary>
+    /// Gets or sets the bit-size of the UDP replay protection sliding window.
+    /// SEC-27: Larger windows consume more memory but are more resilient to packet out-of-order arrival.
+    /// </summary>
+    [IniComment("UDP replay protection window size in bits (default 1024)")]
+    [System.ComponentModel.DataAnnotations.Range(64, 65536, ErrorMessage = "UdpReplayWindowSize must be between 64 and 65536.")]
+    public int UdpReplayWindowSize { get; set; } = 1024;
+
+    /// <summary>
+    /// Gets or sets the maximum number of packets allowed per second from a single connection before it is considered abusive and disconnected.
+    /// </summary>
+    [IniComment("Maximum packets per second allowed from a single connection (SEC-55, default 128)")]
+    public int MaxPacketPerSecond { get; set; } = 128;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">

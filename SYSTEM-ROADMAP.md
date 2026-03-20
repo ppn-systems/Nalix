@@ -206,4 +206,33 @@ Incorrect implementation can lead to:
 
 ---
 
+### 6. LOH Optimization & Segmented Serialization Support
+
+**Status:** 🔲 Not Started  
+**Objective:** Eliminate Large Object Heap (LOH) fragmentation by supporting non-contiguous memory segments (`ReadOnlySequence<byte>`) across the entire serialization pipeline.
+
+**Architectural Guidelines:**
+
+- **Segmented Writing (LOH Avoidance):**  
+  The `DataWriter` MUST be upgraded to support an `IBufferWriter<byte>` backend. When serializing objects larger than the 85KB LOH threshold, the writer will distribute data across multiple pinned Slabs (e.g., 16KB each) instead of renting a single contiguous large array.
+
+- **Non-Contiguous Reading:**  
+  The `DataReader` MUST integrate `SequenceReader<byte>` to enable seamless parsing across segment boundaries. This allows the framework to deserialize incoming data directly from `System.IO.Pipelines` or pooled slab chains without intermediate "consolidation" copies.
+
+- **Unified API Surface:**
+
+  | Component | New Capability | Rationale |
+  | :--- | :--- | :--- |
+  | `DataWriter` | `ctor(IBufferWriter<byte>)` | Enables streaming serialization to pooled segments. |
+  | `DataReader` | `ctor(ReadOnlySequence<byte>)` | Enables zero-copy parsing from segmented network buffers. |
+  | `LiteSerializer` | `Serialize<T>(T, IBufferWriter)` | Entry point for LOH-safe large packet generation. |
+
+- **Zero-Copy Forwarding:**  
+  Support a dedicated `ReadOnlySequenceFormatter`. When a POCO contains a `ReadOnlySequence<byte>` property, the serializer should "link" or copy the segments directly into the output stream, preserving the segmented nature of the payload.
+
+- **Performance Mandate:**  
+  All segmented operations MUST remain zero-allocation on the hot path. Use `ref struct` fields (C# 11+) and stack-allocated small buffers for boundary-spanning primitive reads.
+
+---
+
 *Prepared for Nalix Open-Source Enterprise Development*

@@ -14,9 +14,11 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Network.Pipeline.Options;
 
 namespace Nalix.Network.Pipeline.Throttling;
 
@@ -29,16 +31,7 @@ namespace Nalix.Network.Pipeline.Throttling;
 [SkipLocalsInit]
 public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
 {
-    #region Constants
-
-    private const double CircuitBreakerThreshold = 0.95;
-    private const int CircuitBreakerMinSamples = 1000;
-    private const int CircuitBreakerResetAfterSeconds = 60;
-
-    private readonly TimeSpan _minIdleAge = TimeSpan.FromMinutes(10);
-    private readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(1);
-
-    #endregion Constants
+    private readonly ConcurrencyOptions _options;
 
     #region Fields
 
@@ -50,7 +43,6 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     private long _totalQueued;
     private long _totalCleanedEntries;
     private long _circuitBreakerTrips;
-    private readonly TimeSpan _timeout = TimeSpan.FromSeconds(20);
 
     private int _circuitBreakerOpen; // 0 = closed, 1 = open
     private long _circuitBreakerResetTimeTicks;
@@ -64,11 +56,14 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     /// </summary>
     public ConcurrencyGate()
     {
+        _options = ConfigurationManager.Instance.Get<ConcurrencyOptions>();
+        _options.Validate();
+
         try
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: $"concurrency.gate.cleanup.{this.GetHashCode():X8}",
-                interval: _cleanupInterval,
+                interval: TimeSpan.FromMinutes(_options.CleanupIntervalMinutes),
                 work: _ =>
                 {
                     this.CLEANUP_IDLE_ENTRIES();
@@ -516,7 +511,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             }
 
             // Queue enabled
-            return await this.ENTER_WITH_QUEUE_ASYNC(entry, opcode, _timeout, ct).ConfigureAwait(false);
+            return await this.ENTER_WITH_QUEUE_ASYNC(entry, opcode, TimeSpan.FromSeconds(_options.WaitTimeoutSeconds), ct).ConfigureAwait(false);
         }
         catch
         {
@@ -615,8 +610,8 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         Dictionary<string, object> report = new()
         {
             ["UtcNow"] = DateTime.UtcNow,
-            ["CleanupIntervalMinutes"] = _cleanupInterval.TotalMinutes,
-            ["MinIdleAgeMinutes"] = _minIdleAge.TotalMinutes,
+            ["CleanupIntervalMinutes"] = _options.CleanupIntervalMinutes,
+            ["MinIdleAgeMinutes"] = _options.MinIdleAgeMinutes,
             ["TrackedOpcodes"] = _table.Count,
             ["TotalAcquired"] = Interlocked.Read(ref _totalAcquired),
             ["TotalRejected"] = Interlocked.Read(ref _totalRejected),
@@ -658,8 +653,8 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     private void APPEND_REPORT_HEADER(StringBuilder sb, double rejectionRate)
     {
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConcurrencyGate Status:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CleanupInterval    : {_cleanupInterval.TotalMinutes:F1} min");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MinIdleAge         : {_minIdleAge.TotalMinutes:F1} min");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CleanupInterval    : {_options.CleanupIntervalMinutes:F1} min");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MinIdleAge         : {_options.MinIdleAgeMinutes:F1} min");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TrackedOpcodes     : {_table.Count}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalAcquired      : {Interlocked.Read(ref _totalAcquired):N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalRejected      : {Interlocked.Read(ref _totalRejected):N0}");
@@ -755,18 +750,18 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         long totalAttempts = Volatile.Read(ref _totalAcquired) +
                                      Volatile.Read(ref _totalRejected);
 
-        if (totalAttempts < CircuitBreakerMinSamples)
+        if (totalAttempts < _options.CircuitBreakerMinSamples)
         {
             return false;
         }
 
         double rejectionRate = (double)Volatile.Read(ref _totalRejected) / totalAttempts;
 
-        if (rejectionRate > CircuitBreakerThreshold)
+        if (rejectionRate > _options.CircuitBreakerThreshold)
         {
             if (Interlocked.CompareExchange(ref _circuitBreakerOpen, 1, 0) == 0)
             {
-                long resetTime = DateTime.UtcNow.AddSeconds(CircuitBreakerResetAfterSeconds).Ticks;
+                long resetTime = DateTime.UtcNow.AddSeconds(_options.CircuitBreakerResetAfterSeconds).Ticks;
                 _ = Interlocked.Exchange(ref _circuitBreakerResetTimeTicks, resetTime);
 
                 _logger?.Error(
@@ -870,7 +865,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 }
 
                 TimeSpan age = now - entry.LastUsedUtc;
-                if (age < _minIdleAge)
+                if (age < TimeSpan.FromMinutes(_options.MinIdleAgeMinutes))
                 {
                     continue;
                 }

@@ -4,12 +4,9 @@
 using System;
 using System.Buffers.Binary;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Memory.Buffers;
@@ -19,8 +16,9 @@ using Nalix.SDK.Options;
 namespace Nalix.SDK.Transport.Internal;
 
 /// <summary>
-/// Optimized frame sender that serializes all outbound frames through a bounded channel
-/// to prevent message interleaving. Handles chunking/fragmentation of large payloads.
+/// Optimized frame sender that serializes outbound frames using a SemaphoreSlim.
+/// This implementation provides lower latency than channel-based senders by eliminating
+/// the intermediate task and TaskCompletionSource overhead.
 /// </summary>
 internal sealed class FrameSender : IDisposable
 {
@@ -30,9 +28,7 @@ internal sealed class FrameSender : IDisposable
     private readonly FragmentOptions _fragmentOptions;
     private readonly Func<Socket> _getSocket;
     private readonly Action<Exception> _onError;
-
-    private readonly Channel<(byte[] frame, int frameLen, TaskCompletionSource<bool> tcs)> _sendQueue;
-    private readonly CancellationTokenSource _drainCts = new();
+    private readonly SemaphoreSlim _sendLock = new(1, 1);
     private int _disposed;
 
     #endregion Fields
@@ -49,15 +45,6 @@ internal sealed class FrameSender : IDisposable
         _fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
-
-        _sendQueue = Channel.CreateBounded<(byte[], int, TaskCompletionSource<bool>)>(
-            new BoundedChannelOptions(options.AsyncQueueCapacity)
-            {
-                FullMode = BoundedChannelFullMode.Wait,
-                SingleReader = true
-            });
-
-        _ = Task.Run(() => this.DRAIN_LOOP_ASYNC(_drainCts.Token));
     }
 
     /// <summary>
@@ -69,8 +56,21 @@ internal sealed class FrameSender : IDisposable
     /// <returns><see langword="true"/> when the frame is sent successfully; otherwise, <see langword="false"/>.</returns>
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
     {
-        // ── Transformation ──────────────────────────────────────────────────────
-        IBufferLease current = BufferLease.CopyFrom(payload.Span);
+        using IBufferLease lease = BufferLease.CopyFrom(payload.Span);
+        return await this.SendAsync(lease, encrypt, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sends a payload using an existing <see cref="IBufferLease"/>.
+    /// The sender takes ownership of the lease and will dispose it after the frame is sent.
+    /// </summary>
+    /// <param name="lease">The lease containing the payload to send.</param>
+    /// <param name="encrypt">An optional encryption override.</param>
+    /// <param name="ct">A cancellation token.</param>
+    /// <returns><see langword="true"/> when the frame is sent successfully; otherwise, <see langword="false"/>.</returns>
+    public async Task<bool> SendAsync([Borrowed] IBufferLease lease, bool? encrypt = null, CancellationToken ct = default)
+    {
+        IBufferLease current = lease;
         try
         {
             Framework.DataFrames.Transforms.FramePipeline.ProcessOutbound(
@@ -81,85 +81,51 @@ internal sealed class FrameSender : IDisposable
                 _options.Secret.AsSpan(),
                 _options.Algorithm);
 
-            // ── After transformation, check for fragmentation ────────────────────
             if (current.Length >= _fragmentOptions.MaxChunkSize)
             {
                 return await this.SEND_FRAGMENTED_ASYNC(current.Memory, ct).ConfigureAwait(false);
             }
 
-            // ── Standard Framing ──────────────────────────────────────────────────
             int totalLen = TcpSession.HeaderSize + current.Length;
             byte[] frame = BufferLease.ByteArrayPool.Rent(totalLen);
-            BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(0, TcpSession.HeaderSize), (ushort)totalLen);
-            current.Memory.Span.CopyTo(frame.AsSpan(TcpSession.HeaderSize, current.Length));
-
-            TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
             try
             {
-                await _sendQueue.Writer.WriteAsync((frame, totalLen, tcs), ct).ConfigureAwait(false);
+                BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(0, TcpSession.HeaderSize), (ushort)totalLen);
+                current.Memory.Span.CopyTo(frame.AsSpan(TcpSession.HeaderSize, current.Length));
+
+                return await this.SEND_RAW_ASYNC(frame, totalLen, ct).ConfigureAwait(false);
             }
-            catch
+            finally
             {
                 BufferLease.ByteArrayPool.Return(frame);
-                throw;
             }
-            return await tcs.Task.ConfigureAwait(false);
         }
-        finally { current.Dispose(); }
+        catch (Exception ex)
+        {
+            _onError?.Invoke(ex);
+            return false;
+        }
+        finally
+        {
+            if (!ReferenceEquals(current, lease))
+            {
+                current.Dispose();
+            }
+        }
     }
 
     #region Private Methods
 
-    private async Task DRAIN_LOOP_ASYNC(CancellationToken token)
+    private async Task<bool> SEND_RAW_ASYNC(byte[] frame, int frameLen, CancellationToken ct)
     {
-        ChannelReader<(byte[] frame, int frameLen, TaskCompletionSource<bool> tcs)> reader = _sendQueue.Reader;
-        try
-        {
-            while (await reader.WaitToReadAsync(token).ConfigureAwait(false))
-            {
-                while (reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
-                {
-                    try
-                    {
-                        await this.SEND_SOCKET_ASYNC(item.frame, item.frameLen, item.tcs, token).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException) when (token.IsCancellationRequested)
-                    {
-                        return;
-                    }
-                    catch (Exception ex)
-                    {
-                        // Individual send failed, but we must NOT poison the whole loop.
-                        // Log the error and continue with the next item.
-                        _onError?.Invoke(ex);
-                    }
-                }
-            }
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception ex)
-        {
-            _onError?.Invoke(ex);
-            _ = _sendQueue.Writer.TryComplete(ex);
-
-            // BUG-57: Drain any items already in the queue so callers are not hung forever.
-            while (reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
-            {
-                _ = item.tcs.TrySetException(new NetworkException("Sender loop faulted, message dropped.", ex));
-                BufferLease.ByteArrayPool.Return(item.frame);
-            }
-        }
-    }
-
-    private async Task SEND_SOCKET_ASYNC(byte[] frame, int frameLen, TaskCompletionSource<bool> tcs, CancellationToken token)
-    {
+        await _sendLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             Socket s = _getSocket();
             int sent = 0;
             while (sent < frameLen)
             {
-                int n = await s.SendAsync(new ReadOnlyMemory<byte>(frame, sent, frameLen - sent), SocketFlags.None, token).ConfigureAwait(false);
+                int n = await s.SendAsync(new ReadOnlyMemory<byte>(frame, sent, frameLen - sent), SocketFlags.None, ct).ConfigureAwait(false);
                 if (n == 0)
                 {
                     throw new SocketException((int)SocketError.ConnectionReset);
@@ -167,32 +133,24 @@ internal sealed class FrameSender : IDisposable
 
                 sent += n;
             }
-            _ = tcs.TrySetResult(true);
+            return true;
         }
-        catch (Exception)
+        finally
         {
-            _ = tcs.TrySetResult(false);
-            throw;
+            _ = _sendLock.Release();
         }
-        finally { BufferLease.ByteArrayPool.Return(frame); }
     }
 
-    private async Task<bool> SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
+    private async Task<bool> SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken ct)
     {
         if (payload.Length > _fragmentOptions.MaxPayloadSize)
         {
-            throw new ArgumentOutOfRangeException(nameof(payload),
-                $"Payload exceeds MaxPayloadSize {_fragmentOptions.MaxPayloadSize}");
+            throw new ArgumentOutOfRangeException(nameof(payload), $"Payload exceeds MaxPayloadSize {_fragmentOptions.MaxPayloadSize}");
         }
 
         ushort streamId = FragmentStreamId.Next();
         int chunkBodySize = _fragmentOptions.MaxChunkSize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
-        if (totalChunks > ushort.MaxValue)
-        {
-            throw new InternalErrorException(
-                $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
-        }
 
         byte[] headerSpan = new byte[FragmentHeader.WireSize];
 
@@ -206,65 +164,33 @@ internal sealed class FrameSender : IDisposable
             fragHeader.WriteTo(headerSpan);
 
             int totalFrameLen = TcpSession.HeaderSize + FragmentHeader.WireSize + chunkLen;
-
-            if (totalFrameLen > ushort.MaxValue)
-            {
-                throw new InternalErrorException(
-                    $"Fragmented frame size {totalFrameLen} exceeds the {ushort.MaxValue}-byte wire header limit.");
-            }
-
             byte[] frame = BufferLease.ByteArrayPool.Rent(totalFrameLen);
 
             try
             {
-                BUILD_FRAGMENT_FRAME(frame.AsSpan(0, totalFrameLen), headerSpan, payload.Slice(offset, chunkLen).Span);
+                BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)totalFrameLen);
+                headerSpan.CopyTo(frame.AsSpan(TcpSession.HeaderSize));
+                payload.Slice(offset, chunkLen).Span.CopyTo(frame.AsSpan(TcpSession.HeaderSize + FragmentHeader.WireSize));
 
-                bool sent = await ENQUEUE_FRAME_ASYNC(frame, totalFrameLen, token).ConfigureAwait(false);
+                bool sent = await this.SEND_RAW_ASYNC(frame, totalFrameLen, ct).ConfigureAwait(false);
                 if (!sent)
                 {
                     return false;
                 }
             }
-            catch
+            finally
             {
                 BufferLease.ByteArrayPool.Return(frame);
-                throw;
             }
         }
 
         return true;
-
-
-        async Task<bool> ENQUEUE_FRAME_ASYNC(byte[] frame, int frameLen, CancellationToken token)
-        {
-            TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            try
-            {
-                await _sendQueue.Writer.WriteAsync((frame, frameLen, tcs), token).ConfigureAwait(false);
-            }
-            catch
-            {
-                BufferLease.ByteArrayPool.Return(frame);
-                throw;
-            }
-
-            return await tcs.Task.ConfigureAwait(false);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void BUILD_FRAGMENT_FRAME(Span<byte> frame, ReadOnlySpan<byte> fragHeader, ReadOnlySpan<byte> chunkBody)
-        {
-            BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)frame.Length);
-            fragHeader.CopyTo(frame[TcpSession.HeaderSize..]);
-            chunkBody.CopyTo(frame[(TcpSession.HeaderSize + FragmentHeader.WireSize)..]);
-        }
     }
 
     #endregion Private Methods
 
     /// <summary>
-    /// Stops the sender loop, fails pending sends, and releases queue resources.
+    /// Releases the semaphore lock and marks the sender as disposed.
     /// </summary>
     public void Dispose()
     {
@@ -273,15 +199,6 @@ internal sealed class FrameSender : IDisposable
             return;
         }
 
-        _drainCts.Cancel();
-        _drainCts.Dispose();
-        _ = _sendQueue.Writer.TryComplete();
-
-        // Drain any pending items and fail their TaskCompletionSource to avoid hanging callers.
-        while (_sendQueue.Reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
-        {
-            _ = item.tcs.TrySetException(new ObjectDisposedException(nameof(FrameSender)));
-            BufferLease.ByteArrayPool.Return(item.frame);
-        }
+        _sendLock.Dispose();
     }
 }

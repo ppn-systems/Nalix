@@ -46,7 +46,7 @@ sequenceDiagram
 - `src/Nalix.Common/Abstractions/IBufferLease.cs`
 - `src/Nalix.Framework/Memory/Buffers/BufferLease.cs`
 - `src/Nalix.Framework/Memory/Buffers/BufferPoolManager.cs`
-- `src/Nalix.Framework/Options/BufferConfig.cs`
+- `src/Nalix.Framework/Options/BufferOptions.cs`
 - `src/Nalix.Framework/Memory/Internal/Buffers/SlabBucket.cs`
 - `src/Nalix.Framework/Memory/Internal/Buffers/SlabPoolManager.cs`
 
@@ -106,16 +106,16 @@ The manager includes a background job that monitors pool utilization. It uses a 
 The API is backed by the high-performance **SlabBucket** infrastructure and benefits from the same O(1) optimizations.
 
 
-## BufferConfig
+## BufferOptions
 
-Global tuning for the buffer system is managed via `BufferConfig`.
+Global tuning for the buffer system is managed via `BufferOptions`.
 
 ### Allocation Profiles
 
 You can define the pool structure using the `BufferAllocations` string format: `size,ratio; size,ratio`.
 
 ```ini
-BufferAllocations = 512,0.40; 2048,0.40; 8192,0.20
+BufferAllocations = 256,0.15; 1024,0.15; 4096,0.30; 16384,0.30; 32768,0.10
 ```
 
 - **Size**: The maximum bytes this bucket can hold.

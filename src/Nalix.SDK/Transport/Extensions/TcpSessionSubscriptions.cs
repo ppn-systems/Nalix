@@ -2,11 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames;
+using Nalix.Framework.Extensions;
 
 namespace Nalix.SDK.Transport.Extensions;
 
@@ -43,22 +46,34 @@ public static class TcpSessionSubscriptions
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(handler);
 
+        uint targetMagic = PacketRegistryFactory.Compute(typeof(TPacket));
+
         void Wrapper(object? _, IBufferLease buffer)
         {
+            // Cheap check: if the magic doesn't match, don't even try to deserialize.
+            // This prevents O(N*M) deserialization costs when multiple subscribers are active.
+            if (buffer.Length < PacketConstants.HeaderSize) return;
+            uint magic = buffer.Span.ReadMagicNumberLE();
+            if (magic != targetMagic) return;
+
             try
             {
                 IPacket p = client.Catalog.Deserialize(buffer.Span);
-
-                if (p is not TPacket t)
+                try
                 {
-                    Trace.TraceWarning(
-                        "Nalix.SDK.TcpSessionSubscriptions.On<{0}> ignored packet {1}.",
-                        typeof(TPacket).Name,
-                        p?.GetType().Name ?? "null");
-                    return;
+                    if (p is TPacket t)
+                    {
+                        handler(t);
+                    }
                 }
-
-                handler(t);
+                finally
+                {
+                    // Always dispose the packet since it was rented by Deserialize.
+                    // If the handler wants to keep it, it should have its own retention logic
+                    // or we should follow the framework convention.
+                    // In Nalix, the dispatcher/subscriber owns the IPacket instance lifecycle.
+                    if (p is IDisposable d) d.Dispose();
+                }
             }
             catch (Exception ex)
             {
@@ -90,17 +105,23 @@ public static class TcpSessionSubscriptions
             try
             {
                 IPacket p = client.Catalog.Deserialize(buffer.Span);
-
-                if (p is not TPacket t)
+                try
                 {
-                    Trace.TraceError(
-                        "Nalix.SDK.TcpSessionSubscriptions.OnExact<{0}> received unexpected packet {1}.",
-                        typeof(TPacket).Name,
-                        p?.GetType().Name ?? "null");
-                    return;
-                }
+                    if (p is not TPacket t)
+                    {
+                        Trace.TraceError(
+                            "Nalix.SDK.TcpSessionSubscriptions.OnExact<{0}> received unexpected packet {1}.",
+                            typeof(TPacket).Name,
+                            p?.GetType().Name ?? "null");
+                        return;
+                    }
 
-                handler(t);
+                    handler(t);
+                }
+                finally
+                {
+                    if (p is IDisposable d) d.Dispose();
+                }
             }
             catch (Exception ex)
             {
@@ -149,7 +170,7 @@ public static class TcpSessionSubscriptions
         return new Unsub(() => client.OnMessageReceived -= Wrapper);
     }
 
-    // ── OnOnce<TPacket> ───────────────────────────────────────────────���──────
+    // ── OnOnce<TPacket> ──────────────────────────────────────────────────────
 
     /// <summary>
     /// One-shot subscription: auto-unsubscribes after the first matching packet.
@@ -159,44 +180,46 @@ public static class TcpSessionSubscriptions
     /// <param name="client">The transport session to subscribe to.</param>
     /// <param name="predicate">A filter that determines whether a packet should be delivered.</param>
     /// <param name="handler">The callback invoked for the first matching packet.</param>
+    /// <param name="disposeAfter">Whether to dispose the packet after the handler returns (default: true).</param>
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IDisposable OnOnce<TPacket>(this TransportSession client, Func<TPacket, bool> predicate, Action<TPacket> handler)
+    public static IDisposable OnOnce<TPacket>(this TransportSession client, Func<TPacket, bool> predicate, Action<TPacket> handler, bool disposeAfter = true)
         where TPacket : class, IPacket
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(predicate);
         ArgumentNullException.ThrowIfNull(handler);
 
+        uint targetMagic = PacketRegistryFactory.Compute(typeof(TPacket));
         int fired = 0;
 
         void Wrapper(object? _, IBufferLease buffer)
         {
+            if (buffer.Length < PacketConstants.HeaderSize) return;
+            if (buffer.Span.ReadMagicNumberLE() != targetMagic) return;
+
             try
             {
                 IPacket p = client.Catalog.Deserialize(buffer.Span);
-
-                if (p is not TPacket t)
+                try
                 {
-                    return;
-                }
+                    if (p is not TPacket t || !predicate(t))
+                    {
+                        return;
+                    }
 
-                if (!predicate(t))
+                    // Atomic once-guard: only the first arriving thread proceeds.
+                    if (Interlocked.Exchange(ref fired, 1) != 0)
+                    {
+                        return;
+                    }
+
+                    client.OnMessageReceived -= Wrapper;
+                    handler(t);
+                }
+                finally
                 {
-                    return;
+                    if (disposeAfter && p is IDisposable d) d.Dispose();
                 }
-
-                // Atomic once-guard: only the first arriving thread proceeds.
-                if (Interlocked.Exchange(ref fired, 1) != 0)
-                {
-                    return;
-                }
-
-                // Unsubscribe before invoking handler to avoid a second delivery
-                // if the handler itself triggers another message.
-                client.OnMessageReceived -= Wrapper;
-
-                handler(t);
             }
             catch (Exception ex)
             {

@@ -22,7 +22,7 @@ public sealed partial class MemoryTests
         int[] expectedSizes,
         double[] expectedRatios)
     {
-        (int size, double ratio)[] allocations = BufferConfig.ParseBufferAllocations(value);
+        (int size, double ratio)[] allocations = BufferOptions.ParseBufferAllocations(value);
 
         Assert.Equal(expectedSizes, allocations.Select(static x => x.size).ToArray());
         Assert.Equal(expectedRatios, allocations.Select(static x => x.ratio).ToArray());
@@ -35,12 +35,12 @@ public sealed partial class MemoryTests
     [InlineData("256,-1")]
     [InlineData("256,0.5;512,0.7")]
     public void ParseBufferAllocations_InvalidInput_ThrowsArgumentException(string value)
-        => Assert.Throws<ArgumentException>(() => BufferConfig.ParseBufferAllocations(value));
+        => Assert.Throws<ArgumentException>(() => BufferOptions.ParseBufferAllocations(value));
 
     [Fact]
-    public void Validate_ValidBufferConfig_CompletesSuccessfully()
+    public void Validate_ValidBufferOptions_CompletesSuccessfully()
     {
-        BufferConfig config = new()
+        BufferOptions config = new()
         {
             TotalBuffers = 64,
             BufferAllocations = "256,0.50;512,0.50",
@@ -62,7 +62,7 @@ public sealed partial class MemoryTests
     [InlineData(0.20, 0.60, "256,1.0", 32, 5.0, 4, 8)]
     [InlineData(0.70, 0.60, "256,1.0", 32, 2.0, 4, 16)]
     [InlineData(0.20, 0.60, "256,0.60;256,0.20", 32, 2.0, 4, 16)]
-    public void Validate_InvalidBufferConfig_ThrowsValidationException(
+    public void Validate_InvalidBufferOptions_ThrowsValidationException(
         double expandThreshold,
         double shrinkThreshold,
         string allocations,
@@ -71,7 +71,7 @@ public sealed partial class MemoryTests
         int minimumIncrease,
         int maxIncreaseLimit)
     {
-        BufferConfig config = new()
+        BufferOptions config = new()
         {
             ExpandThresholdPercent = expandThreshold,
             ShrinkThresholdPercent = shrinkThreshold,

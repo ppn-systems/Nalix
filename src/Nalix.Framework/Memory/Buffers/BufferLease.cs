@@ -31,6 +31,12 @@ public sealed class BufferLease : IBufferLease
     // drop one extra shell).
     private static int s_freeListCount;
 
+    /// <summary>
+    /// Gets or sets whether BufferLease pooling is enabled. Default is true.
+    /// Primarily used for testing to avoid A-B-A reuse issues.
+    /// </summary>
+    internal static bool IsPoolingEnabled { get; set; } = true;
+
     // Tight lock-free free-list for BufferLease instance reuse.
     // ConcurrentStack.TryPop/Push = single CAS operation — ~2ns vs ObjectPoolManager's
     // ~150ns (3x Interlocked + ConcurrentDict + DateTime + string write per call).
@@ -43,7 +49,7 @@ public sealed class BufferLease : IBufferLease
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BufferLease RentLeaseShell()
     {
-        if (s_freeList.TryPop(out BufferLease? cached))
+        if (IsPoolingEnabled && s_freeList.TryPop(out BufferLease? cached))
         {
             _ = Interlocked.Decrement(ref s_freeListCount);
             return cached;
@@ -346,9 +352,9 @@ public sealed class BufferLease : IBufferLease
         }
 
         // Return the BufferLease shell to the free-list for reuse (single CAS, zero alloc).
-        this.ResetForFreeList();
-        if (Volatile.Read(ref s_freeListCount) < PoolMaxSize)
+        if (IsPoolingEnabled && Volatile.Read(ref s_freeListCount) < PoolMaxSize)
         {
+            this.ResetForFreeList();
             s_freeList.Push(this);
             _ = Interlocked.Increment(ref s_freeListCount);
         }

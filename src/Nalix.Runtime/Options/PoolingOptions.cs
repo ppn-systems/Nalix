@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel.DataAnnotations;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Runtime.Dispatching;
@@ -24,7 +25,8 @@ namespace Nalix.Runtime.Options;
 /// before the first request arrives.
 /// </para>
 /// </summary>
-public class PoolingOptions : ConfigurationLoader
+[IniComment("Object pool configuration — capacity ceiling and startup preallocations for runtime contexts")]
+public sealed class PoolingOptions : ConfigurationLoader
 {
     #region Packet Context — reusable packet processing contexts
 
@@ -32,30 +34,28 @@ public class PoolingOptions : ConfigurationLoader
     /// Maximum number of <see cref="PacketContext{T}"/> instances retained in the pool.
     /// </summary>
     [IniComment("Max pooled IPacketContext instances (default 1024)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
-        ErrorMessage = "IPacketContext.Capacity must be between 1 and 1,000,000.")]
+    [Range(1, 1_000_000, ErrorMessage = "IPacketContext.Capacity must be between 1 and 1,000,000.")]
     public int PacketContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PacketContext{T}"/> instances to create at startup.
     /// </summary>
-    [IniComment("IPacketContext instances to warm up at startup (default 16)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
-        ErrorMessage = "IPacketContext.Preallocate must be between 0 and 1,000,000.")]
-    public int PacketContextPreallocate { get; set; } = 16;
+    [IniComment("IPacketContext instances to warm up at startup (default 32)")]
+    [Range(0, 1_000_000, ErrorMessage = "IPacketContext.Preallocate must be between 0 and 1,000,000.")]
+    public int PacketContextPreallocate { get; set; } = 32;
 
     #endregion Packet Context — reusable packet processing contexts
 
     #region Validation
 
     /// <summary>
-    /// Validates all options. Throws <see cref="System.ComponentModel.DataAnnotations.ValidationException"/>
+    /// Validates all options. Throws <see cref="ValidationException"/>
     /// if any value is out of range or a preallocate value exceeds its capacity.
     /// </summary>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext ctx = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, ctx, validateAllProperties: true);
+        ValidationContext ctx = new(this);
+        Validator.ValidateObject(this, ctx, validateAllProperties: true);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
             nameof(this.PacketContextPreallocate), this.PacketContextPreallocate,
@@ -68,7 +68,7 @@ public class PoolingOptions : ConfigurationLoader
     {
         if (preallocVal > capacityVal)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
+            throw new ValidationException(
                 $"{preallocName} ({preallocVal}) cannot exceed {capacityName} ({capacityVal}).");
         }
     }

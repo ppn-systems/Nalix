@@ -9,7 +9,8 @@ using Nalix.Framework.Memory.Objects;
 namespace Nalix.Framework.DataFrames.Pooling;
 
 /// <summary>
-/// Provides a type-specific pool for packet instances with a disposable lease API.
+/// Provides a high-performance, type-specific pool for packet instances.
+/// Integrates with <see cref="ObjectPoolManager"/> and supports <see cref="PacketLease{TPacket}"/>.
 /// </summary>
 /// <typeparam name="TPacket">The packet type.</typeparam>
 [SuppressMessage(
@@ -18,42 +19,41 @@ public static class PacketPool<TPacket> where TPacket : PacketBase<TPacket>, new
 {
     #region Fields
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    /// <summary>
+    /// Cached typed pool reference for maximum performance (eliminates dictionary lookups in hot paths).
+    /// </summary>
+    private static readonly TypedObjectPool<TPacket> s_pool =
+        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().GetTypedPool<TPacket>();
 
     #endregion Fields
 
     #region APIs
 
     /// <summary>
-    /// Rents a packet and returns a lease that will automatically return it to the pool.
+    /// Rents a packet and returns a zero-allocation lease. 
+    /// The packet will be returned to the pool when the lease is disposed.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static PacketLease<TPacket> Rent() => new(s_pool.Get<TPacket>(), static packet => s_pool.Return(packet));
+    public static PacketLease<TPacket> Rent() => new(s_pool.Get());
 
     /// <summary>
-    /// Rents a packet instance directly. Caller must eventually call <see cref="Return"/>.
-    /// Prefer <see cref="Rent"/> when possible.
+    /// Rents a packet instance directly. 
+    /// The caller is responsible for calling <c>Dispose()</c> on the returned packet.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TPacket Get() => s_pool.Get<TPacket>();
+    public static TPacket Get() => s_pool.Get();
 
     /// <summary>
-    /// Returns a packet to the pool.
+    /// Preallocates instances for this packet type to reduce cold-start latency.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Return(TPacket packet) => s_pool.Return(packet);
+    public static int Prealloc(int count) => s_pool.Prealloc(count);
 
     /// <summary>
-    /// Preallocates instances for this packet type.
+    /// Clears all cached packet instances for this type.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Prealloc(int count) => s_pool.Prealloc<TPacket>(count);
-
-    /// <summary>
-    /// Clears cached packet instances for this packet type.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Clear() => s_pool.ClearPool<TPacket>();
+    public static int Clear() => s_pool.Clear();
 
     #endregion APIs
 }

@@ -65,7 +65,8 @@ public sealed class ConnectionHubSessionTests
         // Security validation (hub.GetConnection)
         _ = hub.GetConnection(s.ConnectionId).Should().NotBeNull();
 
-        // Unregister connection1
+        // Unregister connection1 (this will dispose it and wipe its secret)
+        var expectedSecret = connection1.Secret;
         hub.UnregisterConnection(connection1);
 
         // Resume should now succeed
@@ -76,7 +77,7 @@ public sealed class ConnectionHubSessionTests
         // Manual state restoration
         ApplySession(connection2, ss);
 
-        _ = connection2.Secret.Should().Be(connection1.Secret);
+        _ = connection2.Secret.Should().Be(expectedSecret);
         _ = connection2.Attributes["test"].Should().Be("value");
         _ = connection2.Attributes["nalix.handshake.established"].Should().Be(true);
     }

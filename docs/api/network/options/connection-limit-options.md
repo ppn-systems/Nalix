@@ -20,15 +20,19 @@ A consistent documentation shape reduces scanning cost and makes operational pla
 
 - `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
 
-## Core Properties
+## Core Properties (Current Defaults)
 
-- `MaxConnectionsPerIpAddress`
-- `MaxConnectionsPerWindow`
-- `BanDuration`
-- `ConnectionRateWindow`
-- `DDoSLogSuppressWindow`
-- `CleanupInterval`
-- `InactivityThreshold`
+| Property | Type | Default | Purpose |
+|---|---|---:|---|
+| `MaxConnectionsPerIpAddress` | `int` | `8` | Max concurrent connections from a single IP. |
+| `MaxConnectionsPerWindow` | `int` | `100` | Max new connections allowed in a rate window. |
+| `BanDuration` | `TimeSpan` | `00:10:00` | Duration of IP ban after exceeding limits. |
+| `MaxUdpDatagramSize` | `int` | `1400` | Max inbound UDP bytes (to avoid fragmentation). |
+| `MaxErrorThreshold` | `int` | `50` | Max cumulative errors before forced disconnect. |
+| `UdpReplayWindowSize` | `int` | `1024` | UDP anti-replay sliding window size (bits). |
+| `MaxPacketPerSecond` | `int` | `128` | Max packets allowed per second per connection. |
+| `CleanupInterval` | `TimeSpan` | `00:01:00` | Frequency of inactive connection pruning. |
+| `InactivityThreshold` | `TimeSpan` | `00:05:00` | Max idle time before forced closure. |
 
 ## Why These Options Exist
 

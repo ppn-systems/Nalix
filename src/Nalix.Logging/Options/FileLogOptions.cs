@@ -34,53 +34,22 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the maximum allowed size of a log file in bytes.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is less than 1KB or greater than 2GB.</exception>
-    [IniComment("Max log file size in bytes before rotation (min 1024, max 33554432)")]
-    public int MaxFileSizeBytes
-    {
-        get;
-        set
-        {
-            const int min = 1024;
-            const int max = 32 * 1024 * 1024;
-
-            if (value is < min or > max)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(value), $"Value must be between {min} and {max} bytes");
-            }
-
-            field = value;
-        }
-    } = DefaultMaxFileSize;
+    [IniComment("Max log file size in bytes before rotation (min 1024, max 1GB)")]
+    [System.ComponentModel.DataAnnotations.Range(1024, 1024 * 1024 * 1024, ErrorMessage = "MaxFileSizeBytes must be between 1KB and 1GB.")]
+    public int MaxFileSizeBytes { get; set; } = DefaultMaxFileSize;
 
     /// <summary>
     /// Gets or sets the maximum number of queued log entries before blocking or dropping.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
     [IniComment("Maximum log entries in the write queue (minimum 1)")]
-    public int MaxQueueSize
-    {
-        get;
-        set
-        {
-            if (value < 1)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(value), "Queue size must be at least 1");
-            }
-
-            field = value;
-        }
-    } = DefaultMaxQueueSize;
+    [System.ComponentModel.DataAnnotations.Range(1, 1000000, ErrorMessage = "MaxQueueSize must be between 1 and 1,000,000.")]
+    public int MaxQueueSize { get; set; } = DefaultMaxQueueSize;
 
     /// <summary>
     /// Gets or sets the base log file name.
     /// </summary>
-    /// <remarks>
-    /// The actual filename may have additional information appended like date or sequence number.
-    /// </remarks>
     [IniComment("Log file name template (date and index are appended automatically)")]
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "LogFileName is required.")]
     public string LogFileName
     {
         get;
@@ -92,19 +61,12 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the interval at which buffered log entries are flushed to disk.
     /// </summary>
-    /// <remarks>
-    /// A shorter interval reduces the risk of data loss but may impact performance.
-    /// </remarks>
     [IniComment("How often buffered log entries are written to disk (e.g. 00:00:01 = 1 second)")]
     public TimeSpan FlushInterval { get; set; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
     /// Gets or sets whether writers should block when the queue is full.
     /// </summary>
-    /// <remarks>
-    /// When true, logging will block until queue space is available.
-    /// When false, log entries will be discarded when the queue is full.
-    /// </remarks>
     [IniComment("Block the caller when the queue is full (false = discard entries instead)")]
     public bool BlockWhenQueueFull { get; set; }
 
@@ -121,6 +83,15 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <summary>Gets or sets the callback used to handle file-related errors.</summary>
     [ConfiguredIgnore]
     public Action<FileError>? HandleFileError { get; set; }
+
+    /// <summary>
+    /// Validates the configuration options.
+    /// </summary>
+    public void Validate()
+    {
+        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
+        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+    }
 
     #endregion Properties
 

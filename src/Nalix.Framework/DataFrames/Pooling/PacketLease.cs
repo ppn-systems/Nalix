@@ -2,57 +2,59 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Threading;
+using System.Runtime.CompilerServices;
 
 namespace Nalix.Framework.DataFrames.Pooling;
 
 /// <summary>
-/// Represents exclusive ownership of a pooled packet instance.
-/// Disposing the lease returns the packet to its originating pool.
+/// A zero-allocation wrapper that ensures a rented packet is returned to its pool upon disposal.
 /// </summary>
 /// <typeparam name="TPacket">The packet type.</typeparam>
-public sealed class PacketLease<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, new()
+public readonly struct PacketLease<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, new()
 {
     #region Fields
 
-    private int _disposed;
-    private readonly Action<TPacket> _return;
+    private readonly TPacket _packet;
 
     #endregion Fields
 
+    #region Constructor
 
-    #region Constructors
+    /// <summary>
+    /// Initializes a new lease for the specified packet.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public PacketLease(TPacket packet) => _packet = packet;
 
-    internal PacketLease(TPacket value, Action<TPacket> @return)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        ArgumentNullException.ThrowIfNull(@return);
+    #endregion Constructor
 
-        _return = @return;
-        this.Value = value;
-    }
-
-    #endregion Constructors
-
-    #region APIs
+    #region Properties
 
     /// <summary>
     /// Gets the rented packet instance.
     /// </summary>
-    public TPacket Value { get; }
+    public TPacket Value => _packet;
 
     /// <summary>
-    /// Returns the packet to its pool. Double-dispose is ignored.
+    /// Returns true if this lease is valid (contains a packet).
     /// </summary>
-    public void Dispose()
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
-        {
-            return;
-        }
+    public bool IsValid => _packet != null;
 
-        _return(this.Value);
-    }
+    #endregion Properties
 
-    #endregion APIs
+    #region Methods
+
+    /// <summary>
+    /// Returns the packet to its pool by disposing the underlying instance.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Dispose() => _packet?.Dispose();
+
+    /// <summary>
+    /// Implicitly converts the lease to its underlying packet instance.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static implicit operator TPacket(PacketLease<TPacket> lease) => lease._packet;
+
+    #endregion Methods
 }

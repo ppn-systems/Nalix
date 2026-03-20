@@ -109,6 +109,7 @@ public partial class TaskManager
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void ENQUEUE_WORKER(WorkerState worker)
     {
+        worker.MarkScheduled();
         long sequence = Interlocked.Increment(ref _workerScheduleSequence);
         (int priorityKey, long sequence) priority = (-(int)worker.Options.Priority, sequence);
 
@@ -134,6 +135,8 @@ public partial class TaskManager
             {
                 return false;
             }
+
+            worker.MarkScheduled(); // Mark even for fast-start so wait time is 0
         }
 
         this.START_WORKER_EXECUTION(worker);
@@ -303,7 +306,24 @@ public partial class TaskManager
 
             st.MarkStart();
             startedExecution = true;
-            _ = Interlocked.Increment(ref _runningWorkerCount);
+
+            int currentRunning = Interlocked.Increment(ref _runningWorkerCount);
+            int peak = Volatile.Read(ref _peakRunningWorkerCount);
+            while (currentRunning > peak)
+            {
+                _ = Interlocked.CompareExchange(ref _peakRunningWorkerCount, currentRunning, peak);
+                peak = Volatile.Read(ref _peakRunningWorkerCount);
+            }
+
+            if (_options.IsEnableLatency)
+            {
+                long waitTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks - st.ScheduledUtc.UtcTicks;
+                if (waitTicks > 0)
+                {
+                    _ = Interlocked.Add(ref _workerWaitTicks, waitTicks);
+                }
+            }
+
             executionStartTicks = _options.IsEnableLatency ? Stopwatch.GetTimestamp() : 0;
             WorkerContext ctx = new(st, this);
 
@@ -386,6 +406,23 @@ public partial class TaskManager
                     long elapsedTicks = Stopwatch.GetTimestamp() - executionStartTicks;
                     _ = Interlocked.Increment(ref _workerExecutionCount);
                     _ = Interlocked.Add(ref _workerExecutionTicks, elapsedTicks);
+
+                    double ms = (double)elapsedTicks / Stopwatch.Frequency * 1000.0;
+                    int bucketIndex = ms switch
+                    {
+                        < 1.0 => 0,
+                        < 5.0 => 1,
+                        < 10.0 => 2,
+                        < 25.0 => 3,
+                        < 50.0 => 4,
+                        < 100.0 => 5,
+                        < 250.0 => 6,
+                        < 500.0 => 7,
+                        < 1000.0 => 8,
+                        < 2500.0 => 9,
+                        _ => 10
+                    };
+                    _ = Interlocked.Increment(ref _workerLatencyBuckets[bucketIndex]);
                 }
             }
 
@@ -437,7 +474,7 @@ public partial class TaskManager
         }
 
         // Above this threshold, a normal delay is cheaper and less CPU intensive than spinning.
-        const double BusyWaitMaxSeconds = 0.0002; // 200 µs cap for busy spin
+        double busyWaitMaxSeconds = _options.BusyWaitThreshold.TotalSeconds;
 
         while (!ct.IsCancellationRequested)
         {
@@ -450,7 +487,7 @@ public partial class TaskManager
                 {
                     double delaySeconds = (double)delayTicks / freq;
 
-                    if (delaySeconds <= BusyWaitMaxSeconds)
+                    if (delaySeconds <= busyWaitMaxSeconds)
                     {
                         BusyWait(next, ct);
                     }
@@ -507,7 +544,7 @@ public partial class TaskManager
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-timeout name={s.Name} msg={oce.Message}");
 
-                    await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
+                    await this.RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -515,7 +552,7 @@ public partial class TaskManager
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-error name={s.Name} msg={ex.Message}");
 
-                    await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
+                    await this.RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -548,14 +585,14 @@ public partial class TaskManager
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-loop-error name={s.Name} msg={ex.Message}");
 
-                await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
+                await this.RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
             }
         }
     }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static async ValueTask RECURRING_BACKOFF_ASYNC(
+    private async ValueTask RECURRING_BACKOFF_ASYNC(
         RecurringState s,
         CancellationToken ct)
     {
@@ -567,8 +604,8 @@ public partial class TaskManager
         }
 
         // Cap the exponential growth so a broken recurring job does not disappear forever.
-        int pow = Math.Min(5, s.ConsecutiveFailures - n); // cap at 2^5 = 32s
-        int baseMs = 1000 << pow; // base delay: 1000ms * 2^pow
+        int pow = Math.Min(_options.BackoffMaxPower, s.ConsecutiveFailures - n);
+        int baseMs = (int)_options.BackoffBaseInterval.TotalMilliseconds << pow;
         int cap = (int)Math.Max(1, s.Options.BackoffCap.TotalMilliseconds);
         int maxDelay = Math.Min(baseMs, cap);
 
@@ -643,7 +680,7 @@ public partial class TaskManager
         TaskManagerOptions options = _options;
 
         // Số lần liên tiếp vượt ngưỡng trước khi hành động (hysteresis)
-        const int StreakRequired = 3;
+        int streakRequired = options.AdjustmentStreakRequired;
 
         // Normalize threshold: config là % trên 1 core -> scale lên toàn bộ core
         double coreCount = System.Environment.ProcessorCount;
@@ -670,7 +707,7 @@ public partial class TaskManager
                     _lowCpuStreak = 0;
                     _highCpuStreak++;
 
-                    if (_highCpuStreak >= StreakRequired)
+                    if (_highCpuStreak >= streakRequired)
                     {
                         _highCpuStreak = 0; // reset sau khi hành động
                         int newLimit = Math.Max(1, _currentConcurrencyLimit - 1);
@@ -682,7 +719,7 @@ public partial class TaskManager
                     _highCpuStreak = 0;
                     _lowCpuStreak++;
 
-                    if (_lowCpuStreak >= StreakRequired)
+                    if (_lowCpuStreak >= streakRequired)
                     {
                         _lowCpuStreak = 0; // reset sau khi hành động
                         int newLimit = Math.Min(options.MaxWorkers, _currentConcurrencyLimit + 1);
@@ -730,13 +767,14 @@ public partial class TaskManager
         // Điều này để lần đo sau warmup tính delta đúng kể từ lúc baseline được init
         if (!_cpuWarmupDone)
         {
-            if (currentWallMs < 60_000)
+            if (currentWallMs < _options.CpuWarmupDuration.TotalMilliseconds)
             {
                 return 0.0;
             }
 
             // Đánh dấu đã xong warmup, cập nhật baseline một lần ngay lúc này
             Process proc0 = Process.GetCurrentProcess();
+            proc0.Refresh();
             Volatile.Write(ref _lastCpuProcessorTime, (long)proc0.TotalProcessorTime.TotalMilliseconds);
             Volatile.Write(ref _lastCpuWallClockMs, currentWallMs);
             _cpuWarmupDone = true;
@@ -744,6 +782,7 @@ public partial class TaskManager
         }
 
         Process proc = Process.GetCurrentProcess();
+        proc.Refresh();
         long currentCpuMs = (long)proc.TotalProcessorTime.TotalMilliseconds;
 
         long prevWallMs = Volatile.Read(ref _lastCpuWallClockMs);

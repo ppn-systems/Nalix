@@ -14,7 +14,7 @@ public class ObjectPoolBenchmarks : NalixBenchmarkBase
     private ObjectPool _pool = null!;
     private ObjectPoolManager _manager = null!;
     private TypedObjectPool<PooledItem> _poolTyped = null!;
-    private TypedObjectPoolAdapter<PooledItem> _managerTyped = null!;
+    private TypedObjectPool<PooledItem> _managerTyped = null!;
 
     [GlobalSetup]
     public void Setup()

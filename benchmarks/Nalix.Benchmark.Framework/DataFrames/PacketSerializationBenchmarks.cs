@@ -2,7 +2,6 @@ using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Primitives;
-using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Random;
 
@@ -40,13 +39,6 @@ public class PacketSerializationBenchmarks : NalixBenchmarkBase
 
     [BenchmarkCategory("Deserialization"), Benchmark(Baseline = true, Description = "Deserialize (New Instance)")]
     public Handshake DeserializeNew() => Handshake.Deserialize(_serializedHandshake);
-
-    [BenchmarkCategory("Deserialization"), Benchmark(Description = "Deserialize (Reuse Instance)")]
-    public Handshake DeserializeReuse()
-    {
-        PacketBase<Handshake>.Deserialize(_serializedHandshake, ref _handshake);
-        return _handshake;
-    }
 
     [BenchmarkCategory("Memory"), Benchmark(Description = "ResetForPool")]
     public void ResetForPool() => _handshake.ResetForPool();

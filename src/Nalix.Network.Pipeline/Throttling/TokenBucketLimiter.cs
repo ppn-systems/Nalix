@@ -107,8 +107,6 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
     #region Constants
 
-    private const int MinReportCapacity = 256;
-    private const int MaxEvictionCapacity = 4096;
     private const int CancellationCheckFrequency = 256;
     private const double MaxDelayMs = int.MaxValue - 1000.0;
 
@@ -872,7 +870,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         int currentCount = Interlocked.CompareExchange(ref _totalEndpointCount, 0, 0);
         int estimatedCapacity = currentCount > 0 ? currentCount : (_shards.Length * 8);
-        int initialCapacity = Math.Max(MinReportCapacity, estimatedCapacity);
+        int initialCapacity = Math.Max(_options.MinReportCapacity, estimatedCapacity);
 
         ListPool<KeyValuePair<INetworkEndpoint, EndpointState>> pool = ListPool<KeyValuePair<INetworkEndpoint, EndpointState>>.Instance;
         List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot = pool.Rent(minimumCapacity: initialCapacity);
@@ -1353,7 +1351,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         int estimatedCapacity = Math.Min(
             _totalEndpointCount * 2,
-            MaxEvictionCapacity);
+            _options.MaxEvictionCapacity);
 
         ListPool<(INetworkEndpoint Key, long LastSeen)> pool = ListPool<(INetworkEndpoint Key, long LastSeen)>.Instance;
         List<(INetworkEndpoint Key, long LastSeen)> candidates = pool.Rent(minimumCapacity: estimatedCapacity);

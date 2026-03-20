@@ -333,12 +333,6 @@ public sealed class PacketRegistryFactory
                 [typeof(ReadOnlySpan<byte>)]) ?? throw new InternalErrorException(
                     $"Packet type {type.FullName} does not implement the required static Deserialize(ReadOnlySpan<byte>) method.");
 
-            MethodInfo? miDeserializeInto = FIND_STATIC_METHOD(
-                type, StaticPublic,
-                nameof(IPacketDeserializer<>.Deserialize),
-                [typeof(ReadOnlySpan<byte>), type.MakeByRefType()]) ?? throw new InternalErrorException(
-                    $"Packet type {type.FullName} does not implement the required static Deserialize(ReadOnlySpan<byte>, ref {type.Name}) method.");
-
             if (deserializers.ContainsKey(key))
             {
                 Type existingType = magicTypes[key];
@@ -355,7 +349,7 @@ public sealed class PacketRegistryFactory
             // Bind deserialize pointer into PacketFunctionTable<TPacket>
             try
             {
-                _ = s_bindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize, miDeserializeInto]);
+                _ = s_bindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize]);
             }
             catch (Exception ex)
             {
@@ -382,22 +376,7 @@ public sealed class PacketRegistryFactory
             try
             {
                 deserializers[key] = (PacketDeserializer)Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
-                deserializersInto[key] = (PacketDeserializerInto<IPacket>)Delegate.CreateDelegate(typeof(PacketDeserializerInto<IPacket>), doDeserializeIntoMi);
                 magicTypes[key] = type;
-
-                // Build pool rent/return delegates for this type (created once, zero alloc on hot path).
-                bool isPoolable = typeof(IPoolable).IsAssignableFrom(type)
-                                  && type.IsClass
-                                  && type.GetConstructor(Type.EmptyTypes) is not null;
-
-                if (isPoolable)
-                {
-                    MethodInfo bindPoolMi = typeof(PacketRegistryFactory).GetMethod(nameof(BUILD_POOL_OPS_FOR), StaticNonPublic)!
-                                                                         .MakeGenericMethod(type);
-
-                    (Func<IPacket>, Action<IPacket>) ops = ((Func<IPacket>, Action<IPacket>))bindPoolMi.Invoke(null, null)!;
-                    poolOps[key] = ops;
-                }
             }
             catch (Exception ex)
             {
@@ -410,9 +389,7 @@ public sealed class PacketRegistryFactory
         TRACE($"build-ok packets={deserializers.Count}");
 
         return new PacketRegistry(
-            FrozenDictionary.ToFrozenDictionary(deserializers),
-            FrozenDictionary.ToFrozenDictionary(deserializersInto),
-            FrozenDictionary.ToFrozenDictionary(poolOps));
+            FrozenDictionary.ToFrozenDictionary(deserializers));
     }
 
     /// <summary>
@@ -568,7 +545,6 @@ public sealed class PacketRegistryFactory
     private static unsafe class PacketFunctionTable<TPacket> where TPacket : IPacket
     {
         public static delegate* managed<ReadOnlySpan<byte>, TPacket> DeserializePtr;
-        public static delegate* managed<ReadOnlySpan<byte>, ref TPacket, TPacket> DeserializeIntoPtr;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IPacket InvokeDeserialize(ReadOnlySpan<byte> raw) => DeserializePtr(raw);
@@ -589,12 +565,17 @@ public sealed class PacketRegistryFactory
                 }
             }
 
-            // Fallback Path: Standard deserialization (may allocate if the formatter replaces the reference).
-            TPacket packet = value is TPacket existingFallback ? existingFallback : default!;
-            TPacket resolved = DeserializeIntoPtr(raw, ref packet);
+            // Fallback Path: Standard deserialization. 
+            // Since we are replacing the instance, we MUST dispose the old one if it was pooled
+            // to prevent memory leaks.
+            if (value is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
+            TPacket resolved = DeserializePtr(raw);
 
             // We update the provided ref and return the resolved instance.
-            // PacketRegistry handles returning the original to the pool if substitution occurred.
             value = resolved;
             return resolved;
         }
@@ -623,13 +604,11 @@ public sealed class PacketRegistryFactory
     /// Assigns the deserialize function pointer to <see cref="PacketFunctionTable{TPacket}"/>.
     /// </summary>
     private static unsafe void BIND_PTRS<TPacket>(
-        MethodInfo miDeserialize,
-        MethodInfo miDeserializeInto) where TPacket : IPacket
+        MethodInfo miDeserialize) where TPacket : IPacket
     {
         PacketFunctionTable<TPacket>.DeserializePtr = BIND_DESERIALIZE_PTR<TPacket>(miDeserialize);
-        PacketFunctionTable<TPacket>.DeserializeIntoPtr = BIND_DESERIALIZE_INTO_PTR<TPacket>(miDeserializeInto);
 
-        Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+ des_ref=+");
+        Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
     }
 
     /// <summary>

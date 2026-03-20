@@ -63,46 +63,58 @@ internal sealed class FrameReader : IDisposable
         try
         {
             Socket s = _getSocket();
-            while (!token.IsCancellationRequested)
+            byte[] headerBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(TcpSession.HeaderSize);
+            Memory<byte> headerMemory = new(headerBuffer, 0, TcpSession.HeaderSize);
+
+            try
             {
-                byte[] headerBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(TcpSession.HeaderSize);
-                try
+                while (!token.IsCancellationRequested)
                 {
-                    Memory<byte> headerMemory = new(headerBuffer, 0, TcpSession.HeaderSize);
-                    await RECEIVE_EXACTLY_ASYNC(s, headerMemory, token).ConfigureAwait(false);
-
-                    ushort totalLen = BinaryPrimitives.ReadUInt16LittleEndian(headerMemory.Span);
-                    if (totalLen < TcpSession.HeaderSize)
-                    {
-                        throw new SocketException((int)SocketError.ProtocolNotSupported);
-                    }
-
-                    int payloadLen = totalLen - TcpSession.HeaderSize;
-                    byte[]? rented = BufferLease.ByteArrayPool.Rent(totalLen);
                     try
                     {
-                        BinaryPrimitives.WriteUInt16LittleEndian(rented.AsSpan(0, TcpSession.HeaderSize), totalLen);
+                        await RECEIVE_EXACTLY_ASYNC(s, headerMemory, token).ConfigureAwait(false);
 
-                        if (payloadLen > 0)
+                        ushort totalLen = BinaryPrimitives.ReadUInt16LittleEndian(headerMemory.Span);
+                        if (totalLen < TcpSession.HeaderSize)
                         {
-                            await RECEIVE_EXACTLY_ASYNC(s, rented.AsMemory(TcpSession.HeaderSize, payloadLen), token).ConfigureAwait(false);
+                            throw new SocketException((int)SocketError.ProtocolNotSupported);
                         }
 
-                        // Ownership of 'rented' is taken by BufferLease.
-                        BufferLease lease = BufferLease.TakeOwnership(rented, TcpSession.HeaderSize, payloadLen);
-                        rented = null; // Transferred
-
-                        if (FragmentAssembler.IsFragmentedFrame(lease.Span, out FragmentHeader header))
+                        int payloadLen = totalLen - TcpSession.HeaderSize;
+                        byte[]? rented = BufferLease.ByteArrayPool.Rent(totalLen);
+                        try
                         {
-                            this.PROCESS_FRAGMENTED_FRAME(lease, header);
-                            continue;
-                        }
+                            BinaryPrimitives.WriteUInt16LittleEndian(rented.AsSpan(0, TcpSession.HeaderSize), totalLen);
 
-                        this.PROCESS_NORMAL_FRAME(lease);
+                            if (payloadLen > 0)
+                            {
+                                await RECEIVE_EXACTLY_ASYNC(s, rented.AsMemory(TcpSession.HeaderSize, payloadLen), token).ConfigureAwait(false);
+                            }
+
+                            // Ownership of 'rented' is taken by BufferLease.
+                            BufferLease lease = BufferLease.TakeOwnership(rented, TcpSession.HeaderSize, payloadLen);
+                            rented = null; // Transferred
+
+                            if (FragmentAssembler.IsFragmentedFrame(lease.Span, out FragmentHeader header))
+                            {
+                                this.PROCESS_FRAGMENTED_FRAME(lease, header);
+                                continue;
+                            }
+
+                            this.PROCESS_NORMAL_FRAME(lease);
+                        }
+                        catch { if (rented != null) { BufferLease.ByteArrayPool.Return(rented); } throw; }
                     }
-                    catch { if (rented != null) { BufferLease.ByteArrayPool.Return(rented); } throw; }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _onError(ex);
+                        break;
+                    }
                 }
-                finally { System.Buffers.ArrayPool<byte>.Shared.Return(headerBuffer); }
+            }
+            finally
+            {
+                System.Buffers.ArrayPool<byte>.Shared.Return(headerBuffer);
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }

@@ -129,7 +129,7 @@ Exception handling can be expensive. In the hot path, Nalix provides mechanisms 
 
 ### Zero-Allocation Exception Caching
 
-Standard exceptions are expensive due to stack trace generation. Nalix uses a **Cached Exception Pattern** via the `NetworkErrors` class for common transport failures (e.g., `ConnectionReset`, `SendFailed`, `MessageTooLarge`).
+Standard exceptions are expensive due to stack trace generation. Nalix uses a **Cached Exception Pattern** via the `NetworkErrors` class for common transport failures (e.g., `ConnectionReset`, `SendFailed`, `MessageTooLarge`, `UdpPayloadTooLarge`, `UdpPartialSend`, `UdpSendFailed`).
 
 - **Static Instances**: Common exceptions are pre-instantiated as static readonly fields.
 - **Overridden StackTrace**: These cached exceptions override the `StackTrace` property to return a static string, bypassing the expensive stack crawl entirely.

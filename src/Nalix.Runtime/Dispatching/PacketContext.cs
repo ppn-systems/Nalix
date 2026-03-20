@@ -19,8 +19,9 @@ namespace Nalix.Runtime.Dispatching;
 /// Carries a packet, its connection, and the metadata needed while a handler is
 /// executing. Instances are pooled so dispatch can reuse context objects without
 /// allocating on every packet.
-[DebuggerDisplay("IsInitialized={_isInitialized}, Properties={_properties.Count}")]
-public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable where TPacket : IPacket
+[DebuggerDisplay("IsInitialized={_isInitialized}")]
+public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable, IDisposable
+    where TPacket : IPacket
 {
     #region Fields
 
@@ -183,12 +184,15 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     {
         if (_isInitialized)
         {
+            if (this.Packet is IDisposable disposablePacket)
+            {
+                disposablePacket.Dispose();
+            }
+
             this.Packet = default!;
             this.IsReliable = false;
             this.Attributes = default!;
             this.Connection = default!;
-
-
             this.Sender.ResetForPool();
 
             _isInitialized = false;
@@ -208,7 +212,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     public void Return()
     {
         if (Interlocked.Exchange(
-        ref _state, (int)PacketContextState.Returned) != (int)PacketContextState.InUse)
+            ref _state, (int)PacketContextState.Returned) != (int)PacketContextState.InUse)
         {
             return;
         }
@@ -216,6 +220,12 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
         InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                 .Return(this);
     }
+
+    /// <summary>
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Dispose() => this.Return();
 
     #endregion IDisposable
 }

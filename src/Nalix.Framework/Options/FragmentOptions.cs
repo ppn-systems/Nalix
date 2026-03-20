@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.ComponentModel.DataAnnotations;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.DataFrames.Chunks;
@@ -11,7 +13,8 @@ namespace Nalix.Framework.Options;
 /// <summary>
 /// Options for fragmentation and reassembly of large frames.
 /// </summary>
-public class FragmentOptions : ConfigurationLoader
+[IniComment("Fragmentation configuration — controls chunking and reassembly of large data payloads")]
+public sealed class FragmentOptions : ConfigurationLoader
 {
     /// <summary>
     /// Maximum allowed size (in bytes) of the raw payload the caller can pass to <c>SendAsync</c>.
@@ -22,6 +25,8 @@ public class FragmentOptions : ConfigurationLoader
     /// </para>
     /// Default: 16 MB.
     /// </summary>
+    [IniComment("Max allowed payload size in bytes before sending (default 16MB)")]
+    [Range(1, int.MaxValue, ErrorMessage = "MaxPayloadSize must be positive.")]
     public int MaxPayloadSize { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>
@@ -32,6 +37,8 @@ public class FragmentOptions : ConfigurationLoader
     /// </para>
     /// Default: 1,400 bytes (fits a single Ethernet MTU after TCP/IP overhead).
     /// </summary>
+    [IniComment("Max chunk size in bytes (default 1400)")]
+    [Range(1, 65000, ErrorMessage = "MaxChunkSize must be between 1 and 65000.")]
     public int MaxChunkSize { get; set; } = 1_400;
 
     /// <summary>
@@ -39,42 +46,37 @@ public class FragmentOptions : ConfigurationLoader
     /// If a stream exceeds this limit, it will be discarded immediately.
     /// Default: 16 MB.
     /// </summary>
+    [IniComment("Max reassembly buffer per stream (default 16MB)")]
+    [Range(1, int.MaxValue, ErrorMessage = "MaxReassemblyBytes must be positive.")]
     public int MaxReassemblyBytes { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>
     /// Maximum time (in milliseconds) that a stream can wait for the next chunk before it is evicted.
     /// Default: 30,000 ms.
     /// </summary>
+    [IniComment("Incomplete stream reassembly timeout in milliseconds (default 30,000)")]
+    [Range(100, 3600000, ErrorMessage = "ReassemblyTimeoutMs must be between 100ms and 1 hour.")]
     public long ReassemblyTimeoutMs { get; set; } = 30_000;
 
     /// <summary>
     /// Validates the chunking configuration to ensure it meets the necessary constraints for proper operation.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when any fragmentation limit is non-positive, inconsistent, or exceeds wire-format limits.</exception>
+    /// <exception cref="ValidationException">Thrown when any fragmentation limit is invalid.</exception>
     public void Validate()
     {
-        // ChunkBodySize + 2B (frame header) + 7B (ChunkHeader) ≤ PacketSizeLimit
-
-        if (this.MaxChunkSize <= 0)
-        {
-            throw new InvalidOperationException("MaxChunkSize must be > 0.");
-        }
+        ValidationContext context = new(this);
+        Validator.ValidateObject(this, context, validateAllProperties: true);
 
         if (this.MaxPayloadSize < this.MaxChunkSize)
         {
-            throw new InvalidOperationException(
+            throw new ValidationException(
                 $"MaxPayloadSize={this.MaxPayloadSize} must be >= MaxChunkSize={this.MaxChunkSize}.");
-        }
-
-        if (this.MaxChunkSize <= 0)
-        {
-            throw new InvalidOperationException("MaxChunkSize must be > 0.");
         }
 
         int maxChunkCount = (this.MaxPayloadSize + this.MaxChunkSize - 1) / this.MaxChunkSize;
         if (maxChunkCount > ushort.MaxValue)
         {
-            throw new InvalidOperationException(
+            throw new ValidationException(
                 $"MaxChunkSize={this.MaxChunkSize} can produce {maxChunkCount} chunks for MaxPayloadSize={this.MaxPayloadSize}, " +
                 $"which exceeds the {ushort.MaxValue}-chunk wire header limit.");
         }
@@ -82,7 +84,7 @@ public class FragmentOptions : ConfigurationLoader
         int maxChunkFrameSize = PacketConstants.HeaderSize + FragmentHeader.WireSize + this.MaxChunkSize;
         if (maxChunkFrameSize > ushort.MaxValue)
         {
-            throw new InvalidOperationException(
+            throw new ValidationException(
                 $"MaxChunkSize={this.MaxChunkSize} produces a fragment frame of {maxChunkFrameSize} bytes, " +
                 $"which exceeds the {ushort.MaxValue}-byte wire header limit.");
         }

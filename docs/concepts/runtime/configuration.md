@@ -11,6 +11,13 @@ This page explains how configuration becomes a running Nalix server. It covers t
 
 Nalix startup follows a strict deterministic sequence to ensure that shared infrastructure is ready before traffic starts.
 
+### Environment-Aware Bootstrapping
+
+Nalix includes a built-in `Bootstrap` system that automatically tunes the framework for its environment:
+
+- **Server Environment**: Uses `server.ini`. Optimized for high throughput with **Object Pooling enabled** for all packets.
+- **SDK / Client Environment**: Uses `client.ini`. Optimized for simplicity with **Object Pooling disabled** to prevent memory leaks in managed client runtimes (like Unity/Godot) where explicit disposal might be missed.
+
 ```mermaid
 flowchart LR
     A["Configuration Files"] --> B["ConfigurationManager"]

@@ -61,7 +61,7 @@ public static class LiteSerializer
     public static byte[] Serialize<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
     {
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             byte[] array = GC.AllocateUninitializedArray<byte>(TypeMetadata.SizeOf<T>());
             Unsafe.WriteUnaligned(
@@ -165,7 +165,7 @@ public static class LiteSerializer
         ArgumentNullException.ThrowIfNull(buffer);
 
         // Primitive or unmanaged struct
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             int size = TypeMetadata.SizeOf<T>();
             if (buffer.Length < size)
@@ -234,7 +234,7 @@ public static class LiteSerializer
         // ── Case 1: Primitive / unmanaged struct ──────────────────────────────────
         // T is a plain value type with no references (e.g. int, float, custom struct).
         // Write the value directly into the span using unaligned write for performance.
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             int size = TypeMetadata.SizeOf<T>();
 
@@ -392,13 +392,23 @@ public static class LiteSerializer
             throw FrameworkErrors.SerializationEmptyBuffer;
         }
 
-        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
+
         unsafe
         {
             fixed (byte* ptr = buffer)
             {
                 DataReader reader = new(ptr, buffer.Length);
-                value = formatter.Deserialize(ref reader);
+                if (value is not null && fillable is not null)
+                {
+                    fillable.Fill(ref reader, value);
+                }
+                else
+                {
+                    value = formatter.Deserialize(ref reader);
+                }
+
                 return reader.BytesRead;
             }
         }
@@ -466,13 +476,23 @@ public static class LiteSerializer
             throw FrameworkErrors.SerializationEmptyBuffer;
         }
 
-        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
+
         unsafe
         {
             fixed (byte* ptr = buffer.Span)
             {
                 DataReader reader = new(ptr, buffer.Length);
-                value = formatter.Deserialize(ref reader);
+                if (value is not null && fillable is not null)
+                {
+                    fillable.Fill(ref reader, value);
+                }
+                else
+                {
+                    value = formatter.Deserialize(ref reader);
+                }
+
                 return reader.BytesRead;
             }
         }
@@ -533,7 +553,7 @@ public static class LiteSerializer
             throw FrameworkErrors.SerializationEmptyBuffer;
         }
 
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
@@ -605,13 +625,23 @@ public static class LiteSerializer
             return dataSize + 4;
         }
 
-        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
+
         unsafe
         {
             fixed (byte* ptr = buffer)
             {
                 DataReader reader = new(ptr, buffer.Length);
-                value = formatter.Deserialize(ref reader);
+                if (value is not null && fillable is not null)
+                {
+                    fillable.Fill(ref reader, value);
+                }
+                else
+                {
+                    value = formatter.Deserialize(ref reader);
+                }
+
                 return reader.BytesRead;
             }
         }
@@ -643,7 +673,7 @@ public static class LiteSerializer
             throw FrameworkErrors.SerializationEmptyBuffer;
         }
 
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
@@ -743,7 +773,7 @@ public static class LiteSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool UsesFormatterReader<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
-        => TypeMetadata.IsReferenceOrNullable<T>() &&
+        => !TypeMetadata.IsUnmanaged<T>() &&
            TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out _) is not TypeKind.UnmanagedSZArray;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -769,6 +799,7 @@ public static class LiteSerializer
     {
         public static readonly bool ThrowsOnNull;
         public static readonly IFormatter<T> Formatter;
+        public static readonly IFillableFormatter<T>? Fillable;
 
         static RootFormatterCache()
         {
@@ -781,11 +812,14 @@ public static class LiteSerializer
             {
                 ThrowsOnNull = true;
                 Formatter = FormatterProvider.GetComplex<T>();
-                return;
+            }
+            else
+            {
+                ThrowsOnNull = false;
+                Formatter = formatter;
             }
 
-            ThrowsOnNull = false;
-            Formatter = formatter;
+            Fillable = Formatter as IFillableFormatter<T>;
         }
     }
 

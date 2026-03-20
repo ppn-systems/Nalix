@@ -37,16 +37,22 @@ public static class PingExtensions
 
         // Use NewControl fluent builder which also handles Timestamp/MonoTicks setup
         Control ping = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PING).WithSeq(seq).Build();
-        long startTicks = ping.MonoTicks;
+        try
+        {
+            long startTicks = ping.MonoTicks;
 
-        _ = await session.RequestAsync<Control>(
-            ping,
-            options: RequestOptions.Default.WithTimeout(timeoutMs),
-            predicate: p => p.Type == ControlType.PONG && p.SequenceId == seq,
-            ct: ct).ConfigureAwait(false);
+            using Control pong = await session.RequestAsync<Control>(
+                ping,
+                options: RequestOptions.Default.WithTimeout(timeoutMs),
+                predicate: p => p.Type == ControlType.PONG && p.SequenceId == seq,
+                ct: ct).ConfigureAwait(false);
 
-        long endTicks = Clock.MonoTicksNow();
-
-        return Clock.MonoTicksToMilliseconds(endTicks - startTicks);
+            long endTicks = Clock.MonoTicksNow();
+            return Clock.MonoTicksToMilliseconds(endTicks - startTicks);
+        }
+        finally
+        {
+            ping.Dispose();
+        }
     }
 }

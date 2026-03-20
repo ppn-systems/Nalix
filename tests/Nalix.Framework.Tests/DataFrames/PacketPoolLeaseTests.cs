@@ -37,7 +37,7 @@ public sealed class PacketPoolLeaseTests
             flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
         packet.Priority = PacketPriority.LOW;
 
-        PacketPool<Control>.Return(packet);
+        packet.Dispose();
 
         Control reused = PacketPool<Control>.Get();
         try
@@ -51,7 +51,7 @@ public sealed class PacketPoolLeaseTests
         }
         finally
         {
-            PacketPool<Control>.Return(reused);
+            reused.Dispose();
         }
     }
 

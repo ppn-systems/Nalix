@@ -26,7 +26,7 @@ using Nalix.Framework.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 
-namespace Nalix.Network.Connections;
+namespace Nalix.Network.RateLimiting;
 
 /// <summary>
 /// High-performance per-endpoint concurrent connection limiter.

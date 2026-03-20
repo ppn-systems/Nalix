@@ -37,7 +37,11 @@ Beyond micro-benchmarks, Nalix includes a high-concurrency stress testing tool l
 
 Usage:
 ```bash
-./tools/benchmarks.cmd --sessions 1000 --ping 100000
+# Ping-Pong Latency Test (1000 sessions, 100k pings)
+./tools/benchmarks.cmd --mode ping --sessions 1000 --count 100000
+
+# Throughput Test (1000 sessions, large payload)
+./tools/benchmarks.cmd --mode throughput --sessions 1000 --payload 1024
 ```
 
 ---

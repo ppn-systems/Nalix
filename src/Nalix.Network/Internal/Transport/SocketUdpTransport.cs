@@ -39,6 +39,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Static Factory
 
     private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+    private static readonly ConnectionLimitOptions s_connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
 
     #endregion Static Factory
 
@@ -174,9 +175,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        if (message.Length > s_options.MaxUdpDatagramSize)
+        if (message.Length > s_connectionLimitOptions.MaxUdpDatagramSize)
         {
-            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {s_options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
+            throw NetworkErrors.UdpPayloadTooLarge;
         }
 
         try
@@ -184,12 +185,12 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             int sent = _socket.SendTo(message, SocketFlags.None, _endPoint);
             if (sent != message.Length)
             {
-                throw new NetworkException($"Partial send: sent {sent}/{message.Length} bytes.");
+                throw NetworkErrors.UdpPartialSend;
             }
         }
         catch (Exception ex) when (ex is not NetworkException)
         {
-            throw new NetworkException("UDP transmission failed.", ex);
+            throw NetworkErrors.UdpSendFailed;
         }
     }
 
@@ -218,9 +219,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        if (message.Length > s_options.MaxUdpDatagramSize)
+        if (message.Length > s_connectionLimitOptions.MaxUdpDatagramSize)
         {
-            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {s_options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
+            throw NetworkErrors.UdpPayloadTooLarge;
         }
 
         try
@@ -228,13 +229,13 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             int sentBytes = await _socket.SendToAsync(message, SocketFlags.None, _endPoint, cancellationToken).ConfigureAwait(false);
             if (sentBytes != message.Length)
             {
-                throw new NetworkException($"Partial async send: sent {sentBytes}/{message.Length} bytes.");
+                throw NetworkErrors.UdpPartialSend;
             }
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+        catch (Exception)
         {
-            throw new NetworkException("Asynchronous UDP transmission failed.", ex);
+            throw NetworkErrors.UdpSendFailed;
         }
     }
 

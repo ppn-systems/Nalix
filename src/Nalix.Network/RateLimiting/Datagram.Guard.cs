@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 
-namespace Nalix.Network.Internal.Rate;
+namespace Nalix.Network.RateLimiting;
 
 /// <summary>
 /// A high-performance, lock-free fixed-window rate limiter for UDP traffic.
@@ -19,7 +19,7 @@ namespace Nalix.Network.Internal.Rate;
 /// on the hot path. Enforces Max Packets-Per-Second per IP to prevent DDoS floods.
 /// Intended to be registered as a singleton in the DI container.
 /// </summary>
-public sealed class DatagramRateLimiter : IDisposable, IWithLogging<DatagramRateLimiter>
+public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
 {
     // ── Packed into a single 64-bit value for Interlocked.CompareExchange ──
     // High 32 bits: secondOffset (uint)  |  Low 32 bits: count (uint)
@@ -53,10 +53,10 @@ public sealed class DatagramRateLimiter : IDisposable, IWithLogging<DatagramRate
     private const int SecondShift = 32;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="DatagramRateLimiter"/>.
+    /// Initializes a new instance of <see cref="DatagramGuard"/>.
     /// </summary>
     /// <param name="maxPacketsPerSecond">The maximum number of accepted packets per second per IP address. Defaults to 1000.</param>
-    public DatagramRateLimiter(int maxPacketsPerSecond = 1000)
+    public DatagramGuard(int maxPacketsPerSecond = 1000)
     {
         _maxPacketsPerSecond = maxPacketsPerSecond;
 
@@ -71,7 +71,7 @@ public sealed class DatagramRateLimiter : IDisposable, IWithLogging<DatagramRate
     }
 
     /// <inheritdoc/>
-    public DatagramRateLimiter WithLogging(ILogger logger)
+    public DatagramGuard WithLogging(ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         return this;
@@ -183,7 +183,7 @@ public sealed class DatagramRateLimiter : IDisposable, IWithLogging<DatagramRate
             catch (OperationCanceledException) { break; }
             catch (ObjectDisposedException ex)
             {
-                _logger?.Warn($"[NW.{nameof(DatagramRateLimiter)}] Cleanup error.", ex);
+                _logger?.Warn($"[NW.{nameof(DatagramGuard)}] Cleanup error.", ex);
             }
         }
     }
@@ -237,7 +237,7 @@ public sealed class DatagramRateLimiter : IDisposable, IWithLogging<DatagramRate
 
         if (removed > 0)
         {
-            _logger?.Debug($"[NW.{nameof(DatagramRateLimiter)}] Evicted {removed} idle windows. IPv4={_ipv4Map.Count}, IPv6={_ipv6Map.Count}");
+            _logger?.Debug($"[NW.{nameof(DatagramGuard)}] Evicted {removed} idle windows. IPv4={_ipv4Map.Count}, IPv6={_ipv6Map.Count}");
         }
     }
 

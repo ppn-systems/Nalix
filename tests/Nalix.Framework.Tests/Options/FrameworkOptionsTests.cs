@@ -39,7 +39,7 @@ public sealed class FrameworkOptionsTests
             CleanupInterval = TimeSpan.FromMilliseconds(999)
         };
 
-        Assert.Throws<ArgumentOutOfRangeException>(options.Validate);
+        Assert.Throws<ValidationException>(options.Validate);
     }
 
     [Fact]
@@ -54,6 +54,18 @@ public sealed class FrameworkOptionsTests
     }
 
     [Fact]
+    public void TaskManagerOptionsWhenHighCpuIsLessThanLowCpuValidateThrows()
+    {
+        TaskManagerOptions options = new()
+        {
+            ThresholdHighCpu = 30,
+            ThresholdLowCpu = 50
+        };
+
+        Assert.Throws<ValidationException>(options.Validate);
+    }
+
+    [Fact]
     public void FragmentOptionsWhenChunkSizeIsNonPositiveValidateThrows()
     {
         FragmentOptions options = new()
@@ -62,7 +74,7 @@ public sealed class FrameworkOptionsTests
             MaxChunkSize = 0
         };
 
-        Assert.Throws<InvalidOperationException>(options.Validate);
+        Assert.Throws<ValidationException>(options.Validate);
     }
 
     [Fact]
@@ -74,7 +86,7 @@ public sealed class FrameworkOptionsTests
             MaxChunkSize = 1400
         };
 
-        Assert.Throws<InvalidOperationException>(options.Validate);
+        Assert.Throws<ValidationException>(options.Validate);
     }
 
     [Fact]
@@ -86,7 +98,7 @@ public sealed class FrameworkOptionsTests
             MaxChunkSize = 1
         };
 
-        Assert.Throws<InvalidOperationException>(options.Validate);
+        Assert.Throws<ValidationException>(options.Validate);
     }
 
     [Fact]
@@ -98,7 +110,7 @@ public sealed class FrameworkOptionsTests
             MaxChunkSize = ushort.MaxValue
         };
 
-        Assert.Throws<InvalidOperationException>(options.Validate);
+        Assert.Throws<ValidationException>(options.Validate);
     }
 
     [Fact]

@@ -6,9 +6,9 @@ namespace Nalix.Framework.Tests.Memory;
 
 internal static class MemoryTestSupport
 {
-    public static BufferConfig CreateBufferConfig(bool enableMemoryTrimming)
+    public static BufferOptions CreateBufferOptions(bool enableMemoryTrimming)
     {
-        return new BufferConfig
+        return new BufferOptions
         {
             EnableMemoryTrimming = enableMemoryTrimming,
             TotalBuffers = 32,

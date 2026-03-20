@@ -53,7 +53,13 @@ When `MaxConnections` is enabled:
 - **DropNewest**: The default behavior. Rejects new handshakes when the server is full.
 - **DropOldest**: If the hub is full, it identifies the oldest **Anonymous** (not yet authenticated) connection from an internal `ConcurrentQueue` and forcibly evicts it to make room for the new arrival.
 
-### 3. Batched Broadcasting
+### 3. Resilience & Session Persistence
+To protect the server from memory exhaustion and ensure reliable state recovery:
+- **Auto-Persist on Unregister**: When a connection is closed or unregistered, the Hub automatically attempts to save its cryptographic state to the `ISessionStore`.
+- **DDoS Protection**: Persistence only occurs if the connection meets a minimum complexity threshold (`MinAttributesForPersistence`). This prevents attackers from filling the session store with millions of empty, "dead" sessions from incomplete handshakes.
+- **Fire-and-Forget Storage**: The storage operation is offloaded to the `ThreadPool` to ensure that unregistering a connection remains a low-latency operation.
+
+### 4. Batched Broadcasting
 Broadcasting to large numbers of clients is performed using `CaptureConnectionSnapshot()`, which rents an array from `ArrayPool<IConnection>` to avoid GC pressure.
 - **Parallel Dispatch**: Broadcasts can be batched to interleave I/O operations and maintain responsive network processing for non-participating clients.
 

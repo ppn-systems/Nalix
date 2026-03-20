@@ -196,5 +196,14 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Validates the configuration options.
+    /// </summary>
+    public void Validate()
+    {
+        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
+        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+    }
+
     #endregion APIs
 }

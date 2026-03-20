@@ -154,28 +154,6 @@ public sealed class PoolingOptions : ConfigurationLoader
 
     #endregion Connect Event Context — one per queued connection callback
 
-    #region Process Context — reserved, currently unused
-
-    /// <summary>
-    /// Maximum number of process context instances retained in the pool.
-    /// Reserved for future use.
-    /// </summary>
-    [IniComment("Max pooled ProcessContext instances — reserved for future use (default 256)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
-        ErrorMessage = "ProcessContext.Capacity must be between 1 and 1,000,000.")]
-    public int TcpListenerContextCapacity { get; set; } = 256;
-
-    /// <summary>
-    /// Number of process context instances to create at startup.
-    /// Reserved for future use.
-    /// </summary>
-    [IniComment("ProcessContext instances to warm up at startup — reserved for future use (default 16)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
-        ErrorMessage = "ProcessContext.Preallocate must be between 0 and 1,000,000.")]
-    public int TcpListenerContextPreallocate { get; set; } = 16;
-
-    #endregion Process Context — reserved, currently unused
-
     #region Validation
 
     /// <summary>
@@ -206,10 +184,6 @@ public sealed class PoolingOptions : ConfigurationLoader
         ASSERT_PREALLOCATE_LE_CAPACITY(
             nameof(this.ConnectEventContextPreallocate), this.ConnectEventContextPreallocate,
             nameof(this.ConnectEventContextCapacity), this.ConnectEventContextCapacity);
-
-        ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(this.TcpListenerContextPreallocate), this.TcpListenerContextPreallocate,
-            nameof(this.TcpListenerContextCapacity), this.TcpListenerContextCapacity);
     }
 
     private static void ASSERT_PREALLOCATE_LE_CAPACITY(

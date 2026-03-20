@@ -1,30 +1,28 @@
 # Typed Object Pools
 
-Typed Object Pools provide a high-performance, type-safe facade for interacting with the `ObjectPoolManager`. They eliminate generic dispatch overhead and provide direct access to specific object buckets.
+Typed Object Pools provide a high-performance, type-safe facade for interacting with object pools. They eliminate generic dispatch overhead and provide direct access to specific object buckets.
 
-## Typed Adapter Layering
+## Architecture
 
-The following diagram shows how the `TypedObjectPoolAdapter<T>` sits between your application and the central `ObjectPoolManager`.
+The `TypedObjectPool<T>` sits between your application and either a central `ObjectPoolManager` or a standalone `ObjectPool`.
 
 ```mermaid
 graph LR
-    App[Application Code] -- Direct Call --> Adapter[TypedObjectPoolAdapter T]
-    Adapter -- Optimized Access --> Pool[Internal Type Bucket]
-    Pool -- Metrics and Trimming --> Manager[ObjectPoolManager Global]
+    App[Application Code] -- Direct Call --> TypedPool[TypedObjectPool T]
+    TypedPool -- Optimized Access --> Pool[Internal Type Bucket]
+    TypedPool -- Optional Metrics --> Manager[ObjectPoolManager Global]
 ```
 
 ## Source Mapping
 
 - `src/Nalix.Framework/Memory/Objects/TypedObjectPool.cs`
-- `src/Nalix.Framework/Memory/Objects/TypedObjectPoolAdapter.cs`
 
 ## Main Types
 
 ### TypedObjectPool<T>
-A standalone, typed wrapper around a single `ObjectPool`. Best used when you manage your own pool instances manually.
-
-### TypedObjectPoolAdapter<T>
-The standard high-performance wrapper for pools registered with the `ObjectPoolManager`. This is the **preferred** way to access pooled objects in the Nalix Framework.
+The primary high-performance wrapper for pools. It can operate in two modes:
+1. **Managed**: Connected to `ObjectPoolManager` (Preferred). Provides full metrics and global management.
+2. **Standalone**: Connected directly to an `ObjectPool`. Best for local, isolated pooling.
 
 ## Key API Members
 
@@ -33,16 +31,16 @@ The standard high-performance wrapper for pools registered with the `ObjectPoolM
 | `Get()` | Retrieves a fresh instance of `T`. |
 | `Return(obj)` | Resets and returns an instance to the pool. |
 | `Prealloc(count)` | Warm up the pool by pre-creating instances. |
-| `GetMultiple(count)` | Batch retrieval of objects into an array. |
+| `GetMultiple(count)` | Batch retrieval of objects into a list. |
 | `ReturnMultiple(objs)` | Batch return of objects to the pool. |
 | `Trim(percentage)` | Releases a percentage of idle objects to the GC. |
 
 ## Recommended Performance Pattern
 
-For maximum throughput, store the adapter in a `static readonly` or `private readonly` field to avoid repeated manager lookups.
+For maximum throughput, store the pool in a `static readonly` or `private readonly` field to avoid repeated manager lookups.
 
 ```csharp
-private static readonly TypedObjectPoolAdapter<DataPacket> _packetPool = 
+private static readonly TypedObjectPool<DataPacket> _packetPool = 
     ObjectPoolManager.Instance.GetTypedPool<DataPacket>();
 
 public void SendData()
@@ -59,14 +57,13 @@ public void SendData()
 }
 ```
 
-## Comparison: When to use which?
+## Metrics and Diagnostics
 
-| Feature | TypedObjectPool<T> | TypedObjectPoolAdapter<T> |
-| :--- | :--- | :--- |
-| **Central Management** | No | Yes (via ObjectPoolManager) |
-| **Metrics Tracking** | Limited | Full (Hits, Misses, Outstanding) |
-| **Global Trimming** | No | Yes |
-| **Best Scenario** | Standalone utility classes | Framework hot-paths & Handlers |
+When a `TypedObjectPool<T>` is created via `ObjectPoolManager`, it automatically inherits the manager's diagnostic capabilities:
+- **Outstanding Tracking**: Tracks objects rented but not yet returned (requires `EnableDiagnostics`).
+- **Cache Statistics**: Tracks hits, misses, and throughput.
+- **Leak Detection**: Integrated with `PoolSentinel` for GC-based leak reporting.
+
 
 ## Related APIs
 

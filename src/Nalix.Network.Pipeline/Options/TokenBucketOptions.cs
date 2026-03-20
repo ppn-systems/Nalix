@@ -97,6 +97,20 @@ public sealed class TokenBucketOptions : ConfigurationLoader
     [IniComment("Initial tokens for new endpoints (-1 = full capacity, 0 = empty/cold-start mode)")]
     public int InitialTokens { get; set; } = -1;
 
+    /// <summary>
+    /// Maximum capacity for the eviction queue to prevent spikes in cleanup latency.
+    /// </summary>
+    [IniComment("Max items processed per cleanup cycle to cap latency (default 4096)")]
+    [System.ComponentModel.DataAnnotations.Range(64, 65536)]
+    public int MaxEvictionCapacity { get; set; } = 4096;
+
+    /// <summary>
+    /// Minimum initial capacity for report list to avoid reallocations.
+    /// </summary>
+    [IniComment("Initial capacity for diagnostic report generation (default 256)")]
+    [System.ComponentModel.DataAnnotations.Range(64, 8192)]
+    public int MinReportCapacity { get; set; } = 256;
+
     #endregion Properties
 
     /// <summary>

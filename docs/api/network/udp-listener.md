@@ -62,7 +62,7 @@ flowchart TD
 
 ### 1.1. Lock-Free Rate Limiting
 
-The UDP listener integrates a high-performance **`DatagramRateLimiter`**. This component uses atomic CAS (Compare-And-Swap) operations on a 64-bit packed window state to enforce per-IP packet limits (e.g., 1000 PPS) without any lock contention. This is critical for scaling on many-core systems under flood conditions.
+The UDP listener integrates a high-performance **`DatagramRateLimiter`**. This component uses atomic CAS (Compare-And-Swap) operations on a 64-bit packed window state to enforce per-IP packet limits (e.g., 128 PPS) without any lock contention. This is critical for scaling on many-core systems under flood conditions.
 
 ## 2. Low-Level Security Pipeline
 
@@ -83,13 +83,15 @@ Due to UDP's nature, an attacker could capture a valid packet and replay it iter
 - If the packet sequence is historical or already observed within the window, the datagram is rejected.
 - **Performance**: Executing the bit-shift operations inside a low-level struct SpinLock ensures the validation cost rests under 10 nanoseconds per datagram.
 
-## 3. Buffer Lifecycle Handoff
+## 3. Buffer Lifecycle & Pipeline Handoff
 
-Once authenticated, the UDP payload must be processed:
-1. Nalix extracts a `BufferLease` (rented from the `ByteArrayPool`) containing the raw datagram.
-2. The 7-byte `SessionToken` prefix is mathematically sliced off using `Memory<byte>` operations without array copies.
-3. The remaining payload is routed to the `FramePipeline` for decryption and decompression.
-4. The resolved `IProtocol` then receives the clean payload via `ProcessMessage(...)`.
+Once authenticated, the UDP payload follows a standardized processing pipeline:
+1. **Extraction**: Nalix extracts a `BufferLease` (rented from the `ByteArrayPool`) containing the raw datagram.
+2. **Slicing**: The 7-byte `SessionToken` prefix is mathematically sliced off using `Memory<byte>` operations without array copies.
+3. **Async Dispatch**: The datagram is offloaded to the **`ThreadPool`** via the `AsyncCallback` dispatcher. This aligns the UDP processing model with TCP, ensuring that heavy decryption or application logic does not block the low-level receive loop.
+4. **Processing**: The remaining payload is routed to the `FramePipeline` for decryption and decompression.
+5. **Protocol Delivery**: The resolved `IProtocol` receives the clean payload via `ProcessMessage(...)`.
+6. **Automatic Disposal**: The `IConnectEventArgs` (carrying the lease) is automatically disposed and returned to its pool via an internal **Event Bridge** once processing is complete.
 
 ## 4. Public API Surface
 
