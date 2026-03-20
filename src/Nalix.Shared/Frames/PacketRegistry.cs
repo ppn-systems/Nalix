@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Shared.Extensions;
 
 namespace Nalix.Shared.Frames;

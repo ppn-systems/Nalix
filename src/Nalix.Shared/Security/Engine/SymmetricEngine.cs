@@ -5,7 +5,7 @@
 // Supports: CHACHA20 (nonce 12 bytes, counter uint32), SALSA20 (nonce 8 bytes, counter uint64).
 // Also includes envelope helpers using EnvelopeFormat (header || nonce || ciphertext).
 
-using Nalix.Common.Security.Enums;
+using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Shared.Security.Internal;
 using Nalix.Shared.Security.Symmetric;
