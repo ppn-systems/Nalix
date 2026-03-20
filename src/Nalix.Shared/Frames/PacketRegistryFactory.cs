@@ -3,7 +3,6 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Frames.Text;

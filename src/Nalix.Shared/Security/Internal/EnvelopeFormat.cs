@@ -6,7 +6,8 @@
 // and Symmetric (header || nonce || ciphertext) formats.
 // Header + nonce SHOULD be included in AEAD AAD.
 
-using Nalix.Common.Security.Enums;
+using Nalix.Common.Security;
+
 
 
 #if DEBUG
