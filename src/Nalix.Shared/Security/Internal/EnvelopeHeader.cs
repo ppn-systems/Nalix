@@ -22,6 +22,7 @@ using Nalix.Common.Security.Enums;
 namespace Nalix.Shared.Security.Internal;
 
 [System.Diagnostics.DebuggerNonUserCode]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal readonly struct EnvelopeHeader
 {
     #region Constants

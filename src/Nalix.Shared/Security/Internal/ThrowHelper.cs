@@ -5,8 +5,8 @@ using Nalix.Common.Exceptions;
 
 namespace Nalix.Shared.Security.Internal;
 
-[System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.StackTraceHidden]
+[System.Diagnostics.DebuggerStepThrough]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static class ThrowHelper
 {

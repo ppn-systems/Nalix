@@ -8,7 +8,7 @@ using Nalix.Common.Shared.Caching;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Memory.PoolTypes;
+namespace Nalix.Shared.Memory.Internal.PoolTypes;
 
 /// <summary>
 /// Type-specific object pool implementation.

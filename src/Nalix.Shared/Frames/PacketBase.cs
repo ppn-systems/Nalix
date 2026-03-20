@@ -10,8 +10,7 @@ using Nalix.Common.Shared.Abstractions;
 using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Frames.Internal;
-using Nalix.Shared.Memory.Pooling;
-using Nalix.Shared.Registry;
+using Nalix.Shared.Memory.Objects;
 using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Frames;
@@ -109,6 +108,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
     /// <inheritdoc/>
     [SerializeIgnore]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public override System.UInt16 Length
     {
         [System.Runtime.CompilerServices.MethodImpl(
@@ -210,31 +210,19 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
                 $"Cannot deserialize {typeof(TSelf).Name} from an empty buffer.",
                 nameof(buffer));
         }
+        TSelf packet = new();
 
-        // Single pool reference — no double GetOrCreateInstance() call.
-        ObjectPoolManager pool = _pool.Value;
-        TSelf packet = pool.Get<TSelf>();
+        System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
-        try
-        {
-            System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
-
-            return bytesRead == 0
-                ? throw new System.InvalidOperationException(
-                    $"Failed to deserialize {typeof(TSelf).Name}: zero bytes were consumed. " +
-                    $"Buffer length: {buffer.Length}.")
-                : packet;
-        }
-        catch
-        {
-            // Return the leased instance to the pool before propagating any exception
-            // — prevents pool exhaustion on corrupt/malformed frames.
-            pool.Return(packet);
-            throw;
-        }
+        return bytesRead == 0
+            ? throw new System.InvalidOperationException(
+                $"Failed to deserialize {typeof(TSelf).Name}: zero bytes were consumed. " +
+                $"Buffer length: {buffer.Length}.")
+            : packet;
     }
 
     /// <inheritdoc/>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public override void ResetForPool()
     {
         MagicNumber = s_autoMagic; // Restore type identity — never reset to 0.
@@ -266,6 +254,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Returns a debug-friendly description of this packet's metadata.
     /// Not intended for production logging — allocates strings.
     /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new(128);

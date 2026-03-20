@@ -2,10 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Shared.Caching;
-using Nalix.Shared.Memory.Pooling;
 using Nalix.Shared.Memory.Pools;
 
-namespace Nalix.Shared.Memory.PoolTypes;
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+#endif
+
+namespace Nalix.Shared.Memory.Objects;
 
 /// <summary>
 /// A type-specific adapter for the object pool that eliminates the need for runtime type checking.

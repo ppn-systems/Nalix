@@ -1,13 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Shared.Memory.Buffers;
+using Nalix.Shared.Memory.Buffers;
+
+namespace Nalix.Shared.Memory.Internal.Buffers;
 
 /// <summary>
 /// Manages a pool of shared buffers with optimized memory handling.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Diagnostics.DebuggerDisplay("SIZE={_bufferSize}, Total={_totalBuffers}, Free={_freeBuffers.Count}")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class BufferPoolShared : System.IDisposable
 {
     #region Fields

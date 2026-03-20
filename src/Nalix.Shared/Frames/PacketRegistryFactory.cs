@@ -1,14 +1,14 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Frames.Controls;
 using Nalix.Shared.Frames.Text;
 
-namespace Nalix.Shared.Registry;
+namespace Nalix.Shared.Frames;
 
 /// <summary>
 /// Builds an immutable <see cref="PacketRegistry"/> by scanning packet types and
@@ -68,9 +68,9 @@ public sealed class PacketRegistryFactory
             System.StringComparer.Ordinal);
 
         BindAllPtrsMi = typeof(PacketRegistryFactory)
-            .GetMethod(nameof(BindPtrs), StaticNonPublic)
+            .GetMethod(nameof(BIND_PTRS), StaticNonPublic)
             ?? throw new System.InvalidOperationException(
-                $"Cannot locate private method '{nameof(BindPtrs)}' on {nameof(PacketRegistryFactory)}.");
+                $"Cannot locate private method '{nameof(BIND_PTRS)}' on {nameof(PacketRegistryFactory)}.");
     }
 
     /// <summary>
@@ -472,11 +472,11 @@ public sealed class PacketRegistryFactory
 
     // ── Logger helpers ────────────────────────────────────────────────────────
 
-    private static ILogger? Logger => InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    private static void INFO(System.String msg) => Logger?.Info($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
+    private static void INFO(System.String msg) => Logging?.Info($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
 
-    private static void TRACE(System.String msg) => Logger?.Trace($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
+    private static void TRACE(System.String msg) => Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
 
     #endregion Private Helpers
 
@@ -490,7 +490,8 @@ public sealed class PacketRegistryFactory
     {
         public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializePtr;
 
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [System.Runtime.CompilerServices.MethodImpl(
+            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public static IPacket InvokeDeserialize(System.ReadOnlySpan<System.Byte> raw) => DeserializePtr(raw);
     }
 
@@ -498,9 +499,9 @@ public sealed class PacketRegistryFactory
 
     #region Private: Binding Helpers
 
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>
-        BindDeserializePtr<TPacket>(System.Reflection.MethodInfo mi)
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> BIND_DESERIALIZE_PTR<TPacket>(System.Reflection.MethodInfo mi)
     {
         System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
         return (delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>)ptr;
@@ -510,13 +511,12 @@ public sealed class PacketRegistryFactory
     /// Generic trampoline invoked via reflected <see cref="BindAllPtrsMi"/>.
     /// Assigns the deserialize function pointer to <see cref="PacketFunctionTable{TPacket}"/>.
     /// </summary>
-    private static unsafe void BindPtrs<TPacket>(
+    private static unsafe void BIND_PTRS<TPacket>(
         System.Reflection.MethodInfo miDeserialize) where TPacket : IPacket
     {
-        PacketFunctionTable<TPacket>.DeserializePtr = BindDeserializePtr<TPacket>(miDeserialize);
+        PacketFunctionTable<TPacket>.DeserializePtr = BIND_DESERIALIZE_PTR<TPacket>(miDeserialize);
 
-        Logger?.Meta(
-            $"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
+        Logging?.Meta($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
     }
 
     #endregion Private: Binding Helpers

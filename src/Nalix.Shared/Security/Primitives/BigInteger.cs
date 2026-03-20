@@ -6,6 +6,7 @@ namespace Nalix.Shared.Security.Primitives;
 /// <summary>
 /// Provides extension methods for BigInteger operations with modular arithmetic.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static class BigInteger
 {
     /// <summary>

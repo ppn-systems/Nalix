@@ -3,7 +3,6 @@
 
 using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Memory.Pooling;
 
 namespace Nalix.Shared.Memory.Buffers;
 
