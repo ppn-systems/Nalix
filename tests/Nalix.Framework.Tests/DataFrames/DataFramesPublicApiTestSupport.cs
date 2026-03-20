@@ -75,13 +75,13 @@ public sealed partial class DataFramesPublicApiTests
 
     private static Handshake CreateHandshakePacket()
     {
-        Span<byte> pubKey = stackalloc byte[32]; pubKey[0] = 1; pubKey[1] = 2; pubKey[2] = 3; pubKey[3] = 4;
-        Span<byte> nonce = stackalloc byte[32]; nonce[0] = 5; nonce[1] = 6; nonce[2] = 7; nonce[3] = 8;
-        Span<byte> proof = stackalloc byte[32]; proof[0] = 9; proof[1] = 10; proof[2] = 11; proof[3] = 12;
-        Span<byte> hash = stackalloc byte[32]; hash[0] = 13; hash[1] = 14; hash[2] = 15; hash[3] = 16;
+        Span<byte> pubKeyArr = stackalloc byte[32]; pubKeyArr[0] = 1; pubKeyArr[1] = 2; pubKeyArr[2] = 3; pubKeyArr[3] = 4;
+        Span<byte> nonceArr = stackalloc byte[32]; nonceArr[0] = 5; nonceArr[1] = 6; nonceArr[2] = 7; nonceArr[3] = 8;
+        Span<byte> proofArr = stackalloc byte[32]; proofArr[0] = 9; proofArr[1] = 10; proofArr[2] = 11; proofArr[3] = 12;
+        Span<byte> hashArr = stackalloc byte[32]; hashArr[0] = 13; hashArr[1] = 14; hashArr[2] = 15; hashArr[3] = 16;
         
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, new Fixed256(pubKey), new Fixed256(nonce), new Fixed256(proof), ProtocolType.UDP);
-        packet.TranscriptHash = new Fixed256(hash);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, new Bytes32(pubKeyArr), new Bytes32(nonceArr), new Bytes32(proofArr), ProtocolType.UDP);
+        packet.TranscriptHash = new Bytes32(hashArr);
         return packet;
     }
 

@@ -128,18 +128,18 @@ public static class Keccak256
     #region Public Static API
 
     /// <summary>
-    /// Computes a Keccak-256 digest of <paramref name="data"/> and returns it as a <see cref="Fixed256"/> struct.
+    /// Computes a Keccak-256 digest of <paramref name="data"/> and returns it as a <see cref="Bytes32"/> struct.
     /// <b>Zero heap allocation.</b>
     /// </summary>
     /// <param name="data">Input bytes to hash.</param>
-    /// <returns>A <see cref="Fixed256"/> containing the Keccak-256 digest.</returns>
+    /// <returns>A <see cref="Bytes32"/> containing the Keccak-256 digest.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static Fixed256 HashDataToFixed(ReadOnlySpan<byte> data)
+    public static Bytes32 HashDataToFixed(ReadOnlySpan<byte> data)
     {
         Span<byte> hash = stackalloc byte[HashSizeBytes];
         HashData(data, hash);
-        return new Fixed256(hash);
+        return new Bytes32(hash);
     }
 
     /// <summary>

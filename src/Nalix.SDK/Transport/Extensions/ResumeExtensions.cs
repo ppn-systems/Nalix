@@ -49,7 +49,7 @@ public static class ResumeExtensions
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption.
         HmacKeccak256.Compute(session.Options.Secret, tokenBytes[..7], proofBytes);
-        request.Proof = new Fixed256(proofBytes);
+        request.Proof = new Bytes32(proofBytes);
 
         try
         {
