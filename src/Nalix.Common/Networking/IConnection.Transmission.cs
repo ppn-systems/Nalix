@@ -3,7 +3,7 @@
 
 using Nalix.Common.Networking.Packets;
 
-namespace Nalix.Common.Networking.Abstractions;
+namespace Nalix.Common.Networking;
 
 public partial interface IConnection
 {
