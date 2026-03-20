@@ -78,7 +78,7 @@ public sealed class StringFormatterTests
                 ex = e;
             }
 
-            Assert.IsType<SerializationFailureException>(ex);
+            Assert.IsAssignableFrom<SerializationFailureException>(ex);
         }
         finally
         {
@@ -102,6 +102,6 @@ public sealed class StringFormatterTests
             ex = e;
         }
 
-        Assert.IsType<SerializationFailureException>(ex);
+        Assert.IsAssignableFrom<SerializationFailureException>(ex);
     }
 }

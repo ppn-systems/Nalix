@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Framework.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
@@ -173,7 +173,7 @@ internal sealed class SlabBucket : IDisposable
             return array;
         }
 
-        throw new InvalidOperationException($"SlabBucket: failed to allocate standalone buffer of size {_segmentSize}.");
+        throw FrameworkErrors.SlabBucketAllocationFailed;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -244,7 +244,7 @@ internal sealed class SlabBucket : IDisposable
 
             for (int i = 0; i < target; i++)
             {
-                if (_freeRing.TryDequeue(out byte[]? array))
+                if (_freeRing.TryDequeue(out _))
                 {
                     removed++;
                 }

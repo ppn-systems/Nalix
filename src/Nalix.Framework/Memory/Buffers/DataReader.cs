@@ -9,6 +9,7 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
+using Nalix.Framework.Exceptions;
 
 namespace Nalix.Framework.Memory.Buffers;
 
@@ -109,8 +110,7 @@ public ref struct DataReader
         int remaining = this.BytesRemaining;
         if (sizeHint < 0 || sizeHint > remaining)
         {
-            throw new SerializationFailureException(
-                $"Not enough data: requested {sizeHint} bytes, only {remaining} bytes remaining.");
+            throw FrameworkErrors.SerializationEndOfStream;
         }
 
         return ref MemoryMarshal.GetReference(_buffer[_pos..]);
@@ -129,8 +129,7 @@ public ref struct DataReader
         int remaining = this.BytesRemaining;
         if (count > remaining)
         {
-            throw new SerializationFailureException(
-                $"Cannot advance {count} bytes, only {remaining} bytes remaining.");
+            throw FrameworkErrors.SerializationEndOfStream;
         }
 
         _pos += count;

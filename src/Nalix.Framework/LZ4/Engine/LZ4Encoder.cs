@@ -5,6 +5,7 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Nalix.Framework.Exceptions;
 using Nalix.Framework.LZ4.Encoders;
 using Nalix.Framework.Memory.Internal;
 
@@ -62,8 +63,7 @@ internal static class LZ4Encoder
 
                 if (compressedDataLength < 0)
                 {
-                    throw new InvalidOperationException(
-                        $"LZ4 compression failed because the destination buffer is too small. Input length: {input.Length}, Output length: {output.Length}.");
+                    throw FrameworkErrors.LZ4EncoderOutputBufferTooSmall;
                 }
 
                 int totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
@@ -76,8 +76,7 @@ internal static class LZ4Encoder
 
                 if (totalCompressedLength > output.Length)
                 {
-                    throw new InvalidOperationException(
-                        $"Compressed data ({totalCompressedLength} bytes) exceeds output buffer ({output.Length} bytes)");
+                    throw FrameworkErrors.LZ4EncoderOutputBufferTooSmall;
                 }
 
                 WriteHeader(output, input.Length, totalCompressedLength);

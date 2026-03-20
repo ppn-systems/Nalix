@@ -15,7 +15,7 @@ public sealed class LiteSerializerGuardTests
         byte[] empty = [];
         int dummy = default;
 
-        _ = Assert.Throws<SerializationFailureException>(() => LiteSerializer.Deserialize(empty, ref dummy));
+        _ = Assert.ThrowsAny<SerializationFailureException>(() => LiteSerializer.Deserialize(empty, ref dummy));
     }
 
     [Fact]

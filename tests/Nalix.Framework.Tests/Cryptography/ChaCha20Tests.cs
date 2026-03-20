@@ -50,7 +50,7 @@ public sealed class ChaCha20Tests
         byte[] invalidKey = new byte[ChaCha20.KeySize - 1];
         byte[] nonce = new byte[ChaCha20.NonceSize];
 
-        _ = Assert.Throws<CipherException>(() => new ChaCha20(invalidKey, nonce, 0u));
+        _ = Assert.ThrowsAny<CipherException>(() => new ChaCha20(invalidKey, nonce, 0u));
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed class ChaCha20Tests
         byte[] key = new byte[ChaCha20.KeySize];
         byte[] invalidNonce = new byte[ChaCha20.NonceSize - 1];
 
-        _ = Assert.Throws<CipherException>(() => new ChaCha20(key, invalidNonce, 0u));
+        _ = Assert.ThrowsAny<CipherException>(() => new ChaCha20(key, invalidNonce, 0u));
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class ChaCha20Tests
 
         ChaCha20 cipher = new(key, nonce, 0u);
 
-        _ = Assert.Throws<CipherException>(() => cipher.Encrypt(plaintext, destination));
+        _ = Assert.ThrowsAny<CipherException>(() => cipher.Encrypt(plaintext, destination));
 
         cipher.Clear();
     }
@@ -103,6 +103,6 @@ public sealed class ChaCha20Tests
 
         ChaCha20 cipher = new(key, nonce, uint.MaxValue);
 
-        _ = Assert.Throws<CipherException>(() => cipher.GenerateKeyBlock(block));
+        _ = Assert.ThrowsAny<CipherException>(() => cipher.GenerateKeyBlock(block));
     }
 }

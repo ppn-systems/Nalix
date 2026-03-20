@@ -36,12 +36,8 @@ public static partial class Directories
     /// <param name="perms">
     /// The Unix permission profile to apply when possible.
     /// </param>
-    [EditorBrowsable(
-        EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string ENSURE_AND_HARDEN(
-        [DisallowNull] string path,
-        UnixDirPerms perms = UnixDirPerms.Default755)
+    private static string ENSURE_AND_HARDEN([DisallowNull] string path, UnixDirPerms perms = UnixDirPerms.Default755)
     {
         ENSURE_DIRECTORY_EXISTS(path);
         HARDEN_PERMISSIONS(path, perms);
@@ -62,12 +58,7 @@ public static partial class Directories
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="IOException"></exception>
-    [EditorBrowsable(
-        EditorBrowsableState.Never)]
-    private static void ENSURE_DIRECTORY_EXISTS(
-        [DisallowNull] string path,
-        [CallerMemberName] string callerMemberName = "",
-        [CallerLineNumber] int callerLineNumber = 0)
+    private static void ENSURE_DIRECTORY_EXISTS([DisallowNull] string path, [CallerMemberName] string callerMemberName = "", [CallerLineNumber] int callerLineNumber = 0)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -120,10 +111,7 @@ public static partial class Directories
     /// <param name="perms">
     /// The Unix permission profile to apply when possible.
     /// </param>
-    [EditorBrowsable(
-        EditorBrowsableState.Never)]
-    private static void HARDEN_PERMISSIONS(
-        [DisallowNull] string path, UnixDirPerms perms)
+    private static void HARDEN_PERMISSIONS(string path, UnixDirPerms perms)
     {
         try
         {
@@ -207,10 +195,7 @@ public static partial class Directories
     /// <param name="path">
     /// The path that was created and will be passed to registered handlers.
     /// </param>
-    [EditorBrowsable(
-        EditorBrowsableState.Never)]
-    private static void RAISE_DIRECTORY_CREATED(
-        [DisallowNull] string path)
+    private static void RAISE_DIRECTORY_CREATED([DisallowNull] string path)
     {
         Action<string>? handlers = DirectoryCreated;
         if (handlers == null)
@@ -230,6 +215,68 @@ public static partial class Directories
     }
 
     /// <summary>
+    /// Checks if the current process has write access to the specified directory.
+    /// </summary>
+    private static bool HAS_WRITE_ACCESS(string path)
+    {
+        if (!Directory.Exists(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                // On Windows, we check the Access Control List (ACL)
+                DirectoryInfo di = new(path);
+                if (di.Attributes.HasFlag(FileAttributes.ReadOnly))
+                {
+                    return false;
+                }
+
+                DirectorySecurity ds = di.GetAccessControl();
+                AuthorizationRuleCollection rules = ds.GetAccessRules(true, true, typeof(SecurityIdentifier));
+                WindowsIdentity currentIdentity = WindowsIdentity.GetCurrent();
+
+                bool hasWrite = false;
+                foreach (FileSystemAccessRule rule in rules)
+                {
+                    if (currentIdentity.User?.Equals(rule.IdentityReference) == true ||
+                        (currentIdentity.Groups != null && currentIdentity.Groups.Contains(rule.IdentityReference)))
+                    {
+                        if (rule.AccessControlType == AccessControlType.Deny)
+                        {
+                            if ((rule.FileSystemRights & (FileSystemRights.Write | FileSystemRights.CreateFiles)) != 0)
+                            {
+                                return false; // Explicit Deny
+                            }
+                        }
+                        else if (rule.AccessControlType == AccessControlType.Allow)
+                        {
+                            if ((rule.FileSystemRights & (FileSystemRights.Write | FileSystemRights.CreateFiles)) != 0)
+                            {
+                                hasWrite = true;
+                            }
+                        }
+                    }
+                }
+                return hasWrite;
+            }
+            else
+            {
+                // On Unix-like systems, we use the libc access() syscall (W_OK = 2)
+                // This is the most reliable way as it respects UID, GID, and Read-Only mounts.
+                return ACCESS(path, 2) == 0;
+            }
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Combines and normalizes a child path under a base directory,
     /// preventing directory traversal outside of the base directory.
     /// </summary>
@@ -243,9 +290,7 @@ public static partial class Directories
     [EditorBrowsable(
         EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string COMBINE_SAFE(
-        [DisallowNull] string baseDir,
-        [DisallowNull] string name)
+    private static string COMBINE_SAFE([DisallowNull] string baseDir, [DisallowNull] string name)
     {
         string full = Path.GetFullPath(Path.Join(baseDir, name));
         string baseFull = Path.GetFullPath(baseDir);
@@ -269,8 +314,7 @@ public static partial class Directories
     [EditorBrowsable(
         EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool SET_UNIX_FILE_MODE_COMPAT(
-        [DisallowNull] string path, UnixFileMode mode)
+    private static bool SET_UNIX_FILE_MODE_COMPAT([DisallowNull] string path, UnixFileMode mode)
     {
         try
         {
@@ -308,8 +352,6 @@ public static partial class Directories
         return false;
     }
 
-    [EditorBrowsable(
-        EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint TO_NATIVE_CHMOD_MODE(UnixFileMode mode)
     {
@@ -392,8 +434,6 @@ public static partial class Directories
     /// The native mode bits to apply.
     /// </param>
     [SkipLocalsInit]
-    [EditorBrowsable(
-        EditorBrowsableState.Never)]
     private static unsafe int CHMOD([DisallowNull] string pathname, uint mode)
     {
         byte* __pathname_native = default;
@@ -422,5 +462,34 @@ public static partial class Directories
 
         [DllImport("libc", EntryPoint = "chmod", ExactSpelling = true)]
         static extern int __PInvoke(byte* __pathname_native, uint __mode_native);
+    }
+
+    /// <summary>
+    /// P/Invoke libc access (W_OK = 2)
+    /// </summary>
+    [SkipLocalsInit]
+    private static unsafe int ACCESS([DisallowNull] string pathname, int mode)
+    {
+        byte* __pathname_native = default;
+        int __retVal = 0;
+        Utf8StringMarshaller.ManagedToUnmanagedIn __pathname_native__marshaller = default;
+
+        try
+        {
+            Span<byte> buffer = stackalloc byte[Utf8StringMarshaller.ManagedToUnmanagedIn.BufferSize];
+#pragma warning disable CS9080
+            __pathname_native__marshaller.FromManaged(pathname, buffer);
+#pragma warning restore CS9080
+            __pathname_native = __pathname_native__marshaller.ToUnmanaged();
+            __retVal = __PInvoke(__pathname_native, mode);
+        }
+        finally
+        {
+            __pathname_native__marshaller.Free();
+        }
+        return __retVal;
+
+        [DllImport("libc", EntryPoint = "access", ExactSpelling = true)]
+        static extern int __PInvoke(byte* __pathname_native, int __mode_native);
     }
 }

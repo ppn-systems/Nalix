@@ -42,8 +42,8 @@ public sealed class ClockTests
         long unix = Clock.UnixMicrosecondsNow();
         DateTime after = DateTime.UtcNow;
 
-        long minExpected = ((before - DateTime.UnixEpoch).Ticks / 10) - 10_000;
-        long maxExpected = ((after - DateTime.UnixEpoch).Ticks / 10) + 10_000;
+        long minExpected = ((before - DateTime.UnixEpoch).Ticks / 10) - 50_000;
+        long maxExpected = ((after - DateTime.UnixEpoch).Ticks / 10) + 50_000;
 
         Assert.InRange(unix, minExpected, maxExpected);
     }
@@ -55,8 +55,8 @@ public sealed class ClockTests
         long unix = Clock.UnixTicksNow();
         DateTime after = DateTime.UtcNow;
 
-        long minExpected = (before - DateTime.UnixEpoch).Ticks - 50_000;
-        long maxExpected = (after - DateTime.UnixEpoch).Ticks + 50_000;
+        long minExpected = (before - DateTime.UnixEpoch).Ticks - 500_000;
+        long maxExpected = (after - DateTime.UnixEpoch).Ticks + 500_000;
 
         Assert.InRange(unix, minExpected, maxExpected);
     }

@@ -11,6 +11,7 @@ using Nalix.Framework.LZ4.Encoders;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Internal;
 using Nalix.Framework.Security.Primitives;
+using Nalix.Framework.Exceptions;
 
 namespace Nalix.Framework.LZ4.Engine;
 
@@ -92,34 +93,29 @@ internal static class LZ4Decoder
     {
         if (input.Length < LZ4BlockHeader.Size)
         {
-            throw new InvalidDataException(
-                $"LZ4 input is too short to contain a valid header. Length: {input.Length}.");
+            throw FrameworkErrors.LZ4InvalidHeader;
         }
 
         header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
 
         if (header.OriginalLength < 0)
         {
-            throw new InvalidDataException(
-                $"LZ4 header contains a negative original length: {header.OriginalLength}.");
+            throw FrameworkErrors.LZ4InvalidHeader;
         }
 
         if (header.CompressedLength < LZ4BlockHeader.Size)
         {
-            throw new InvalidDataException(
-                $"LZ4 header contains an invalid compressed length: {header.CompressedLength}.");
+            throw FrameworkErrors.LZ4InvalidHeader;
         }
 
         if (header.CompressedLength != input.Length)
         {
-            throw new InvalidDataException(
-                $"LZ4 header compressed length mismatch. Header: {header.CompressedLength}, Actual: {input.Length}.");
+            throw FrameworkErrors.LZ4InvalidHeader;
         }
 
         if (header.OriginalLength > LZ4CompressionConstants.MaxBlockSize)
         {
-            throw new InvalidDataException(
-                $"LZ4 header original length exceeds the maximum supported block size. Length: {header.OriginalLength}, Max: {LZ4CompressionConstants.MaxBlockSize}.");
+            throw FrameworkErrors.LZ4InvalidHeader;
         }
     }
 
@@ -129,9 +125,7 @@ internal static class LZ4Decoder
     {
         if (header.OriginalLength > output.Length)
         {
-            throw new ArgumentException(
-                $"Output buffer is too small for the decompressed payload. Required: {header.OriginalLength}, Available: {output.Length}.",
-                nameof(output));
+            throw FrameworkErrors.LZ4OutputBufferTooSmall;
         }
 
         if (header.OriginalLength == 0)
@@ -160,7 +154,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            throw new InvalidDataException("LZ4 payload contains an invalid literal length encoding.");
+                            throw FrameworkErrors.LZ4CorruptPayload;
                         }
 
                         literalLength += extraLength;
@@ -171,7 +165,7 @@ internal static class LZ4Decoder
                         if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            throw new InvalidDataException("LZ4 payload overruns the input or output buffer while copying literals.");
+                            throw FrameworkErrors.LZ4CorruptPayload;
                         }
 
                         MemOps.Copy(inputPtr, outputPtr, literalLength);
@@ -187,7 +181,7 @@ internal static class LZ4Decoder
                     if (inputPtr + sizeof(ushort) > inputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        throw new InvalidDataException("LZ4 payload ended before a full match offset could be read.");
+                        throw FrameworkErrors.LZ4CorruptPayload;
                     }
 
                     int offset = MemOps.ReadUnaligned<ushort>(inputPtr);
@@ -195,7 +189,7 @@ internal static class LZ4Decoder
                     if (offset == 0 || offset > (outputPtr - outputBase))
                     {
                         MemorySecurity.ZeroMemory(output);
-                        throw new InvalidDataException("LZ4 payload contains an invalid back-reference offset.");
+                        throw FrameworkErrors.LZ4CorruptPayload;
                     }
 
                     int matchLength = token & LZ4CompressionConstants.TokenMatchMask;
@@ -205,7 +199,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            throw new InvalidDataException("LZ4 payload contains an invalid match length encoding.");
+                            throw FrameworkErrors.LZ4CorruptPayload;
                         }
 
                         matchLength += extraLength;
@@ -216,7 +210,7 @@ internal static class LZ4Decoder
                     if (outputPtr + matchLength > outputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        throw new InvalidDataException("LZ4 payload overruns the output buffer while expanding a match.");
+                        throw FrameworkErrors.LZ4CorruptPayload;
                     }
 
                     MemOps.Copy(matchSourcePtr, outputPtr, matchLength);
@@ -226,7 +220,7 @@ internal static class LZ4Decoder
                 if (outputPtr != outputEnd || inputPtr != inputEnd)
                 {
                     MemorySecurity.ZeroMemory(output);
-                    throw new InvalidDataException("LZ4 payload did not decode to the exact number of bytes declared in the header.");
+                    throw FrameworkErrors.LZ4CorruptPayload;
                 }
 
                 return header.OriginalLength;
