@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
@@ -9,7 +9,7 @@ using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Objects;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]

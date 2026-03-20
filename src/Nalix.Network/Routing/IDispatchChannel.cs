@@ -5,7 +5,7 @@ using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Shared.Caching;
 
-namespace Nalix.Network.Abstractions;
+namespace Nalix.Network.Routing;
 
 /// <summary>
 /// Defines the contract for a dispatch channel that manages the queuing, retrieval,

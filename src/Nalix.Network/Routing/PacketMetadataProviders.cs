@@ -1,9 +1,7 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Network.Abstractions;
-
-namespace Nalix.Network.Routing.Metadata;
+namespace Nalix.Network.Routing;
 
 /// <summary>
 /// Provides a global registry of <see cref="IPacketMetadataProvider"/> instances

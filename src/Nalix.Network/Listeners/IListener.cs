@@ -4,7 +4,7 @@
 using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Time;
 
-namespace Nalix.Network.Abstractions;
+namespace Nalix.Network.Listeners;
 
 /// <summary>
 /// Interface for network listener classes.

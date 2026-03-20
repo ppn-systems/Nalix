@@ -6,6 +6,7 @@ using Nalix.Common.Networking.Packets.Abstractions;
 namespace Nalix.Network.Routing.Results.Void;
 
 /// <inheritdoc/>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class VoidReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>

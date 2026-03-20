@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Concurrency;
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity.Enums;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Shared.Abstractions;
@@ -14,7 +14,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Timekeeping;
 

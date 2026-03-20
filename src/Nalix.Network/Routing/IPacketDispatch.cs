@@ -6,7 +6,7 @@ using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Shared.Abstractions;
 using Nalix.Common.Shared.Caching;
 
-namespace Nalix.Network.Abstractions;
+namespace Nalix.Network.Routing;
 
 /// <summary>
 /// Defines a dispatcher interface for handling incoming network packets.

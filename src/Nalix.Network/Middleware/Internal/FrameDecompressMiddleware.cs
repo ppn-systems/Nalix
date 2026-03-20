@@ -5,7 +5,6 @@ using Nalix.Common.Middleware.Attributes;
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Packets.Enums;
 using Nalix.Common.Shared.Caching;
-using Nalix.Network.Abstractions;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Frames;
 using Nalix.Shared.Memory.Buffers;

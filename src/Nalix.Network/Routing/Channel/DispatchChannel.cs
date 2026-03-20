@@ -8,7 +8,6 @@ using Nalix.Common.Security.Enums;
 using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
-using Nalix.Network.Abstractions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
 using Nalix.Shared.Extensions;
@@ -24,6 +23,7 @@ namespace Nalix.Network.Routing.Channel;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("TotalPackets={TotalPackets}")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where TPacket : IPacket
 {
     #region Nested types

@@ -4,7 +4,7 @@
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Shared.Abstractions;
 
-namespace Nalix.Network.Abstractions;
+namespace Nalix.Network.Protocols;
 
 /// <summary>
 /// Interface representing a network protocol.

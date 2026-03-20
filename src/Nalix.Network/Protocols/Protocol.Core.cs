@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Network.Abstractions;
 
 namespace Nalix.Network.Protocols;
 

@@ -22,6 +22,7 @@ namespace Nalix.Network.Routing.Results;
 /// <typeparam name="TPacket">
 /// The packet type used for handling communication. Must implement IPacket.
 /// </typeparam>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 {
     private static readonly System.Collections.Frozen.FrozenDictionary<System.Type, IReturnHandler<TPacket>> _handlers;

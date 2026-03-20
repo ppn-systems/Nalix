@@ -9,7 +9,7 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Network.Routing.Metadata;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Routing;
 

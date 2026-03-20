@@ -4,7 +4,7 @@
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Shared.Caching;
 
-namespace Nalix.Network.Abstractions;
+namespace Nalix.Network.Middleware;
 
 /// <summary>
 /// Represents a middleware component in the network buffer processing pipeline.

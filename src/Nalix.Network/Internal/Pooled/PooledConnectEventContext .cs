@@ -4,7 +4,7 @@
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Internal.Pooled;
 

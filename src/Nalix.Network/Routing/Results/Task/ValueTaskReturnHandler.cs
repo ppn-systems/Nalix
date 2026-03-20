@@ -6,6 +6,7 @@ using Nalix.Common.Networking.Packets.Abstractions;
 namespace Nalix.Network.Routing.Results.Task;
 
 /// <inheritdoc/>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class ValueTaskReturnHandler<TPacket, TResult>(IReturnHandler<TPacket> innerHandler) : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>

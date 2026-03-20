@@ -1,13 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Routing.Results.Memory;
 
 /// <inheritdoc/>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>

@@ -3,7 +3,8 @@
 
 using Nalix.Common.Shared.Caching;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Objects;
+
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]

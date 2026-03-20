@@ -4,11 +4,11 @@
 using Nalix.Common.Networking.Abstractions;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Shared.Caching;
-using Nalix.Network.Abstractions;
 
 namespace Nalix.Network.Routing.Channel;
 
 /// <inheritdoc/>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TPacket : IPacket
 {
     #region Fields

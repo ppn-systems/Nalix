@@ -1,11 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Frames.Text;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Routing.Results.Primitives;
 
@@ -18,6 +18,7 @@ namespace Nalix.Network.Routing.Results.Primitives;
 /// - Splits on Unicode rune boundaries (no broken multi-byte characters).
 /// - Works with any registered packet types (e.g., TEXT256, TEXT512, TEXT1024).
 /// </remarks>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>

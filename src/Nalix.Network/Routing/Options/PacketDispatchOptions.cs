@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Network.Middleware;
 using Nalix.Network.Middleware.Internal;
@@ -26,6 +26,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Network buffer middleware pipeline for processing raw byte buffers before packet transformation.
     /// </summary>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public readonly NetworkBufferMiddlewarePipeline NetworkPipeline;
 
     /// <summary>
@@ -60,6 +61,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// Gets the logger instance used for logging within the packet dispatch options.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.AllowNull]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public ILogger Logging { get; private set; }
 
     #endregion Properties
