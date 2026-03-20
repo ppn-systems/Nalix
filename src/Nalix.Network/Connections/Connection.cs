@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Identity.Abstractions;
-using Nalix.Common.Identity.Enums;
+using Nalix.Common.Identity;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Security.Enums;
+using Nalix.Common.Security;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;

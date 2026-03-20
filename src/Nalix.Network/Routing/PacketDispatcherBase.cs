@@ -3,7 +3,7 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Networking.Packets.Abstractions;
+using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing.Options;
 
 namespace Nalix.Network.Routing;

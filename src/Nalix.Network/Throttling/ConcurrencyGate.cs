@@ -3,8 +3,8 @@
 
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets.Attributes;
-using Nalix.Common.Shared.Abstractions;
+using Nalix.Common.Networking.Packets;
+using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;

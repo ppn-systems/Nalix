@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Shared.Caching;
+using Nalix.Common.Shared;
 
 namespace Nalix.Network.Middleware;
 

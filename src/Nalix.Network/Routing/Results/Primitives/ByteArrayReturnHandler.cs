@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Networking.Packets.Abstractions;
+using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Routing.Results.Primitives;

@@ -1,9 +1,9 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Middleware.Attributes;
+using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Shared.Caching;
+using Nalix.Common.Shared;
 
 namespace Nalix.Network.Middleware;
 
