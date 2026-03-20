@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Networking.Packets.Abstractions;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Transport;
-using Nalix.Common.Shared.Caching;
+using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Transport.Extensions;
 using Nalix.Shared.Extensions;
