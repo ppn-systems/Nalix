@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Transport;
-using Nalix.Common.Security.Enums;
-using Nalix.Common.Shared.Attributes;
+using Nalix.Common.Security;
+using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
 using System.ComponentModel.DataAnnotations;
 
