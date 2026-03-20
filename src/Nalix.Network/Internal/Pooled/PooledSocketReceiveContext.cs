@@ -48,6 +48,7 @@ namespace Nalix.Network.Internal.Pooled;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class PooledSocketReceiveContext : IPoolable
 {
     // -------------------------------------------------------------------------
