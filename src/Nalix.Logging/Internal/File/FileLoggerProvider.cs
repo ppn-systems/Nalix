@@ -2,8 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Concurrency;
-using Nalix.Common.Diagnostics.Abstractions;
-using Nalix.Common.Diagnostics.Models;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Environment;
 using Nalix.Common.Shared.Abstractions;
 using Nalix.Framework.Configuration;

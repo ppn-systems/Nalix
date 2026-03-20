@@ -1,8 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Enums;
-using Nalix.Common.Diagnostics.Models;
+using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Sinks;
@@ -14,6 +13,7 @@ namespace Nalix.Logging.Engine;
 /// </summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public abstract class NLogixEngine : System.IDisposable
 {
     #region Fields
