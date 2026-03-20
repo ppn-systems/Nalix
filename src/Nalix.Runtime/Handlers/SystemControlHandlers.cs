@@ -76,16 +76,38 @@ public sealed class SystemControlHandlers
 
     private static async ValueTask HandleCipherUpdate(IConnection connection, Control packet)
     {
-        // HACK: Payload Overloading.
-        // Since we reused the 'Control' packet to avoid defining a new packet structure,
-        // we explicitly crammed the 1-byte CipherSuiteType enum into the 2-byte ProtocolReason field.
-        // Here we safely extract it back into the proper CipherSuiteType.
-        connection.Algorithm = (CipherSuiteType)(byte)packet.Reason;
+        // SEC-40: Validate the enum value to prevent protocol DoS via invalid algorithm state.
+        byte rawValue = (byte)packet.Reason;
+        if (!Enum.IsDefined(typeof(CipherSuiteType), (CipherSuiteType)rawValue))
+        {
+            return;
+        }
+
+        CipherSuiteType requestedSuite = (CipherSuiteType)rawValue;
+
+        // SEC-74: Prevent pre-auth crypto policy tampering.
+        // Cipher updates are only permitted for established, authenticated sessions.
+        if (connection.Secret is null || connection.Secret.Length == 0)
+        {
+            return;
+        }
+
+        // SEC-39: Additional validation for established sessions.
+        if (connection.Algorithm != requestedSuite)
+        {
+            // In the current version, algorithm changes after handshake are not supported
+            // to prevent tampering with the established crypto context.
+            return;
+        }
+
+        connection.Algorithm = requestedSuite;
 
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control ack = lease.Value;
         ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Reason, packet.Protocol);
-        await connection.TCP.SendAsync(ack).ConfigureAwait(false);
+        
+        Nalix.Common.Networking.IConnection.ITransport transport = packet.Protocol == ProtocolType.UDP ? connection.UDP : connection.TCP;
+        await transport.SendAsync(ack).ConfigureAwait(false);
     }
 
     private static async ValueTask HandlePing(IConnection connection, Control ping)
@@ -93,7 +115,9 @@ public sealed class SystemControlHandlers
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control pong = lease.Value;
         pong.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PONG, ping.SequenceId, ProtocolReason.NONE, ping.Protocol);
-        await connection.TCP.SendAsync(pong).ConfigureAwait(false);
+        
+        Nalix.Common.Networking.IConnection.ITransport transport = ping.Protocol == ProtocolType.UDP ? connection.UDP : connection.TCP;
+        await transport.SendAsync(pong).ConfigureAwait(false);
     }
 
     private static async ValueTask HandleTimeSyncRequest(IConnection connection, Control req)
@@ -101,7 +125,9 @@ public sealed class SystemControlHandlers
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control res = lease.Value;
         res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, ProtocolReason.NONE, req.Protocol);
-        await connection.TCP.SendAsync(res).ConfigureAwait(false);
+        
+        Nalix.Common.Networking.IConnection.ITransport transport = req.Protocol == ProtocolType.UDP ? connection.UDP : connection.TCP;
+        await transport.SendAsync(res).ConfigureAwait(false);
     }
 
     private static void HandleDisconnect(IConnection connection, Control _)

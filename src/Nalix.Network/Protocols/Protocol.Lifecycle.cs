@@ -78,7 +78,7 @@ public abstract partial class Protocol
 
     #region Helpers
 
-    private bool TryHandleProcessError(Exception ex)
+    private bool TryHandleProcessError(IConnectEventArgs args, Exception ex)
     {
         if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException)
         {
@@ -86,8 +86,8 @@ public abstract partial class Protocol
             return true;
         }
 
-        s_logger?.Error(ex, $"[NW.{nameof(Protocol)}:{nameof(ProcessMessage)}] Unhandled exception during message processing.");
-        return true;
+        args.Connection.ThrottledError(s_logger, "protocol.process_error", $"[NW.{nameof(Protocol)}:{nameof(ProcessMessage)}] Unhandled exception during message processing.", ex);
+        return false;
     }
 
     private void ProcessDecrypt(IConnectEventArgs args)
@@ -126,7 +126,7 @@ public abstract partial class Protocol
 
         try
         {
-            dest = PacketCipher.DecryptFrame(lease, secret);
+            dest = PacketCipher.DecryptFrame(lease, secret, args.Connection.Algorithm);
 
             IBufferLease? old = replaceable.ExchangeLease(dest);
             old?.Dispose();

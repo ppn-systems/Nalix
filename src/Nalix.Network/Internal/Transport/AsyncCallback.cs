@@ -171,7 +171,7 @@ internal static class AsyncCallback
             // Drop the callback before queuing work so one overloaded server path
             // cannot keep piling up work items and consuming the entire normal lane.
             Interlocked.Increment(ref s_droppedCallbacks);
-            s_logger?.Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={args.NetworkEndpoint}");
+            args.Connection.ThrottledError(s_logger, "async.global_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={args.NetworkEndpoint}");
             return false;
         }
 
@@ -186,7 +186,7 @@ internal static class AsyncCallback
                 // monopolize the queue even if there is still global headroom.
                 RELEASE_GLOBAL_SLOT();
                 Interlocked.Increment(ref s_droppedCallbacks);
-                s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={args.NetworkEndpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
+                args.Connection.ThrottledWarn(s_logger, "async.per_ip_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={args.NetworkEndpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
                 return false;
             }
         }
@@ -195,7 +195,7 @@ internal static class AsyncCallback
         int warnThreshold = s_opts.CallbackWarningThreshold;
         if (warnThreshold > 0 && globalPending >= warnThreshold && globalPending % 1_000 == 0)
         {
-            s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
+            args.Connection.ThrottledWarn(s_logger, "async.high_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
         }
 
         Interlocked.Increment(ref s_totalInvoked);
@@ -277,7 +277,7 @@ internal static class AsyncCallback
             }
 
             _ = Interlocked.Increment(ref s_droppedCallbacks);
-            s_logger?.Error($"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={args.NetworkEndpoint}");
+            args.Connection.ThrottledError(s_logger, "async.queue_failed", $"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={args.NetworkEndpoint}");
 
             wrapper.Dispose();
 
@@ -376,7 +376,7 @@ internal static class AsyncCallback
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
+            w.Args.Connection.ThrottledError(s_logger, "async.callback_error", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
         }
         finally
         {

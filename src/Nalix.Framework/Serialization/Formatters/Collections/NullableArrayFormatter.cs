@@ -74,6 +74,12 @@ internal sealed class NullableArrayFormatter<
             return [];
         }
 
+        if (length < 0 || length > SerializerBounds.MaxArray)
+        {
+            throw new Common.Exceptions.SerializationFailureException(
+                $"Nullable array length out of range: {length}. Max allowed is {SerializerBounds.MaxArray}.");
+        }
+
         T?[] array = new T?[length];
 
         for (int i = 0; i < length; i++)

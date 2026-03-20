@@ -19,13 +19,15 @@ internal static class PacketFrameTransforms
     /// <summary>
     /// Applies inbound transforms in transport order: decrypt first, then decompress.
     /// </summary>
-    public static void TransformInbound(ref IBufferLease current, ReadOnlySpan<byte> secret)
+    /// <param name="current">The current frame lease that will be replaced when a transform produces a new lease.</param>
+    /// <param name="options">The transport options that provide cipher and compression settings.</param>
+    public static void TransformInbound(ref IBufferLease current, TransportOptions options)
     {
         PacketFlags flags = current.Span.ReadFlagsLE();
 
         if (flags.HasFlag(PacketFlags.ENCRYPTED))
         {
-            IBufferLease next = PacketCipher.DecryptFrame(current, secret);
+            IBufferLease next = PacketCipher.DecryptFrame(current, options.Secret, options.Algorithm);
             current.Dispose();
             current = next;
             flags = current.Span.ReadFlagsLE();
@@ -42,6 +44,9 @@ internal static class PacketFrameTransforms
     /// <summary>
     /// Applies outbound transforms in transport order: compress first, then encrypt.
     /// </summary>
+    /// <param name="current">The current frame lease that will be replaced when a transform produces a new lease.</param>
+    /// <param name="options">The transport options that provide cipher and compression settings.</param>
+    /// <param name="encrypt">An optional override for encryption. When <see langword="null"/>, <see cref="TransportOptions.EncryptionEnabled"/> is used.</param>
     public static void TransformOutbound(ref IBufferLease current, TransportOptions options, bool? encrypt = null)
     {
         bool doEncrypt = encrypt ?? options.EncryptionEnabled;

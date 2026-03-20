@@ -31,6 +31,7 @@ public class UdpSession : TransportSession
     private IPEndPoint? _remoteEndPoint;
     private Snowflake? _sessionToken;
     private CancellationTokenSource? _loopCts;
+    private System.Threading.Channels.Channel<Func<Task>>? _asyncQueue;
     private int _disposed;
 
     #endregion Fields
@@ -58,6 +59,9 @@ public class UdpSession : TransportSession
 
     /// <inheritdoc/>
     public override bool IsConnected => _socket != null && Volatile.Read(ref _disposed) == 0;
+
+    /// <summary>Occurs when a complete frame is received and decoded asynchronously.</summary>
+    public event Func<ReadOnlyMemory<byte>, Task>? OnMessageAsync;
 
     #endregion Properties
 
@@ -120,16 +124,31 @@ public class UdpSession : TransportSession
             _socket = new Socket(_remoteEndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
             _sessionToken = this.Options.SessionToken.IsEmpty ? null : this.Options.SessionToken;
 
-            // "Connect" the UDP socket to the remote endpoint so we can use Send/Receive instead of SendTo/ReceiveFrom
-            await _socket.ConnectAsync(_remoteEndPoint, ct).ConfigureAwait(false);
+            // BUG-62: Apply ConnectTimeoutMillis from options
+            using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            connectCts.CancelAfter(TimeSpan.FromMilliseconds(this.Options.ConnectTimeoutMillis));
+
+            // "Connect" the UDP socket to the remote endpoint
+            await _socket.ConnectAsync(_remoteEndPoint, connectCts.Token).ConfigureAwait(false);
+
+            // SEC-59: Use a bounded channel for async handlers to prevent memory exhaustion
+            _asyncQueue = System.Threading.Channels.Channel.CreateBounded<Func<Task>>(
+                new System.Threading.Channels.BoundedChannelOptions(this.Options.AsyncQueueCapacity)
+                {
+                    SingleReader = true,
+                    SingleWriter = true,
+                    FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait
+                });
+
+            // Start background workers
+            _loopCts = new CancellationTokenSource();
+            _ = Task.Run(() => this.ProcessAsyncQueueAsync(_loopCts.Token), ct);
 
             _socket.SendBufferSize = this.Options.BufferSize;
             _socket.ReceiveBufferSize = this.Options.BufferSize;
 
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
-            // Start background worker for reading datagrams
-            _loopCts = new CancellationTokenSource();
             _ = Task.Factory.StartNew(() => this.ReceiveLoopAsync(_loopCts.Token),
                 _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
@@ -150,16 +169,40 @@ public class UdpSession : TransportSession
             return Task.CompletedTask;
         }
 
-        _loopCts?.Cancel();
-        _loopCts?.Dispose();
-        _loopCts = null;
+        return this.DisconnectInternalAsync();
+    }
 
-        if (_socket != null)
+    private Task DisconnectInternalAsync()
+    {
+
+        // BUG-27 fix: Cancel CTS first, then dispose socket, then dispose CTS.
+        // Order matters: the receive loop checks CancellationToken before socket ops,
+        // so cancelling first lets it exit cleanly before we dispose the socket.
+        CancellationTokenSource? cts = Interlocked.Exchange(ref _loopCts, null);
+        if (cts is not null)
         {
-            _socket.Dispose();
-            _socket = null;
+            try { cts.Cancel(); }
+            catch (ObjectDisposedException) { }
+        }
+
+        Socket? socket = Interlocked.Exchange(ref _socket, null);
+        if (socket != null)
+        {
+            try { socket.Dispose(); }
+            catch (ObjectDisposedException) { }
+
             this.OnDisconnected?.Invoke(this, new NetworkException("The UDP session was disconnected."));
         }
+
+        // Dispose CTS last — after the socket is gone and the loop is dead.
+        if (cts is not null)
+        {
+            try { cts.Dispose(); }
+            catch (ObjectDisposedException) { }
+        }
+
+        _ = (_asyncQueue?.Writer.TryComplete());
+        _asyncQueue = null;
 
         return Task.CompletedTask;
     }
@@ -257,7 +300,7 @@ public class UdpSession : TransportSession
     {
         if (_socket == null)
         {
-            return;
+            throw new NetworkException("Cannot send UDP data: the session is not connected.");
         }
 
         try
@@ -270,6 +313,7 @@ public class UdpSession : TransportSession
         {
             this.OnError?.Invoke(this, ex);
             _ = this.DisconnectAsync();
+            throw;
         }
     }
 
@@ -313,19 +357,64 @@ public class UdpSession : TransportSession
                 continue;
             }
 
-            // Receive raw datagram — for UDP, we receive the packet directly [Flags + Payload]
-            // (Server-to-Client UDP does not include the 7-byte token)
-            IBufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
-
             try
             {
-                // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
-                this.TransformInbound(ref datagram);
-                this.OnMessageReceived?.Invoke(this, datagram);
+                // Receive raw datagram — for UDP, we receive the packet directly [Flags + Payload]
+                // (Server-to-Client UDP does not include the 7-byte token)
+                IBufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
+
+                try
+                {
+                    // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
+                    this.TransformInbound(ref datagram);
+
+                    Func<ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageAsync;
+                    EventHandler<IBufferLease>? syncHandler = this.OnMessageReceived;
+
+                    System.Threading.Channels.ChannelWriter<Func<Task>>? writer = _asyncQueue?.Writer;
+                    if (asyncHandler is not null && writer is not null && syncHandler is not null)
+                    {
+                        // Copy payload for async handler to prevent race with sync handler's implicit lifecycle.
+                        byte[] copy = datagram.Memory.ToArray();
+                        if (!writer.TryWrite(async () =>
+                        {
+                            try { await asyncHandler(copy).ConfigureAwait(false); }
+                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                        }))
+                        {
+                            this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; dual-mode frame dropped."));
+                        }
+                    }
+                    else if (asyncHandler is not null && writer is not null)
+                    {
+                        datagram.Retain();
+                        if (!writer.TryWrite(async () =>
+                        {
+                            try { await asyncHandler(datagram.Memory).ConfigureAwait(false); }
+                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                            finally
+                            {
+                                datagram.Dispose();
+                            }
+                        }))
+                        {
+                            datagram.Dispose();
+                        }
+                    }
+
+                    syncHandler?.Invoke(this, datagram);
+                }
+                finally
+                {
+                    datagram.Dispose();
+                }
             }
-            finally
+            catch (Exception ex)
             {
-                datagram.Dispose();
+                if (!ct.IsCancellationRequested)
+                {
+                    this.OnError?.Invoke(this, ex);
+                }
             }
         }
     }
@@ -338,7 +427,7 @@ public class UdpSession : TransportSession
         => PacketFrameTransforms.TransformOutbound(ref src, this.Options);
 
     private void TransformInbound(ref IBufferLease lease)
-        => PacketFrameTransforms.TransformInbound(ref lease, this.Options.Secret);
+        => PacketFrameTransforms.TransformInbound(ref lease, this.Options);
 
     #endregion Transformation
 
@@ -352,9 +441,39 @@ public class UdpSession : TransportSession
             return;
         }
 
-        _ = this.DisconnectAsync();
+        _ = this.DisconnectInternalAsync();
         GC.SuppressFinalize(this);
     }
 
-    #endregion Dispose
+    private async Task ProcessAsyncQueueAsync(CancellationToken ct)
+    {
+        System.Threading.Channels.ChannelReader<Func<Task>>? reader = _asyncQueue?.Reader;
+        if (reader is null)
+        {
+            return;
+        }
+
+        try
+        {
+            while (await reader.WaitToReadAsync(ct).ConfigureAwait(false))
+            {
+                while (reader.TryRead(out Func<Task>? work))
+                {
+                    try { await work().ConfigureAwait(false); }
+                    catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+        finally
+        {
+            while (reader.TryRead(out Func<Task>? work))
+            {
+                _ = work();
+            }
+        }
+    }
+
+    #endregion
 }

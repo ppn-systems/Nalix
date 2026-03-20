@@ -51,7 +51,14 @@ internal sealed class EnumArrayFormatter<
             return;
         }
 
-        int totalBytes = value.Length * s_elementSize;
+        long totalBytesLong = (long)value.Length * s_elementSize;
+        if (totalBytesLong > int.MaxValue)
+        {
+            throw new SerializationFailureException(
+                $"Enum array data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
+        }
+
+        int totalBytes = (int)totalBytesLong;
         writer.Expand(totalBytes);
 
         ref byte dstRef = ref writer.GetFreeBufferReference();
@@ -89,12 +96,19 @@ internal sealed class EnumArrayFormatter<
             return null!;
         }
 
-        if (length > SerializerBounds.MaxArray)
+        if (length < 0 || length > SerializerBounds.MaxArray)
         {
             throw new SerializationFailureException("Array length out of range");
         }
 
-        int totalBytes = length * s_elementSize;
+        long totalBytesLong = (long)length * s_elementSize;
+        if (totalBytesLong > int.MaxValue)
+        {
+            throw new SerializationFailureException(
+                $"Enum array data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
+        }
+
+        int totalBytes = (int)totalBytesLong;
 
 #if DEBUG
         if (reader.BytesRemaining < totalBytes)

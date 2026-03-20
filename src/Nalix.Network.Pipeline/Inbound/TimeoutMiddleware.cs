@@ -72,7 +72,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 
                 int length = directive.Serialize(lease.SpanFull);
                 lease.CommitLength(length);
-                await context.Connection.TCP.SendAsync(lease.Memory, token).ConfigureAwait(false);
+                await context.Connection.TCP.SendAsync(lease.Memory, CancellationToken.None).ConfigureAwait(false);
             }
             finally
             {

@@ -193,6 +193,9 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
         this.Deactivate();
 
+        // Wait for the background loop to finish before disposing the signal
+        _ = _stoppedSignal.Wait(TimeSpan.FromSeconds(2));
+
         TimeSynchronized = null;
         _stoppedSignal.Dispose();
 

@@ -42,7 +42,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
 
     #region Fields
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, Entry> s_table = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, Entry> _table = new();
     private ILogger? _logger;
 
     private long _totalAcquired;
@@ -67,7 +67,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         try
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-                name: "concurrency.gate.cleanup",
+                name: $"concurrency.gate.cleanup.{this.GetHashCode():X8}",
                 interval: _cleanupInterval,
                 work: _ =>
                 {
@@ -537,7 +537,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             Interlocked.Read(ref _totalCleanedEntries),
             Interlocked.Read(ref _circuitBreakerTrips),
             Volatile.Read(ref _circuitBreakerOpen) == 1,
-            s_table.Count
+            _table.Count
         );
     }
 
@@ -566,7 +566,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     {
         // Take snapshot
         List<KeyValuePair<ushort, Entry>> snapshot =
-            [.. s_table];
+            [.. _table];
 
         // Sort by load (highest pressure first)
         snapshot.Sort((a, b) =>
@@ -600,7 +600,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     /// </summary>
     public IDictionary<string, object> GetReportData()
     {
-        List<KeyValuePair<ushort, Entry>> entries = [.. s_table];
+        List<KeyValuePair<ushort, Entry>> entries = [.. _table];
         entries.Sort((a, b) =>
         {
             int aBusy = a.Value.Capacity - a.Value.Sem.CurrentCount;
@@ -617,7 +617,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             ["UtcNow"] = DateTime.UtcNow,
             ["CleanupIntervalMinutes"] = _cleanupInterval.TotalMinutes,
             ["MinIdleAgeMinutes"] = _minIdleAge.TotalMinutes,
-            ["TrackedOpcodes"] = s_table.Count,
+            ["TrackedOpcodes"] = _table.Count,
             ["TotalAcquired"] = Interlocked.Read(ref _totalAcquired),
             ["TotalRejected"] = Interlocked.Read(ref _totalRejected),
             ["TotalQueued"] = Interlocked.Read(ref _totalQueued),
@@ -660,7 +660,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConcurrencyGate Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CleanupInterval    : {_cleanupInterval.TotalMinutes:F1} min");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MinIdleAge         : {_minIdleAge.TotalMinutes:F1} min");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TrackedOpcodes     : {s_table.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TrackedOpcodes     : {_table.Count}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalAcquired      : {Interlocked.Read(ref _totalAcquired):N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalRejected      : {Interlocked.Read(ref _totalRejected):N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalQueued        : {Interlocked.Read(ref _totalQueued):N0}");
@@ -800,12 +800,11 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Entry GET_OR_CREATE_ENTRY(
         ushort opcode,
         PacketConcurrencyLimitAttribute attr)
     {
-        return s_table.GetOrAdd(
+        return _table.GetOrAdd(
             opcode,
             _ => new Entry(attr.Max, attr.Queue, attr.QueueMax, _logger));
     }
@@ -860,7 +859,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             DateTimeOffset now = DateTimeOffset.UtcNow;
             int removed = 0;
 
-            foreach (KeyValuePair<ushort, Entry> kvp in s_table)
+            foreach (KeyValuePair<ushort, Entry> kvp in _table)
             {
                 ushort opcode = kvp.Key;
                 Entry entry = kvp.Value;
@@ -877,7 +876,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 }
 
                 // Remove before disposal to prevent new usage
-                if (s_table.TryRemove(opcode, out Entry? removedEntry)
+                if (_table.TryRemove(opcode, out Entry? removedEntry)
                     && removedEntry is not null)
                 {
                     removedEntry.Dispose();
@@ -888,7 +887,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
 
             if (removed > 0)
             {
-                _logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] cleanup removed={removed} remaining={s_table.Count}");
+                _logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] cleanup removed={removed} remaining={_table.Count}");
             }
         }
         catch (Exception ex)

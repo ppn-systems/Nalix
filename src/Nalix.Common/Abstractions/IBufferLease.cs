@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Common.Networking.Protocols;
 
 namespace Nalix.Common.Abstractions;
 
@@ -14,6 +15,11 @@ public interface IBufferLease : IDisposable
 {
     /// <summary>Gets the valid payload length within the buffer.</summary>
     int Length { get; }
+
+    /// <summary>
+    /// Gets or sets the transport protocol (TCP/UDP) associated with this buffer.
+    /// </summary>
+    ProtocolType Protocol { get; set; }
 
     /// <summary>Gets the capacity of the underlying buffer.</summary>
     int Capacity { get; }

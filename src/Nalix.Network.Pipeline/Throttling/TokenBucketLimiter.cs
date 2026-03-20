@@ -127,6 +127,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private ILogger? _logger;
 
     private int _totalEndpointCount;
+    private int _cleanupShardStart;
     private volatile bool _disposed;
 
     #endregion Fields
@@ -914,35 +915,47 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     /// <param name="now"></param>
     private void SORT_SNAPSHOT_BY_PRESSURE(List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot, long now)
     {
-        snapshot.Sort((a, b) =>
+        // BUG-23 fix: Snapshot state values BEFORE sorting to avoid O(N log N) lock
+        // acquisitions inside the comparator. This prevents CPU DoS and lock contention
+        // when the endpoint count is large.
+        int count = snapshot.Count;
+        if (count <= 1)
         {
-            EndpointState sa = a.Value;
-            EndpointState sb = b.Value;
+            return;
+        }
 
-            bool aBlocked, bBlocked;
-            long aMicro, bMicro;
+        // Pre-snapshot all state values under lock, once per endpoint
+        long[] microValues = new long[count];
+        bool[] blockedValues = new bool[count];
 
-            lock (sa.Gate)
+        for (int i = 0; i < count; i++)
+        {
+            EndpointState state = snapshot[i].Value;
+            lock (state.Gate)
             {
-                aBlocked = sa.HardBlockedUntilSw > now;
-                aMicro = sa.MicroBalance;
+                blockedValues[i] = state.HardBlockedUntilSw > now;
+                microValues[i] = state.MicroBalance;
             }
+        }
 
-            lock (sb.Gate)
-            {
-                bBlocked = sb.HardBlockedUntilSw > now;
-                bMicro = sb.MicroBalance;
-            }
+        // Build index array and sort by index to avoid allocating tuples
+        int[] indices = new int[count];
+        for (int i = 0; i < count; i++)
+        {
+            indices[i] = i;
+        }
 
+        Array.Sort(indices, (ai, bi) =>
+        {
             // Blocked endpoints first
-            if (aBlocked != bBlocked)
+            if (blockedValues[ai] != blockedValues[bi])
             {
-                return bBlocked.CompareTo(aBlocked);
+                return blockedValues[bi].CompareTo(blockedValues[ai]);
             }
 
             // Then by deficit (bigger deficit = higher pressure)
-            long aDef = this.CALCULATE_DEFICIT(aMicro);
-            long bDef = this.CALCULATE_DEFICIT(bMicro);
+            long aDef = this.CALCULATE_DEFICIT(microValues[ai]);
+            long bDef = this.CALCULATE_DEFICIT(microValues[bi]);
 
             int cmpDef = bDef.CompareTo(aDef);
             if (cmpDef != 0)
@@ -951,8 +964,20 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             }
 
             // Tie-breaker by address
-            return string.CompareOrdinal(a.Key.Address, b.Key.Address);
+            return string.CompareOrdinal(snapshot[ai].Key.Address, snapshot[bi].Key.Address);
         });
+
+        // Reorder snapshot in-place using sorted indices
+        KeyValuePair<INetworkEndpoint, EndpointState>[] sorted = new KeyValuePair<INetworkEndpoint, EndpointState>[count];
+        for (int i = 0; i < count; i++)
+        {
+            sorted[i] = snapshot[indices[i]];
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            snapshot[i] = sorted[i];
+        }
     }
 
     /// <summary>
@@ -1191,9 +1216,17 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         int visited = 0;
         long staleTicks = this.TO_TICKS(_options.StaleEntrySeconds);
 
-        foreach (Shard shard in _shards)
+        // BUG-25 fix: Rotate shard start index so cleanup doesn't always
+        // begin from shard 0. Under flood conditions with a timeout, earlier
+        // shards would starve later ones if iteration always starts at 0.
+        int shardCount = _shards.Length;
+        int startIdx = Interlocked.Increment(ref _cleanupShardStart) % shardCount;
+
+        for (int s = 0; s < shardCount; s++)
         {
             token.ThrowIfCancellationRequested();
+
+            Shard shard = _shards[(startIdx + s) % shardCount];
 
             foreach (KeyValuePair<INetworkEndpoint, EndpointState> kv in shard.Map)
             {

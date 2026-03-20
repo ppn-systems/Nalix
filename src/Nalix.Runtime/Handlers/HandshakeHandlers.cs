@@ -9,6 +9,7 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Sessions;
+using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -17,7 +18,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security;
 using Nalix.Framework.Security.Asymmetric;
-using Nalix.Framework.Security.Primitives;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -44,6 +44,12 @@ public sealed class HandshakeHandlers
 
         Handshake packet = context.Packet;
         IConnection connection = context.Connection;
+
+        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        {
+            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
+        }
 
         switch (packet.Stage)
         {
@@ -72,26 +78,31 @@ public sealed class HandshakeHandlers
 
     private static async ValueTask HandleClientHelloAsync(IConnection connection, Handshake packet)
     {
-        if (!Handshake.IsValid(packet) || packet.PublicKey.Length != X25519.KeySize)
+        // BUG-75: Prevent re-entry during active handshake to mitigate CPU DoS
+        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeState))
+        {
+            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
+        }
+
+        if (!Handshake.IsValid(packet))
         {
             await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
 
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
-        byte[] sharedSecret = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
+        Fixed256 sharedSecret = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
 
-        if (BitwiseOperations.IsZero(sharedSecret))
+        if (sharedSecret.IsEmpty)
         {
-            MemorySecurity.ZeroMemory(sharedSecret);
-            MemorySecurity.ZeroMemory(serverKey.PrivateKey);
             await RejectHandshakeAsync(connection, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
             return;
         }
 
-        byte[] serverNonce = Csprng.GetBytes(Handshake.DynamicSize);
+        Fixed256 serverNonce = new(Csprng.GetBytes(Fixed256.Size));
 
-        byte[] transcriptHash = Handshake.ComputeTranscriptHash(
+        Fixed256 transcriptHash = Handshake.ComputeTranscriptHash(
             HandshakeX25519.ComposeTranscriptBuffer(
                 packet.PublicKey,
                 packet.Nonce,
@@ -120,7 +131,6 @@ public sealed class HandshakeHandlers
         reply.Protocol = packet.Protocol;
         reply.TranscriptHash = transcriptHash;
 
-        MemorySecurity.ZeroMemory(serverKey.PrivateKey);
         await connection.TCP.SendAsync(reply).ConfigureAwait(false);
     }
 
@@ -132,28 +142,26 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        if (packet.Proof.Length != Handshake.DynamicSize || packet.TranscriptHash.Length != Handshake.DynamicSize)
+        if (packet.Proof.IsEmpty || packet.TranscriptHash.IsEmpty)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
 
-        if (!BitwiseOperations.FixedTimeEquals(packet.TranscriptHash, state.TranscriptHash))
+        Fixed256 expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
+        if (packet.Proof != expectedProof)
+        {
+            await RejectHandshakeAsync(connection, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
+            return;
+        }
+
+        if (packet.TranscriptHash != state.TranscriptHash)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.CHECKSUM_FAILED).ConfigureAwait(false);
             return;
         }
 
-        byte[] expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
-        if (!BitwiseOperations.FixedTimeEquals(packet.Proof, expectedProof))
-        {
-            MemorySecurity.ZeroMemory(expectedProof);
-            await RejectHandshakeAsync(connection, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
-            return;
-        }
-
-        MemorySecurity.ZeroMemory(expectedProof);
-        connection.Secret = [.. state.SessionKey];
+        connection.Secret = state.SessionKey.ToByteArray();
         connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
@@ -168,15 +176,12 @@ public sealed class HandshakeHandlers
         using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
         Handshake reply = lease.Value;
         reply.Stage = HandshakeStage.SERVER_FINISH;
-        reply.PublicKey = Array.Empty<byte>();
-        reply.Nonce = Array.Empty<byte>();
+        reply.PublicKey = Fixed256.Empty;
+        reply.Nonce = Fixed256.Empty;
         reply.Proof = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
         reply.Protocol = packet.Protocol;
         reply.TranscriptHash = state.TranscriptHash;
         reply.SessionToken = session is not null ? Snowflake.NewId(session.Snapshot.SessionToken) : (Snowflake)connection.ID;
-
-        MemorySecurity.ZeroMemory(state.SessionKey);
-        MemorySecurity.ZeroMemory(state.SharedSecret);
 
         await connection.TCP.SendAsync(reply).ConfigureAwait(false);
     }
@@ -185,17 +190,15 @@ public sealed class HandshakeHandlers
     {
         if (TryGetState(connection, out HandshakeContext? state) && state is not null)
         {
-            MemorySecurity.ZeroMemory(state.SessionKey);
-            MemorySecurity.ZeroMemory(state.SharedSecret);
             _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
         }
 
         try
         {
-            using PacketLease<Control> lease = PacketPool<Control>.Rent();
-            Control control = lease.Value;
-            control.Initialize(opCode: 0, type: ControlType.ERROR, reasonCode: reason, transport: ProtocolType.TCP);
-            await connection.TCP.SendAsync(control).ConfigureAwait(false);
+            using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
+            Handshake error = lease.Value;
+            error.InitializeError(reason, connection.TCP is not null ? ProtocolType.TCP : ProtocolType.UDP);
+            await (connection.TCP ?? connection.UDP).SendAsync(error).ConfigureAwait(false);
         }
         finally
         {
@@ -218,13 +221,13 @@ public sealed class HandshakeHandlers
 
     private sealed class HandshakeContext
     {
-        public byte[] ClientPublicKey { get; init; } = [];
-        public byte[] ClientNonce { get; init; } = [];
-        public byte[] ServerPublicKey { get; init; } = [];
-        public byte[] ServerNonce { get; init; } = [];
-        public byte[] SharedSecret { get; init; } = [];
-        public byte[] TranscriptHash { get; init; } = [];
-        public byte[] SessionKey { get; init; } = [];
+        public Fixed256 ClientPublicKey { get; init; }
+        public Fixed256 ClientNonce { get; init; }
+        public Fixed256 ServerPublicKey { get; init; }
+        public Fixed256 ServerNonce { get; init; }
+        public Fixed256 SharedSecret { get; init; }
+        public Fixed256 TranscriptHash { get; init; }
+        public Fixed256 SessionKey { get; init; }
     }
 
     #endregion Private Methods

@@ -144,11 +144,13 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(SocketEndpoint other)
     {
+        // Compare by IP address only — port is intentionally excluded so that
+        // the per-IP fairness counters in AsyncCallback track by IP, not by
+        // IP:port (SEC-13). Two endpoints with the same IP but different source
+        // ports must hash/equal identically for rate-limiting purposes.
         return _hi == other._hi &&
                _lo == other._lo &&
-               this.IsIPv6 == other.IsIPv6 &&
-               this.HasPort == other.HasPort &&
-               (!this.HasPort || _port == other._port);
+               this.IsIPv6 == other.IsIPv6;
     }
 
     [Pure]
@@ -173,8 +175,8 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode()
     {
-        int port = this.HasPort ? _port : 0;
-        return HashCode.Combine(_hi, _lo, this.IsIPv6, this.HasPort, port);
+        // Hash by IP only — port is excluded to match the IP-only Equals semantics.
+        return HashCode.Combine(_hi, _lo, this.IsIPv6);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

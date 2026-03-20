@@ -48,10 +48,16 @@ public sealed class SessionSnapshot
     public IObjectMap<string, object>? Attributes { get; set; }
 
     /// <summary>
-    /// Returns the session attributes to the object pool.
+    /// Returns the session attributes to the object pool and zeroizes the secret.
     /// </summary>
     public void Return()
     {
+        // Zeroize the secret to prevent key material from lingering in memory
+        if (this.Secret is { Length: > 0 })
+        {
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(this.Secret);
+        }
+
         this.Attributes?.Return();
         this.Attributes = null;
     }

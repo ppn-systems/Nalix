@@ -42,8 +42,15 @@ public static class Csprng
         }
         catch (Exception ex) when (!IsFatal(ex))
         {
+            // BUG-31 fix: Do NOT throw from static constructor.
+            // A throw here causes TypeInitializationException on every future access,
+            // permanently killing the class. Instead, fall back gracefully.
             s_f = OsRandom.Fill;
-            throw new InvalidOperationException("Nalix CSPRNG initialization failed. OS cryptographic randomness is unavailable.", ex);
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error("[FW.Csprng] OS CSPRNG unavailable — falling back to OsRandom. " +
+                                           "Cryptographic strength may be reduced.", ex);
+            return;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?

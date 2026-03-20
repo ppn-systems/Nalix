@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Common.Primitives;
 using Nalix.Framework.Random;
 
 namespace Nalix.Framework.Security.Asymmetric;
@@ -26,12 +27,12 @@ public static class X25519
         /// <summary>
         /// The private key (32 bytes).
         /// </summary>
-        public byte[] PrivateKey { get; set; }
+        public Fixed256 PrivateKey { get; set; }
 
         /// <summary>
         /// The public key (32 bytes).
         /// </summary>
-        public byte[] PublicKey { get; set; }
+        public Fixed256 PublicKey { get; set; }
     }
 
     /// <summary>
@@ -41,15 +42,16 @@ public static class X25519
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static X25519KeyPair GenerateKeyPair()
     {
-        X25519KeyPair key = new() { PrivateKey = new byte[KeySize] };
-        Csprng.Fill(key.PrivateKey);
+        Span<byte> priv = stackalloc byte[KeySize];
+        Csprng.Fill(priv);
 
         // Clamp per https://cr.yp.to/ecdh.html
-        key.PrivateKey[0] &= 248;
-        key.PrivateKey[31] &= 127;
-        key.PrivateKey[31] |= 64;
+        priv[0] &= 248;
+        priv[31] &= 127;
+        priv[31] |= 64;
 
-        key.PublicKey = Curve25519.ScalarMultiplication(key.PrivateKey, Curve25519.Basepoint);
+        X25519KeyPair key = new() { PrivateKey = new Fixed256(priv) };
+        key.PublicKey = new Fixed256(Curve25519.ScalarMultiplication(priv, Curve25519.Basepoint));
         return key;
     }
 
@@ -59,13 +61,10 @@ public static class X25519
     /// <param name="privateKey">The 32-byte private key used to derive the key pair.</param>
     /// <returns>An <see cref="X25519KeyPair"/> instance initialized with the provided private key and its derived public key.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static X25519KeyPair GenerateKeyFromPrivateKey([System.Diagnostics.CodeAnalysis.NotNull] byte[] privateKey)
+    public static X25519KeyPair GenerateKeyFromPrivateKey(Fixed256 privateKey)
     {
-        ArgumentNullException.ThrowIfNull(privateKey);
-        ArgumentOutOfRangeException.ThrowIfNotEqual(privateKey.Length, KeySize, nameof(privateKey));
-
         X25519KeyPair key = new() { PrivateKey = privateKey };
-        key.PublicKey = Curve25519.ScalarMultiplication(key.PrivateKey, Curve25519.Basepoint);
+        key.PublicKey = new Fixed256(Curve25519.ScalarMultiplication(privateKey.AsSpan(), Curve25519.Basepoint));
         return key;
     }
 
@@ -77,13 +76,8 @@ public static class X25519
     /// <param name="otherPublicKey">The remote 32-byte public key.</param>
     /// <returns>A 32-byte shared secret that can be used for session key derivation.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static byte[] Agreement([System.Diagnostics.CodeAnalysis.NotNull] byte[] myPrivateKey, [System.Diagnostics.CodeAnalysis.NotNull] byte[] otherPublicKey)
+    public static Fixed256 Agreement(Fixed256 myPrivateKey, Fixed256 otherPublicKey)
     {
-        ArgumentNullException.ThrowIfNull(myPrivateKey);
-        ArgumentNullException.ThrowIfNull(otherPublicKey);
-        ArgumentOutOfRangeException.ThrowIfNotEqual(myPrivateKey.Length, KeySize, nameof(myPrivateKey));
-        ArgumentOutOfRangeException.ThrowIfNotEqual(otherPublicKey.Length, KeySize, nameof(otherPublicKey));
-
-        return Curve25519.ScalarMultiplication(myPrivateKey, otherPublicKey);
+        return new Fixed256(Curve25519.ScalarMultiplication(myPrivateKey.AsSpan(), otherPublicKey.AsSpan()));
     }
 }

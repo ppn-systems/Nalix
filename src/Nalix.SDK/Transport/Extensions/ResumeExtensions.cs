@@ -6,7 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Security.Hashing;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Extensions;
@@ -21,8 +23,8 @@ public static class ResumeExtensions
     /// </summary>
     /// <param name="session">The connected TCP session to resume.</param>
     /// <param name="ct">The cancellation token to observe.</param>
-    /// <returns><see langword="true"/> when the server accepted the resume request; otherwise <see langword="false"/>.</returns>
-    public static async Task<bool> ResumeSessionAsync(this TcpSession session, CancellationToken ct = default)
+    /// <returns>The <see cref="ProtocolReason"/> reported by the server. <see cref="ProtocolReason.NONE"/> indicates success.</returns>
+    public static async Task<ProtocolReason> ResumeSessionAsync(this TcpSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -33,17 +35,27 @@ public static class ResumeExtensions
 
         if (!HasResumeState(session.Options))
         {
-            return false;
+            return ProtocolReason.SESSION_NOT_FOUND;
         }
 
         SessionResume request = new();
         request.Initialize(SessionResumeStage.REQUEST, session.Options.SessionToken);
 
+        // SEC-16: Compute proof-of-possession using HMAC-SHA256(Secret, SessionToken).
+        // This proves to the server that we own the session secret.
+        Span<byte> proofBytes = stackalloc byte[32];
+        Span<byte> tokenBytes = stackalloc byte[8];
+        _ = session.Options.SessionToken.TryWriteBytes(tokenBytes);
+
+        // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption.
+        HmacKeccak256.Compute(session.Options.Secret, tokenBytes[..7], proofBytes);
+        request.Proof = new Fixed256(proofBytes);
+
         try
         {
             SessionResume response = await PacketAwaiter.AwaitAsync<SessionResume>(
                 session,
-                predicate: static packet => packet.Stage == SessionResumeStage.RESPONSE,
+                predicate: packet => packet.Stage == SessionResumeStage.RESPONSE,
                 timeoutMs: session.Options.ResumeTimeoutMillis,
                 sendAsync: token => session.SendAsync(request, encrypt: false, token),
                 ct).ConfigureAwait(false);
@@ -51,28 +63,28 @@ public static class ResumeExtensions
             if (response.Reason != ProtocolReason.NONE)
             {
                 session.Options.SessionToken = response.SessionToken;
-                return false;
+                return response.Reason;
             }
 
             session.Options.SessionToken = response.SessionToken;
             session.Options.EncryptionEnabled = true;
-            return true;
+            return ProtocolReason.NONE;
         }
         catch (OperationCanceledException)
         {
-            throw;
+            return ProtocolReason.CANCELLED;
         }
         catch (TimeoutException)
         {
-            return false;
+            return ProtocolReason.TIMEOUT;
         }
         catch (NetworkException)
         {
-            return false;
+            return ProtocolReason.NETWORK_ERROR;
         }
         catch (InvalidOperationException)
         {
-            return false;
+            return ProtocolReason.STATE_VIOLATION;
         }
     }
 
@@ -96,15 +108,15 @@ public static class ResumeExtensions
 
         if (session.Options.ResumeEnabled && HasResumeState(session.Options))
         {
-            bool resumed = await session.ResumeSessionAsync(ct).ConfigureAwait(false);
-            if (resumed)
+            ProtocolReason reason = await session.ResumeSessionAsync(ct).ConfigureAwait(false);
+            if (reason == ProtocolReason.NONE)
             {
                 return true;
             }
 
             if (!session.Options.ResumeFallbackToHandshake)
             {
-                throw new NetworkException("Session resume failed and handshake fallback is disabled.");
+                throw new NetworkException($"Session resume failed: {reason}");
             }
 
             if (session.IsConnected)
@@ -115,8 +127,10 @@ public static class ResumeExtensions
             await session.ConnectAsync(host, port, ct).ConfigureAwait(false);
         }
 
+        // Use explicit encrypt=false for the handshake send without mutating the shared
+        // EncryptionEnabled flag — this avoids a race condition where concurrent SendAsync
+        // calls could see a temporarily-disabled encryption state (SEC-06).
         bool previousEncryption = session.Options.EncryptionEnabled;
-        session.Options.EncryptionEnabled = false;
 
         try
         {
@@ -125,6 +139,8 @@ public static class ResumeExtensions
         }
         finally
         {
+            // Ensure encryption is restored/enabled after handshake completes.
+            // HandshakeAsync itself may enable encryption; only restore if it didn't.
             if (!session.Options.EncryptionEnabled)
             {
                 session.Options.EncryptionEnabled = previousEncryption && session.Options.Secret.Length > 0;

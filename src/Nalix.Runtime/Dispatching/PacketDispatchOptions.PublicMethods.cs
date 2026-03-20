@@ -300,7 +300,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketContext<TPacket> context = _objectPool.Get<PacketContext<TPacket>>();
         try
         {
-            context.Initialize(packet, connection, descriptor.Metadata, token);
+            // BUG-76: Capture the transport protocol from the lease before processing.
+            context.Initialize(packet, connection, descriptor.Metadata, packet.Protocol, token);
         }
         catch
         {

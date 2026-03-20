@@ -24,31 +24,31 @@ internal static class Curve25519
 
     /// <summary>
     /// X25519 scalar multiplication (scalar × point) per RFC 7748 §5.
-    /// Both inputs must be 32-byte arrays; the return value is a new 32-byte array.
+    /// Both inputs must be at least 32 bytes; the return value is a new 32-byte array.
     /// </summary>
-    /// <param name="scalar"></param>
-    /// <param name="point"></param>
+    /// <param name="scalar">The 32-byte scalar.</param>
+    /// <param name="point">The 32-byte point.</param>
     /// <exception cref="System.ArgumentException"></exception>
     /// <exception cref="System.InvalidOperationException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static byte[] ScalarMultiplication(byte[] scalar, byte[] point)
+    public static byte[] ScalarMultiplication(System.ReadOnlySpan<byte> scalar, System.ReadOnlySpan<byte> point)
     {
-        if (scalar.Length != 32)
+        if (scalar.Length < 32)
         {
-            throw new System.ArgumentException("Length of scalar must be 32", nameof(scalar));
+            throw new System.ArgumentException("Length of scalar must be at least 32", nameof(scalar));
         }
 
-        if (point.Length != 32)
+        if (point.Length < 32)
         {
-            throw new System.ArgumentException("Length of point must be 32", nameof(point));
+            throw new System.ArgumentException("Length of point must be at least 32", nameof(point));
         }
 
         // Exactly one heap allocation: the 32-byte result array.
         byte[] result = System.GC.AllocateUninitializedArray<byte>(32);
-        ScalarMult(scalar, point, result);
+        ScalarMult(scalar[..32], point[..32], result);
 
-        // Constant-time low-order-point check (equivalent to subtle.ConstantTimeCompare).
+        // Constant-time low-order-point check.
         byte v = 0;
         for (int i = 0; i < 32; i++)
         {

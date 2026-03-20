@@ -17,13 +17,15 @@ public static class SerializerBounds
 
     /// <summary>
     /// Maximum encodable array length when one value is reserved for <see langword="null"/>.
+    /// Capped at 1 MB element count to prevent memory-exhaustion DoS from untrusted payloads.
     /// </summary>
-    public const int MaxArray = int.MaxValue - 4;
+    public const int MaxArray = 1_048_576;
 
     /// <summary>
     /// Maximum encodable UTF-8 string length.
+    /// Capped at 1 MB to prevent memory-exhaustion DoS from untrusted payloads.
     /// </summary>
-    public const int MaxString = int.MaxValue - 4;
+    public const int MaxString = 1_048_576;
 
     /// <summary>
     /// Sentinel bytes used when a wire format needs to represent a null array.

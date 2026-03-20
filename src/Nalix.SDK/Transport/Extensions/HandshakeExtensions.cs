@@ -5,12 +5,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security;
 using Nalix.Framework.Security.Asymmetric;
-using Nalix.Framework.Security.Primitives;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Extensions;
@@ -46,9 +46,11 @@ public static class HandshakeExtensions
         }
 
         X25519.X25519KeyPair clientKey = X25519.GenerateKeyPair();
-        byte[] clientNonce = Csprng.GetBytes(Handshake.DynamicSize);
 
-        // OpCode ignore
+        Span<byte> clientNonceBytes = stackalloc byte[Handshake.DynamicSize];
+        Csprng.Fill(clientNonceBytes);
+        Fixed256 clientNonce = new(clientNonceBytes);
+
         Handshake clientHello = new(HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
 
         Handshake serverHello = await session.RequestAsync<Handshake>(
@@ -59,7 +61,7 @@ public static class HandshakeExtensions
 
         if (serverHello.Stage == HandshakeStage.ERROR)
         {
-            throw new NetworkException("Handshake error received from server.");
+            throw new NetworkException($"Handshake failed: {serverHello.Reason}");
         }
 
         if (!Handshake.IsValid(serverHello))
@@ -67,28 +69,25 @@ public static class HandshakeExtensions
             throw new NetworkException("Malformed Handshake SERVER_HELLO packet.");
         }
 
-        byte[] sharedSecret = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
-        MemorySecurity.ZeroMemory(clientKey.PrivateKey);
+        Fixed256 sharedSecret = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
 
-        if (BitwiseOperations.IsZero(sharedSecret))
+        if (sharedSecret.IsEmpty)
         {
-            MemorySecurity.ZeroMemory(sharedSecret);
             throw new NetworkException("Handshake key agreement failed: Shared secret is all zero.");
         }
 
-        byte[] transcriptHash = Handshake.ComputeTranscriptHash(
+        Fixed256 transcriptHash = Handshake.ComputeTranscriptHash(
             HandshakeX25519.ComposeTranscriptBuffer(clientKey.PublicKey, clientNonce, serverHello.PublicKey, serverHello.Nonce));
 
-        byte[] expectedProof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
-        if (!BitwiseOperations.FixedTimeEquals(serverHello.Proof, expectedProof))
+        Fixed256 expectedProof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
+        if (serverHello.Proof != expectedProof)
         {
-            MemorySecurity.ZeroMemory(sharedSecret);
             throw new NetworkException("Handshake SERVER_HELLO proof is invalid.");
         }
 
-        byte[] sessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, clientNonce, serverHello.Nonce, transcriptHash);
+        Fixed256 sessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, clientNonce, serverHello.Nonce, transcriptHash);
 
-        Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, [], [], HandshakeX25519.ComputeClientProof(sharedSecret, transcriptHash))
+        Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Fixed256.Empty, Fixed256.Empty, HandshakeX25519.ComputeClientProof(sharedSecret, transcriptHash))
         {
             TranscriptHash = transcriptHash
         };
@@ -101,26 +100,19 @@ public static class HandshakeExtensions
 
         if (serverFinish.Stage == HandshakeStage.ERROR)
         {
-            MemorySecurity.ZeroMemory(sharedSecret);
-            MemorySecurity.ZeroMemory(sessionKey);
-            throw new NetworkException("Handshake error received from server.");
+            throw new NetworkException($"Handshake failed during finish: {serverFinish.Reason}");
         }
 
-        byte[] expectedFinish = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash);
-        if (!BitwiseOperations.FixedTimeEquals(serverFinish.Proof, expectedFinish))
+        Fixed256 expectedFinish = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash);
+        if (serverFinish.Proof != expectedFinish)
         {
-            MemorySecurity.ZeroMemory(sharedSecret);
-            MemorySecurity.ZeroMemory(sessionKey);
             throw new NetworkException("Handshake SERVER_FINISH proof is invalid.");
         }
 
         // Apply established connection settings
-        session.Options.Secret = [.. sessionKey];
+        session.Options.Secret = sessionKey.ToByteArray();
         session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
         session.Options.EncryptionEnabled = true;
         session.Options.SessionToken = serverFinish.SessionToken;
-
-        MemorySecurity.ZeroMemory(sharedSecret);
-        MemorySecurity.ZeroMemory(sessionKey);
     }
 }

@@ -505,6 +505,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         {
             this.RaiseStatusRequested(_texts.StatusHandshakeStarted);
             await _tcpClientService.ResumeAsync().ConfigureAwait(true);
+
+            // Auto-fill SessionToken if it was rotated/updated
+            if (!string.IsNullOrEmpty(_tcpClientService.SessionToken.ToString()))
+            {
+                this.SessionToken = _tcpClientService.SessionToken.ToString();
+            }
+
             this.RaiseStatusRequested(_texts.StatusResumeSuccess);
         }
         catch (Exception exception)

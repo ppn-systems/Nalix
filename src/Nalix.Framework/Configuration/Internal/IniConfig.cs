@@ -222,8 +222,7 @@ internal sealed class IniConfig : IDisposable
                     _fileLock.ExitWriteLock();
                 }
 
-                // WriteInt16 changes to the file
-                this.WriteFile();
+                // Changes are marked dirty; will be flushed via Flush() or Dispose().
             }
         }
         finally
@@ -989,8 +988,9 @@ internal sealed class IniConfig : IDisposable
             return string.Empty;
         }
 
-        // ToByteArray numeric values with invariant culture for consistency
-        return value switch
+        // ToByteArray numeric values with invariant culture for consistency.
+        // Sanitize string to prevent INI injection via newlines (SEC-19).
+        string result = value switch
         {
             float f => f.ToString("G", CultureInfo.InvariantCulture),
             double d => d.ToString("G", CultureInfo.InvariantCulture),
@@ -998,6 +998,8 @@ internal sealed class IniConfig : IDisposable
             DateTime dt => dt.ToString("O", CultureInfo.InvariantCulture),
             _ => value.ToString() ?? string.Empty
         };
+
+        return result.Replace("\r", "").Replace("\n", " ");
     }
 
     /// <summary>
@@ -1046,7 +1048,7 @@ internal sealed class IniConfig : IDisposable
             return;
         }
 
-        _fileLock.EnterReadLock();
+        _fileLock.EnterWriteLock();
 
         StringBuilder pendingComments = new();
         string currentSection = string.Empty;
@@ -1154,7 +1156,7 @@ internal sealed class IniConfig : IDisposable
         }
         finally
         {
-            _fileLock.ExitReadLock();
+            _fileLock.ExitWriteLock();
         }
     }
 
