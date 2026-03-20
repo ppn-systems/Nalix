@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Common.Diagnostics.Models;
+namespace Nalix.Common.Diagnostics;
 
 /// <summary>
 /// Identifies a logging event. The primary identifier is the "ProtocolType" property, with the "Name" property providing a short description of this type of event.

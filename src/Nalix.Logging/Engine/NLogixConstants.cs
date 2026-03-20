@@ -6,6 +6,7 @@ namespace Nalix.Logging.Engine;
 /// <summary>
 /// Contains constant values used for logging.
 /// </summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class NLogixConstants
 {
     /// <summary>

@@ -2,7 +2,8 @@
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Logging;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Buffers;
+using Nalix.Shared.Memory.Objects;
 using System;
 using System.Collections.Generic;
 using System.Threading;

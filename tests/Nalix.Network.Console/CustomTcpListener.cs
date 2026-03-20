@@ -1,5 +1,5 @@
-﻿using Nalix.Network.Abstractions;
-using Nalix.Network.Listeners.Tcp;
+﻿using Nalix.Network.Listeners.Tcp;
+using Nalix.Network.Protocols;
 using System;
 
 public sealed class CustomTcpListener : TcpListenerBase

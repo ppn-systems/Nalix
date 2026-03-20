@@ -14,6 +14,7 @@ namespace Nalix.Logging.Exceptions;
 /// <param name="filePath">The file path where the error occurred.</param>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("{Exception.Message,nq} ({OriginalFilePath})")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class FileError(System.Exception ex, System.String filePath)
 {
     /// <summary>

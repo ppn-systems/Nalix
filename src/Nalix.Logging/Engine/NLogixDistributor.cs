@@ -1,8 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
-using Nalix.Common.Diagnostics.Models;
+using Nalix.Common.Diagnostics;
 
 namespace Nalix.Logging.Engine;
 
@@ -11,6 +10,7 @@ namespace Nalix.Logging.Engine;
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("{ToString(),nq}")]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public sealed class NLogixDistributor : ILogDistributor
 {
     #region Fields
