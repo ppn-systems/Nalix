@@ -5,7 +5,6 @@ using Nalix.Common.Middleware.Attributes;
 using Nalix.Common.Middleware.Enums;
 using Nalix.Common.Networking.Packets.Abstractions;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Network.Abstractions;
 using Nalix.Network.Connections;
 using Nalix.Network.Routing;
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Diagnostics.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity.Abstractions;
 using Nalix.Common.Identity.Enums;
 using Nalix.Common.Networking.Packets;
@@ -20,6 +20,7 @@ public abstract partial class UdpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [System.Obsolete]
     private async System.Threading.Tasks.Task ReceiveDatagramsAsync(
         System.Threading.CancellationToken cancellationToken)
     {
@@ -68,6 +69,7 @@ public abstract partial class UdpListenerBase
         }
     }
 
+    [System.Obsolete]
     private void ProcessDatagram(System.Net.Sockets.UdpReceiveResult result)
     {
         if (result.Buffer.Length < PacketConstants.HeaderSize + Snowflake.Size)

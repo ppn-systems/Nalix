@@ -18,6 +18,7 @@ namespace Nalix.Network.Routing.Metadata;
     System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
 [method: System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public readonly struct PacketMetadata(
     [System.Diagnostics.CodeAnalysis.NotNull] PacketOpcodeAttribute opCode,
     [System.Diagnostics.CodeAnalysis.AllowNull] PacketTimeoutAttribute timeout,

@@ -15,6 +15,7 @@ namespace Nalix.Network.Routing.Results;
 /// in a zero-allocation manner.
 /// </summary>
 /// <typeparam name="TPacket">The packet type being handled.</typeparam>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal interface IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <summary>

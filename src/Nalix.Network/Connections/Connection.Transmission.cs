@@ -16,6 +16,7 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     [System.Diagnostics.DebuggerNonUserCode]
     [System.Runtime.CompilerServices.SkipLocalsInit]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public sealed class UdpTransport : IConnection.IUdp, IPoolable
     {
         #region Fields
@@ -209,6 +210,7 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     [System.Diagnostics.DebuggerNonUserCode]
     [System.Runtime.CompilerServices.SkipLocalsInit]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public sealed class TcpTransport([System.Diagnostics.CodeAnalysis.NotNull] Connection outer) : IConnection.ITcp
     {
         private readonly Connection _outer = outer;

@@ -12,6 +12,7 @@ namespace Nalix.Network.Routing.Metadata;
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 [method: System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public readonly struct PacketHandler<TPacket>(
     System.UInt16 opCode, PacketMetadata metadata,
     System.Object controllerInstance, System.Reflection.MethodInfo method, System.Type returnType,
