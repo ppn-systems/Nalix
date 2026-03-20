@@ -28,7 +28,7 @@ The public API surface revolves around two main types:
 graph LR
     subgraph Configuration ["Phase 1: Configuration"]
         Create["CreateBuilder()"] --> Config["Configure Loggers, Options, Hubs"]
-        Config --> Discover["AddPacket() & AddHandlers()"]
+        Config --> Discover["AddPacket()/AddPacketNamespace() & AddHandlers()"]
         Discover --> Bind["AddTcp() / AddUdp()"]
     end
 
@@ -51,7 +51,7 @@ graph LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `AddPacket(...)`, `AddHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatch(...)`, `AddTcp(...)`, `AddUdp(...)`, `Build()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigurePacketRegistry(...)`, `AddPacket(...)`, `AddPacketNamespace(...)`, `AddHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatch(...)`, `AddTcp(...)`, `AddUdp(...)`, `Build()` |
 
 ## `NetworkApplication`
 
@@ -87,7 +87,11 @@ The builder uses a fluent API to configure the host before it is built.
 ### Packet and Handler Discovery
 
 - `AddPacket(assembly, requirePacketAttribute)`: Scans an assembly for packet types.
+- `AddPacket(assemblyPath, requirePacketAttribute)`: Loads a `.dll` path and scans it for packet types.
 - `AddPacket<TMarker>(...)`: Marker-type shortcut for scanning packets.
+- `AddPacketNamespace(packetNamespace, recursive)`: Scans currently loaded assemblies and includes matching packet namespaces.
+- `AddPacketNamespace(assemblyPath, packetNamespace, recursive)`: Scopes namespace discovery to one assembly path.
+- `ConfigurePacketRegistry(IPacketRegistry)`: Uses a pre-built registry and skips hosting auto-registration.
 - `AddHandlers(assembly)`: Scans an assembly for `[PacketController]` classes.
 - `AddHandlers<TMarker>()`: Marker-type shortcut for scanning handlers.
 - `AddHandler<THandler>()`: Manually registers a handler type.

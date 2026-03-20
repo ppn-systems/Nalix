@@ -13,6 +13,8 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
+using Nalix.Framework.DataFrames;
+using System.Buffers.Binary;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -186,11 +188,16 @@ public sealed class SdkRequestAndTransportExtensionsTests
                 throw SendPacketException;
             }
 
-            if (_catalog.TryDequeue(out _))
+            if (_catalog.TryDequeue(out IPacket? response) && response is not null)
             {
-                using BufferLease lease = BufferLease.CopyFrom([1]);
+                byte[] data = new byte[PacketConstants.HeaderSize];
+                uint magic = PacketRegistryFactory.Compute(response.GetType());
+                BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
+
+                using BufferLease lease = BufferLease.CopyFrom(data);
                 OnMessageReceived?.Invoke(this, lease);
             }
+
 
             return Task.CompletedTask;
         }
@@ -203,11 +210,16 @@ public sealed class SdkRequestAndTransportExtensionsTests
                 throw SendPacketException;
             }
 
-            if (_catalog.TryDequeue(out _))
+            if (_catalog.TryDequeue(out IPacket? response) && response is not null)
             {
-                using BufferLease lease = BufferLease.CopyFrom([1]);
+                byte[] data = new byte[PacketConstants.HeaderSize];
+                uint magic = PacketRegistryFactory.Compute(response.GetType());
+                BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
+
+                using BufferLease lease = BufferLease.CopyFrom(data);
                 OnMessageReceived?.Invoke(this, lease);
             }
+
 
             return Task.CompletedTask;
         }

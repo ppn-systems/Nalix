@@ -26,6 +26,14 @@ public interface INetworkApplicationBuilder
     NetworkApplication Build();
 
     /// <summary>
+    /// Configures a Nalix options object before the host starts.
+    /// </summary>
+    /// <typeparam name="TOptions">The configuration type to mutate.</typeparam>
+    /// <param name="configure">The callback used to configure the options instance.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder Configure<TOptions>(Action<TOptions> configure) where TOptions : ConfigurationLoader, new();
+
+    /// <summary>
     /// Sets the logger instance used by the hosted Nalix runtime.
     /// </summary>
     /// <param name="logger">The logger to register into the Nalix runtime.</param>
@@ -54,12 +62,11 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureCertificate(string certificatePath);
 
     /// <summary>
-    /// Configures a Nalix options object before the host starts.
+    /// Configures a pre-built packet registry instead of hosting auto-discovery.
     /// </summary>
-    /// <typeparam name="TOptions">The configuration type to mutate.</typeparam>
-    /// <param name="configure">The callback used to configure the options instance.</param>
+    /// <param name="packetRegistry">The packet registry to use.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder Configure<TOptions>(Action<TOptions> configure) where TOptions : ConfigurationLoader, new();
+    INetworkApplicationBuilder ConfigurePacketRegistry(IPacketRegistry packetRegistry);
 
     /// <summary>
     /// Adds packet types discovered from the specified assembly.
@@ -73,6 +80,17 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder AddPacket(Assembly assembly, bool requirePacketAttribute = false);
 
     /// <summary>
+    /// Adds packet types discovered from the specified assembly path.
+    /// </summary>
+    /// <param name="assemblyPath">The .dll path to scan for packet types.</param>
+    /// <param name="requirePacketAttribute">
+    /// <see langword="true"/> to include only packet types marked with <see cref="PacketAttribute"/>;
+    /// otherwise, all concrete packet types are considered.
+    /// </param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddPacket(string assemblyPath, bool requirePacketAttribute = false);
+
+    /// <summary>
     /// Adds packet types discovered from the assembly that contains <typeparamref name="TMarker"/>.
     /// </summary>
     /// <typeparam name="TMarker">A marker type used to resolve the target assembly.</typeparam>
@@ -82,6 +100,27 @@ public interface INetworkApplicationBuilder
     /// </param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder AddPacket<TMarker>(bool requirePacketAttribute = false);
+
+    /// <summary>
+    /// Adds packet types discovered by matching packet namespaces in the current AppDomain.
+    /// </summary>
+    /// <param name="packetNamespace">The namespace to include.</param>
+    /// <param name="recursive">
+    /// <see langword="true"/> to include child namespaces; otherwise exact namespace only.
+    /// </param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddPacketNamespace(string packetNamespace, bool recursive = true);
+
+    /// <summary>
+    /// Adds packet types discovered by matching packet namespaces from one assembly path.
+    /// </summary>
+    /// <param name="assemblyPath">The .dll path to scan.</param>
+    /// <param name="packetNamespace">The namespace to include.</param>
+    /// <param name="recursive">
+    /// <see langword="true"/> to include child namespaces; otherwise exact namespace only.
+    /// </param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddPacketNamespace(string assemblyPath, string packetNamespace, bool recursive = true);
 
     /// <summary>
     /// Adds packet controller types discovered from the specified assembly.

@@ -29,7 +29,7 @@ flowchart LR
 
 - `NetworkApplication.CreateBuilder()`
 - fluent `INetworkApplicationBuilder` configuration
-- automatic packet registry creation from packet and handler assemblies
+- automatic packet registry creation from packet assemblies, assembly paths, namespaces, and handler assemblies
 - packet metadata provider registration
 - automatic UDP and TCP server listener management
 - application lifecycle activation through `ActivateAsync`, `DeactivateAsync`, and `RunAsync`
@@ -38,7 +38,10 @@ flowchart LR
 
 - `ConfigureConnectionHub(...)` takes an `IConnectionHub`; use it when you want to supply your own shared hub instead of the default fallback instance.
 - `ConfigureBufferPoolManager(...)` is the explicit way to supply a custom `BufferPoolManager`.
-- `AddPacket(Assembly)` and `AddPacket<TMarker>()` scan packet contracts, while `AddHandler<THandler>()` registers a single handler type.
+- `ConfigurePacketRegistry(...)` lets you inject a pre-built `IPacketRegistry`; when set, hosting skips auto packet discovery.
+- `AddPacket(Assembly)`, `AddPacket(string assemblyPath)`, and `AddPacket<TMarker>()` scan packet contracts.
+- `AddPacketNamespace(...)` lets you scan packets by namespace (current domain or scoped assembly path).
+- `AddHandler<THandler>()` registers a single handler type.
 - `AddHandlers(Assembly)` and `AddHandlers<TMarker>()` scan a whole assembly for packet controllers.
 - `AddTcp<TProtocol>(...)` is the primary binding path for server startup, and `AddUdp<TProtocol>(...)` is available when the server needs UDP too.
 
@@ -60,7 +63,9 @@ The builder exposes fluent methods for common bootstrap concerns:
 - `ConfigureConnectionHub(...)`
 - `ConfigureBufferPoolManager(...)`
 - `Configure<TOptions>(...)`
+- `ConfigurePacketRegistry(...)`
 - `AddPacket(...)`
+- `AddPacketNamespace(...)`
 - `AddHandlers(...)`
 - `AddHandler(...)`
 - `AddMetadataProvider(...)`
@@ -71,8 +76,12 @@ The builder exposes fluent methods for common bootstrap concerns:
 ### Registration semantics
 
 - `AddPacket<TMarker>()` scans the marker assembly for packet types.
+- `AddPacket(string assemblyPath)` loads packet types from a `.dll` path.
+- `AddPacketNamespace(string packetNamespace, bool recursive)` scans packets by namespace from loaded assemblies.
+- `AddPacketNamespace(string assemblyPath, string packetNamespace, bool recursive)` scopes namespace scanning to one assembly path.
 - `AddHandlers<TMarker>()` scans the marker assembly for packet controller types.
 - `AddHandler<THandler>()` registers one handler type explicitly.
+- `ConfigurePacketRegistry(IPacketRegistry)` overrides auto-registry creation and uses the provided registry as-is.
 - If you use the marker-based overloads, make the marker live in the assembly you actually want scanned.
 
 For a method-by-method breakdown, see the dedicated API page: [Network Application](../api/hosting/network-application.md).

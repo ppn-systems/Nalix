@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.IO;
@@ -18,7 +18,8 @@ public static class Bootstrap
     /// <summary>
     /// Automatically configures client-side defaults when the SDK is loaded.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2255:The 'ModuleInitializer' attribute should not be used in libraries", Justification = "Architectural requirement to auto-configure client defaults")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage",
+        "CA2255:The 'ModuleInitializer' attribute should not be used in libraries", Justification = "Architectural requirement to auto-configure client defaults")]
     [ModuleInitializer]
     internal static void AutoInitialize() => Initialize();
 

@@ -13,6 +13,8 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Internal;
+using Nalix.Framework.DataFrames;
+using System.Buffers.Binary;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -252,8 +254,12 @@ public sealed class PacketAwaiterTests
             }
             remove
             {
+                var original = _onDisconnected;
                 _onDisconnected -= value;
-                _disconnectSubscriberCount--;
+                if (!ReferenceEquals(original, _onDisconnected))
+                {
+                    _disconnectSubscriberCount--;
+                }
             }
         }
 
@@ -266,8 +272,12 @@ public sealed class PacketAwaiterTests
             }
             remove
             {
+                var original = _onMessageReceived;
                 _onMessageReceived -= value;
-                _messageSubscriberCount--;
+                if (!ReferenceEquals(original, _onMessageReceived))
+                {
+                    _messageSubscriberCount--;
+                }
             }
         }
 
@@ -307,7 +317,13 @@ public sealed class PacketAwaiterTests
         public void TriggerPacket(IPacket packet)
         {
             FakePacketRegistry.NextPacket = packet;
-            using BufferLease lease = BufferLease.CopyFrom([1]);
+            
+            // Create a buffer that satisfies the dispatcher's magic number check
+            byte[] data = new byte[PacketConstants.HeaderSize];
+            uint magic = PacketRegistryFactory.Compute(packet.GetType());
+            BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
+            
+            using BufferLease lease = BufferLease.CopyFrom(data);
             _onMessageReceived?.Invoke(this, lease);
         }
     }

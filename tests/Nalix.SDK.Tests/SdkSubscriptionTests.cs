@@ -11,6 +11,8 @@ using Nalix.SDK.Extensions;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
+using Nalix.Framework.DataFrames;
+using System.Buffers.Binary;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -147,7 +149,12 @@ public sealed class SdkSubscriptionTests
 
         public void RaiseMessage()
         {
-            using BufferLease lease = BufferLease.CopyFrom([1, 2, 3]);
+            // Create a buffer that satisfies the dispatcher's magic number check
+            byte[] data = new byte[PacketConstants.HeaderSize];
+            uint magic = PacketRegistryFactory.Compute(_catalog.Next.GetType());
+            BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
+
+            using BufferLease lease = BufferLease.CopyFrom(data);
             OnMessageReceived?.Invoke(this, lease);
         }
 
