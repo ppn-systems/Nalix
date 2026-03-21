@@ -7,8 +7,8 @@
 //
 // Note: Replace mocks with real Nalix types in your project.
 
-using Nalix.Common.Networking.Abstractions;
-using Nalix.Common.Shared.Caching;
+using Nalix.Common.Networking;
+using Nalix.Common.Shared;
 using Nalix.Network.Protocols;
 using System.Text;
 

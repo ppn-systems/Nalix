@@ -1,16 +1,15 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 
-using Nalix.Common.Diagnostics.Abstractions;
-using Nalix.Common.Networking.Packets.Abstractions;
-using Nalix.Common.Networking.Packets.Attributes;
+using Nalix.Common.Diagnostics;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Security.Enums;
+using Nalix.Common.Security;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Routing;
 using Nalix.Shared.Frames.Controls;
-using Nalix.Shared.Memory.Pooling;
+using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Examples.Handlers;
 
@@ -28,10 +27,12 @@ public sealed class PingHandlers
     [PacketPermission(PermissionLevel.GUEST)]
     public static async System.Threading.Tasks.Task Ping(PacketContext<IPacket> context)
     {
+        UInt32 fallbackSeq = context.Packet.SequenceId;
         System.Console.WriteLine("Received PING from " + context.Connection.RemoteEndPoint);
         // Chỉ nhận gói Control có type = PING
         if (context.Packet is not Handshake ping)
         {
+            System.Console.WriteLine($"[APP.{nameof(PingHandlers)}] Received non-PING packet from {context.Connection.RemoteEndPoint}");
             await context.Connection.SendAsync(
                 ControlType.ERROR,
                 ProtocolReason.MALFORMED_PACKET,
