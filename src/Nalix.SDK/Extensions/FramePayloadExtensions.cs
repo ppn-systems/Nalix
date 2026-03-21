@@ -53,10 +53,10 @@ public static class FramePayloadExtensions
         System.ArgumentNullException.ThrowIfNull(buffer);
         System.ArgumentNullException.ThrowIfNull(connection);
 
-        System.Int32 maxCipherLen = FrameTransformer.GetMaxCiphertextSize(connection.Options.EncryptionMode, buffer.Length);
+        System.Int32 maxCipherLen = FrameTransformer.GetMaxCiphertextSize(connection.Options.Algorithm, buffer.Length);
         BufferLease encLease = BufferLease.Rent(maxCipherLen + FrameTransformer.Offset);
 
-        if (!FrameTransformer.TryEncrypt(buffer, encLease, connection.Options.EncryptionKey, connection.Options.EncryptionMode))
+        if (!FrameTransformer.TryEncrypt(buffer, encLease, connection.Options.Secret, connection.Options.Algorithm))
         {
             encLease.Dispose();
             return null;

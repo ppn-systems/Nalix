@@ -533,9 +533,7 @@ public abstract partial class TcpListenerBase
             }
             catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-#if DEBUG
                 s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] shutdown-requested port={_port}");
-#endif
                 break;
             }
             catch (NetworkException)
@@ -559,9 +557,7 @@ public abstract partial class TcpListenerBase
                 }
 
                 _metrics.RECORD_ERROR();
-#if DEBUG
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] transient-socket-error={ex.SocketErrorCode} port={_port}");
-#endif
 
                 await System.Threading.Tasks.Task.Delay(50, System.Threading.CancellationToken.None)
                                                  .ConfigureAwait(false);
@@ -577,9 +573,7 @@ public abstract partial class TcpListenerBase
                 continue;
             }
 
-#if DEBUG
             s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accepted remote={connection.NetworkEndpoint} port={_port}");
-#endif
 
             PooledListenerProcessContext pctx = s_pool.Get<PooledListenerProcessContext>();
             pctx.Listener = this;
@@ -589,9 +583,7 @@ public abstract partial class TcpListenerBase
             ctx.Advance(1, note: "accepted");
         }
 
-#if DEBUG
         s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] loop-exited port={_port}");
-#endif
     }
 
     /// <summary>

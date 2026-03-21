@@ -207,6 +207,9 @@ public abstract partial class TcpListenerBase : IListener, IReportable
                 catch { }
 
                 _ = System.Threading.Interlocked.Exchange(ref self._state, (System.Int32)ListenerState.STOPPED);
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Info($"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] stopped port={self._port}");
             }
             catch (System.Exception ex)
             {

@@ -15,9 +15,13 @@ using Nalix.Shared.Memory.Buffers;
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// A reliable TCP client that delegates framing, send, and receive responsibilities to internal helpers.
-/// Supports automatic reconnection, keep-alive heartbeats, and bandwidth rate sampling.
+/// Represents a reliable TCP client session with automatic reconnection,
+/// heartbeat support, and bandwidth monitoring.
 /// </summary>
+/// <remarks>
+/// This class extends <see cref="BaseTcpSession"/> and delegates
+/// framing, sending, and receiving logic to internal helpers.
+/// </remarks>
 [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -25,18 +29,25 @@ public sealed class TcpSession : BaseTcpSession
 {
     #region Constants and Static Fields
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the size of the packet header in bytes.
+    /// </summary>
     public const System.Byte HeaderSize = 2;
 
+    /// <summary>
+    /// Gets the global packet registry used for packet resolution.
+    /// </summary>
     internal static readonly IPacketRegistry Catalog;
 
+    /// <summary>
+    /// Initializes static members of the <see cref="TcpSession"/> class.
+    /// </summary>
     static TcpSession()
     {
         Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
             ?? throw new System.InvalidOperationException("IPacketRegistry instance not found.");
 
         BufferConfig bufferConfig = ConfigurationManager.Instance.Get<BufferConfig>();
-
         bufferConfig.TotalBuffers = 32;
         bufferConfig.EnableMemoryTrimming = true;
         bufferConfig.TrimIntervalMinutes = 2;
@@ -54,91 +65,98 @@ public sealed class TcpSession : BaseTcpSession
         bufferConfig.MaxBufferIncreaseLimit = 16;
         bufferConfig.BufferAllocations = "256,0.25; 512,0.30; 1024,0.45";
         bufferConfig.MaxMemoryBytes = 0;
-
         bufferConfig.Validate();
     }
 
-    #endregion Constants and Static Fields
+    #endregion
 
     #region Fields
 
     private IWorkerHandle? _receiveHandle;
-
     private System.String? _host;
     private System.UInt16? _port;
-
     private System.Int32 _reconnecting = 0;
     private System.Int32 _hasEverConnected = 0;
-
     internal System.Int64 _bytesSent = 0;
     internal System.Int64 _bytesReceived = 0;
-
-    // Per-interval counters reset by RATE_SAMPLER_TICK
     internal System.Int64? _lastSampleTick = 0;
     internal System.Int64 _sendCounterForInterval = 0;
     internal System.Int64 _receiveCounterForInterval = 0;
-
-    // Last computed bandwidth samples (bytes/s)
     internal System.Int64 _lastSendBps = 0;
     internal System.Int64 _lastReceiveBps = 0;
 
-    #endregion Fields
+    #endregion
 
     #region Properties
 
     /// <summary>
-    /// Gets the total number of bytes sent since connection.
+    /// Gets the total number of bytes sent.
     /// </summary>
     public System.Int64 BytesSent => System.Threading.Interlocked.Read(ref _bytesSent);
 
     /// <summary>
-    /// Gets the total number of bytes received since connection.
+    /// Gets the total number of bytes received.
     /// </summary>
     public System.Int64 BytesReceived => System.Threading.Interlocked.Read(ref _bytesReceived);
 
     /// <summary>
-    /// Gets the average send bandwidth in bytes per second over the last sample interval.
+    /// Gets the current send rate in bytes per second.
     /// </summary>
     public System.Int64 SendBytesPerSecond => System.Threading.Interlocked.Read(ref _lastSendBps);
 
     /// <summary>
-    /// Gets the average receive bandwidth in bytes per second over the last sample interval.
+    /// Gets the current receive rate in bytes per second.
     /// </summary>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
 
-    #endregion Properties
+    #endregion
 
-
-    /// <inheritdoc/>
+    /// <summary>
+    /// Occurs when the client successfully reconnects.
+    /// </summary>
     public event System.EventHandler<System.Int32>? OnReconnected;
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TcpSession"/> class.
+    /// </summary>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown when required configuration or dependencies cannot be loaded.
+    /// </exception>
     public TcpSession() : base()
     {
         try
         {
             Options = ConfigurationManager.Instance.Get<TransportOptions>();
             Options.Validate();
+            Logging?.Info($"[SDK.{GetType().Name}] TransportOptions loaded and validated");
         }
         catch (System.Exception ex)
         {
+            Logging?.Error($"[SDK.{GetType().Name}] Failed to load TransportOptions: {ex.Message}", ex);
             throw new System.InvalidOperationException("Failed to load TransportOptions", ex);
         }
 
         if (Catalog is null)
         {
+            Logging?.Error($"[SDK.{GetType().Name}] Missing IPacketRegistry");
             throw new System.InvalidOperationException("Missing IPacketRegistry");
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Creates internal frame sender and receiver helpers.
+    /// </summary>
     protected override void CreateFrameHelpers()
     {
         _sender = new FRAME_SENDER(GET_CONNECTED_SOCKET_OR_THROW, Options, REPORT_BYTES_SENT, HANDLE_SEND_ERROR);
         _receiver = new FRAME_READER(GET_CONNECTED_SOCKET_OR_THROW, Options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
+        Logging?.Debug($"[SDK.{GetType().Name}] Frame helpers created");
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Starts the background worker responsible for receiving data.
+    /// </summary>
+    /// <param name="loopToken">Cancellation token controlling the receive loop.</param>
     protected override void StartReceiveWorker(System.Threading.CancellationToken loopToken)
     {
         if (_receiver is null)
@@ -154,18 +172,28 @@ public sealed class TcpSession : BaseTcpSession
                 work: async (_, workerCt) =>
                 {
                     var effective = workerCt.CanBeCanceled ? workerCt : loopToken;
+                    Logging?.Info($"[SDK.{GetType().Name}] Receive worker started");
                     await _receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
                 },
                 options: new WorkerOptions { CancellationToken = loopToken }
             );
         }
-        catch
+        catch (System.Exception ex)
         {
+            Logging?.Warn($"[SDK.{GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run", ex);
             _ = System.Threading.Tasks.Task.Run(() => _receiver.ReceiveLoopAsync(loopToken), loopToken);
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Connects to the specified TCP endpoint asynchronously.
+    /// </summary>
+    /// <param name="host">Target host name or IP address.</param>
+    /// <param name="port">Target port number.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when host is invalid.</exception>
+    /// <exception cref="System.Net.Sockets.SocketException">Thrown when connection fails.</exception>
     public override async System.Threading.Tasks.Task ConnectAsync(System.String? host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
@@ -182,11 +210,13 @@ public sealed class TcpSession : BaseTcpSession
             System.String.Equals(_host, effectiveHost, System.StringComparison.OrdinalIgnoreCase) &&
             _port == effectivePort)
         {
+            Logging?.Debug($"[SDK.{GetType().Name}] Already connected to {effectiveHost}:{effectivePort}");
             return;
         }
 
         if (IsConnected)
         {
+            Logging?.Debug($"[SDK.{GetType().Name}] Cleaning up existing connection");
             CLEANUP_CONNECTION();
         }
 
@@ -228,7 +258,6 @@ public sealed class TcpSession : BaseTcpSession
                     _socket = s;
                     _loopCts = new System.Threading.CancellationTokenSource();
                     loopToken = _loopCts.Token;
-
                     _host = effectiveHost;
                     _port = effectivePort;
                 }
@@ -236,13 +265,14 @@ public sealed class TcpSession : BaseTcpSession
                 CreateFrameHelpers();
 
                 System.Boolean isReconnect = System.Threading.Interlocked.Exchange(ref _hasEverConnected, 1) == 1;
-
                 if (isReconnect)
                 {
+                    Logging?.Info($"[SDK.{GetType().Name}] Reconnected to {effectiveHost}:{effectivePort}");
                     OnReconnected?.Invoke(this, 0);
                 }
                 else
                 {
+                    Logging?.Info($"[SDK.{GetType().Name}] Connected to {effectiveHost}:{effectivePort}");
                     RaiseConnected();
                 }
 
@@ -254,10 +284,12 @@ public sealed class TcpSession : BaseTcpSession
             catch (System.Exception ex)
             {
                 lastEx = ex;
+                Logging?.Warn($"[SDK.{GetType().Name}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
                 try { s.Dispose(); } catch { }
             }
         }
 
+        Logging?.Error($"[SDK.{GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx);
         throw lastEx ?? new System.Net.Sockets.SocketException((System.Int32)System.Net.Sockets.SocketError.HostNotFound);
     }
 
@@ -278,6 +310,7 @@ public sealed class TcpSession : BaseTcpSession
     /// <inheritdoc/>
     protected override void HANDLE_SEND_ERROR(System.Exception ex)
     {
+        Logging?.Warn($"[SDK.{GetType().Name}] Send error: {ex.Message}", ex);
         RaiseError(ex);
         TriggerReconnect(ex);
     }
@@ -285,6 +318,7 @@ public sealed class TcpSession : BaseTcpSession
     /// <inheritdoc/>
     protected override void HANDLE_RECEIVE_ERROR(System.Exception ex)
     {
+        Logging?.Warn($"[SDK.{GetType().Name}] Receive error: {ex.Message}", ex);
         RaiseError(ex);
         TriggerReconnect(ex);
     }
@@ -293,7 +327,12 @@ public sealed class TcpSession : BaseTcpSession
     {
         if (System.Threading.Interlocked.CompareExchange(ref _reconnecting, 1, 0) == 0)
         {
+            Logging?.Info($"[SDK.{GetType().Name}] Triggering auto-reconnect after error: {ex.Message}");
             _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
+        }
+        else
+        {
+            Logging?.Trace($"[SDK.{GetType().Name}] Reconnect already in progress, skipping.");
         }
     }
 
@@ -301,7 +340,6 @@ public sealed class TcpSession : BaseTcpSession
     protected override void CLEANUP_CONNECTION()
     {
         System.Boolean wasConnected = IsConnected;
-
         base.CLEANUP_CONNECTION();
 
         try
@@ -310,29 +348,31 @@ public sealed class TcpSession : BaseTcpSession
             {
                 try
                 {
-
                     InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                            .CancelWorker(_receiveHandle.Id);
-
+                        .CancelWorker(_receiveHandle.Id);
                     _receiveHandle = null;
+                    Logging?.Debug($"[SDK.{GetType().Name}] Receive worker cancelled");
                 }
                 catch
                 {
-                    Logging?.Warn($"Failed to cancel receive worker for {_host}:{_port}");
+                    Logging?.Warn($"[SDK.{GetType().Name}] Failed to cancel receive worker for {_host}:{_port}");
                 }
             }
         }
-        catch { }
-
+        catch (System.Exception ex)
+        {
+            Logging?.Warn($"[SDK.{GetType().Name}] Exception during CLEANUP_CONNECTION: {ex.Message}", ex);
+        }
         if (wasConnected)
         {
+            Logging?.Info($"[SDK.{GetType().Name}] Disconnected");
             RaiseDisconnected(new System.Exception("Disconnected"));
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1163:Unused parameter", Justification = "<Pending>")]
     internal async System.Threading.Tasks.Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(System.Exception cause)
     {
+        Logging?.Debug($"[SDK.{GetType().Name}] HANDLE_DISCONNECT_AND_RECONNECT_ASYNC called after: {cause.Message}");
         CLEANUP_CONNECTION();
 
         if (!Options.ReconnectEnabled || System.Threading.Volatile.Read(ref _disposed) == 1)
@@ -353,20 +393,21 @@ public sealed class TcpSession : BaseTcpSession
                (Options.ReconnectMaxAttempts == 0 || attempt < Options.ReconnectMaxAttempts))
         {
             attempt++;
-
             System.Int64 jitter = (System.Int64)(Csprng.NextDouble() * delay * 0.3);
             await System.Threading.Tasks.Task.Delay((System.Int32)System.Math.Min(delay + jitter, System.Int32.MaxValue));
-
             try
             {
                 await ConnectAsync(_host, _port);
+                Logging?.Info($"[SDK.{GetType().Name}] Successfully reconnected to {_host}:{_port} after {attempt} attempt(s)");
                 OnReconnected?.Invoke(this, attempt);
                 return;
             }
-            catch
+            catch (System.Exception ex)
             {
+                Logging?.Warn($"[SDK.{GetType().Name}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
                 delay = System.Math.Min(max, delay * 2);
             }
         }
+        Logging?.Error($"[SDK.{GetType().Name}] Reconnect attempts exhausted or stopped");
     }
 }
