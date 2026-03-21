@@ -280,13 +280,17 @@ public sealed class PacketRegistryFactory
                 continue;
             }
 
-            // BUG FIX: duplicate magic was only logged, not blocked.
-            // Now we log AND skip to prevent last-write-wins silently overwriting.
-            if (deserializers.ContainsKey(key))
+            if (deserializers.TryGetValue(key, out var existing))
             {
                 System.Type existingType = FIND_TYPE_BY_MAGIC(key);
-                INFO($"[FATAL] dup-magic val=0x{key:X8} new={type.FullName} existing={existingType.FullName} — skipping new type");
-                continue;
+
+                throw new System.InvalidOperationException(
+                    $"[PacketRegistryFactory] Hash collision detected!\n" +
+                    $"Magic: 0x{key:X8}\n" +
+                    $"Type A: {existingType.FullName}\n" +
+                    $"Type B: {type.FullName}\n" +
+                    $"Hint: consider changing namespace or switching to 64-bit hash."
+                );
             }
 
             // Bind deserialize pointer into PacketFunctionTable<TPacket>
@@ -338,12 +342,11 @@ public sealed class PacketRegistryFactory
     {
         System.ArgumentNullException.ThrowIfNull(type);
 
-        // BUG FIX: original code read chars one at a time (XOR then multiply per char).
         // Standard FNV-1a hashes BYTES, not chars. For ASCII-safe type names the result
         // is the same, but for any non-ASCII char the high byte was silently dropped.
-        // Fix: encode to UTF-8 bytes first, then apply FNV-1a over bytes.
         System.ReadOnlySpan<System.Char> name = System.MemoryExtensions.AsSpan(type.FullName ?? type.Name);
         System.Span<System.Byte> buf = stackalloc System.Byte[System.Text.Encoding.UTF8.GetMaxByteCount(name.Length)];
+
         System.Int32 written = System.Text.Encoding.UTF8.GetBytes(name, buf);
 
         System.UInt32 hash = 2166136261u; // FNV-1a 32-bit offset basis

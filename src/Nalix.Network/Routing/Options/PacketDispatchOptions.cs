@@ -24,6 +24,23 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     private readonly System.Collections.Generic.Dictionary<System.UInt16, PacketHandler<TPacket>> _handlerCache;
 
     /// <summary>
+    /// Maps each registered opCode to the concrete packet type expected by its handler method.
+    /// Populated automatically by <see cref="WithHandler{TController}(System.Func{TController})"/>.
+    /// Used at dispatch time to validate that the deserialized packet's runtime type matches
+    /// what the handler was compiled against — catching mismatches early with a clear error
+    /// instead of a silent <see cref="System.InvalidCastException"/> inside the expression tree.
+    /// </summary>
+    /// <remarks>
+    /// Key   = opCode (UInt16)<br/>
+    /// Value = concrete <see cref="System.Type"/> that implements <typeparamref name="TPacket"/>,
+    ///         e.g. <c>typeof(LoginPacket)</c>. The value is the first parameter type of the
+    ///         handler method as reflected by <see cref="System.Reflection.ParameterInfo"/>.
+    ///         For context-style handlers (<c>PacketContext&lt;TPacket&gt;</c>) the entry is
+    ///         <see langword="null"/> — no concrete-type check is needed there.
+    /// </remarks>
+    private readonly System.Collections.Generic.Dictionary<System.UInt16, System.Type> _packetTypeMap;
+
+    /// <summary>
     /// Network buffer middleware pipeline for processing raw byte buffers before packet transformation.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
@@ -44,6 +61,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     public PacketDispatchOptions()
     {
         _handlerCache = [];
+        _packetTypeMap = [];
         _pipeline = new MiddlewarePipeline<TPacket>();
 
         NetworkPipeline = new NetworkBufferMiddlewarePipeline();
