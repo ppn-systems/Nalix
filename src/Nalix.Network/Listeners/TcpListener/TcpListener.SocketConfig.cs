@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Networking;
+
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
@@ -96,6 +98,78 @@ public abstract partial class TcpListenerBase
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
     }
 
+    /// <summary>
+    /// Applies per-connection socket options to an accepted client socket.
+    /// </summary>
+    /// <param name="socket">
+    /// The accepted client socket to configure. Must not be <see langword="null"/>.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// Called by <see cref="InitializeConnection"/> immediately after a socket is accepted,
+    /// before the <see cref="IConnection"/> wrapper is constructed. Options applied here
+    /// affect only the individual client socket — not the listener socket itself.
+    /// </para>
+    /// <para>
+    /// The following options are always applied:
+    /// <list type="bullet">
+    ///   <item>
+    ///     <term><c>Blocking = true</c></term>
+    ///     <description>
+    ///     Keeps the socket in blocking mode. Task-based async I/O works correctly with
+    ///     blocking sockets; forcing non-blocking mode here would require all receive/send
+    ///     loops to handle <see cref="System.Net.Sockets.SocketError.WouldBlock"/> explicitly.
+    ///     </description>
+    ///   </item>
+    ///   <item>
+    ///     <term><c>NoDelay</c></term>
+    ///     <description>
+    ///     Controls Nagle's algorithm. Set to <see langword="true"/> to disable batching and
+    ///     reduce latency (recommended for interactive or real-time protocols).
+    ///     Driven by <c>s_config.NoDelay</c>.
+    ///     </description>
+    ///   </item>
+    ///   <item>
+    ///     <term><c>SendBufferSize</c> / <c>ReceiveBufferSize</c></term>
+    ///     <description>
+    ///     Sets the OS-level socket send and receive buffers to <c>s_config.BufferSize</c>.
+    ///     Larger values reduce syscall frequency under high throughput at the cost of memory.
+    ///     </description>
+    ///   </item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// When <c>s_config.KeepAlive</c> is <see langword="true"/>, TCP keep-alive probing is
+    /// enabled with the following timings:
+    /// <list type="bullet">
+    ///   <item>
+    ///     <term>Keep-alive time</term>
+    ///     <description>3 seconds — idle time before the first probe is sent.</description>
+    ///   </item>
+    ///   <item>
+    ///     <term>Keep-alive interval</term>
+    ///     <description>1 second — time between subsequent probes.</description>
+    ///   </item>
+    ///   <item>
+    ///     <term>Keep-alive retry count</term>
+    ///     <description>3 probes — after which the connection is considered dead.</description>
+    ///   </item>
+    /// </list>
+    /// The cross-platform <c>TcpKeepAliveTime</c> / <c>TcpKeepAliveInterval</c> /
+    /// <c>TcpKeepAliveRetryCount</c> socket options are attempted first (available on
+    /// .NET 5+ across Windows, Linux, and macOS). If that call fails — typically on older
+    /// runtimes or restricted environments — the method falls back to the Windows-only
+    /// <c>SIO_KEEPALIVE_VALS</c> IOControl, which packs the same three values into a
+    /// 12-byte little-endian struct sent via
+    /// <see cref="System.Net.Sockets.Socket.IOControl(System.Net.Sockets.IOControlCode, global::System.Byte[], global::System.Byte[])"/>.
+    /// The fallback is silently skipped on non-Windows platforms.
+    /// </para>
+    /// <para>
+    /// Subclasses may call <c>base.InitializeOptions(socket)</c> and then apply additional
+    /// socket options for specialized transports (for example, TLS timeout tuning or
+    /// protocol-specific buffer sizing).
+    /// </para>
+    /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
@@ -103,7 +177,7 @@ public abstract partial class TcpListenerBase
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    private static void InitializeOptions([System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket)
+    protected static void InitializeOptions([System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket)
     {
         // When you want to disconnect immediately without making sure the data has been sent.
         // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);

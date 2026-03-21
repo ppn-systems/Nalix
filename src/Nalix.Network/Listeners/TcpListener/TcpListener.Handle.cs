@@ -14,8 +14,20 @@ namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
+    /// <summary>
+    /// Finalizes the acceptance of an incoming connection by invoking the protocol handler
+    /// and recording the accepted metric.
+    /// </summary>
+    /// <param name="connection">
+    /// The fully initialized <see cref="IConnection"/> instance representing the accepted client.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <remarks>
+    /// If the protocol's <c>OnAccept</c> call throws, the exception is caught, logged, and the
+    /// connection is closed immediately — the listener loop continues uninterrupted.
+    /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    private void ProcessConnection(
+    protected void ProcessConnection(
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
         try
@@ -33,8 +45,29 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    /// <summary>
+    /// Handles the <see cref="IConnection.OnCloseEvent"/> event raised when a client connection
+    /// is closed, either by the remote peer or by the server.
+    /// </summary>
+    /// <param name="sender">
+    /// The object that raised the event. May be <see langword="null"/>.
+    /// </param>
+    /// <param name="args">
+    /// The event arguments containing the <see cref="IConnection"/> that was closed.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// Unsubscribes all event handlers from the closing connection before calling
+    /// <see cref="Connection.Dispose"/> to prevent memory leaks and duplicate callbacks.
+    /// </para>
+    /// <para>
+    /// If <paramref name="args"/> or its <see cref="IConnectEventArgs.Connection"/> is
+    /// <see langword="null"/>, this method returns immediately without performing any action.
+    /// </para>
+    /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    private void HandleConnectionClose(
+    protected void HandleConnectionClose(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
@@ -55,6 +88,34 @@ public abstract partial class TcpListenerBase
         s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] close={args.Connection?.NetworkEndpoint}");
     }
 
+    /// <summary>
+    /// Configures socket options, constructs a new <see cref="IConnection"/>, and subscribes
+    /// all required event handlers on it.
+    /// </summary>
+    /// <param name="socket">
+    /// The raw <see cref="System.Net.Sockets.Socket"/> accepted from the listener.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <param name="context">
+    /// The pooled accept context that was used for the accept operation.
+    /// Returned to the pool immediately after this method claims the socket — callers must
+    /// not touch <paramref name="context"/> after this call returns.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <returns>
+    /// A fully configured <see cref="IConnection"/> ready to send and receive data.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// The <paramref name="context"/> is returned to the pool <em>before</em> the connection
+    /// object is constructed, because the context is only needed during the accept phase and
+    /// the pool slot can be reused immediately by the next pending accept.
+    /// </para>
+    /// <para>
+    /// If <c>EnableTimeout</c> is set in the server configuration, the connection is registered
+    /// with the <see cref="TimingWheel"/> for idle-timeout tracking.
+    /// </para>
+    /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
     private IConnection InitializeConnection(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket,
@@ -83,11 +144,22 @@ public abstract partial class TcpListenerBase
         return connection;
     }
 
+    /// <summary>
+    /// Closes a socket, swallowing any exception that occurs during the close operation.
+    /// </summary>
+    /// <param name="socket">
+    /// The socket to close. If <see langword="null"/>, this method is a no-op.
+    /// </param>
+    /// <remarks>
+    /// Intended for use in error-recovery paths where the socket may already be in an
+    /// indeterminate state. Exceptions are logged at <c>Debug</c> level and not rethrown,
+    /// so the caller's error-handling flow is never interrupted by a secondary failure.
+    /// </remarks>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void SafeCloseSocket(
+    protected static void SafeCloseSocket(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.Socket socket)
     {
         try
@@ -101,8 +173,48 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    /// <summary>
+    /// Processes the result of a single accept operation represented by
+    /// <paramref name="args"/>, initializing the connection on success or recovering
+    /// the pooled resources on failure.
+    /// </summary>
+    /// <param name="args">
+    /// The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> that completed the accept.
+    /// Must be a <see cref="PooledSocketAsyncEventArgs"/> instance.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// On success the method validates the accepted socket, checks the connection limiter,
+    /// wires up a <see cref="PooledListenerProcessContext"/>, calls
+    /// <see cref="DISPATCH_CONNECTION"/>, and rebinds a fresh <see cref="PooledAcceptContext"/>
+    /// on <paramref name="args"/> so it can be reused for the next accept.
+    /// </para>
+    /// <para>
+    /// On failure the method always ensures that any borrowed pool objects are returned and
+    /// that <see cref="System.Net.Sockets.SocketAsyncEventArgs.AcceptSocket"/> is reset to
+    /// <see langword="null"/> (in the <c>finally</c> block) so the args is safe to reuse.
+    /// </para>
+    /// <para>
+    /// Three distinct exception paths are handled:
+    /// <list type="bullet">
+    ///   <item>
+    ///     <see cref="System.ObjectDisposedException"/> — the listener was closed mid-accept;
+    ///     logged as a warning, socket and context are cleaned up.
+    ///   </item>
+    ///   <item>
+    ///     <see cref="System.Exception"/> (general) — metrics are incremented, error is logged,
+    ///     socket and context are cleaned up, and a fresh context is bound for the next accept.
+    ///   </item>
+    ///   <item>
+    ///     <see cref="System.Net.Sockets.SocketError"/> != <c>Success</c> — accept did not
+    ///     produce a socket; context is returned and rebound.
+    ///   </item>
+    /// </list>
+    /// </para>
+    /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    private void HandleAccept(
+    protected void HandleAccept(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs args)
     {
         try
@@ -201,8 +313,35 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    /// <summary>
+    /// Callback invoked by the socket runtime when a synchronous-path accept operation
+    /// completes asynchronously (i.e. <see cref="System.Net.Sockets.Socket.AcceptAsync(System.Net.Sockets.SocketAsyncEventArgs)"/>
+    /// returned <see langword="true"/> and later fired the <c>Completed</c> event).
+    /// </summary>
+    /// <param name="sender">
+    /// The source of the event. May be <see langword="null"/>.
+    /// </param>
+    /// <param name="args">
+    /// The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> whose accept operation
+    /// completed. Must be a <see cref="PooledSocketAsyncEventArgs"/> instance.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// After processing the completed accept via <see cref="HandleAccept"/>, this method
+    /// unsubscribes itself from <paramref name="args"/> and returns the args to the pool.
+    /// It then allocates a fresh pair of <see cref="PooledAcceptContext"/> and
+    /// <see cref="PooledSocketAsyncEventArgs"/>, wires up the callback, and calls
+    /// <see cref="AcceptNext"/> to keep the accept pipeline flowing.
+    /// </para>
+    /// <para>
+    /// The unsubscription happens in the <c>finally</c> block to guarantee it occurs even if
+    /// <see cref="HandleAccept"/> throws, preventing the args from firing a stale callback
+    /// after it has been returned to the pool.
+    /// </para>
+    /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
-    private void OnSyncAcceptCompleted(
+    protected void OnSyncAcceptCompleted(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs args)
     {
@@ -230,11 +369,49 @@ public abstract partial class TcpListenerBase
         this.AcceptNext(newArgs, _cancellationToken);
     }
 
+    /// <summary>
+    /// Drives the synchronous accept loop: calls
+    /// <see cref="System.Net.Sockets.Socket.AcceptAsync(System.Net.Sockets.SocketAsyncEventArgs)"/> in a tight loop, handling
+    /// both the immediate (synchronous) completion path and scheduling the
+    /// asynchronous completion path via the <c>Completed</c> event.
+    /// </summary>
+    /// <param name="args">
+    /// The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> to use for each accept call.
+    /// Must be a <see cref="PooledSocketAsyncEventArgs"/> with a bound
+    /// <see cref="PooledAcceptContext"/>.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// Token used to signal that the listener is shutting down.
+    /// The loop exits cleanly when cancellation is requested.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// When <see cref="System.Net.Sockets.Socket.AcceptAsync(System.Net.Sockets.SocketAsyncEventArgs)"/> returns
+    /// <see langword="true"/> the operation is pending — the loop breaks and control returns
+    /// to the caller; the <c>Completed</c> event on <paramref name="args"/> will resume
+    /// processing via <see cref="OnSyncAcceptCompleted"/>.
+    /// </para>
+    /// <para>
+    /// When <see cref="System.Net.Sockets.Socket.AcceptAsync(System.Net.Sockets.SocketAsyncEventArgs)"/> returns
+    /// <see langword="false"/> the accept completed synchronously — <see cref="HandleAccept"/>
+    /// is called inline and the loop continues.
+    /// </para>
+    /// <para>
+    /// Expected shutdown exceptions (<see cref="System.ObjectDisposedException"/>,
+    /// <see cref="System.Net.Sockets.SocketError.Interrupted"/>,
+    /// <see cref="System.Net.Sockets.SocketError.OperationAborted"/>,
+    /// <see cref="System.Net.Sockets.SocketError.ConnectionAborted"/>) cause a clean break.
+    /// Other exceptions are logged and the loop pauses for 50 ms before retrying to avoid
+    /// CPU-spinning on persistent errors.
+    /// </para>
+    /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void AcceptNext(
+    protected void AcceptNext(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs args,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
     {
@@ -291,10 +468,54 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    /// <summary>
+    /// Asynchronous accept loop that runs as a background worker for the lifetime of the listener.
+    /// Continuously accepts incoming TCP connections and dispatches each one for processing.
+    /// </summary>
+    /// <param name="ctx">
+    /// The worker context used to signal liveness (heartbeat) and to track processed-connection
+    /// counts. Must not be <see langword="null"/>.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// Token used to signal a graceful shutdown. When cancelled, the loop exits after the
+    /// current accept completes or is interrupted.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <returns>
+    /// A <see cref="System.Threading.Tasks.Task"/> that completes when the loop has exited.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// The following exception types are handled without terminating the loop:
+    /// <list type="bullet">
+    ///   <item>
+    ///     <see cref="System.OperationCanceledException"/> (when <paramref name="cancellationToken"/>
+    ///     is cancelled) — exits the loop cleanly.
+    ///   </item>
+    ///   <item>
+    ///     <see cref="NetworkException"/> — a rate-limited or limiter-rejected connection;
+    ///     the loop pauses for 10 ms and continues.
+    ///   </item>
+    ///   <item>
+    ///     <see cref="System.Net.Sockets.SocketException"/> with an ignorable error code
+    ///     (see <c>IsIgnorableAcceptError</c>) — transient OS-level accept failure; the loop
+    ///     pauses for 50 ms and continues.
+    ///   </item>
+    ///   <item>
+    ///     Any other <see cref="System.Exception"/> (when not cancelled) — unexpected failure;
+    ///     metrics are incremented, the error is logged, and the loop pauses for 50 ms.
+    ///   </item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// On each successfully accepted connection a <see cref="PooledListenerProcessContext"/>
+    /// is retrieved from the pool, populated, and forwarded to <see cref="DISPATCH_CONNECTION"/>.
+    /// </para>
+    /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private async System.Threading.Tasks.Task AcceptConnectionsAsync(
+    protected async System.Threading.Tasks.Task AcceptConnectionsAsync(
         [System.Diagnostics.CodeAnalysis.NotNull] IWorkerContext ctx,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
     {
@@ -373,12 +594,56 @@ public abstract partial class TcpListenerBase
 #endif
     }
 
+    /// <summary>
+    /// Asynchronously accepts a single TCP connection from the listener socket,
+    /// validates it against the connection limiter, and returns a fully initialized
+    /// <see cref="IConnection"/>.
+    /// </summary>
+    /// <param name="cancellationToken">
+    /// Token used to abort the accept operation. When cancelled,
+    /// <see cref="System.OperationCanceledException"/> is propagated to the caller.
+    /// Must not be <see langword="null"/>.
+    /// </param>
+    /// <returns>
+    /// A <see cref="System.Threading.Tasks.ValueTask{TResult}"/> whose result is the
+    /// accepted and initialized <see cref="IConnection"/>.
+    /// </returns>
+    /// <exception cref="System.InvalidOperationException">
+    /// Thrown when the listener socket has not been initialized (i.e. <c>_listener</c> is
+    /// <see langword="null"/>).
+    /// </exception>
+    /// <exception cref="NetworkException">
+    /// Thrown in the following cases:
+    /// <list type="bullet">
+    ///   <item>The remote endpoint was rejected by the connection limiter.</item>
+    ///   <item>A <see cref="System.Net.Sockets.SocketException"/> occurred during accept.</item>
+    ///   <item>Any other unexpected exception occurred during accept.</item>
+    /// </list>
+    /// </exception>
+    /// <exception cref="System.OperationCanceledException">
+    /// Propagated when <paramref name="cancellationToken"/> is cancelled during the
+    /// async accept wait.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// A <see cref="PooledAcceptContext"/> is borrowed from the pool before the async accept
+    /// and is returned to the pool in all exit paths — either by
+    /// <see cref="InitializeConnection"/> on the success path, or explicitly in every
+    /// catch/early-return branch via a <c>contextReturned</c> guard flag to avoid
+    /// double-return bugs.
+    /// </para>
+    /// <para>
+    /// The <c>cancellationToken</c> parameter is intentionally unused beyond the initial
+    /// <see cref="System.Threading.CancellationToken.ThrowIfCancellationRequested"/> check;
+    /// the actual token is forwarded to <c>BeginAcceptAsync</c> internally.
+    /// </para>
+    /// </remarks>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(
+    protected async System.Threading.Tasks.ValueTask<IConnection> CreateConnectionAsync(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
