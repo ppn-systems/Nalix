@@ -984,7 +984,7 @@ public sealed class ExplicitPacket
     [SerializeOrder(1)]
     public int A { get; set; }
 
-    [SerializeOrder(20)]
+    [SerializeOrder(200)]
     public int B { get; set; }
 }
 """;
@@ -1339,26 +1339,6 @@ public sealed class BadDeserializePacket : PacketBase<BadDeserializePacket>
         await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX017");
     }
 
-    [Fact]
-    public async Task PacketMemberOverlapsHeaderRegion_ReportsNalix022()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Common.Serialization;
-using Nalix.Framework.DataFrames;
-
-[SerializePackable(SerializeLayout.Explicit)]
-public sealed class HeaderOverlapPacket : PacketBase<HeaderOverlapPacket>
-{
-    [SerializeOrder(1)]
-    public int Dangerous { get; set; }
-
-    public static new HeaderOverlapPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<HeaderOverlapPacket>.Deserialize(buffer);
-}
-""";
-
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX022");
-    }
 
     [Fact]
     public async Task RequestAsyncEncryptOnTcpSession_DoesNotReportNalix029Or053()
@@ -1451,6 +1431,29 @@ public static class Setup
         _ = new PacketDispatchOptions<DemoPacket>().WithMiddleware(new Mw1());
         _ = new PacketDispatchOptions<DemoPacket>().WithMiddleware(new Mw2());
     }
+}
+""";
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task SerializeOrderStartingFromZero_DoesNotReportNalix022()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Common.Serialization;
+using Nalix.Framework.DataFrames;
+
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed class MyPacket : PacketBase<MyPacket>
+{
+    [SerializeOrder(0)]
+    public int FieldA { get; set; }
+
+    [SerializeOrder(1)]
+    public int FieldB { get; set; }
+
+    public static new MyPacket Deserialize(ReadOnlyMemory<byte> buffer) => null!;
 }
 """;
 
