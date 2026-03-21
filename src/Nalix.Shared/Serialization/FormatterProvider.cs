@@ -302,6 +302,48 @@ public static class FormatterProvider
             return CacheOrGetExisting(f);
         }
 
+        // 1.2) Dictionary<,> (also support Nullable<Dictionary<,>>)
+        IFormatter<T>? dictFormatter = TryCreateDictionaryFormatter<T>();
+        if (dictFormatter is not null)
+        {
+            return CacheOrGetExisting(dictFormatter);
+        }
+
+        // 1.3) Queue<T>
+        IFormatter<T>? queueFormatter = TryCreateQueueFormatter<T>();
+        if (queueFormatter is not null)
+        {
+            return CacheOrGetExisting(queueFormatter);
+        }
+
+        // 1.4) Stack<T>
+        IFormatter<T>? stackFormatter = TryCreateStackFormatter<T>();
+        if (stackFormatter is not null)
+        {
+            return CacheOrGetExisting(stackFormatter);
+        }
+
+        // 1.5) HashSet<T>
+        IFormatter<T>? hashSetFormatter = TryCreateHashSetFormatter<T>();
+        if (hashSetFormatter is not null)
+        {
+            return CacheOrGetExisting(hashSetFormatter);
+        }
+
+        // 1.6) Memory<T> / ReadOnlyMemory<T>
+        IFormatter<T>? memoryFormatter = TryCreateMemoryFormatter<T>();
+        if (memoryFormatter is not null)
+        {
+            return CacheOrGetExisting(memoryFormatter);
+        }
+
+        // 1.7) ValueTuple<...>
+        IFormatter<T>? tupleFormatter = TryCreateValueTupleFormatter<T>();
+        if (tupleFormatter is not null)
+        {
+            return CacheOrGetExisting(tupleFormatter);
+        }
+
         // 2) List<T>
         f = TryCreateListFormatter<T>();
         if (f is not null)
@@ -380,12 +422,7 @@ public static class FormatterProvider
 
             // Use cached factory delegate instead of reflection
             var factory = GetFormatterFactory(type, typeof(StructFormatter<>));
-            System.Object? @struct = factory();
-            if (@struct is null)
-            {
-                throw new System.InvalidOperationException($"Failed to create instance of StructFormatter<{type.Name}>.");
-            }
-
+            System.Object? @struct = factory() ?? throw new System.InvalidOperationException($"Failed to create instance of StructFormatter<{type.Name}>.");
             RegisterComplex((IFormatter<T>)@struct);
             return ComplexTypeCache<T>.Struct;
         }
@@ -398,12 +435,7 @@ public static class FormatterProvider
             }
 
             var factory = GetFormatterFactory(type, typeof(ObjectFormatter<>));
-            System.Object? @object = factory();
-            if (@object is null)
-            {
-                throw new System.InvalidOperationException($"Failed to create instance of ObjectFormatter<{type.Name}>.");
-            }
-
+            System.Object? @object = factory() ?? throw new System.InvalidOperationException($"Failed to create instance of ObjectFormatter<{type.Name}>.");
             RegisterComplex((IFormatter<T>)@object);
             return ComplexTypeCache<T>.Class;
         }
@@ -543,6 +575,167 @@ public static class FormatterProvider
 
         // List<class>
         return (IFormatter<T>)System.Activator.CreateInstance(typeof(ReferenceListFormatter<>).MakeGenericType(elem))!;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T>? TryCreateDictionaryFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    {
+        System.Type t = typeof(T);
+
+        System.Type target = t.IsGenericType && t.GetGenericTypeDefinition() == typeof(System.Nullable<>)
+            ? t.GetGenericArguments()[0]
+            : t;
+
+        if (!target.IsGenericType ||
+            target.GetGenericTypeDefinition() != typeof(System.Collections.Generic.Dictionary<,>))
+        {
+            return null;
+        }
+
+        System.Type[] args = target.GetGenericArguments(); // [TKey, TValue]
+        System.Type keyType = args[0];
+        System.Type valType = args[1];
+
+        System.Type formatterType = typeof(DictionaryFormatter<,>).MakeGenericType(keyType, valType);
+
+        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
+    }
+
+    private static IFormatter<T>? TryCreateQueueFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    {
+        System.Type t = typeof(T);
+
+        if (!t.IsGenericType ||
+            t.GetGenericTypeDefinition() != typeof(System.Collections.Generic.Queue<>))
+        {
+            return null;
+        }
+
+        System.Type elementType = t.GetGenericArguments()[0];
+
+        return elementType.IsClass && elementType != typeof(System.String)
+        ? throw new System.NotSupportedException(
+            $"QueueFormatter does not support class element. T={elementType.Name}.")
+        : (IFormatter<T>)System.Activator.CreateInstance(
+        typeof(QueueFormatter<>).MakeGenericType(elementType))!;
+    }
+
+    private static IFormatter<T>? TryCreateStackFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>()
+    {
+        System.Type t = typeof(T);
+        if (!t.IsGenericType ||
+            t.GetGenericTypeDefinition() != typeof(System.Collections.Generic.Stack<>))
+        {
+            return null;
+        }
+
+        System.Type elem = t.GetGenericArguments()[0];
+        return elem.IsClass && elem != typeof(System.String)
+        ? throw new System.NotSupportedException(
+            $"StackFormatter does not support class element. T={elem.Name}.")
+        : (IFormatter<T>)System.Activator.CreateInstance(
+        typeof(StackFormatter<>).MakeGenericType(elem))!;
+    }
+
+    private static IFormatter<T>? TryCreateHashSetFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>()
+    {
+        System.Type t = typeof(T);
+        if (!t.IsGenericType ||
+            t.GetGenericTypeDefinition() != typeof(System.Collections.Generic.HashSet<>))
+        {
+            return null;
+        }
+
+        System.Type elem = t.GetGenericArguments()[0];
+        return elem.IsClass && elem != typeof(System.String)
+        ? throw new System.NotSupportedException(
+            $"HashSetFormatter does not support class element. T={elem.Name}.")
+        : (IFormatter<T>)System.Activator.CreateInstance(
+        typeof(HashSetFormatter<>).MakeGenericType(elem))!;
+    }
+
+    private static IFormatter<T>? TryCreateMemoryFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>()
+    {
+        System.Type t = typeof(T);
+        if (!t.IsGenericType)
+        {
+            return null;
+        }
+
+        System.Type def = t.GetGenericTypeDefinition();
+        System.Type elem = t.GetGenericArguments()[0];
+
+        return !TypeMetadata.IsUnmanaged(elem)
+            ? throw new System.NotSupportedException($"MemoryFormatter only supports unmanaged element types.T='{elem.Name}' is not unmanaged. For strings, use IFormatter<string> directly.")
+            : def == typeof(System.Memory<>) ? (IFormatter<T>)System.Activator.CreateInstance(typeof(MemoryFormatter<>).MakeGenericType(elem))!
+            : def == typeof(System.ReadOnlyMemory<>) ? (IFormatter<T>)System.Activator.CreateInstance(typeof(ReadOnlyMemoryFormatter<>).MakeGenericType(elem))! : null;
+    }
+
+    private static readonly System.Collections.Generic.HashSet<System.Type> s_valueTupleDefinitions =
+    [
+        typeof(System.ValueTuple<,>),
+        typeof(System.ValueTuple<,,>),
+        typeof(System.ValueTuple<,,,>),
+        typeof(System.ValueTuple<,,,,>)
+    ];
+
+    private static readonly System.Collections.Generic.Dictionary<System.Int32, System.Type> s_valueTupleFormatterDefs =
+        new()
+        {
+        { 2, typeof(ValueTupleFormatter<,>) },
+        { 3, typeof(ValueTupleFormatter<,,>) },
+        { 4, typeof(ValueTupleFormatter<,,,>) },
+        { 5, typeof(ValueTupleFormatter<,,,,>) },
+        };
+
+    private static IFormatter<T>? TryCreateValueTupleFormatter<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>()
+    {
+        System.Type t = typeof(T);
+
+        if (!t.IsGenericType)
+        {
+            return null;
+        }
+
+        System.Type def = t.GetGenericTypeDefinition();
+
+        if (!s_valueTupleDefinitions.Contains(def))
+        {
+            return null;
+        }
+
+        System.Type[] typeArgs = t.GetGenericArguments();
+        System.Int32 arity = typeArgs.Length;
+
+        System.Int32 formatterArity = System.Math.Min(arity, 5);
+
+        if (!s_valueTupleFormatterDefs.TryGetValue(formatterArity, out System.Type? formatterDef))
+        {
+            throw new System.NotSupportedException(
+                $"ValueTupleFormatter: arity {arity} is not supported.");
+        }
+
+        System.Type formatterType =
+            formatterDef.MakeGenericType(typeArgs[..formatterArity]);
+
+        return (IFormatter<T>)System.Activator.CreateInstance(formatterType)!;
     }
 
     #endregion Private Methods
