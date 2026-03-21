@@ -48,7 +48,7 @@ public interface IPacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// based on the current handler's attributes.
     /// Use this instead of calling connection.TCP.SendAsync() directly.
     /// </summary>
-    IPacketSender<TPacket> Sender { get; }
+    IPacketSender Sender { get; }
 
     /// <summary>
     /// Gets or sets the cancellation token associated with the packet context.

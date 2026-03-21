@@ -10,11 +10,10 @@ namespace Nalix.Common.Networking.Packets;
 /// <summary>
 /// Abstracts packet sending with automatic transform (encrypt/compress)
 /// </summary>
-/// <typeparam name="TPacket"></typeparam>
-public interface IPacketSender<TPacket> : IPoolable where TPacket : IPacket
+public interface IPacketSender : IPoolable
 {
     /// <inheritdoc/>
-    void Initialize(IPacketContext<TPacket> context);
+    void Initialize<TPacket>(IPacketContext<TPacket> context) where TPacket : IPacket;
 
     /// <summary>
     /// Sends a packet, applying encryption/compression automatically
@@ -26,7 +25,7 @@ public interface IPacketSender<TPacket> : IPoolable where TPacket : IPacket
     /// <param name="ct">
     /// A cancellation token that can cancel the send operation.
     /// </param>
-    ValueTask SendAsync(TPacket packet, CancellationToken ct = default);
+    ValueTask SendAsync(IPacket packet, CancellationToken ct = default);
 
     /// <summary>
     /// Sends a packet, explicitly overriding the encryption flag.
@@ -40,5 +39,5 @@ public interface IPacketSender<TPacket> : IPoolable where TPacket : IPacket
     /// <param name="ct">
     /// A cancellation token that can cancel the send operation.
     /// </param>
-    ValueTask SendAsync(TPacket packet, bool forceEncrypt, CancellationToken ct = default);
+    ValueTask SendAsync(IPacket packet, bool forceEncrypt, CancellationToken ct = default);
 }

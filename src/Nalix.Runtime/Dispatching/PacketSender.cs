@@ -24,12 +24,12 @@ namespace Nalix.Runtime.Dispatching;
 /// Default packet sender that serializes a packet, optionally compresses it,
 /// optionally encrypts it, and then forwards the final buffer to the connection.
 /// </summary>
-/// <typeparam name="TPacket">The packet type carried by the sender.</typeparam>
-public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable where TPacket : IPacket
+public sealed class PacketSender : IPacketSender, IPoolable
 {
     #region Fields
 
-    private IPacketContext<TPacket>? _context;
+    private IConnection? _connection;
+    private PacketMetadata _attributes;
 
 #if DEBUG
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
@@ -41,7 +41,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
     #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketSender{TPacket}"/> class.
+    /// Initializes a new instance of the <see cref="PacketSender"/> class.
     /// </summary>
     public PacketSender()
     {
@@ -52,31 +52,44 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
     #region APIs
 
     /// <inheritdoc/>
-    public void ResetForPool() => _context = null;
-
-    /// <inheritdoc/>
-    public void Initialize(IPacketContext<TPacket> context) => _context = context ?? throw new ArgumentNullException(nameof(context));
-
-    /// <inheritdoc/>
-    public ValueTask SendAsync(TPacket packet, CancellationToken ct = default)
+    public void ResetForPool()
     {
-        PacketContext<TPacket> context = (PacketContext<TPacket>)this.GET_CONTEXT_OR_THROW();
-        bool needEncrypt = context.Attributes.Encryption?.IsEncrypted ?? false;
-
-        return PacketSender<TPacket>.SEND_CORE_ASYNC(context, packet, needEncrypt, ct);
+        _connection = null;
+        _attributes = default;
     }
 
     /// <inheritdoc/>
-    public ValueTask SendAsync(TPacket packet, bool forceEncrypt, CancellationToken ct = default)
-        => PacketSender<TPacket>.SEND_CORE_ASYNC(this.GET_CONTEXT_OR_THROW(), packet, forceEncrypt, ct);
+    public void Initialize<TPacket>(IPacketContext<TPacket> context) where TPacket : IPacket
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        _connection = context.Connection;
+        _attributes = context.Attributes;
+    }
+
+    /// <inheritdoc/>
+    public ValueTask SendAsync(IPacket packet, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(packet);
+        bool needEncrypt = _attributes.Encryption?.IsEncrypted ?? false;
+
+        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, needEncrypt, ct);
+    }
+
+    /// <inheritdoc/>
+    public ValueTask SendAsync(IPacket packet, bool forceEncrypt, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(packet);
+        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, forceEncrypt, ct);
+    }
 
     #endregion APIs
 
     #region Private Methods
 
     private static async ValueTask SEND_CORE_ASYNC(
-        IPacketContext<TPacket> context,
-        TPacket packet,
+        IConnection connection,
+        PacketMetadata attributes,
+        IPacket packet,
         bool needEncrypt,
         CancellationToken ct)
     {
@@ -102,12 +115,12 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 s_options.Enabled,
                 s_options.MinSizeToCompress,
                 needEncrypt,
-                context.Connection.Secret.AsSpan(),
-                context.Connection.Algorithm);
+                connection.Secret.AsSpan(),
+                connection.Algorithm);
 
             try
             {
-                await GetTransport(context).SendAsync(current.Memory, ct).ConfigureAwait(false);
+                await GetTransport(connection, attributes).SendAsync(current.Memory, ct).ConfigureAwait(false);
             }
             finally
             {
@@ -126,17 +139,17 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         }
     }
 
-    private static IConnection.ITransport GetTransport(IPacketContext<TPacket> context)
+    private static IConnection.ITransport GetTransport(IConnection connection, PacketMetadata attributes)
     {
         // BUG-76: Prioritize the transport specified on the handler attribute.
         // If no attribute is present, default to TCP as per requirements.
-        NetworkTransport transport = context.Attributes.Transport?.TransportType ?? NetworkTransport.TCP;
+        NetworkTransport transport = attributes.Transport?.TransportType ?? NetworkTransport.TCP;
 
-        return transport == NetworkTransport.UDP ? context.Connection.UDP : context.Connection.TCP;
+        return transport == NetworkTransport.UDP ? connection.UDP : connection.TCP;
     }
 
-    private IPacketContext<TPacket> GET_CONTEXT_OR_THROW()
-        => _context ?? throw new InternalErrorException($"{nameof(PacketSender<>)} must be initialized before sending.");
+    private IConnection GET_CONNECTION_OR_THROW()
+        => _connection ?? throw new InternalErrorException($"{nameof(PacketSender)} must be initialized before sending.");
 
     #endregion Private Methods
 }

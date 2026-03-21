@@ -22,7 +22,7 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
         if (packet.Flags.HasFlag(PacketFlags.RELIABLE))
         {
-            await context.Sender.SendAsync((TPacket)packet).ConfigureAwait(false);
+            await context.Sender.SendAsync(packet).ConfigureAwait(false);
             return;
         }
 
