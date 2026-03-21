@@ -97,11 +97,11 @@ internal sealed class StructFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
     {
-        T obj = System.Activator.CreateInstance<T>();
+        T obj = default;
 
         for (System.Int32 i = 0; i < _accessors.Length; i++)
         {
-            _accessors[i].Deserialize(ref reader, obj);
+            _accessors[i].Deserialize(ref reader, ref obj); // ← ref obj
         }
 
         return obj;

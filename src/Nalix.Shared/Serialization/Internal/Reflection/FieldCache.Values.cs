@@ -90,4 +90,55 @@ internal static partial class FieldCache<T>
     }
 
     #endregion Generic Value Operations - Zero Boxing
+
+    #region Struct Setter (ref T)
+
+    // Action<T,TField> không support ref T nên cần declare delegate riêng
+    private delegate void RefSetter<TVal>(ref T obj, TVal value);
+
+    // Cache riêng cho ref-setters — key là fieldIndex
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, System.Object> _refSetterCache = new();
+
+    /// <summary>
+    /// Set field value trực tiếp lên struct gốc thông qua ref T.
+    /// Chỉ dùng cho value types (struct) — nếu dùng cho class thì dùng overload không có ref.
+    /// </summary>
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static void SetValue<TField>(ref T obj, System.Int32 fieldIndex, TField value)
+    {
+        FieldSchema metadata = _metadata[fieldIndex];
+
+        if (metadata.FieldType != typeof(TField))
+        {
+            throw new System.InvalidOperationException(
+                $"Field '{metadata.Name}' expects type '{metadata.FieldType}', " +
+                $"but got '{typeof(TField)}'.");
+        }
+
+        RefSetter<TField> setter = GetOrCreateRefSetter<TField>(fieldIndex, metadata);
+        setter(ref obj, value);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)] // NoInlining vì chỉ chạy 1 lần per field
+    private static RefSetter<TField> GetOrCreateRefSetter<TField>(
+        System.Int32 fieldIndex,
+        FieldSchema metadata)
+    {
+        return (RefSetter<TField>)_refSetterCache.GetOrAdd(fieldIndex, _ =>
+        {
+            // (ref T obj, TField value) => obj.<FieldName> = value
+            System.Linq.Expressions.ParameterExpression objParam = System.Linq.Expressions.Expression.Parameter(typeof(T).MakeByRefType(), "obj");         // ref T
+            System.Linq.Expressions.ParameterExpression valParam = System.Linq.Expressions.Expression.Parameter(typeof(TField), "value");
+            System.Linq.Expressions.MemberExpression fieldExpr = System.Linq.Expressions.Expression.Field(objParam, metadata.FieldInfo);
+            System.Linq.Expressions.BinaryExpression assignExpr = System.Linq.Expressions.Expression.Assign(fieldExpr, valParam);
+
+            return System.Linq.Expressions.Expression.Lambda<RefSetter<TField>>(assignExpr, objParam, valParam).Compile();
+        });
+    }
+
+    #endregion Struct Setter (ref T)
 }

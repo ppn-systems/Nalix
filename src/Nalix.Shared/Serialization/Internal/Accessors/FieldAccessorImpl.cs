@@ -56,5 +56,15 @@ internal sealed class FieldAccessorImpl<
         FieldCache<T>.SetValue(obj, _index, value);
     }
 
+    [System.Diagnostics.StackTraceHidden]
+    [System.Diagnostics.DebuggerStepThrough]
+    [System.Runtime.CompilerServices.MethodImpl(
+    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public override void Deserialize(ref DataReader reader, ref T obj)
+    {
+        TField value = _formatter.Deserialize(ref reader);
+        FieldCache<T>.SetValue(ref obj, _index, value); // ← FieldCache cần có ref overload
+    }
+
     #endregion Serialization Implementation
 }
