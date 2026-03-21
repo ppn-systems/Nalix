@@ -45,7 +45,7 @@ internal static class LZ4Encoder
         if (output.Length < LZ4BlockEncoder.GetMaxLength(input.Length))
         {
             System.Diagnostics.Debug.WriteLine(
-                $"Warning: Output buffer may be too small. Required: {LZ4BlockEncoder.GetMaxLength(input.Length)}, Available: {output.Length}");
+                $"Warn: Output buffer may be too small. Required: {LZ4BlockEncoder.GetMaxLength(input.Length)}, Available: {output.Length}");
         }
 #endif
 
