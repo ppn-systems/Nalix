@@ -27,7 +27,7 @@ public class EchoProtocol : Protocol
     {
         try
         {
-            Console.WriteLine($"[Server] Received message from client {args.Connection.RemoteEndPoint}");
+            Console.WriteLine($"[Server] Received message from client {args.Connection.NetworkEndpoint}");
 
             // Defensive copy: avoid pooled-buffer lifetime issues.
             ReadOnlySpan<Byte> incomingSpan = args.Lease.Span;
@@ -67,13 +67,13 @@ public class EchoProtocol : Protocol
 
             // Log outgoing payload details (truncated hex and length).
             String responseHex = ToHexString(responseData, 64);
-            Console.WriteLine($"[Server][DEBUG] Sending {responseData.Length} bytes to {args.Connection.RemoteEndPoint} hex={responseHex}");
+            Console.WriteLine($"[Server][DEBUG] Sending {responseData.Length} bytes to {args.Connection.NetworkEndpoint} hex={responseHex}");
 
             // Send and verify result.
             Boolean sent = args.Connection.TCP.Send(responseData);
             if (!sent)
             {
-                Console.WriteLine($"[Server][ERROR] Send returned false for {args.Connection.RemoteEndPoint}. Connection may be closed or reset. outgoingHex={responseHex}");
+                Console.WriteLine($"[Server][ERROR] Send returned false for {args.Connection.NetworkEndpoint}. Connection may be closed or reset. outgoingHex={responseHex}");
             }
         }
         catch (ObjectDisposedException ode)
@@ -83,7 +83,7 @@ public class EchoProtocol : Protocol
         }
         catch (SocketException se)
         {
-            Console.WriteLine($"[Server][SOCKET] SocketException when sending to {args.Connection.RemoteEndPoint}: SocketErrorCode={se.SocketErrorCode} ErrorCode={se.ErrorCode} Message={se.Message}");
+            Console.WriteLine($"[Server][SOCKET] SocketException when sending to {args.Connection.NetworkEndpoint}: SocketErrorCode={se.SocketErrorCode} ErrorCode={se.ErrorCode} Message={se.Message}");
             Console.WriteLine(se.ToString());
         }
         catch (Exception ex)
