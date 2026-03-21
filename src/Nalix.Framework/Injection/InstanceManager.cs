@@ -260,7 +260,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 }
                 catch (System.Exception ex)
                 {
-                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warning,
+                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warn,
                         $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] publish-slot-fail iface={itf.Name}", ex));
                 }
             }
@@ -278,7 +278,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             _ = _disposables.TryAdd(disp, 0);
         }
 
-        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Debug, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] registered type={typeof(T).Name}"));
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Debug, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] register-ok type={typeof(T).Name}"));
 
         // Local helpers
 
@@ -532,7 +532,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-ok type={type.Name}"));
             }
 
-            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] removed type={type.Name}"));
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] removed type={type.Name}"));
         }
 
         // Also remove any signature instances whose target type matches
@@ -568,7 +568,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         if (!removedAny)
         {
-            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] notfound type={type.Name}"));
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] notfound type={type.Name}"));
             return false;
         }
 
@@ -676,7 +676,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _tsLastKey = default;
         _tsLastValue = null;
 
-        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] cleared"));
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] cleared"));
     }
 
     /// <summary>
@@ -772,12 +772,12 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         if (_processMutexOwner && _processMutex != null)
         {
             try { _processMutex.ReleaseMutex(); }
-            catch (System.Exception ex) { LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warning, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex)); }
+            catch (System.Exception ex) { LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warn, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex)); }
             _processMutex.Dispose();
             _processMutex = null;
         }
 
-        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] disposed"));
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] disposed"));
     }
 
     #endregion Public API
@@ -832,7 +832,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 _ = _disposables.TryAdd(disp, 0);
             }
 
-            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(CREATE_OR_GET_SIGNATURE_INSTANCE)}] created signature type={type.Name}"));
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(CREATE_OR_GET_SIGNATURE_INSTANCE)}] created signature type={type.Name}"));
 
             TRY_PUBLISH_SLOT_BY_TYPE(type, created);
             return created;
@@ -939,7 +939,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 _ = _disposables.TryAdd(d, 0);
             }
 
-            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] created type={type.Name}"));
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] created type={type.Name}"));
 
             return _instanceCache.GetOrAdd(key, instance);
         }

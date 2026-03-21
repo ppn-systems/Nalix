@@ -119,7 +119,7 @@ public sealed partial class TaskManager : ITaskManager
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[FW.{nameof(TaskManager)}] init cleanup_interval={_options.CleanupInterval.TotalSeconds:F0}s global_concurrency={_currentConcurrencyLimit}");
+                                .Info($"[FW.{nameof(TaskManager)}] init cleanup-iv={_options.CleanupInterval.TotalSeconds:F0}s concurrency={_currentConcurrencyLimit}");
     }
 
     /// <summary>
@@ -303,7 +303,7 @@ public sealed partial class TaskManager : ITaskManager
             }, cts.Token);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Meta($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} tag={options.Tag ?? "-"}");
+                                    .Debug($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} tag={options.Tag ?? "-"}");
 
             return st;
         }
@@ -422,7 +422,7 @@ public sealed partial class TaskManager : ITaskManager
         if (n > 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
+                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
         }
 
         return n;
@@ -481,7 +481,7 @@ public sealed partial class TaskManager : ITaskManager
         if (n > 0)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
+                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
         }
 
         return n;

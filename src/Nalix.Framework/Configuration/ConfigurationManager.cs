@@ -274,8 +274,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     {
         System.Lazy<IniConfig> iniSnapshot;
         _configLock.EnterReadLock();
-        try { iniSnapshot = _iniFile; }
-        finally { _configLock.ExitReadLock(); }
+
+        try
+        {
+            iniSnapshot = _iniFile;
+        }
+        finally
+        {
+            _configLock.ExitReadLock();
+        }
 
         System.Lazy<ConfigurationLoader> lazy = _configContainerDict.GetOrAdd(
             typeof(TClass),
@@ -283,6 +290,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             {
                 TClass container = new();
                 container.Initialize(iniSnapshot.Value);
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
+
                 return container;
             }, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication)
         );
@@ -429,8 +440,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean IsLoaded<TClass>() where TClass : ConfigurationLoader =>
-        _configContainerDict.ContainsKey(typeof(TClass));
+    public System.Boolean IsLoaded<TClass>() where TClass : ConfigurationLoader => _configContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes a specific configuration from the cache.
@@ -446,8 +456,13 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.Boolean Remove<TClass>() where TClass : ConfigurationLoader =>
-        _configContainerDict.TryRemove(typeof(TClass), out _);
+    public System.Boolean Remove<TClass>() where TClass : ConfigurationLoader
+    {
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
+
+        return _configContainerDict.TryRemove(typeof(TClass), out _);
+    }
 
     /// <summary>
     /// Clears all cached configurations.
@@ -458,7 +473,13 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void ClearAll() => _configContainerDict.Clear();
+    public void ClearAll()
+    {
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
+
+        _configContainerDict.Clear();
+    }
 
     /// <summary>
     /// Ensures that changes are written to disk.
@@ -478,7 +499,18 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
         if (snapshot.IsValueCreated)
         {
-            snapshot.Value.Flush();
+            try
+            {
+                snapshot.Value.Flush();
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
+            }
+            catch (System.Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushErr msg={ex.Message}", ex);
+                throw;
+            }
         }
     }
 
@@ -548,7 +580,14 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             // Debounce: reset timer on every event so only the trailing edge triggers a reload.
             _debounceTimer?.Dispose();
             _debounceTimer = new System.Threading.Timer(
-                _ => ReloadAll(),
+                _ =>
+                {
+                    if (!this.ReloadAll())
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Error($"[FW.{nameof(ConfigurationManager)}:Watcher] reload-failed path={watchedPath}");
+                    }
+                },
                 state: null,
                 dueTime: _debounceDelay,
                 period: System.Threading.Timeout.InfiniteTimeSpan);

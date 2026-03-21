@@ -77,6 +77,8 @@ public partial class TaskManager
 
             if (_workers.TryRemove(st.Id, out _))
             {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug($"[FW.{nameof(TaskManager)}] cleanup-remove-ok id={st.Id}");
                 try
                 {
                     st.Cts.Dispose();
@@ -169,6 +171,8 @@ public partial class TaskManager
                 {
                     if (!await s.Gate.WaitAsync(0, ct).ConfigureAwait(false))
                     {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Debug($"[FW.{nameof(TaskManager)}:Internal] gate-acquire-fail name={s.Name}");
                         next += step;
                         continue;
                     }
@@ -321,6 +325,9 @@ public partial class TaskManager
                 try
                 {
                     g.SemaphoreSlim.Dispose();
+
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Debug($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={st.Group}");
                 }
                 catch (System.Exception ex)
                 {
@@ -357,7 +364,7 @@ public partial class TaskManager
                 if (cpuUsage > threshHigh)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}% threshold={threshHigh:F1}%");
+                                            .Debug($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}% threshold={threshHigh:F1}%");
                 }
 
                 // --- Hysteresis: tích streak, chỉ hành động khi đủ N lần liên tiếp ---
@@ -506,6 +513,8 @@ public partial class TaskManager
                     if (!_globalConcurrencyGate.Wait(0))
                     {
                         // Không còn slot rảnh → revert về số đã thu hồi được thực tế
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Debug($"[FW.TaskManager.Internal] concurrency-partial-retreat from={previousLimit} to={previousLimit - i}");
                         _currentConcurrencyLimit = previousLimit - i;
                         break;
                     }
@@ -513,7 +522,7 @@ public partial class TaskManager
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
+                                    .Debug($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
         }
         catch (System.Exception ex)
         {
