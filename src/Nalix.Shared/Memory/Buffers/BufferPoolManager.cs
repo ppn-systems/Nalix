@@ -681,9 +681,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                      $"trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}% " +
-                                      $"remain={info.TotalBuffers - shrinkStep}");
+                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
+                                       $"trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}% " +
+                                       $"remain={info.TotalBuffers - shrinkStep}");
     }
 
     #endregion Private: Allocation & Trimming
