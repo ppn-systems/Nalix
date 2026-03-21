@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
@@ -22,10 +21,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    /// <remarks>
-    /// The logger will be used to log various events such as packet handling, errors, and metrics if enabled.
-    /// If logging is not configured, the dispatcher will not produce any logs.
-    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -48,11 +43,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    /// <remarks>
-    /// This method allows you to define a custom error-handling strategy, such as logging errors,
-    /// sending notifications, or taking corrective action in case of failures during packet processing.
-    /// If no custom error handler is configured, the default behavior is to log the exception.
-    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -68,8 +58,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
     /// <summary>
     /// Adds a middleware component to the packet processing pipeline.
-    /// The middleware will be automatically placed in the appropriate stage (Inbound, Outbound, or Both)
-    /// based on its <see cref="MiddlewareStageAttribute"/> and ordered by <see cref="MiddlewareOrderAttribute"/>.
     /// </summary>
     /// <param name="middleware">
     /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked during packet processing.
@@ -77,31 +65,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    /// <remarks>
-    /// <para>
-    /// This method inspects the middleware's attributes to determine:
-    /// <list type="bullet">
-    /// <item><description>The execution stage (Inbound, Outbound, or Both) via <see cref="MiddlewareStageAttribute"/>.</description></item>
-    /// <item><description>The execution order via <see cref="MiddlewareOrderAttribute"/>.</description></item>
-    /// <item><description>Whether to always execute in outbound stage via <see cref="MiddlewareStageAttribute.AlwaysExecute"/>.</description></item>
-    /// </list>
-    /// </para>
-    /// <para>
-    /// If no <see cref="MiddlewareStageAttribute"/> is present, the middleware defaults to <see cref="MiddlewareStage.Inbound"/>.
-    /// If no <see cref="MiddlewareOrderAttribute"/> is present, the order defaults to 0.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// // Middleware with attributes
-    /// [MiddlewareStage(MiddlewareStage.Inbound)]
-    /// [MiddlewareOrder(10)]
-    /// public class ValidationMiddleware : IPacketMiddleware&lt;MyPacket&gt; { }
-    ///
-    /// // Usage
-    /// options.Use(new ValidationMiddleware());
-    /// </code>
-    /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -118,25 +81,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Configures how the middleware pipeline handles exceptions
-    /// thrown during packet processing.
+    /// Configures how the middleware pipeline handles exceptions thrown during packet processing.
     /// </summary>
-    /// <param name="continueOnError">
-    /// A value indicating whether the pipeline should continue executing
-    /// remaining middleware after an exception is thrown.
-    /// </param>
-    /// <param name="errorHandler">
-    /// An optional callback that is invoked when a middleware throws an exception.
-    /// The callback receives the exception instance and the middleware type
-    /// that caused the failure.
-    /// </param>
-    /// <returns>
-    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
-    /// </returns>
-    /// <remarks>
-    /// When <paramref name="continueOnError"/> is set to <see langword="false"/>,
-    /// the first unhandled exception will immediately terminate pipeline execution.
-    /// </remarks>
     public PacketDispatchOptions<TPacket> WithErrorHandlingMiddleware(
         System.Boolean continueOnError,
         System.Action<System.Exception, System.Type> errorHandler = null)
@@ -150,13 +96,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// and scanning its methods decorated with <see cref="PacketOpcodeAttribute"/>.
     /// </summary>
     /// <typeparam name="TController">
-    /// The type of the controller to register.
-    /// This type must have a parameterless constructor.
+    /// The type of the controller to register. Must have a parameterless constructor.
     /// </typeparam>
     /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
-    /// <exception cref="System.InvalidOperationException">
-    /// Thrown if a method with an unsupported return type is encountered.
-    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -170,18 +112,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <summary>
     /// Registers a handler using an existing instance of the specified controller type.
     /// </summary>
-    /// <typeparam name="TController">
-    /// The type of the controller to register.
-    /// </typeparam>
-    /// <param name="instance">
-    /// An existing instance of <typeparamref name="TController"/>.
-    /// </param>
+    /// <typeparam name="TController">The type of the controller to register.</typeparam>
+    /// <param name="instance">An existing instance of <typeparamref name="TController"/>.</param>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
-    /// Thrown if <paramref name="instance"/> is <see langword="null"/>.
-    /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -199,16 +134,26 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// with <see cref="PacketOpcodeAttribute"/>.
     /// </summary>
     /// <typeparam name="TController">
-    /// The type of the controller to register. This type does not require
-    /// a parameterless constructor.
+    /// The type of the controller to register.
     /// </typeparam>
     /// <param name="factory">
     /// A function that returns an instance of <typeparamref name="TController"/>.
     /// </param>
     /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
-    /// <exception cref="System.InvalidOperationException">
-    /// Thrown if a method with an unsupported return type is encountered.
-    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// In addition to compiling handler delegates, this method inspects each handler method's
+    /// first parameter to determine the concrete packet type it expects. That type is stored in
+    /// <c>_packetTypeMap[opCode]</c> and consulted at dispatch time to emit an early, actionable
+    /// warning when the deserialized packet's runtime type does not match the handler signature —
+    /// rather than a cryptic <see cref="System.InvalidCastException"/> deep inside an expression tree.
+    /// </para>
+    /// <para>
+    /// For context-style handlers whose first parameter is <c>PacketContext&lt;TPacket&gt;</c>,
+    /// no concrete-type entry is recorded because the context wraps the packet behind its
+    /// interface — the cast is deferred to handler code itself.
+    /// </para>
+    /// </remarks>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
@@ -226,6 +171,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         PacketHandler<TPacket>[] handlerDescriptors = HandlerCompiler<TController, TPacket>.CompileHandlers(factory);
 
+        System.Type contextType = typeof(PacketContext<TPacket>);
+
         foreach (PacketHandler<TPacket> descriptor in handlerDescriptors)
         {
             if (this._handlerCache.ContainsKey(descriptor.OpCode))
@@ -234,6 +181,27 @@ public sealed partial class PacketDispatchOptions<TPacket>
             }
 
             this._handlerCache[descriptor.OpCode] = descriptor;
+
+            // ------------------------------------------------------------------
+            // Resolve the concrete packet type this handler method actually
+            // accepts, so dispatch can validate at runtime rather than crashing
+            // inside a compiled expression.
+            //
+            // Rules:
+            //   • Context-style  (PacketContext<TPacket>[, CT])  → store null
+            //     (no concrete-type check; the packet is accessed via context.Packet)
+            //   • Legacy-style   (SomePacket, IConnection[, CT]) → store SomePacket's Type
+            //     even when SomePacket *is* the TPacket interface itself.
+            // ------------------------------------------------------------------
+            System.Type concretePacketType = ResolveConcretePacketType(descriptor.MethodInfo, contextType);
+            _packetTypeMap[descriptor.OpCode] = concretePacketType;
+
+            if (concretePacketType is not null && concretePacketType != typeof(TPacket))
+            {
+                this.Logging?.Debug(
+                    $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
+                    $"type-map opcode=0x{descriptor.OpCode:X4} → {concretePacketType.Name}");
+            }
         }
 
         this.Logging?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
@@ -247,7 +215,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </summary>
     /// <param name="opCode">The opcode of the packet handler to resolve.</param>
     /// <param name="handler">
-    /// When this method returns, contains the delegate <see cref="System.Func{TPacket, IConnection, Task}"/> associated with the specified opcode,
+    /// When this method returns, contains the delegate associated with the specified opcode,
     /// if the opcode is found; otherwise, <see langword="null"/>.
     /// </param>
     /// <returns>
@@ -269,7 +237,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
             {
                 PacketContext<TPacket> context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                                          .Get<PacketContext<TPacket>>();
-
                 try
                 {
                     context.Initialize(packet, connection, descriptor.Metadata);
@@ -298,7 +265,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// if the opcode is found; otherwise, the default value for the type of the descriptor parameter.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if a handler descriptor was found for the specified opcode; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> if a handler descriptor was found; otherwise, <see langword="false"/>.
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
