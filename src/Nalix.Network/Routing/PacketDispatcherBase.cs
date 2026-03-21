@@ -122,7 +122,8 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
         [System.Diagnostics.CodeAnalysis.NotNull] TPacket packet,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
-        if (this.Options.TryResolveHandler(packet.OpCode,
+        if (this.Options.TryResolveHandler(
+            packet.OpCode,
             out System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler))
         {
             this.Logging?.Meta($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handle opcode={packet.OpCode}");

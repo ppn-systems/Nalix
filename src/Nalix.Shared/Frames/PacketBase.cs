@@ -5,9 +5,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Common.Shared;
-using Nalix.Framework.Injection;
 using Nalix.Shared.Frames.Internal;
-using Nalix.Shared.Memory.Objects;
 using Nalix.Shared.Serialization;
 
 namespace Nalix.Shared.Frames;
@@ -26,11 +24,13 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     #region Static Cache
 
     // Computed once per concrete type at class-load time.
+    [SerializeIgnore]
     private static readonly System.UInt32 s_autoMagic = PacketRegistryFactory.Compute(typeof(TSelf));
 
     // All serializable properties as pre-compiled PropertyMetadata.
     // Lazy<T> guarantees thread-safe single initialization without explicit locking.
     // Using System.Linq only at startup (inside the Lazy factory) — never in hot paths.
+    [SerializeIgnore]
     private static readonly System.Lazy<PropertyMetadata[]> s_metadata = new(
         static () =>
         [
@@ -64,7 +64,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     // null  → has dynamic properties, call ComputeDynamicLength() at runtime.
     // value → all properties are fixed-size, return directly.
     // Using ushort? avoids the "0-as-sentinel" ambiguity from the previous version.
-    private static readonly System.Lazy<System.UInt16?> _cachedFixedSize = new(
+    [SerializeIgnore]
+    private static readonly System.Lazy<System.UInt16?> s_cachedFixedSize = new(
         static () =>
         {
             System.UInt16 size = PacketConstants.HeaderSize;
@@ -79,13 +80,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             }
             return size;
         },
-        isThreadSafe: true
-    );
-
-    // Cached ObjectPoolManager reference — avoids two GetOrCreateInstance() calls
-    // per Deserialize() invocation. Resolved lazily on first packet deserialization.
-    private static readonly System.Lazy<ObjectPoolManager> _pool = new(
-        static () => InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>(),
         isThreadSafe: true
     );
 
@@ -105,7 +99,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
     /// <inheritdoc/>
     [SerializeIgnore]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public override System.UInt16 Length
     {
         [System.Runtime.CompilerServices.MethodImpl(
@@ -113,8 +106,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         get
         {
             // Fast path: all properties are fixed-size → return cached value directly.
-            System.UInt16? fixedSize = _cachedFixedSize.Value;
-            return fixedSize.HasValue ? fixedSize.Value : ComputeDynamicLength();
+            System.UInt16? fixedSize = s_cachedFixedSize.Value;
+            return fixedSize ?? COMPUTE_DYNAMIC_LENGTH();
         }
     }
 
@@ -125,7 +118,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private System.UInt16 ComputeDynamicLength()
+    private System.UInt16 COMPUTE_DYNAMIC_LENGTH()
     {
         System.UInt16 size = PacketConstants.HeaderSize;
 
@@ -222,8 +215,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public override void ResetForPool()
     {
-        MagicNumber = s_autoMagic; // Restore type identity — never reset to 0.
-
         // Reset all user-defined serializable properties via compiled delegates.
         // No GetCustomAttribute calls in this path.
         foreach (PropertyMetadata meta in s_metadata.Value)
@@ -241,6 +232,9 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         Flags = PacketFlags.NONE;
         Protocol = ProtocolType.NONE;
         Priority = PacketPriority.NONE;
+
+        // Restore type identity — never reset to 0.
+        MagicNumber = s_autoMagic;
     }
 
     #endregion APIs
@@ -255,7 +249,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new(128);
-        sb.AppendLine($"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={_cachedFixedSize.Value?.ToString() ?? "dynamic"} Properties={s_metadata.Value.Length}");
+        sb.AppendLine($"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={s_cachedFixedSize.Value?.ToString() ?? "dynamic"} Properties={s_metadata.Value.Length}");
 
         foreach (PropertyMetadata meta in s_metadata.Value)
         {

@@ -14,6 +14,11 @@ public sealed partial class Connection
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     internal readonly struct Endpoint : INetworkEndpoint, System.IEquatable<Endpoint>
     {
+        /// <summary>
+        /// Gets an empty endpoint (no IP, no port).
+        /// </summary>
+        public static Endpoint Empty { get; } = new Endpoint(0, 0, 0, false, false);
+
         #region Fields
 
         private readonly System.UInt64 _hi;

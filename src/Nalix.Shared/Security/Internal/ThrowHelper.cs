@@ -11,46 +11,46 @@ namespace Nalix.Shared.Security.Internal;
 internal static class ThrowHelper
 {
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-    public static void ThrowNotSupportedException(System.String message) => throw new CryptoException(message);
+    public static void ThrowNotSupportedException(System.String message) => throw new CryptographyException(message);
 
     /// <summary>
-    /// Throws an <see cref="CryptoException"/>.
+    /// Throws an <see cref="CryptographyException"/>.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-    public static void ThrowArgumentNullException(System.String paramName) => throw new CryptoException(paramName);
+    public static void ThrowArgumentNullException(System.String paramName) => throw new CryptographyException(paramName);
 
     /// <summary>
     /// Throws an <see cref="System.ArgumentException"/> for an invalid cryptographic key length.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowInvalidKeyLengthException(System.String paramName = "key")
-        => throw new CryptoException($"The key length is invalid. {paramName}");
+        => throw new CryptographyException($"The key length is invalid. {paramName}");
 
     /// <summary>
-    /// Throws an <see cref="CryptoException"/> for an invalid nonce length.
+    /// Throws an <see cref="CryptographyException"/> for an invalid nonce length.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowInvalidNonceLengthException(System.String paramName = "nonce")
-        => throw new CryptoException($"The nonce length is invalid. {paramName}");
+        => throw new CryptographyException($"The nonce length is invalid. {paramName}");
 
     /// <summary>
-    /// Throws an <see cref="CryptoException"/> for an invalid authentication tag length.
+    /// Throws an <see cref="CryptographyException"/> for an invalid authentication tag length.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowInvalidTagLengthException(System.String paramName = "tag")
-        => throw new CryptoException($"The authentication tag length is invalid. {paramName}");
+        => throw new CryptographyException($"The authentication tag length is invalid. {paramName}");
 
     /// <summary>
-    /// Throws an <see cref="CryptoException"/> when output length does not match input length.
+    /// Throws an <see cref="CryptographyException"/> when output length does not match input length.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowOutputLengthMismatchException()
-        => throw new CryptoException("The output length does not match the input length.");
+        => throw new CryptographyException("The output length does not match the input length.");
 
     /// <summary>
-    /// Throws an <see cref="CryptoException"/> when the ciphertext buffer is too small.
+    /// Throws an <see cref="CryptographyException"/> when the ciphertext buffer is too small.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowCiphertextTooShortException(System.String paramName = "ciphertext")
-        => throw new CryptoException($"The ciphertext buffer is too small. {paramName}");
+        => throw new CryptographyException($"The ciphertext buffer is too small. {paramName}");
 }

@@ -485,7 +485,7 @@ public sealed class ConcurrencyGate : IReportable
 
         if (!entry.TryAcquire())
         {
-            throw new ConcurrencyRejectedException(
+            throw new ConcurrencyConflictException(
                 $"Entry for opcode {opcode:X4} is being disposed");
         }
 
@@ -497,7 +497,7 @@ public sealed class ConcurrencyGate : IReportable
                 if (!entry.Sem.Wait(0, linkedCts.Token))
                 {
                     System.Threading.Interlocked.Increment(ref s_totalRejected);
-                    throw new ConcurrencyRejectedException(
+                    throw new ConcurrencyConflictException(
                         $"Concurrency limit reached for opcode {opcode:X4} (no queue)");
                 }
 
@@ -779,7 +779,7 @@ public sealed class ConcurrencyGate : IReportable
         if (!entry.TryIncrementQueue())
         {
             System.Threading.Interlocked.Increment(ref s_totalRejected);
-            throw new ConcurrencyRejectedException(
+            throw new ConcurrencyConflictException(
                 $"Concurrency queue is full for opcode {opcode:X4} " +
                 $"(limit={entry.QueueMax}, current={entry.QueueCount})");
         }

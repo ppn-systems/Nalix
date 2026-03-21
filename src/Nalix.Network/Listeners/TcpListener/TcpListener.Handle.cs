@@ -125,7 +125,7 @@ public abstract partial class TcpListenerBase
                         !_limiter.IsConnectionAllowed(remoteIp))
                     {
                         SafeCloseSocket(socket);
-                        throw new InternalErrorException();
+                        throw new NetworkException();
                     }
 
                     // Create and process connection similar to async version
@@ -317,7 +317,7 @@ public abstract partial class TcpListenerBase
 #endif
                 break;
             }
-            catch (InternalErrorException)
+            catch (NetworkException)
             {
                 if (cancellationToken.IsCancellationRequested || State != ListenerState.RUNNING)
                 {
@@ -408,10 +408,19 @@ public abstract partial class TcpListenerBase
                 s_pool.Return<PooledAcceptContext>(context);
 
                 _metrics.RECORD_REJECTED();
-                throw new InternalErrorException();
+                throw new NetworkException($"Connection rejected: {socket.RemoteEndPoint}");
             }
 
             return this.InitializeConnection(socket, context);
+        }
+        catch (System.Net.Sockets.SocketException ex)
+        {
+            if (!contextReturned)
+            {
+                s_pool.Return<PooledAcceptContext>(context);
+            }
+
+            throw new NetworkException($"Socket error while accepting. Code={ex.SocketErrorCode}", ex);
         }
         catch (System.OperationCanceledException)
         {
@@ -422,9 +431,9 @@ public abstract partial class TcpListenerBase
 
             throw;
         }
-        catch (InternalErrorException)
+        catch (NetworkException ex)
         {
-            throw;
+            throw new NetworkException("Internal rejection during accept", ex);
         }
         catch (System.Exception ex)
         {
@@ -433,7 +442,15 @@ public abstract partial class TcpListenerBase
                 s_pool.Return<PooledAcceptContext>(context);
             }
 
-            throw new InternalErrorException("Accept failed", ex);
+            System.String remote = "unknown";
+
+            try
+            {
+                remote = _listener?.LocalEndPoint?.ToString() ?? "null";
+            }
+            catch { }
+
+            throw new NetworkException($"Accept failed. Listener={remote}, ContextReturned={contextReturned}", ex);
         }
     }
 }

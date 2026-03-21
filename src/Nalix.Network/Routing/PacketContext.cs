@@ -26,6 +26,8 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
 {
     #region Fields
 
+    private static readonly IPacketRegistry s_registry = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
+
     private System.Int32 _state;
     private System.Boolean _isInitialized;
 
@@ -156,20 +158,14 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
             ref _state,
             (System.Int32)PacketContextState.IN_USE);
 
+        this.Packet = packet;
         this.Connection = connection;
         this.Attributes = descriptor;
+        this.Sender = new PacketSender<TPacket>(this, s_registry);
         this.CancellationToken = new System.Threading.CancellationToken();
-        this.Sender = new PacketSender<TPacket>(this, InstanceManager.Instance.GetExistingInstance<IPacketRegistry>());
 
         _isInitialized = true;
     }
-
-    /// <summary>
-    /// Initializes the context with the specified packet, connection, and metadata.
-    /// </summary>
-    /// <param name="packet">The packet to process.</param>
-    internal void Initialize(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] TPacket packet) => this.Packet = packet;
 
     /// <summary>
     /// Resets the context to its initial state for reuse.
@@ -188,14 +184,6 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
 
         _isInitialized = false;
     }
-
-    /// <summary>
-    /// Sets the packet for the context.
-    /// </summary>
-    /// <param name="packet">The packet to set.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void AssignPacket([System.Diagnostics.CodeAnalysis.MaybeNull] TPacket packet) => this.Packet = packet;
 
     #endregion Methods
 

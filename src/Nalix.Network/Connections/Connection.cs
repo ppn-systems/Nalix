@@ -54,7 +54,6 @@ public sealed partial class Connection : IConnection
         _secret = [];
         _disposed = false;
 
-        this.RemoteEndPoint = socket.RemoteEndPoint ?? throw new System.ArgumentNullException(nameof(socket));
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint);
 
@@ -86,9 +85,6 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     public System.Int32 ErrorCount => _errorCount;
-
-    /// <inheritdoc />
-    public System.Net.EndPoint RemoteEndPoint { get; }
 
     /// <inheritdoc />
     public System.Int64 UpTime => this._cstream.Cache.Uptime;
@@ -158,14 +154,14 @@ public sealed partial class Connection : IConnection
     public void IncrementErrorCount() => System.Threading.Interlocked.Increment(ref _errorCount);
 
     /// <inheritdoc />
-    public IConnection.IUdp GetOrCreateUDP()
+    public IConnection.IUdp GetOrCreateUDP(ref System.Net.IPEndPoint iPEndPoint)
     {
         if (_udp == null)
         {
             _udp = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                            .Get<UdpTransport>();
 
-            _udp.Initialize(this);
+            _udp.Initialize(ref iPEndPoint);
         }
 
         return _udp;
@@ -193,6 +189,7 @@ public sealed partial class Connection : IConnection
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     internal void ReleasePendingPacket() => _cstream.OnPacketProcessed();
 
     /// <inheritdoc />

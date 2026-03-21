@@ -11,6 +11,8 @@ namespace Nalix.Network.Connections;
 
 public sealed partial class Connection : IConnection
 {
+    /// <inheritdoc/>
+    public IConnection.IUdp GetOrCreateUDP() => throw new System.NotImplementedException();
     #region User Datagram Protocol
 
     /// <inheritdoc />
@@ -42,12 +44,12 @@ public sealed partial class Connection : IConnection
         /// <summary>
         /// Initializes a new instance of the <see cref="UdpTransport"/> class.
         /// </summary>
-        /// <param name="outer"></param>
+        /// <param name="iPEndPoint"></param>
         /// <exception cref="System.InvalidOperationException"></exception>
-        public void Initialize(IConnection outer)
+        public void Initialize(ref System.Net.IPEndPoint iPEndPoint)
         {
-            System.Net.Sockets.AddressFamily af = ((outer.RemoteEndPoint as System.Net.IPEndPoint)
-                ?? throw new System.InvalidOperationException("IPEndPoint required")).AddressFamily;
+            _endPoint = iPEndPoint;
+            System.Net.Sockets.AddressFamily af = iPEndPoint.AddressFamily;
 
             if (_socket.AddressFamily != af)
             {
@@ -67,7 +69,7 @@ public sealed partial class Connection : IConnection
             _socket.ReceiveBufferSize = BufferSize;
 
             // "Connect" binds a default remote endpoint
-            _socket.Connect(_endPoint!);
+            _socket.Bind(_endPoint);
         }
 
         #endregion Constructor
@@ -199,6 +201,9 @@ public sealed partial class Connection : IConnection
                 System.Net.Sockets.AddressFamily.InterNetwork,
                 System.Net.Sockets.SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
         }
+
+        /// <inheritdoc/>
+        public void Initialize(IConnection outer) => throw new System.NotImplementedException();
 
         #endregion Asynchronous Methods
     }

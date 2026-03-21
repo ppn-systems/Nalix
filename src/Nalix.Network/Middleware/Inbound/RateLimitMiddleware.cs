@@ -45,8 +45,12 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         PacketContext<IPacket> context,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
     {
-        // Validate input
-        // Determine which limiter to call
+        if (context.Attributes.RateLimit == null || context == null)
+        {
+            await next(context.CancellationToken).ConfigureAwait(false);
+            return;
+        }
+
         TokenBucketLimiter.RateLimitDecision decision;
         System.ArgumentNullException.ThrowIfNull(context);
         PacketRateLimitAttribute rl = context.Attributes.RateLimit;

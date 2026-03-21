@@ -59,7 +59,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     /// <summary>
     /// Initialize with minimal defaults.
     /// </summary>
-    public Directive()
+    public Directive() : base()
     {
         this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.URGENT;

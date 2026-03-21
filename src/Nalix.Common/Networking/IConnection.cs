@@ -55,11 +55,6 @@ public partial interface IConnection : System.IDisposable, IConnectionErrorTrack
     CipherSuiteType Algorithm { get; set; }
 
     /// <summary>
-    /// Gets the remote endpoint address associated with the connection.
-    /// </summary>
-    System.Net.EndPoint RemoteEndPoint { get; }
-
-    /// <summary>
     /// Occurs when the connection is closed.
     /// </summary>
     event System.EventHandler<IConnectEventArgs> OnCloseEvent;

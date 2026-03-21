@@ -8,7 +8,7 @@ using Nalix.Shared.Extensions;
 using Nalix.Shared.Frames;
 using Nalix.Shared.Memory.Buffers;
 
-namespace Nalix.SDK.Transport.Extensions;
+namespace Nalix.SDK.Extensions;
 
 /// <summary>
 /// Provides high-performance extension methods for decompressing, compressing, decrypting, and encrypting frame payloads.
