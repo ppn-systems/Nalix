@@ -27,32 +27,6 @@ namespace Nalix.Common.Diagnostics;
 public interface ILogger
 {
     // =========================
-    // Meta
-    // =========================
-
-    /// <summary>
-    /// Writes a metadata-level log entry.
-    /// </summary>
-    /// <param name="message">
-    /// The message text describing metadata such as configuration, environment, or version info.
-    /// </param>
-    void Meta(System.String message);
-
-    /// <summary>
-    /// Writes a metadata-level log entry using composite formatting.
-    /// </summary>
-    /// <param name="format">A composite format string.</param>
-    /// <param name="args">An array of objects to format.</param>
-    void Meta(System.String format, params System.Object[] args);
-
-    /// <summary>
-    /// Writes a metadata-level log entry with an optional event identifier.
-    /// </summary>
-    /// <param name="message">The message text.</param>
-    /// <param name="eventId">An optional event identifier for correlation and filtering.</param>
-    void Meta(System.String message, EventId? eventId = null);
-
-    // =========================
     // Trace
     // =========================
 

@@ -7,74 +7,6 @@ namespace Nalix.Logging.Extensions;
 
 public static partial class NLogixFx
 {
-    #region Meta Methods
-
-    /// <summary>
-    /// Logs a debug message to the console.
-    /// </summary>
-    /// <param name="message">The message.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="extendedData">The extended data.</param>
-    /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
-    /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Meta(
-        this System.String message,
-        System.String? source = null,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => PUBLISH_LOG_ENTRY(LogLevel.Meta, message, source, extendedData, callerMemberName, callerFilePath, callerLineNumber);
-
-    /// <summary>
-    /// Logs a debug message to the console.
-    /// </summary>
-    /// <param name="message">The message.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="extendedData">The extended data.</param>
-    /// <param name="callerMemberName">Name of the caller member.</param>
-    /// <param name="callerFilePath">The caller file path.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Meta(
-        this System.String message,
-        System.Type source,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => PUBLISH_LOG_ENTRY(
-            LogLevel.Meta, message, source?.FullName, extendedData,
-            callerMemberName, callerFilePath, callerLineNumber);
-
-    /// <summary>
-    /// Logs a debug message to the console.
-    /// </summary>
-    /// <param name="extendedData">The exception.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="message">The message.</param>
-    /// <param name="callerMemberName">Name of the caller member. This is automatically populated.</param>
-    /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
-    /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Meta(
-        this System.Exception extendedData,
-        System.String source,
-        System.String message,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
-        => PUBLISH_LOG_ENTRY(
-            LogLevel.Meta, message, source, extendedData,
-            callerMemberName, callerFilePath, callerLineNumber);
-
-    #endregion Meta Methods
-
     #region Debug Methods
 
     /// <summary>
@@ -236,7 +168,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Warning, message, source, extendedData,
+            LogLevel.Warn, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -258,7 +190,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Warning, message, source?.FullName, extendedData,
+            LogLevel.Warn, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -280,7 +212,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Warning, message, source, extendedData,
+            LogLevel.Warn, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     #endregion Warning Methods
@@ -306,7 +238,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Fatal, message, source, extendedData,
+            LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -328,7 +260,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Fatal, message, source?.FullName, extendedData,
+            LogLevel.Critical, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -350,7 +282,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Fatal, message, source, extendedData,
+            LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     #endregion Fatal Methods
@@ -376,7 +308,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Information, message, source, extendedData,
+            LogLevel.Info, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -398,7 +330,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Information, message, source?.FullName, extendedData,
+            LogLevel.Info, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -420,7 +352,7 @@ public static partial class NLogixFx
         [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
         [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Information, message, source, extendedData,
+            LogLevel.Info, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     #endregion Info Methods

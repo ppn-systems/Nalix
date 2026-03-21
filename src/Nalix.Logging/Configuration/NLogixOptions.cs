@@ -26,7 +26,7 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
     /// <summary>
     /// Gets or sets the minimum logging level. Messages below this level will be ignored.
     /// </summary>
-    [IniComment("Minimum log level to process (e.g. Meta, Trace, Debug, Information, Warning, Error, Fatal)")]
+    [IniComment("Minimum log level to process (e.g. Meta, Trace, Debug, Info, Warn, Error, Critical)")]
     public LogLevel MinLevel { get; set; }
 
     /// <summary>
@@ -87,7 +87,7 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
     public NLogixOptions()
     {
         Publisher = null;
-        MinLevel = LogLevel.Meta;
+        MinLevel = LogLevel.Info;
         FileOptions = new FileLogOptions();
 
         UseUtcTimestamp = true;
