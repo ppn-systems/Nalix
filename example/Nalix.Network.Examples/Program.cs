@@ -1,5 +1,5 @@
-﻿using Nalix.Common.Diagnostics.Abstractions;
-using Nalix.Common.Networking.Packets.Abstractions;
+﻿using Nalix.Common.Diagnostics;
+using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Logging;
@@ -9,8 +9,7 @@ using Nalix.Network.Examples.Handlers;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Middleware.Inbound;
 using Nalix.Network.Routing;
-using Nalix.Network.Routing.Metadata;
-using Nalix.Shared.Registry;
+using Nalix.Shared.Frames;
 
 InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
 IPacketRegistry packetRegistry = new PacketRegistryFactory().CreateCatalog();
