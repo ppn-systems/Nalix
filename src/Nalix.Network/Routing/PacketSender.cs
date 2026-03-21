@@ -52,8 +52,8 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket> where TPacket
         System.Threading.CancellationToken ct)
     {
         // Serialize packet
-        BufferLease rawLease = BufferLease.Rent(packet.Length * 2);
-        System.Int32 written = packet.Serialize(rawLease.Span);
+        BufferLease rawLease = BufferLease.Rent(packet.Length);
+        System.Int32 written = packet.Serialize(rawLease.SpanFull);
         rawLease.CommitLength(written);
 
         System.Boolean enableCompress = s_options.Enabled && written >= s_options.MinSizeToCompress;

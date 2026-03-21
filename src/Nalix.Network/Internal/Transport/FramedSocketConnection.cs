@@ -536,7 +536,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
                         System.MemoryExtensions.AsSpan(buffer, 0, HeaderSize));
 
 #if DEBUG
-                s_logger?.Meta(
+                s_logger?.Trace(
                     $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                     $"recv-header size(le)={size} ep={_sender?.NetworkEndpoint.Address}");
 #endif
@@ -739,7 +739,7 @@ internal sealed class FramedSocketConnection(System.Net.Sockets.Socket socket) :
         }
 
 #if DEBUG
-        s_logger?.Debug(
+        s_logger?.Trace(
             $"[NW.{nameof(FramedSocketConnection)}:{nameof(Dispose)}] " +
             $"disposed ep={FORMAT_ENDPOINT(_socket)}");
 #endif

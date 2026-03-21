@@ -126,7 +126,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
             packet.OpCode,
             out System.Func<TPacket, IConnection, System.Threading.Tasks.Task> handler))
         {
-            this.Logging?.Meta($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handle opcode={packet.OpCode}");
+            this.Logging?.Trace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handle opcode={packet.OpCode}");
             try
             {
                 await this.ExecuteHandlerAsync(packet, connection, handler)

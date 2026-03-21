@@ -111,7 +111,7 @@ public abstract partial class UdpListenerBase
         connection.InjectIncoming(result.Buffer[..^Snowflake.Size]);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Meta($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={result.Buffer.Length}");
+                                .Trace($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={result.Buffer.Length}");
     }
 }
 
