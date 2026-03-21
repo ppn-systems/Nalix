@@ -42,8 +42,7 @@ public sealed class ConnectionEventArgs : System.EventArgs, IConnectEventArgs, I
 
     /// <inheritdoc />
     public void Initialize(IConnection connection)
-        => Connection = connection
-        ?? throw new System.ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
+        => Connection = connection ?? throw new System.ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
 
     /// <inheritdoc />
     public void Initialize(IBufferLease lease, IConnection connection)

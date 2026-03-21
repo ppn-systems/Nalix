@@ -147,7 +147,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         // 3) Unauthorized / security
-        if (ex is System.UnauthorizedAccessException or CryptoException)
+        if (ex is System.UnauthorizedAccessException or CryptographyException)
         {
             return (ProtocolReason.ACCOUNT_LOCKED, ProtocolAdvice.NONE, ControlFlags.NONE);
         }

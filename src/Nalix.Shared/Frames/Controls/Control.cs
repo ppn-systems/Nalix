@@ -44,7 +44,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// <summary>
     /// Initializes a new instance of the Control class with default metadata values.
     /// </summary>
-    public Control() => ResetForPool();
+    public Control() : base() => ResetForPool();
 
     /// <summary>
     /// Initializes the control packet with full metadata.
