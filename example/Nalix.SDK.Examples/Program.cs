@@ -18,12 +18,6 @@ InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 //TcpSession client = InstanceManager.Instance.GetOrCreateInstance<TcpSession>();
 
 Handshake handshake = new(0, Csprng.GetBytes(32));
-Control controlPacket = new();
-handshake.ResetForPool();
-Thread.Sleep(1000); // Simulate some delay before connecting
-Console.WriteLine(controlPacket.MagicNumber.ToString("X8"));
-Console.WriteLine(handshake.MagicNumber.ToString("X8"));
-System.Console.WriteLine($"Handshake Magic: {handshake.MagicNumber:X8}");
 
 TcpSession client = new();
 await client.ConnectAsync("127.0.0.1", 12345);
