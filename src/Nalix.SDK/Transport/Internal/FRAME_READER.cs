@@ -136,7 +136,7 @@ internal sealed class FRAME_READER(
                         if (flags.HasFlag(PacketFlags.ENCRYPTED))
                         {
                             BufferLease decryptedLease = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
-                            if (!FrameTransformer.TryDecrypt(lease, decryptedLease, _options.EncryptionKey))
+                            if (!FrameTransformer.TryDecrypt(lease, decryptedLease, _options.Secret))
                             {
                                 decryptedLease.Dispose();
                                 lease.Dispose();

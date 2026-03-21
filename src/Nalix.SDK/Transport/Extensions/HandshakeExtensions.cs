@@ -67,7 +67,7 @@ public static class HandshakeExtensions
         }
 
         // Skip if session key is already installed.
-        if (client.Options.EncryptionKey != null)
+        if (client.Options.Secret != null)
         {
             TcpSession.Logging?.Debug("[SDK.HandshakeAsync] Session key already installed; skipping.");
             return true;
@@ -118,9 +118,9 @@ public static class HandshakeExtensions
                 try
                 {
                     secret = X25519.Agreement(kp.PrivateKey, hs.Data);
-                    client.Options.EncryptionKey = Keccak256.HashData(secret);
+                    client.Options.Secret = Keccak256.HashData(secret);
 
-                    TcpSession.Logging?.Info("[SDK.HandshakeAsync] Completed. EncryptionKey installed.");
+                    TcpSession.Logging?.Info("[SDK.HandshakeAsync] Completed. Secret installed.");
                     return true;
                 }
                 finally

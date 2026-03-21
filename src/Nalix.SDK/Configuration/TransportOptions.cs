@@ -101,16 +101,28 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     public System.Int32 MaxPacketSize { get; set; } = 64 * 1024;
 
     /// <summary>
+    /// Enable or disable compression for outgoing packets. Compression is applied to packets larger than MinSizeToCompress.
+    /// </summary>
+    [IniComment("Enable compression for outgoing packets (only applies to packets larger than MinSizeToCompress)")]
+    public System.Boolean EnebledCompress { get; set; } = true;
+
+    /// <summary>
+    /// Minimum packet size in bytes required to trigger compression. Packets smaller than this threshold will not be compressed.
+    /// </summary>
+    [IniComment("Minimum packet size in bytes to trigger compression (only applies if EnebledCompress is true)")]
+    public System.Int32 MinSizeToCompress { get; set; } = 1024;
+
+    /// <summary>
     /// Gets the encryption key used for secure communication.
     /// </summary>
     [ConfiguredIgnore]
-    public System.Byte[] EncryptionKey { get; set; } = [];
+    public System.Byte[] Secret { get; set; } = [];
 
     /// <summary>
     /// Gets the encryption mode for the connection.
     /// </summary>
     [IniComment("Cipher suite used for packet encryption (e.g., CHACHA20, SALSA20, CHACHA20_POLY1305, SALSA20_POLY1305)")]
-    public CipherSuiteType EncryptionMode { get; set; } = CipherSuiteType.CHACHA20_POLY1305;
+    public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.CHACHA20_POLY1305;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
