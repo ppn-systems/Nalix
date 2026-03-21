@@ -79,7 +79,14 @@
 
 ## 📈 Benchmarks
 
-> All benchmarks run on **.NET 10.0**, **Intel i7-13620H**, **Windows 11**, using **BenchmarkDotNet v0.15.8**.
+> All benchmarks run on **.NET 10.0**, **Windows 11**, using **BenchmarkDotNet v0.15.8**.
+
+### Environment
+
+- CPU: 13th Gen Intel Core i7-13620H (10C/16T)
+- Runtime: .NET `10.0.5` (X64 RyuJIT, Server GC)
+- SDK: .NET SDK `10.0.201`
+- Job config: `IterationCount=15`, `LaunchCount=3`, `WarmupCount=10`, `RunStrategy=Throughput`
 
 ### 🔒 Envelope Encryption
 
@@ -100,12 +107,16 @@
 
 ### 🔄 Serialization
 
-| Method | Array Length | Mean (ns) | Allocated |
+| Method | Item Count | Mean (ns) | Allocated |
 | :--- | ---: | ---: | ---: |
-| Serialize\<`int`[]> → byte[] | 256 | 0.0476 | — |
-| Deserialize\<`int`> ← ReadOnlySpan\<`byte`> (ref) | 256 | 0.1097 | — |
-| Serialize\<`LargeStruct`> → existing buffer | 2048 | 0.0396 | — |
-| Deserialize\<`LargeStruct`> ← ReadOnlySpan\<`byte`> (ref) | 2048 | 0.2274 | 1 B |
+| LiteSerializer Serialize | 16 | 148.4 | 152 B |
+| LiteSerializer Serialize | 128 | 298.2 | 600 B |
+| LiteSerializer Deserialize | 16 | 165.0 | 392 B |
+| LiteSerializer Deserialize | 1024 | 1,048.9 | 4,424 B |
+| MessagePack Serialize | 128 | 262.0 | 240 B |
+| MessagePack Deserialize | 128 | 851.4 | 840 B |
+| System.Text.Json Serialize | 128 | 1,266.8 | 856 B |
+| System.Text.Json Deserialize | 128 | 3,695.8 | 2,584 B |
 
 > **More details:** See the [`docs/benchmarks`](docs/benchmarks/) folder for full data and additional test cases.
 

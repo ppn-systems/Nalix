@@ -6,6 +6,9 @@ Nalix is engineered to minimize latency and maximize throughput on the networkin
 
 Traditional networking stacks suffer from GC pressure due to frequent buffer allocations. Nalix eliminates this by pooling all hot-path resources.
 
+> [!TIP]
+> **New Guide**: For a complete end-to-end walkthrough of how these optimizations work together in a production scenario, see the [Zero-Allocation Hot Path](../guides/zero-allocation-hot-path.md) guide.
+
 ### Buffer Pooling (BufferLease)
 
 Instead of allocating `byte[]` per request, Nalix uses `BufferPoolManager`. Every incoming packet is leased into a pre-sized, memory-aligned buffer and must be returned via `Dispose()`.

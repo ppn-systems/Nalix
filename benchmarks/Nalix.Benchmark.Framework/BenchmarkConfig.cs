@@ -1,7 +1,5 @@
 using System;
-using System.Globalization;
 using System.IO;
-using System.Linq;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
@@ -12,6 +10,7 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Order;
 using BenchmarkDotNet.Reports;
 using Perfolizer.Horology;
+using Perfolizer.Mathematics.OutlierDetection;
 
 namespace Nalix.Benchmark.Framework;
 
@@ -25,29 +24,40 @@ public sealed class BenchmarkConfig : ManualConfig
         _ = this.AddJob(
              Job.Default
                 .WithRuntime(CoreRuntime.Core10_0) // .NET 10
-                .WithAffinity(new IntPtr(1))
+                                                   // Không pin vào 1 core để tránh nhiễu bất thường trên đúng 1 logical core
+                                                   // .WithAffinity(new IntPtr(1))
                 .WithPowerPlan(PowerPlan.HighPerformance)
-                .WithLaunchCount(1)
-                .WithWarmupCount(6)
-                .WithIterationCount(10)
-                .WithMinIterationTime(TimeInterval.FromMilliseconds(250))
+                .WithLaunchCount(3)
+                .WithWarmupCount(10)
+                .WithIterationCount(15)
+                .WithMinIterationTime(TimeInterval.FromMilliseconds(500))
                 .WithGcServer(true)
                 .WithStrategy(RunStrategy.Throughput)
+                .WithOutlierMode(OutlierMode.RemoveUpper)
                 .WithId("Net10"));
 
-        _ = this.AddColumnProvider(DefaultConfig.Instance.GetColumnProviders().ToArray());
-        _ = this.AddColumn(StatisticColumn.P95);
-        _ = this.AddColumn(RankColumn.Arabic);
-        _ = this.AddColumn(CategoriesColumn.Default);
+        _ = this.AddColumn(
+            StatisticColumn.Min,
+            StatisticColumn.Mean,
+            StatisticColumn.Median,
+            StatisticColumn.P95,
+            StatisticColumn.Max,
+            StatisticColumn.StdDev,
+            RankColumn.Arabic,
+            CategoriesColumn.Default);
+
         _ = this.AddExporter(MarkdownExporter.GitHub);
+
         _ = this.AddDiagnoser(MemoryDiagnoser.Default);
+
         _ = this.WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest));
         _ = this.WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(32));
+
         _ = this.AddLogicalGroupRules(BenchmarkLogicalGroupRule.ByCategory);
 
         _ = this.WithArtifactsPath(artifactsPath)
                 .WithOption(ConfigOptions.DisableLogFile, true)
                 .WithOption(ConfigOptions.JoinSummary, false)
-                .WithWakeLock(WakeLockType.None);
+                .WithWakeLock(WakeLockType.System);
     }
 }

@@ -10,6 +10,49 @@ namespace Nalix.Analyzers.Tests;
 public sealed class PacketAnalyzerTests
 {
     [Fact]
+    public async Task PacketDeserializeSpanOverloadMissing_ProducesDiagnostic()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Framework.DataFrames;
+
+public sealed class MissingSpanPacket : PacketBase<MissingSpanPacket>
+{
+    public static MissingSpanPacket Deserialize(byte[] buffer) => PacketBase<MissingSpanPacket>.Deserialize(buffer);
+}
+""";
+
+        await Verifier<ResetForPoolCodeFixProvider>.VerifyAnalyzerAsync(
+            source,
+            "NALIX052");
+    }
+
+    [Fact]
+    public async Task NonPacketDeserializeUtility_DoesNotProducePacketDiagnostic()
+    {
+        const string source = """
+namespace Demo;
+
+public static class LiteSerializerLike
+{
+    public static int Deserialize(byte[] buffer, out int bytesRead)
+    {
+        bytesRead = buffer.Length;
+        return bytesRead;
+    }
+
+    public static int Deserialize(ReadOnlyMemory<byte> buffer, out int bytesRead)
+    {
+        bytesRead = buffer.Length;
+        return bytesRead;
+    }
+}
+""";
+
+        await Verifier<ResetForPoolCodeFixProvider>.VerifyAnalyzerAsync(source);
+    }
+
+    [Fact]
     public async Task ResetForPoolWithoutBaseCall_ProducesDiagnosticAndFix()
     {
         const string source = """

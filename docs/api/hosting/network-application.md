@@ -2,6 +2,15 @@
 
 `Nalix.Network.Hosting` provides a Microsoft-style builder and host for Nalix servers. It simplifies the setup of protocols, listeners, dispatchers, and dependency injection into a single fluent flow.
 
+## Why use the Hosting Builder?
+
+While you can instantiate listeners and protocols manually, the `NetworkApplicationBuilder` is **highly recommended** for production applications.
+
+- **Unified Lifecycle**: Ensures that the memory pool, handler registry, dispatcher, and listeners are activated and deactivated in the correct order.
+- **Automatic Service Injection**: Automatically registers critical shared services (Logger, ConnectionHub, BufferPool) into the `InstanceManager`.
+- **Handler Discovery**: Scans assemblies for `[PacketController]` classes and performs high-performance **Handler Compilation** (Expression Trees) to eliminate reflection overhead.
+- **Coexistence**: Easily manages multiple listeners (e.g., TCP and UDP) within the same application process.
+
 The public API surface revolves around two main types:
 
 - `NetworkApplication` is the runnable host.
@@ -54,12 +63,14 @@ The builder uses a fluent API to configure the host before it is built.
 
 - `ConfigureLogging(ILogger)`: Registers the logger into the `InstanceManager`.
 - `ConfigureConnectionHub(IConnectionHub)`: Registers the shared connection hub into the `InstanceManager`.
-- `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager.
+- `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager and binds `BufferLease.ByteArrayPool` to that manager for pooled receive/send paths.
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type. This is applied during the activation phase.
 
 > [!NOTE]
 > If you do not configure a connection hub or buffer pool manager, the builder can create default instances during build/activation.
 > The built-in handler set is registered automatically before user-defined handler discovery runs.
+>
+> The builder also re-binds `BufferLease.ByteArrayPool` during startup, so the server receive path stays on pooled buffers even if `BufferLease` was touched before host wiring.
 
 ### Packet and Handler Discovery
 
@@ -81,7 +92,9 @@ The builder uses a fluent API to configure the host before it is built.
 - `AddTcp<TProtocol>()`: Registers a TCP server for the specified protocol.
 - `AddTcp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a TCP server with a custom protocol factory.
 - `AddUdp<TProtocol>()`: Registers a UDP server for the specified protocol.
+- `AddUdp<TProtocol>(Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers a UDP server with a custom authentication predicate.
 - `AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a UDP server with a custom protocol factory.
+- `AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory, Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers a UDP server with both a custom factory and an authentication predicate.
 
 ## Basic usage
 
@@ -101,6 +114,14 @@ var app = NetworkApplication.CreateBuilder()
 
 await app.RunAsync(cancellationToken);
 ```
+
+## Zero-allocation receive checklist
+
+To keep message reading allocation-free on the server hot path:
+
+- register a `BufferPoolManager` with `ConfigureBufferPoolManager(...)` (or let the builder create one)
+- keep protocol `ProcessMessage(...)` lease-based (`args.Lease`) and forward directly to dispatch
+- avoid copying raw payload into new `byte[]` in middleware/protocol unless required by business logic
 
 ## Related APIs
 

@@ -167,12 +167,29 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder AddUdp<TProtocol>() where TProtocol : class, IProtocol;
 
     /// <summary>
+    /// Adds a UDP protocol using the default Nalix activator and a custom authentication predicate.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
+    /// <param name="authen">The authentication predicate used to validate incoming datagrams.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddUdp<TProtocol>(Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen) where TProtocol : class, IProtocol;
+
+    /// <summary>
     /// Adds a UDP protocol using an explicit factory.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <param name="factory">The factory used to create the protocol instance.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
+
+    /// <summary>
+    /// Adds a UDP protocol using an explicit factory and a custom authentication predicate.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
+    /// <param name="factory">The factory used to create the protocol instance.</param>
+    /// <param name="authen">The authentication predicate used to validate incoming datagrams.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen) where TProtocol : class, IProtocol;
 
     /// <summary>
     /// Adds a UDP protocol using the default Nalix activator on a specific port.
@@ -183,6 +200,15 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder AddUdp<TProtocol>(ushort port) where TProtocol : class, IProtocol;
 
     /// <summary>
+    /// Adds a UDP protocol using the default Nalix activator on a specific port with a custom authentication predicate.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
+    /// <param name="port">The port to listen on.</param>
+    /// <param name="authen">The authentication predicate used to validate incoming datagrams.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen) where TProtocol : class, IProtocol;
+
+    /// <summary>
     /// Adds a UDP protocol using an explicit factory on a specific port.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
@@ -190,4 +216,14 @@ public interface INetworkApplicationBuilder
     /// <param name="factory">The factory used to create the protocol instance.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
+
+    /// <summary>
+    /// Adds a UDP protocol using an explicit factory on a specific port with a custom authentication predicate.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
+    /// <param name="port">The port to listen on.</param>
+    /// <param name="factory">The factory used to create the protocol instance.</param>
+    /// <param name="authen">The authentication predicate used to validate incoming datagrams.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen) where TProtocol : class, IProtocol;
 }

@@ -2,6 +2,18 @@
 
 Nalix API documentation is organized by package boundary and runtime responsibility so you can move from contracts (`Nalix.Common`) to execution (`Nalix.Runtime`, `Nalix.Network`) and then to client transport (`Nalix.SDK`) without mixing concerns.
 
+## Where to start
+
+If you're looking for the core interfaces and classes that drive Nalix:
+
+- :fontawesome-solid-cube: **Packet contracts & attributes** → [Common API](./common/index.md)
+- :fontawesome-solid-route: **Handlers, routing & metadata** → [Runtime Routing](./runtime/routing/index.md)
+- :fontawesome-solid-filter: **Middleware pipelines** → [Runtime Middleware](./runtime/middleware/index.md)
+- :fontawesome-solid-network-wired: **TCP/UDP transport & protocols** → [Network API](./network/index.md)
+- :fontawesome-solid-mobile-screen: **Client sessions & requests** → [SDK API](./sdk/index.md)
+
+👉 **Important:** Most users should NOT start by reading the API reference. If you are new, follow the [Recommended Path](../index.md#recommended-path) or explore the [Guides](../guides/index.md) first.
+
 ## Source Mapping
 
 - `src/Nalix.Common`

@@ -16,7 +16,8 @@ Explore detailed metrics by subsystem:
 - [**Memory & Storage**](memory.md): Buffer Pooling and Data Writers.
 - [**Data Processing**](data-processing.md): LZ4 and Framing.
 - [**Security & Cryptography**](security.md): Engines, Ciphers, and Hashing.
-- [**Serialization**](serialization.md): Objects, Structs, and Arrays.
+- [**Serialization**](serialization.md): Latest serializer comparison (LiteSerializer, MessagePack, System.Text.Json).
+- [**Serialization Methods Compare**](serialization-method-compare.md): Full compared methods with simplified signatures.
 - [**Distributed Identifiers**](identifiers.md): Snowflake IDs.
 
 ---

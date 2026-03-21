@@ -189,6 +189,18 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        where TProtocol : class, IProtocol
+    {
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
+            Authentication: authen));
+
+        return this;
+    }
+
+    /// <inheritdoc />
     public INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)
         where TProtocol : class, IProtocol
     {
@@ -197,6 +209,20 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         _state.UdpBindings.Add(new UdpProtocolBinding(
             typeof(TProtocol),
             dispatch => factory(dispatch)));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        where TProtocol : class, IProtocol
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => factory(dispatch),
+            Authentication: authen));
 
         return this;
     }
@@ -238,6 +264,19 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        where TProtocol : class, IProtocol
+    {
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
+            port,
+            authen));
+
+        return this;
+    }
+
+    /// <inheritdoc />
     public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)
         where TProtocol : class, IProtocol
     {
@@ -252,10 +291,26 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        where TProtocol : class, IProtocol
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => factory(dispatch),
+            port,
+            authen));
+
+        return this;
+    }
+
+    /// <inheritdoc />
     public INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
         InstanceManager.Instance.Register<BufferPoolManager>(manager);
+        BufferLease.ByteArrayPool.Configure(manager);
 
         return this;
     }
@@ -303,9 +358,13 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             {
                 this.EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
-                UdpServerListener listener = registration.Port.HasValue
-                    ? new(registration.Port.Value, protocol)
-                    : new(protocol);
+                UdpServerListener listener = registration.Authentication != null
+                    ? (registration.Port.HasValue
+                        ? new(registration.Port.Value, protocol, registration.Authentication)
+                        : new(protocol, registration.Authentication))
+                    : (registration.Port.HasValue
+                        ? new(registration.Port.Value, protocol)
+                        : new(protocol));
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);
             });
@@ -420,12 +479,16 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
     private void EnsureBufferPoolManagerRegistered()
     {
-        if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is not null)
+        BufferPoolManager? manager = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
+        if (manager is not null)
         {
+            BufferLease.ByteArrayPool.Configure(manager);
             return;
         }
 
-        InstanceManager.Instance.Register<BufferPoolManager>(new BufferPoolManager(_state.Logger));
+        manager = new BufferPoolManager(_state.Logger);
+        InstanceManager.Instance.Register<BufferPoolManager>(manager);
+        BufferLease.ByteArrayPool.Configure(manager);
     }
 
 

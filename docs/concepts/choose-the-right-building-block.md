@@ -18,6 +18,16 @@ flowchart TD
     F -->|Need custom policy tags or conventions| I["Use a metadata provider"]
 ```
 
+## Decision Matrix
+
+| You want to... | Use |
+|:---|:---|
+| Intercept, audit, or secure all/some packets | **Middleware** |
+| Implement custom binary framing or binary security | **Protocol** |
+| Customize how packets are queued, prioritized, or sharded | **Dispatch** |
+| Implement business features or request logic | **Handler** |
+| Tag handlers with region, tenant, or policy metadata | **Metadata Provider** |
+
 ## Quick rules
 
 ### Choose TCP when

@@ -1,5 +1,10 @@
 # Production End-to-End Guide
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Advanced
+    - :fontawesome-solid-clock: **Time**: 20–30 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md), [Architecture](../concepts/architecture.md)
+
 This guide describes how to build a production-ready Nalix application using best practices for logging, middleware, error handling, and structured contracts.
 
 ## 1. Project Setup

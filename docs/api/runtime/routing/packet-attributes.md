@@ -45,6 +45,10 @@ Attributes provide declarative metadata at registration time so dispatch/runtime
 ## Practical Example
 
 ```csharp
+using System.Threading.Tasks;
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+
 [PacketController("SecureChat", version: "1.2")]
 public sealed class SecureChatController
 {
@@ -55,9 +59,14 @@ public sealed class SecureChatController
     [PacketEncryption(true)]
     [PacketTimeout(5000)]
     public static ValueTask HandleAsync(IPacketContext<ChatPacket> context)
-        => ValueTask.CompletedTask;
+    {
+        // Application logic here
+        return ValueTask.CompletedTask;
+    }
 }
 ```
+
+For a comprehensive walkthrough of handler implementation, including error handling and registration, see the [Implementing Packet Handlers](../../../guides/implementing-packet-handlers.md) guide.
 
 ## Best Practices
 

@@ -114,9 +114,8 @@ If you are unsure, start with packet middleware. It is easier to test, easier to
 !!! warning "Pitfall: Ordering assumptions"
     Middleware executes in registration order. If your permission middleware runs after your audit middleware, you will audit rejected requests — which may or may not be desirable.
 
-## Recommended Next Pages
+## See it in action
 
-- [Choose the Right Building Block](./choose-the-right-building-block.md) — Component selection guide
-- [Middleware Pipeline](../api/runtime/middleware/pipeline.md) — Pipeline API reference
-- [Packet Metadata](../api/runtime/routing/packet-metadata.md) — Metadata API reference
-- [Custom Middleware End-to-End](../guides/custom-middleware-end-to-end.md) — Build a middleware from scratch
+- :fontawesome-solid-screwdriver-wrench: [Custom Middleware End-to-End](../guides/custom-middleware-end-to-end.md) — Create a custom middleware and metadata provider.
+- :fontawesome-solid-user-shield: [UDP Auth Flow](../guides/udp-auth-flow.md) — See how authentication middleware is used in a real scenario.
+- :fontawesome-solid-arrow-right-arrow-left: [TCP Request/Response](../guides/tcp-request-response.md) — Observe middleware in a standard TCP flow.

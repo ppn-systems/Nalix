@@ -61,6 +61,12 @@ Built-in handlers currently use packet attributes such as:
 - `PacketPermission`
 - `ReservedOpcodePermitted`
 
+## Custom Handlers
+
+While built-in controllers handle protocol signals, your application logic should live in custom controllers.
+
+- [**Implementing Packet Handlers**](../../../guides/implementing-packet-handlers.md) — Step-by-step guide to building and registering your own handlers.
+
 ## Best Practices
 
 - Keep built-in controllers enabled for standard handshake/session/control protocol behaviors.

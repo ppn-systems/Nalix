@@ -38,7 +38,14 @@ Correct source references and lifecycle boundaries reduce confusion during UDP t
 
 ## Required Extension Point
 
-Derived listeners must implement authentication/validation logic for inbound datagrams before they are treated as connection traffic.
+Derived listeners must implement the authentication hook to validate inbound datagrams:
+
+```csharp
+protected abstract bool IsAuthenticated(
+    IConnection connection, 
+    EndPoint remoteEndPoint, 
+    ReadOnlySpan<byte> payload);
+```
 
 ## Mental Model
 

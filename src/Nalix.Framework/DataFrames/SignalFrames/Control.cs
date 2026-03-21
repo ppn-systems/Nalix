@@ -13,6 +13,7 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
+[Packet]
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned, IFixedSizeSerializable

@@ -211,6 +211,15 @@ sequenceDiagram
     W-->>C: Serialize & transmit response
 ```
 
+## What happens behind the scenes
+
+When you call `RunAsync()` and start interacting with the server, Nalix performs several critical tasks under the hood:
+
+- **Packet Registry**: The `.AddPacket<T>()` calls populate a `PacketRegistry`. This registry caches deserialization function pointers, ensuring that when a packet arrives, Nalix knows exactly how to read it without using slow reflection.
+- **Handler Mapping**: The `.AddHandler<T>()` call scans the class for `[PacketOpcode]` attributes and builds a routing table. This table is used by the `PacketDispatchChannel` to jump directly to your logic.
+- **Dispatch Pipeline**: Nalix creates a sharded dispatch channel. Incoming bytes from the `PingProtocol` are enqueued into a lock-free queue, and a dedicated worker loop picks them up, applies any middleware, and executes your handler.
+- **Buffer Management**: Throughout this entire flow, the raw data remains in a `BufferLease` from a shared pool. No new byte arrays are allocated for the packet data, which keeps the GC overhead near zero.
+
 ## What You Built
 
 You now have a working Nalix stack with:

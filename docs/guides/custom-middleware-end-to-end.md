@@ -1,207 +1,187 @@
 # Custom Middleware End-to-End
 
-This guide shows a practical end-to-end flow for adding your own middleware to Nalix.Network.
-The same shape works for built-in packets and custom packet types.
+This guide shows how to implement custom authorization rules that validate session tokens across the Nalix inbound pipeline.
 
-The goal is simple:
+The example combines:
 
-- accept a packet
-- inspect shared metadata or connection state
-- block bad requests early
-- let the handler run normally
+- a **buffer middleware** pre-check (cheap fail-fast guard before deserialization)
+- a **packet middleware** authorization check (permission + session token validation against `ISessionStore`)
 
-## Pick the right middleware type
+## Pick the right layer
 
-Nalix.Network has two middleware layers:
+- **`INetworkBufferMiddleware`** runs on raw `IBufferLease` before packet parsing.
+- **`IPacketMiddleware<TPacket>`** runs after deserialization with metadata (`PacketPermission`, timeout, rate-limit, opcode).
 
-- **buffer middleware**
-  - runs before packet deserialization
-  - works on raw `IBufferLease`
-  - good for decrypt/decompress/low-level validation
-- **packet middleware**
-  - runs after deserialization
-  - works on `PacketContext<TPacket>`
-  - good for permissions, throttling, auditing, and request policies
+For complex authorization, use both:
 
-For most application-level customization, start with **packet middleware**.
+- buffer middleware to reject obviously invalid traffic early
+- packet middleware to apply metadata-aware authorization logic
 
-## Example scenario
-
-We will build a packet middleware that:
-
-- checks whether a client is authenticated enough
-- logs the opcode
-- rejects requests that do not meet the minimum permission level
-
-## Step 1. Create the middleware
+## Step 1. Add a raw buffer pre-check
 
 ```csharp
+using System.Threading;
+using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
+using Nalix.Common.Networking;
 
-[MiddlewareOrder(-20)]
-[MiddlewareStage(MiddlewareStage.Inbound)]
-public sealed class SampleAuditMiddleware<TPacket> : IPacketMiddleware<TPacket>
-    where TPacket : IPacket
+[MiddlewareOrder(-200)]
+public sealed class SessionEnvelopeGuard : INetworkBufferMiddleware
 {
-    public async Task InvokeAsync(
-        PacketContext<TPacket> context,
-        Func<CancellationToken, Task> next)
+    public ValueTask<IBufferLease?> InvokeAsync(
+        IBufferLease buffer,
+        IConnection connection,
+        CancellationToken ct)
     {
-        ushort opcode = context.Attributes.PacketOpcode.OpCode;
+        // Cheap guard: drop malformed/empty frames before deserialization work.
+        if (buffer.Length <= 0)
+        {
+            return ValueTask.FromResult<IBufferLease?>(null);
+        }
 
-        Console.WriteLine($"packet opcode=0x{opcode:X4} from={context.Connection.NetworkEndpoint}");
+        return ValueTask.FromResult<IBufferLease?>(buffer);
+    }
+}
+```
 
+## Step 2. Add packet middleware for permission + session token validation
+
+```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Nalix.Common.Middleware;
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Sessions;
+using Nalix.Common.Primitives;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Injection;
+
+[MiddlewareOrder(-60)]
+[MiddlewareStage(MiddlewareStage.Inbound)]
+public sealed class SessionAuthorizationMiddleware : IPacketMiddleware<IPacket>
+{
+    private readonly IConnectionHub? _hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
+
+    public async ValueTask InvokeAsync(
+        IPacketContext<IPacket> context,
+        Func<CancellationToken, ValueTask> next)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(next);
+
+        // 1) Permission gate from packet metadata.
         if (context.Attributes.Permission is not null &&
             context.Connection.Level < context.Attributes.Permission.Level)
         {
-            await context.Connection.SendAsync(
-                ControlType.FAIL,
-                ProtocolReason.PERMISSION_DENIED,
-                ProtocolAdvice.RETRY_LATER);
+            context.Connection.Disconnect("Permission denied.");
             return;
         }
 
-        await next(context.CancellationToken);
+        // 2) Session token gate from connection attributes + session store.
+        if (!TryGetSessionToken(context.Connection, out UInt56 sessionToken))
+        {
+            context.Connection.Disconnect("Missing session token.");
+            return;
+        }
+
+        if (_hub is null)
+        {
+            context.Connection.Disconnect("Session service unavailable.");
+            return;
+        }
+
+        SessionEntry? entry = await _hub.SessionStore
+            .RetrieveAsync(sessionToken, context.CancellationToken)
+            .ConfigureAwait(false);
+
+        if (entry is null)
+        {
+            context.Connection.Disconnect("Session expired or revoked.");
+            return;
+        }
+
+        // Optional strict check for SessionResume packet payload.
+        if (context.Packet is SessionResume resume &&
+            resume.Stage == SessionResumeStage.REQUEST &&
+            !resume.SessionToken.IsEmpty &&
+            resume.SessionToken.ToUInt56() != sessionToken)
+        {
+            entry.Return();
+            context.Connection.Disconnect("Session token mismatch.");
+            return;
+        }
+
+        entry.Return();
+        await next(context.CancellationToken).ConfigureAwait(false);
     }
-}
-```
 
-## Why this works
-
-- `[MiddlewareOrder(-20)]` moves the middleware early in the inbound chain
-- `[MiddlewareStage(MiddlewareStage.Inbound)]` means it runs before the handler
-- `context.Attributes` gives access to the resolved packet metadata
-- returning without calling `next(...)` short-circuits the request
-
-## Step 2. Add packet attributes to a handler
-
-```csharp
-[PacketController("SampleChatHandlers")]
-public sealed class SampleChatHandlers
-{
-    [PacketOpcode(0x1001)]
-    [PacketPermission(PermissionLevel.USER)]
-    public ValueTask<Control> Send(PacketContext<Control> request)
+    private static bool TryGetSessionToken(IConnection connection, out UInt56 token)
     {
-        request.Packet.Type = ControlType.PONG;
-        return ValueTask.FromResult(request.Packet);
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.SessionToken, out object? raw) &&
+            raw is UInt56 sessionToken)
+        {
+            token = sessionToken;
+            return true;
+        }
+
+        token = default;
+        return false;
     }
 }
 ```
 
-Now the middleware can read `PacketPermission` from `context.Attributes.Permission`.
-
-## Step 3. Register middleware in dispatch options
+## Step 3. Register middleware in the host dispatch
 
 ```csharp
-PacketDispatchChannel dispatch = new(options =>
-{
-    options.WithLogging(logger)
-           .WithMiddleware(new SampleAuditMiddleware<IPacket>())
-           .WithHandler(() => new SampleChatHandlers());
-});
+using Nalix.Network.Hosting;
 
-dispatch.Activate();
+using NetworkApplication app = NetworkApplication.CreateBuilder()
+    .ConfigureDispatch(options =>
+    {
+        _ = options.WithBufferMiddleware(new SessionEnvelopeGuard());
+        _ = options.WithMiddleware(new SessionAuthorizationMiddleware());
+    })
+    .AddTcp<MyProtocol>()
+    .Build();
 ```
 
-## Step 4. Wire protocol and listener
+## Step 4. Add packet metadata on handlers
 
 ```csharp
-public sealed class SampleProtocol : Protocol
+[PacketController("SecureHandlers")]
+public sealed class SecureHandlers
 {
-    private readonly PacketDispatchChannel _dispatch;
-
-    public SampleProtocol(PacketDispatchChannel dispatch) => _dispatch = dispatch;
-
-    public override void ProcessMessage(object sender, IConnectEventArgs args)
-        => _dispatch.HandlePacket(args.Lease, args.Connection);
-}
-
-public sealed class SampleTcpListener : TcpListenerBase
-{
-    public SampleTcpListener(ushort port, IProtocol protocol) : base(port, protocol) { }
+    [PacketOpcode(0x1201)]
+    [PacketPermission(PermissionLevel.USER)]
+    public ValueTask HandleAsync(IPacketContext<MyPacket> context)
+    {
+        // Business logic
+        return ValueTask.CompletedTask;
+    }
 }
 ```
 
-## Full flow
+## Flow summary
 
 ```mermaid
 flowchart LR
-    A["Socket accepted"] --> B["Protocol.OnAccept"]
-    B --> C["connection.TCP.BeginReceive"]
-    C --> D["PacketDispatchChannel.HandlePacket"]
-    D --> E["Buffer middleware"]
-    E --> F["Deserialize packet"]
-    F --> G["SampleAuditMiddleware"]
-    G --> H["Handler"]
-    H --> I["Return handler / response"]
+    A["Socket frame"] --> B["NetworkBufferMiddlewarePipeline"]
+    B --> C["Deserialize packet"]
+    C --> D["SessionAuthorizationMiddleware"]
+    D --> E["Handler"]
 ```
 
-The same middleware shape applies to custom packet types as long as the handler generic parameter stays aligned with the dispatch pipeline.
-In the listener bridge, `ProcessFrame(...)` still feeds the protocol before `ProcessMessage(...)` runs.
+## Notes
 
-## Common patterns
-
-### Validation middleware
-
-Use middleware to:
-
-- reject invalid state
-- stop expensive handlers from running
-- send a control response and exit early
-
-### Audit middleware
-
-Log:
-
-- opcode
-- endpoint
-- username
-- elapsed time
-
-### Metadata-driven middleware
-
-Read from:
-
-- `context.Attributes.Permission`
-- `context.Attributes.Timeout`
-- `context.Attributes.RateLimit`
-- custom metadata added by providers
-
-## If you need raw-frame work instead
-
-Use `INetworkBufferMiddleware` when you need to act on raw bytes before deserialization:
-
-```csharp
-public sealed class FrameGuard : INetworkBufferMiddleware
-{
-    public Task<IBufferLease> InvokeAsync(
-        IBufferLease buffer,
-        IConnection connection,
-        CancellationToken ct,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease>> next)
-    {
-        if (buffer.Length < 8)
-            return Task.FromResult<IBufferLease>(null);
-
-        return next(buffer, ct);
-    }
-}
-```
-
-## Checklist
-
-- choose buffer vs packet middleware first
-- keep middleware small and predictable
-- short-circuit early for invalid requests
-- read metadata from `PacketContext.Attributes`
-- register middleware before activating dispatch
+- `SessionResume` proof validation (`HMAC-SHA256`) is implemented in `SessionHandlers`; keep this middleware focused on policy and token-state checks.
+- `INetworkBufferMiddleware` has no `next` delegate in its contract; the pipeline owns lease progression.
+- Return `null` from buffer middleware to drop a frame early.
 
 ## Related pages
 
 - [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
-- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
+- [Network Buffer Pipeline](../api/runtime/middleware/network-buffer-pipeline.md)
 - [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
