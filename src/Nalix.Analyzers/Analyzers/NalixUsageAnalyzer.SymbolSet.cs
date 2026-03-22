@@ -175,7 +175,8 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? packetMetadataProviderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketMetadataProvider");
             INamedTypeSymbol? packetMetadataBuilderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketMetadataBuilder");
             INamedTypeSymbol? methodInfoType = compilation.GetTypeByMetadataName("System.Reflection.MethodInfo");
-            INamedTypeSymbol? requestOptionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Options.RequestOptions");
+            INamedTypeSymbol? requestOptionsType =
+                compilation.GetTypeByMetadataName("Nalix.SDK.Options.RequestOptions");
             INamedTypeSymbol? requestExtensionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Extensions.RequestExtensions");
             INamedTypeSymbol? tcpSessionBaseType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.TcpSession");
             INamedTypeSymbol? taskType = compilation.GetTypeByMetadataName(typeof(Task).FullName);

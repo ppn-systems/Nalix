@@ -36,8 +36,24 @@ public abstract void ProcessMessage(object? sender, IConnectEventArgs args);
 Runtime default flow:
 
 1. `ProcessFrame(...)` applies decrypt/decompress pipeline.
-2. `ProcessMessage(...)` (derived implementation) handles payload semantics.
+2. `ProcessMessage(...)` (derived implementation) handles payload semantics. **This must be implemented.**
 3. `PostProcessMessage(...)` updates counters and optional disconnect behavior.
+
+## Implementation Contract
+
+To create a custom protocol, you must inherit from `Protocol` and provide the following:
+
+```csharp
+public class MyProtocol : Protocol
+{
+    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    {
+        // 1. Read packet data from args.Lease
+        // 2. Perform business routing (e.g., call a Dispatcher)
+        // 3. The lease is disposed automatically after this method returns
+    }
+}
+```
 
 ## Key Public Members
 
@@ -54,10 +70,11 @@ Runtime default flow:
 
 ## Extensibility Points
 
-- `ValidateConnection(IConnection connection)`
-- `OnPostProcess(IConnectEventArgs args)`
-- `OnConnectionError(IConnection connection, Exception exception)`
-- `Dispose(bool disposing)`
+- `ValidateConnection(IConnection connection)`: Called during the accept phase. Return `false` to reject a connection immediately.
+- `OnAccept(IConnection connection)`: Called when a connection is successfully admitted. Useful for sending initial "Welcome" packets or setting session state.
+- `OnPostProcess(IConnectEventArgs args)`: Runs after `ProcessMessage`.
+- `OnConnectionError(IConnection connection, Exception exception)`: Capture transport layer failures or protocol violations.
+- `Dispose(bool disposing)`: Standard lifecycle cleanup.
 
 ## Best Practices
 

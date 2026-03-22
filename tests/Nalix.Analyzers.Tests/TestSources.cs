@@ -179,7 +179,7 @@ namespace Nalix.SDK.Transport
     }
 }
 
-namespace Nalix.SDK.Configuration
+namespace Nalix.SDK.Options
 {
     public sealed record RequestOptions
     {
@@ -199,7 +199,7 @@ namespace Nalix.SDK.Transport.Extensions
     using System.Threading;
     using System.Threading.Tasks;
     using Nalix.Common.Networking.Packets;
-    using Nalix.SDK.Configuration;
+    using Nalix.SDK.Options;
     using Nalix.SDK.Transport;
 
     public static class RequestExtensions
@@ -222,3 +222,4 @@ namespace Nalix.Framework.Configuration.Binding
 }
 """;
 }
+

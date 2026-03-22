@@ -77,27 +77,67 @@ dispatch.Activate();
 
 ### 4. Create protocol
 
+The `Protocol` class is the glue between the raw listener and your message dispatcher. You must implement `ProcessMessage` and can optionally override lifecycle hooks for custom error handling.
+
 ```csharp
 public sealed class SampleProtocol : Protocol
 {
     private readonly PacketDispatchChannel _dispatch;
+    private readonly ILogger _logger;
 
-    public SampleProtocol(PacketDispatchChannel dispatch) => _dispatch = dispatch;
+    public SampleProtocol(PacketDispatchChannel dispatch, ILogger logger)
+    {
+        _dispatch = dispatch;
+        _logger = logger;
+    }
 
-    public override void ProcessMessage(object sender, IConnectEventArgs args)
+    /// <summary>
+    /// Triggered when a raw frame has been decrypted and decompressed.
+    /// This is where you route the payload to the dispatcher.
+    /// </summary>
+    public override void ProcessMessage(object? sender, IConnectEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
+
+    /// <summary>
+    /// Custom hook to observe connection failures (e.g., handshake timeouts).
+    /// </summary>
+    protected override void OnConnectionError(IConnection connection, Exception ex)
+    {
+        _logger.Error($"Transport error on connection {connection.ID}: {ex.Message}");
+    }
+
+    /// <summary>
+    /// Custom hook for admission control before frame processing begins.
+    /// </summary>
+    protected override bool ValidateConnection(IConnection connection)
+    {
+        // Add custom IP blacklisting or state checks here
+        return base.ValidateConnection(connection);
+    }
 }
 ```
 
 ### 5. Start listener
 
-```csharp
-public sealed class SampleTcpListener : TcpListenerBase
-{
-    public SampleTcpListener(ushort port, IProtocol protocol) : base(port, protocol) { }
-}
+When using the transport layer directly (outside of the Hosting builder), you must ensure that all required services are registered in the `InstanceManager`.
 
-SampleTcpListener listener = new(57206, new SampleProtocol(dispatch));
+#### Required Dependencies (InstanceManager)
+| Service | Type | Role |
+|---|---|---|
+| `ILogger` | `ILogger` | Structured logging |
+| `IConnectionHub` | `IConnectionHub` | Connection tracking and batch operations |
+| `TaskManager` | `TaskManager` | Background worker management |
+| `TimingWheel` | `TimingWheel` | Lightweight timeout scheduling |
+| `ObjectPoolManager`| `ObjectPoolManager`| Recyclable buffer/context management |
+
+```csharp
+// Setup dependencies
+InstanceManager.Instance.Register<ILogger>(logger);
+InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub());
+InstanceManager.Instance.Register<TaskManager>(new TaskManager());
+
+// Initialize and Activate
+SampleTcpListener listener = new(57206, new SampleProtocol(dispatch, logger));
 listener.Activate();
 ```
 

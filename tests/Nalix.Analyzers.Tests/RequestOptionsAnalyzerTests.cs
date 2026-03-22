@@ -14,7 +14,7 @@ public sealed class RequestOptionsAnalyzerTests
     {
         const string source = """
 namespace Demo;
-using Nalix.SDK.Configuration;
+using Nalix.SDK.Options;
 
 public sealed class Example
 {
@@ -33,7 +33,7 @@ public sealed class Example
     {
         const string source = """
 namespace Demo;
-using Nalix.SDK.Configuration;
+using Nalix.SDK.Options;
 
 public sealed class Example
 {
@@ -55,7 +55,7 @@ namespace Demo;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
-using Nalix.SDK.Configuration;
+using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
@@ -100,7 +100,7 @@ namespace Demo;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
-using Nalix.SDK.Configuration;
+using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
@@ -123,3 +123,4 @@ public sealed class Example
         await Verifier<ConfigurationIgnoreCodeFixProvider>.VerifyAnalyzerAsync(source);
     }
 }
+
