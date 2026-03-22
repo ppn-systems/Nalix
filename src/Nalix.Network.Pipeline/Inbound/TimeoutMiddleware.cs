@@ -5,12 +5,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Middleware;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Pipeline.Internal;
 
 namespace Nalix.Network.Pipeline.Inbound;
 
@@ -22,8 +22,6 @@ namespace Nalix.Network.Pipeline.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-
     /// <inheritdoc/>
     public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
@@ -58,26 +56,23 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
         {
-            Directive directive = s_pool.Get<Directive>();
-
-            try
+            if (!DirectiveGuard.TryAcquire(
+                context.Connection,
+                ConnectionAttributes.InboundDirectiveTimeoutLastSentAtMs))
             {
-                directive.Initialize(
-                    ControlType.TIMEOUT, ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY,
-                    sequenceId: context.Packet.SequenceId,
-                    controlFlags: ControlFlags.IS_TRANSIENT,
-                    arg0: (uint)(timeout / 100));
-
-                using BufferLease lease = BufferLease.Rent(directive.Length + 32);
-
-                int length = directive.Serialize(lease.SpanFull);
-                lease.CommitLength(length);
-                await context.Connection.TCP.SendAsync(lease.Memory, CancellationToken.None).ConfigureAwait(false);
+                return;
             }
-            finally
-            {
-                s_pool.Return(directive);
-            }
+
+            using PacketLease<Directive> lease = PacketPool<Directive>.Rent();
+            Directive directive = lease.Value;
+
+            directive.Initialize(
+                ControlType.TIMEOUT, ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY,
+                sequenceId: context.Packet.SequenceId,
+                controlFlags: ControlFlags.IS_TRANSIENT,
+                arg0: (uint)(timeout / 100));
+
+            await context.Sender.SendAsync(directive, CancellationToken.None).ConfigureAwait(false);
         }
     }
 }

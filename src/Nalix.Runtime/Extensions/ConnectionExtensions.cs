@@ -6,10 +6,8 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Runtime.Extensions;
 
@@ -18,8 +16,6 @@ namespace Nalix.Runtime.Extensions;
 /// </summary>
 public static class ConnectionExtensions
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-
     /// <summary>
     /// Sends a control directive asynchronously over the connection.
     /// </summary>
@@ -38,28 +34,18 @@ public static class ConnectionExtensions
     {
         ArgumentNullException.ThrowIfNull(connection);
 
-        Directive directive = s_pool.Get<Directive>();
+        using PacketLease<Directive> lease = PacketPool<Directive>.Rent();
+        Directive directive = lease.Value;
 
-        try
-        {
-            directive.Initialize(
-                controlType, reason, action,
-                sequenceId: options.SequenceId,
-                controlFlags: options.Flags,
-                arg0: options.Arg0,
-                arg1: options.Arg1,
-                arg2: options.Arg2);
+        directive.Initialize(
+            controlType, reason, action,
+            sequenceId: options.SequenceId,
+            controlFlags: options.Flags,
+            arg0: options.Arg0,
+            arg1: options.Arg1,
+            arg2: options.Arg2);
 
-            using BufferLease lease = BufferLease.Rent(directive.Length + 32);
-
-            int length = directive.Serialize(lease.SpanFull);
-            lease.CommitLength(length);
-            await connection.TCP.SendAsync(lease.Memory).ConfigureAwait(false);
-        }
-        finally
-        {
-            s_pool.Return(directive);
-        }
+        await connection.TCP.SendAsync(directive).ConfigureAwait(false);
     }
 }
 

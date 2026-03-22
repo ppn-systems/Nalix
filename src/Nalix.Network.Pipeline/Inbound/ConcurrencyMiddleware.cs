@@ -6,12 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Middleware;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Pipeline.Internal;
 using Nalix.Network.Pipeline.Throttling;
 
 namespace Nalix.Network.Pipeline.Inbound;
@@ -23,7 +24,6 @@ namespace Nalix.Network.Pipeline.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     private readonly ConcurrencyGate _concurrencyGate;
 
     /// <inheritdoc/>
@@ -66,27 +66,24 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 
                 if (!acquired)
                 {
-                    Directive directive = s_pool.Get<Directive>();
-
-                    try
+                    if (!DirectiveGuard.TryAcquire(
+                        context.Connection,
+                        ConnectionAttributes.InboundDirectiveRateLimitedLastSentAtMs))
                     {
-                        directive.Initialize(
-                            ControlType.FAIL,
-                            ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
-                            sequenceId: context.Packet.SequenceId,
-                            controlFlags: ControlFlags.IS_TRANSIENT,
-                            arg0: context.Packet.OpCode);
-
-                        using BufferLease lease_1 = BufferLease.Rent(directive.Length + 32);
-
-                        int length = directive.Serialize(lease_1.SpanFull);
-                        lease_1.CommitLength(length);
-                        await context.Connection.TCP.SendAsync(lease_1.Memory).ConfigureAwait(false);
+                        return;
                     }
-                    finally
-                    {
-                        s_pool.Return(directive);
-                    }
+
+                    using PacketLease<Directive> packetLease = PacketPool<Directive>.Rent();
+                    Directive directive = packetLease.Value;
+
+                    directive.Initialize(
+                        ControlType.FAIL,
+                        ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
+                        sequenceId: context.Packet.SequenceId,
+                        controlFlags: ControlFlags.IS_TRANSIENT,
+                        arg0: context.Packet.OpCode);
+
+                    await context.Sender.SendAsync(directive).ConfigureAwait(false);
 
                     return;
                 }
@@ -96,27 +93,24 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
         }
         catch (ConcurrencyFailureException)
         {
-            Directive directive = s_pool.Get<Directive>();
-
-            try
+            if (!DirectiveGuard.TryAcquire(
+                context.Connection,
+                ConnectionAttributes.InboundDirectiveRateLimitedLastSentAtMs))
             {
-                directive.Initialize(
-                    ControlType.FAIL,
-                    ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
-                    sequenceId: context.Packet.SequenceId,
-                    controlFlags: ControlFlags.IS_TRANSIENT,
-                    arg0: context.Packet.OpCode);
-
-                using BufferLease lease_1 = BufferLease.Rent(directive.Length + 32);
-
-                int length = directive.Serialize(lease_1.SpanFull);
-                lease_1.CommitLength(length);
-                await context.Connection.TCP.SendAsync(lease_1.Memory).ConfigureAwait(false);
+                return;
             }
-            finally
-            {
-                s_pool.Return(directive);
-            }
+
+            using PacketLease<Directive> packetLease = PacketPool<Directive>.Rent();
+            Directive directive = packetLease.Value;
+
+            directive.Initialize(
+                ControlType.FAIL,
+                ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
+                sequenceId: context.Packet.SequenceId,
+                controlFlags: ControlFlags.IS_TRANSIENT,
+                arg0: context.Packet.OpCode);
+
+            await context.Sender.SendAsync(directive).ConfigureAwait(false);
         }
         finally
         {

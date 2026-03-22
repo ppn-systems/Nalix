@@ -6,12 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Middleware;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Pipeline.Internal;
 
 
 namespace Nalix.Network.Pipeline.Inbound;
@@ -24,8 +25,6 @@ namespace Nalix.Network.Pipeline.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-
     private readonly ILogger? _logger;
 
     /// <inheritdoc/>
@@ -58,7 +57,15 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
             $"need={context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)"} have={context.Connection.Level}");
 
-        Directive directive = s_pool.Get<Directive>();
+        if (!DirectiveGuard.TryAcquire(
+            context.Connection,
+            ConnectionAttributes.InboundDirectiveUnauthorizedLastSentAtMs))
+        {
+            return;
+        }
+
+        using PacketLease<Directive> lease = PacketPool<Directive>.Rent();
+        Directive directive = lease.Value;
 
         try
         {
@@ -71,19 +78,11 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 arg1: 0,
                 arg2: context.Attributes.PacketOpcode.OpCode);
 
-            using BufferLease lease = BufferLease.Rent(directive.Length + 32);
-
-            int length = directive.Serialize(lease.SpanFull);
-            lease.CommitLength(length);
-            await context.Connection.TCP.SendAsync(lease.Memory).ConfigureAwait(false);
+            await context.Sender.SendAsync(directive).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             context.Connection.ThrottledError(_logger, "middleware.permission.send_error", $"[NW.{nameof(PermissionMiddleware)}] send-error-failed", ex);
-        }
-        finally
-        {
-            s_pool.Return(directive);
         }
     }
 }

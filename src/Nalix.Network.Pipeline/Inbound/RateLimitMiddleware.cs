@@ -6,12 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Middleware;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Pipeline.Internal;
 using Nalix.Network.Pipeline.Throttling;
 
 namespace Nalix.Network.Pipeline.Inbound;
@@ -23,8 +24,6 @@ namespace Nalix.Network.Pipeline.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-
     private readonly ILogger? _logger;
     private readonly PolicyRateLimiter _policy;
     private readonly TokenBucketLimiter _global;
@@ -86,29 +85,26 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
         if (!decision.Allowed)
         {
-            Directive directive = s_pool.Get<Directive>();
+            if (!DirectiveGuard.TryAcquire(
+                context.Connection,
+                ConnectionAttributes.InboundDirectiveRateLimitedLastSentAtMs))
+            {
+                return;
+            }
 
             // Unified response format: FAIL + RETRY (consistent with RateLimitMiddleware)
-            try
-            {
-                directive.Initialize(
-                    ControlType.FAIL, ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
-                    sequenceId: context.Packet.SequenceId,
-                    controlFlags: ControlFlags.IS_TRANSIENT,
-                    arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
-                    arg1: (uint)decision.RetryAfterMs,
-                    arg2: decision.Credit);
+            using PacketLease<Directive> lease = PacketPool<Directive>.Rent();
+            Directive directive = lease.Value;
 
-                using BufferLease lease = BufferLease.Rent(directive.Length + 32);
+            directive.Initialize(
+                ControlType.FAIL, ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
+                sequenceId: context.Packet.SequenceId,
+                controlFlags: ControlFlags.IS_TRANSIENT,
+                arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
+                arg1: (uint)decision.RetryAfterMs,
+                arg2: decision.Credit);
 
-                int length = directive.Serialize(lease.SpanFull);
-                lease.CommitLength(length);
-                await context.Connection.TCP.SendAsync(lease.Memory).ConfigureAwait(false);
-            }
-            finally
-            {
-                s_pool.Return(directive);
-            }
+            await context.Sender.SendAsync(directive, CancellationToken.None).ConfigureAwait(false);
 
             return;
         }
