@@ -92,7 +92,7 @@ public abstract partial class TcpListenerBase
     private void PROCESS_CHANNEL_LOOP(System.Threading.CancellationToken cancellationToken)
     {
         s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
-                       $"thread-started port={_port} priority={System.Threading.Thread.CurrentThread.Priority}");
+                        $"thread-started port={_port} priority={System.Threading.Thread.CurrentThread.Priority}");
 
         System.Threading.Channels.ChannelReader<IConnection> reader = _processChannel.Reader;
 
