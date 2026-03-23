@@ -143,6 +143,43 @@ public sealed class ConnectionHubSessionTests
         _ = updated.Snapshot.Attributes.Should().ContainKey("custom").WhoseValue.Should().Be("data");
     }
 
+    [Fact]
+    public async Task StoreAsync_WhenTokenIsOverwritten_ReturnsPreviousEntry()
+    {
+        using ConnectionHub hub = new();
+        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
+        using Connection connection = new(scope.ServerSocket);
+
+        connection.Secret = new Common.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+        connection.Attributes["marker"] = "old";
+
+        SessionEntry original = hub.SessionStore.CreateSession(connection);
+        await hub.SessionStore.StoreAsync(original);
+
+        SessionSnapshot replacementSnapshot = new()
+        {
+            SessionToken = original.Snapshot.SessionToken,
+            CreatedAtUnixMilliseconds = original.Snapshot.CreatedAtUnixMilliseconds,
+            ExpiresAtUnixMilliseconds = original.Snapshot.ExpiresAtUnixMilliseconds,
+            Secret = new Common.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
+            Algorithm = original.Snapshot.Algorithm,
+            Level = original.Snapshot.Level,
+            Attributes = ObjectMap<string, object>.Rent()
+        };
+        replacementSnapshot.Attributes!["marker"] = "new";
+
+        SessionEntry replacement = new(replacementSnapshot, original.ConnectionId);
+        await hub.SessionStore.StoreAsync(replacement);
+
+        _ = original.Snapshot.Secret.Should().Be(Common.Primitives.Bytes32.Zero);
+        _ = original.Snapshot.Attributes.Should().BeNull();
+
+        SessionEntry? stored = await hub.SessionStore.RetrieveAsync(original.Snapshot.SessionToken);
+        _ = stored.Should().BeSameAs(replacement);
+
+        await hub.SessionStore.RemoveAsync(original.Snapshot.SessionToken);
+    }
+
     private static void SyncSession(IConnection connection, SessionEntry session)
     {
         SessionSnapshot old = session.Snapshot;
