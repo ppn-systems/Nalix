@@ -21,7 +21,7 @@ namespace Nalix.SDK.Transport.Internal;
 internal sealed class FRAME_READER(
     System.Func<System.Net.Sockets.Socket> getSocket,
     TransportOptions options,
-    System.Action<BufferLease> onMessage,        // ← concrete BufferLease
+    System.Action<BufferLease> onMessage,
     System.Action<System.Exception> onError,
     System.Action<System.Int32> reportBytesReceived)
 {
@@ -169,6 +169,7 @@ internal sealed class FRAME_READER(
                         try
                         {
                             _onMessage(lease);
+
                             TcpSessionBase.Logging?.Trace(
                                 $"[SDK.{nameof(FRAME_READER)}] handler-invoked-success payload={payloadLen} endpoint={FORMAT_ENDPOINT(s)}");
                         }

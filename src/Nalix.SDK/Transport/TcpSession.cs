@@ -389,7 +389,8 @@ public sealed class TcpSession : TcpSessionBase
                 try
                 {
                     InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                        .CancelWorker(_receiveHandle.Id);
+                                            .CancelWorker(_receiveHandle.Id);
+
                     _receiveHandle = null;
                     Logging?.Debug($"[SDK.{GetType().Name}] Receive worker cancelled");
                 }
@@ -445,8 +446,9 @@ public sealed class TcpSession : TcpSessionBase
         // Use a dedicated CTS so Dispose() can cancel the delay immediately.
         using System.Threading.CancellationTokenSource reconnectCts = new();
 
-        while (System.Threading.Volatile.Read(ref _disposed) == 0 &&
-               (Options.ReconnectMaxAttempts == 0 || attempt < Options.ReconnectMaxAttempts))
+        while (System.Threading.Volatile.Read(ref _disposed) == 0
+           && (Options.ReconnectMaxAttempts == 0
+           || attempt < Options.ReconnectMaxAttempts))
         {
             attempt++;
             System.Int64 jitter = (System.Int64)(Csprng.NextDouble() * delay * 0.3);

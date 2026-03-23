@@ -43,6 +43,9 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// <inheritdoc/>
     internal static readonly ILogger? Logging;
 
+    /// <inheritdoc/>
+    internal static readonly IThreadDispatcher Dispatcher = InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
+
     #endregion Fields
 
     #region Properties
@@ -560,9 +563,9 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// </summary>
     protected virtual void HandleReceiveMessage(BufferLease lease)
     {
-        var handlers = OnMessageReceived?.GetInvocationList();
-        var asyncHandler = OnMessageReceivedAsync;
         System.ReadOnlyMemory<System.Byte> asyncData = default;
+        System.Delegate[]? handlers = OnMessageReceived?.GetInvocationList();
+        System.Func<TcpSessionBase, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task>? asyncHandler = OnMessageReceivedAsync;
 
         if (asyncHandler is not null)
         {
@@ -573,22 +576,27 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
         {
             if (handlers?.Length > 0)
             {
-                foreach (var d in handlers)
+                foreach (System.Delegate d in handlers)
                 {
                     BufferLease copy = BufferLease.CopyFrom(lease.Span);
-                    try
+                    System.EventHandler<IBufferLease> handler = (System.EventHandler<IBufferLease>)d;
+
+                    Dispatcher.Post(() =>
                     {
-                        Logging?.Debug($"[SDK.{nameof(TcpSessionBase)}] HandleReceiveMessage: Dispatch message to sync handler, length={copy.Length}");
-                        ((System.EventHandler<IBufferLease>)d).Invoke(this, copy);
-                    }
-                    catch (System.Exception ex)
-                    {
-                        Logging?.Error($"[SDK.{nameof(TcpSessionBase)}] sync handler faulted: {ex.Message}", ex);
-                    }
-                    finally
-                    {
-                        try { copy.Dispose(); } catch { }
-                    }
+                        try
+                        {
+                            Logging?.Debug($"[SDK.{nameof(TcpSessionBase)}] Dispatch sync handler, length={copy.Length}");
+                            handler.Invoke(this, copy);
+                        }
+                        catch (System.Exception ex)
+                        {
+                            Logging?.Error($"[SDK.{nameof(TcpSessionBase)}] sync handler faulted: {ex.Message}", ex);
+                        }
+                        finally
+                        {
+                            try { copy.Dispose(); } catch { }
+                        }
+                    });
                 }
             }
         }
@@ -599,8 +607,11 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
 
         if (asyncHandler is not null)
         {
-            Logging?.Debug($"[SDK.{nameof(TcpSessionBase)}] HandleReceiveMessage: Dispatch message to async handler, length={asyncData.Length}");
-            _ = InvokeAsyncHandler(asyncHandler, asyncData);
+            Dispatcher.Post(() =>
+            {
+                Logging?.Debug($"[SDK.{nameof(TcpSessionBase)}] Dispatch async handler, length={asyncData.Length}");
+                _ = InvokeAsyncHandler(asyncHandler, asyncData);
+            });
         }
     }
 
