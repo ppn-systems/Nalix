@@ -239,6 +239,35 @@ public sealed class PacketRegistryTests : IDisposable
     }
 
     [Fact]
+    public void DeserializeIntoExistingReferenceReturnsResolvedPacket()
+    {
+        Control original = new();
+        original.Initialize(0x0020, ControlType.PING, sequenceId: 7);
+
+        byte[] bytes = original.Serialize();
+        Control destination = new();
+
+        Control result = _catalog.Deserialize(bytes, ref destination);
+
+        Assert.Equal(original.OpCode, result.OpCode);
+        Assert.Equal(original.MagicNumber, result.MagicNumber);
+        Assert.Equal(original.SequenceId, result.SequenceId);
+        Assert.Equal(original.Type, result.Type);
+    }
+
+    [Fact]
+    public void TryDeserializeIntoExistingReferenceReturnsFalseForUnknownMagic()
+    {
+        byte[] buf = new byte[PacketConstants.HeaderSize];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buf, 0xDEADBEEF);
+
+        Control destination = new();
+        bool ok = _catalog.TryDeserialize(buf, ref destination);
+
+        Assert.False(ok);
+    }
+
+    [Fact]
     public void AllRegisteredPacketsHaveUniqueMagicNumbers()
     {
         uint controlMagic = new Control().MagicNumber;

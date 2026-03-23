@@ -98,7 +98,7 @@ The `IProtocol` interface translates raw network streams into discrete message l
 
 - **Worker sharding** — Multiple worker loops (parallel to CPU core count) prevent head-of-line blocking. One slow handler does not stall unrelated packets.
 - **Wake-signaling** — Coalesced signaling using `System.Threading.Channels` minimizes thread context switching under bursty load.
-- **Prioritization** — Native support for `PacketPriority` (Urgent, System, High, Normal, Low).
+- **Prioritization** — Native support for `PacketPriority` (`URGENT`, `HIGH`, `MEDIUM`, `LOW`, `NONE`).
 
 ### 4. Packet Registry
 

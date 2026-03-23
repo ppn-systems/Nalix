@@ -60,12 +60,12 @@ Registration example:
 PacketDispatchChannel dispatch = new(options =>
 {
     // Buffer middleware (raw frames)
-    options.NetworkPipeline.Use(new DecryptionMiddleware());
+    options.WithBufferMiddleware(new DecryptionMiddleware());
 
     // Packet middleware (ordered by registration)
-    options.PacketPipeline.Use(new PermissionMiddleware<IPacket>());
-    options.PacketPipeline.Use(new RateLimitMiddleware<IPacket>());
-    options.PacketPipeline.Use(new AuditMiddleware<IPacket>());
+    options.WithMiddleware(new PermissionMiddleware());
+    options.WithMiddleware(new RateLimitMiddleware());
+    options.WithMiddleware(new AuditMiddleware());
 });
 ```
 

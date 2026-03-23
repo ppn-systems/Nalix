@@ -41,7 +41,7 @@ public static class ResumeExtensions
         SessionResume request = new();
         request.Initialize(SessionResumeStage.REQUEST, session.Options.SessionToken);
 
-        // SEC-16: Compute proof-of-possession using HMAC-SHA256(Secret, SessionToken).
+        // SEC-16: Compute proof-of-possession using HMAC-Keccak256(Secret, SessionToken).
         // This proves to the server that we own the session secret.
         Span<byte> proofBytes = stackalloc byte[32];
         Span<byte> tokenBytes = stackalloc byte[8];

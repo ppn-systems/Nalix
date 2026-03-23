@@ -14,6 +14,7 @@ global using Nalix.Framework.DataFrames;
 namespace Nalix.Common.Serialization
 {
     public enum SerializeLayout : byte { Sequential = 0, Explicit = 1 }
+    public interface IFixedSizeSerializable { }
     public sealed class SerializePackableAttribute : Attribute { public SerializePackableAttribute(SerializeLayout layout) { } }
     public sealed class SerializeHeaderAttribute : Attribute { public SerializeHeaderAttribute(int order) { } }
     public sealed class SerializeOrderAttribute : Attribute { public SerializeOrderAttribute(int order) { } }
@@ -29,7 +30,10 @@ namespace Nalix.Common.Networking.Packets
     public interface IPacketRegistry { }
     public interface IPacketDeserializer<TPacket> where TPacket : IPacket { }
     public sealed class PacketOpcodeAttribute : Attribute { public PacketOpcodeAttribute(ushort opcode) { } }
-    public sealed class PacketControllerAttribute : Attribute { }
+    public sealed class PacketControllerAttribute : Attribute
+    {
+        public PacketControllerAttribute(string? name = null) { }
+    }
 }
 
 namespace Nalix.Common.Networking
@@ -75,6 +79,7 @@ namespace Nalix.Runtime.Dispatching
         public PacketDispatchOptions<TPacket> WithHandler<TController>() where TController : class => this;
         public PacketDispatchOptions<TPacket> WithMiddleware(IPacketMiddleware<TPacket> middleware) => this;
         public PacketDispatchOptions<TPacket> WithBufferMiddleware(INetworkBufferMiddleware middleware) => this;
+        public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int count) => this;
     }
 
     public sealed class PacketMetadataBuilder
@@ -220,6 +225,19 @@ namespace Nalix.Framework.Configuration.Binding
     {
     }
 }
+
+namespace Nalix.Network.Hosting
+{
+    public sealed class NetworkApplicationBuilder
+    {
+        public NetworkApplicationBuilder UseBufferPoolManager(object? manager = null) => this;
+        public NetworkApplicationBuilder ConfigureConnectionHub(object? hub = null) => this;
+        public NetworkApplicationBuilder AddTcp(ushort port = 0) => this;
+        public NetworkApplicationBuilder AddUdp(ushort port = 0) => this;
+        public NetworkApplicationBuilder AddHandler<THandler>() => this;
+        public NetworkApplicationBuilder AddMetadataProvider<TProvider>() => this;
+        public object Build() => new();
+    }
+}
 """;
 }
-

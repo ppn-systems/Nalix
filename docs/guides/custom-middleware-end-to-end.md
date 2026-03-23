@@ -176,7 +176,7 @@ flowchart LR
 
 ## Notes
 
-- `SessionResume` proof validation (`HMAC-SHA256`) is implemented in `SessionHandlers`; keep this middleware focused on policy and token-state checks.
+- `SessionResume` proof validation (`HMAC-Keccak256`) is implemented in `SessionHandlers`; keep this middleware focused on policy and token-state checks.
 - `INetworkBufferMiddleware` has no `next` delegate in its contract; the pipeline owns lease progression.
 - Return `null` from buffer middleware to drop a frame early.
 

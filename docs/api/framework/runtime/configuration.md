@@ -57,7 +57,7 @@ public sealed class MyServerOptions : ConfigurationLoader
 
 Section names are derived from the type name. A class such as `ConnectionHubOptions` maps to the `[ConnectionHubOptions]` section.
 
-Use `IniCommentAttribute` for readable generated comments and `ConfigurationIgnoreAttribute` for runtime-only properties.
+Use `IniCommentAttribute` for readable generated comments and `ConfiguredIgnoreAttribute` (or `[ConfiguredIgnore]`) for runtime-only properties.
 
 ### Common operations
 

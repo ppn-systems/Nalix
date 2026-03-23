@@ -90,7 +90,7 @@ Even one middleware can already:
 ## Example: one buffer middleware
 
 ```csharp
-options.NetworkPipeline.Use(new SampleAuditBufferMiddleware());
+options.WithBufferMiddleware(new SampleAuditBufferMiddleware());
 ```
 
 Keep buffer middleware narrow. If the logic starts depending on handler attributes or application roles, it probably belongs in packet middleware instead.

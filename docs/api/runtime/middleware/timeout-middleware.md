@@ -28,7 +28,7 @@ sequenceDiagram
 
 ## Role and Design
 
-Preventing handlers from hanging indefinitely is critical for server availability. `TimeoutMiddleware` wraps the request execution in a linked `CancellationToken` that is automatically triggered after the `TimeoutAttribute` duration.
+Preventing handlers from hanging indefinitely is critical for server availability. `TimeoutMiddleware` wraps the request execution in a linked `CancellationToken` that is automatically triggered after the `PacketTimeoutAttribute` duration.
 
 - **Linked Cancellation**: Respects both the global session cancellation and the per-packet timeout timer.
 - **Graceful Rejection**: Sends a `Directive` frame with `ControlType.TIMEOUT` so the client knows exactly why the request failed.
@@ -36,12 +36,12 @@ Preventing handlers from hanging indefinitely is critical for server availabilit
 
 ## Configuration
 
-The middleware looks for a `TimeoutAttribute` on the packet metadata. If no attribute is found, it defaults to a no-op (infinite timeout).
+The middleware looks for a `PacketTimeoutAttribute` on the packet metadata. If no attribute is found, it defaults to a no-op (infinite timeout).
 
 ### Applying the Attribute
 ```csharp
 [PacketOpcode(0x1001)]
-[Timeout(5000)] // 5 second limit
+[PacketTimeout(5000)] // 5 second limit
 public class ProcessHeavyDataPacket : IPacket { ... }
 ```
 
@@ -49,7 +49,7 @@ public class ProcessHeavyDataPacket : IPacket { ... }
 ```csharp
 builder.ConfigureDispatch(options =>
 {
-    options.WithMiddleware<TimeoutMiddleware>();
+    options.WithMiddleware(new TimeoutMiddleware());
 });
 ```
 

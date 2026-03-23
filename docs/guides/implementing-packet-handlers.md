@@ -85,7 +85,7 @@ public async ValueTask HandleSecureAction(IPacketContext<SecureAction> context)
     {
         // Log the error
         // Rejects the request with a protocol reason
-        context.Connection.Disconnect(ProtocolReason.PERMISSION_DENIED);
+        context.Connection.Disconnect(ProtocolReason.UNAUTHORIZED);
     }
     catch (Exception ex)
     {
@@ -131,11 +131,11 @@ var app = NetworkApplication.CreateBuilder()
     .ConfigureDispatch(options => 
     {
         // Buffer Pipeline (Pre-deserialization)
-        options.NetworkPipeline.Use(new EncryptionMiddleware());
+        options.WithBufferMiddleware(new EncryptionMiddleware());
         
         // Packet Pipeline (Post-deserialization)
-        options.PacketPipeline.Use(new AuditMiddleware(logger));
-        options.PacketPipeline.Use(new RateLimitMiddleware());
+        options.WithMiddleware(new AuditMiddleware(logger));
+        options.WithMiddleware(new RateLimitMiddleware());
     })
     .Build();
 ```
@@ -148,15 +148,14 @@ using Nalix.Runtime.Dispatching;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 
-var options = new PacketDispatchOptions<IPacket>();
+var channel = new PacketDispatchChannel(options =>
+{
+    // Manually bind the handler factory
+    options.WithHandler(() => new ChatHandlers());
 
-// Manually bind the handler factory
-options.WithHandler(() => new ChatHandlers());
-
-// Manual middleware setup
-options.PacketPipeline.Use(new AuditMiddleware(logger));
-
-var channel = new PacketDispatchChannel(options);
+    // Manual middleware setup
+    options.WithMiddleware(new AuditMiddleware(logger));
+});
 ```
 
 ---

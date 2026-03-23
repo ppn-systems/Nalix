@@ -23,6 +23,7 @@ The dispatch layer isolates handler execution policy from socket/listener concer
 ### Core Implementations
 
 - [PacketDispatchChannel](./packet-dispatch.md): runtime dispatcher used in production packet processing.
+- [PacketDispatchOptions<TPacket>](./packet-dispatch-options.md): fluent configuration for handlers, middleware, and loop behavior.
 - [PacketContext<TPacket>](./packet-context.md): pooled handler context.
 - [PacketSender<TPacket>](./packet-sender.md): send API honoring context metadata.
 - [PacketMetadataBuilder](./packet-metadata.md): builds packet metadata.
@@ -54,6 +55,7 @@ flowchart LR
 ## Related APIs
 
 - [Packet Dispatch](./packet-dispatch.md)
+- [Packet Dispatch Options](./packet-dispatch-options.md)
 - [Packet Context](./packet-context.md)
 - [Packet Metadata](./packet-metadata.md)
 - [Runtime Overview](../index.md)

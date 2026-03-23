@@ -150,9 +150,9 @@ var app = NetworkApplication.CreateBuilder()
     .AddHandlers<GameMarker>() // Triggers handler compilation
     .ConfigureDispatch(options => {
         // Match shards to CPU cores for maximum affinity
-        options.DispatchLoopCount = Environment.ProcessorCount;
-        // Pre-allocate the internal queue to handle bursts without blocking
-        options.MaxInternalQueueSize = 250_000;
+        options.WithDispatchLoopCount(Environment.ProcessorCount);
+        // Increase per-wake drain budget for burst workloads
+        options.MaxDrainPerWakeMultiplier = 12;
     })
     .Build();
 ```
