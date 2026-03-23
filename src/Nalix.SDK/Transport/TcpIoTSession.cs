@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
@@ -57,6 +58,27 @@ public sealed class TcpIoTSession : BaseTcpSession
         Options = ConfigurationManager.Instance.Get<TransportOptions>();
         Options.Validate();
         Logging?.Info($"[SDK.{GetType().Name}] TcpIoTSession created, options validated");
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TcpIoTSession"/> class.
+    /// </summary>
+    /// <param name="options">
+    /// The transport configuration options used to initialize the TCP session.
+    /// </param>
+    /// <param name="registry">
+    /// The packet registry responsible for managing and resolving packet handlers.
+    /// </param>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.
+    /// </exception>
+    public TcpIoTSession(TransportOptions options, IPacketRegistry registry) : base()
+    {
+        System.ArgumentNullException.ThrowIfNull(options);
+        System.ArgumentNullException.ThrowIfNull(registry);
+
+        Options = options;
+        Catalog = registry;
     }
 
     #endregion Constructor

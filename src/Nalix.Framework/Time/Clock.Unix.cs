@@ -6,6 +6,19 @@ namespace Nalix.Framework.Time;
 public static partial class Clock
 {
     /// <summary>
+    /// Custom epoch (Unix ms) used for ID generation.
+    /// Default: 2025-01-01 UTC.
+    /// </summary>
+    public static readonly System.Int64 EpochMilliseconds = new System.DateTimeOffset(2025, 1, 1, 0, 0, 0, System.TimeSpan.Zero).ToUnixTimeMilliseconds();
+
+    /// <summary>
+    /// Returns milliseconds since custom epoch.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public static System.Int64 EpochMillisecondsNow() => UnixMillisecondsNow() - EpochMilliseconds;
+
+    /// <summary>
     /// Returns the current UTC time with high accuracy.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(

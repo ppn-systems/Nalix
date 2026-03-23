@@ -25,6 +25,16 @@ public interface IClientConnection : System.IDisposable
     /// </summary>
     System.Boolean IsConnected { get; }
 
+    /// <summary>
+    /// Gets the packet registry (catalog) used to resolve and manage
+    /// packet types and their associated handlers for this connection.
+    /// </summary>
+    /// <remarks>
+    /// This registry acts as a central catalog for all packet definitions,
+    /// enabling serialization, deserialization, and dispatching of packets.
+    /// </remarks>
+    IPacketRegistry Catalog { get; }
+
     #endregion Properties
 
     #region Events

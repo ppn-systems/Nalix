@@ -105,7 +105,7 @@ internal static class PACKET_AWAITER
                 IPacket? p = null;
                 try
                 {
-                    ok = TcpSession.Catalog.TryDeserialize(buffer.Span, out p!);
+                    ok = client.Catalog.TryDeserialize(buffer.Span, out p!);
                 }
                 catch (System.Exception dex)
                 {

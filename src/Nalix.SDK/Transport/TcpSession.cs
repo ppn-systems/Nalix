@@ -3,12 +3,15 @@
 
 using Nalix.Common.Concurrency;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 using Nalix.Framework.Tasks;
+using Nalix.Framework.Time;
 using Nalix.SDK.Configuration;
+using Nalix.SDK.Transport.Extensions;
 using Nalix.SDK.Transport.Internal;
 using Nalix.Shared.Memory.Buffers;
 
@@ -27,65 +30,32 @@ namespace Nalix.SDK.Transport;
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 public sealed class TcpSession : BaseTcpSession
 {
-    #region Constants and Static Fields
+    #region Constants
 
     /// <summary>
     /// Gets the size of the packet header in bytes.
     /// </summary>
     public const System.Byte HeaderSize = 2;
 
-    /// <summary>
-    /// Gets the global packet registry used for packet resolution.
-    /// </summary>
-    internal static readonly IPacketRegistry Catalog;
-
-    /// <summary>
-    /// Initializes static members of the <see cref="TcpSession"/> class.
-    /// </summary>
-    static TcpSession()
-    {
-        Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-            ?? throw new System.InvalidOperationException("IPacketRegistry instance not found.");
-
-        BufferConfig bufferConfig = ConfigurationManager.Instance.Get<BufferConfig>();
-        bufferConfig.TotalBuffers = 32;
-        bufferConfig.EnableMemoryTrimming = true;
-        bufferConfig.TrimIntervalMinutes = 2;
-        bufferConfig.DeepTrimIntervalMinutes = 10;
-        bufferConfig.EnableAnalytics = false;
-        bufferConfig.AdaptiveGrowthFactor = 1.25;
-        bufferConfig.MaxMemoryPercentage = 0.05;
-        bufferConfig.SecureClear = false;
-        bufferConfig.EnableQueueCompaction = false;
-        bufferConfig.AutoTuneOperationThreshold = 32;
-        bufferConfig.FallbackToArrayPool = true;
-        bufferConfig.ExpandThresholdPercent = 0.20;
-        bufferConfig.ShrinkThresholdPercent = 0.60;
-        bufferConfig.MinimumIncrease = 1;
-        bufferConfig.MaxBufferIncreaseLimit = 16;
-        bufferConfig.BufferAllocations = "256,0.25; 512,0.30; 1024,0.45";
-        bufferConfig.MaxMemoryBytes = 0;
-        bufferConfig.Validate();
-    }
-
-    #endregion
+    #endregion Constants
 
     #region Fields
 
     private IWorkerHandle? _receiveHandle;
+    private SessionMonitor? _monitor;
     private System.String? _host;
     private System.UInt16? _port;
     private System.Int32 _reconnecting = 0;
     private System.Int32 _hasEverConnected = 0;
-    internal System.Int64 _bytesSent = 0;
-    internal System.Int64 _bytesReceived = 0;
-    internal System.Int64? _lastSampleTick = 0;
-    internal System.Int64 _sendCounterForInterval = 0;
-    internal System.Int64 _receiveCounterForInterval = 0;
-    internal System.Int64 _lastSendBps = 0;
-    internal System.Int64 _lastReceiveBps = 0;
 
-    #endregion
+    private System.Int64 _bytesSent = 0;
+    private System.Int64 _lastSendBps = 0;
+    private System.Int64 _bytesReceived = 0;
+    private System.Int64 _lastReceiveBps = 0;
+    private System.Int64 _sendCounterForInterval = 0;
+    private System.Int64 _receiveCounterForInterval = 0;
+
+    #endregion Fields
 
     #region Properties
 
@@ -109,12 +79,44 @@ public sealed class TcpSession : BaseTcpSession
     /// </summary>
     public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
 
-    #endregion
+    #endregion Properties
+
+    #region Events
 
     /// <summary>
     /// Occurs when the client successfully reconnects.
     /// </summary>
     public event System.EventHandler<System.Int32>? OnReconnected;
+
+    #endregion Events
+
+    #region Constructors
+
+    /// <summary>
+    /// Initializes static members of the <see cref="TcpSession"/> class.
+    /// </summary>
+    static TcpSession()
+    {
+        BufferConfig bufferConfig = ConfigurationManager.Instance.Get<BufferConfig>();
+        bufferConfig.TotalBuffers = 32;
+        bufferConfig.EnableMemoryTrimming = true;
+        bufferConfig.TrimIntervalMinutes = 2;
+        bufferConfig.DeepTrimIntervalMinutes = 10;
+        bufferConfig.EnableAnalytics = false;
+        bufferConfig.AdaptiveGrowthFactor = 1.25;
+        bufferConfig.MaxMemoryPercentage = 0.05;
+        bufferConfig.SecureClear = false;
+        bufferConfig.EnableQueueCompaction = false;
+        bufferConfig.AutoTuneOperationThreshold = 32;
+        bufferConfig.FallbackToArrayPool = true;
+        bufferConfig.ExpandThresholdPercent = 0.20;
+        bufferConfig.ShrinkThresholdPercent = 0.60;
+        bufferConfig.MinimumIncrease = 1;
+        bufferConfig.MaxBufferIncreaseLimit = 16;
+        bufferConfig.BufferAllocations = "256,0.25; 512,0.30; 1024,0.45";
+        bufferConfig.MaxMemoryBytes = 0;
+        bufferConfig.Validate();
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpSession"/> class.
@@ -126,6 +128,9 @@ public sealed class TcpSession : BaseTcpSession
     {
         try
         {
+            Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
+                ?? throw new System.InvalidOperationException("IPacketRegistry instance not found.");
+
             Options = ConfigurationManager.Instance.Get<TransportOptions>();
             Options.Validate();
             Logging?.Info($"[SDK.{GetType().Name}] TransportOptions loaded and validated");
@@ -144,12 +149,36 @@ public sealed class TcpSession : BaseTcpSession
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="TcpSession"/> class.
+    /// </summary>
+    /// <param name="options">
+    /// The transport configuration options used to initialize the TCP session.
+    /// </param>
+    /// <param name="registry">
+    /// The packet registry responsible for managing and resolving packet handlers.
+    /// </param>
+    /// <exception cref="System.ArgumentNullException">
+    /// Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.
+    /// </exception>
+    public TcpSession(TransportOptions options, IPacketRegistry registry) : base()
+    {
+        System.ArgumentNullException.ThrowIfNull(options);
+        System.ArgumentNullException.ThrowIfNull(registry);
+
+        Options = options;
+        Catalog = registry;
+    }
+
+    #endregion Constructors
+
+    /// <summary>
     /// Creates internal frame sender and receiver helpers.
     /// </summary>
     protected override void CreateFrameHelpers()
     {
         _sender = new FRAME_SENDER(GET_CONNECTED_SOCKET_OR_THROW, Options, REPORT_BYTES_SENT, HANDLE_SEND_ERROR);
         _receiver = new FRAME_READER(GET_CONNECTED_SOCKET_OR_THROW, Options, HANDLE_RECEIVE_MESSAGE, HANDLE_RECEIVE_ERROR, REPORT_BYTES_RECEIVED);
+
         Logging?.Debug($"[SDK.{GetType().Name}] Frame helpers created");
     }
 
@@ -183,6 +212,9 @@ public sealed class TcpSession : BaseTcpSession
             Logging?.Warn($"[SDK.{GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run", ex);
             _ = System.Threading.Tasks.Task.Run(() => _receiver.ReceiveLoopAsync(loopToken), loopToken);
         }
+
+        // Start monitor (rate sampler + heartbeat) after receive worker is up.
+        _monitor = new SessionMonitor(this, loopToken);
     }
 
     /// <summary>
@@ -297,6 +329,7 @@ public sealed class TcpSession : BaseTcpSession
     protected override void REPORT_BYTES_SENT(System.Int32 count)
     {
         System.Threading.Interlocked.Add(ref _bytesSent, count);
+        System.Threading.Interlocked.Add(ref _sendCounterForInterval, count);
         base.REPORT_BYTES_SENT(count);
     }
 
@@ -304,6 +337,7 @@ public sealed class TcpSession : BaseTcpSession
     protected override void REPORT_BYTES_RECEIVED(System.Int32 count)
     {
         System.Threading.Interlocked.Add(ref _bytesReceived, count);
+        System.Threading.Interlocked.Add(ref _receiveCounterForInterval, count);
         base.REPORT_BYTES_RECEIVED(count);
     }
 
@@ -358,11 +392,16 @@ public sealed class TcpSession : BaseTcpSession
                     Logging?.Warn($"[SDK.{GetType().Name}] Failed to cancel receive worker for {_host}:{_port}");
                 }
             }
+
+            // Stop monitor when connection tears down.
+            _monitor?.Stop();
+            _monitor = null;
         }
         catch (System.Exception ex)
         {
             Logging?.Warn($"[SDK.{GetType().Name}] Exception during CLEANUP_CONNECTION: {ex.Message}", ex);
         }
+
         if (wasConnected)
         {
             Logging?.Info($"[SDK.{GetType().Name}] Disconnected");
@@ -408,6 +447,131 @@ public sealed class TcpSession : BaseTcpSession
                 delay = System.Math.Min(max, delay * 2);
             }
         }
+
         Logging?.Error($"[SDK.{GetType().Name}] Reconnect attempts exhausted or stopped");
+    }
+
+    // ── SessionMonitor ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Manages rate sampling and heartbeat loops for a <see cref="TcpSession"/>.
+    /// Encapsulates all monitoring concerns so they do not leak into extension methods.
+    /// </summary>
+    private sealed class SessionMonitor
+    {
+        private readonly TcpSession _session;
+        private readonly System.Threading.CancellationTokenSource _cts;
+
+        // Monotonic tick captured at the last sample — stored entirely inside this class.
+        private System.Int64 _lastSampleTick;
+
+        internal SessionMonitor(TcpSession session, System.Threading.CancellationToken linkedToken)
+        {
+            _session = session;
+            _lastSampleTick = Clock.MonoTicksNow();
+
+            // Link to the session's loop token so both loops stop on disconnect/dispose.
+            _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(linkedToken);
+
+            _ = System.Threading.Tasks.Task.Run(() => RateSamplerLoopAsync(_cts.Token), _cts.Token);
+            _ = System.Threading.Tasks.Task.Run(() => HeartbeatLoopAsync(_cts.Token), _cts.Token);
+        }
+
+        /// <summary>Stops both background loops immediately.</summary>
+        internal void Stop()
+        {
+            try { _cts.Cancel(); } catch { }
+            _cts.Dispose();
+        }
+
+        // ── Rate sampler ─────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Samples byte counters at each interval and updates the last BPS readings.
+        /// </summary>
+        private async System.Threading.Tasks.Task RateSamplerLoopAsync(System.Threading.CancellationToken ct)
+        {
+            // Use half the keep-alive interval, minimum 1 s, as sample cadence.
+            System.Int32 intervalMs = System.Math.Max(1_000, _session.Options.KeepAliveIntervalMillis / 2);
+
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    await System.Threading.Tasks.Task.Delay(intervalMs, ct).ConfigureAwait(false);
+                    SampleOnce();
+                }
+                catch (System.OperationCanceledException)
+                {
+                    break;
+                }
+                catch (System.Exception ex)
+                {
+                    Logging?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(RateSamplerLoopAsync)}] sampler-error: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Performs a single BPS sample. Extracted so it can be unit-tested independently.
+        /// </summary>
+        private void SampleOnce()
+        {
+            System.Int64 now = Clock.MonoTicksNow();
+            System.Int64 elapsed = now - _lastSampleTick;
+            _lastSampleTick = now;
+
+            // Guard against zero or negative elapsed (clock skew, first tick).
+            System.Double elapsedSec = elapsed > 0
+                ? Clock.MonoTicksToMilliseconds(elapsed) / 1_000.0
+                : 1.0; // fallback: treat as 1 s to avoid divide-by-zero or Infinity
+
+            System.Int64 sent = System.Threading.Interlocked.Exchange(ref _session._sendCounterForInterval, 0);
+            System.Int64 recv = System.Threading.Interlocked.Exchange(ref _session._receiveCounterForInterval, 0);
+
+            System.Threading.Interlocked.Exchange(ref _session._lastSendBps, (System.Int64)(sent / elapsedSec));
+            System.Threading.Interlocked.Exchange(ref _session._lastReceiveBps, (System.Int64)(recv / elapsedSec));
+        }
+
+        // ── Heartbeat ────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Sends a PING control frame at the configured keep-alive interval until cancellation.
+        /// </summary>
+        private async System.Threading.Tasks.Task HeartbeatLoopAsync(System.Threading.CancellationToken ct)
+        {
+            System.Int32 intervalMs = System.Math.Max(1, _session.Options.KeepAliveIntervalMillis);
+
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    await System.Threading.Tasks.Task.Delay(intervalMs, ct).ConfigureAwait(false);
+
+                    await _session.SendControlAsync(
+                        opCode: 0,
+                        type: ControlType.PING,
+                        configure: ctrl =>
+                        {
+                            ctrl.SequenceId = Csprng.NextUInt32();
+                            ctrl.Protocol = ProtocolType.TCP;
+                            ctrl.MonoTicks = Clock.MonoTicksNow();
+                            ctrl.Timestamp = Clock.UnixMillisecondsNow();
+                        },
+                        ct: ct
+                    ).ConfigureAwait(false);
+                }
+                catch (System.OperationCanceledException)
+                {
+                    break;
+                }
+                catch (System.Exception ex)
+                {
+                    Logging?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] heartbeat-error: {ex.Message}");
+                    _ = _session.HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
+                    break;
+                }
+            }
+        }
     }
 }

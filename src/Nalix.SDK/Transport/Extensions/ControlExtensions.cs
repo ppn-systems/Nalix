@@ -290,38 +290,4 @@ public static class ControlExtensions
         configure?.Invoke(ctrl);
         return client.SendAsync(ctrl, ct);
     }
-
-    /// <summary>
-    /// Builds and sends a DISCONNECT control frame.
-    /// </summary>
-    /// <param name="client">The connected reliable client.</param>
-    /// <param name="opCode">The operation code.</param>
-    /// <param name="seq">The optional sequence identifier. Default is <c>0</c>.</param>
-    /// <param name="tr">The transport type. Default is <see cref="ProtocolType.TCP"/>.</param>
-    /// <param name="ct">A token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous send operation.</returns>
-    /// <example>
-    /// <code>
-    /// await client.SendDisconnectAsync(opCode: 0, seq: 7, tr: ProtocolType.TCP, ct: ct);
-    /// </code>
-    /// </example>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Threading.Tasks.Task SendDisconnectAsync(
-        this IClientConnection client,
-        System.UInt16 opCode,
-        System.UInt32 seq = 0,
-        ProtocolType tr = ProtocolType.TCP,
-        System.Threading.CancellationToken ct = default)
-        => client.SendControlAsync(
-            opCode,
-            ControlType.DISCONNECT,
-            ctrl =>
-            {
-                ctrl.SequenceId = seq;
-                ctrl.Protocol = tr;
-                ctrl.MonoTicks = Clock.MonoTicksNow();
-                ctrl.Timestamp = Clock.UnixMillisecondsNow();
-            },
-            ct);
 }

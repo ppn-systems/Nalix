@@ -46,10 +46,11 @@ public abstract class BaseTcpSession : IClientConnection
 
     #region Properties
 
-    /// <summary>
-    /// Gets the transport options used by this client.
-    /// </summary>
-    public TransportOptions Options;
+    /// <inheritdoc/>
+    public TransportOptions Options { get; protected set; }
+
+    /// <inheritdoc/>
+    public IPacketRegistry Catalog { get; protected set; }
 
     ITransportOptions IClientConnection.Options => this.Options;
 
@@ -90,6 +91,7 @@ public abstract class BaseTcpSession : IClientConnection
     /// </summary>
     protected BaseTcpSession()
     {
+        this.Catalog = null!;
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Options.Validate();
     }
