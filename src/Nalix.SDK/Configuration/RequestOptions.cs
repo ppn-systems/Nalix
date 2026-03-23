@@ -55,7 +55,7 @@ public sealed record RequestOptions
 
     /// <summary>
     /// When <see langword="true"/> the outbound frame is encrypted before transmission.
-    /// Requires the client to be a <see cref="BaseTcpSession"/>.
+    /// Requires the client to be a <see cref="TcpSessionBase"/>.
     /// </summary>
     public System.Boolean Encrypt { get; init; } = false;
 

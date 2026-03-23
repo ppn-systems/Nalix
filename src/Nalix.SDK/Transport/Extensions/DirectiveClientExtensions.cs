@@ -117,7 +117,7 @@ public static class DirectiveClientExtensions
                     System.Threading.Interlocked.Exchange(ref state.ThrottleUntilMonoTicks, nowTicks + delayTicks);
 
                     callbacks?.OnThrottle?.Invoke(d, System.TimeSpan.FromMilliseconds(delayMs));
-                    BaseTcpSession.Logging?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (SEQ={d.SequenceId})");
+                    TcpSessionBase.Logging?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (SEQ={d.SequenceId})");
                     return true;
                 }
 
@@ -139,7 +139,7 @@ public static class DirectiveClientExtensions
                     {
                         if (d.Arg2 == 0)
                         {
-                            BaseTcpSession.Logging?.Warn($"DIRECTIVE REDIRECT ignored (no resolver, no port). SEQ={d.SequenceId}");
+                            TcpSessionBase.Logging?.Warn($"DIRECTIVE REDIRECT ignored (no resolver, no port). SEQ={d.SequenceId}");
                             return true;
                         }
 
@@ -151,7 +151,7 @@ public static class DirectiveClientExtensions
                     client.Options.Port = ep.Value.port;
                     client.Options.Address = ep.Value.host;
 
-                    BaseTcpSession.Logging?.Info($"DIRECTIVE REDIRECT → {ep.Value.host}:{ep.Value.port} (SEQ={d.SequenceId})");
+                    TcpSessionBase.Logging?.Info($"DIRECTIVE REDIRECT → {ep.Value.host}:{ep.Value.port} (SEQ={d.SequenceId})");
                     await client.ConnectAsync(ct: ct).ConfigureAwait(false);
                     return true;
                 }
@@ -159,19 +159,19 @@ public static class DirectiveClientExtensions
             case ControlType.NACK:
                 {
                     callbacks?.OnNack?.Invoke(d);
-                    BaseTcpSession.Logging?.Warn($"DIRECTIVE NACK: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
+                    TcpSessionBase.Logging?.Warn($"DIRECTIVE NACK: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
                     return true;
                 }
 
             case ControlType.NOTICE:
                 {
                     callbacks?.OnNotice?.Invoke(d);
-                    BaseTcpSession.Logging?.Info($"DIRECTIVE NOTICE: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
+                    TcpSessionBase.Logging?.Info($"DIRECTIVE NOTICE: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
                     return true;
                 }
 
             default:
-                BaseTcpSession.Logging?.Debug($"DIRECTIVE (unhandled type {d.Type}) SEQ={d.SequenceId}");
+                TcpSessionBase.Logging?.Debug($"DIRECTIVE (unhandled type {d.Type}) SEQ={d.SequenceId}");
                 return true;
         }
     }
@@ -237,7 +237,7 @@ public static class DirectiveClientExtensions
 
         if (client.IsThrottled(out System.TimeSpan wait) && wait > System.TimeSpan.Zero)
         {
-            BaseTcpSession.Logging?.Debug($"SendWithThrottle: waiting {(System.Int32)wait.TotalMilliseconds} ms");
+            TcpSessionBase.Logging?.Debug($"SendWithThrottle: waiting {(System.Int32)wait.TotalMilliseconds} ms");
             await System.Threading.Tasks.Task.Delay(wait, ct).ConfigureAwait(false);
         }
 
