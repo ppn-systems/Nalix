@@ -83,7 +83,7 @@ public interface IClientConnection : System.IDisposable
     /// <summary>Serializes and sends <paramref name="packet"/> asynchronously.</summary>
     /// <returns><c>true</c> if sent successfully; <c>false</c> on socket error.</returns>
     System.Threading.Tasks.Task<System.Boolean> SendAsync(
-        [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
+        IPacket packet,
         System.Threading.CancellationToken ct = default);
 
     /// <summary>Sends a raw payload (without framing header) asynchronously.</summary>

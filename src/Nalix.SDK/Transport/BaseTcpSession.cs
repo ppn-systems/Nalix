@@ -5,14 +5,12 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Transport;
 using Nalix.Common.Shared;
-using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
 using Nalix.Shared.Extensions;
 using Nalix.Shared.Frames;
 using Nalix.Shared.Memory.Buffers;
-using System.Threading.Tasks;
 
 namespace Nalix.SDK.Transport;
 
@@ -34,7 +32,7 @@ public abstract class BaseTcpSession : IClientConnection
     internal FRAME_READER? _receiver;
 
     internal System.Net.Sockets.Socket? _socket;
-    internal Task? _receiveTask;
+    internal System.Threading.Tasks.Task? _receiveTask;
     internal System.Threading.CancellationTokenSource? _loopCts;
 
     internal System.Int32 _disposed = 0;
@@ -91,23 +89,22 @@ public abstract class BaseTcpSession : IClientConnection
     /// </summary>
     protected BaseTcpSession()
     {
-        this.Catalog = null!;
-        this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
-        this.Options.Validate();
+        System.ArgumentNullException.ThrowIfNull(Options);
+        System.ArgumentNullException.ThrowIfNull(Catalog);
     }
 
     #endregion Construction
 
-    #region Public API - Send/Disconnect/Dispose/IsConnected
+    #region Public API
 
     /// <inheritdoc/>
-    public abstract Task ConnectAsync(System.String? host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default);
+    public abstract System.Threading.Tasks.Task ConnectAsync(System.String? host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default);
 
     /// <inheritdoc/>
     public virtual System.Boolean IsConnected => _socket?.Connected == true && System.Threading.Volatile.Read(ref _disposed) == 0;
 
     /// <inheritdoc/>
-    public virtual Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
+    public virtual System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(BaseTcpSession));
         var sender = System.Threading.Volatile.Read(ref _sender);
@@ -115,7 +112,7 @@ public abstract class BaseTcpSession : IClientConnection
     }
 
     /// <inheritdoc/>
-    public virtual Task<System.Boolean> SendAsync([System.Diagnostics.CodeAnalysis.NotNull] IPacket packet, System.Threading.CancellationToken ct = default)
+    public virtual System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(BaseTcpSession));
@@ -302,19 +299,19 @@ public abstract class BaseTcpSession : IClientConnection
     }
 
     /// <inheritdoc/>
-    public virtual Task DisconnectAsync()
+    public virtual System.Threading.Tasks.Task DisconnectAsync()
     {
         if (System.Threading.Volatile.Read(ref _disposed) == 1)
         {
             Logging?.Info($"[SDK.{GetType().Name}] Disconnect called, but already disposed.");
-            return Task.CompletedTask;
+            return System.Threading.Tasks.Task.CompletedTask;
         }
 
-        CLEANUP_CONNECTION();
+        TearDownConnection();
         Logging?.Info($"[SDK.{this.GetType().Name}] Disconnected (requested).");
         try { OnDisconnected?.Invoke(this, null!); } catch (System.Exception ex) { Logging?.Error($"[SDK.{GetType().Name}] OnDisconnected handler threw: {ex.Message}", ex); }
 
-        return Task.CompletedTask;
+        return System.Threading.Tasks.Task.CompletedTask;
     }
 
     /// <inheritdoc/>
@@ -325,14 +322,15 @@ public abstract class BaseTcpSession : IClientConnection
             Logging?.Info($"[SDK.{GetType().Name}] Dispose called but was already disposed.");
             return;
         }
-        CLEANUP_CONNECTION();
+
+        TearDownConnection();
         Logging?.Info($"[SDK.{this.GetType().Name}] Disposed.");
         System.GC.SuppressFinalize(this);
     }
 
-    #endregion
+    #endregion Public API
 
-    #region Protected - Helpers (shared)
+    #region Protected Methods
 
     /// <inheritdoc/>
     protected void RaiseConnected()
@@ -409,7 +407,7 @@ public abstract class BaseTcpSession : IClientConnection
     /// Protected helper for subclasses to set up frame helpers (_sender/_receiver).
     /// Subclasses should instantiate _sender/_receiver and bind desired error/byte-report callbacks.
     /// </summary>
-    protected abstract void CreateFrameHelpers();
+    protected abstract void InitializeFrame();
 
     /// <summary>
     /// Start/stage receive worker - scheduling differs per subclass (TaskManager vs Task.Run).
@@ -420,15 +418,15 @@ public abstract class BaseTcpSession : IClientConnection
     /// Common cleanup logic: cancel background loops, dispose sender, close socket, null out reader.
     /// Subclasses may override to perform additional cleanup (e.g., cancel TaskManager handles).
     /// </summary>
-    protected virtual void CLEANUP_CONNECTION()
+    protected virtual void TearDownConnection()
     {
         lock (_sync)
         {
             if (_loopCts is not null)
             {
-                CANCEL_AND_DISPOSE_LOCKED(ref _loopCts);
+                CancelAndDispose(ref _loopCts);
 
-                Logging?.Debug($"[SDK.{GetType().Name}] CLEANUP_CONNECTION: Loop token cancelled and disposed");
+                Logging?.Debug($"[SDK.{GetType().Name}] TearDownConnection: Loop token cancelled and disposed");
             }
 
             try
@@ -438,13 +436,13 @@ public abstract class BaseTcpSession : IClientConnection
             }
             catch (System.Exception ex)
             {
-                Logging?.Warn($"[SDK.{GetType().Name}] CLEANUP_CONNECTION: Sender cleanup threw: {ex.Message}", ex);
+                Logging?.Warn($"[SDK.{GetType().Name}] TearDownConnection: Sender cleanup threw: {ex.Message}", ex);
             }
 
             try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
             try { _socket?.Close(); _socket?.Dispose(); } catch { }
 
-            Logging?.Debug($"[SDK.{GetType().Name}] CLEANUP_CONNECTION: Socket closed and disposed.");
+            Logging?.Debug($"[SDK.{GetType().Name}] TearDownConnection: Socket closed and disposed.");
 
             _socket = null!;
             _receiver = null!;
@@ -456,7 +454,7 @@ public abstract class BaseTcpSession : IClientConnection
     /// <summary>
     /// Cancel and dispose a CancellationTokenSource under lock.
     /// </summary>
-    protected static void CANCEL_AND_DISPOSE_LOCKED(ref System.Threading.CancellationTokenSource? cts)
+    protected static void CancelAndDispose(ref System.Threading.CancellationTokenSource? cts)
     {
         if (cts is null)
         {
@@ -471,7 +469,7 @@ public abstract class BaseTcpSession : IClientConnection
     /// <summary>
     /// Throw if socket is not connected; used by FRAME helpers.
     /// </summary>
-    protected System.Net.Sockets.Socket GET_CONNECTED_SOCKET_OR_THROW()
+    protected System.Net.Sockets.Socket RequireConnectedSocket()
     {
         var s = _socket;
         return s?.Connected == true
@@ -482,7 +480,7 @@ public abstract class BaseTcpSession : IClientConnection
     /// <summary>
     /// Report byte counts to subscribers. Subclasses can override to include counters.
     /// </summary>
-    protected virtual void REPORT_BYTES_SENT(System.Int32 count)
+    protected virtual void ReportBytesSent(System.Int32 count)
     {
         try { OnBytesSent?.Invoke(this, count); } catch { }
     }
@@ -490,7 +488,7 @@ public abstract class BaseTcpSession : IClientConnection
     /// <summary>
     /// Report byte counts to subscribers. Subclasses can override to include counters.
     /// </summary>
-    protected virtual void REPORT_BYTES_RECEIVED(System.Int32 count)
+    protected virtual void ReportBytesReceived(System.Int32 count)
     {
         try { OnBytesReceived?.Invoke(this, count); } catch { }
     }
@@ -499,7 +497,7 @@ public abstract class BaseTcpSession : IClientConnection
     /// Default receive message delivery for synchronous subscribers.
     /// Derived classes that need async handler support should override.
     /// </summary>
-    protected virtual void HANDLE_RECEIVE_MESSAGE(BufferLease lease)
+    protected virtual void HandleReceiveMessage(BufferLease lease)
     {
         var handlers = OnMessageReceived?.GetInvocationList();
         var asyncHandler = OnMessageReceivedAsync;
@@ -519,7 +517,7 @@ public abstract class BaseTcpSession : IClientConnection
                     BufferLease copy = BufferLease.CopyFrom(lease.Span);
                     try
                     {
-                        Logging?.Debug($"[SDK.{nameof(BaseTcpSession)}] HANDLE_RECEIVE_MESSAGE: Dispatch message to sync handler, length={copy.Length}");
+                        Logging?.Debug($"[SDK.{nameof(BaseTcpSession)}] HandleReceiveMessage: Dispatch message to sync handler, length={copy.Length}");
                         ((System.EventHandler<IBufferLease>)d).Invoke(this, copy);
                     }
                     catch (System.Exception ex)
@@ -540,7 +538,7 @@ public abstract class BaseTcpSession : IClientConnection
 
         if (asyncHandler is not null)
         {
-            Logging?.Debug($"[SDK.{nameof(BaseTcpSession)}] HANDLE_RECEIVE_MESSAGE: Dispatch message to async handler, length={asyncData.Length}");
+            Logging?.Debug($"[SDK.{nameof(BaseTcpSession)}] HandleReceiveMessage: Dispatch message to async handler, length={asyncData.Length}");
             _ = RUN_ASYNC_HANDLER(asyncHandler, asyncData);
         }
     }
@@ -549,24 +547,28 @@ public abstract class BaseTcpSession : IClientConnection
     /// Default send error handler: notify subscribers and tear down connection.
     /// Subclasses can override to implement reconnect semantics.
     /// </summary>
-    protected virtual void HANDLE_SEND_ERROR(System.Exception ex)
+    protected virtual void HandleSendError(System.Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
-        CLEANUP_CONNECTION();
+        TearDownConnection();
     }
 
     /// <summary>
     /// Default receive error handler: notify subscribers and tear down connection.
     /// Subclasses can override to implement reconnect semantics.
     /// </summary>
-    protected virtual void HANDLE_RECEIVE_ERROR(System.Exception ex)
+    protected virtual void HandleReceiveError(System.Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
-        CLEANUP_CONNECTION();
+        TearDownConnection();
     }
 
-    private async Task RUN_ASYNC_HANDLER(
-        System.Func<BaseTcpSession, System.ReadOnlyMemory<System.Byte>, Task> handler,
+    #endregion Protected Methods
+
+    #region Private Methods
+
+    private async System.Threading.Tasks.Task RUN_ASYNC_HANDLER(
+        System.Func<BaseTcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> handler,
         System.ReadOnlyMemory<System.Byte> data)
     {
         try
@@ -579,5 +581,5 @@ public abstract class BaseTcpSession : IClientConnection
         }
     }
 
-    #endregion
+    #endregion Private Methods
 }
