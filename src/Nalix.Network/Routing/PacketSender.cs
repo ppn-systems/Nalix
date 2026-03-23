@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Network.Configurations;
 using Nalix.Shared.Extensions;
@@ -14,22 +15,34 @@ namespace Nalix.Network.Routing;
 /// Default implementation of <see cref="IPacketSender{TPacket}"/>.
 /// Reads encryption/compression requirements from <see cref="PacketContext{TPacket}"/>.
 /// </summary>
-public sealed class PacketSender<TPacket> : IPacketSender<TPacket> where TPacket : IPacket
+public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable where TPacket : IPacket
 {
     #region Fields
 
-    private readonly IPacketRegistry _catalog;
-    private readonly PacketContext<TPacket> _context;
+    private PacketContext<TPacket> _context;
 
     private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
 
     #endregion Fields
 
-    internal PacketSender(PacketContext<TPacket> context, IPacketRegistry catalog)
+    #region Constructor
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PacketSender{TPacket}"/> class.
+    /// </summary>
+    public PacketSender()
     {
-        _context = context;
-        _catalog = catalog;
     }
+
+    #endregion Constructor
+
+    #region APIs
+
+    /// <inheritdoc/>
+    public void ResetForPool() => _context = null;
+
+    /// <inheritdoc/>
+    public void Initialize(PacketContext<TPacket> context) => _context = context ?? throw new System.ArgumentNullException(nameof(context));
 
     /// <inheritdoc/>
     public System.Threading.Tasks.ValueTask<System.Boolean> SendAsync(
@@ -45,6 +58,10 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket> where TPacket
         TPacket packet,
         System.Boolean forceEncrypt,
         System.Threading.CancellationToken ct = default) => SEND_CORE_ASYNC(packet, forceEncrypt, ct);
+
+    #endregion APIs
+
+    #region Private Methods
 
     private async System.Threading.Tasks.ValueTask<System.Boolean> SEND_CORE_ASYNC(
         TPacket packet,
@@ -159,4 +176,6 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket> where TPacket
 
         throw new System.InvalidOperationException("Unexpected state in packet sending logic.");
     }
+
+    #endregion Private Methods
 }
