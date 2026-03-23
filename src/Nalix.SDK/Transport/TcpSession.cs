@@ -22,13 +22,13 @@ namespace Nalix.SDK.Transport;
 /// heartbeat support, and bandwidth monitoring.
 /// </summary>
 /// <remarks>
-/// This class extends <see cref="BaseTcpSession"/> and delegates
+/// This class extends <see cref="TcpSessionBase"/> and delegates
 /// framing, sending, and receiving logic to internal helpers.
 /// </remarks>
 [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-public sealed class TcpSession : BaseTcpSession
+public sealed class TcpSession : TcpSessionBase
 {
     #region Constants
 
@@ -83,10 +83,7 @@ public sealed class TcpSession : BaseTcpSession
 
     #region Events
 
-    /// <summary>
-    /// Occurs when the client successfully reconnects.
-    /// </summary>
-    public event System.EventHandler<System.Int32>? OnReconnected;
+    // OnReconnected được kế thừa từ BaseTcpSession.
 
     #endregion Events
 
@@ -164,55 +161,14 @@ public sealed class TcpSession : BaseTcpSession
     {
         Options = options;
         Catalog = registry;
+
+        System.ArgumentNullException.ThrowIfNull(Options);
+        System.ArgumentNullException.ThrowIfNull(Catalog);
     }
 
     #endregion Constructors
 
-    /// <summary>
-    /// Creates internal frame sender and receiver helpers.
-    /// </summary>
-    protected override void InitializeFrame()
-    {
-        _sender = new FRAME_SENDER(RequireConnectedSocket, Options, ReportBytesSent, HandleSendError);
-        _receiver = new FRAME_READER(RequireConnectedSocket, Options, HandleReceiveMessage, HandleReceiveError, ReportBytesReceived);
-
-        Logging?.Debug($"[SDK.{GetType().Name}] Frame helpers created");
-    }
-
-    /// <summary>
-    /// Starts the background worker responsible for receiving data.
-    /// </summary>
-    /// <param name="loopToken">Cancellation token controlling the receive loop.</param>
-    protected override void StartReceiveWorker(System.Threading.CancellationToken loopToken)
-    {
-        if (_receiver is null)
-        {
-            return;
-        }
-
-        try
-        {
-            _receiveHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                name: $"TcpSession-Receive-{_host}:{_port}",
-                group: "client",
-                work: async (_, workerCt) =>
-                {
-                    var effective = workerCt.CanBeCanceled ? workerCt : loopToken;
-                    Logging?.Info($"[SDK.{GetType().Name}] Receive worker started");
-                    await _receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
-                },
-                options: new WorkerOptions { CancellationToken = loopToken }
-            );
-        }
-        catch (System.Exception ex)
-        {
-            Logging?.Warn($"[SDK.{GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run", ex);
-            _ = System.Threading.Tasks.Task.Run(() => _receiver.ReceiveLoopAsync(loopToken), loopToken);
-        }
-
-        // Start monitor (rate sampler + heartbeat) after receive worker is up.
-        _monitor = new SessionMonitor(this, loopToken);
-    }
+    #region APIs
 
     /// <summary>
     /// Connects to the specified TCP endpoint asynchronously.
@@ -239,23 +195,25 @@ public sealed class TcpSession : BaseTcpSession
             System.String.Equals(_host, effectiveHost, System.StringComparison.OrdinalIgnoreCase) &&
             _port == effectivePort)
         {
-            Logging?.Debug($"[SDK.{GetType().Name}] Already connected to {effectiveHost}:{effectivePort}");
+            Logging?.Debug($"[SDK.{GetType().Name}] Already connected to {effectiveHost}:{effectivePort}.");
             return;
         }
 
         if (IsConnected)
         {
-            Logging?.Debug($"[SDK.{GetType().Name}] Cleaning up existing connection");
+            Logging?.Debug($"[SDK.{GetType().Name}] Cleaning up existing connection.");
             TearDownConnection();
         }
 
-        lock (_sync)
+        lock (i_sync)
         {
-            if (_loopCts is not null)
+            if (i_loopCts is not null)
             {
-                CancelAndDispose(ref _loopCts);
+                CancelAndDispose(ref i_loopCts);
             }
         }
+
+        SetState(TcpSessionState.Connecting);
 
         using var connectCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
 
@@ -282,11 +240,11 @@ public sealed class TcpSession : BaseTcpSession
 
                 System.Threading.CancellationToken loopToken;
 
-                lock (_sync)
+                lock (i_sync)
                 {
-                    _socket = s;
-                    _loopCts = new System.Threading.CancellationTokenSource();
-                    loopToken = _loopCts.Token;
+                    i_socket = s;
+                    i_loopCts = new System.Threading.CancellationTokenSource();
+                    loopToken = i_loopCts.Token;
                     _host = effectiveHost;
                     _port = effectivePort;
                 }
@@ -296,12 +254,12 @@ public sealed class TcpSession : BaseTcpSession
                 System.Boolean isReconnect = System.Threading.Interlocked.Exchange(ref _hasEverConnected, 1) == 1;
                 if (isReconnect)
                 {
-                    Logging?.Info($"[SDK.{GetType().Name}] Reconnected to {effectiveHost}:{effectivePort}");
-                    OnReconnected?.Invoke(this, 0);
+                    RaiseConnected();
+                    RaiseReconnected(0);
                 }
                 else
                 {
-                    Logging?.Info($"[SDK.{GetType().Name}] Connected to {effectiveHost}:{effectivePort}");
+                    Logging?.Info($"[SDK.{GetType().Name}] Connected to {effectiveHost}:{effectivePort}.");
                     RaiseConnected();
                 }
 
@@ -318,8 +276,59 @@ public sealed class TcpSession : BaseTcpSession
             }
         }
 
+        SetState(TcpSessionState.Disconnected);
         Logging?.Error($"[SDK.{GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx);
         throw lastEx ?? new System.Net.Sockets.SocketException((System.Int32)System.Net.Sockets.SocketError.HostNotFound);
+    }
+
+    #endregion APIs
+
+    #region Overrides
+
+    /// <summary>
+    /// Creates internal frame sender and receiver helpers.
+    /// </summary>
+    protected override void InitializeFrame()
+    {
+        i_sender = new FRAME_SENDER(RequireConnectedSocket, Options, ReportBytesSent, HandleSendError);
+        i_receiver = new FRAME_READER(RequireConnectedSocket, Options, HandleReceiveMessage, HandleReceiveError, ReportBytesReceived);
+
+        Logging?.Debug($"[SDK.{GetType().Name}] Frame helpers created");
+    }
+
+    /// <summary>
+    /// Starts the background worker responsible for receiving data.
+    /// </summary>
+    /// <param name="loopToken">Cancellation token controlling the receive loop.</param>
+    protected override void StartReceiveWorker(System.Threading.CancellationToken loopToken)
+    {
+        if (i_receiver is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _receiveHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                name: $"TcpSession-Receive-{_host}:{_port}",
+                group: "client",
+                work: async (_, workerCt) =>
+                {
+                    var effective = workerCt.CanBeCanceled ? workerCt : loopToken;
+                    Logging?.Info($"[SDK.{GetType().Name}] Receive worker started");
+                    await i_receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
+                },
+                options: new WorkerOptions { CancellationToken = loopToken }
+            );
+        }
+        catch (System.Exception ex)
+        {
+            Logging?.Warn($"[SDK.{GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run", ex);
+            _ = System.Threading.Tasks.Task.Run(() => i_receiver.ReceiveLoopAsync(loopToken), loopToken);
+        }
+
+        // Start monitor (rate sampler + heartbeat) after receive worker is up.
+        _monitor = new SessionMonitor(this, loopToken);
     }
 
     /// <inheritdoc/>
@@ -406,37 +415,63 @@ public sealed class TcpSession : BaseTcpSession
         }
     }
 
+    #endregion Overrides
+
+    #region Private 
+
     private async System.Threading.Tasks.Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(System.Exception cause)
     {
-        Logging?.Debug($"[SDK.{GetType().Name}] HANDLE_DISCONNECT_AND_RECONNECT_ASYNC called after: {cause.Message}");
+        Logging?.Debug($"[SDK.{GetType().Name}] ReconnectAsync triggered after: {cause.Message}");
         TearDownConnection();
 
         if (!Options.ReconnectEnabled || System.Threading.Volatile.Read(ref _disposed) == 1)
         {
+            System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
             return;
         }
 
         if (System.String.IsNullOrEmpty(_host) || _port == 0)
         {
+            System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
             return;
         }
+
+        SetState(TcpSessionState.Reconnecting);
 
         System.Int32 attempt = 0;
         System.Int64 max = System.Math.Max(1, Options.ReconnectMaxDelayMillis);
         System.Int64 delay = System.Math.Max(1, Options.ReconnectBaseDelayMillis);
+
+        // Use a dedicated CTS so Dispose() can cancel the delay immediately.
+        using System.Threading.CancellationTokenSource reconnectCts = new();
 
         while (System.Threading.Volatile.Read(ref _disposed) == 0 &&
                (Options.ReconnectMaxAttempts == 0 || attempt < Options.ReconnectMaxAttempts))
         {
             attempt++;
             System.Int64 jitter = (System.Int64)(Csprng.NextDouble() * delay * 0.3);
-            await System.Threading.Tasks.Task.Delay((System.Int32)System.Math.Min(delay + jitter, System.Int32.MaxValue));
+
             try
             {
-                await ConnectAsync(_host, _port);
-                Logging?.Info($"[SDK.{GetType().Name}] Successfully reconnected to {_host}:{_port} after {attempt} attempt(s)");
-                OnReconnected?.Invoke(this, attempt);
+                await System.Threading.Tasks.Task.Delay(
+                    (System.Int32)System.Math.Min(delay + jitter, System.Int32.MaxValue),
+                    reconnectCts.Token).ConfigureAwait(false);
+            }
+            catch (System.OperationCanceledException)
+            {
+                break; // Disposed during delay — exit immediately.
+            }
+
+            try
+            {
+                await ConnectAsync(_host, _port, reconnectCts.Token).ConfigureAwait(false);
+                Logging?.Info($"[SDK.{GetType().Name}] Reconnected to {_host}:{_port} after {attempt} attempt(s).");
+                RaiseReconnected(attempt);
                 return;
+            }
+            catch (System.OperationCanceledException)
+            {
+                break;
             }
             catch (System.Exception ex)
             {
@@ -445,10 +480,10 @@ public sealed class TcpSession : BaseTcpSession
             }
         }
 
-        Logging?.Error($"[SDK.{GetType().Name}] Reconnect attempts exhausted or stopped");
+        Logging?.Error($"[SDK.{GetType().Name}] Reconnect exhausted after {attempt} attempt(s).");
+        System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
+        SetState(TcpSessionState.Disconnected);
     }
-
-    // ── SessionMonitor ───────────────────────────────────────────────────────
 
     /// <summary>
     /// Manages rate sampling and heartbeat loops for a <see cref="TcpSession"/>.
@@ -458,6 +493,9 @@ public sealed class TcpSession : BaseTcpSession
     {
         private readonly TcpSession _session;
         private readonly System.Threading.CancellationTokenSource _cts;
+
+        private IWorkerHandle? _samplerHandle;
+        private IWorkerHandle? _heartbeatHandle;
 
         // Monotonic tick captured at the last sample — stored entirely inside this class.
         private System.Int64 _lastSampleTick;
@@ -470,15 +508,64 @@ public sealed class TcpSession : BaseTcpSession
             // Link to the session's loop token so both loops stop on disconnect/dispose.
             _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(linkedToken);
 
-            _ = System.Threading.Tasks.Task.Run(() => RateSamplerLoopAsync(_cts.Token), _cts.Token);
-            _ = System.Threading.Tasks.Task.Run(() => HeartbeatLoopAsync(_cts.Token), _cts.Token);
+            TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
+
+            _samplerHandle = ScheduleOrFallback(
+                taskManager,
+                name: $"TcpSession-RateSampler-{session._host}:{session._port}",
+                work: (_, ct) => RateSamplerLoopAsync(ct),
+                token: _cts.Token);
+
+            _heartbeatHandle = ScheduleOrFallback(
+                taskManager,
+                name: $"TcpSession-Heartbeat-{session._host}:{session._port}",
+                work: (_, ct) => HeartbeatLoopAsync(ct),
+                token: _cts.Token);
         }
 
-        /// <summary>Stops both background loops immediately.</summary>
+        /// <summary>Stops both background loops and cancels their workers.</summary>
         internal void Stop()
         {
+            TaskManager? taskManager = null;
+            try { taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>(); } catch { }
+
+            CancelWorker(taskManager, ref _samplerHandle);
+            CancelWorker(taskManager, ref _heartbeatHandle);
+
             try { _cts.Cancel(); } catch { }
             _cts.Dispose();
+        }
+
+        private static IWorkerHandle? ScheduleOrFallback(
+            TaskManager taskManager, System.String name,
+            System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work, System.Threading.CancellationToken token)
+        {
+            try
+            {
+                return taskManager.ScheduleWorker(
+                    name: name,
+                    group: "client-monitor",
+                    work: work,
+                    options: new WorkerOptions { CancellationToken = token });
+            }
+            catch (System.Exception ex)
+            {
+                Logging?.Warn($"[SDK.SessionMonitor] Failed to schedule '{name}' via TaskManager, falling back to Task.Run: {ex.Message}");
+                _ = System.Threading.Tasks.Task.Run(() => work(null!, token), token);
+                return null;
+            }
+        }
+
+        private static void CancelWorker(TaskManager? taskManager, ref IWorkerHandle? handle)
+        {
+            if (handle is null)
+            {
+                return;
+            }
+
+            try { taskManager?.CancelWorker(handle.Id); }
+            catch { }
+            finally { handle = null; }
         }
 
         // ── Rate sampler ─────────────────────────────────────────────────────
@@ -486,7 +573,7 @@ public sealed class TcpSession : BaseTcpSession
         /// <summary>
         /// Samples byte counters at each interval and updates the last BPS readings.
         /// </summary>
-        private async System.Threading.Tasks.Task RateSamplerLoopAsync(System.Threading.CancellationToken ct)
+        private async System.Threading.Tasks.ValueTask RateSamplerLoopAsync(System.Threading.CancellationToken ct)
         {
             // Use half the keep-alive interval, minimum 1 s, as sample cadence.
             System.Int32 intervalMs = System.Math.Max(1_000, _session.Options.KeepAliveIntervalMillis / 2);
@@ -535,9 +622,16 @@ public sealed class TcpSession : BaseTcpSession
         /// <summary>
         /// Sends a PING control frame at the configured keep-alive interval until cancellation.
         /// </summary>
-        private async System.Threading.Tasks.Task HeartbeatLoopAsync(System.Threading.CancellationToken ct)
+        private async System.Threading.Tasks.ValueTask HeartbeatLoopAsync(System.Threading.CancellationToken ct)
         {
-            System.Int32 intervalMs = System.Math.Max(1, _session.Options.KeepAliveIntervalMillis);
+            System.Int32 intervalMs = _session.Options.KeepAliveIntervalMillis;
+
+            // KeepAliveIntervalMillis = 0 nghĩa là heartbeat bị disabled.
+            if (intervalMs <= 0)
+            {
+                Logging?.Debug($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] Heartbeat disabled (KeepAliveIntervalMillis=0).");
+                return;
+            }
 
             while (!ct.IsCancellationRequested)
             {
@@ -571,4 +665,6 @@ public sealed class TcpSession : BaseTcpSession
             }
         }
     }
+
+    #endregion Private
 }

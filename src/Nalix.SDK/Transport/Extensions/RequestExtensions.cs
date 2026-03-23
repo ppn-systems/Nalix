@@ -163,7 +163,7 @@ public static class RequestExtensions
     /// </exception>
     /// <exception cref="System.ArgumentException">
     /// <see cref="RequestOptions.Encrypt"/> is <see langword="true"/> but
-    /// <paramref name="client"/> is not a <see cref="BaseTcpSession"/>.
+    /// <paramref name="client"/> is not a <see cref="TcpSessionBase"/>.
     /// </exception>
     /// <example>
     /// <code>
@@ -205,10 +205,10 @@ public static class RequestExtensions
         }
 
         // Fail-fast: Encrypt requires BaseTcpSession — check before any attempt.
-        if (options.Encrypt && client is not BaseTcpSession)
+        if (options.Encrypt && client is not TcpSessionBase)
         {
             throw new System.ArgumentException(
-                $"[SDK.RequestAsync<{typeof(TResponse).Name}>] RequestOptions.Encrypt=true requires BaseTcpSession. Got: {client.GetType().Name}", nameof(client));
+                $"[SDK.RequestAsync<{typeof(TResponse).Name}>] RequestOptions.Encrypt=true requires TcpSessionBase. Got: {client.GetType().Name}", nameof(client));
         }
 
         System.Func<TResponse, System.Boolean> effectivePredicate = predicate ?? (_ => true);
@@ -229,7 +229,7 @@ public static class RequestExtensions
                     predicate: effectivePredicate,
                     timeoutMs: options.TimeoutMs,
                     sendAsync: token => options.Encrypt
-                        ? ((BaseTcpSession)client).SendAsync(request, encrypt: true, token)
+                        ? ((TcpSessionBase)client).SendAsync(request, encrypt: true, token)
                         : client.SendAsync(request, token).ContinueWith(
                             t =>
                             {

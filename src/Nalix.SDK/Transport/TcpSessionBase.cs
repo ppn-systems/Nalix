@@ -22,20 +22,23 @@ namespace Nalix.SDK.Transport;
 [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-public abstract class BaseTcpSession : IClientConnection
+public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposable
 {
     #region Fields
 
-    internal readonly System.Threading.Lock _sync = new();
+    internal readonly System.Threading.Lock i_sync = new();
 
-    internal FRAME_SENDER? _sender;
-    internal FRAME_READER? _receiver;
+    internal FRAME_SENDER? i_sender;
+    internal FRAME_READER? i_receiver;
 
-    internal System.Net.Sockets.Socket? _socket;
-    internal System.Threading.Tasks.Task? _receiveTask;
-    internal System.Threading.CancellationTokenSource? _loopCts;
+    internal System.Net.Sockets.Socket? i_socket;
+    internal System.Threading.Tasks.Task? i_receiveTask;
+    internal System.Threading.CancellationTokenSource? i_loopCts;
 
     internal System.Int32 _disposed = 0;
+
+
+    private System.Int32 _connectionState = (System.Int32)TcpSessionState.Disconnected;
 
     /// <inheritdoc/>
     internal static readonly ILogger? Logging;
@@ -50,7 +53,13 @@ public abstract class BaseTcpSession : IClientConnection
     /// <inheritdoc/>
     public IPacketRegistry Catalog { get; protected set; }
 
+    /// <inheritdoc/>
     ITransportOptions IClientConnection.Options => this.Options;
+
+    /// <summary>
+    /// Gets the current lifecycle state of the session.
+    /// </summary>
+    public TcpSessionState State => (TcpSessionState)System.Threading.Volatile.Read(ref _connectionState);
 
     #endregion Properties
 
@@ -74,23 +83,29 @@ public abstract class BaseTcpSession : IClientConnection
     /// <inheritdoc/>
     public event System.EventHandler<System.Exception>? OnDisconnected;
 
+    /// <summary>
+    /// Occurs when the session successfully reconnects after an unexpected disconnect.
+    /// The event argument is the number of attempts it took.
+    /// </summary>
+    public event System.EventHandler<System.Int32>? OnReconnected;
+
     /// <inheritdoc/>
-    public System.Func<BaseTcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task>? OnMessageReceivedAsync;
+    public System.Func<TcpSessionBase, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task>? OnMessageReceivedAsync;
 
     #endregion
 
     #region Construction
 
-    static BaseTcpSession() => Logging = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    static TcpSessionBase() => Logging = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Constructs base session and loads TransportOptions from configuration.
     /// Derived classes are responsible for buffer configuration if needed.
     /// </summary>
-    protected BaseTcpSession()
+    protected TcpSessionBase()
     {
-        System.ArgumentNullException.ThrowIfNull(Options);
-        System.ArgumentNullException.ThrowIfNull(Catalog);
+        Options = null!;
+        Catalog = null!;
     }
 
     #endregion Construction
@@ -100,14 +115,39 @@ public abstract class BaseTcpSession : IClientConnection
     /// <inheritdoc/>
     public abstract System.Threading.Tasks.Task ConnectAsync(System.String? host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default);
 
+    /// <summary>
+    /// Connects to the endpoint specified by <paramref name="uri"/>.
+    /// Supports <c>tcp://host:port</c> scheme. Port defaults to <see cref="TransportOptions.Port"/> when absent.
+    /// </summary>
+    /// <param name="uri">The target URI. Must use the <c>tcp</c> scheme.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="uri"/> is null.</exception>
+    /// <exception cref="System.ArgumentException">Thrown when the URI scheme is not <c>tcp</c>.</exception>
+    public System.Threading.Tasks.Task ConnectAsync(System.Uri uri, System.Threading.CancellationToken ct = default)
+    {
+        System.ArgumentNullException.ThrowIfNull(uri);
+
+        if (!System.String.Equals(uri.Scheme, "tcp", System.StringComparison.OrdinalIgnoreCase))
+        {
+            throw new System.ArgumentException(
+                $"URI scheme must be 'tcp', got '{uri.Scheme}'.", nameof(uri));
+        }
+
+        System.UInt16 port = uri.Port > 0
+            ? (System.UInt16)uri.Port
+            : Options.Port;
+
+        return ConnectAsync(uri.Host, port, ct);
+    }
+
     /// <inheritdoc/>
-    public virtual System.Boolean IsConnected => _socket?.Connected == true && System.Threading.Volatile.Read(ref _disposed) == 0;
+    public virtual System.Boolean IsConnected => i_socket?.Connected == true && System.Threading.Volatile.Read(ref _disposed) == 0;
 
     /// <inheritdoc/>
     public virtual System.Threading.Tasks.Task<System.Boolean> SendAsync(System.ReadOnlyMemory<System.Byte> payload, System.Threading.CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(BaseTcpSession));
-        var sender = System.Threading.Volatile.Read(ref _sender);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
+        var sender = System.Threading.Volatile.Read(ref i_sender);
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(payload, ct);
     }
 
@@ -115,8 +155,8 @@ public abstract class BaseTcpSession : IClientConnection
     public virtual System.Threading.Tasks.Task<System.Boolean> SendAsync(IPacket packet, System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(packet);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(BaseTcpSession));
-        var sender = System.Threading.Volatile.Read(ref _sender);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
+        var sender = System.Threading.Volatile.Read(ref i_sender);
         return sender is null ? throw new System.InvalidOperationException("Client not connected.") : sender.SendAsync(packet, ct);
     }
 
@@ -173,7 +213,7 @@ public abstract class BaseTcpSession : IClientConnection
         System.Int32 written = packet.Serialize(rawLease.SpanFull);
         rawLease.CommitLength(written);
 
-        System.Boolean enableCompress = Options.EnebledCompress && written >= Options.MinSizeToCompress;
+        System.Boolean enableCompress = Options.EnableCompression && written >= Options.MinSizeToCompress;
 
         try
         {
@@ -323,8 +363,26 @@ public abstract class BaseTcpSession : IClientConnection
             return;
         }
 
+        SetState(TcpSessionState.Disposed);
         TearDownConnection();
-        Logging?.Info($"[SDK.{this.GetType().Name}] Disposed.");
+        Logging?.Info($"[SDK.{GetType().Name}] Disposed.");
+        System.GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Asynchronously disconnects and releases all resources.
+    /// Prefer <c>await using</c> over <c>using</c> when calling from async code.
+    /// </summary>
+    public virtual async System.Threading.Tasks.ValueTask DisposeAsync()
+    {
+        if (System.Threading.Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+        {
+            return;
+        }
+
+        SetState(TcpSessionState.Disposed);
+        await DisconnectAsync().ConfigureAwait(false);
+        Logging?.Info($"[SDK.{GetType().Name}] DisposeAsync completed.");
         System.GC.SuppressFinalize(this);
     }
 
@@ -335,28 +393,30 @@ public abstract class BaseTcpSession : IClientConnection
     /// <inheritdoc/>
     protected void RaiseConnected()
     {
-        Logging?.Info($"[SDK.{GetType().Name}] RaiseConnected event fired");
+        SetState(TcpSessionState.Connected);
+        Logging?.Info($"[SDK.{GetType().Name}] Connected.");
         try
         {
             OnConnected?.Invoke(this, System.EventArgs.Empty);
         }
         catch (System.Exception ex)
         {
-            Logging?.Error($"[SDK.{GetType().Name}] RaiseConnected handler threw: {ex.Message}", ex);
+            Logging?.Error($"[SDK.{GetType().Name}] OnConnected handler threw: {ex.Message}", ex);
         }
     }
 
     /// <inheritdoc/>
     protected void RaiseDisconnected(System.Exception? ex)
     {
-        Logging?.Info($"[SDK.{GetType().Name}] RaiseDisconnected event fired");
+        SetState(TcpSessionState.Disconnected);
+        Logging?.Info($"[SDK.{GetType().Name}] Disconnected.");
         try
         {
             OnDisconnected?.Invoke(this, ex!);
         }
         catch (System.Exception handlerEx)
         {
-            Logging?.Error($"[SDK.{GetType().Name}] RaiseDisconnected handler threw: {handlerEx.Message}", handlerEx);
+            Logging?.Error($"[SDK.{GetType().Name}] OnDisconnected handler threw: {handlerEx.Message}", handlerEx);
         }
     }
 
@@ -420,18 +480,19 @@ public abstract class BaseTcpSession : IClientConnection
     /// </summary>
     protected virtual void TearDownConnection()
     {
-        lock (_sync)
+        SetState(TcpSessionState.Disconnected);
+        lock (i_sync)
         {
-            if (_loopCts is not null)
+            if (i_loopCts is not null)
             {
-                CancelAndDispose(ref _loopCts);
+                CancelAndDispose(ref i_loopCts);
 
                 Logging?.Debug($"[SDK.{GetType().Name}] TearDownConnection: Loop token cancelled and disposed");
             }
 
             try
             {
-                var prevSender = System.Threading.Interlocked.Exchange(ref _sender, null);
+                var prevSender = System.Threading.Interlocked.Exchange(ref i_sender, null);
                 prevSender?.Dispose();
             }
             catch (System.Exception ex)
@@ -439,16 +500,16 @@ public abstract class BaseTcpSession : IClientConnection
                 Logging?.Warn($"[SDK.{GetType().Name}] TearDownConnection: Sender cleanup threw: {ex.Message}", ex);
             }
 
-            try { _socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
-            try { _socket?.Close(); _socket?.Dispose(); } catch { }
+            try { i_socket?.Shutdown(System.Net.Sockets.SocketShutdown.Both); } catch { }
+            try { i_socket?.Close(); i_socket?.Dispose(); } catch { }
 
             Logging?.Debug($"[SDK.{GetType().Name}] TearDownConnection: Socket closed and disposed.");
 
-            _socket = null!;
-            _receiver = null!;
+            i_socket = null!;
+            i_receiver = null!;
         }
 
-        _receiveTask = null!;
+        i_receiveTask = null!;
     }
 
     /// <summary>
@@ -471,7 +532,7 @@ public abstract class BaseTcpSession : IClientConnection
     /// </summary>
     protected System.Net.Sockets.Socket RequireConnectedSocket()
     {
-        var s = _socket;
+        var s = i_socket;
         return s?.Connected == true
             ? s
             : throw new System.InvalidOperationException("Client not connected.");
@@ -517,12 +578,12 @@ public abstract class BaseTcpSession : IClientConnection
                     BufferLease copy = BufferLease.CopyFrom(lease.Span);
                     try
                     {
-                        Logging?.Debug($"[SDK.{nameof(BaseTcpSession)}] HandleReceiveMessage: Dispatch message to sync handler, length={copy.Length}");
+                        Logging?.Debug($"[SDK.{nameof(TcpSessionBase)}] HandleReceiveMessage: Dispatch message to sync handler, length={copy.Length}");
                         ((System.EventHandler<IBufferLease>)d).Invoke(this, copy);
                     }
                     catch (System.Exception ex)
                     {
-                        Logging?.Error($"[SDK.{nameof(BaseTcpSession)}] sync handler faulted: {ex.Message}", ex);
+                        Logging?.Error($"[SDK.{nameof(TcpSessionBase)}] sync handler faulted: {ex.Message}", ex);
                     }
                     finally
                     {
@@ -538,8 +599,8 @@ public abstract class BaseTcpSession : IClientConnection
 
         if (asyncHandler is not null)
         {
-            Logging?.Debug($"[SDK.{nameof(BaseTcpSession)}] HandleReceiveMessage: Dispatch message to async handler, length={asyncData.Length}");
-            _ = RUN_ASYNC_HANDLER(asyncHandler, asyncData);
+            Logging?.Debug($"[SDK.{nameof(TcpSessionBase)}] HandleReceiveMessage: Dispatch message to async handler, length={asyncData.Length}");
+            _ = InvokeAsyncHandler(asyncHandler, asyncData);
         }
     }
 
@@ -563,12 +624,43 @@ public abstract class BaseTcpSession : IClientConnection
         TearDownConnection();
     }
 
+    /// <summary>
+    /// Transitions the session to <paramref name="next"/> and logs the change.
+    /// Thread-safe via atomic write.
+    /// </summary>
+    protected void SetState(TcpSessionState next)
+    {
+        TcpSessionState prev = (TcpSessionState)System.Threading.Interlocked.Exchange(
+            ref _connectionState, (System.Int32)next);
+
+        if (prev != next)
+        {
+            Logging?.Debug($"[SDK.{GetType().Name}] State: {prev} → {next}");
+        }
+    }
+
+    /// <summary>
+    /// Fires <see cref="OnReconnected"/> with the attempt count.
+    /// </summary>
+    protected void RaiseReconnected(System.Int32 attempt)
+    {
+        Logging?.Info($"[SDK.{GetType().Name}] Reconnected (attempt {attempt}).");
+        try
+        {
+            OnReconnected?.Invoke(this, attempt);
+        }
+        catch (System.Exception ex)
+        {
+            Logging?.Error($"[SDK.{GetType().Name}] OnReconnected handler threw: {ex.Message}", ex);
+        }
+    }
+
     #endregion Protected Methods
 
     #region Private Methods
 
-    private async System.Threading.Tasks.Task RUN_ASYNC_HANDLER(
-        System.Func<BaseTcpSession, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> handler,
+    private async System.Threading.Tasks.Task InvokeAsyncHandler(
+        System.Func<TcpSessionBase, System.ReadOnlyMemory<System.Byte>, System.Threading.Tasks.Task> handler,
         System.ReadOnlyMemory<System.Byte> data)
     {
         try
@@ -577,7 +669,7 @@ public abstract class BaseTcpSession : IClientConnection
         }
         catch (System.Exception ex)
         {
-            Logging?.Error($"[SDK.{nameof(BaseTcpSession)}] async handler faulted: {ex.Message}", ex);
+            Logging?.Error($"[SDK.{nameof(TcpSessionBase)}] async handler faulted: {ex.Message}", ex);
         }
     }
 
