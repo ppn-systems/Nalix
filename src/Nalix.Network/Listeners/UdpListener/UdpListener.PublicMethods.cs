@@ -48,36 +48,40 @@ public abstract partial class UdpListenerBase : IListener
             this.Initialize();
         }
 
+        System.Boolean started = false;
+
         try
         {
-            this._isRunning = true;
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
-
             this._cts?.Dispose();
             this._cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             this._cancellationToken = this._cts.Token;
 
-            _lock.Wait(_cancellationToken);
+            _lock.Wait(this._cancellationToken);
 
             try
             {
+                this._isRunning = true;
+                started = true;
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] listening port={_port}");
 
-                System.Threading.Tasks.Task receiveTask = this.ReceiveDatagramsAsync(this._cancellationToken);
-                _ = receiveTask.ConfigureAwait(false);
-
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
-                   name: $"{NetTaskNames.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
-                   group: $"{NetTaskNames.Net}/{NetTaskNames.Udp}/{_port}",            // "net/udp/port"
-                   work: async (_, ct) => await ReceiveDatagramsAsync(ct),
-                   options: new WorkerOptions
-                   {
-                       Tag = NetTaskNames.Udp,
-                       IdType = SnowflakeType.System,
-                       CancellationToken = _cancellationToken
-                   });
+                    name: $"{NetTaskNames.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
+                    group: $"{NetTaskNames.Net}/{NetTaskNames.Udp}/{_port}",            // "net/udp/port"
+                    work: async (_, ct) =>
+                    {
+                        await ReceiveDatagramsAsync(ct).ConfigureAwait(false);
+                    },
+                    options: new WorkerOptions
+                    {
+                        Tag = NetTaskNames.Udp,
+                        IdType = SnowflakeType.System,
+                        CancellationToken = _cancellationToken,
+                        GroupConcurrencyLimit = Config.MaxGroupConcurrency
+                    });
             }
             finally
             {
@@ -86,45 +90,39 @@ public abstract partial class UdpListenerBase : IListener
         }
         catch (System.OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            if (started)
+            {
+                this._isRunning = false;
+            }
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] cancel port={_port}");
+            this._cts?.Dispose();
+            this._cts = null;
         }
         catch (System.Net.Sockets.SocketException ex)
         {
+            if (started)
+            {
+                this._isRunning = false;
+            }
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Fatal($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] bind-fail port={_port}", ex);
+            this._cts?.Dispose();
+            this._cts = null;
         }
         catch (System.Exception ex)
         {
+            if (started)
+            {
+                this._isRunning = false;
+            }
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Fatal($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] critical port={_port}", ex);
-        }
-        finally
-        {
-            if (this._isRunning)
-            {
-                try
-                {
-                    this._isRunning = false;
-                    this._cts?.Cancel();
-
-                    if (this._udpClient != null)
-                    {
-                        this._udpClient.Close();
-                        _ = System.Threading.Tasks.Task.Delay(200, cancellationToken).ConfigureAwait(false);
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] shutdown-error", ex);
-                }
-                finally
-                {
-                    this._cts?.Dispose();
-                    this._cts = null;
-                }
-            }
+            this._cts?.Dispose();
+            this._cts = null;
         }
     }
 
@@ -143,9 +141,14 @@ public abstract partial class UdpListenerBase : IListener
 
         try
         {
+            if (this._udpClient != null)
+            {
+                this._udpClient.Close();
+                this._udpClient = null;
+            }
+
             if (this._isRunning)
             {
-                this._udpClient?.Close();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] stopped port={_port}");
             }
@@ -160,6 +163,7 @@ public abstract partial class UdpListenerBase : IListener
             this._isRunning = false;
             this._cts?.Dispose();
             this._cts = null;
+            this._cancellationToken = default;
         }
     }
 
