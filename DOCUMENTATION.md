@@ -13,7 +13,7 @@ Welcome to the complete documentation for the Nalix ecosystem.
 | **Nalix.Network** | Core networking runtime (TCP/UDP, protocols, throttling, timing). | [Read →](./docs/Nalix.Network/) |
 | **Nalix.Logging** | Asynchronous and high-performance logging system with batching and multiple sinks. | [Read →](./docs/Nalix.Logging/) |
 | **Nalix.Shared** | Shared utilities for memory pooling, LZ4 compression, and lightweight serialization. | [Read →](./docs/Nalix.Shared/) |
-| **Nalix.SDK** | Client transport: ReliableClient, UnreliableClient, extensions for subscriptions and directives. | [Read →](./docs/Nalix.SDK/) |
+| **Nalix.SDK** | Client transport: `TcpSessionBase`/`TcpSession`/`IoTTcpSession`, `UnreliableClient`, plus extensions for subscriptions and directives. | [Read →](./docs/Nalix.SDK/) |
 
 ---
 

@@ -119,6 +119,7 @@ Each module's documentation (linked below) includes code samples and usage scena
 | [TCP/Connection](./Nalix.Network/Listeners/TcpListenerBase.md)                | Listener setup and connection lifecycle       |
 | [ConnectionHub](./Nalix.Network/Connections/ConnectionHub.md)                 | Sharded, high-throughput connection manager   |
 | [PacketContext](./Nalix.Network/Routing/PacketContext.md)                     | Handler context: Packet, Conn, Send, Attribute|
+| [Network Configuration](./Nalix.Network/Configuration/README.md)              | Dispatch/callback/idle/queue options for Nalix.Network |
 | [BufferLease](./Nalix.Shared/Memory/BufferLease.md)                           | Zero-copy buffer pool, secure                 |
 | [ObjectPoolManager](./Nalix.Shared/Memory/ObjectPoolManager.md)               | Generic object pooling, preallocation         |
 | [LiteSerializer](./Nalix.Shared/LiteSerializer.md)                            | Serialization of structs, arrays, primitives  |

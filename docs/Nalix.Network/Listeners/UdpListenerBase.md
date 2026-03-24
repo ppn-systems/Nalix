@@ -53,13 +53,6 @@ The `UdpListenerBase` class (namespace: `Nalix.Network.Listeners.Udp`) is an abs
 - **SynchronizeTime(long milliseconds):**  
   Records and processes server time sync events; can be overridden for custom behavior.
 
-### Internal Reception Logic
-
-- **ReceiveDatagramsAsync(CancellationToken):**  
-  Main loop for receiving datagrams asynchronously, dispatches each to a worker for processing.
-- **ProcessDatagram(UdpReceiveResult):**  
-  Validates, authenticates, and passes packet data to the correct connection, or logs errors and drops packets as needed.
-
 ### Socket Configuration
 
 - **ConfigureHighPerformanceSocket(Socket):**  
