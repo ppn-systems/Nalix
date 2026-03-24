@@ -184,7 +184,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
         {
             this.Publisher?.Dispose();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
 #if DEBUG
             Debug.WriteLine($"ERROR disposing NLogixOptions: {ex.Message}");

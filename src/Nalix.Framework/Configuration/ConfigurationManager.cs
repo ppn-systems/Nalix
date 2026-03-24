@@ -38,6 +38,8 @@ namespace Nalix.Framework.Configuration;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("ConfigFilePath = {ConfigFilePath,nq}, LoadedTypes = {_configContainerDict.Count}")]
+[SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+Justification = "ConfigurationManager releases _configLock, _reloadGate, and _configFileWatcher in DisposeManaged inherited from SingletonBase.")]
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -187,11 +189,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         string normalizedPath = Path.GetFullPath(newConfigFilePath);
         this.VALIDATE_CONFIG_PATH(normalizedPath);
 
-        // Wait up to 5 s for any concurrent reload/path-change to finish.
-        if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
+        // Non-blocking gate check: fail fast instead of stalling caller threads.
+        if (!_reloadGate.Wait(0))
         {
             throw new TimeoutException(
-                "Timeout waiting for config reload lock (5s).");
+                "A configuration reload/path-change operation is already running.");
         }
         string? pathToWatch = null;
 
@@ -208,7 +210,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                 if (_iniFile.IsValueCreated)
                 {
-                    try { _iniFile.Value.Flush(); } catch { /* ignore flush errors on the old file */ }
+                    try
+                    {
+                        _iniFile.Value.Flush();
+                    }
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] old-config-flush-failed msg={ex.Message}");
+                    }
                 }
 
                 string oldPath = _configFilePath;
@@ -240,7 +250,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                         pathToWatch = normalizedPath;
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
                         // Roll back state — do NOT call SETUP_FILE_WATCHER inside the write lock.
                         _configFilePath = oldPath;
@@ -392,9 +402,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             return;
         }
 
-        if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
+        if (!_reloadGate.Wait(0))
         {
-            throw new TimeoutException("Timed out waiting for concurrent configuration reload or path change to complete.");
+            throw new TimeoutException("Another configuration reload/path-change operation is already in progress.");
         }
 
         Exception? reloadException = null;
@@ -419,7 +429,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                 this.LastReloadTime = DateTime.UtcNow;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 reloadException = ex;
             }
@@ -532,7 +542,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
             }
-            catch (Exception)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 throw;
             }
@@ -550,7 +560,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
         if (_iniFile.IsValueCreated)
         {
-            try { _iniFile.Value.Flush(); } catch { /* ignore */ }
+            try
+            {
+                _iniFile.Value.Flush();
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(DisposeManaged)}] flush-failed msg={ex.Message}");
+            }
         }
 
         _debounceTimer?.Dispose();
@@ -559,17 +577,26 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         _configFileWatcher?.Dispose();
         _configFileWatcher = null;
 
+        bool gateTaken = false;
         try
         {
-            if (!_reloadGate.Wait(TimeSpan.FromSeconds(1)))
+            gateTaken = _reloadGate.Wait(0);
+            if (!gateTaken)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(ConfigurationManager)}:Dispose] Timeout waiting for reload gate (1s). Shutdown may be incomplete.");
+                                        .Warn($"[FW.{nameof(ConfigurationManager)}:{nameof(DisposeManaged)}] reload-gate-busy; disposing without waiting.");
             }
         }
         catch (ObjectDisposedException)
         {
             // Another disposer already completed shutdown.
+        }
+        finally
+        {
+            if (gateTaken)
+            {
+                _ = _reloadGate.Release();
+            }
         }
 
         _reloadGate.Dispose();

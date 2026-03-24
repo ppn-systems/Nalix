@@ -216,7 +216,7 @@ public static class NLogixExtensions
 
     private static string NormalizeFormatString(string format, int argumentCount)
     {
-        if (argumentCount == 0 || format.IndexOf('{') < 0)
+        if (argumentCount == 0 || format.IndexOf('{', StringComparison.Ordinal) < 0)
         {
             return format;
         }

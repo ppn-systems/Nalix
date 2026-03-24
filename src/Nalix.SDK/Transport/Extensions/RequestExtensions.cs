@@ -97,7 +97,7 @@ public static class RequestExtensions
     ///     predicate: r => r.RequestId == tradeRequest.Id);
     /// </code>
     /// </example>
-    public static async Task<TResponse> RequestAsync<TResponse>(
+    public static async ValueTask<TResponse> RequestAsync<TResponse>(
         this TransportSession client,
         IPacket request,
         RequestOptions? options = null,

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
@@ -159,7 +160,9 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         {
             try
             {
+#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
                 pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
             }
             finally
             {
@@ -506,7 +509,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
                 return AwaitWithContinueAsync(this, pending, entry, next, token);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (!_continueOnError)
                 {
@@ -568,7 +571,9 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                     }
                     else
                     {
+#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
                         handlerPending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
                     }
                 }
                 catch (OperationCanceledException) when (handlerCt.IsCancellationRequested)
@@ -595,7 +600,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             {
                 await pending.ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 runner._errorHandler?.Invoke(ex, entry.Middleware.GetType());
                 await next(token).ConfigureAwait(false);

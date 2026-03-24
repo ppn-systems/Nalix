@@ -27,10 +27,12 @@ public class UdpSession : TransportSession
 {
     #region Fields
 
+#pragma warning disable CA2213 // Disposed through Interlocked.Exchange locals inside DisconnectInternalAsync/Dispose(bool).
     private Socket? _socket;
     private IPEndPoint? _remoteEndPoint;
     private Snowflake? _sessionToken;
     private CancellationTokenSource? _loopCts;
+#pragma warning restore CA2213
     private System.Threading.Channels.Channel<Func<Task>>? _asyncQueue;
     private int _disposed;
 
@@ -145,21 +147,23 @@ public class UdpSession : TransportSession
 
             // Start background workers
             _loopCts = new CancellationTokenSource();
-            _ = Task.Run(() => this.ProcessAsyncQueueAsync(_loopCts.Token), ct);
+            Task asyncQueueTask = Task.Run(() => this.ProcessAsyncQueueAsync(_loopCts.Token), _loopCts.Token);
+            this.ObserveBackgroundTask(asyncQueueTask, nameof(ProcessAsyncQueueAsync));
 
             _socket.SendBufferSize = this.Options.BufferSize;
             _socket.ReceiveBufferSize = this.Options.BufferSize;
 
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
-            _ = Task.Factory.StartNew(() => this.ReceiveLoopAsync(_loopCts.Token),
-                _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            Task receiveLoopTask = Task.Factory.StartNew(() => this.ReceiveLoopAsync(_loopCts.Token),
+                _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
+            this.ObserveBackgroundTask(receiveLoopTask, nameof(ReceiveLoopAsync));
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.OnError?.Invoke(this, ex);
-            this.DisconnectAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            await this.DisconnectAsync().ConfigureAwait(false);
             throw new NetworkException($"UDP Connection failed: {ex.Message}", ex);
         }
     }
@@ -184,15 +188,31 @@ public class UdpSession : TransportSession
         CancellationTokenSource? cts = Interlocked.Exchange(ref _loopCts, null);
         if (cts is not null)
         {
+#pragma warning disable CA1849 // DisconnectInternalAsync is synchronous teardown; callers cannot await CancelAsync without changing API shape.
             try { cts.Cancel(); }
-            catch (ObjectDisposedException) { }
+#pragma warning restore CA1849
+            catch (ObjectDisposedException ex) when (Volatile.Read(ref _disposed) == 1)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
         }
 
         Socket? socket = Interlocked.Exchange(ref _socket, null);
         if (socket != null)
         {
             try { socket.Dispose(); }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException ex) when (Volatile.Read(ref _disposed) == 1)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
 
             this.OnDisconnected?.Invoke(this, new NetworkException("The UDP session was disconnected."));
         }
@@ -201,7 +221,14 @@ public class UdpSession : TransportSession
         if (cts is not null)
         {
             try { cts.Dispose(); }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException ex) when (Volatile.Read(ref _disposed) == 1)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
         }
 
         _ = (_asyncQueue?.Writer.TryComplete());
@@ -310,6 +337,17 @@ public class UdpSession : TransportSession
         }
     }
 
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing || Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+        {
+            return;
+        }
+
+        _ = this.DisconnectInternalAsync();
+    }
+
     #endregion APIs
 
     #region Internal
@@ -327,7 +365,7 @@ public class UdpSession : TransportSession
             _ = await _socket.SendAsync(data, SocketFlags.None, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.OnError?.Invoke(this, ex);
             _ = this.DisconnectAsync();
@@ -358,7 +396,7 @@ public class UdpSession : TransportSession
                 BufferLease.ByteArrayPool.Return(rawBuffer);
                 break;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 BufferLease.ByteArrayPool.Return(rawBuffer);
                 if (!ct.IsCancellationRequested)
@@ -392,14 +430,18 @@ public class UdpSession : TransportSession
                     System.Threading.Channels.ChannelWriter<Func<Task>>? writer = _asyncQueue?.Writer;
                     if (asyncHandler is not null && writer is not null && syncHandler is not null)
                     {
-                        // Copy payload for async handler to prevent race with sync handler's implicit lifecycle.
-                        byte[] copy = datagram.Memory.ToArray();
+                        datagram.Retain();
                         if (!writer.TryWrite(async () =>
                         {
-                            try { await asyncHandler(copy).ConfigureAwait(false); }
-                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                            try { await asyncHandler(datagram.Memory).ConfigureAwait(false); }
+                            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.OnError?.Invoke(this, ex); }
+                            finally
+                            {
+                                datagram.Dispose();
+                            }
                         }))
                         {
+                            datagram.Dispose();
                             this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; dual-mode frame dropped."));
                         }
                     }
@@ -409,7 +451,7 @@ public class UdpSession : TransportSession
                         if (!writer.TryWrite(async () =>
                         {
                             try { await asyncHandler(datagram.Memory).ConfigureAwait(false); }
-                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.OnError?.Invoke(this, ex); }
                             finally
                             {
                                 datagram.Dispose();
@@ -427,7 +469,7 @@ public class UdpSession : TransportSession
                     datagram.Dispose();
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (!ct.IsCancellationRequested)
                 {
@@ -438,20 +480,6 @@ public class UdpSession : TransportSession
     }
 
     #endregion Internal
-
-    #region Dispose
-
-    /// <inheritdoc/>
-    public override void Dispose()
-    {
-        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-        {
-            return;
-        }
-
-        _ = this.DisconnectInternalAsync();
-        GC.SuppressFinalize(this);
-    }
 
     private async Task ProcessAsyncQueueAsync(CancellationToken ct)
     {
@@ -468,20 +496,55 @@ public class UdpSession : TransportSession
                 while (reader.TryRead(out Func<Task>? work))
                 {
                     try { await work().ConfigureAwait(false); }
-                    catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.OnError?.Invoke(this, ex); }
                 }
             }
         }
-        catch (OperationCanceledException) { }
-        catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException ex)
+        {
+            this.OnError?.Invoke(this, ex);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.OnError?.Invoke(this, ex); }
         finally
         {
             while (reader.TryRead(out Func<Task>? work))
             {
-                _ = work();
+                Task task;
+                try
+                {
+                    task = work();
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    this.OnError?.Invoke(this, ex);
+                    continue;
+                }
+
+                this.ObserveBackgroundTask(task, "AsyncQueueDrain");
             }
         }
     }
 
-    #endregion
+    private void ObserveBackgroundTask(Task task, string operation)
+    {
+        _ = task.ContinueWith(static (t, state) =>
+        {
+            if (state is not Tuple<UdpSession, string> payload)
+            {
+                return;
+            }
+
+            UdpSession self = payload.Item1;
+            string op = payload.Item2;
+            Exception? error = t.Exception?.GetBaseException();
+            if (error is not null && Volatile.Read(ref self._disposed) == 0)
+            {
+                self.OnError?.Invoke(self, new NetworkException($"Background operation '{op}' failed.", error));
+            }
+        }, Tuple.Create(this, operation), CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+    }
+
 }

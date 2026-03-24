@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Serialization;
+using Nalix.Framework.Exceptions;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
@@ -72,6 +73,11 @@ internal sealed class ReferenceArrayFormatter<
         if (length == 0)
         {
             return [];
+        }
+
+        if (length < 0 || length > SerializerBounds.MaxArray)
+        {
+            throw FrameworkErrors.SerializationLengthOutOfRange;
         }
 
         T[] array = new T[length];

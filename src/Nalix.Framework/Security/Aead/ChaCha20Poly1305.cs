@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
 using Nalix.Framework.Security.Hashing;
 using Nalix.Framework.Security.Internal;
 using Nalix.Framework.Security.Primitives;
@@ -134,9 +135,32 @@ public static class ChaCha20Poly1305
             Poly1305 poly = new(polyKey);
             A1C3E5F7(poly, aad, dstCiphertext[..written], E5A7C9D1: tag);
 
-            try { poly.Clear(); } catch { /* swallow any exceptions during clear */ }
-            try { chacha0.Clear(); } catch { }
-            try { chacha1.Clear(); } catch { }
+            try
+            {
+                poly.Clear();
+            }
+            catch (System.Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                Debug.WriteLine($"[ChaCha20Poly1305] Poly1305.Clear failed: {ex}");
+            }
+
+            try
+            {
+                chacha0.Clear();
+            }
+            catch (System.Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                Debug.WriteLine($"[ChaCha20Poly1305] ChaCha0.Clear failed: {ex}");
+            }
+
+            try
+            {
+                chacha1.Clear();
+            }
+            catch (System.Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                Debug.WriteLine($"[ChaCha20Poly1305] ChaCha1.Clear failed: {ex}");
+            }
 
             return written;
         }

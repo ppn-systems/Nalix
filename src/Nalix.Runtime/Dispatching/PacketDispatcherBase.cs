@@ -116,9 +116,11 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
             {
                 try
                 {
+#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
                     pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (ex is not SerializationFailureException)
                     {
@@ -137,7 +139,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                 {
                     await operation.ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     owner.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={opCode}", ex);
                 }

@@ -22,7 +22,9 @@ public abstract partial class TcpListenerBase
     // WHY separate thread: This thread runs continuously; using ThreadPool will occupy the thread pool
     // and compete with more important async callback I/O.
     private System.Threading.Channels.Channel<IConnection>? _processChannel;
+#pragma warning disable CA2213 // Disposed by STOP_PROCESS_CHANNEL via Interlocked.Exchange; partial-class analyzer does not follow this helper.
     private IWorkerHandle? _processWorker;
+#pragma warning restore CA2213
 
     #endregion Fields
 
@@ -79,10 +81,12 @@ public abstract partial class TcpListenerBase
         // The consumer worker will drain the remaining items and then exit the loop.
         _ = (_processChannel?.Writer.TryComplete());
 
-        if (_processWorker != null)
+        IWorkerHandle? worker = Interlocked.Exchange(ref _processWorker, null);
+        if (worker != null)
         {
             Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(_processWorker.Id);
+                                    .CancelWorker(worker.Id);
+            worker.Dispose();
         }
     }
 
@@ -168,6 +172,7 @@ public abstract partial class TcpListenerBase
 
                 // ── Fast path: drain all items available immediately ──────────────
                 // TryRead() is not async -> does not consume overhead async state machine.
+#pragma warning disable CA2000 // Channel yields an owned connection; ownership is transferred to INVOKE_PROCESS/ProcessConnection.
                 while (reader.TryRead(out IConnection? connection))
                 {
                     if (connection is null)
@@ -178,6 +183,7 @@ public abstract partial class TcpListenerBase
                     this.INVOKE_PROCESS(connection);
                     ctx.Advance(1);
                 }
+#pragma warning restore CA2000
 
                 // ── Slow path: wait for the next item (async) ─────────────────────────
                 // Genuinely async — wait for data without blocking.
@@ -225,7 +231,7 @@ public abstract partial class TcpListenerBase
             // - Dedicated worker thread BelowNormal -> does not compete with I/O callbacks.
             this.ProcessConnection(connection);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             this.Metrics.RECORD_ERROR();
 

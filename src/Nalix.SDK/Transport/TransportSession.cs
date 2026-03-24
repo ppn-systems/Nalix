@@ -105,7 +105,17 @@ public abstract class TransportSession : IDisposable
     /// <summary>
     /// Releases all resources used by the session.
     /// </summary>
-    public abstract void Dispose();
+    public void Dispose()
+    {
+        this.Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases managed and unmanaged resources used by the session.
+    /// </summary>
+    /// <param name="disposing"><see langword="true"/> when called from <see cref="Dispose()"/>.</param>
+    protected abstract void Dispose(bool disposing);
 
     #endregion Methods
 }

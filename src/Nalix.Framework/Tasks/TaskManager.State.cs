@@ -388,7 +388,12 @@ public partial class TaskManager
         public void Cancel() => this.CancellationTokenSource.Cancel();
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        void IDisposable.Dispose() => this.Cancel();
+        void IDisposable.Dispose()
+        {
+            this.Cancel();
+            this.CancellationTokenSource.Dispose();
+            Gate.Dispose();
+        }
 
         #endregion Computed Methods
 

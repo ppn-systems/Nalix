@@ -224,7 +224,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
         // Route close through the bridge so the same high-priority callback path
         // is used everywhere.
+
+#pragma warning disable CA2000
         this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
+#pragma warning restore CA2000
 
 #if DEBUG
         _logger?.Debug($"[NW.{nameof(Connection)}:{this.Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
@@ -263,6 +266,24 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _closeSignaled, 1) == 0)
+        {
+            ConnectionEventArgs closeArgs = new(this);
+
+            try
+            {
+                _onCloseEvent?.Invoke(this, closeArgs);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                _logger?.Error($"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] close-event-error msg={ex.Message}");
+            }
+            finally
+            {
+                closeArgs.Dispose();
+            }
+        }
+
         lock (_lock)
         {
             if (_disposed)
@@ -282,8 +303,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             _attributes?.Return();
             _attributes = null;
 
-            this.Disconnect();
-
             // High-Performance Cleanup: Break the TimingWheel reference chain instantly.
             // This allows the GC to collect the Connection immediately instead of 
             // waiting for the 102s wheel rotation.
@@ -295,6 +314,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             }
 
             this.Socket.Dispose();
+
+            _args.Dispose();
 
             if (this.UdpTransport != null)
             {
@@ -323,7 +344,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger?.Error($"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
         }
@@ -365,6 +386,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 return _argsPool[i];
             }
         }
+
         return null;
     }
 
@@ -386,6 +408,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 return true;
             }
         }
+
         return false;
     }
 

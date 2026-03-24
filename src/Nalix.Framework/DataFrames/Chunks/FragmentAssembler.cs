@@ -44,6 +44,8 @@ public sealed class FragmentAssembler : IDisposable
 
     #region Inner state per stream
 
+    [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+        Justification = "AccumLease is disposed by StreamState.Dispose or transferred to FragmentAssemblyResult and nulled on successful reassembly.")]
     private sealed class StreamState : IDisposable
     {
         internal BufferLease AccumLease; // Buffer for accumulating payload

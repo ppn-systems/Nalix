@@ -234,7 +234,7 @@ public readonly partial struct Snowflake : ISnowflake
             result = FromBytes(bytes);
             return true;
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             return false;
         }

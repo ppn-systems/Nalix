@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
+using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Random.Core;
 
@@ -23,6 +24,11 @@ public static class Csprng
     #region Fields
 
     private static string DebuggerDisplay => "Csprng(primary=OS)";
+
+    /// <summary>
+    /// Maximum byte-array length accepted by allocation-returning CSPRNG helpers.
+    /// </summary>
+    public const int MaxByteArrayLength = SerializerBounds.MaxArray;
 
     private static readonly Action<Span<byte>> s_f;
 
@@ -87,7 +93,7 @@ public static class Csprng
     /// </summary>
     /// <param name="length">The length of the nonce in bytes. Default is 12 bytes (96 bits).</param>
     /// <returns>A cryptographically secure nonce.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when length is less than or equal to zero.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when length is less than or equal to zero or exceeds <see cref="MaxByteArrayLength"/>.</exception>
     /// <remarks>
     /// 96-bit (12-byte) nonces are recommended for most AEAD schemes like AES-GCM and ChaCha20-Poly1305.
     /// Never reuse a nonce with the same key in authenticated encryption.
@@ -98,6 +104,12 @@ public static class Csprng
         {
             throw new ArgumentOutOfRangeException(
                 nameof(length), length, "Nonce length must be a positive integer.");
+        }
+
+        if (length > MaxByteArrayLength)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(length), length, $"Nonce length cannot exceed {MaxByteArrayLength} bytes.");
         }
 
         byte[] nonce = new byte[length];
@@ -112,7 +124,7 @@ public static class Csprng
     /// </summary>
     /// <param name="length">The number of random bytes to generate.</param>
     /// <returns>A byte array filled with cryptographically secure random data.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative or exceeds <see cref="MaxByteArrayLength"/>.</exception>
     /// <remarks>
     /// Thread-safe. Returns an empty array if length is 0.
     /// Use this for generating cryptographic keys, tokens, and other security-sensitive data.
@@ -128,6 +140,12 @@ public static class Csprng
         if (length == 0)
         {
             return [];
+        }
+
+        if (length > MaxByteArrayLength)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(length), length, $"Length cannot exceed {MaxByteArrayLength} bytes.");
         }
 
         byte[] bytes = new byte[length];

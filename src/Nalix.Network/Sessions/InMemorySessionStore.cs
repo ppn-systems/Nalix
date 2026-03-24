@@ -59,7 +59,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
             {
                 this.Scavenge();
             }
-            catch
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 // Ignore background cleanup errors
             }
@@ -195,7 +195,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
             _cts.Cancel();
             _cts.Dispose();
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             // Ignore cancel errors
         }
@@ -206,7 +206,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
                                     .CancelWorker(_scavenger.Id);
             _scavenger.Dispose();
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             // Best-effort cleanup
         }

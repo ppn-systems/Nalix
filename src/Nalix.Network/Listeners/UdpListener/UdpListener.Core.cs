@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
 
@@ -39,8 +38,8 @@ public abstract partial class UdpListenerBase
 
     private static readonly NetworkSocketOptions s_options;
     private static readonly ConnectionLimitOptions s_connectionLimitOptions;
+    private static readonly DatagramGuardOptions s_datagramGuardOptions;
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly ushort _port;
     private readonly IProtocol _protocol;
@@ -88,7 +87,9 @@ public abstract partial class UdpListenerBase
     {
         s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         s_connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+        s_datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         s_connectionLimitOptions.Validate();
+        s_datagramGuardOptions.Validate();
     }
 
     /// <summary>
@@ -109,7 +110,14 @@ public abstract partial class UdpListenerBase
         _protocol = protocol;
         _lock = new SemaphoreSlim(1, 1);
         _state = (int)ListenerState.STOPPED;
-        _rateLimiter = new(s_connectionLimitOptions.MaxPacketPerSecond);
+        _rateLimiter = new(
+            s_connectionLimitOptions.MaxPacketPerSecond,
+            s_datagramGuardOptions.IPv4Windows,
+            s_datagramGuardOptions.IPv6Windows,
+            s_datagramGuardOptions.CleanupInterval,
+            s_datagramGuardOptions.IdleTimeout,
+            s_datagramGuardOptions.IPv4Capacity,
+            s_datagramGuardOptions.IPv6Capacity);
 
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
@@ -158,7 +166,18 @@ public abstract partial class UdpListenerBase
                 _cts?.Cancel();
                 _cts?.Dispose();
             }
-            catch { }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                    $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                    $"cts-dispose-failed port={_port}", ex);
+            }
 
             _cts = null;
             _cancellationToken = default;
@@ -168,7 +187,18 @@ public abstract partial class UdpListenerBase
                 _socket?.Close();
                 _socket?.Dispose();
             }
-            catch { }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                    $"socket-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                    $"socket-dispose-failed port={_port}", ex);
+            }
 
             _socket = null;
             _lock.Dispose();

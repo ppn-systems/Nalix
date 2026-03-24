@@ -21,7 +21,6 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Transport;
-using Nalix.Network.Listeners.Tcp;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -74,15 +73,52 @@ public abstract partial class UdpListenerBase
                 this.HandleReceive(args);
             }
         }
-        catch (ObjectDisposedException) { }
+        catch (ObjectDisposedException ex) when (Volatile.Read(ref _isDisposed) != 0 || _cancellationToken.IsCancellationRequested)
+        {
+            s_logger?.Debug(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] " +
+                $"disposed-or-cancelled port={_port} reason={ex.GetType().Name}");
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _ = Interlocked.Increment(ref _recvErrors);
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-object-disposed port={_port}", ex);
+        }
         catch (Exception ex) when (!_cancellationToken.IsCancellationRequested)
         {
             _ = Interlocked.Increment(ref _recvErrors);
             s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}", ex);
 
             // Brief delay to prevent tight error loops on synchronous failure.
-            _ = this.RetryStartReceiveAsync(args, _cancellationToken);
+            this.ScheduleRetryStartReceive(args, _cancellationToken);
         }
+    }
+
+    [DebuggerStepThrough]
+    private void ScheduleRetryStartReceive(PooledUdpReceiveEventArgs args, CancellationToken cancellationToken)
+    {
+        Task retryTask = this.RetryStartReceiveAsync(args, cancellationToken);
+        if (retryTask.IsCompletedSuccessfully)
+        {
+            return;
+        }
+
+        _ = retryTask.ContinueWith(static (task, state) =>
+        {
+            if (state is not UdpListenerBase self)
+            {
+                return;
+            }
+
+            Exception? error = task.Exception?.GetBaseException();
+            if (error is not null && Volatile.Read(ref self._isDisposed) == 0 && !self._cancellationToken.IsCancellationRequested)
+            {
+                _ = Interlocked.Increment(ref self._recvErrors);
+                s_logger?.Error(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(RetryStartReceiveAsync)}] retry-failed port={self._port}",
+                    error);
+            }
+        }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
     [DebuggerStepThrough]
@@ -215,8 +251,9 @@ public abstract partial class UdpListenerBase
         // FAST PATH — Lookup Connection via SessionToken (Snowflake).
         // ================================================================
         ReadOnlySpan<byte> sessionToken = buffer[..SessionTokenSize];
-
-        if (!this.TryResolveConnection(_hub, sessionToken, out Connection? connection) || connection == null || connection.IsDisposed)
+#pragma warning disable CA2000 // Borrowed from IConnectionHub; UDP receive path must not dispose hub-owned connections.
+        if (!this.TryResolveConnection(_hub, sessionToken, out Connection? connection) || connection is null || connection.IsDisposed)
+#pragma warning restore CA2000
         {
             _ = Interlocked.Increment(ref _dropUnknown);
             lease.Dispose();
@@ -259,7 +296,7 @@ public abstract partial class UdpListenerBase
 
         // Strip the 7-byte Session Token and wrap the remaining payload into a new lease.
         // We take ownership of the underlying buffer from the original lease but only for the payload slice.
-        if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length))
+        if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length) || rawBuffer is null)
         {
             lease.Dispose();
             return;
@@ -268,11 +305,17 @@ public abstract partial class UdpListenerBase
         try
         {
             // Create a new lease for the payload (7 bytes offset)
-            BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
+            BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer, start + Snowflake.Size, length - Snowflake.Size);
             incomingLease.IsReliable = false;
 
             // Optimize: Try local connection pool first, fallback to global s_pool.
-            ConnectionEventArgs args = (connection as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
+            ConnectionEventArgs? args = connection.AcquireEventArgs();
+
+            if (args == null)
+            {
+                return;
+            }
+
             args.Initialize(incomingLease, connection);
 
             // Align with TCP: Offload to ThreadPool via AsyncCallback.
@@ -409,7 +452,7 @@ public abstract partial class UdpListenerBase
 
             _protocol.ProcessMessage(sender, args);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {

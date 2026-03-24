@@ -87,7 +87,7 @@ public static class HandshakeX25519
 
             return buffer;
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             MemorySecurity.ZeroMemory(buffer);
             throw;

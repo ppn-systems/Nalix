@@ -178,7 +178,7 @@ public abstract partial class ConfigurationLoader
                 throw new InvalidOperationException(
                     $"Invalid operation while setting section={section} key={propertyInfo.Name}.", ex);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 throw new InvalidOperationException(
                     $"Unexpected error while setting section={section} key={propertyInfo.Name}: {ex.Message}", ex);

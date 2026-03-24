@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
@@ -523,6 +524,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return handlers.Values;
     }
 
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
+        Justification = "On successful registration InstanceManager owns the ConnectionHub lifetime; registration failure disposes the local instance.")]
     private void EnsureConnectionHubRegistered()
     {
         if (InstanceManager.Instance.GetExistingInstance<IConnectionHub>() is not null)
@@ -530,9 +533,20 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             return;
         }
 
-        InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub(logger: _state.Logger));
+        ConnectionHub hub = new(logger: _state.Logger);
+        try
+        {
+            InstanceManager.Instance.Register<IConnectionHub>(hub);
+        }
+        catch
+        {
+            hub.Dispose();
+            throw;
+        }
     }
 
+    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
+        Justification = "On successful registration InstanceManager and BufferLease.ByteArrayPool own the manager lifetime; failure disposes the local instance.")]
     private void EnsureBufferPoolManagerRegistered()
     {
         BufferPoolManager? manager = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
@@ -543,8 +557,16 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
 
         manager = new BufferPoolManager(_state.Logger);
-        InstanceManager.Instance.Register<BufferPoolManager>(manager);
-        BufferLease.ByteArrayPool.Configure(manager);
+        try
+        {
+            InstanceManager.Instance.Register<BufferPoolManager>(manager);
+            BufferLease.ByteArrayPool.Configure(manager);
+        }
+        catch
+        {
+            manager.Dispose();
+            throw;
+        }
     }
 
 

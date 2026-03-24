@@ -93,8 +93,12 @@ internal sealed class TimingWheel : IActivatable
     private int _activeListeners;
     private long _tick;
     private int _disposed;
+#pragma warning disable CA2213 // Worker handle is cancelled/disposed via Interlocked.Exchange in Deactivate; analyzer does not track exchange-based cleanup.
     private IWorkerHandle? _worker;
+#pragma warning restore CA2213
+#pragma warning disable CA2213 // Cancellation source is cancelled/disposed via Interlocked.Exchange in Deactivate; analyzer does not track exchange-based cleanup.
     private CancellationTokenSource? _cts;
+#pragma warning restore CA2213
 
     #endregion Fields
 
@@ -253,15 +257,57 @@ internal sealed class TimingWheel : IActivatable
             return;
         }
 
-        if (_worker != null)
+        IWorkerHandle? worker = Interlocked.Exchange(ref _worker, null);
+        if (worker != null)
         {
             InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(_worker.Id);
+                                    .CancelWorker(worker.Id);
         }
 
-        try { cts.Cancel(); } catch { }
-        try { cts.Dispose(); } catch { }
-        try { _worker?.Dispose(); } catch { }
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException ex)
+        {
+            s_logger?.Debug(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"cts-cancel-ignored reason={ex.GetType().Name}");
+        }
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"cts-cancel-failed", ex);
+        }
+
+        try
+        {
+            cts.Dispose();
+        }
+        catch (ObjectDisposedException ex)
+        {
+            s_logger?.Debug(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"cts-dispose-ignored reason={ex.GetType().Name}");
+        }
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"cts-dispose-failed", ex);
+        }
+
+        try
+        {
+            worker?.Dispose();
+        }
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"worker-dispose-failed", ex);
+        }
 
         this.DRAIN_AND_RELEASE_ALL_BUCKETS();
 
@@ -334,7 +380,7 @@ internal sealed class TimingWheel : IActivatable
                 conn._timeoutTask = task;
             }
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             if (task is not null && !queued)
             {
@@ -493,7 +539,7 @@ internal sealed class TimingWheel : IActivatable
                             {
                                 task.Conn.Close(force: true);
                             }
-                            catch (Exception ex)
+                            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                             {
                                 s_logger?.Error(
                                     $"[NW.{nameof(TimingWheel)}] close-error " +
@@ -536,7 +582,7 @@ internal sealed class TimingWheel : IActivatable
         {
             // Expected on shutdown
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Error($"[NW.{nameof(TimingWheel)}] loop-error", ex);
         }

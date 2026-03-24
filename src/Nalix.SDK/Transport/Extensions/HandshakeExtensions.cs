@@ -40,7 +40,7 @@ public static class HandshakeExtensions
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the session is not connected.</exception>
     /// <exception cref="NetworkException">Thrown if the handshake fails due to malformed packets, invalid proofs, or key agreement failures.</exception>
-    public static async Task HandshakeAsync(this TransportSession session, CancellationToken ct = default)
+    public static async ValueTask HandshakeAsync(this TransportSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -55,7 +55,7 @@ public static class HandshakeExtensions
         Csprng.Fill(clientNonceBytes);
         Bytes32 clientNonce = new(clientNonceBytes);
 
-        Handshake clientHello = new(HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
+        using Handshake clientHello = new(HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
 
         Handshake serverHello = await session.RequestAsync<Handshake>(
             clientHello,
@@ -110,7 +110,7 @@ public static class HandshakeExtensions
 
         Bytes32 sessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, clientNonce, serverHello.Nonce, transcriptHash);
 
-        Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Bytes32.Zero, Bytes32.Zero, HandshakeX25519.ComputeClientProof(masterSecret, transcriptHash))
+        using Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Bytes32.Zero, Bytes32.Zero, HandshakeX25519.ComputeClientProof(masterSecret, transcriptHash))
         {
             TranscriptHash = transcriptHash
         };

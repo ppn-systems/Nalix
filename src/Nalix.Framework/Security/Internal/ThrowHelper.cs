@@ -34,7 +34,11 @@ internal static class ThrowHelper
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowInvalidKeyLengthException(string paramName = "key")
     {
-        if (paramName == "key") throw FrameworkErrors.CipherInvalidKeyLength;
+        if (paramName == "key")
+        {
+            throw FrameworkErrors.CipherInvalidKeyLength;
+        }
+
         throw new CipherException($"The key length is invalid. {paramName}");
     }
 
@@ -46,7 +50,11 @@ internal static class ThrowHelper
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowInvalidNonceLengthException(string paramName = "nonce")
     {
-        if (paramName == "nonce") throw FrameworkErrors.CipherInvalidNonceLength;
+        if (paramName == "nonce")
+        {
+            throw FrameworkErrors.CipherInvalidNonceLength;
+        }
+
         throw new CipherException($"The nonce length is invalid. {paramName}");
     }
 
@@ -58,7 +66,11 @@ internal static class ThrowHelper
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowInvalidTagLengthException(string paramName = "tag")
     {
-        if (paramName == "tag") throw FrameworkErrors.CipherInvalidTagLength;
+        if (paramName == "tag")
+        {
+            throw FrameworkErrors.CipherInvalidTagLength;
+        }
+
         throw new CipherException($"The authentication tag length is invalid. {paramName}");
     }
 
@@ -78,7 +90,11 @@ internal static class ThrowHelper
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowCiphertextTooShortException(string paramName = "ciphertext")
     {
-        if (paramName == "ciphertext") throw FrameworkErrors.CiphertextTooShort;
+        if (paramName == "ciphertext")
+        {
+            throw FrameworkErrors.CiphertextTooShort;
+        }
+
         throw new CipherException($"The ciphertext buffer is too small. {paramName}");
     }
 }

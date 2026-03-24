@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.IO;
 using System.Globalization;
+using System.IO;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Environment;
 
@@ -21,9 +21,21 @@ public static class ReportExtensions
     /// </summary>
     internal static string FormatCompact(this long value)
     {
-        if (value < 1000) return value.ToString(CultureInfo.InvariantCulture);
-        if (value < 1000000) return FormatDecimal(value / 1000.0, "k");
-        if (value < 1000000000) return FormatDecimal(value / 1000000.0, "M");
+        if (value < 1000)
+        {
+            return value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (value < 1000000)
+        {
+            return FormatDecimal(value / 1000.0, "k");
+        }
+
+        if (value < 1000000000)
+        {
+            return FormatDecimal(value / 1000000.0, "M");
+        }
+
         return FormatDecimal(value / 1000000000.0, "G");
 
         static string FormatDecimal(double val, string unit)
@@ -56,7 +68,11 @@ public static class ReportExtensions
     /// </summary>
     internal static string FormatTypeName(string name, int maxLength = 24)
     {
-        if (name.Length <= maxLength) return name.PadRight(maxLength);
+        if (name.Length <= maxLength)
+        {
+            return name.PadRight(maxLength);
+        }
+
         return $"{name.AsSpan(0, maxLength - 3)}...".PadRight(maxLength);
     }
 
@@ -66,23 +82,35 @@ public static class ReportExtensions
     internal static string FormatTimeSpan(this TimeSpan value)
     {
         double ms = value.TotalMilliseconds;
-        if (ms < 1000) return $"{ms:F0}ms";
-        
+        if (ms < 1000)
+        {
+            return $"{ms:F0}ms";
+        }
+
         double sec = value.TotalSeconds;
-        if (sec < 60) return FormatDecimal(sec, "s");
-        
+        if (sec < 60)
+        {
+            return FormatDecimal(sec, "s");
+        }
+
         double min = value.TotalMinutes;
-        if (min < 60) return FormatDecimal(min, "m");
-        
+        if (min < 60)
+        {
+            return FormatDecimal(min, "m");
+        }
+
         double hours = value.TotalHours;
-        if (hours < 24) return FormatDecimal(hours, "h");
-        
+        if (hours < 24)
+        {
+            return FormatDecimal(hours, "h");
+        }
+
         return FormatDecimal(value.TotalDays, "d");
 
         static string FormatDecimal(double val, string unit)
         {
-            return Math.Abs(val % 1) < 0.001 
-                ? $"{val:F0}{unit}" 
+            return Math.Abs(val % 1) < 0.001
+                ? $"{val:F0}{unit}"
                 : $"{val:F1}{unit}";
         }
     }
@@ -99,7 +127,7 @@ public static class ReportExtensions
 
             _ = Directory.CreateDirectory(s_reportDir);
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             s_reportDir = Path.Combine(AppContext.BaseDirectory, "reports");
         }

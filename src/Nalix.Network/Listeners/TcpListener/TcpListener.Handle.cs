@@ -50,7 +50,7 @@ public abstract partial class TcpListenerBase
                     $"new={connection.NetworkEndpoint}");
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Error(
                 ex,
@@ -102,13 +102,22 @@ public abstract partial class TcpListenerBase
 
         IBufferLease lease = args.Lease ?? throw new InvalidOperationException("Event args must have Lease.");
         IBufferLease current = lease;
+        bool exchanged = false;
 
         try
         {
             FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm);
+
+            if (!ReferenceEquals(current, lease))
+            {
+                replaceable.ExchangeLease(current)?.Dispose();
+                lease = current;
+                exchanged = true;
+            }
+
             _protocol.ProcessMessage(sender, args);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
@@ -126,11 +135,9 @@ public abstract partial class TcpListenerBase
         }
         finally
         {
-            // Sync the lease back to args even on failure. If the pipeline disposed the original 
-            // lease but failed before ExchangeLease, args would still point to the dead lease.
-            if (current != lease)
+            if (!exchanged && !ReferenceEquals(current, lease))
             {
-                replaceable.ExchangeLease(current)?.Dispose();
+                current.Dispose();
             }
         }
     }
@@ -257,7 +264,7 @@ public abstract partial class TcpListenerBase
 
             return connection;
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.Dispose();
             throw;
@@ -285,7 +292,7 @@ public abstract partial class TcpListenerBase
             // socket? -> null-conditional: does not throw NullReferenceException if null.
             socket?.Close();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
             {
@@ -373,7 +380,9 @@ public abstract partial class TcpListenerBase
                 PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context
                     ?? throw new InternalErrorException("TryAccept context was not bound to pooled socket args.");
 
+#pragma warning disable CA2000
                 connection = this.ProcessAcceptedSocket(socket, context);
+#pragma warning restore CA2000
 
                 // Process the connection
                 this.DISPATCH_CONNECTION(connection);
@@ -404,7 +413,7 @@ public abstract partial class TcpListenerBase
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 this.Metrics.RECORD_ERROR();
                 s_logger?.Error(
@@ -833,14 +842,25 @@ public abstract partial class TcpListenerBase
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             string remote = "unknown";
             try
             {
                 remote = _listener?.LocalEndPoint?.ToString() ?? "<null>";
             }
-            catch { }
+            catch (ObjectDisposedException ode)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +
+                    $"listener-endpoint-disposed port={_port} reason={ode.GetType().Name}");
+            }
+            catch (Exception lookupEx) when (ExceptionClassifier.IsNonFatal(lookupEx))
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +
+                    $"listener-endpoint-lookup-failed port={_port}", lookupEx);
+            }
             throw new NetworkException($"TryAccept failed. Listener={remote}", ex);
         }
         finally
@@ -893,6 +913,7 @@ public abstract partial class TcpListenerBase
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [return: NotNullIfNotNull(nameof(socket))]
     private IConnection ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
     {
         // Validate and limit checks occur BEFORE ownership transfer.

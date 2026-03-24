@@ -4,6 +4,8 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Serialization;
+using Nalix.Framework.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Extensions;
@@ -202,9 +204,14 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ReadBytes(this ref DataReader reader, int count)
     {
-        if (count <= 0)
+        if (count == 0)
         {
             return [];
+        }
+
+        if (count < 0 || count > SerializerBounds.MaxArray)
+        {
+            throw FrameworkErrors.SerializationLengthOutOfRange;
         }
 
         ref byte ptr = ref reader.GetSpanReference(count);

@@ -159,7 +159,7 @@ internal sealed class PropertyMetadata
 
                 _setter = Expression.Lambda<Action<object, object?>>(assignExpr, instanceParam, valueParam).Compile();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 throw new InternalErrorException(
                     $"Failed to compile setter delegate for property '{prop.DeclaringType.Name}.{prop.Name}' " +

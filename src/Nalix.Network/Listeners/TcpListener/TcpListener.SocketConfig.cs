@@ -68,14 +68,39 @@ public abstract partial class TcpListenerBase
 
                 return;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 // IPv6/DualMode is not supported on this environment -> IPv4 fallback.
                 // WHY not rethrow: Failover automatically is better than crashing the server.
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
 
-                try { sock?.Close(); } catch { }
-                try { sock?.Dispose(); } catch { }
+                try
+                {
+                    sock?.Close();
+                }
+                catch (ObjectDisposedException closeEx)
+                {
+                    s_logger?.Debug(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
+                        $"ipv6-fallback-close-ignored reason={closeEx.GetType().Name}");
+                }
+                catch (Exception closeEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(closeEx))
+                {
+                    s_logger?.Warn(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
+                        $"ipv6-fallback-close-failed", closeEx);
+                }
+
+                try
+                {
+                    sock?.Dispose();
+                }
+                catch (Exception disposeEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(disposeEx))
+                {
+                    s_logger?.Warn(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
+                        $"ipv6-fallback-dispose-failed", disposeEx);
+                }
 
                 sock = null;
             }
@@ -224,7 +249,7 @@ public abstract partial class TcpListenerBase
                 socket.SetSocketOption(SocketOptionLevel.Tcp,
                                        SocketOptionName.TcpKeepAliveRetryCount, 3);
             }
-            catch
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 // Fallback Windows-only: SIO_KEEPALIVE_VALS IOControl.
                 // WHY fallback: Older runtime or restricted environment does not support cross-platform API.

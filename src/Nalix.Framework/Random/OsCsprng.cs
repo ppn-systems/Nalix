@@ -217,7 +217,9 @@ internal static partial class OsCsprng
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void D(Span<byte> b)
     {
+#pragma warning disable CA2000 // GetDevUrandom transfers ownership to the static cache; the stream is intentionally process-lifetime cached.
         FileStream fs = GetDevUrandom();
+#pragma warning restore CA2000
 
         int total = 0;
         // FileStream is not thread-safe -> synchronize reads

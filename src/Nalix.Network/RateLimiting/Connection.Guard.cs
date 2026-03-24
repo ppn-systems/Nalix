@@ -402,7 +402,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     {
                         this.TRIGGER_FORCE_CLOSE_UPSTREAM(key);
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
                         _logger?.Error($"[NW.{nameof(ConnectionGuard)}] force-close-failed ip={key.Address} ex={ex.Message}");
                     }
@@ -886,7 +886,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
             _logger?.Debug($"[NW.{nameof(ConnectionGuard)}:{nameof(Dispose)}] disposed");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger?.Error($"[NW.{nameof(ConnectionGuard)}:{nameof(Dispose)}] dispose-error msg={ex.Message}");
         }

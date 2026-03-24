@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
@@ -40,6 +41,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
     private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
     private static readonly ConnectionLimitOptions s_connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     #endregion Static Factory
 
@@ -117,7 +119,16 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
             if (af == AddressFamily.InterNetworkV6)
             {
-                try { _socket.DualMode = true; } catch { }
+                try
+                {
+                    _socket.DualMode = true;
+                }
+                catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
+                {
+                    s_logger?.Debug(
+                        $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
+                        $"dualmode-not-applied reason={ex.GetType().Name}");
+                }
             }
 
             _socket.SendBufferSize = s_options.BufferSize;
@@ -127,10 +138,30 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             {
                 _socket.DontFragment = true;
             }
-            catch (SocketException) { }
-            catch (NotSupportedException) { }
-            catch (ObjectDisposedException) { }
-            catch (InvalidOperationException) { }
+            catch (SocketException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
+                    $"dontfragment-not-applied reason={ex.SocketErrorCode}");
+            }
+            catch (NotSupportedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
+                    $"dontfragment-not-supported reason={ex.GetType().Name}");
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
+                    $"dontfragment-object-disposed reason={ex.GetType().Name}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
+                    $"dontfragment-invalid-op reason={ex.GetType().Name}");
+            }
 
             if (OperatingSystem.IsWindows())
             {
@@ -141,6 +172,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 }
                 catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException)
                 {
+                    s_logger?.Debug(
+                        $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
+                        $"udp-connreset-ioctl-not-applied reason={ex.GetType().Name}");
                 }
             }
         }
@@ -233,7 +267,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             }
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             throw NetworkErrors.UdpSendFailed;
         }

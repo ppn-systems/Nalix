@@ -946,7 +946,7 @@ internal sealed class IniConfig : IDisposable
             _valueCache[cacheKey] = boxed;
             return boxed;
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             return null;
         }
@@ -1000,7 +1000,7 @@ internal sealed class IniConfig : IDisposable
             _ => value.ToString() ?? string.Empty
         };
 
-        return result.Replace("\r", "").Replace("\n", " ");
+        return result.Replace("\r", "", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -1117,7 +1117,7 @@ internal sealed class IniConfig : IDisposable
                 }
 
                 // Handle key-value pairs with optimized parsing
-                int separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
+                int separatorIndex = trimmedLine.IndexOf(KeyValueSeparator, StringComparison.Ordinal);
                 if (separatorIndex > 0 && separatorIndex < trimmedLine.Length - 1)
                 {
                     string key = trimmedLine[..separatorIndex].Trim();
@@ -1151,7 +1151,7 @@ internal sealed class IniConfig : IDisposable
             // Re-throw IO exceptions as-is
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             throw new IOException($"Error reading configuration file: {_path}", ex);
         }
@@ -1188,7 +1188,7 @@ internal sealed class IniConfig : IDisposable
         // Extract key name from "Section:Key" so we can prefix the first comment line.
         // Section-level comments have no ':' -> keyPrefix stays empty.
         string keyPrefix = string.Empty;
-        int colonIdx = commentKey.IndexOf(':');
+        int colonIdx = commentKey.IndexOf(':', StringComparison.Ordinal);
         if (colonIdx >= 0 && colonIdx < commentKey.Length - 1)
         {
             keyPrefix = commentKey[(colonIdx + 1)..];
@@ -1443,7 +1443,7 @@ internal sealed class IniConfig : IDisposable
                     {
                         File.Delete(tempFileName);
                     }
-                    catch
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
                         // Ignore cleanup errors
                     }

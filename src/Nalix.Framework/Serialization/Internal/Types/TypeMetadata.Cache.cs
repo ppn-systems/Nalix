@@ -69,7 +69,7 @@ internal static partial class TypeMetadata
                     }
                 }
             }
-            catch
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 IsUnmanagedSZArray = false;
                 IsFixedSizeSerializable = false;

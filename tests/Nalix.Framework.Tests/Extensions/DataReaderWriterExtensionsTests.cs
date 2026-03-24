@@ -86,13 +86,32 @@ public sealed class DataReaderWriterExtensionsTests
     }
 
     [Fact]
-    public void DataReaderExtensionsReadBytesWhenCountIsNonPositiveReturnsEmptyAndDoesNotAdvance()
+    public void DataReaderExtensionsReadBytesWhenCountIsZeroReturnsEmptyAndDoesNotAdvance()
     {
         DataReader reader = new([1, 2, 3]);
 
         byte[] data = reader.ReadBytes(0);
 
         Assert.Empty(data);
+        Assert.Equal(3, reader.Remaining());
+    }
+
+    [Fact]
+    public void DataReaderExtensionsReadBytesWhenCountIsNegativeThrowsSerializationFailureException()
+    {
+        DataReader reader = new([1, 2, 3]);
+
+        SerializationFailureException? exception = null;
+        try
+        {
+            _ = reader.ReadBytes(-1);
+        }
+        catch (SerializationFailureException ex)
+        {
+            exception = ex;
+        }
+
+        Assert.NotNull(exception);
         Assert.Equal(3, reader.Remaining());
     }
 

@@ -69,7 +69,7 @@ public static partial class NLogixFx
 
             string s = extendedData.ToString() ?? "-";
             // Replace new lines to keep single-line appearance and trim long payloads
-            s = s.Replace("\r", " ").Replace("\n", " ");
+            s = s.Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
             if (s.Length > MaxLen)
             {
                 s = s[..MaxLen] + "...";
@@ -77,7 +77,7 @@ public static partial class NLogixFx
 
             return s;
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             return "-";
         }

@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Serialization;
+using Nalix.Framework.Exceptions;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
@@ -90,9 +92,23 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
             return System.Memory<T>.Empty;
         }
 
+        if (length > SerializerBounds.MaxArray)
+        {
+            throw FrameworkErrors.SerializationLengthOutOfRange;
+        }
+
+        int byteCount;
+        try
+        {
+            byteCount = checked(length * s_elementSize);
+        }
+        catch (System.OverflowException)
+        {
+            throw FrameworkErrors.SerializationLengthOutOfRange;
+        }
+
         // Allocate once and copy the raw payload block directly into the array.
         T[] array = System.GC.AllocateUninitializedArray<T>(length);
-        int byteCount = length * s_elementSize;
 
         ref byte src = ref reader.GetSpanReference(byteCount);
         ref T first = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array);

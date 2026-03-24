@@ -164,7 +164,9 @@ public sealed partial class NLogix : ILogger, IDisposable
             return;
         }
 
+        _distributor.Dispose();
         _logOptions.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     #endregion Logging Methods

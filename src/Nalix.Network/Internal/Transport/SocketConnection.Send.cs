@@ -108,7 +108,7 @@ internal sealed partial class SocketConnection
                 }
                 return;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (IS_BENIGN_DISCONNECT(ex))
                 {
@@ -183,7 +183,7 @@ internal sealed partial class SocketConnection
             this.InvokePostCallback();
             return;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (IS_BENIGN_DISCONNECT(ex))
             {
@@ -291,7 +291,7 @@ internal sealed partial class SocketConnection
             BufferLease.ByteArrayPool.Return(heapBuf);
             return default;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             BufferLease.ByteArrayPool.Return(heapBuf);
             return HANDLE_SEND_ERROR(this, ex);
@@ -321,7 +321,7 @@ internal sealed partial class SocketConnection
 
                 self.InvokePostCallback();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 throw HANDLE_SEND_ERROR_EXCEPTION(self, ex);
             }

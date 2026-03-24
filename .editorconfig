@@ -321,12 +321,19 @@ dotnet_analyzer_diagnostic.category-Performance.severity = warning
 dotnet_diagnostic.CA1822.severity = warning  # Mark members static
 dotnet_diagnostic.CA1835.severity = warning  # Memory-based overloads
 dotnet_diagnostic.CA1848.severity = warning  # Use LoggerMessage
+dotnet_diagnostic.CA1849.severity = warning  # Call async methods when in async method
+dotnet_diagnostic.CA1854.severity = warning  # Prefer IDictionary.TryGetValue
+dotnet_diagnostic.CA1869.severity = warning  # Cache and reuse JsonSerializerOptions
 
 dotnet_analyzer_diagnostic.category-Reliability.severity = warning
 
-# dotnet_diagnostic.CA2000.severity = warning  # Dispose objects
+dotnet_diagnostic.CA1001.severity = warning  # Types that own disposables should be disposable
+dotnet_diagnostic.CA1063.severity = warning  # Implement IDisposable correctly
+dotnet_diagnostic.CA1816.severity = warning  # Call GC.SuppressFinalize correctly
+dotnet_diagnostic.CA2000.severity = warning  # Dispose objects
 dotnet_diagnostic.CA2012.severity = warning  # ValueTask usage
 dotnet_diagnostic.CA2208.severity = warning  # Argument exceptions
+dotnet_diagnostic.CA2213.severity = warning  # Disposable fields should be disposed
 
 dotnet_analyzer_diagnostic.category-Security.severity = warning
 
@@ -341,7 +348,7 @@ dotnet_analyzer_diagnostic.severity = warning
 warn_as_error = true
 
 dotnet_diagnostic.CA1040.severity = warning  # Avoid empty interfaces-
-dotnet_diagnostic.CA1031.severity = suggestion # Catch general exception
+dotnet_diagnostic.CA1031.severity = warning # Catch general exception
 
 charset = utf-8
 max_line_length = 150
@@ -351,8 +358,13 @@ dotnet_diagnostic.CA1860.severity = warning   # Avoid Enumerable.Any() when Coun
 dotnet_diagnostic.CA1864.severity = warning   # Prefer Dictionary.TryAdd
 
 dotnet_diagnostic.CA1062.severity = warning   # Validate arguments of public methods
+dotnet_diagnostic.CA1305.severity = warning   # Specify IFormatProvider
 dotnet_diagnostic.CA1303.severity = warning   # Do not pass literals as localized parameters
+dotnet_diagnostic.CA1307.severity = warning   # Specify StringComparison
 dotnet_diagnostic.CA1310.severity = warning   # Specify StringComparison
+
+dotnet_diagnostic.CA2253.severity = warning   # Logger message templates should be valid
+dotnet_diagnostic.CA2254.severity = warning   # Logger message template should be static
 
 dotnet_diagnostic.CA1825.severity = warning   # Avoid zero-length array allocations
 csharp_style_prefer_collection_expression = false:suggestion

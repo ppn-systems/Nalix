@@ -56,7 +56,7 @@ public abstract partial class Protocol : IProtocol
                 s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Increment(ref _totalErrors);
 

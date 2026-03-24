@@ -36,7 +36,12 @@ public abstract partial class UdpListenerBase
         if (af == AddressFamily.InterNetworkV6 && s_options.DualMode)
         {
             try { _socket.DualMode = true; }
-            catch { /* Not supported on all platforms */ }
+            catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
+                    $"dualmode-not-applied port={_port} reason={ex.GetType().Name}");
+            }
         }
 
         // Apply socket-level tuning before binding.

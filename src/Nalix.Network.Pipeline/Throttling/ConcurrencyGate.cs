@@ -77,7 +77,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                     ExecutionTimeout = TimeSpan.FromSeconds(5)
                 });
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             throw new InternalErrorException($"[NW.{nameof(ConcurrencyGate)}] initialization-error: {ex.Message}", ex);
         }
@@ -329,7 +329,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 {
                     // Already disposed - acceptable
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     this.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] disposal-error", ex);
                 }
@@ -371,7 +371,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             {
                 // Semaphore was disposed during cleanup - acceptable
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _entry.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Lease] release-error", ex);
             }
@@ -449,7 +449,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             lease = default;
             return false;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger?.Error($"[NW.{nameof(ConcurrencyGate)}:{nameof(TryEnter)}] unexpected error opcode={opcode:X4}", ex);
             lease = default;
@@ -513,7 +513,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             // Queue enabled
             return await this.ENTER_WITH_QUEUE_ASYNC(entry, opcode, TimeSpan.FromSeconds(_options.WaitTimeoutSeconds), ct).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             entry.Release();
             throw;
@@ -870,6 +870,8 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                     continue;
                 }
 
+
+#pragma warning disable CA2000
                 // Remove before disposal to prevent new usage
                 if (_table.TryRemove(opcode, out Entry? removedEntry)
                     && removedEntry is not null)
@@ -878,6 +880,8 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                     removed++;
                     _ = Interlocked.Increment(ref _totalCleanedEntries);
                 }
+#pragma warning restore CA2000
+
             }
 
             if (removed > 0)
@@ -885,7 +889,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 _logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] cleanup removed={removed} remaining={_table.Count}");
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger?.Error($"[NW.{nameof(ConcurrencyGate)}] cleanup-error", ex);
         }

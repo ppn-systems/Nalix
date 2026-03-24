@@ -4,14 +4,13 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Nalix.Framework.Exceptions;
 using Nalix.Framework.LZ4.Encoders;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Internal;
 using Nalix.Framework.Security.Primitives;
-using Nalix.Framework.Exceptions;
 
 namespace Nalix.Framework.LZ4.Engine;
 
@@ -71,7 +70,7 @@ internal static class LZ4Decoder
             lease = rentedLease;
             return true;
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             rentedLease.Dispose();
             throw;

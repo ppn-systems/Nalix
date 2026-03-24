@@ -282,7 +282,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             // Use the UNRELIABLE flag as the source of truth for transport logic.
             context.Initialize(packet, connection, descriptor.Metadata, !packet.Flags.HasFlag(PacketFlags.UNRELIABLE), token);
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             context.Dispose();
             throw;
@@ -293,7 +293,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             try
             {
+#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
                 pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
             }
             finally
             {
