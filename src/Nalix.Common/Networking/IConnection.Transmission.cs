@@ -37,7 +37,7 @@ public partial interface IConnection
     /// Thrown if the underlying connection does not expose a valid
     /// <see cref="System.Net.IPEndPoint"/> required for UDP initialization.
     /// </exception>
-    IUdp GetOrCreateUDP();
+    IUdp GetOrCreateUDP(ref System.Net.IPEndPoint iPEndPoint);
 
     /// <summary>
     /// Represents a transport interface for sending data packets.

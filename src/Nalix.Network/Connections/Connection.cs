@@ -74,6 +74,15 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public ISnowflake ID { get; }
 
+    /// <inheritdoc/>
+    public IConnection.ITcp TCP { get; }
+
+    /// <inheritdoc/>
+    public IConnection.IUdp UDP => _udp;
+
+    /// <inheritdoc />
+    public INetworkEndpoint NetworkEndpoint { get; }
+
     /// <inheritdoc />
     public System.Int32 ErrorCount => _errorCount;
 
@@ -110,12 +119,6 @@ public sealed partial class Connection : IConnection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get => System.Threading.Interlocked.Read(ref _bytesSent);
     }
-
-    public INetworkEndpoint NetworkEndpoint => throw new System.NotImplementedException();
-
-    public IConnection.ITcp TCP => throw new System.NotImplementedException();
-
-    public IConnection.IUdp UDP => throw new System.NotImplementedException();
 
     #endregion Properties
 
@@ -258,8 +261,6 @@ public sealed partial class Connection : IConnection
 
         AsyncCallback.Invoke(self._onPostProcessEvent, self, e);
     }
-
-    public IConnection.IUdp GetOrCreateUDP() => throw new System.NotImplementedException();
 
     #endregion Event Bridges
 }

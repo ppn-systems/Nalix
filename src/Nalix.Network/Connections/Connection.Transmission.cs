@@ -15,6 +15,8 @@ namespace Nalix.Network.Connections;
 
 public sealed partial class Connection : IConnection
 {
+    #region APIs
+
     /// <inheritdoc />
     public IConnection.IUdp GetOrCreateUDP(ref System.Net.IPEndPoint iPEndPoint)
     {
@@ -32,13 +34,14 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public void IncrementErrorCount() => System.Threading.Interlocked.Increment(ref _errorCount);
 
+    /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal void InjectIncoming(IBufferLease lease)
     {
         _cstream.Cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-        lease.Retain(); // Retain for callback
+        lease.Retain(); // Retain for the callback; released in Connection.cs after processing.
 
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(lease, this);
@@ -54,6 +57,9 @@ public sealed partial class Connection : IConnection
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     internal void ReleasePendingPacket() => _cstream.OnPacketProcessed();
+
+    #endregion APIs
+
     #region User Datagram Protocol
 
     /// <inheritdoc />
