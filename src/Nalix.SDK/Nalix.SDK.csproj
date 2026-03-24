@@ -18,30 +18,26 @@
 		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
 
 		<!-- Versions -->
-		<Version>11.7.6</Version>
-		<FileVersion>11.7.6.0</FileVersion>
-		<PackageVersion>11.7.6</PackageVersion>
-		<InformationalVersion>11.7.6+$(SourceRevisionId)</InformationalVersion>
+		<Version>11.8.0</Version>
+		<FileVersion>11.8.0.0</FileVersion>
+		<PackageVersion>11.8.0</PackageVersion>
+		<InformationalVersion>11.8.0+$(SourceRevisionId)</InformationalVersion>
 
-		<Description>
-Nalix.SDK provides the client-side development kit for the Nalix ecosystem,
-offering high-level APIs, controller abstractions, time synchronization helpers,
-and localization (L10N) utilities for building distributed applications.
+		<Description><![CDATA[
+Nalix.SDK provides the client-side development kit for the Nalix ecosystem, offering high-level APIs, controller abstractions, time synchronization helpers, and localization (L10N) utilities for building distributed applications.
 
-It acts as the bridge between application logic and the Nalix.Network layer,
-simplifying remote communication, configuration, and message orchestration
-through clean, extensible, and developer-friendly interfaces.
-		</Description>
+It acts as the bridge between application logic and the Nalix.Network layer, simplifying remote communication, configuration, and message orchestration through clean, extensible, and developer-friendly interfaces.
+		]]></Description>
 
-		<PackageReleaseNotes>
-			- Introduced Controller and DirectiveController for structured client-side orchestration.
-			- Added Remote module with configurable reliable and unreliable communication clients.
-			- Implemented TimeSyncExtensions for clock alignment between client and server.
-			- Added L10N subsystem with Localization, Localizer, and MultiLocalizer support.
-			- Improved configuration and extension APIs for SDK customization.
-			- Enhanced dependency structure for modular SDK integration.
-			- General cleanup, documentation updates, and performance tuning.
-		</PackageReleaseNotes>
+		<PackageReleaseNotes><![CDATA[
+- Introduced Controller and DirectiveController for structured client-side orchestration.
+- Added Remote module with configurable reliable and unreliable communication clients.
+- Implemented TimeSyncExtensions for clock alignment between client and server.
+- Added L10N subsystem with Localization, Localizer, and MultiLocalizer support.
+- Improved configuration and extension APIs for SDK customization.
+- Enhanced dependency structure for modular SDK integration.
+- General cleanup, documentation updates, and performance tuning.
+		]]></PackageReleaseNotes>
 
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 

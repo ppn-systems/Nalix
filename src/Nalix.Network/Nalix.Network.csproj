@@ -10,31 +10,27 @@
 		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
 
 		<!-- Versions -->
-		<Version>11.7.6</Version>
-		<FileVersion>11.7.6.0</FileVersion>
-		<PackageVersion>11.7.6</PackageVersion>
-		<InformationalVersion>11.7.6+$(SourceRevisionId)</InformationalVersion>
+		<Version>11.8.0</Version>
+		<FileVersion>11.8.0.0</FileVersion>
+		<PackageVersion>11.8.0</PackageVersion>
+		<InformationalVersion>11.8.0+$(SourceRevisionId)</InformationalVersion>
 
-		<Description>
-Nalix.Network is the high-performance, modular networking runtime for the Nalix ecosystem.
-It provides TCP and UDP listener frameworks, connection hubs, middleware pipelines,
-protocol lifecycle management, and adaptive throttling for large-scale distributed systems.
+		<Description><![CDATA[
+Nalix.Network is the high-performance, modular networking runtime for the Nalix ecosystem. It provides TCP and UDP listener frameworks, connection hubs, middleware pipelines, protocol lifecycle management, and adaptive throttling for large-scale distributed systems.
 
-Built for real-time workloads, it emphasizes zero-allocation I/O, low-latency dispatch,
-and precise timing synchronization — delivering reliable and efficient communication
-between clients and servers under heavy concurrency.
-		</Description>
+Built for real-time workloads, it emphasizes zero-allocation I/O, low-latency dispatch, and precise timing synchronization — delivering reliable and efficient communication between clients and servers under heavy concurrency.
+		]]></Description>
 
-		<PackageReleaseNotes>
-			- Introduced TCP and UDP listeners with async event-driven connection handling.
-			- Added Connection hub and transmission extensions with high-throughput batching.
-			- Implemented middleware pipeline supporting inbound/outbound interceptors.
-			- Added Protocol subsystem for lifecycle, metrics, and public RPC methods.
-			- Introduced adaptive throttling: ConnectionLimiter, TokenBucketLimiter, and PolicyRateLimiter.
-			- Added Timing subsystem with high-resolution TimingWheel and TimeSynchronizer.
-			- Enhanced internal abstractions for extensibility and concurrent dispatch safety.
-			- Major refactors for performance, stability, and maintainability across all layers.
-		</PackageReleaseNotes>
+		<PackageReleaseNotes><![CDATA[
+- Added ConnectionHub telemetry and runtime hooks: configurable shard count, anonymous queue depth, and capacity events for better observability.
+- Improved PacketDispatchChannel diagnostics, reporting dispatch loop counts, semaphore health, and middleware instrumentation.
+- Hardened UDP listener authentication with timestamp validation, poly1305 MAC, and connection replay guards for secure channel injection.
+- Introduced ConnectionLimiter, TokenBucketLimiter, and PolicyRateLimiter for adaptive throttling.
+- Enhanced protocol subsystem for lifecycle, metrics, and public RPC methods.
+- Added Timing subsystem with high-resolution TimingWheel and TimeSynchronizer.
+- Implemented middleware pipeline supporting inbound/outbound interceptors.
+- Major refactors for performance, stability, and maintainability across all layers.
+		]]></PackageReleaseNotes>
 
 	</PropertyGroup>
 

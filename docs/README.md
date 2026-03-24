@@ -133,6 +133,14 @@ Each module's documentation (linked below) includes code samples and usage scena
 
 ---
 
+## 📦 Release 11.8.0
+
+- Metadata-driven docs: descriptions and release notes are now sourced directly from the CDATA blocks inside each `.csproj`, so the published docs match what your NuGet packages advertise.
+- ConnectionHub telemetry (shard count, anonymous queue depth, limit events) and PacketDispatchChannel diagnostics now appear in the module docs and CHANGELOG for better observability.
+- UDP listener authentication, throttling subsystems, and timing instrumentation were refreshed in this release—see the linked module docs to trace how those code updates map to the new metadata.
+
+---
+
 ## 📝 Best Practices
 
 - Use zero-copy APIs (`Span<T>`, `BufferLease`) for performance-critical code

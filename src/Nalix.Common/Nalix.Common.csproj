@@ -10,31 +10,27 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<!-- Versions -->
-		<Version>11.7.6</Version>
-		<FileVersion>11.7.6.0</FileVersion>
-		<PackageVersion>11.7.6</PackageVersion>
-		<InformationalVersion>11.7.6+$(SourceRevisionId)</InformationalVersion>
+		<Version>11.8.0</Version>
+		<FileVersion>11.8.0.0</FileVersion>
+		<PackageVersion>11.8.0</PackageVersion>
+		<InformationalVersion>11.8.0+$(SourceRevisionId)</InformationalVersion>
 
-		<Description>
-Nalix.Common defines the fundamental abstractions, enums, and shared contracts
-for the Nalix ecosystem. It provides base interfaces, environment helpers,
-serialization primitives, and protocol definitions used across all Nalix modules.
+		<Description><![CDATA[
+Nalix.Common defines the fundamental abstractions, enums, and shared contracts for the Nalix ecosystem. It provides base interfaces, environment helpers, serialization primitives, and protocol definitions used across all Nalix modules.
 
-This library focuses on performance, consistency, and cross-platform reliability —
-serving as the foundation for higher-level components such as Nalix.Framework,
-Nalix.Network, Nalix.SDK, Nalix.Shared, and Nalix.Logging.
-		</Description>
+This library focuses on performance, consistency, and cross-platform reliability — serving as the foundation for higher-level components such as Nalix.Framework, Nalix.Network, Nalix.SDK, Nalix.Shared, and Nalix.Logging.
+		]]></Description>
 
-		<PackageReleaseNotes>
-			- Introduced core abstractions for connection handling, caching, and environment directories.
-			- Added attribute and enum definitions (CipherSuiteType, SnowflakeType, PermissionLevel, etc.).
-			- Implemented directory environment helpers (Lazy, Properties, UnixDirPerms).
-			- Added exceptions subsystem with models and abstractions for framework-wide usage.
-			- Added foundational interfaces for protocols, packets, repositories, and serialization.
-			- Introduced IBufferLease and IPoolable interfaces for efficient memory reuse.
-			- Improved structure and documentation consistency across all base modules.
-			- General cleanup and preparation for downstream framework integration.
-		</PackageReleaseNotes>
+		<PackageReleaseNotes><![CDATA[
+- Introduced core abstractions for connection handling, caching, and environment directories.
+- Added attribute and enum definitions (CipherSuiteType, SnowflakeType, PermissionLevel, etc.).
+- Implemented directory environment helpers (Lazy, Properties, UnixDirPerms).
+- Added exceptions subsystem with models and abstractions for framework-wide usage.
+- Added foundational interfaces for protocols, packets, repositories, and serialization.
+- Introduced IBufferLease and IPoolable interfaces for efficient memory reuse.
+- Improved structure and documentation consistency across all base modules.
+- General cleanup and preparation for downstream framework integration.
+		]]></PackageReleaseNotes>
     </PropertyGroup>
 
     <Import Project="..\Nalix.Build.props" />
