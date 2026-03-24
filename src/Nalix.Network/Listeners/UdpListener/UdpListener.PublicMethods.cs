@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Diagnostics;
@@ -141,11 +141,8 @@ public abstract partial class UdpListenerBase : IListener
 
         try
         {
-            if (this._udpClient != null)
-            {
-                this._udpClient.Close();
-                this._udpClient = null;
-            }
+            this._udpClient?.Close();
+            this._udpClient = null;
 
             if (this._isRunning)
             {
