@@ -19,6 +19,9 @@ namespace Nalix.SDK.Transport;
 /// Contains common socket lifecycle, cleanup, send/receive glue, and event wiring.
 /// Derived classes implement receive scheduling and framing construction.
 /// </summary>
+[System.Diagnostics.DebuggerStepThrough]
+[System.Diagnostics.DebuggerDisplay("State = {State}, Connected = {IsConnected}")]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -470,6 +473,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// Protected helper for subclasses to set up frame helpers (_sender/_receiver).
     /// Subclasses should instantiate _sender/_receiver and bind desired error/byte-report callbacks.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(i_socket), nameof(i_sender), nameof(i_receiver))]
     protected abstract void InitializeFrame();
 
     /// <summary>
