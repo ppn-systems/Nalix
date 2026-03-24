@@ -5,10 +5,8 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Security;
-using Nalix.Common.Shared;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Shared.Memory.Objects;
 
@@ -76,15 +74,6 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public ISnowflake ID { get; }
 
-    /// <inheritdoc/>
-    public IConnection.ITcp TCP { get; }
-
-    /// <inheritdoc/>
-    public IConnection.IUdp UDP => _udp;
-
-    /// <inheritdoc />
-    public INetworkEndpoint NetworkEndpoint { get; }
-
     /// <inheritdoc />
     public System.Int32 ErrorCount => _errorCount;
 
@@ -122,6 +111,12 @@ public sealed partial class Connection : IConnection
         get => System.Threading.Interlocked.Read(ref _bytesSent);
     }
 
+    public INetworkEndpoint NetworkEndpoint => throw new System.NotImplementedException();
+
+    public IConnection.ITcp TCP => throw new System.NotImplementedException();
+
+    public IConnection.IUdp UDP => throw new System.NotImplementedException();
+
     #endregion Properties
 
     #region Events
@@ -151,47 +146,6 @@ public sealed partial class Connection : IConnection
     #endregion Events
 
     #region Methods
-
-    /// <inheritdoc />
-    public void IncrementErrorCount() => System.Threading.Interlocked.Increment(ref _errorCount);
-
-    /// <inheritdoc />
-    public IConnection.IUdp GetOrCreateUDP(ref System.Net.IPEndPoint iPEndPoint)
-    {
-        if (_udp == null)
-        {
-            _udp = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                           .Get<UdpTransport>();
-
-            _udp.Initialize(ref iPEndPoint);
-        }
-
-        return _udp;
-    }
-
-    /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal void InjectIncoming(IBufferLease lease)
-    {
-        _cstream.Cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
-        lease.Retain(); // Retain for the callback; released in Connection.cs after processing.
-
-        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-        args.Initialize(lease, this);
-
-        System.Boolean queued = AsyncCallback.Invoke(OnProcessEventBridge, this, args);
-
-#if DEBUG
-        s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{InjectIncoming}] inject-bytes len={lease.Length}");
-#endif
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    internal void ReleasePendingPacket() => _cstream.OnPacketProcessed();
 
     /// <inheritdoc />
     [System.Runtime.CompilerServices.MethodImpl(
@@ -304,6 +258,8 @@ public sealed partial class Connection : IConnection
 
         AsyncCallback.Invoke(self._onPostProcessEvent, self, e);
     }
+
+    public IConnection.IUdp GetOrCreateUDP() => throw new System.NotImplementedException();
 
     #endregion Event Bridges
 }

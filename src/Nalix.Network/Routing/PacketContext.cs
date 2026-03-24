@@ -165,6 +165,10 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         this.Attributes = descriptor;
         this.CancellationToken = token;
         this.Sender = s_object.Get<PacketSender<TPacket>>();
+        if (this.Sender is null)
+        {
+            throw new System.InvalidOperationException($"[{nameof(PacketContext<TPacket>)}] object pool returned null {nameof(PacketSender<TPacket>)}");
+        }
 
         _isInitialized = true;
     }

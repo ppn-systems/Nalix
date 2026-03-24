@@ -81,6 +81,32 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
+    /// Overrides the default number of dispatch loops.
+    /// </summary>
+    /// <param name="loopCount">
+    /// The number of worker loops to start. Must be between 1 and 64.
+    /// If <see langword="null"/>, the dispatcher chooses automatically based on the host CPU.
+    /// </param>
+    /// <returns>The current options instance.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public PacketDispatchOptions<TPacket> WithDispatchLoopCount(System.Int32? loopCount)
+    {
+        if (loopCount.HasValue && (loopCount.Value < 1 || loopCount.Value > 64))
+        {
+            throw new System.ArgumentOutOfRangeException(
+                nameof(loopCount),
+                "Dispatch loop count must be between 1 and 64.");
+        }
+
+        this.DispatchLoopCount = loopCount;
+        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString() : "auto")}");
+        return this;
+    }
+
+    /// <summary>
     /// Configures how the middleware pipeline handles exceptions thrown during packet processing.
     /// </summary>
     /// <param name="continueOnError">
