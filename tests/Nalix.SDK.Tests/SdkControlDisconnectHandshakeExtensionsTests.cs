@@ -1,3 +1,4 @@
+using Nalix.Common.Networking.Protocols;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -8,7 +9,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -31,17 +31,17 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
     {
         FakeTransportSession session = new();
 
-        Control packet = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.NOTICE, ProtocolType.TCP)
-            .WithSeq(123u)
+        Control packet = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.NOTICE, reliable: true)
+            .WithSeq(123)
             .WithReason(ProtocolReason.TIMEOUT)
-            .WithTransport(ProtocolType.TCP)
+            .WithReliable(true)
             .StampNow()
             .Build();
 
         Assert.Equal(ControlType.NOTICE, packet.Type);
         Assert.Equal(123u, packet.SequenceId);
         Assert.Equal(ProtocolReason.TIMEOUT, packet.Reason);
-        Assert.Equal(ProtocolType.TCP, packet.Protocol);
+        Assert.True(packet.Flags.HasFlag(PacketFlags.RELIABLE));
         Assert.NotEqual(0L, packet.MonoTicks);
         Assert.True(packet.Timestamp > 0);
     }
@@ -151,7 +151,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
     public async Task HandshakeAsync_WhenServerHelloMalformed_ThrowsNetworkException()
     {
         FakeTransportSession session = new();
-        Handshake malformed = new(HandshakeStage.SERVER_HELLO, Bytes32.Zero, Bytes32.Zero);
+        Handshake malformed = new(HandshakeStage.SERVER_HELLO, Bytes32.Zero, Bytes32.Zero, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
         session.EnqueueResponse(malformed);
 
         NetworkException ex = await Assert.ThrowsAsync<NetworkException>(async () =>
@@ -173,7 +173,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
 
             X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
             Bytes32 serverNonce = RandomBytes32();
-            Handshake badServerHello = new(HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce)
+            Handshake badServerHello = new(HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE)
             {
                 Proof = Bytes32.Zero
             };
@@ -208,7 +208,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
                         serverKey.PublicKey,
                         serverNonce));
 
-                return new Handshake(HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce)
+                return new Handshake(HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce, flags: clientHello.Flags)
                 {
                     Proof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash)
                 };
@@ -216,7 +216,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
 
             if (packet is Handshake clientFinish && clientFinish.Stage == HandshakeStage.CLIENT_FINISH)
             {
-                return new Handshake(HandshakeStage.SERVER_FINISH, Bytes32.Zero, Bytes32.Zero)
+                return new Handshake(HandshakeStage.SERVER_FINISH, Bytes32.Zero, Bytes32.Zero, flags: clientFinish.Flags)
                 {
                     Proof = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash),
                     SessionToken = token
@@ -230,7 +230,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
 
         Assert.True(session.Options.EncryptionEnabled);
         Assert.Equal(CipherSuiteType.Chacha20Poly1305, session.Options.Algorithm);
-        Assert.Equal(32, session.Options.Secret.Length);
+        Assert.False(session.Options.Secret.IsZero);
         Assert.Equal(token, session.Options.SessionToken);
     }
 
@@ -326,3 +326,4 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
         }
     }
 }
+

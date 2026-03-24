@@ -87,7 +87,7 @@ public sealed class SystemControlHandlers
 
         // SEC-74: Prevent pre-auth crypto policy tampering.
         // Cipher updates are only permitted for established, authenticated sessions.
-        if (connection.Secret is null || connection.Secret.Length == 0)
+        if (connection.Secret.IsZero)
         {
             return;
         }
@@ -104,9 +104,9 @@ public sealed class SystemControlHandlers
 
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control ack = lease.Value;
-        ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Reason, packet.Protocol);
-        
-        Nalix.Common.Networking.IConnection.ITransport transport = packet.Protocol == ProtocolType.UDP ? connection.UDP : connection.TCP;
+        ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, (ProtocolReason)packet.Reason);
+
+        Nalix.Common.Networking.IConnection.ITransport transport = packet.Flags.HasFlag(PacketFlags.UNRELIABLE) ? connection.UDP : connection.TCP;
         await transport.SendAsync(ack).ConfigureAwait(false);
     }
 
@@ -114,9 +114,9 @@ public sealed class SystemControlHandlers
     {
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control pong = lease.Value;
-        pong.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PONG, ping.SequenceId, ProtocolReason.NONE, ping.Protocol);
-        
-        Nalix.Common.Networking.IConnection.ITransport transport = ping.Protocol == ProtocolType.UDP ? connection.UDP : connection.TCP;
+        pong.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PONG, ping.SequenceId, ping.Flags, ProtocolReason.NONE);
+
+        Nalix.Common.Networking.IConnection.ITransport transport = ping.Flags.HasFlag(PacketFlags.UNRELIABLE) ? connection.UDP : connection.TCP;
         await transport.SendAsync(pong).ConfigureAwait(false);
     }
 
@@ -124,9 +124,9 @@ public sealed class SystemControlHandlers
     {
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control res = lease.Value;
-        res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, ProtocolReason.NONE, req.Protocol);
-        
-        Nalix.Common.Networking.IConnection.ITransport transport = req.Protocol == ProtocolType.UDP ? connection.UDP : connection.TCP;
+        res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags, ProtocolReason.NONE);
+
+        Nalix.Common.Networking.IConnection.ITransport transport = req.Flags.HasFlag(PacketFlags.UNRELIABLE) ? connection.UDP : connection.TCP;
         await transport.SendAsync(res).ConfigureAwait(false);
     }
 

@@ -1,9 +1,9 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Threading;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Networking.Protocols;
 
 namespace Nalix.Common.Networking.Packets;
 
@@ -19,9 +19,9 @@ namespace Nalix.Common.Networking.Packets;
 public interface IPacketContext<TPacket> : IPoolable where TPacket : IPacket
 {
     /// <summary>
-    /// Gets the transport protocol (TCP/UDP) over which the packet was received.
+    /// Gets or sets a value indicating whether the transport protocol (TCP/UDP) associated with this buffer is reliable.
     /// </summary>
-    ProtocolType Protocol { get; }
+    bool IsReliable { get; }
 
     /// <summary>
     /// If true, outbound middlewares will be skipped for this context.

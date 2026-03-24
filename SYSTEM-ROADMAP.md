@@ -79,4 +79,131 @@
 
 ---
 
+### 5. Real IP Resolution & Proxy Protocol Support (L4 Protection Integration)
+
+**Status:** 🔲 Not Started  
+**Objective:** Accurately resolve the real client IP when the TCP server is deployed behind L4 proxies (e.g., Cloudflare Spectrum, HAProxy, NGINX stream) while preserving security guarantees against spoofing and rate-limit bypass.
+
+**Architectural Guidelines:**
+
+- **Early-Stage Processing (Pre-Pipeline):**  
+  Real IP resolution MUST occur **immediately after socket accept** and **before any security checks** (e.g., IP rate limiting, banning, connection guards).  
+  This logic belongs strictly to the **Listener Layer**, not the Protocol or Application layer.
+
+- **Pipeline Insertion Point:**
+
+```mermaid
+flowchart TD
+    A[Accept Socket] --> B[Proxy Header Detection]
+    B --> C[Real IP Resolution]
+    C --> D[IP Guard / Rate Limiter]
+    D --> E[Connection Initialization]
+    E --> F[Protocol Pipeline]
+```
+
+#### PROXY Protocol Support
+
+##### Supported Formats
+
+The server MUST support both industry-standard formats:
+
+###### PROXY v1 (Text-based)
+
+```
+PROXY TCP4 1.2.3.4 5.6.7.8 12345 80\r\n
+```
+
+###### PROXY v2 (Binary)
+
+- Magic header:
+
+```
+\r\n\r\n\0\r\nQUIT\n
+```
+
+- Followed by structured metadata:
+  - Address family
+  - Transport protocol
+  - Source/Destination address
+  - Ports
+
+---
+
+#### Minimal Read Strategy
+
+- Perform a **single small read (32–64 bytes)** from the socket.
+- Detect and parse the PROXY header within this buffer.
+
+### Requirements
+
+- MUST avoid large allocations
+- SHOULD use `stackalloc` or pooled buffers
+- MUST NOT enter full receive pipeline before this step
+
+---
+
+#### Trusted Proxy Enforcement
+
+The server MUST validate the source before accepting any PROXY header.
+
+##### Rules
+
+- Maintain a whitelist: `TrustedProxyList`
+- Check: `socket.RemoteEndPoint`
+
+##### If NOT trusted
+
+- Ignore PROXY header **OR**
+- Drop connection immediately (**RECOMMENDED**)
+
+---
+
+#### Spoofing Protection
+
+Never trust client-provided IP data unless:
+
+- Source is verified as trusted proxy
+- Header format is fully validated
+
+---
+
+#### Integration with Rate Limiter
+
+After successful parsing:
+
+- Replace `socket.RemoteEndPoint` with `RealEndPoint`
+- ALL security modules MUST use the resolved IP
+
+---
+
+#### Failure Handling
+
+- Invalid header → **Drop connection**
+- Missing header (when required) → **Reject**
+- Partial read → **Retry once or drop**
+
+---
+
+#### Performance Considerations
+
+- MUST be zero-allocation
+- Avoid heavy branching
+- Detect via magic bytes first
+- MUST NOT slow down accept loop
+
+---
+
+#### Security Note
+
+This is a **critical transport-layer trust boundary**.
+
+Incorrect implementation can lead to:
+
+- IP spoofing
+- Rate limit bypass
+- Ban evasion
+- Attack amplification
+
+---
+
 *Prepared for Nalix Open-Source Enterprise Development*

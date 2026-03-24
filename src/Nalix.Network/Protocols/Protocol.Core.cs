@@ -36,8 +36,6 @@ public abstract partial class Protocol : IProtocol
         {
             this.ProcessDecrypt(args);
             this.ProcessDecompress(args);
-
-            args.Lease?.Retain();
             this.ProcessMessage(sender, args);
         }
         catch (Exception ex)
@@ -46,10 +44,6 @@ public abstract partial class Protocol : IProtocol
             {
                 // Handled / Logged as trace
             }
-        }
-        finally
-        {
-            args.Dispose();
         }
     }
 

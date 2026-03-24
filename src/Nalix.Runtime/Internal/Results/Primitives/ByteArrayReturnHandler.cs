@@ -4,7 +4,6 @@
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Runtime.Internal.Results.Primitives;
@@ -21,15 +20,11 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket> 
             return;
         }
 
-        ProtocolType protocol = context.Packet.Protocol;
-
-        if (protocol == ProtocolType.TCP)
+        if (context.IsReliable)
         {
             await context.Connection.TCP.SendAsync(data).ConfigureAwait(false);
-            return;
         }
-
-        if (protocol == ProtocolType.UDP)
+        else
         {
             await context.Connection.UDP.SendAsync(data).ConfigureAwait(false);
         }

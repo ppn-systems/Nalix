@@ -160,3 +160,4 @@ internal sealed record UdpProtocolBinding(
     Func<IPacketDispatch, IProtocol> Factory,
     ushort? Port = null,
     Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? Authentication = null);
+

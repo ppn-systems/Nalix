@@ -454,7 +454,7 @@ internal static class AsyncCallback
 
         try
         {
-            w.Callback?.Invoke(w.Sender, args!);
+            w.Callback?.Invoke(w.Sender, args);
         }
         catch (Exception ex)
         {

@@ -86,10 +86,10 @@ Middlewares often need to inspect packet headers for auditing, routing, or secur
 | Field | Type | Purpose |
 | :--- | :--- | :--- |
 | `OpCode` | `ushort` | Identifies the handler/message type. |
-| `SequenceId`| `uint` | Used for request/reply correlation. |
-| `Flags` | `PacketFlags` | Metadata like `IsResponse`, `IsEncrypted`, or `IsCompressed`. |
+| `SequenceId`| `ushort` | Used for request/reply correlation. |
+| `Flags` | `PacketFlags` | Metadata like `RELIABLE`, `SYSTEM`, or `COMPRESSED`. |
 | `Priority` | `PacketPriority` | Dispatcher hint (`NONE`, `LOW`, `MEDIUM`, `HIGH`, `URGENT`). |
-| `Protocol` | `ProtocolType` | Transport layer (TCP/UDP/None). |
+| `IsReliable` | `bool` | Indicates if the transport provides reliability (TCP). |
 | `Length` | `int` | Total wire size of the packet. |
 | `MagicNumber`| `uint` | Unique type identity hash. |
 

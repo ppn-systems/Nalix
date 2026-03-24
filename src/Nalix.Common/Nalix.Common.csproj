@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<!-- Build & Lang -->
@@ -19,14 +19,10 @@ This library focuses on performance, consistency, and cross-platform reliability
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Introduced core abstractions for connection handling, caching, and environment directories.
-- Added attribute and enum definitions (CipherSuiteType, SnowflakeType, PermissionLevel, etc.).
-- Implemented directory environment helpers (Lazy, Properties, UnixDirPerms).
-- Added exceptions subsystem with models and abstractions for framework-wide usage.
-- Added foundational interfaces for protocols, packets, repositories, and serialization.
-- Introduced IBufferLease and IPoolable interfaces for efficient memory reuse.
-- Improved structure and documentation consistency across all base modules.
-- General cleanup and preparation for downstream framework integration.
+- Foundational Abstractions: Core interfaces for connection lifecycles and shared framework contracts used across all Nalix modules.
+- Networking Standards: Unified IPacket, IBufferLease, and protocol enums (CipherSuite, Snowflake) for consistent communication.
+- Memory & Concurrency: High-performance gating and memory-leasing primitives designed for low-allocation networking scenarios.
+- System Diagnostics: Flexible exception models and logging abstractions providing the base for framework-wide observability.
 		]]></PackageReleaseNotes>
     </PropertyGroup>
 

@@ -41,5 +41,5 @@ Consistent page shape helps operators quickly compare memory/throughput tuning k
 
 ## Related APIs
 
-- [Timing Wheel](../timing-wheel.md)
+- [Timing Wheel](../time/timing-wheel.md)
 - [TCP Listener](../tcp-listener.md)

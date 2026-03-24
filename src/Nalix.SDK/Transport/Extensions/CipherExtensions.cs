@@ -38,7 +38,7 @@ public static class CipherExtensions
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        uint seq = unchecked((uint)Interlocked.Increment(ref s_cipherUpdateSeq));
+        ushort seq = unchecked((ushort)Interlocked.Increment(ref s_cipherUpdateSeq));
         CipherSuiteType previousCipher = session.Options.Algorithm;
 
         // HACK: Payload Overloading.

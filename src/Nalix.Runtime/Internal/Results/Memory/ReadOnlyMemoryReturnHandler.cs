@@ -5,7 +5,6 @@ using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Runtime.Internal.Results.Memory;
@@ -22,15 +21,11 @@ internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPac
             return;
         }
 
-        ProtocolType protocol = context.Packet.Protocol;
-
-        if (protocol == ProtocolType.TCP)
+        if (context.IsReliable)
         {
             await context.Connection.TCP.SendAsync(memory).ConfigureAwait(false);
-            return;
         }
-
-        if (protocol == ProtocolType.UDP)
+        else
         {
             await context.Connection.UDP.SendAsync(memory).ConfigureAwait(false);
         }

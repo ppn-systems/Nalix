@@ -1,54 +1,83 @@
 # Connection Events
 
-Connection event argument types carry structured data between transport callbacks and protocol/runtime layers.
-
-## Audit Summary
-
-- Existing page conceptually correct; needed precise boundary between connection event args and hub-capacity event/delegate usage.
-
-## Missing Content Identified
-
-- Explicit mention that `ConnectionEventArgs` is pooled and reused.
-- Clear source mapping and related event producers.
-
-## Improvement Rationale
-
-Clear event-payload semantics reduce callback misuse and lifecycle bugs.
+In Nalix, network events are orchestrated through a high-performance, dual-lane callback system. This system ensures that critical operations (like disconnects) are never delayed by a flood of regular traffic.
 
 ## Source Mapping
 
 - `src/Nalix.Network/Connections/Connection.EventArgs.cs`
-- `src/Nalix.Network/Connections/Connection.Hub.cs`
+- `src/Nalix.Network/Internal/Transport/AsyncCallback.cs`
 
-## `ConnectionEventArgs`
+## Event Execution Pipeline
 
-Used by connection-level events (`OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`).
+The following diagram illustrates how event arguments are pooled and dispatched across the two processing lanes.
 
-Key members:
+```mermaid
+sequenceDiagram
+    participant S as Transport (Socket)
+    participant AC as AsyncCallback (Dispatcher)
+    participant P as ObjectPool
+    participant TP as ThreadPool
+    participant H as Application Handler
 
-- `Connection`
-- `Lease`
-- `NetworkEndpoint`
-- lifecycle helpers: `Initialize(...)`, `ExchangeLease(...)`, `Dispose()`
+    S->>P: Rent ConnectionEventArgs & Context
+    S->>AC: Invoke(Normal) or InvokeHighPriority()
+    
+    alt Normal Priority (OnProcess, OnPostProcess)
+        AC->>AC: Check Global & Per-IP Throttle
+        alt Under Limit
+            AC->>TP: QueueUserWorkItem
+            TP->>H: Invoke EventHandler
+            H-->>TP: Return
+            TP->>S: ReleasePendingPacket()
+            TP->>P: Return Context & Args
+        else Throttled
+            AC->>S: ReleasePendingPacket()
+            AC->>P: Return Args (Drop Callback)
+        end
+    else High Priority (OnClose)
+        AC->>TP: QueueUserWorkItem (Immediate)
+        TP->>H: Invoke EventHandler
+        H-->>TP: Return
+        TP->>P: Return Context & Args
+    end
+```
 
-`ConnectionEventArgs` implements `IPoolable`; instances are returned to pool after use.
+## Internal Responsibilities (Source-Verified)
 
-## Hub Capacity Events
+### 1. Dual-Lane Dispatching
+Nalix separates callbacks into two distinct lanes to maintain system stability under load:
+- **Normal Priority**: Handles `OnProcess` and `OnPostProcess` packet events. These are subject to both global caps and per-IP fairness limits.
+- **High Priority**: Handles `OnClose` and `Disconnect` events. These **bypass all backpressure limits**, ensuring that even during a heavy DDoS attack, the system can always release connection resources.
 
-`ConnectionHub` exposes:
+!!! important "Backpressure Enforcement"
+    If the global `MaxPendingNormalCallbacks` limit is reached, Nalix will drop incoming normal-priority callbacks and log a warning. This prevents a "Callback Explosion" from crashing the server process.
 
-- `CapacityLimitReached` delegate event
+### 2. Zero-Allocation Pooling
+Both `ConnectionEventArgs` and the internal `PooledConnectEventContext` are recyclables. 
+- They are rented from the `ObjectPoolManager` before being sent to the `ThreadPool`.
+- They are strictly returned to the pool in a `finally` block after the user handler completes (or if the callback is throttled/dropped).
 
-Use this event to react to registration admission pressure according to configured drop policy.
+!!! warning "Handler Safety"
+    Because `ConnectionEventArgs` is pooled, **you must not cache or store references to it** outside the scope of the event handler. Any data you need for long-term use should be copied into your own state objects.
 
-## Best Practices
+### 3. Buffer Lease Reclamation
+The `ConnectionEventArgs` carries a `BufferLease`.
+- For `OnProcess` events, the lease is automatically managed. 
+- Once the callback completes throughout the entire pipeline (Normal lane), the dispatcher calls `connection.ReleasePendingPacket()`, which decrements the connection's "pending callback" counter and signals the transport layer that the next packet can be processed.
 
-- Treat `Lease` ownership carefully in callback pipelines.
-- Do not cache pooled event arg instances beyond callback scope.
-- Use hub capacity callbacks for operational monitoring and alerting.
+## Event Summary
 
-## Related APIs
+| Event | Lane | Subjects | Description |
+|---|---|---|---|
+| `OnProcessEvent` | Normal | Packets | Logic for initial packet handling and decoding. |
+| `OnPostProcessEvent` | Normal | Cleanup | Non-critical follow-up logic after processing. |
+| `OnCloseEvent` | **High** | Lifecycle | Disconnect and resource cleanup logic. |
+
+## Related Information Paths
 
 - [Connection](./connection.md)
-- [Connection Hub](./connection-hub.md)
-- [Protocol](../protocol.md)
+- [Socket Connection](../socket-connection.md)
+- [Network Callback Options](../options/network-callback-options.md)
+- [Object Pooling](../../framework/memory/object-pooling.md)
+- [Object Map](../../framework/memory/object-map.md)
+- [Typed Object Pools](../../framework/memory/typed-object-pools.md)

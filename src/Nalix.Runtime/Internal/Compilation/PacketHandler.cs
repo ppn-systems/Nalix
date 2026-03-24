@@ -121,7 +121,7 @@ internal readonly struct PacketHandler<TPacket>(
         // SEC-77: Enforce permission policy by default on the hot path.
         // Middleware is still recommended for logging and more complex policies,
         // but this provides a fail-closed baseline in the dispatcher itself.
-        if (this.Metadata.Permission is { } permission &&
+        if (Metadata.Permission is { } permission &&
             permission.Level > context.Connection.Level)
         {
             return false;

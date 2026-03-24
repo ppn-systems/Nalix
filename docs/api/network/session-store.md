@@ -1,56 +1,90 @@
 # Session Store
 
-`Nalix.Network.Sessions` provides server-side session persistence abstractions and the default in-memory implementation used by resume flows.
-
-## Audit Summary
-
-- Existing page had correct architecture direction but needed stronger mapping to concrete methods and lifecycle semantics.
-- Source mapping remains valid.
-
-## Missing Content Identified
-
-- Explicit distinction between session creation and persistence.
-- Clear behavior notes for in-memory expiration/removal.
-
-## Improvement Rationale
-
-This prevents misuse in multi-node production deployments.
+`ISessionStore` is the state management layer responsible for persisting, retrieving, and expiring resumable session data. In the Nalix architecture, a "Session" represents the cryptographic state (Session Token, Symmetric Secret) that allows a client to disconnect and reconnect without performing a full X25519 handshake.
 
 ## Source Mapping
 
-- `src/Nalix.Network/Sessions/SessionStoreBase.cs`
+- `src/Nalix.Common/Networking/Sessions/ISessionStore.cs`
 - `src/Nalix.Network/Sessions/InMemorySessionStore.cs`
-- `src/Nalix.Network/Options/SessionStoreOptions.cs`
 
-## Core Types
+## Why This Type Exists
 
-### `SessionStoreBase`
+Maintaining session state across disconnects requires a storage mechanism that is:
+- **Fast**: Session retrieval happens during the connection "Hot Path" (Resume).
+- **Atomic**: Prevents multiple clients from attempting to resume the same session simultaneously.
+- **Auto-Cleaning**: Expired sessions must be evicted to prevent memory leaks or replay window bloat.
 
-Abstract base implementing shared `ISessionStore` behavior:
+## Session Persistence Flow
 
-- `CreateSession(IConnection connection)` builds `SessionEntry` snapshot from current connection state.
-- `StoreAsync(...)`, `RetrieveAsync(...)`, `RemoveAsync(...)` are abstract persistence operations.
+The following diagram illustrates how a session is created during a full handshake and subsequently consumed during a resumption.
 
-### `InMemorySessionStore`
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    participant ST as SessionStore
 
-Default single-node implementation backed by `ConcurrentDictionary<UInt56, SessionEntry>`:
+    Note over C,S: Full Handshake (TCP)
+    C->>S: Handshake Request (X25519)
+    S->>S: Generate SessionToken & Secret
+    S->>ST: StoreAsync(SessionEntry)
+    S->>C: Handshake Success (Returns Token)
 
-- `StoreAsync` upserts entry by session token.
-- `RetrieveAsync` lazily removes expired entries before returning.
-- `RemoveAsync` deletes entry and returns pooled resources.
+    Note over C,S: Disconnect / Network Drop
 
-### `SessionStoreOptions`
+    Note over C,S: Resumption (TCP)
+    C->>S: ResumeRequest(SessionToken, Nonce)
+    S->>ST: ConsumeAsync(SessionToken)
+    ST-->>S: Return Entry & Delete from Store
+    
+    alt Session Valid
+        S->>C: Resume Success
+    else Session Expired or Already Consumed
+        S->>C: Resume Fail (Full Handshake Required)
+    end
+```
 
-- `SessionTtl` defines resume-session retention duration.
+## Internal Responsibilities (Source-Verified)
 
-## Best Practices
+### 1. Atomic Consumption (SEC-33)
+The most critical method in the store is `ConsumeAsync(UInt56 sessionToken)`. 
+- It retrieves the session entry and **immediately removes it** from the store in a single atomic operation.
+- This prevents "Resumption Replay" where a stolen token could be used by two different clients to gain access simultaneously. Only the first caller succeeds.
 
-- Use `InMemorySessionStore` for single-node/local deployments.
-- Use distributed backing store for multi-node resume semantics.
-- Keep `SessionTtl` aligned with security and rotation policy.
+!!! danger "Security Requirement"
+    Custom implementations of `ISessionStore` (e.g., Redis implementations) **MUST** implement `ConsumeAsync` as an atomic operation (e.g., using a Lua script in Redis) to comply with SEC-33.
 
-## Related APIs
+### 2. Lazy and Active Expiration
+The `InMemorySessionStore` employs a dual-layered expiration strategy:
+- **Active Scavenger**: A background task (`PeriodicTimer`) runs every minute to scan the `ConcurrentDictionary` and evict keys where `ExpiresAtUnixMilliseconds <= now`.
+- **Lazy Check**: Every time `RetrieveAsync` or `ConsumeAsync` is called, the TTL is checked immediately. If the session has expired, it is treated as "NotFound" and removed even if the scavenger hasn't reached it yet.
 
-- [Connection Hub](./connection/connection-hub.md)
-- [Session Resume](../security/session-resume.md)
-- [Session Contracts](../common/session-contracts.md)
+### 3. Session Entry Pooling
+To keep the resumption path zero-allocation, `SessionEntry` objects are tracked by the `ObjectPoolManager`. When a session is removed or expires, the system calls `entry.Return()` to reclaim the resources.
+
+## Public APIs
+
+- `StoreAsync(entry)`: Adds a new resumable entry to the store.
+- `RetrieveAsync(token)`: Peeks at a session without removing it (useful for diagnostics).
+- `ConsumeAsync(token)`: Atomically retrieves and removes the session. **Primary method for Resumption logic.**
+- `RemoveAsync(token)`: Explicitly terminates a session.
+
+## Configuration
+
+Control the session lifecycle via `SessionStoreOptions`:
+
+| Option | Description | Typical Value |
+|---|---|---|
+| `SessionExpirationHours` | How long a session remains resumable after creation. | 24 - 48 Hours |
+| `ScavengeIntervalMinutes` | How often the background cleanup task runs. | 1 - 5 Minutes |
+
+!!! tip
+    For multi-node (Distributed) deployments, you should replace the default `InMemorySessionStore` with a custom implementation bridging to a persistent store like Redis or Aerospike to ensure session state is shared across all shards.
+
+## Related Information Paths
+
+- [Handshake Protocol](../security/handshake.md)
+- [Session Resumption](../security/session-resume.md)
+- [Snowflake Identifiers (UInt56)](../framework/runtime/snowflake.md)
+- [Object Pooling](../framework/memory/object-pooling.md)
+- [Object Map](../framework/memory/object-map.md)

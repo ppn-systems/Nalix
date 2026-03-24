@@ -1,56 +1,82 @@
 # Connection Hub
 
-`ConnectionHub` is the in-memory live-connection registry used by `Nalix.Network` for lookup, broadcast, disconnect orchestration, and session-store integration.
-
-## Audit Summary
-
-- Existing page was comprehensive but had some stale source mapping references and extra guidance outside strict API scope.
-- Needed tighter coupling to currently exposed public members.
-
-## Missing Content Identified
-
-- Precise method/member list from current `Connection.Hub.cs`.
-- Clear note that admission failures can surface as exceptions during registration.
-
-## Improvement Rationale
-
-This keeps operator and contributor expectations aligned with runtime behavior.
+`ConnectionHub` is the central authoritative registry for all active client connections. It provides high-performance thread-safe storage, O(1) lookups, and orchestration for server-wide operations like broadcasting and bulk disconnects.
 
 ## Source Mapping
 
+- `src/Nalix.Common/Networking/IConnection.Hub.cs`
 - `src/Nalix.Network/Connections/Connection.Hub.cs`
-- `src/Nalix.Network/Options/ConnectionHubOptions.cs`
 
 ## Why This Type Exists
 
-A single authoritative connection registry is required for server-wide operations: connection lookup, fan-out send, force-close, and session-aware management.
+As a stateful server scales, managing the lifecycle of tens of thousands of concurrent connections becomes a performance bottleneck. `ConnectionHub` solves this by:
+- **Shard-Aware Storage**: Fragmenting the connection pool into multiple internal dictionaries to eliminate lock contention during high-concurrency registration and removal.
+- **Atomic Admission Control**: Enforcing global connection limits with configurable drop policies (Drop Oldest vs. Drop Newest).
+- **Session Integration**: Acting as the gateway to the `ISessionStore` for resuming cryptographic states.
 
-## Public Surface
+## Connection Registry Architecture
 
-- properties: `Count`, `SessionStore`, `Statistics`
-- events: `ConnectionUnregistered`, `CapacityLimitReached`
-- registration: `RegisterConnection(...)`, `UnregisterConnection(...)`
-- lookup: `GetConnection(ISnowflake)`, `GetConnection(UInt56)`, `GetConnection(ReadOnlySpan<byte>)`
-- enumeration: `ListConnections()`
-- fan-out: `BroadcastAsync<T>(...)`, `BroadcastWhereAsync<T>(...)`
-- control: `ForceClose(INetworkEndpoint)`, `CloseAllConnections(...)`
-- diagnostics: `GenerateReport()`, `GetReportData()`
-- lifecycle: `Dispose()`
+The following diagram illustrates how the Hub manages its internal shards and handles registration requests.
 
-## Operational Notes
+```mermaid
+flowchart TD
+    Req[RegisterConnection Request] --> Capacity{Capacity Full?}
+    
+    Capacity -->|No| Sharding[Calculate Shard Index - id % ShardCount]
+    Capacity -->|Yes| Policy{DropPolicy?}
+    
+    Policy -->|DropNewest| Reject[Reject with Exception]
+    Policy -->|DropOldest| Evict[Evict Oldest Anonymous Conn]
+    
+    Evict --> Sharding
+    Sharding --> Add[Add to ConcurrentDictionary]
+    Add --> Event[Raise ConnectionUnregistered on Close]
 
-- Connection keys are based on compact ID representation (`UInt56`) for lookup paths.
-- Capacity behavior follows configured drop policy and raises capacity event callbacks.
-- Session operations integrate through `SessionStore`.
+    subgraph Shards[Internal Fragmented Storage]
+        Shard0[Shard 0]
+        Shard1[Shard 1]
+        ShardN[Shard N]
+    end
+
+    Sharding -.-> Shards
+```
+
+## Internal Responsibilities (Source-Verified)
+
+### 1. Dictionary Fragmentation (Sharding)
+The hub splits connections across `ShardCount` internal dictionaries (standard is `ProcessorCount`). 
+- **Hash Spreading**: The `UInt56` Connection ID is hashed to determine which shard owns it.
+- **Concurrency**: This allows multiple CPU cores to register or unregister connections independently without waiting for a global lock on the entire hub.
+
+### 2. Admission and Eviction
+When `MaxConnections` is enabled:
+- **DropNewest**: The default behavior. Rejects new handshakes when the server is full.
+- **DropOldest**: If the hub is full, it identifies the oldest **Anonymous** (not yet authenticated) connection from an internal `ConcurrentQueue` and forcibly evicts it to make room for the new arrival.
+
+### 3. Batched Broadcasting
+Broadcasting to large numbers of clients is performed using `CaptureConnectionSnapshot()`, which rents an array from `ArrayPool<IConnection>` to avoid GC pressure.
+- **Parallel Dispatch**: Broadcasts can be batched to interleave I/O operations and maintain responsive network processing for non-participating clients.
+
+## Public APIs
+
+- `Count`: The total number of live connections (uses `Volatile.Read` for accuracy).
+- `SessionStore`: Access to the underlying session persistence layer.
+- `RegisterConnection(conn)`: Enrolls a new connection (Thread-safe).
+- `GetConnection(id)`: O(1) retrieval by Snowflake ID.
+- `BroadcastAsync<T>(msg, sendFunc)`: High-performance fan-out.
+- `ForceClose(IPEndPoint)`: Terminates all active connections from a specific IP (used by `ConnectionGuard` during DDoS detection).
 
 ## Best Practices
 
-- Use hub as the authoritative live-session registry.
-- Avoid holding long-lived stale connection references outside the hub lifecycle.
-- Monitor capacity events and hub statistics in production.
+!!! tip "Broadcast Filtering"
+    Always use `BroadcastWhereAsync<T>` if you only need to send data to a subset of clients (e.g., players in the same game room). This prevents unnecessary packet serialization for clients that don't need the update.
 
-## Related APIs
+!!! warning "Locking Caution"
+    `ConnectionHub` is thread-safe, but its methods should not be called inside sensitive locks in your application code, as this could lead to deadlocks with internal Shard locks during concurrent unregistration.
+
+## Related Information Paths
 
 - [Connection](./connection.md)
-- [Connection Hub Options](./connection-hub-options.md)
+- [Connection Hub Options](../options/connection-hub-options.md)
+- [Timing Wheel](../time/timing-wheel.md)
 - [Session Store](../session-store.md)

@@ -205,7 +205,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
     #region Properties
 
     /// <summary>
-    /// Gets the ProtocolType of cached instances.
+    /// Gets the number of cached instances.
     /// </summary>
     [Pure]
     public int CachedInstanceCount => _instanceCache.Count;
@@ -1187,3 +1187,4 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
     #endregion Slow Paths & Activators
 }
+

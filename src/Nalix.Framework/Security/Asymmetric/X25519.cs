@@ -50,8 +50,11 @@ public static class X25519
         priv[31] &= 127;
         priv[31] |= 64;
 
-        X25519KeyPair key = new() { PrivateKey = new Bytes32(priv) };
-        key.PublicKey = new Bytes32(Curve25519.ScalarMultiplication(priv, Curve25519.Basepoint));
+        X25519KeyPair key = new()
+        {
+            PrivateKey = new Bytes32(priv),
+            PublicKey = new Bytes32(Curve25519.ScalarMultiplication(priv, Curve25519.Basepoint))
+        };
         return key;
     }
 
@@ -63,8 +66,11 @@ public static class X25519
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static X25519KeyPair GenerateKeyFromPrivateKey(Bytes32 privateKey)
     {
-        X25519KeyPair key = new() { PrivateKey = privateKey };
-        key.PublicKey = new Bytes32(Curve25519.ScalarMultiplication(privateKey.AsSpan(), Curve25519.Basepoint));
+        X25519KeyPair key = new()
+        {
+            PrivateKey = privateKey,
+            PublicKey = new Bytes32(Curve25519.ScalarMultiplication(privateKey.AsSpan(), Curve25519.Basepoint))
+        };
         return key;
     }
 
@@ -76,8 +82,5 @@ public static class X25519
     /// <param name="otherPublicKey">The remote 32-byte public key.</param>
     /// <returns>A 32-byte shared secret that can be used for session key derivation.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static Bytes32 Agreement(Bytes32 myPrivateKey, Bytes32 otherPublicKey)
-    {
-        return new Bytes32(Curve25519.ScalarMultiplication(myPrivateKey.AsSpan(), otherPublicKey.AsSpan()));
-    }
+    public static Bytes32 Agreement(Bytes32 myPrivateKey, Bytes32 otherPublicKey) => new(Curve25519.ScalarMultiplication(myPrivateKey.AsSpan(), otherPublicKey.AsSpan()));
 }

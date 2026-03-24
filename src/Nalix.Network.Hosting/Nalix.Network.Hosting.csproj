@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -11,6 +11,14 @@
 		<Description><![CDATA[
 Nalix.Network.Hosting provides Microsoft-style host and builder APIs for Nalix.Network. It wires packet registry discovery, packet dispatch, configuration application, and TCP listener lifecycle into a familiar builder/build/start workflow for quickly bootstrapping Nalix-based servers.
 		]]></Description>
+
+		<PackageReleaseNotes><![CDATA[
+- Unified Server Bootstrapping: Simplified Microsoft-style host builder APIs for seamless TCP and UDP transport orchestration.
+- Pluggable Security Hooks: Added support for custom UDP authentication predicates and security filtering directly during the build phase.
+- Coordinated Lifecycle: Advanced management of configuration reloads, dispatch activation, and listener startup for robust service availability.
+- Dependency-Injection Integration: Streamlined registration of core network services into the standard Nalix InstanceManager.
+		]]></PackageReleaseNotes>
+		
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

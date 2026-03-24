@@ -1,78 +1,56 @@
 # Packet Context
 
-`PacketContext<TPacket>` is the pooled runtime context passed through middleware and handler execution.
+`PacketContext<TPacket>` is the state object that represents a single packet execution within the Nalix runtime. It provides access to the packet payload, connection attributes, and metadata, while managing response-sending logic.
 
-## Audit Summary
+## Context Lifecycle & Pooling
 
-- Existing page had useful context but included generic claims not tied to explicit API boundaries.
-- Needed stronger mapping between interface contract (`IPacketContext<TPacket>`) and concrete lifecycle in `PacketContext<TPacket>`.
-
-## Missing Content Identified
-
-- Clear distinction between public contract members and runtime-managed setters/lifecycle.
-- Explicit note that initialization is runtime-internal and contexts are pool-returned, not user-constructed per request.
-
-## Improvement Rationale
-
-A precise lifecycle model helps contributors avoid context misuse and unnecessary allocations.
-
-## Source Mapping
-
-- `src/Nalix.Common/Networking/Packets/IPacketContext.cs`
-- `src/Nalix.Runtime/Dispatching/PacketContext.cs`
-
-## Why This Type Exists
-
-Handlers need a single object that carries packet, connection, metadata, sender, and cancellation state. The runtime also needs this object to be reusable across high-throughput dispatch loops.
-
-## Contract Surface (`IPacketContext<TPacket>`)
-
-- `Packet`
-- `Connection`
-- `Attributes`
-- `Sender`
-- `CancellationToken`
-- `SkipOutbound`
-
-## Runtime Lifecycle (`PacketContext<TPacket>`)
+To achieve ultra-low GC pressure, `PacketContext` instances are heavily pooled. The following diagram illustrates the lifecycle of a context object from the pool to execution and back.
 
 ```mermaid
 stateDiagram-v2
     [*] --> Pooled
-    Pooled --> InUse: Initialize(...)
-    InUse --> Returned: Return()
-    Returned --> Pooled: ResetForPool()
-```
-
-### Lifecycle notes
-
-- Runtime initializes context via internal `Initialize(...)`.
-- `Sender` is automatically rented and attached during initialization.
-- `Return()` is guarded to avoid double-return races.
-- `ResetForPool()` clears references and returns nested sender to pool.
-
-## Practical Example
-
-```csharp
-public static async ValueTask HandleAsync(IPacketContext<MyPacket> context)
-{
-    MyPacket packet = context.Packet;
-
-    if (!context.SkipOutbound)
-    {
-        await context.Sender.SendAsync(new MyReply());
+    
+    Pooled --> InUse: 1. Rent (ObjectPoolManager)
+    InUse --> Initialized: 2. Initialize(Packet, Conn, Meta)
+    
+    state Execution {
+        Initialized --> Middleware
+        Middleware --> Handler
+        Handler --> Outbound
     }
-}
+    
+    Execution --> Returned: 3. Return()
+    Returned --> Pooled: 4. ResetForPool()
 ```
 
-## Best Practices
+## Why pooling is essential
 
-- Prefer `context.Sender` over direct socket sends when handler metadata should apply.
-- Treat `PacketContext<TPacket>` as runtime-owned; avoid retaining references beyond handler scope.
-- Use `SkipOutbound` only for intentional outbound middleware bypass scenarios.
+In a system processing tens of thousands of packets per second, creating a new context object for every request would overwhelm the Garbage Collector. Nalix uses a generic `ObjectPoolManager` to:
+- **Minimize Gen0 Allocations**: The object remains in memory and is reused millions of times.
+- **Pre-allocation**: Contexts are pre-allocated during startup based on the `PoolingOptions.PacketContextPreallocate` setting.
+- **Reference Cleanup**: Strict Reset/Return protocols ensure that application data from one request doesn't "leak" into the next request.
+
+## Core Interface: `IPacketContext<TPacket>`
+
+The context provides several critical properties for handler developers:
+
+| Property | Description |
+|---|---|
+| **`Packet`** | The strongly-typed deserialized packet payload. |
+| **`Connection`** | The source `IConnection` including IP, identity, and custom attributes. |
+| **`Sender`** | A pooled `IPacketSender` for responding to this specific context. |
+| **`Attributes`** | Read-only metadata resolved during dispatch (Ops, permissions). |
+| **`CancellationToken`** | A token linked to the dispatch loop or connection shutdown. |
+
+## Memory Safety Rules
+
+1.  **Handoff Exclusion**: Once a handler completes, the `PacketContext` is automatically returned to the pool. **Do not** store a reference to the context outside the handler scope.
+2.  **Sender Usage**: Always use `context.Sender` to respond. The internal sender object is also pooled and is synchronized with the context's reliable/unreliable transport state.
+3.  **Manual Return**: In advanced scenarios (like bypass dispatching), you must call `.Return()` to ensure the object is placed back in the pool and reference-cleaned.
 
 ## Related APIs
 
-- [Packet Sender](./packet-sender.md)
-- [Packet Metadata](./packet-metadata.md)
 - [Packet Dispatch](./packet-dispatch.md)
+- [Packet Metadata](./packet-metadata.md)
+- [Packet Sender](./packet-sender.md)
+- [Object Pooling](../../framework/memory/object-pooling.md)

@@ -45,8 +45,7 @@ public sealed class PacketRegistryTests : IDisposable
             opCode: 0x0001,
             type: ControlType.PING,
             sequenceId: 42,
-            reasonCode: ProtocolReason.NONE,
-            transport: ProtocolType.TCP);
+            reasonCode: ProtocolReason.NONE);
 
         byte[] bytes = original.Serialize();
         IPacket packet = _catalog.Deserialize(bytes);
@@ -59,7 +58,7 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.Equal(original.SequenceId, result.SequenceId);
         Assert.Equal(original.Type, result.Type);
         Assert.Equal(original.Reason, result.Reason);
-        Assert.Equal(original.Protocol, result.Protocol);
+        Assert.Equal(original.Flags, result.Flags);
         Assert.Equal(original.Priority, result.Priority);
     }
 
@@ -119,7 +118,7 @@ public sealed class PacketRegistryTests : IDisposable
             publicKey: publicKey,
             nonce: nonce,
             proof: proof,
-            transport: ProtocolType.TCP);
+            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
         original.TranscriptHash = hash;
 
         byte[] bytes = original.Serialize();
@@ -128,7 +127,7 @@ public sealed class PacketRegistryTests : IDisposable
         Handshake result = Assert.IsType<Handshake>(packet);
         Assert.Equal(original.OpCode, result.OpCode);
         Assert.Equal(original.MagicNumber, result.MagicNumber);
-        Assert.Equal(original.Protocol, result.Protocol);
+        Assert.Equal(original.Flags, result.Flags);
         Assert.Equal(original.Stage, result.Stage);
         Assert.Equal(publicKey, result.PublicKey);
         Assert.Equal(nonce, result.Nonce);
@@ -165,7 +164,7 @@ public sealed class PacketRegistryTests : IDisposable
             publicKey: Bytes32.Zero,
             nonce: Bytes32.Zero,
             proof: Bytes32.Zero,
-            transport: ProtocolType.UDP);
+            flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
         byte[] bytes = original.Serialize();
 
         IPacket packet = _catalog.Deserialize(bytes);
@@ -188,7 +187,8 @@ public sealed class PacketRegistryTests : IDisposable
             reason: ProtocolReason.NONE,
             action: ProtocolAdvice.RETRY,
             sequenceId: 123,
-            flags: ControlFlags.NONE,
+            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+            controlFlags: ControlFlags.NONE,
             arg0: 0xDEAD,
             arg1: 0xBEEF,
             arg2: 0xFF);
@@ -209,7 +209,7 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.Equal(original.Arg1, result.Arg1);
         Assert.Equal(original.Arg2, result.Arg2);
         Assert.Equal(original.Priority, result.Priority);
-        Assert.Equal(original.Protocol, result.Protocol);
+        Assert.Equal(original.Flags, result.Flags);
     }
 
     [Fact]
@@ -311,8 +311,7 @@ public sealed class PacketRegistryTests : IDisposable
         public ushort OpCode { get; set; }
         public PacketFlags Flags { get; set; }
         public PacketPriority Priority { get; set; }
-        public ProtocolType Protocol { get; set; }
-        public uint SequenceId => 0;
+        public ushort SequenceId => 0;
 
         public byte[] Serialize() => new byte[PacketConstants.HeaderSize];
 

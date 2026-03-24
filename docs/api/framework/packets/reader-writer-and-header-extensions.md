@@ -20,7 +20,7 @@ This page covers the low-level helper APIs around `DataReader`, `DataWriter`, an
 |---|---|
 | `DataReaderExtensions` | `ReadByte`, `ReadUInt16`, `ReadUInt32`, `ReadInt32`, `ReadInt64`, `ReadUInt64`, `ReadBoolean`, `ReadEnumByte`, `ReadEnumUInt16`, `ReadEnumUInt32`, `ReadBytes`, `ReadRemainingBytes`, `ReadUnmanaged`, `Remaining` |
 | `DataWriterExtensions` | `Write`, `WriteEnum`, `WriteUnmanaged` overloads for primitive, span, enum, and unmanaged values |
-| `HeaderExtensions` | `ReadMagicNumberLE`, `ReadOpCodeLE`, `ReadFlagsLE`, `WriteFlagsLE`, `ReadPriorityLE`, `ReadTransportLE`, `ReadSequenceIdLE` |
+| `HeaderExtensions` | `ReadMagicNumberLE`, `ReadOpCodeLE`, `ReadFlagsLE`, `WriteFlagsLE`, `ReadPriorityLE`, `ReadSequenceIdLE` |
 
 ## When to use these helpers
 
@@ -84,8 +84,7 @@ Useful methods include:
 - `ReadFlagsLE()`
 - `WriteFlagsLE(flags)`
 - `ReadPriorityLE()`
-- `ReadTransportLE()`
-- `ReadSequenceIdLE()`
+- `ReadSequenceIdLE()` (returns `ushort`)
 
 ## Basic usage
 

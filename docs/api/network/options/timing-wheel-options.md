@@ -30,5 +30,5 @@ A standardized structure supports quicker onboarding and lowers documentation re
 
 ## Related APIs
 
-- [Timing Wheel](../timing-wheel.md)
+- [Timing Wheel](../time/timing-wheel.md)
 - [TCP Listener](../tcp-listener.md)

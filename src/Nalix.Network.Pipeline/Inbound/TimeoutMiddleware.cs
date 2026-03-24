@@ -65,7 +65,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
                 directive.Initialize(
                     ControlType.TIMEOUT, ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY,
                     sequenceId: context.Packet.SequenceId,
-                    flags: ControlFlags.IS_TRANSIENT,
+                    controlFlags: ControlFlags.IS_TRANSIENT,
                     arg0: (uint)(timeout / 100));
 
                 using BufferLease lease = BufferLease.Rent(directive.Length + 32);

@@ -1,10 +1,10 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -95,7 +95,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             }
 
             ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes = new();
-            ConcurrentDictionary<string, INamedTypeSymbol> controllerNames = new(System.StringComparer.OrdinalIgnoreCase);
+            ConcurrentDictionary<string, INamedTypeSymbol> controllerNames = new(StringComparer.OrdinalIgnoreCase);
 
             startContext.RegisterSymbolAction(
                 symbolContext => AnalyzeNamedType(symbolContext, symbols, globalOpcodes, controllerNames),
@@ -279,7 +279,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private static void AnalyzePopulateMethod(
         SymbolAnalysisContext context,
         INamedTypeSymbol typeSymbol,
@@ -819,7 +818,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private static void AnalyzeDeserializeOverloads(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols)
     {
         // NALIX052 is a packet-shape rule. Skip utility/static helper types that

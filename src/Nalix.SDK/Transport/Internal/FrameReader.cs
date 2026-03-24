@@ -71,7 +71,7 @@ internal sealed class FrameReader : IDisposable
                     await RECEIVE_EXACTLY_ASYNC(s, headerMemory, token).ConfigureAwait(false);
 
                     ushort totalLen = BinaryPrimitives.ReadUInt16LittleEndian(headerMemory.Span);
-                    if (totalLen < TcpSession.HeaderSize || totalLen > _options.MaxPacketSize)
+                    if (totalLen < TcpSession.HeaderSize)
                     {
                         throw new SocketException((int)SocketError.ProtocolNotSupported);
                     }

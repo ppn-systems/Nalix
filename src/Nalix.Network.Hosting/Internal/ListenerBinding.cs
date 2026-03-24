@@ -66,3 +66,4 @@ internal readonly struct ListenerBinding
         this.ProtocolType = protocolType;
     }
 }
+

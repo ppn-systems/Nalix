@@ -32,9 +32,9 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
         get;
         set
         {
-            if (value is < 1 or > 65535)
+            if (value < 1)
             {
-                throw new System.ArgumentOutOfRangeException(nameof(value), "Port must be between 1 and 65535.");
+                throw new System.ArgumentOutOfRangeException(nameof(value), "Port must be at least 1 (0 is not allowed).");
             }
 
             field = value;
@@ -58,7 +58,7 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Indicates whether to use IPv6 instead of IPv4.
     /// </summary>
     [IniComment("Listen on IPv6 instead of IPv4")]
-    public bool EnableIPv6 { get; set; }
+    public bool EnableIPv6 { get; set; } = false;
 
     /// <summary>
     /// Gets or sets whether Nagle's algorithm is disabled (low-latency mode).
@@ -69,16 +69,16 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
     /// </summary>
-    [IniComment("Maximum simultaneous parallel connections (minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxParallel must be at least 1.")]
+    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 5)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxParallel must be between 1 and 1024.")]
     public int MaxParallel { get; set; } = 5;
 
     /// <summary>
     /// Gets or sets the buffer size for both sending and receiving data.
     /// </summary>
-    [IniComment("Send and receive buffer size in bytes (64–10,485,760)")]
-    [System.ComponentModel.DataAnnotations.Range(64, 10_485_760, ErrorMessage = "BufferSize must be between 512 and 10MiB (10,485,760 bytes).")]
-    public int BufferSize { get; set; } = 1500;
+    [IniComment("Send and receive buffer size in bytes (1024–10,485,760)")]
+    [System.ComponentModel.DataAnnotations.Range(2048, 10_485_760, ErrorMessage = "BufferSize must be between 2048B and 10MiB (10,485,760 bytes).")]
+    public int BufferSize { get; set; } = 65536;
 
     /// <summary>
     /// Gets or sets a value indicating whether TCP Keep-Alive is enabled.
@@ -134,7 +134,7 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Default 1400 avoids IP fragmentation.
     /// </summary>
     [IniComment("Maximum allowed UDP datagram size in bytes to avoid fragmentation (default 1400)")]
-    [System.ComponentModel.DataAnnotations.Range(64, 65535, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65535.")]
+    [System.ComponentModel.DataAnnotations.Range(64, 65507, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65507.")]
     public int MaxUdpDatagramSize { get; set; } = 1400;
 
     /// <summary>

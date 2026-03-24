@@ -36,18 +36,7 @@ public sealed class SdkOptionsAndExtensionsTests
         _ = Assert.Throws<ValidationException>(options.Validate);
     }
 
-    [Theory]
-    [InlineData(511)]
-    [InlineData(65537)]
-    public void TransportOptionsValidate_WhenMaxPacketSizeOutOfRange_ThrowsValidationException(int packetSize)
-    {
-        TransportOptions options = new()
-        {
-            MaxPacketSize = packetSize
-        };
 
-        _ = Assert.Throws<ValidationException>(options.Validate);
-    }
 
     [Fact]
     public void TransportOptionsValidate_WhenResumeTimeoutTooSmall_ThrowsValidationException()

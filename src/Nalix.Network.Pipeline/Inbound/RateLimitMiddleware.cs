@@ -94,7 +94,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                 directive.Initialize(
                     ControlType.FAIL, ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
                     sequenceId: context.Packet.SequenceId,
-                    flags: ControlFlags.IS_TRANSIENT,
+                    controlFlags: ControlFlags.IS_TRANSIENT,
                     arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
                     arg1: (uint)decision.RetryAfterMs,
                     arg2: decision.Credit);

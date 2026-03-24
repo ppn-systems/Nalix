@@ -9,7 +9,6 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -35,7 +34,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     #region Properties
 
     /// <inheritdoc/>
-    public ProtocolType Protocol
+    public bool IsReliable
     {
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get;
@@ -134,7 +133,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
         this.Packet = default!;
         this.Connection = default!;
         this.Attributes = default!;
-        this.Protocol = ProtocolType.NONE;
+        this.IsReliable = false;
     }
 
     #endregion Constructor
@@ -147,7 +146,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     /// <param name="packet">The packet to process.</param>
     /// <param name="connection">The connection associated with the packet.</param>
     /// <param name="descriptor">The metadata describing the packet.</param>
-    /// <param name="protocol"></param>
+    /// <param name="reliable">Whether the packet was received over a reliable transport.</param>
     /// <param name="token">The cancellation token for the context.</param>
     /// <remarks>
     /// This method marks the pooled instance as in use before populating the
@@ -155,14 +154,14 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     /// </remarks>
     /// <exception cref="InternalErrorException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor, ProtocolType protocol, CancellationToken token = default)
+    internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor, bool reliable, CancellationToken token = default)
     {
         _ = Interlocked.Exchange(ref _state, (int)PacketContextState.InUse);
 
         this.Packet = packet ?? throw new ArgumentNullException(nameof(packet));
         this.Connection = connection ?? throw new ArgumentNullException(nameof(connection));
         this.Attributes = descriptor;
-        this.Protocol = protocol;
+        this.IsReliable = reliable;
         this.CancellationToken = token;
 
         PacketSender<TPacket> sender = s_object.Get<PacketSender<TPacket>>();
@@ -197,7 +196,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
             this.Packet = default!;
             this.Attributes = default!;
             this.Connection = default!;
-            this.Protocol = ProtocolType.NONE;
+            this.IsReliable = false;
 
             _isInitialized = false;
         }

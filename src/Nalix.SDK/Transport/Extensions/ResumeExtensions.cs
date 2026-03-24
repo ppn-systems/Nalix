@@ -48,7 +48,7 @@ public static class ResumeExtensions
         _ = session.Options.SessionToken.TryWriteBytes(tokenBytes);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption.
-        HmacKeccak256.Compute(session.Options.Secret, tokenBytes[..7], proofBytes);
+        HmacKeccak256.Compute(session.Options.Secret.AsSpan(), tokenBytes[..7], proofBytes);
         request.Proof = new Bytes32(proofBytes);
 
         try
@@ -143,7 +143,7 @@ public static class ResumeExtensions
             // HandshakeAsync itself may enable encryption; only restore if it didn't.
             if (!session.Options.EncryptionEnabled)
             {
-                session.Options.EncryptionEnabled = previousEncryption && session.Options.Secret.Length > 0;
+                session.Options.EncryptionEnabled = previousEncryption && !session.Options.Secret.IsZero;
             }
         }
     }
@@ -153,5 +153,5 @@ public static class ResumeExtensions
     /// </summary>
     /// <param name="options">The transport options to inspect.</param>
     /// <returns><see langword="true"/> when the session has a token and secret.</returns>
-    private static bool HasResumeState(TransportOptions options) => !options.SessionToken.IsEmpty && options.Secret is { Length: > 0 };
+    private static bool HasResumeState(TransportOptions options) => !options.SessionToken.IsEmpty && !options.Secret.IsZero;
 }
