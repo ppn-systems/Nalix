@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using Nalix.Common.Primitives;
 using Nalix.Framework.Security.Hashing;
+using Nalix.Framework.Security.Primitives;
 
 namespace Nalix.Framework.Security;
 
@@ -60,6 +61,11 @@ public static class HandshakeX25519
     /// <summary>
     /// Composes the initial transcript buffer from public keys and nonces to compute the transcript hash.
     /// </summary>
+    /// <remarks>
+    /// This API is kept for compatibility and returns raw transcript bytes.
+    /// Callers should wipe the returned buffer with
+    /// <see cref="Nalix.Framework.Security.Primitives.MemorySecurity.ZeroMemory(byte[])"/> after hashing.
+    /// </remarks>
     public static byte[] ComposeTranscriptBuffer(Bytes32 clientPublicKey, Bytes32 clientNonce, Bytes32 serverPublicKey, Bytes32 serverNonce)
     {
         int total = (sizeof(int) * 4)
@@ -72,12 +78,37 @@ public static class HandshakeX25519
         Span<byte> destination = buffer;
         int offset = 0;
 
-        offset = WriteSegment(destination, offset, clientPublicKey.AsSpan());
-        offset = WriteSegment(destination, offset, clientNonce.AsSpan());
-        offset = WriteSegment(destination, offset, serverPublicKey.AsSpan());
-        _ = WriteSegment(destination, offset, serverNonce.AsSpan());
+        try
+        {
+            offset = WriteSegment(destination, offset, clientPublicKey.AsSpan());
+            offset = WriteSegment(destination, offset, clientNonce.AsSpan());
+            offset = WriteSegment(destination, offset, serverPublicKey.AsSpan());
+            _ = WriteSegment(destination, offset, serverNonce.AsSpan());
 
-        return buffer;
+            return buffer;
+        }
+        catch
+        {
+            MemorySecurity.ZeroMemory(buffer);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Computes the handshake transcript hash from public keys and nonces,
+    /// and securely clears the temporary heap buffer after hashing.
+    /// </summary>
+    public static Bytes32 ComputeTranscriptHash(Bytes32 clientPublicKey, Bytes32 clientNonce, Bytes32 serverPublicKey, Bytes32 serverNonce)
+    {
+        byte[] buffer = ComposeTranscriptBuffer(clientPublicKey, clientNonce, serverPublicKey, serverNonce);
+        try
+        {
+            return Keccak256.HashDataToFixed(buffer);
+        }
+        finally
+        {
+            MemorySecurity.ZeroMemory(buffer);
+        }
     }
 
     #endregion Public Methods
@@ -92,11 +123,18 @@ public static class HandshakeX25519
         Span<byte> destination = buffer;
         int offset = 0;
 
-        offset = WriteSegment(destination, offset, label);
-        offset = WriteSegment(destination, offset, segment0);
-        _ = WriteSegment(destination, offset, segment1);
+        try
+        {
+            offset = WriteSegment(destination, offset, label);
+            offset = WriteSegment(destination, offset, segment0);
+            _ = WriteSegment(destination, offset, segment1);
 
-        return Keccak256.HashDataToFixed(buffer);
+            return Keccak256.HashDataToFixed(buffer);
+        }
+        finally
+        {
+            MemorySecurity.ZeroMemory(buffer);
+        }
     }
 
     private static Bytes32 ComputeDigest(ReadOnlySpan<byte> label, ReadOnlySpan<byte> segment0, ReadOnlySpan<byte> segment1, ReadOnlySpan<byte> segment2, ReadOnlySpan<byte> segment3)
@@ -112,13 +150,20 @@ public static class HandshakeX25519
         Span<byte> destination = buffer;
         int offset = 0;
 
-        offset = WriteSegment(destination, offset, label);
-        offset = WriteSegment(destination, offset, segment0);
-        offset = WriteSegment(destination, offset, segment1);
-        offset = WriteSegment(destination, offset, segment2);
-        _ = WriteSegment(destination, offset, segment3);
+        try
+        {
+            offset = WriteSegment(destination, offset, label);
+            offset = WriteSegment(destination, offset, segment0);
+            offset = WriteSegment(destination, offset, segment1);
+            offset = WriteSegment(destination, offset, segment2);
+            _ = WriteSegment(destination, offset, segment3);
 
-        return Keccak256.HashDataToFixed(buffer);
+            return Keccak256.HashDataToFixed(buffer);
+        }
+        finally
+        {
+            MemorySecurity.ZeroMemory(buffer);
+        }
     }
 
     private static int WriteSegment(Span<byte> destination, int offset, ReadOnlySpan<byte> value)

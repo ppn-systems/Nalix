@@ -81,8 +81,28 @@ public abstract partial class UdpListenerBase
             s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}", ex);
 
             // Brief delay to prevent tight error loops on synchronous failure.
-            _ = Task.Delay(50, _cancellationToken).ContinueWith(_ => this.StartReceive(args), TaskScheduler.Default);
+            _ = this.RetryStartReceiveAsync(args, _cancellationToken);
         }
+    }
+
+    [DebuggerStepThrough]
+    private async Task RetryStartReceiveAsync(PooledUdpReceiveEventArgs args, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (Volatile.Read(ref _isDisposed) != 0 || _socket is null || cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        this.StartReceive(args);
     }
 
     [DebuggerStepThrough]
@@ -203,9 +223,10 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        // --- 3. IP pinning gate (SEC-30) ---
+        // --- 3. Endpoint pinning gate (SEC-30) ---
         if (connection.NetworkEndpoint is null ||
-            !string.Equals(connection.NetworkEndpoint.Address, ((IPEndPoint)remoteEndPoint).Address.ToString(), StringComparison.Ordinal))
+            remoteEndPoint is not IPEndPoint remoteIpEndPoint ||
+            !this.IsPinnedEndpointMatch(connection.NetworkEndpoint, remoteIpEndPoint))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
             lease.Dispose();
@@ -272,6 +293,28 @@ public abstract partial class UdpListenerBase
             // Dispose the original wrapping lease; the inner buffer was either transferred or rejected.
             lease.Dispose();
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool IsPinnedEndpointMatch(INetworkEndpoint pinnedEndPoint, IPEndPoint remoteEndPoint)
+    {
+        IPAddress remoteAddress = remoteEndPoint.Address;
+        if (remoteAddress.IsIPv4MappedToIPv6)
+        {
+            remoteAddress = remoteAddress.MapToIPv4();
+        }
+
+        if (!string.Equals(pinnedEndPoint.Address, remoteAddress.ToString(), StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (pinnedEndPoint.HasPort && pinnedEndPoint.Port != remoteEndPoint.Port)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>

@@ -96,8 +96,11 @@ public static class HandshakeExtensions
 
         Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecretEE, sharedSecretSE);
 
-        Bytes32 transcriptHash = Handshake.ComputeTranscriptHash(
-            HandshakeX25519.ComposeTranscriptBuffer(clientKey.PublicKey, clientNonce, serverHello.PublicKey, serverHello.Nonce));
+        Bytes32 transcriptHash = HandshakeX25519.ComputeTranscriptHash(
+            clientKey.PublicKey,
+            clientNonce,
+            serverHello.PublicKey,
+            serverHello.Nonce);
 
         Bytes32 expectedProof = HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash);
         if (serverHello.Proof != expectedProof)

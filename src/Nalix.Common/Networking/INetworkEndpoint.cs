@@ -29,7 +29,8 @@ public interface INetworkEndpoint
     /// </summary>
     /// <value>
     /// A normalized IPv4 or IPv6 address string that does not include
-    /// port information.
+    /// port information. For authentication/pinning checks, compare this
+    /// value together with <see cref="Port"/> when <see cref="HasPort"/> is true.
     /// </value>
     /// <remarks>
     /// The returned value must be stable and suitable for equality

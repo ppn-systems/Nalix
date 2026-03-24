@@ -1244,31 +1244,64 @@ public sealed class ConnectionHub : IConnectionHub
         {
             SessionEntry session = _sessionStore.CreateSession(connection);
 
-            // Fire-and-forget storage to avoid blocking the critical unregistration path.
-            // Capture metadata early to avoid potential race conditions if the connection is recycled.
             ILogger? logger = _logger;
             ISnowflake id = connection.ID;
+            int attributeCount = connection.Attributes.Count;
 
-            _ = Task.Run(async () =>
+            ValueTask storeTask;
+            try
             {
-                try
-                {
-                    await _sessionStore.StoreAsync(session).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
-                }
-            });
+                storeTask = _sessionStore.StoreAsync(session);
+            }
+            catch (Exception ex)
+            {
+                session.Return();
+                logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
+                return;
+            }
 
-            if (_logger?.IsEnabled(LogLevel.Debug) == true)
+            if (storeTask.IsCompletedSuccessfully)
             {
-                _logger.Debug($"[NW.{nameof(ConnectionHub)}] auto-persist queued id={connection.ID} attributes={connection.Attributes.Count}");
+                if (logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    logger.Debug($"[NW.{nameof(ConnectionHub)}] auto-persist done id={id} attributes={attributeCount}");
+                }
+
+                return;
+            }
+
+            // Keep unregistration non-blocking, but ensure cleanup if persistence fails.
+            _ = PersistSessionAsync(storeTask, session, logger, id);
+
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.Debug($"[NW.{nameof(ConnectionHub)}] auto-persist queued id={id} attributes={attributeCount}");
             }
         }
         catch (Exception ex)
         {
             _logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-prepare-error id={connection.ID}");
+        }
+    }
+
+    private static async Task PersistSessionAsync(ValueTask storeTask, SessionEntry session, ILogger? logger, ISnowflake id)
+    {
+        bool stored = false;
+        try
+        {
+            await storeTask.ConfigureAwait(false);
+            stored = true;
+        }
+        catch (Exception ex)
+        {
+            logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
+        }
+        finally
+        {
+            if (!stored)
+            {
+                session.Return();
+            }
         }
     }
 
