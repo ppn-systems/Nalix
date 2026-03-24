@@ -8,7 +8,7 @@
 
 | Component            | Description                                                                                          |
 |----------------------|------------------------------------------------------------------------------------------------------|
-| **ReliableClient**   | TCP client with auto-reconnect, heartbeat, framing, bandwidth stats. Implements `IClientConnection`. |
+| **TcpSessionBase / TcpSession / IoTTcpSession** | Reliable TCP session stack: shared base plumbing, TcpSession (auto-reconnect, heartbeat monitor, bandwidth stats) and IoTTcpSession (IoT-friendly connect guard). |
 | **UnreliableClient** | Lightweight UDP client for low-latency, best-effort messaging.                                       |
 | **Extensions**       | Fluent control/directive builders, handshake (X25519), time sync, throttle handling, subscriptions.  |
 | **Configuration**    | `TransportOptions` and related settings.                                                             |
@@ -20,15 +20,15 @@
 
 |                                                    Document | Description                                                |
 |-------------------------------------------------------------|------------------------------------------------------------|
-| [ReliableClient](./ReliableClient.md)                       | Connect, send/receive, events, reconnect, heartbeat.       |
-| [ReliableClient Extensions](./ReliableClient-Extensions.md) | Subscriptions, handshake, time sync, directives, throttle. |
+| [TcpSession](./TcpSession.md)                       | Connect, send/receive, events, reconnect, heartbeat, framing, and transport options.       |
+| [TcpSession Extensions](./TcpSession-Extensions.md) | Subscription helpers, control directives, handshake, throttling, directives, and request/response helpers. |
 
 ---
 
 ## Quick Start
 
 ```csharp
-var client = new ReliableClient();
+var client = new TcpSession();
 client.OnConnected += (s, _) => { /* ... */ };
 client.OnMessageReceived += (s, buf) => { /* handle packet; dispose buf if ownership taken */ };
 

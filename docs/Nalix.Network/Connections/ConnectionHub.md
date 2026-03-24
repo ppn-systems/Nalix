@@ -11,6 +11,7 @@ It combines high-throughput sharding with robust concurrency, bulk ops, username
   - All connections are partitioned by ID across multiple dictionaries (per-CPU by default) for fast, lock-free access and O(1) concurrency scaling.
 - **Username/user ID bi-directional map:**  
   - Efficient and safe handling of username associations, rebinding, and reverse lookups.
+  - Applies regex/trim/length policies (configurable via ConnectionHubOptions) when associating usernames.
 - **Anonymous/evictable queue:**  
   - Automatic O(1)-amortized eviction of "anonymous" (non-authenticated) connections under connection pressure.
 - **Optimized broadcast:**  
@@ -80,6 +81,11 @@ Console.WriteLine(hub.GenerateReport());
 | `GenerateReport()`                                  | Produces a summary report (stats & per-connection listing)         |
 | `Dispose()`                                         | Cleans up all resources, forcibly disconnects all connections      |
 
+## Events
+
+- `ConnectionUnregistered` is raised after a connection is removed; subscribe to clean up per-connection caches/middleware when the hub drops a client.
+
+
 ---
 
 ## Diagnostics Example
@@ -128,6 +134,7 @@ ID             | Username
 - For broadcast-heavy environments, tune `BroadcastBatchSize` as needed.
 - Always call `Dispose()` on shutdown to avoid dangling socket resources.
 
+- Subscribe to `ConnectionUnregistered` to release per-connection caches or middleware state when a connection leaves the hub.
 ---
 
 ## License
