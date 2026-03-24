@@ -1,143 +1,99 @@
-# TcpListenerBase Library — Extensible High-Performance TCP Listener Framework for .NET
+# TcpListenerBase — TCP acceptor, limiter, and dispatch bootstrapper
 
-`TcpListenerBase` is an extensible .NET library for building production-grade TCP servers.  
-It provides a thread-safe, event-driven, protocol-agnostic base with built-in features for resource pooling, parallelism, throttling, error handling, time sync, and diagnostics.  
-**You inherit from this base to quickly build new custom TCP network listeners for any protocol or business domain**.
+`TcpListenerBase` is the main TCP server foundation in Nalix.Network. It owns the listening socket, accept workers, connection limiter, object-pool setup, process-channel backpressure, timing-wheel integration, and the handoff from newly accepted sockets into `Protocol.OnAccept(...)`.
 
----
+## Mapped sources
 
-## Key Features
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.Core.cs`
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.PublicMethods.cs`
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.Handle.cs`
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.ProcessChannel.cs`
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.SocketConfig.cs`
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.Metrics.cs`
 
-- **Protocol-Agnostic**: Plug in any `IProtocol` implementation; not tied to a specific wire/protocol format.
-- **High Performance**: Supports max-parallel accept workers (scales with multicore CPUs).
-- **Object Pooling**: Uses object pools for all async accept/event arg contexts (zero-copy, low-latency).
-- **Connection Limiting/Throttling**: With `ConnectionLimiter` for DDoS control and resource fairness.
-- **Time Sync Integration**: Optionally integrates with external/process-wide time sync systems for distributed time correctness.
-- **Advanced Socket Tuning**: Supports IPv4/IPv6 dual mode, configurable socket options (KeepAlive, buffer sizes, backlog, reuse address).
-- **Graceful Shutdown**: Clean resource teardown, robust error propagation, never leaks sockets.
-- **Diagnostics and Reporting**: Full runtime state/metrics dump via `GenerateReport()`.
-- **Windows IOCP Thread Pool Tuning**: Auto-tune minimum thread count for high-concurrency scenarios (optional).
+## Main responsibilities
 
----
+- validate and load `NetworkSocketOptions`
+- tune thread-pool minima on Windows when `TuneThreadPool` is enabled
+- create / configure the listen socket
+- accept incoming sockets in parallel
+- reject abusive endpoints via `ConnectionLimiter`
+- initialize `Connection` objects and wire their events
+- queue accepted connections into a bounded process channel
+- invoke `Protocol.OnAccept(...)` on the dedicated process thread
+- manage `TimingWheel` activation when idle timeout tracking is enabled
 
-## Usage Example
+## Startup flow
 
-```csharp
-// Define your custom protocol handler implementing IProtocol
-public class EchoProtocol : IProtocol
-{
-    public void OnAccept(IConnection connection, CancellationToken ct) { ... }
-    public void ProcessMessage(IConnection connection, IMessage msg) { ... }
-    // ... more protocol methods
-}
+`Activate(ct)` currently does the following:
 
-// Inherit from TcpListenerBase for your specific server/service
-public class DemoListener : TcpListenerBase
-{
-    public DemoListener(IProtocol protocol) : base(protocol) { }
-    // Optionally override methods or add hooks/events
-}
+1. refuses startup if `MaxParallel < 1`
+2. transitions `STOPPED -> STARTING -> RUNNING`
+3. creates a linked cancellation source and registers `SCHEDULE_STOP()`
+4. initializes the listen socket when needed
+5. optionally activates `TimingWheel`
+6. schedules `MaxParallel` accept workers via `TaskManager`
+7. starts the process channel thread with `START_PROCESS_CHANNEL(...)`
 
-// Setup, start, and stop your listener
-var listener = new DemoListener(new EchoProtocol());
-listener.Activate();                  // Start accept loop(s)
-Console.WriteLine(listener.GenerateReport());
-listener.Deactivate();                // Graceful shutdown
-listener.Dispose();
-```
+## Accept path
 
----
+Each accept worker runs `AcceptConnectionsAsync(...)`:
 
-## Configuration
+- accepts one socket via `CreateConnectionAsync(...)`
+- enforces `ConnectionLimiter`
+- creates a `Connection`
+- wires `OnCloseEvent`, `OnProcessEvent`, and `OnPostProcessEvent`
+- registers the connection in `TimingWheel` if timeout support is enabled
+- dispatches the connection to the process channel
 
-Configure via the library's options classes:
+The code also keeps a synchronous `AcceptNext(...)` / `HandleAccept(...)` path using pooled `SocketAsyncEventArgs`, but the async worker loop is the normal flow described by the current public lifecycle.
 
-- **NetworkSocketOptions**: Parallelism, buffer, keep-alive, reuse, backlog, enable timeouts, IPv6
-- **PoolingOptions**: Max/preallocation for async event and context objects  
-Configure through your DI container, config manager, or code.
+## Process channel
 
----
+Accepted connections are not processed directly on the accept worker. Instead:
 
-## Activation, timeout & shutdown flow
+- producers write `IConnection` into a bounded channel
+- one dedicated background thread drains that channel at `BelowNormal` priority
+- `DISPATCH_CONNECTION(...)` drops new writes when the channel is full
+- dropped connections increment rejected metrics and are closed immediately
 
-`Activate(ct)` mirrors the current implementation:
+This design protects packet-processing callbacks from being starved by bursts of new accepts.
 
-- Validates `MaxParallelAccepts` ≥ 1, binds the socket (IPv4/IPv6), and resets the listener state.
-- Schedules `MaxParallelAccepts` accept workers through `TaskManager.ScheduleWorker`, tagging them for easy cancellation, and records their IDs for later cleanup.
-- When `NetworkSocketOptions.EnableTimeout` is `true`, it activates the shared `TimingWheel` so idle connections are auto-disconnected. The wheel is wired to `TimingWheelOptions`.
-- Launches the dispatcher process channel which hands accepted sockets over to `ProcessChannel` for `IProtocol`/middleware handling.
-- Sets `_acceptWorkerIds`, `ConnectionHub`, and `ConnectionLimiter` so the listener can report stats and enforce global limits.
+## Shutdown flow
 
-`Deactivate(ct)` transitions state to `STOPPING`, cancels the worker token, closes the socket, stops the process channel, cancels the `TaskManager` worker group, drains `ConnectionHub` (closing all connections), and deactivates the `TimingWheel`. The method also logs state transitions so instrumentation can detect fast shutdown/resume cycles.
+`Deactivate(ct)`:
 
-Graceful disposal ensures acceptors are removed, connection pools are released, and background timers/cleanup jobs are stopped before the listener returns to `STOPPED`.
+- transitions `RUNNING/STARTING -> STOPPING`
+- cancels the linked CTS
+- closes the listen socket
+- stops the process channel
+- cancels the listener worker group
+- closes all active connections through `ConnectionHub`
+- deactivates `TimingWheel` when enabled
+- returns the state to `STOPPED`
 
----
+`Dispose()` calls `Deactivate()`, unsubscribes from `TimeSynchronizer`, closes the socket, and disposes the internal semaphore / cancellation resources.
 
-## Technical Highlights
+## Diagnostics
 
-- Synchronous and asynchronous accept logic (wait, handle, process)
-- Connection initialization is safe, separated from socket event reuse
-- Robust close/teardown sequence ensures no event leaks or double-dispose
-- Fully supports both IPv4 and IPv6
-- Pooling and parallelization are always safe for concurrent loads
-- Custom protocol instances are injected per service (no inheritance lock-in)
-- Time synchronization event (`IsTimeSyncEnabled`) available for tightly-timed distributed systems
-- Diagnostics ("report") include config, live connections, protocol, thread pool
+`GenerateReport()` prints:
 
-## Diagnostics & Runtime Telemetry
+- port, state, and disposal flag
+- socket configuration values
+- accept/reject/error metrics
+- bound protocol name
+- active connection count from `ConnectionHub`
+- current thread-pool minima
+- whether time sync is enabled
 
-`GenerateReport()` builds the status dump shown in `TcpListener.PublicMethods.GenerateReport()`: it prints the active port, listener `State`, the socket configuration (timeout flag, parallel accept count, buffer size, keep-alive, reuse/address options, backlog), metrics (total accepted, rejected, errors), the bound protocol name, active connection count via `ConnectionHub`, threading minima, and time-sync status (`IsTimeSyncEnabled`). This mirrors the live string logged in production for alerting/health checks.
+## Notes
 
-Use the report in monitoring dashboards or admin UIs to capture listener health before/after deployments.
+- `IsTimeSyncEnabled` can only be changed while the listener is stopped.
+- `ConnectionLimiter` is created in the constructor and attached to every accepted connection close path.
+- Pool capacities for accept contexts, listener contexts, and socket args are configured from `PoolingOptions` during construction.
 
----
+## See also
 
-## Diagnostics Example
-
-Call `listener.GenerateReport()` for an instant snapshot:
-
-```log
-[2026-03-12 14:15:00] TcpListenerBase Status:
-Port                : 8090
-StateWrapper        : RUNNING
-Disposed            : 0
-
-Configuration:
---------------------------------------------
-EnableTimeout       : True
-MaxParallelAccepts  : 4
-BufferSize          : 8192
-...
-```
-
----
-
-## Extending & Customization
-
-- Override protected methods (`Dispose`, `SynchronizeTime`, etc.) for custom lifecycle or monitoring.
-- You can further extend your inherited class for metrics/admin endpoints, connection tracking, etc.
-- Works seamlessly with any dependency injection system via `IProtocol`/DI containers.
-
----
-
-## When should you use this lib?
-
-- New .NET system/service needs custom TCP server logic — and you want production-grade connection handling, pooling, error recovery out of the box.
-- You want to separate business protocol from the low-level socket accept/bind cycle (composition, not inheritance lock-in).
-- You need live diagnostics, resource safety, or distributed time sync features in your TCP server.
-
----
-
-## License
-
-Licensed under the Apache License, Version 2.0.  
-Copyright (c) 2025-2026 PPN Corporation.
-
----
-
-## See Also
-
-- [Protocol documentation](../Protocol/README.md)
-- [PoolingOptions reference](../Configuration/PoolingOptions.md)
-- [NetworkSocketOptions reference](../Configuration/NetworkSocketOptions.md)
+- [Protocol README](../Protocol/README.md)
+- [ConnectionLimiter](../Throttling/ConnectionLimiter.md)
+- [NetworkSocketOptions](../Configuration/NetworkSocketOptions.md)
