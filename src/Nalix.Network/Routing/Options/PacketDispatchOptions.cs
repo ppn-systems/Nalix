@@ -82,5 +82,11 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public ILogger Logging { get; private set; }
 
+    /// <summary>
+    /// Specifies how many dispatch loops the <see cref="PacketDispatchChannel"/> should start.
+    /// When <see langword="null"/>, the dispatcher chooses <c>Math.Clamp(Environment.ProcessorCount / 2, 1, 12)</c>.
+    /// </summary>
+    public System.Int32? DispatchLoopCount { get; private set; }
+
     #endregion Properties
 }

@@ -4,15 +4,56 @@
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Time;
+using Nalix.Network.Internal.Transport;
 using Nalix.Network.Routing.Results.Primitives;
 using Nalix.Shared.Memory.Buffers;
+using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Connections;
 
 public sealed partial class Connection : IConnection
 {
-    /// <inheritdoc/>
-    public IConnection.IUdp GetOrCreateUDP() => throw new System.NotImplementedException();
+    /// <inheritdoc />
+    public IConnection.IUdp GetOrCreateUDP(ref System.Net.IPEndPoint iPEndPoint)
+    {
+        if (_udp == null)
+        {
+            _udp = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                           .Get<UdpTransport>();
+
+            _udp.Initialize(ref iPEndPoint);
+        }
+
+        return _udp;
+    }
+
+    /// <inheritdoc />
+    public void IncrementErrorCount() => System.Threading.Interlocked.Increment(ref _errorCount);
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    internal void InjectIncoming(IBufferLease lease)
+    {
+        _cstream.Cache.LastPingTime = (System.Int64)Clock.UnixTime().TotalMilliseconds;
+        lease.Retain(); // Retain for callback
+
+        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        args.Initialize(lease, this);
+
+        System.Boolean queued = AsyncCallback.Invoke(OnProcessEventBridge, this, args);
+
+#if DEBUG
+        s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{InjectIncoming}] inject-bytes len={lease.Length}");
+#endif
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    internal void ReleasePendingPacket() => _cstream.OnPacketProcessed();
     #region User Datagram Protocol
 
     /// <inheritdoc />
