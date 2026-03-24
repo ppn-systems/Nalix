@@ -68,6 +68,24 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     public event System.Action<IConnection> ConnectionUnregistered;
 
+    /// <summary>
+    /// Raised when a limit is reached (e.g., max connections) and a connection is rejected.
+    /// </summary>
+    public event System.EventHandler<ConnectionHubEventArgs> CapacityLimitReached;
+
+    /// <summary>
+    /// Gets the current statistics snapshot for this connection hub.
+    /// </summary>
+    public ConnectionHubStatistics Statistics =>
+        new(
+            connectionCount: _count,
+            maxConnections: _options.MaxConnections,
+            dropPolicy: _options.DropPolicy,
+            shardCount: _shardCount,
+            anonymousQueueDepth: _anonymousQueue.Count,
+            evictedConnections: _evictedConnections,
+            rejectedConnections: _rejectedConnections);
+
     #endregion Properties
 
     #region Constructor
@@ -87,7 +105,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _options.Validate();
 
-        _shardCount = System.Environment.ProcessorCount;
+        _shardCount = System.Math.Max(1, _options.ShardCount);
         System.Int32 concurrencyLevel = System.Environment.ProcessorCount * 2;
 
         _shards = new();
@@ -690,6 +708,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Int64 sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = System.Int64.MaxValue;
 
         System.Text.StringBuilder sb = new();
+        ConnectionHubStatistics stats = this.Statistics;
         System.Collections.Generic.Dictionary<System.String, System.Int32> algoCounts = new(System.StringComparer.OrdinalIgnoreCase);
         System.Collections.Generic.Dictionary<System.String, System.Int32> statusCounts = new(System.StringComparer.OrdinalIgnoreCase);
 
@@ -699,6 +718,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _ = sb.AppendLine($"Authenticated Users  : {_usernames.Count}");
         _ = sb.AppendLine($"Evicted Connections  : {_evictedConnections}");
         _ = sb.AppendLine($"Rejected Connections : {_rejectedConnections}");
+        _ = sb.AppendLine($"Shard Count          : {stats.ShardCount}");
+        _ = sb.AppendLine($"Anonymous Queue Depth: {stats.AnonymousQueueDepth}");
+        _ = sb.AppendLine($"Max Connections      : {(stats.MaxConnections < 0 ? "Unlimited" : stats.MaxConnections.ToString())}");
+        _ = sb.AppendLine($"Drop Policy          : {stats.DropPolicy}");
 
         foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
         {
@@ -844,35 +867,37 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         switch (_options.DropPolicy)
         {
             case DropPolicy.DROP_NEWEST:
-                newConnection.Disconnect("connection limit reached");
-                System.Threading.Interlocked.Increment(ref _rejectedConnections);
-                break;
-
-            case DropPolicy.DROP_OLDEST:
-                // Efficient eviction: use queue of anonymous IDs and dequeue until we find a valid anonymous to evict.
-                while (_anonymousQueue.TryDequeue(out ISnowflake oldestId))
                 {
-                    System.Int32 shardIndex = GetShardIndex(oldestId);
-                    System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
-
-                    // if the ID is still present and still anonymous (no username mapped) -> evict
-                    if (shard.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
-                    {
-                        s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
-
-                        oldestConn.Disconnect("evicted to make room for new connection");
-                        return;
-                    }
-
-                    // otherwise continue to next queued id (stale or already authenticated)
+                    this.NotifyCapacityLimit(newConnection, "drop-newest");
+                    newConnection.Disconnect("connection limit reached");
+                    System.Threading.Interlocked.Increment(ref _rejectedConnections);
+                    break;
                 }
 
-                // No anonymous connections found, reject new connection instead
-                s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
+            case DropPolicy.DROP_OLDEST:
+                {
+                    while (_anonymousQueue.TryDequeue(out ISnowflake oldestId))
+                    {
+                        System.Int32 shardIndex = GetShardIndex(oldestId);
+                        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
-                newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
-                System.Threading.Interlocked.Increment(ref _evictedConnections);
-                break;
+                        if (shard.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
+                        {
+                            s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
+                            this.NotifyCapacityLimit(newConnection, "evict-oldest");
+
+                            oldestConn.Disconnect("evicted to make room for new connection");
+                            return;
+                        }
+                    }
+
+                    s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
+                    this.NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
+
+                    newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
+                    System.Threading.Interlocked.Increment(ref _evictedConnections);
+                    break;
+                }
         }
     }
 
@@ -912,5 +937,22 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         }
     }
 
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void NotifyCapacityLimit(IConnection newConnection, System.String reason)
+    {
+        ConnectionHubEventArgs args = new(
+            dropPolicy: _options.DropPolicy,
+            currentConnections: _count,
+            maxConnections: _options.MaxConnections,
+            triggeredConnectionId: newConnection?.ID,
+            reason: reason ?? System.String.Empty,
+            snapshot: this.Statistics);
+
+        this.CapacityLimitReached?.Invoke(this, args);
+    }
+
     #endregion Private Methods
 }
+
+
