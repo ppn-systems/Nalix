@@ -1,81 +1,46 @@
-# ConnectionHubOptions — Configuration for ConnectionHub Pooling, Limits, & Broadcast
+# ConnectionHubOptions — ConnectionHub tuning surface
 
-The `ConnectionHubOptions` class configures capacity, username, concurrency, and broadcast behavior in your `ConnectionHub`, a central component for large-scale .NET backend connection management.
+`ConnectionHubOptions` configures capacity planning, username policy, sharding, broadcast batching, disconnect parallelism, and latency logging for `ConnectionHub`.
 
----
+## Mapped source
 
-## Key Properties
+- `src/Nalix.Network/Configurations/ConnectionHubOptions.cs`
 
-| Property                    | Type    | Default         | Description                                                                   |
-|-----------------------------|---------|-----------------|-------------------------------------------------------------------------------|
-| `InitialConnectionCapacity` | int     | 1024            | Initial connection map capacity (dictionary size).                            |
-| `InitialUsernameCapacity`   | int     | 1024            | Initial username map capacity.                                                |
-| `MaxConnections`            | int     | -1              | Max number of concurrent connections allowed (-1: unlimited).                 |
-| `DropPolicy`                | enum    | DROP_NEWEST     | What to do when max is reached (`DROP_NEWEST`, `DROP_OLDEST`).                |
-| `MaxUsernameLength`         | int     | 64              | Maximum allowed username length (characters).                                 |
-| `TrimUsernames`             | bool    | true            | Automatically trim whitespace from usernames on associate.                    |
-| `ParallelDisconnectDegree`  | int     | -1              | Max number of parallel tasks for disconnects (-1: use ThreadPool default).    |
-| `BroadcastBatchSize`        | int     | 0               | Batch size when broadcasting (0: disables batching).                          |
-| `UnregisterDrainMillis`     | int     | 0               | Milliseconds to wait after OnCloseEvent before fully unregistering.           |
-| `IsEnableLatency`           | bool    | true            | Enables latency/perf diagnostics logging in registration and broadcasts.      |
+## Properties
 
----
+| Property | Default | Meaning |
+|---|---:|---|
+| `InitialConnectionCapacity` | `1024` | Initial sizing hint for connection storage. |
+| `InitialUsernameCapacity` | `1024` | Initial sizing hint for username maps. |
+| `MaxConnections` | `-1` | Max live connections. `-1` means unlimited. |
+| `DropPolicy` | `DROP_NEWEST` | What `ConnectionHub` does when `MaxConnections` is reached. |
+| `MaxUsernameLength` | `64` | Username length cap after trimming. |
+| `TrimUsernames` | `true` | Trim leading and trailing whitespace before storing usernames. |
+| `ParallelDisconnectDegree` | `-1` | Max degree of parallelism for bulk disconnects. |
+| `BroadcastBatchSize` | `0` | Batch size for broadcast fan-out. `0` disables batching. |
+| `ShardCount` | `Environment.ProcessorCount` | Number of connection shards used internally. |
+| `UnregisterDrainMillis` | `0` | Delay budget before unregistering on close. |
+| `IsEnableLatency` | `true` | Enables latency timing logs for register / unregister / broadcast paths. |
 
-## Validation Rules
+## Validation rules
 
-- All values are validated at runtime.
-- `MaxConnections = 0` is forbidden (use `-1` for unlimited).
-- `MaxUsernameLength` must be in [1, 1024].
-- `InitialConnectionCapacity` and `InitialUsernameCapacity` must be ≥ 1.
-- `ParallelDisconnectDegree = 0` is forbidden (use `-1` for default).
-- Throws at startup on misconfiguration.
+`Validate()` enforces:
 
----
+- `InitialConnectionCapacity >= 1`
+- `InitialUsernameCapacity >= 1`
+- `MaxConnections` must be `-1` or positive, but not `0`
+- `MaxUsernameLength` must be between `1` and `1024`
+- `ParallelDisconnectDegree` must be `-1` or positive, but not `0`
+- `BroadcastBatchSize >= 0`
+- `ShardCount >= 1`
+- `UnregisterDrainMillis >= 0`
 
-## Usage Example
+## Operational notes
 
-```csharp
-var options = new ConnectionHubOptions
-{
-    MaxConnections = 5000,
-    DropPolicy = DropPolicy.DROP_OLDEST,
-    BroadcastBatchSize = 100,
-    InitialConnectionCapacity = 4096,
-    // ...other tuning as required
-};
-options.Validate();
-var hub = new ConnectionHub(); // Will auto-pick up these options via configuration system
-```
+- `ShardCount` directly affects how many internal dictionaries `ConnectionHub` creates.
+- `DropPolicy.DROP_OLDEST` only evicts anonymous connections; authenticated users are not candidates in that branch.
+- `IsEnableLatency` is useful for diagnostics, but it increases log volume.
 
----
+## See also
 
-## Notes
-
-- **DropPolicy:**
-  - `DROP_NEWEST`: New connection is rejected when at capacity.
-  - `DROP_OLDEST`: Oldest anonymous is evicted to make room.
-- **Performance:**  
-  - Batch & parallel controls are critical for massive-scale broadcast or disconnect ops.
-  - Enable `IsEnableLatency` for on-call or perf-tuning environments only.
-
----
-
-## Troubleshooting
-
-- If hit user/connection mapping limits, raise initial capacities.
-- If registration latency logging is noisy, disable `IsEnableLatency`.
-- In heavy broadcast environments, increase `BroadcastBatchSize` for throughput.
-
----
-
-## License
-
-Licensed under the Apache License, Version 2.0.  
-Copyright (c) 2025 PPN Corporation.
-
----
-
-## See Also
-
-- [PoolingOptions.md](./PoolingOptions.md)
-- [ConnectionHub.md](../Connections/ConnectionHub.md)
+- [ConnectionHub](../Connections/ConnectionHub.md)

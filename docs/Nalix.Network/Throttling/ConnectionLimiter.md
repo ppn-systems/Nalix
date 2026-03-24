@@ -1,150 +1,89 @@
-# ConnectionLimiter — Per-Endpoint & Per-IP Connection Rate Limiting for .NET Servers
+# ConnectionLimiter — Per-endpoint connection guard for Nalix.Network
 
-The `ConnectionLimiter` class provides robust, high-throughput, thread-safe limiting of concurrent connections and connection attempts **per network endpoint** (usually per-ip) in modern .NET servers.  
-It prevents resource abuse (DoS, DDoS, client floods), safeguards fairness, and enables automatic cleanup of old state.
+`ConnectionLimiter` enforces concurrent-connection caps and connection-attempt rate limits per remote endpoint. It is designed for the TCP accept path, where you want to reject abusive sources early, ban burst offenders for a short period, and keep limiter state bounded over time.
 
----
+## Mapped source
 
-## Key Features
+- `src/Nalix.Network/Throttling/ConnectionLimiter.cs`
 
-- **Maximum concurrent connections per endpoint:**  
-  Limits the number of simultaneous open connections per unique client/source.
-- **Sliding-window rate limiting:**  
-  Rejects endpoints exceeding a burst attempt window (e.g., too many connects/sec = DDoS/ping-of-death).
-- **Temporary banning ("IP jail"):**  
-  Endpoints exceeding the rate window are temporarily banned, and existing connections forcibly closed.
-- **Throttled logging:**  
-  Suppresses excessive log spam; emits summary with suppression count.
-- **Memory and resource cleanup:**  
-  Inactive endpoint state is cleaned up periodically (configurable), so memory use remains predictable.
-- **Metrics and diagnostics:**  
-  Track attempt, rejection, and cleanup counts.  
-  Detailed `GenerateReport()` output shows top endpoints by load, connection counts, timestamps, and global reject rate.
-- **Thread-safe for concurrency:**  
-  Internal state is synchronized, safe for use from multiple listeners/accept loops.
+## What the implementation does
 
----
+- Tracks one `ConnectionLimitEntry` per `INetworkEndpoint` in a concurrent dictionary.
+- Enforces `MaxConnectionsPerIpAddress` as the live concurrent cap.
+- Enforces `MaxConnectionsPerWindow` within `ConnectionRateWindow` using a timestamp queue per endpoint.
+- Applies a temporary ban (`BanDuration`) when the rate window is exceeded.
+- Schedules a recurring cleanup job through `TaskManager` using the static recurring name `conn.limit`.
+- Emits throttled logs for reject, ban, DDoS, and close events so hot IPs do not flood the logger.
+- Builds a pooled snapshot in `GenerateReport()` and sorts endpoints by current load.
 
 ## Configuration
 
-`ConnectionLimiter` is driven by `ConnectionLimitOptions`:
+`ConnectionLimiter` reads `ConnectionLimitOptions` from `ConfigurationManager` unless you pass options into the constructor.
 
-- `MaxConnectionsPerIpAddress`: concurrent connection cap per address.
-- `MaxConnectionsPerWindow` + `ConnectionRateWindow`: sliding window for counting attempts before a ban.
-- `BanDuration`: how long to remain denied after the rate window is exceeded.
-- `DDoSLogSuppressWindow`: suppress repeated reject logs per endpoint within this interval.
-- `CleanupInterval` & `InactivityThreshold`: clean up idle entries to keep memory usage bounded.
+Important options:
 
-Load them via `ConfigurationManager.Instance.Get<ConnectionLimitOptions>()` or pass the options directly to the constructor, and run `Validate()` during startup to ensure values are within their documented ranges.
+| Option | Meaning |
+|---|---|
+| `MaxConnectionsPerIpAddress` | Maximum simultaneous connections for one endpoint. |
+| `MaxConnectionsPerWindow` | Maximum connection attempts inside the rate window before banning. |
+| `ConnectionRateWindow` | Sliding window used for burst detection. |
+| `BanDuration` | How long an endpoint stays banned after exceeding the attempt window. |
+| `CleanupInterval` | How often the recurring cleanup scans the endpoint table. |
+| `InactivityThreshold` | Idle time before an entry becomes eligible for removal. |
+| `DDoSLogSuppressWindow` | Log suppression window for repeated reject / DDoS / close events. |
 
----
+## Request flow
 
-## Usage
+1. `IsConnectionAllowed(IPEndPoint)` converts the address into `INetworkEndpoint`.
+2. The limiter checks whether the endpoint is still banned.
+3. It trims old timestamps from the endpoint queue.
+4. It rejects if the endpoint already exceeded `MaxConnectionsPerWindow`.
+5. Otherwise it increments `CurrentConnections`, updates `TotalConnectionsToday`, records `LastConnectionTime`, and enqueues the current timestamp.
 
-```csharp
-ConnectionLimiter limiter = new ConnectionLimiter(config);
-if (limiter.IsConnectionAllowed(remoteEndPoint)) {
-    // Accept connection, proceed
-}
-else {
-    // Reject, respond, or drop connection
-}
-```
+When a rate-window violation occurs, the limiter also schedules a background `ConnectionHub.ForceClose(...)` call to disconnect existing connections from that address.
 
-- On connection close, always call:
+## Close path
 
-```csharp
-limiter.OnConnectionClosed(sender, connectEventArgs);
-```
+Wire `OnConnectionClosed(object, IConnectEventArgs)` to every connection shutdown path. That handler:
 
-Or wire this as an event handler in your connection logic.
+- resolves the endpoint from `args.Connection.NetworkEndpoint`
+- decrements `CurrentConnections` with underflow protection
+- updates `LastConnectionTime`
+- trims oversized timestamp queues when a connection count drops to zero
 
-## Integration notes
+If this event is not wired, the limiter can permanently overcount active connections for an IP.
 
-- Call `IsConnectionAllowed()` before accepting a socket so misbehaving IPs are rejected before handshake/processing.
-- Attach `OnConnectionClosed` to each `Connection.OnCloseEvent` path; that event decrements the active count and prevents perpetual bans.
-- The limiter schedules a `TaskManager`-backed cleanup job every `CleanupInterval` seconds that removes entries idle for `InactivityThreshold`.
-- Use `GenerateReport()` for real-time metrics (attempts, rejections, tracked endpoints, suppression stats) in diagnostics dashboards.
+## Cleanup behavior
 
-
----
-
-## DDoS & Ban
-
-- If an endpoint attempts more than the allowed rate window (`MaxConnectionsPerWindow`), it is "banned" for `BanDuration`.
-- All new connections are rejected, and existing ones forcibly closed via `ConnectionHub`.
-- Logging for ban events is throttled and summarized per endpoint.
-
----
-
-## Cleanup & Resource Efficiency
-
-- Periodic scheduled job removes inactive endpoints' state after `InactivityThreshold`.
-- Processed batch-wise for stability/scale (max 1000 keys per run).
-- Resource pools/lists for efficient diagnostic snapshot creation.
-
----
+- Cleanup runs on a recurring background schedule.
+- Each run scans at most `1000` keys.
+- An entry is removable only when it has no active connections, is older than `InactivityThreshold`, and is not still inside a ban window.
+- Removed entries clear their timestamp queues and increment `TotalCleaned`.
 
 ## Diagnostics
 
-Call `limiter.GenerateReport()` for a live snapshot:
+`GenerateReport()` prints:
 
-```log
-[2026-03-12 15:00:00] ConnectionLimiter Status:
-MaxPerEndpoint      : 5
-CleanupInterval     : 60s
-InactivityThreshold : 600s
-TrackedEndpoints    : 29
-TotalConcurrent     : 125
-TotalAttempts       : 5,362
-TotalRejections     : 51
-TotalCleaned        : 5
-RejectionRate       : 0.95%
+- `MaxPerEndpoint`
+- `CleanupInterval`
+- `InactivityThreshold`
+- `TrackedEndpoints`
+- `TotalConcurrent`
+- `TotalAttempts`
+- `TotalRejections`
+- `TotalCleaned`
+- `RejectionRate`
+- the top endpoints by `CurrentConnections` and `TotalConnectionsToday`
 
-Top Endpoints by CurrentConnections:
------------------------------------------------------------------------
-Endpoint                   | Current | Today     | LastUtc
------------------------------------------------------------------------
-123.45.67.89               |      15 |       423 | 2026-03-12 14:59:59Z
-10.10.1.77                 |       9 |        89 | 2026-03-12 14:42:01Z
-...
-------------------------------------------------------------------------
-```
+## Notes
 
----
+- `IsConnectionAllowed(EndPoint)` rejects non-`IPEndPoint` inputs.
+- Counter increments are overflow-protected.
+- Log suppression is per endpoint, using compare-exchange to ensure only one thread emits the summary line for a suppression window.
+- The limiter implements both `IDisposable` and `IAsyncDisposable`; disposal cancels the recurring cleanup job and clears the tracking map.
 
-## Best Practices
+## See also
 
-- **Tune MaxConnectionsPerIpAddress and MaxConnectionsPerWindow** to balance fairness, QoS, and resilience.
-- Wire `.OnConnectionClosed` to every connection’s shutdown path (critical for accurate tracking).
-- Monitor report output for hot spots, overflows, unexpected bans.
-- Leverage cleanup and ban events to proactively block abusive patterns.
-
----
-
-## Thread Safety
-
-- Uses per-entry locks and atomic operations for state changes.
-- Callers may use from any thread; suitable for multi-core acceptor farms.
-
----
-
-## Disposal & Cleanup
-
-- Call `.Dispose()` or `.DisposeAsync()` on process/service shutdown to cleanup jobs and state.
-- Disposing stops cleanup, clears all endpoint state, and releases resources safely.
-
----
-
-## License
-
-Licensed under the Apache License, Version 2.0.  
-Copyright (c) 2025-2026 PPN Corporation.
-
----
-
-## See Also
-
+- [ConnectionLimitOptions](../Configuration/ConnectionLimitOptions.md)
+- [ConnectionHub](../Connections/ConnectionHub.md)
 - [TcpListenerBase](../Listeners/TcpListenerBase.md)
-- [ConnectionLimitOptions](../Configurations/ConnectionLimitOptions.md)
-- [ObjectPoolManager & PoolingOptions](../Configurations/PoolingOptions.md)
