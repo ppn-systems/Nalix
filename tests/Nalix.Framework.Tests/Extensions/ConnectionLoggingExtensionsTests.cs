@@ -109,7 +109,7 @@ public sealed class ConnectionLoggingExtensionsTests
         public IObjectMap<string, object> Attributes { get; } = new ObjectMap<string, object>();
         public IConnection.ITransport TCP { get; } = new TestTransport();
         public IConnection.ITransport UDP { get; } = new TestTransport();
-        public byte[] Secret { get; set; } = [];
+        public Bytes32 Secret { get; set; } = Bytes32.Zero;
         public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
         public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.Chacha20Poly1305;
         public int ErrorCount { get; private set; }

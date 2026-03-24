@@ -113,11 +113,13 @@ public abstract partial class UdpListenerBase
             {
                 // DWORD 0 = false -> disable UDP connection reset
                 const int SIO_UDP_CONNRESET = -1744830452;
-                socket.IOControl(SIO_UDP_CONNRESET, [0, 0, 0, 0], null);
+                _ = socket.IOControl(SIO_UDP_CONNRESET, [0, 0, 0, 0], null);
             }
             catch (SocketException ex)
             {
-                logger.LogDebug(ex, "Unable to disable UDP connection reset (SIO_UDP_CONNRESET). Continuing with default socket behavior.");
+                s_logger?.Error(
+                    "Failed to set SIO_UDP_CONNRESET. " +
+                    "UDP sockets on Windows may throw SocketException(ConnectionReset) when receiving datagrams from unreachable clients.", ex);
             }
         }
     }
