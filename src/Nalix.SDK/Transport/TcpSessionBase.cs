@@ -473,7 +473,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// Protected helper for subclasses to set up frame helpers (_sender/_receiver).
     /// Subclasses should instantiate _sender/_receiver and bind desired error/byte-report callbacks.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(i_socket), nameof(i_sender), nameof(i_receiver))]
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(i_sender), nameof(i_receiver))]
     protected abstract void InitializeFrame();
 
     /// <summary>
@@ -539,7 +539,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     /// </summary>
     protected System.Net.Sockets.Socket RequireConnectedSocket()
     {
-        var s = i_socket;
+        System.Net.Sockets.Socket? s = i_socket;
         return s?.Connected == true
             ? s
             : throw new System.InvalidOperationException("Client not connected.");
