@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Shared.Security.Aead;
 using Nalix.Shared.Security.Internal;
@@ -69,18 +70,18 @@ public static class AeadEngine
     /// </list>
     /// </para>
     /// </remarks>
-    public static System.Boolean Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> ciphertext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
-        System.UInt32? seq, CipherSuiteType algorithm,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 written)
+    public static bool Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> aad,
+        uint? seq, CipherSuiteType algorithm,
+        [System.Diagnostics.CodeAnalysis.NotNull] out int written)
     {
         written = 0;
-        System.UInt32 seqVal = seq ?? Csprng.NextUInt32();
-        System.Int32 total = EnvelopeFormat.HeaderSize + nonce.Length + plaintext.Length + EnvelopeFormat.TagSize;
+        uint seqVal = seq ?? Csprng.NextUInt32();
+        int total = EnvelopeFormat.HeaderSize + nonce.Length + plaintext.Length + EnvelopeFormat.TagSize;
 
         if (ciphertext.Length < total)
         {
@@ -89,9 +90,9 @@ public static class AeadEngine
 
         // Instead of renting a temporary buffer, encrypt directly into the destination
         // ciphertext buffer at the correct offset to avoid Rent/Span slicing issues.
-        System.Int32 ctOffset = EnvelopeFormat.HeaderSize + nonce.Length;
-        System.Span<System.Byte> ctDestination = ciphertext.Slice(ctOffset, plaintext.Length);
-        System.Span<System.Byte> tagDestination = ciphertext.Slice(ctOffset + plaintext.Length, EnvelopeFormat.TagSize);
+        int ctOffset = EnvelopeFormat.HeaderSize + nonce.Length;
+        System.Span<byte> ctDestination = ciphertext.Slice(ctOffset, plaintext.Length);
+        System.Span<byte> tagDestination = ciphertext.Slice(ctOffset + plaintext.Length, EnvelopeFormat.TagSize);
 
         switch (algorithm)
         {
@@ -102,7 +103,9 @@ public static class AeadEngine
             case CipherSuiteType.SALSA20_POLY1305:
                 _ = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
                 break;
-
+            case CipherSuiteType.SALSA20:
+            case CipherSuiteType.CHACHA20:
+                break;
             default:
                 return false;
         }
@@ -137,12 +140,12 @@ public static class AeadEngine
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> envelope,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> plaintext,
-        System.ReadOnlySpan<System.Byte> aad,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
+    public static bool Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
+        System.ReadOnlySpan<byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written)
     {
         written = 0;
 
@@ -151,15 +154,15 @@ public static class AeadEngine
             return false;
         }
 
-        System.Int32 ctLen = env.Ciphertext.Length;
+        int ctLen = env.Ciphertext.Length;
 
         if (plaintext.Length < env.Ciphertext.Length)
         {
             return false;
         }
 
-        System.Int32 result = 0;
-        System.Span<System.Byte> ptSlice = plaintext[..ctLen];
+        int result = 0;
+        System.Span<byte> ptSlice = plaintext[..ctLen];
 
         switch (env.AeadType)
         {
@@ -171,7 +174,9 @@ public static class AeadEngine
             case CipherSuiteType.SALSA20_POLY1305:
                 result = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, aad, env.Tag, ptSlice);
                 break;
-
+            case CipherSuiteType.SALSA20:
+            case CipherSuiteType.CHACHA20:
+                break;
             default:
                 ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
                 break;
