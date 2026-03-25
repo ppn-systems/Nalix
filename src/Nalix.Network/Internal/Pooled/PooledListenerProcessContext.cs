@@ -21,12 +21,12 @@ internal sealed class PooledListenerProcessContext : IPoolable
     /// <summary>
     /// Gets or sets the active connection associated with the current processing context.
     /// </summary>
-    public IConnection Connection;
+    public IConnection? Connection;
 
     /// <summary>
     /// Gets or sets the TCP listener responsible for handling the connection.
     /// </summary>
-    public TcpListenerBase Listener;
+    public TcpListenerBase? Listener;
 
     /// <summary>
     /// Resets the state of the object before returning it to the pool.

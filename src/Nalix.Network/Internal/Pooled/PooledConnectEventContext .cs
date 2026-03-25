@@ -27,17 +27,17 @@ internal sealed class PooledConnectEventContext : IPoolable
     /// <summary>
     /// Gets or sets the event sender.
     /// </summary>
-    public object Sender;
+    public object? Sender;
 
     /// <summary>
     /// Gets or sets the connection event arguments.
     /// </summary>
-    public IConnectEventArgs Args;
+    public IConnectEventArgs Args = default!;
 
     /// <summary>
     /// Gets or sets the callback delegate to invoke.
     /// </summary>
-    public EventHandler<IConnectEventArgs> Callback;
+    public EventHandler<IConnectEventArgs>? Callback;
 
     /// <summary>
     /// Initializes the context with the specified callback, sender, and arguments.
@@ -60,7 +60,7 @@ internal sealed class PooledConnectEventContext : IPoolable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
-        Args = null;
+        Args = default!;
         Sender = null;
         Callback = null;
     }
