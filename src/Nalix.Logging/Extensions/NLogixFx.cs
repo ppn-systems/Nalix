@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.IO;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Engine;
@@ -42,8 +45,8 @@ public static partial class NLogixFx
         {
             FormatLogFileName = (fname) =>
             {
-                return System.IO.Path.GetFileNameWithoutExtension(fname) +
-                       "_{0:yyyy}-{0:MM}-{0:dd}" + System.IO.Path.GetExtension(fname);
+                return Path.GetFileNameWithoutExtension(fname) +
+                       "_{0:yyyy}-{0:MM}-{0:dd}" + Path.GetExtension(fname);
             }
         };
 
@@ -69,9 +72,9 @@ public static partial class NLogixFx
         string source,
         LogLevel messageType,
         object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
+        [CallerMemberName] string callerMemberName = "",
+        [CallerFilePath] string callerFilePath = "",
+        [CallerLineNumber] int callerLineNumber = 0)
     {
         PUBLISH_LOG_ENTRY(
             messageType, message, source, extendedData,
@@ -90,12 +93,12 @@ public static partial class NLogixFx
     /// <param name="callerLineNumber">The caller line ProtocolType.</param>
     public static void Log(
         this string message,
-        System.Type source,
+        Type source,
         LogLevel messageType,
         object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
+        [CallerMemberName] string callerMemberName = "",
+        [CallerFilePath] string callerFilePath = "",
+        [CallerLineNumber] int callerLineNumber = 0)
     {
         PUBLISH_LOG_ENTRY(
             messageType, message, source?.FullName, extendedData,
@@ -112,12 +115,12 @@ public static partial class NLogixFx
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
     public static void Log(
-        this System.Exception ex,
+        this Exception ex,
         string? source = null,
         string? message = null,
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
+        [CallerMemberName] string callerMemberName = "",
+        [CallerFilePath] string callerFilePath = "",
+        [CallerLineNumber] int callerLineNumber = 0)
     {
         if (ex is null)
         {
@@ -139,12 +142,12 @@ public static partial class NLogixFx
     /// <param name="callerFilePath">The caller file path. This is automatically populated.</param>
     /// <param name="callerLineNumber">The caller line ProtocolType. This is automatically populated.</param>
     public static void Log(
-        this System.Exception ex,
-        System.Type? source = null,
+        this Exception ex,
+        Type? source = null,
         string? message = null,
-        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
+        [CallerMemberName] string callerMemberName = "",
+        [CallerFilePath] string callerFilePath = "",
+        [CallerLineNumber] int callerLineNumber = 0)
     {
         if (ex is null)
         {

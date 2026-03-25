@@ -1,6 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Globalization;
+using System.IO;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Environment;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
@@ -11,8 +18,8 @@ namespace Nalix.Logging.Configuration;
 /// <summary>
 /// Configuration options for the file logger.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("File={LogFileName,nq}, Dir={LogDirectory,nq}, MaxSize={MaxFileSizeBytes}")]
+[ExcludeFromCodeCoverage]
+[DebuggerDisplay("File={LogFileName,nq}, Dir={LogDirectory,nq}, MaxSize={MaxFileSizeBytes}")]
 [IniComment("File logger configuration — controls file size, queue, flush behavior, and naming")]
 public sealed class FileLogOptions : ConfigurationLoader
 {
@@ -28,7 +35,7 @@ public sealed class FileLogOptions : ConfigurationLoader
 
     #region Fields
 
-    private static readonly System.TimeSpan DefaultFlushInterval = System.TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan DefaultFlushInterval = TimeSpan.FromSeconds(1);
 
     #endregion Fields
 
@@ -38,7 +45,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// The maximum allowed file size for a log file in bytes.
     /// When this size is reached, a new log file will be created.
     /// </summary>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1KB or greater than 2GB.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is less than 1KB or greater than 2GB.</exception>
     [IniComment("Max log file size in bytes before rotation (min 1024, max 33554432)")]
     public int MaxFileSizeBytes
     {
@@ -50,7 +57,7 @@ public sealed class FileLogOptions : ConfigurationLoader
 
             if (value is < min or > max)
             {
-                throw new System.ArgumentOutOfRangeException(
+                throw new ArgumentOutOfRangeException(
                     nameof(value), $"Value must be between {min} and {max} bytes");
             }
 
@@ -61,7 +68,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <summary>
     /// The maximum number of entries that can be queued before blocking or discarding.
     /// </summary>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
     [IniComment("Maximum log entries in the write queue (minimum 1)")]
     public int MaxQueueSize
     {
@@ -70,7 +77,7 @@ public sealed class FileLogOptions : ConfigurationLoader
         {
             if (value < 1)
             {
-                throw new System.ArgumentOutOfRangeException(
+                throw new ArgumentOutOfRangeException(
                     nameof(value), "Queue size must be at least 1");
             }
 
@@ -89,9 +96,9 @@ public sealed class FileLogOptions : ConfigurationLoader
     {
         get;
         set => field = string.IsNullOrWhiteSpace(value)
-            ? $"log_{System.DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_.log"
+            ? $"log_{DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_.log"
             : value;
-    } = $"log_{System.Environment.MachineName}_.log";
+    } = $"log_{Environment.MachineName}_.log";
 
     /// <summary>
     /// Gets or sets the interval at which log entries are flushed to disk.
@@ -100,7 +107,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// A shorter interval reduces the risk of data loss but may impact performance.
     /// </remarks>
     [IniComment("How often buffered log entries are written to disk (e.g. 00:00:01 = 1 second)")]
-    public System.TimeSpan FlushInterval { get; set; } = DefaultFlushInterval;
+    public TimeSpan FlushInterval { get; set; } = DefaultFlushInterval;
 
     /// <summary>
     /// Gets or sets the behavior when the queue is full.
@@ -122,13 +129,13 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// A custom formatter for the log file name.
     /// </summary>
     [ConfiguredIgnore]
-    public System.Func<string, string>? FormatLogFileName { get; set; }
+    public Func<string, string>? FormatLogFileName { get; set; }
 
     /// <summary>
     /// A custom handler for file errors.
     /// </summary>
     [ConfiguredIgnore]
-    public System.Action<FileError>? HandleFileError { get; set; }
+    public Action<FileError>? HandleFileError { get; set; }
 
     #endregion Properties
 
@@ -137,12 +144,12 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <summary>
     /// Gets full path to the current log file.
     /// </summary>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public string GetFullLogFilePath()
-        => System.IO.Path.Combine(Directories.LogsDirectory, LogFileName);
+        => Path.Combine(Directories.LogsDirectory, LogFileName);
 
     /// <summary>
     /// Builds the exact log file name for a given day and index.
@@ -150,7 +157,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// <param name="date">The date to include in the file name.</param>
     /// <param name="index">The sequence index for the file on the given date.</param>
     /// <returns>The constructed log file name.</returns>
-    public string BuildCustomFileName(System.DateTime date, int index)
+    public string BuildCustomFileName(DateTime date, int index)
     {
         string baseName = LogFileName;
 
@@ -159,16 +166,16 @@ public sealed class FileLogOptions : ConfigurationLoader
             baseName = FormatLogFileName(baseName);
         }
 
-        string ext = System.IO.Path.GetExtension(baseName);
-        string stem = System.IO.Path.GetFileNameWithoutExtension(baseName);
-        string datePart = date.ToString("yy_MM_dd", System.Globalization.CultureInfo.InvariantCulture);
+        string ext = Path.GetExtension(baseName);
+        string stem = Path.GetFileNameWithoutExtension(baseName);
+        string datePart = date.ToString("yy_MM_dd", CultureInfo.InvariantCulture);
         string newName = $"{stem}_{datePart}_{index}{ext}";
 
         if (UsePerProcessSuffix)
         {
-            using System.Diagnostics.Process p = System.Diagnostics.Process.GetCurrentProcess();
+            using Process p = Process.GetCurrentProcess();
             string processSuffix = $"_{p.ProcessName}_{p.Id}";
-            string stemWithProcess = System.IO.Path.GetFileNameWithoutExtension(newName) + processSuffix;
+            string stemWithProcess = Path.GetFileNameWithoutExtension(newName) + processSuffix;
             newName = stemWithProcess + ext;
         }
 
