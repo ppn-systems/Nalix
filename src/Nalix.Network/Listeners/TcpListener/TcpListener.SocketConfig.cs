@@ -240,7 +240,6 @@ public abstract partial class TcpListenerBase
 
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     private static bool IsIgnorableAcceptError(
         SocketError code,
         CancellationToken token)

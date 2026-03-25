@@ -49,7 +49,6 @@ public abstract partial class TcpListenerBase : IListener
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
 
-    [AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly NetworkSocketOptions s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
