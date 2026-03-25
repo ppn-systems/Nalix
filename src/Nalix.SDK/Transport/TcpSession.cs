@@ -657,7 +657,7 @@ public sealed class TcpSession : TcpSessionBase
                         configure: ctrl =>
                         {
                             ctrl.SequenceId = Csprng.NextUInt32();
-                            ctrl.Protocol = ProtocolType.TCP;
+                            ctrl.Protocol = Common.Networking.Protocols.ProtocolType.TCP;
                             ctrl.MonoTicks = Clock.MonoTicksNow();
                             ctrl.Timestamp = Clock.UnixMillisecondsNow();
                         },
