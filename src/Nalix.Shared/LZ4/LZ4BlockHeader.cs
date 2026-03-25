@@ -18,20 +18,20 @@ namespace Nalix.Shared.LZ4;
 [System.Diagnostics.DebuggerDisplay("OrigLen={OriginalLength}, CompLen={CompressedLength}")]
 [System.Runtime.InteropServices.StructLayout(
     System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
-public readonly struct LZ4BlockHeader(System.Int32 originalLength, System.Int32 compressedLength)
+public readonly struct LZ4BlockHeader(int originalLength, int compressedLength)
 {
     /// <summary>
     /// The size of the header structure in bytes. This is the sum of the sizes of the two integer fields.
     /// </summary>
-    public const System.Int32 Size = sizeof(System.Int32) * 2; // 8 bytes
+    public const int Size = sizeof(int) * 2; // 8 bytes
 
     /// <summary>
     /// Gets the original length of the data before compression.
     /// </summary>
-    public readonly System.Int32 OriginalLength = originalLength;
+    public readonly int OriginalLength = originalLength;
 
     /// <summary>
     /// Gets the total length of the compressed data, including the size of the header.
     /// </summary>
-    public readonly System.Int32 CompressedLength = compressedLength;
+    public readonly int CompressedLength = compressedLength;
 }

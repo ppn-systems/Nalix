@@ -98,7 +98,7 @@ public static class DataReaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Boolean ReadBoolean(this ref DataReader reader) => reader.ReadByte() != 0;
 
-    #endregion
+    #endregion Primitive Types
 
     #region Enum Types
 
@@ -138,7 +138,7 @@ public static class DataReaderExtensions
         return System.Runtime.CompilerServices.Unsafe.As<System.UInt32, TEnum>(ref value);
     }
 
-    #endregion
+    #endregion Enum Types
 
     #region Array Types
 
@@ -179,7 +179,7 @@ public static class DataReaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Byte[] ReadRemainingBytes(this ref DataReader reader) => reader.ReadBytes(reader.BytesRemaining);
 
-    #endregion
+    #endregion Array Types
 
     #region Generic Unmanaged
 
@@ -196,7 +196,7 @@ public static class DataReaderExtensions
         return value;
     }
 
-    #endregion
+    #endregion Generic Unmanaged
 
     #region Helper Properties
 
@@ -207,5 +207,5 @@ public static class DataReaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static System.Int32 Remaining(this ref DataReader reader) => reader.BytesRemaining;
 
-    #endregion
+    #endregion Helper Properties
 }

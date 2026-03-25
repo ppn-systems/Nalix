@@ -74,7 +74,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <returns>A list containing the requested objects.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Collections.Generic.List<T> GetMultiple(System.Int32 count)
+    public System.Collections.Generic.List<T> GetMultiple(int count)
     {
         _ = System.Threading.Interlocked.Add(ref _manager._totalGetOperations, count);
         return _pool.GetMultiple<T>(count);
@@ -87,7 +87,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <returns>The ProtocolType of objects removed.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Int32 Trim(System.Int32 percentage = 50)
+    public int Trim(int percentage = 50)
     {
         if (percentage < 0)
         {
@@ -109,11 +109,11 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <returns>The ProtocolType of objects successfully returned to the pool.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Int32 ReturnMultiple(System.Collections.Generic.IEnumerable<T> objects)
+    public int ReturnMultiple(System.Collections.Generic.IEnumerable<T> objects)
     {
         System.ArgumentNullException.ThrowIfNull(objects);
 
-        System.Int32 count = _pool.ReturnMultiple(objects);
+        int count = _pool.ReturnMultiple(objects);
         _ = System.Threading.Interlocked.Add(ref _manager._totalReturnOperations, count);
         return count;
     }
@@ -124,7 +124,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <returns>The ProtocolType of objects removed.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Int32 Clear() => _pool.ClearType<T>();
+    public int Clear() => _pool.ClearType<T>();
 
     /// <summary>
     /// Preallocates objects in the pool.
@@ -133,7 +133,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <returns>The ProtocolType of objects successfully preallocated.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Int32 Prealloc(System.Int32 count) => _pool.Prealloc<T>(count);
+    public int Prealloc(int count) => _pool.Prealloc<T>(count);
 
     /// <summary>
     /// Gets information about this type's pool.
@@ -141,7 +141,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <returns>A dictionary containing pool statistics for this type.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Collections.Generic.Dictionary<System.String, System.Object> GetInfo() => _pool.GetTypeInfo<T>();
+    public System.Collections.Generic.Dictionary<string, object> GetInfo() => _pool.GetTypeInfo<T>();
 
     /// <summary>
     /// Sets the maximum capacity for this type's pool.
@@ -149,7 +149,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// <param name="maxCapacity">The maximum capacity.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetMaxCapacity(System.Int32 maxCapacity) => _pool.SetMaxCapacity<T>(maxCapacity);
+    public void SetMaxCapacity(int maxCapacity) => _pool.SetMaxCapacity<T>(maxCapacity);
 
     #endregion Public Methods
 }

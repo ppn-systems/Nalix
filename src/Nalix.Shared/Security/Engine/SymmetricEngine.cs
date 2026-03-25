@@ -63,15 +63,14 @@ public static class SymmetricEngine
                 chacha.Clear();
                 return true;
 
-
             case CipherSuiteType.SALSA20:
                 written = Salsa20.Encrypt(key, nonce, counter, src, dst);
                 return true;
 
-
             case CipherSuiteType.SALSA20_POLY1305:
             case CipherSuiteType.CHACHA20_POLY1305:
                 return false;
+
             default:
                 ThrowHelper.ThrowNotSupportedException("Unsupported symmetric algorithm");
                 return false;
@@ -164,10 +163,6 @@ public static class SymmetricEngine
     /// <see cref="Encrypt(System.ReadOnlySpan{byte}, System.ReadOnlySpan{byte}, System.Span{byte}, System.ReadOnlySpan{byte}, uint?, CipherSuiteType, out int)"/>.
     /// On success, <paramref name="plaintext"/> is populated and <paramref name="written"/> holds the byte count.
     /// </summary>
-    /// <param name="key"></param>
-    /// <param name="envelope"></param>
-    /// <param name="plaintext"></param>
-    /// <param name="written"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static bool Decrypt(

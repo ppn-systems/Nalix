@@ -24,12 +24,13 @@ internal static class LZ4Encoder
     /// The total number of bytes written to the output buffer (including the header),
     /// or -1 if the output buffer is too small or compression fails.
     /// </returns>
+    /// <exception cref="System.InvalidOperationException"></exception>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static unsafe System.Int32 Encode(System.ReadOnlySpan<System.Byte> input, System.Span<System.Byte> output)
+    public static unsafe int Encode(System.ReadOnlySpan<byte> input, System.Span<byte> output)
     {
         if (input.IsEmpty)
         {
@@ -51,18 +52,18 @@ internal static class LZ4Encoder
 
         // LZ4HashTablePool dùng [ThreadStatic] — không có lock/CAS overhead như ArrayPool.Shared,
         // và tự Clear() bên trong Rent() nên không cần clear thủ công sau khi lấy ra.
-        System.Int32[] table = LZ4HashTablePool.Rent();
+        int[] table = LZ4HashTablePool.Rent();
 
         try
         {
-            fixed (System.Int32* hashTable = table)
+            fixed (int* hashTable = table)
             {
 #if DEBUG
                 System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table pinning failed");
 #endif
 
-                System.Span<System.Byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
-                System.Int32 compressedDataLength =
+                System.Span<byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
+                int compressedDataLength =
                     LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable);
 
                 if (compressedDataLength < 0)
@@ -70,7 +71,7 @@ internal static class LZ4Encoder
                     return -1;
                 }
 
-                System.Int32 totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
+                int totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
 
 #if DEBUG
                 System.Diagnostics.Debug.Assert(
@@ -103,7 +104,7 @@ internal static class LZ4Encoder
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 WriteEmptyHeader(System.Span<System.Byte> output)
+    private static int WriteEmptyHeader(System.Span<byte> output)
     {
         if (output.Length < LZ4BlockHeader.Size)
         {
@@ -118,7 +119,7 @@ internal static class LZ4Encoder
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void WriteHeader(System.Span<System.Byte> output, System.Int32 originalLength, System.Int32 compressedLength)
+    private static void WriteHeader(System.Span<byte> output, int originalLength, int compressedLength)
     {
         LZ4BlockHeader header = new(originalLength, compressedLength);
         MemOps.WriteUnaligned(output, header);

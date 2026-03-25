@@ -3,7 +3,6 @@
 
 using Nalix.Common.Shared;
 
-
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
@@ -20,12 +19,12 @@ namespace Nalix.Shared.Memory.Internal.PoolTypes;
 /// <param name="maxCapacity">The maximum capacity of this pool.</param>
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal class TypePool(System.Int32 maxCapacity)
+internal class TypePool(int maxCapacity)
 {
     #region Fields
 
-    private System.Int32 _count;
-    private System.Int32 _maxCapacity = maxCapacity;
+    private int _count;
+    private int _maxCapacity = maxCapacity;
     private readonly System.Collections.Concurrent.ConcurrentStack<IPoolable> _objects = new();
 
     #endregion Fields
@@ -35,12 +34,12 @@ internal class TypePool(System.Int32 maxCapacity)
     /// <summary>
     /// Gets the ProtocolType of objects available in this pool.
     /// </summary>
-    public System.Int32 AvailableCount => _objects.Count;
+    public int AvailableCount => _objects.Count;
 
     /// <summary>
     /// Gets the maximum capacity of this pool.
     /// </summary>
-    public System.Int32 MaxCapacity => System.Threading.Volatile.Read(ref _maxCapacity);
+    public int MaxCapacity => System.Threading.Volatile.Read(ref _maxCapacity);
 
     #endregion Properties
 
@@ -52,14 +51,14 @@ internal class TypePool(System.Int32 maxCapacity)
     /// <param name="maxCapacity">The maximum capacity of this pool.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetMaxCapacity(System.Int32 maxCapacity)
+    public void SetMaxCapacity(int maxCapacity)
     {
         if (maxCapacity < 0)
         {
             return;
         }
 
-        System.Int32 oldCapacity = System.Threading.Interlocked.Exchange(ref _maxCapacity, maxCapacity);
+        int oldCapacity = System.Threading.Interlocked.Exchange(ref _maxCapacity, maxCapacity);
 
         // If the new capacity is less than the old one, trim the pool
         if (maxCapacity < oldCapacity)
@@ -75,9 +74,9 @@ internal class TypePool(System.Int32 maxCapacity)
     /// <returns>True if the object was added, false if the pool is full.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean TryPush(IPoolable obj)
+    public bool TryPush(IPoolable obj)
     {
-        System.Int32 newCount = System.Threading.Interlocked.Increment(ref _count);
+        int newCount = System.Threading.Interlocked.Increment(ref _count);
 
         if (newCount > _maxCapacity)
         {
@@ -96,7 +95,7 @@ internal class TypePool(System.Int32 maxCapacity)
     /// <returns>True if an object was retrieved, false if the pool is empty.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean TryPop(out IPoolable? obj)
+    public bool TryPop(out IPoolable? obj)
     {
         if (_objects.TryPop(out obj))
         {
@@ -113,9 +112,9 @@ internal class TypePool(System.Int32 maxCapacity)
     /// <returns>The ProtocolType of objects removed.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Int32 Clear()
+    public int Clear()
     {
-        System.Int32 count = _objects.Count;
+        int count = _objects.Count;
         _objects.Clear();
         _ = System.Threading.Interlocked.Exchange(ref _count, 0);
         return count;
@@ -129,7 +128,7 @@ internal class TypePool(System.Int32 maxCapacity)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Int32 Trim(System.Int32 percentage)
+    public int Trim(int percentage)
     {
         if (percentage >= 100)
         {
@@ -144,8 +143,8 @@ internal class TypePool(System.Int32 maxCapacity)
         }
 
         // Calculate the target size
-        System.Int32 targetSize = MaxCapacity * percentage / 100;
-        System.Int32 currentCount = _objects.Count;
+        int targetSize = MaxCapacity * percentage / 100;
+        int currentCount = _objects.Count;
 
         if (currentCount <= targetSize)
         {
@@ -154,10 +153,10 @@ internal class TypePool(System.Int32 maxCapacity)
         }
 
         // Remove objects until we reach the target size
-        System.Int32 toRemove = currentCount - targetSize;
-        System.Int32 removed = 0;
+        int toRemove = currentCount - targetSize;
+        int removed = 0;
 
-        for (System.Int32 i = 0; i < toRemove; i++)
+        for (int i = 0; i < toRemove; i++)
         {
             if (_objects.TryPop(out _))
             {

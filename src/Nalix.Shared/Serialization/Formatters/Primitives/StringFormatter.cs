@@ -8,63 +8,64 @@ using Nalix.Shared.Memory.Buffers;
 namespace Nalix.Shared.Serialization.Formatters.Primitives;
 
 /// <summary>
-/// Provides serialization and deserialization functionality for <see cref="System.String"/> values using UTF-8 encoding.
+/// Provides serialization and deserialization functionality for <see cref="string"/> values using UTF-8 encoding.
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class StringFormatter : IFormatter<System.String>
+public sealed class StringFormatter : IFormatter<string>
 {
     private static readonly System.Text.Encoding Utf8 = System.Text.Encoding.UTF8;
-    private static System.String DebuggerDisplay => "StringFormatter<System.String>";
+    private static string DebuggerDisplay => "StringFormatter<System.String>";
 
     /// <summary>
     /// Serializes a string value into the provided writer.
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string value to serialize.</param>
+    /// <exception cref="SerializationException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public unsafe void Serialize(ref DataWriter writer, System.String value)
+    public unsafe void Serialize(ref DataWriter writer, string value)
     {
         if (value == null)
         {
             // 65535 biểu diễn null
-            FormatterProvider.Get<System.UInt16>()
+            FormatterProvider.Get<ushort>()
                              .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
         if (value.Length == 0)
         {
-            FormatterProvider.Get<System.UInt16>()
+            FormatterProvider.Get<ushort>()
                              .Serialize(ref writer, 0);
             return;
         }
 
         // Tính trước số byte sẽ cần khi encode UTF8
-        System.Int32 byteCount = Utf8.GetByteCount(value);
+        int byteCount = Utf8.GetByteCount(value);
         if (byteCount > SerializerBounds.MaxString)
         {
             throw new SerializationException("The string exceeds the allowed limit.");
         }
 
-        FormatterProvider.Get<System.UInt16>()
-                         .Serialize(ref writer, (System.UInt16)byteCount);
+        FormatterProvider.Get<ushort>()
+                         .Serialize(ref writer, (ushort)byteCount);
 
         if (byteCount > 0)
         {
             writer.Expand(byteCount);
-            ref System.Byte destination = ref writer.GetFreeBufferReference();
+            ref byte destination = ref writer.GetFreeBufferReference();
 
-            fixed (System.Char* src = value)
+            fixed (char* src = value)
             {
-                fixed (System.Byte* dest = &destination)
+                fixed (byte* dest = &destination)
                 {
                     // Encode trực tiếp vào dest
-                    System.Int32 bytesWritten = Utf8.GetBytes(src, value.Length, dest, byteCount);
+                    int bytesWritten = Utf8.GetBytes(src, value.Length, dest, byteCount);
 
                     if (bytesWritten != byteCount)
                     {
@@ -88,14 +89,14 @@ public sealed class StringFormatter : IFormatter<System.String>
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public unsafe System.String Deserialize(ref DataReader reader)
+    public unsafe string Deserialize(ref DataReader reader)
     {
-        System.UInt16 length = FormatterProvider.Get<System.UInt16>()
+        ushort length = FormatterProvider.Get<ushort>()
                                                 .Deserialize(ref reader);
 
         if (length == 0)
         {
-            return System.String.Empty;
+            return string.Empty;
         }
 
         if (length == SerializerBounds.Null)
@@ -108,10 +109,10 @@ public sealed class StringFormatter : IFormatter<System.String>
             throw new SerializationException("String length out of range");
         }
 
-        System.String result;
-        ref System.Byte start = ref reader.GetSpanReference(length);
+        string result;
+        ref byte start = ref reader.GetSpanReference(length);
 
-        fixed (System.Byte* ptr = &start)
+        fixed (byte* ptr = &start)
         {
             result = Utf8.GetString(ptr, length);
         }

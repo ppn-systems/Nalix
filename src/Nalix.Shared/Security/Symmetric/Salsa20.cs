@@ -17,7 +17,7 @@ public static class Salsa20
     /// <summary>
     /// Required nonce length in bytes (64-bit nonce).
     /// </summary>
-    public const System.Byte NonceSize = 8;
+    public const byte NonceSize = 8;
 
     #region Encryption/Decryption Methods
 
@@ -30,14 +30,15 @@ public static class Salsa20
     /// <param name="plaintext">The data to encrypt.</param>
     /// <param name="ciphertext">Buffer to receive the encrypted data; must be at least as large as plaintext.</param>
     /// <returns>Number of bytes written to <paramref name="ciphertext"/>.</returns>
+    /// <exception cref="System.ArgumentException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Int32 Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> ciphertext)
+    public static int Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        ulong counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> ciphertext)
     {
         ValidateKeyAndNonce(key, nonce);
 
@@ -61,12 +62,12 @@ public static class Salsa20
     /// <returns>Number of bytes written to <paramref name="plaintext"/>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Int32 Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> plaintext)
+    public static int Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        ulong counter,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext)
         => Encrypt(key, nonce, counter, ciphertext, plaintext);
 
     #endregion Encryption/Decryption Methods
@@ -76,9 +77,12 @@ public static class Salsa20
     /// <summary>
     /// Validates that <paramref name="key"/> is 16 or 32 bytes and <paramref name="nonce"/> is 8 bytes.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="nonce"></param>
+    /// <exception cref="System.ArgumentException"></exception>
     private static void ValidateKeyAndNonce(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce)
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> nonce)
     {
         if (key.Length is not 16 and not 32)
         {
@@ -94,29 +98,34 @@ public static class Salsa20
     /// <summary>
     /// Core Salsa20 processing: generates keystream block by block and XORs with input data.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="nonce"></param>
+    /// <param name="counter"></param>
+    /// <param name="input"></param>
+    /// <param name="output"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void ProcessData(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        System.ReadOnlySpan<System.Byte> input,
-        System.Span<System.Byte> output)
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> nonce,
+        ulong counter,
+        System.ReadOnlySpan<byte> input,
+        System.Span<byte> output)
     {
-        System.Int32 blockCount = (input.Length + 63) / 64;
-        System.Span<System.Byte> keystream = stackalloc System.Byte[64];
+        int blockCount = (input.Length + 63) / 64;
+        System.Span<byte> keystream = stackalloc byte[64];
 
-        for (System.Int32 i = 0; i < blockCount; i++)
+        for (int i = 0; i < blockCount; i++)
         {
-            System.UInt64 blockCounter = counter + (System.UInt64)i;
+            ulong blockCounter = counter + (ulong)i;
             GenerateKeystreamBlock(key, nonce, blockCounter, keystream);
 
-            System.Int32 offset = i * 64;
-            System.Int32 bytesToProcess = System.Math.Min(64, input.Length - offset);
+            int offset = i * 64;
+            int bytesToProcess = System.Math.Min(64, input.Length - offset);
 
-            for (System.Int32 j = 0; j < bytesToProcess; j++)
+            for (int j = 0; j < bytesToProcess; j++)
             {
-                output[offset + j] = (System.Byte)(input[offset + j] ^ keystream[j]);
+                output[offset + j] = (byte)(input[offset + j] ^ keystream[j]);
             }
         }
     }
@@ -131,16 +140,16 @@ public static class Salsa20
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void GenerateKeystreamBlock(
-        System.ReadOnlySpan<System.Byte> key,
-        System.ReadOnlySpan<System.Byte> nonce,
-        System.UInt64 counter,
-        System.Span<System.Byte> output)
+        System.ReadOnlySpan<byte> key,
+        System.ReadOnlySpan<byte> nonce,
+        ulong counter,
+        System.Span<byte> output)
     {
-        System.Span<System.UInt32> s = stackalloc System.UInt32[16];
+        System.Span<uint> s = stackalloc uint[16];
 
         // Determine constants based on key length (per Salsa20 spec)
-        System.UInt32 c0, c5, c10, c15;
-        System.Boolean is256BitKey = key.Length == 32;
+        uint c0, c5, c10, c15;
+        bool is256BitKey = key.Length == 32;
 
         if (is256BitKey)
         {
@@ -191,17 +200,17 @@ public static class Salsa20
         s[7] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(nonce.Slice(4, 4));
 
         // Counter → s[8] (low 32 bits), s[9] (high 32 bits)
-        s[8] = (System.UInt32)(counter & 0xFFFF_FFFFu);
-        s[9] = (System.UInt32)(counter >> 32);
+        s[8] = (uint)(counter & 0xFFFF_FFFFu);
+        s[9] = (uint)(counter >> 32);
 
         // Copy state into working variables
-        System.UInt32 x0 = s[0], x1 = s[1], x2 = s[2], x3 = s[3],
+        uint x0 = s[0], x1 = s[1], x2 = s[2], x3 = s[3],
                       x4 = s[4], x5 = s[5], x6 = s[6], x7 = s[7],
                       x8 = s[8], x9 = s[9], x10 = s[10], x11 = s[11],
                       x12 = s[12], x13 = s[13], x14 = s[14], x15 = s[15];
 
         // 20 rounds = 10 double-rounds (column then row)
-        for (System.Int32 i = 0; i < 10; i++)
+        for (int i = 0; i < 10; i++)
         {
             // Column rounds (down each column of the 4x4 matrix)
             QuarterRound(ref x0, ref x4, ref x8, ref x12);
@@ -237,12 +246,16 @@ public static class Salsa20
     /// <summary>
     /// Salsa20 Quarter Round operation (per Salsa20 specification).
     /// </summary>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
+    /// <param name="c"></param>
+    /// <param name="d"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void QuarterRound(
-        ref System.UInt32 a, ref System.UInt32 b,
-        ref System.UInt32 c, ref System.UInt32 d)
+        ref uint a, ref uint b,
+        ref uint c, ref uint d)
     {
         b ^= System.Numerics.BitOperations.RotateLeft(a + d, 7);
         c ^= System.Numerics.BitOperations.RotateLeft(b + a, 9);

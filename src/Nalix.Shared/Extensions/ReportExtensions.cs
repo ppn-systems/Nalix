@@ -13,7 +13,7 @@ namespace Nalix.Shared.Extensions;
 /// </summary>
 public static class ReportExtensions
 {
-    private static readonly System.String ReportDir;
+    private static readonly string ReportDir;
 
     static ReportExtensions()
     {
@@ -29,23 +29,23 @@ public static class ReportExtensions
     /// <param name="this">The reportable manager.</param>
     /// <param name="prefix">Optional filename prefix, e.g. "buffer" or "object".</param>
     /// <returns>The full path of the saved report file.</returns>
-    public static System.String SaveReportToFile(this IReportable @this, System.String prefix = "null")
+    public static string SaveReportToFile(this IReportable @this, string prefix = "null")
     {
-        System.String report = @this.GenerateReport();
-        System.String safePrefix = prefix?.ToLowerInvariant() ?? "null";
+        string report = @this.GenerateReport();
+        string safePrefix = prefix?.ToLowerInvariant() ?? "null";
 
         _ = System.IO.Directory.CreateDirectory(ReportDir);
 
-        System.String filePath = System.IO.Path.Combine(ReportDir, $"{safePrefix}-report-{System.DateTime.UtcNow:yyyyMMdd-HHmm}.txt");
+        string filePath = System.IO.Path.Combine(ReportDir, $"{safePrefix}-report-{System.DateTime.UtcNow:yyyyMMdd-HHmm}.txt");
 
         try
         {
             System.IO.File.WriteAllText(filePath, report);
 
             // Select last 3 segments, or fewer if there are less than 3
-            System.String[] segments = filePath.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
-            System.Int32 segmentCount = segments.Length;
-            System.String lastSegments = System.String.Join(System.IO.Path.DirectorySeparatorChar
+            string[] segments = filePath.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+            int segmentCount = segments.Length;
+            string lastSegments = string.Join(System.IO.Path.DirectorySeparatorChar
                                                       .ToString(), System.Linq.Enumerable
                                                       .Skip(segments, System.Math
                                                       .Max(0, segmentCount - 3)));

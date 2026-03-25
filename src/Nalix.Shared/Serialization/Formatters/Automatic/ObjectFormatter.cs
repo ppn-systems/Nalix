@@ -27,7 +27,7 @@ internal sealed class ObjectFormatter<
 {
     #region Core Fields
 
-    private static System.String DebuggerDisplay => $"ObjectFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"ObjectFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Array of cached field accessors for optimized serialization performance.
@@ -79,7 +79,7 @@ internal sealed class ObjectFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
-        for (System.Int32 i = 0; i < _accessors.Length; i++)
+        for (int i = 0; i < _accessors.Length; i++)
         {
             _accessors[i].Serialize(ref writer, value);
         }
@@ -99,7 +99,7 @@ internal sealed class ObjectFormatter<
     {
         T obj = new();
 
-        for (System.Int32 i = 0; i < _accessors.Length; i++)
+        for (int i = 0; i < _accessors.Length; i++)
         {
             _accessors[i].Deserialize(ref reader, obj);
         }
@@ -127,7 +127,7 @@ internal sealed class ObjectFormatter<
 
         FieldAccessor<T>[] accessors = new FieldAccessor<T>[fields.Length];
 
-        for (System.Int32 i = 0; i < fields.Length; i++)
+        for (int i = 0; i < fields.Length; i++)
         {
             accessors[i] = FieldAccessor<T>.Create(fields[i], i);
         }
