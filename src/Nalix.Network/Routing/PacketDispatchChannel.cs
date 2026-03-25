@@ -16,13 +16,13 @@ using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal;
 using Nalix.Network.Routing.Channel;
 using Nalix.Network.Routing.Options;
-using Nalix.Shared.Extensions;
 
 namespace Nalix.Network.Routing;
 

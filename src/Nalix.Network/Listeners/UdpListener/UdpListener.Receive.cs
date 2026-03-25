@@ -13,13 +13,13 @@ using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
+using Nalix.Framework.Security.Hashing;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
-using Nalix.Shared.Memory.Buffers;
-using Nalix.Shared.Security.Hashing;
 
 namespace Nalix.Network.Listeners.Udp;
 

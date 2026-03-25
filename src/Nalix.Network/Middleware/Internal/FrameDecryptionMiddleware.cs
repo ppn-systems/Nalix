@@ -8,9 +8,9 @@ using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
-using Nalix.Shared.Extensions;
-using Nalix.Shared.Frames;
-using Nalix.Shared.Memory.Buffers;
+using Nalix.Framework.Extensions;
+using Nalix.Framework.Frames;
+using Nalix.Framework.Memory.Buffers;
 
 #if DEBUG
 using Nalix.Common.Diagnostics;
@@ -18,7 +18,6 @@ using Nalix.Framework.Injection;
 #endif
 
 #if DEBUG
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
@@ -42,7 +41,7 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
         IConnection safeConnection = connection;
 
 #if DEBUG
-        string debugId = $"{safeConnection.NetworkEndpoint}/{safeConnection.ID.ToString()}/leasePtr=0x{lease.GetHashCode():X8}";
+        string debugId = $"{safeConnection.NetworkEndpoint}/{safeConnection.ID}/leasePtr=0x{lease.GetHashCode():X8}";
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[DECRYPT][{debugId}] Start - Flags={lease.Span.ReadFlagsLE()} LeaseLen={lease.Length}");
 #endif

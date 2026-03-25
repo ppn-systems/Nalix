@@ -3,11 +3,12 @@
 
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Framework.Time;
 
 #if DEBUG
+using System.Runtime.CompilerServices;
+
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
@@ -22,7 +23,6 @@ namespace Nalix.Network.Internal.Transport;
 [DebuggerDisplay("Uptime={Uptime}ms, Dropped={DroppedPackets}, Incoming={Incoming.Count}")]
 internal sealed class FramedSocketCache
 {
-
     #region Properties
 
     /// <summary>

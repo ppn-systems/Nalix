@@ -5,7 +5,7 @@ using System;
 using Nalix.Common.Networking;
 using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Memory.Objects;
+using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Network.Connections;
 

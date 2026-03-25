@@ -15,10 +15,10 @@ using Nalix.Common.Networking;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Configurations;
-using Nalix.Shared.Memory.Pools;
 
 namespace Nalix.Network.Throttling;
 

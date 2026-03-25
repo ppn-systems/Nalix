@@ -11,9 +11,9 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Configurations;
 using Nalix.Network.Routing.Metadata;
-using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Routing;
 

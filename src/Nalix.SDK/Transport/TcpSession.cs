@@ -12,6 +12,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 using Nalix.Framework.Tasks;
@@ -19,7 +20,6 @@ using Nalix.Framework.Time;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Extensions;
 using Nalix.SDK.Transport.Internal;
-using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.SDK.Transport;
 
@@ -418,7 +418,7 @@ public sealed class TcpSession : TcpSessionBase
         if (wasConnected)
         {
             Logging?.Info($"[SDK.{GetType().Name}] Disconnected");
-            RaiseDisconnected(new Exception("Disconnected"));
+            RaiseDisconnected(new SocketException((int)SocketError.NotConnected));
         }
     }
 

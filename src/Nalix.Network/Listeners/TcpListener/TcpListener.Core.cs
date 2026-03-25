@@ -13,13 +13,13 @@ using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooled;
 using Nalix.Network.Throttling;
 using Nalix.Network.Timekeeping;
-using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Listeners.Tcp;
 

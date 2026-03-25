@@ -12,12 +12,12 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Transport;
 using Nalix.Common.Shared;
+using Nalix.Framework.Extensions;
+using Nalix.Framework.Frames;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
-using Nalix.Shared.Extensions;
-using Nalix.Shared.Frames;
-using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.SDK.Transport;
 
@@ -103,7 +103,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     public event EventHandler<int>? OnReconnected;
 
     /// <inheritdoc/>
-    public Func<TcpSessionBase, ReadOnlyMemory<byte>, Task>? OnMessageReceivedAsync;
+    public Func<TcpSessionBase, ReadOnlyMemory<byte>, Task>? OnMessageReceivedAsync { get; set; }
 
     #endregion Events
 

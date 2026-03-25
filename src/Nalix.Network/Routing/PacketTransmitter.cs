@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Extensions;
+using Nalix.Framework.Frames;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Configurations;
-using Nalix.Shared.Extensions;
-using Nalix.Shared.Frames;
-using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.Network.Routing;
 

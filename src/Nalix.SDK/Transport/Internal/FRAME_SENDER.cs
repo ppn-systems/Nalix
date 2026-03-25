@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Configuration;
-using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.SDK.Transport.Internal;
 

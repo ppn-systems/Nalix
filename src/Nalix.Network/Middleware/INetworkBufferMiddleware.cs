@@ -34,11 +34,11 @@ public interface INetworkBufferMiddleware
     /// <param name="connection">
     /// The connection associated with the current buffer.
     /// </param>
+    /// <param name="nextHandler">
+    /// The delegate representing the next middleware in the pipeline.
+    /// </param>
     /// <param name="ct">
     /// A token used to observe cancellation requests.
-    /// </param>
-    /// <param name="next">
-    /// The delegate representing the next middleware in the pipeline.
     /// </param>
     /// <returns>
     /// A task that resolves to the processed <see cref="IBufferLease"/>, or
@@ -46,7 +46,7 @@ public interface INetworkBufferMiddleware
     /// </returns>
     /// <remarks>
     /// <para>
-    /// If <paramref name="next"/> is not invoked, the pipeline will stop executing.
+    /// If <paramref name="nextHandler"/> is not invoked, the pipeline will stop executing.
     /// </para>
     /// <para>
     /// Returning <see langword="null"/> indicates that the buffer has been fully handled,
@@ -56,7 +56,7 @@ public interface INetworkBufferMiddleware
     Task<IBufferLease?> InvokeAsync(
         IBufferLease buffer,
         IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next,
+        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> nextHandler,
         CancellationToken ct
     );
 }

@@ -48,7 +48,6 @@ It acts as the bridge between application logic and the Nalix.Network layer, sim
 
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
-		<ProjectReference Include="..\Nalix.Shared\Nalix.Shared.csproj" />
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
 

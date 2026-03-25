@@ -3,9 +3,9 @@
 using System;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
-using Nalix.Shared.Frames;
-using Nalix.Shared.Frames.Controls;
-using Nalix.Shared.Memory.Buffers;
+using Nalix.Framework.Frames;
+using Nalix.Framework.Frames.Controls;
+using Nalix.Framework.Memory.Buffers;
 
 internal static class Program
 {
