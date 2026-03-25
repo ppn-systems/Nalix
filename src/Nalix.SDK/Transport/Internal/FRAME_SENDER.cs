@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
@@ -16,7 +17,7 @@ namespace Nalix.SDK.Transport.Internal;
 /// <remarks>
 /// <para>
 /// The channel has a fixed capacity of <see cref="SendQueueCapacity"/> slots.
-/// When the channel is full, <see cref="SendAsync(System.ReadOnlyMemory{System.Byte}, System.Threading.CancellationToken)"/>
+/// When the channel is full, <see cref="SendAsync(System.ReadOnlyMemory{byte}, System.Threading.CancellationToken)"/>
 /// </para>
 /// <para>
 /// A single drain loop (<see cref="DRAIN_LOOP_ASYNC"/>) runs for the lifetime of the sender
@@ -32,13 +33,13 @@ internal sealed class FRAME_SENDER : System.IDisposable
     // ── Constants ────────────────────────────────────────────────────────────
 
     /// <summary>Maximum number of pending send items before callers start awaiting.</summary>
-    public const System.Int32 SendQueueCapacity = 1024;
+    public const int SendQueueCapacity = 1024;
 
     // ── Fields ───────────────────────────────────────────────────────────────
 
     private readonly TransportOptions _options;
     private readonly System.Func<System.Net.Sockets.Socket> _getSocket;
-    private readonly System.Action<System.Int32> _reportBytesSent;
+    private readonly System.Action<int> _reportBytesSent;
     private readonly System.Action<System.Exception> _onError;
 
     /// <summary>
@@ -52,9 +53,9 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// </list>
     /// </summary>
     private readonly System.Threading.Channels.Channel<(
-        System.Byte[] frame,
-        System.Int32 frameLen,
-        System.Threading.Tasks.TaskCompletionSource<System.Boolean> tcs)> _sendQueue;
+        byte[] frame,
+        int frameLen,
+        TaskCompletionSource<bool> tcs)> _sendQueue;
 
     /// <summary>
     /// CTS that stops the drain loop when the sender is disposed or the connection drops.
@@ -62,14 +63,14 @@ internal sealed class FRAME_SENDER : System.IDisposable
     private readonly System.Threading.CancellationTokenSource _drainCts = new();
 
     /// <summary>Dispose guard: 0 = live, 1 = disposed.</summary>
-    private System.Int32 _disposed;
+    private int _disposed;
 
     // ── Constructor ──────────────────────────────────────────────────────────
 
     internal FRAME_SENDER(
         System.Func<System.Net.Sockets.Socket> getSocket,
         TransportOptions options,
-        System.Action<System.Int32> reportBytesSent,
+        System.Action<int> reportBytesSent,
         System.Action<System.Exception> onError)
     {
         _options = options ?? throw new System.ArgumentNullException(nameof(options));
@@ -79,9 +80,9 @@ internal sealed class FRAME_SENDER : System.IDisposable
 
         // BoundedChannelFullMode.Wait → callers await when queue is full (backpressure).
         _sendQueue = System.Threading.Channels.Channel.CreateBounded<(
-            System.Byte[],
-            System.Int32,
-            System.Threading.Tasks.TaskCompletionSource<System.Boolean>)>(
+            byte[],
+            int,
+            TaskCompletionSource<bool>)>(
             new System.Threading.Channels.BoundedChannelOptions(SendQueueCapacity)
             {
                 FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait,
@@ -90,7 +91,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
             });
 
         // Start the drain loop as a background task.
-        _ = System.Threading.Tasks.Task.Run(
+        _ = Task.Run(
             () => DRAIN_LOOP_ASYNC(_drainCts.Token),
             System.Threading.CancellationToken.None);
     }
@@ -113,8 +114,8 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// <exception cref="System.OperationCanceledException">
     /// Thrown when <paramref name="cancellationToken"/> is canceled while waiting for a queue slot.
     /// </exception>
-    public async System.Threading.Tasks.Task<System.Boolean> SendAsync(
-        System.ReadOnlyMemory<System.Byte> payload,
+    public async Task<bool> SendAsync(
+        System.ReadOnlyMemory<byte> payload,
         System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(
@@ -130,12 +131,12 @@ internal sealed class FRAME_SENDER : System.IDisposable
         // We materialise the frame here (on the caller's thread) so the drain loop
         // only has to write bytes — no serialisation work on the hot path.
 
-        System.Int32 totalLen = TcpSession.HeaderSize + payload.Length;
-        System.Byte[] frame = BufferLease.ByteArrayPool.Rent(totalLen);
+        int totalLen = TcpSession.HeaderSize + payload.Length;
+        byte[] frame = BufferLease.ByteArrayPool.Rent(totalLen);
 
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
             System.MemoryExtensions.AsSpan(frame, 0, TcpSession.HeaderSize),
-            (System.UInt16)totalLen);
+            (ushort)totalLen);
 
         payload.Span.CopyTo(
             System.MemoryExtensions.AsSpan(frame, TcpSession.HeaderSize, payload.Length));
@@ -145,8 +146,8 @@ internal sealed class FRAME_SENDER : System.IDisposable
         // TCS is RunContinuationsAsynchronously so the drain loop is never blocked
         // by continuations running inline on its thread.
 
-        System.Threading.Tasks.TaskCompletionSource<System.Boolean> tcs = new(
-            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<bool> tcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         try
         {
@@ -169,7 +170,9 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// <summary>
     /// Serializes <paramref name="packet"/> and enqueues it for sending.
     /// </summary>
-    public System.Threading.Tasks.Task<System.Boolean> SendAsync(
+    /// <param name="packet"></param>
+    /// <param name="cancellationToken"></param>
+    public Task<bool> SendAsync(
         IPacket packet,
         System.Threading.CancellationToken cancellationToken = default)
         => SendAsync(packet.Serialize(), cancellationToken);
@@ -189,12 +192,12 @@ internal sealed class FRAME_SENDER : System.IDisposable
         try { _drainCts.Dispose(); } catch { }
 
         // Signal no more items will be written, then drain remaining items as failed.
-        _sendQueue.Writer.TryComplete();
+        _ = _sendQueue.Writer.TryComplete();
 
-        while (_sendQueue.Reader.TryRead(out var item))
+        while (_sendQueue.Reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
         {
             try { BufferLease.ByteArrayPool.Return(item.frame); } catch { }
-            item.tcs.TrySetResult(false);
+            _ = item.tcs.TrySetResult(false);
         }
     }
 
@@ -205,20 +208,21 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// Runs as a long-lived background task until <see cref="Dispose"/> is called or a fatal
     /// socket error occurs.
     /// </summary>
-    private async System.Threading.Tasks.Task DRAIN_LOOP_ASYNC(
+    /// <param name="token"></param>
+    private async Task DRAIN_LOOP_ASYNC(
         System.Threading.CancellationToken token)
     {
         System.Threading.Channels.ChannelReader<(
-            System.Byte[] frame,
-            System.Int32 frameLen,
-            System.Threading.Tasks.TaskCompletionSource<System.Boolean> tcs)> reader = _sendQueue.Reader;
+            byte[] frame,
+            int frameLen,
+            TaskCompletionSource<bool> tcs)> reader = _sendQueue.Reader;
 
         try
         {
             // WaitToReadAsync suspends the loop efficiently when the queue is empty.
             while (await reader.WaitToReadAsync(token).ConfigureAwait(false))
             {
-                while (reader.TryRead(out var item))
+                while (reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
                 {
                     await SEND_FRAME_ASYNC(item.frame, item.frameLen, item.tcs, token)
                         .ConfigureAwait(false);
@@ -240,10 +244,10 @@ internal sealed class FRAME_SENDER : System.IDisposable
         {
             // Fail any items that were already dequeued by TryRead but not yet sent,
             // plus anything still sitting in the channel.
-            while (reader.TryRead(out var leftover))
+            while (reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) leftover))
             {
                 try { BufferLease.ByteArrayPool.Return(leftover.frame); } catch { }
-                leftover.tcs.TrySetResult(false);
+                _ = leftover.tcs.TrySetResult(false);
             }
         }
     }
@@ -252,28 +256,33 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// Writes a single pre-framed buffer to the socket, then notifies the caller via
     /// <paramref name="tcs"/> and returns the rented buffer to the pool.
     /// </summary>
-    private async System.Threading.Tasks.Task SEND_FRAME_ASYNC(
-        System.Byte[] frame,
-        System.Int32 frameLen,
-        System.Threading.Tasks.TaskCompletionSource<System.Boolean> tcs,
+    /// <param name="frame"></param>
+    /// <param name="frameLen"></param>
+    /// <param name="tcs"></param>
+    /// <param name="token"></param>
+    /// <exception cref="System.Net.Sockets.SocketException"></exception>
+    private async Task SEND_FRAME_ASYNC(
+        byte[] frame,
+        int frameLen,
+        TaskCompletionSource<bool> tcs,
         System.Threading.CancellationToken token)
     {
         try
         {
             System.Net.Sockets.Socket s = _getSocket();
 
-            System.Int32 sent = 0;
+            int sent = 0;
             while (sent < frameLen)
             {
-                System.Int32 n = await s.SendAsync(
-                    new System.ReadOnlyMemory<System.Byte>(frame, sent, frameLen - sent),
+                int n = await s.SendAsync(
+                    new System.ReadOnlyMemory<byte>(frame, sent, frameLen - sent),
                     System.Net.Sockets.SocketFlags.None,
                     token).ConfigureAwait(false);
 
                 if (n == 0)
                 {
                     throw new System.Net.Sockets.SocketException(
-                        (System.Int32)System.Net.Sockets.SocketError.ConnectionReset);
+                        (int)System.Net.Sockets.SocketError.ConnectionReset);
                 }
 
                 sent += n;
@@ -281,14 +290,14 @@ internal sealed class FRAME_SENDER : System.IDisposable
 
             try { _reportBytesSent(frameLen); } catch { }
 
-            tcs.TrySetResult(true);
+            _ = tcs.TrySetResult(true);
         }
         catch (System.Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[SDK.{nameof(FRAME_SENDER)}:{nameof(SEND_FRAME_ASYNC)}] send-error: {ex.Message}", ex);
 
-            tcs.TrySetResult(false);
+            _ = tcs.TrySetResult(false);
             _onError(ex);
 
             // Re-throw so the drain loop can decide whether to continue or stop.

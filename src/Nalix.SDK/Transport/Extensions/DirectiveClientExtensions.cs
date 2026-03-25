@@ -48,7 +48,7 @@ public static class DirectiveClientExtensions
         /// Returns <c>true</c> if the redirect was fully handled (skips default reconnect).
         /// </summary>
         public required System.Func<Directive, System.Threading.CancellationToken,
-            System.Threading.Tasks.Task<System.Boolean>> OnRedirectAsync
+            System.Threading.Tasks.Task<bool>> OnRedirectAsync
         { get; init; }
     }
 
@@ -56,15 +56,18 @@ public static class DirectiveClientExtensions
     /// Resolves a redirect endpoint from Arg0/Arg1/Arg2.
     /// Return <c>(host, port)</c>, or <c>null</c> if not resolvable.
     /// </summary>
-    public delegate (System.String host, System.UInt16 port)? RedirectResolver(
-        System.UInt32 arg0, System.UInt32 arg1, System.UInt16 arg2);
+    /// <param name="arg0"></param>
+    /// <param name="arg1"></param>
+    /// <param name="arg2"></param>
+    public delegate (string host, ushort port)? RedirectResolver(
+        uint arg0, uint arg1, ushort arg2);
 
     private sealed class ClientState
     {
         /// <summary>
         /// Monotonic tick value at which the throttle window expires. 0 means not throttled.
         /// </summary>
-        public System.Int64 ThrottleUntilMonoTicks;
+        public long ThrottleUntilMonoTicks;
     }
 
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IClientConnection, ClientState> _states = [];
@@ -87,7 +90,7 @@ public static class DirectiveClientExtensions
     /// <exception cref="System.OperationCanceledException">
     /// Thrown if <paramref name="ct"/> is canceled during redirect/reconnect.
     /// </exception>
-    public static async System.Threading.Tasks.Task<System.Boolean> TryHandleDirectiveAsync(
+    public static async System.Threading.Tasks.Task<bool> TryHandleDirectiveAsync(
         this IClientConnection client,
         IPacket packet,
         DirectiveCallbacks? callbacks = null,
@@ -105,75 +108,89 @@ public static class DirectiveClientExtensions
         switch (d.Type)
         {
             case ControlType.THROTTLE:
-                {
-                    // Arg0 = RetryAfterSteps (100 ms units); clamp to prevent unreasonable delays.
-                    System.Int64 delayMs = System.Math.Min(d.Arg0 * 100L, 3_600_000L); // max 1 hour
+                // Arg0 = RetryAfterSteps (100 ms units); clamp to prevent unreasonable delays.
+                long delayMs = System.Math.Min(d.Arg0 * 100L, 3_600_000L); // max 1 hour
 
-                    System.Int64 nowTicks = Clock.MonoTicksNow();
-                    // Compute delay in ticks: delayMs * freq / 1000, using long arithmetic to prevent overflow.
-                    System.Int64 delayTicks = delayMs * Clock.TicksPerSecond / 1000L;
+                long nowTicks = Clock.MonoTicksNow();
+                // Compute delay in ticks: delayMs * freq / 1000, using long arithmetic to prevent overflow.
+                long delayTicks = delayMs * Clock.TicksPerSecond / 1000L;
 
-                    ClientState state = _states.GetOrCreateValue(client);
-                    System.Threading.Interlocked.Exchange(ref state.ThrottleUntilMonoTicks, nowTicks + delayTicks);
+                ClientState state = _states.GetOrCreateValue(client);
+                _ = System.Threading.Interlocked.Exchange(ref state.ThrottleUntilMonoTicks, nowTicks + delayTicks);
 
-                    callbacks?.OnThrottle?.Invoke(d, System.TimeSpan.FromMilliseconds(delayMs));
-                    TcpSessionBase.Logging?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (SEQ={d.SequenceId})");
-                    return true;
-                }
+                callbacks?.OnThrottle?.Invoke(d, System.TimeSpan.FromMilliseconds(delayMs));
+                TcpSessionBase.Logging?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (SEQ={d.SequenceId})");
+                return true;
+
 
             case ControlType.REDIRECT:
+                // Give user callback first chance to handle the redirect.
+                if (callbacks?.OnRedirectAsync is not null)
                 {
-                    // Give user callback first chance to handle the redirect.
-                    if (callbacks?.OnRedirectAsync is not null)
+                    bool handled = await callbacks.OnRedirectAsync(d, ct).ConfigureAwait(false);
+                    if (handled)
                     {
-                        System.Boolean handled = await callbacks.OnRedirectAsync(d, ct).ConfigureAwait(false);
-                        if (handled)
-                        {
-                            return true;
-                        }
+                        return true;
                     }
-
-                    // Default redirect: resolve endpoint from directive args.
-                    (System.String host, System.UInt16 port)? ep = resolveRedirect?.Invoke(d.Arg0, d.Arg1, d.Arg2);
-                    if (ep is null)
-                    {
-                        if (d.Arg2 == 0)
-                        {
-                            TcpSessionBase.Logging?.Warn($"DIRECTIVE REDIRECT ignored (no resolver, no port). SEQ={d.SequenceId}");
-                            return true;
-                        }
-
-                        ep = (client.Options.Address, d.Arg2);
-                    }
-
-                    // Disconnect, update endpoint, reconnect.
-                    await client.DisconnectAsync().ConfigureAwait(false);
-                    client.Options.Port = ep.Value.port;
-                    client.Options.Address = ep.Value.host;
-
-                    TcpSessionBase.Logging?.Info($"DIRECTIVE REDIRECT → {ep.Value.host}:{ep.Value.port} (SEQ={d.SequenceId})");
-                    await client.ConnectAsync(ct: ct).ConfigureAwait(false);
-                    return true;
                 }
+
+                // Default redirect: resolve endpoint from directive args.
+                (string host, ushort port)? ep = resolveRedirect?.Invoke(d.Arg0, d.Arg1, d.Arg2);
+                if (ep is null)
+                {
+                    if (d.Arg2 == 0)
+                    {
+                        TcpSessionBase.Logging?.Warn($"DIRECTIVE REDIRECT ignored (no resolver, no port). SEQ={d.SequenceId}");
+                        return true;
+                    }
+
+                    ep = (client.Options.Address, d.Arg2);
+                }
+
+                // Disconnect, update endpoint, reconnect.
+                await client.DisconnectAsync().ConfigureAwait(false);
+                client.Options.Port = ep.Value.port;
+                client.Options.Address = ep.Value.host;
+
+                TcpSessionBase.Logging?.Info($"DIRECTIVE REDIRECT → {ep.Value.host}:{ep.Value.port} (SEQ={d.SequenceId})");
+                await client.ConnectAsync(ct: ct).ConfigureAwait(false);
+                return true;
+
 
             case ControlType.NACK:
-                {
-                    callbacks?.OnNack?.Invoke(d);
-                    TcpSessionBase.Logging?.Warn($"DIRECTIVE NACK: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
-                    return true;
-                }
+                callbacks?.OnNack?.Invoke(d);
+                TcpSessionBase.Logging?.Warn($"DIRECTIVE NACK: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
+                return true;
+
 
             case ControlType.NOTICE:
-                {
-                    callbacks?.OnNotice?.Invoke(d);
-                    TcpSessionBase.Logging?.Info($"DIRECTIVE NOTICE: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
-                    return true;
-                }
+                callbacks?.OnNotice?.Invoke(d);
+                TcpSessionBase.Logging?.Info($"DIRECTIVE NOTICE: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
+                return true;
 
+
+            case ControlType.NONE:
+            case ControlType.PING:
+            case ControlType.PONG:
+            case ControlType.ACK:
+            case ControlType.DISCONNECT:
+            case ControlType.ERROR:
+            case ControlType.HEARTBEAT:
+            case ControlType.RESUME:
+            case ControlType.SHUTDOWN:
+            case ControlType.TIMEOUT:
+            case ControlType.FAIL:
+            case ControlType.TIMESYNCREQUEST:
+            case ControlType.TIMESYNCRESPONSE:
+            case ControlType.RESERVED1:
+            case ControlType.RESERVED2:
+                break;
             default:
                 TcpSessionBase.Logging?.Debug($"DIRECTIVE (unhandled type {d.Type}) SEQ={d.SequenceId}");
                 return true;
         }
+
+        return null;
     }
 
     /// <summary>
@@ -188,7 +205,7 @@ public static class DirectiveClientExtensions
     /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean IsThrottled(this IClientConnection client, out System.TimeSpan remaining)
+    public static bool IsThrottled(this IClientConnection client, out System.TimeSpan remaining)
     {
         System.ArgumentNullException.ThrowIfNull(client);
         remaining = System.TimeSpan.Zero;
@@ -198,19 +215,19 @@ public static class DirectiveClientExtensions
             return false;
         }
 
-        System.Int64 until = System.Threading.Volatile.Read(ref s.ThrottleUntilMonoTicks);
+        long until = System.Threading.Volatile.Read(ref s.ThrottleUntilMonoTicks);
         if (until == 0)
         {
             return false;
         }
 
-        System.Int64 left = until - Clock.MonoTicksNow();
+        long left = until - Clock.MonoTicksNow();
         if (left <= 0)
         {
             return false;
         }
 
-        remaining = System.TimeSpan.FromSeconds((System.Double)left / Clock.TicksPerSecond);
+        remaining = System.TimeSpan.FromSeconds((double)left / Clock.TicksPerSecond);
         return true;
     }
 
@@ -237,11 +254,11 @@ public static class DirectiveClientExtensions
 
         if (client.IsThrottled(out System.TimeSpan wait) && wait > System.TimeSpan.Zero)
         {
-            TcpSessionBase.Logging?.Debug($"SendWithThrottle: waiting {(System.Int32)wait.TotalMilliseconds} ms");
+            TcpSessionBase.Logging?.Debug($"SendWithThrottle: waiting {(int)wait.TotalMilliseconds} ms");
             await System.Threading.Tasks.Task.Delay(wait, ct).ConfigureAwait(false);
         }
 
-        await client.SendAsync(packet, ct).ConfigureAwait(false);
+        _ = await client.SendAsync(packet, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -257,7 +274,7 @@ public static class DirectiveClientExtensions
 
         if (_states.TryGetValue(client, out ClientState? s))
         {
-            System.Threading.Interlocked.Exchange(ref s.ThrottleUntilMonoTicks, 0L);
+            _ = System.Threading.Interlocked.Exchange(ref s.ThrottleUntilMonoTicks, 0L);
         }
     }
 }

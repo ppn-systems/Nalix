@@ -16,7 +16,7 @@ public class MultiLocalizer
     #region Fields
 
     private Localizer _defaultLocalizer = new();
-    private readonly System.Collections.Generic.Dictionary<System.String, Localizer> _localizers = [];
+    private readonly System.Collections.Generic.Dictionary<string, Localizer> _localizers = [];
 
     #endregion Fields
 
@@ -42,7 +42,7 @@ public class MultiLocalizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Load(System.String languageName, System.String path)
+    public void Load(string languageName, string path)
     {
         languageName = languageName.ToLower();
 
@@ -71,7 +71,7 @@ public class MultiLocalizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean Contains(System.String languageName)
+    public bool Contains(string languageName)
     {
         languageName = languageName.ToLower();
 
@@ -96,13 +96,13 @@ public class MultiLocalizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public Localizer Get(System.String languageName)
+    public Localizer Get(string languageName)
     {
         languageName = languageName.ToLower();
 
         lock (_localizers)
         {
-            return !_localizers.TryGetValue(languageName, out var localizer) ? _defaultLocalizer : localizer;
+            return !_localizers.TryGetValue(languageName, out Localizer? localizer) ? _defaultLocalizer : localizer;
         }
     }
 
@@ -125,13 +125,13 @@ public class MultiLocalizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean TryGet(System.String languageName, out Localizer localizer)
+    public bool TryGet(string languageName, out Localizer localizer)
     {
         languageName = languageName.ToLower();
 
         lock (_localizers)
         {
-            if (_localizers.TryGetValue(languageName, out var foundLocalizer) &&
+            if (_localizers.TryGetValue(languageName, out Localizer? foundLocalizer) &&
                 foundLocalizer != null)
             {
                 localizer = foundLocalizer;
@@ -155,7 +155,7 @@ public class MultiLocalizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.String[] GetLanguages()
+    public string[] GetLanguages()
     {
         lock (_localizers)
         {
@@ -177,13 +177,13 @@ public class MultiLocalizer
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetDefault(System.String languageName)
+    public void SetDefault(string languageName)
     {
-        System.String loweredName = languageName.ToLower();
+        string loweredName = languageName.ToLower();
 
         lock (_localizers)
         {
-            if (!_localizers.TryGetValue(loweredName, out var localizer))
+            if (!_localizers.TryGetValue(loweredName, out Localizer? localizer))
             {
                 throw new System.ArgumentException($"No localizer for language {languageName} found.");
             }

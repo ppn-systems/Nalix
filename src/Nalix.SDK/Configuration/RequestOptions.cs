@@ -9,7 +9,7 @@ using Nalix.SDK.Transport.Extensions;
 namespace Nalix.SDK.Configuration;
 
 /// <summary>
-/// Controls the behaviour of <see cref="RequestExtensions.RequestAsync{TResponse}(IClientConnection, IPacket, RequestOptions, System.Func{TResponse, System.Boolean}, System.Threading.CancellationToken)"/>.
+/// Controls the behaviour of <see cref="RequestExtensions.RequestAsync{TResponse}(IClientConnection, IPacket, RequestOptions, System.Func{TResponse, bool}, System.Threading.CancellationToken)"/>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -34,7 +34,7 @@ public sealed record RequestOptions
     // ── Defaults ─────────────────────────────────────────────────────────────
 
     /// <summary>Default timeout in milliseconds (5 000 ms).</summary>
-    public const System.Int32 DefaultTimeoutMs = 5_000;
+    public const int DefaultTimeoutMs = 5_000;
 
     /// <summary>Ready-made instance with sensible defaults (no retry, no encrypt).</summary>
     public static RequestOptions Default { get; } = new();
@@ -45,25 +45,26 @@ public sealed record RequestOptions
     /// Milliseconds to wait for a response on each attempt.
     /// Use <c>0</c> to wait indefinitely (not recommended in production).
     /// </summary>
-    public System.Int32 TimeoutMs { get; init; } = DefaultTimeoutMs;
+    public int TimeoutMs { get; init; } = DefaultTimeoutMs;
 
     /// <summary>
     /// Number of additional attempts after the first one times out.
     /// <c>0</c> means try once and stop. Must be ≥ 0.
     /// </summary>
-    public System.Int32 RetryCount { get; init; } = 0;
+    public int RetryCount { get; init; }
 
     /// <summary>
     /// When <see langword="true"/> the outbound frame is encrypted before transmission.
     /// Requires the client to be a <see cref="TcpSessionBase"/>.
     /// </summary>
-    public System.Boolean Encrypt { get; init; } = false;
+    public bool Encrypt { get; init; }
 
     // ── Validation ───────────────────────────────────────────────────────────
 
     /// <summary>
     /// Throws <see cref="System.ArgumentOutOfRangeException"/> if <see cref="RetryCount"/> is negative.
     /// </summary>
+    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
     public void Validate()
     {
         if (RetryCount < 0)
@@ -78,15 +79,18 @@ public sealed record RequestOptions
     /// <summary>
     /// Returns a new <see cref="RequestOptions"/> with <see cref="TimeoutMs"/> changed.
     /// </summary>
-    public RequestOptions WithTimeout(System.Int32 ms) => this with { TimeoutMs = ms };
+    /// <param name="ms"></param>
+    public RequestOptions WithTimeout(int ms) => this with { TimeoutMs = ms };
 
     /// <summary>
     /// Returns a new <see cref="RequestOptions"/> with <see cref="RetryCount"/> changed.
     /// </summary>
-    public RequestOptions WithRetry(System.Int32 count) => this with { RetryCount = count };
+    /// <param name="count"></param>
+    public RequestOptions WithRetry(int count) => this with { RetryCount = count };
 
     /// <summary>
     /// Returns a new <see cref="RequestOptions"/> with <see cref="Encrypt"/> changed.
     /// </summary>
-    public RequestOptions WithEncrypt(System.Boolean encrypt = true) => this with { Encrypt = encrypt };
+    /// <param name="encrypt"></param>
+    public RequestOptions WithEncrypt(bool encrypt = true) => this with { Encrypt = encrypt };
 }

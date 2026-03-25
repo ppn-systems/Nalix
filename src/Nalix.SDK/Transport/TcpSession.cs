@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Net;
+using System.Threading;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -35,7 +37,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <summary>
     /// Gets the size of the packet header in bytes.
     /// </summary>
-    public const System.Byte HeaderSize = 2;
+    public const byte HeaderSize = 2;
 
     #endregion Constants
 
@@ -43,17 +45,17 @@ public sealed class TcpSession : TcpSessionBase
 
     private IWorkerHandle? _receiveHandle;
     private SessionMonitor? _monitor;
-    private System.String? _host;
-    private System.UInt16? _port;
-    private System.Int32 _reconnecting = 0;
-    private System.Int32 _hasEverConnected = 0;
+    private string? _host;
+    private ushort? _port;
+    private int _reconnecting;
+    private int _hasEverConnected;
 
-    private System.Int64 _bytesSent = 0;
-    private System.Int64 _lastSendBps = 0;
-    private System.Int64 _bytesReceived = 0;
-    private System.Int64 _lastReceiveBps = 0;
-    private System.Int64 _sendCounterForInterval = 0;
-    private System.Int64 _receiveCounterForInterval = 0;
+    private long _bytesSent;
+    private long _lastSendBps;
+    private long _bytesReceived;
+    private long _lastReceiveBps;
+    private long _sendCounterForInterval;
+    private long _receiveCounterForInterval;
 
     #endregion Fields
 
@@ -62,22 +64,22 @@ public sealed class TcpSession : TcpSessionBase
     /// <summary>
     /// Gets the total number of bytes sent.
     /// </summary>
-    public System.Int64 BytesSent => System.Threading.Interlocked.Read(ref _bytesSent);
+    public long BytesSent => Interlocked.Read(ref _bytesSent);
 
     /// <summary>
     /// Gets the total number of bytes received.
     /// </summary>
-    public System.Int64 BytesReceived => System.Threading.Interlocked.Read(ref _bytesReceived);
+    public long BytesReceived => Interlocked.Read(ref _bytesReceived);
 
     /// <summary>
     /// Gets the current send rate in bytes per second.
     /// </summary>
-    public System.Int64 SendBytesPerSecond => System.Threading.Interlocked.Read(ref _lastSendBps);
+    public long SendBytesPerSecond => Interlocked.Read(ref _lastSendBps);
 
     /// <summary>
     /// Gets the current receive rate in bytes per second.
     /// </summary>
-    public System.Int64 ReceiveBytesPerSecond => System.Threading.Interlocked.Read(ref _lastReceiveBps);
+    public long ReceiveBytesPerSecond => Interlocked.Read(ref _lastReceiveBps);
 
     #endregion Properties
 
@@ -121,7 +123,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <exception cref="System.InvalidOperationException">
     /// Thrown when required configuration or dependencies cannot be loaded.
     /// </exception>
-    public TcpSession() : base()
+    public TcpSession()
     {
         try
         {
@@ -157,7 +159,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <exception cref="System.ArgumentNullException">
     /// Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.
     /// </exception>
-    public TcpSession(TransportOptions options, IPacketRegistry registry) : base()
+    public TcpSession(TransportOptions options, IPacketRegistry registry)
     {
         Options = options;
         Catalog = registry;
@@ -179,20 +181,20 @@ public sealed class TcpSession : TcpSessionBase
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="System.ArgumentException">Thrown when host is invalid.</exception>
     /// <exception cref="System.Net.Sockets.SocketException">Thrown when connection fails.</exception>
-    public override async System.Threading.Tasks.Task ConnectAsync(System.String? host = null, System.UInt16? port = null, System.Threading.CancellationToken ct = default)
+    public override async System.Threading.Tasks.Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
+        System.ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
 
-        System.String? effectiveHost = System.String.IsNullOrWhiteSpace(host) ? Options.Address : host;
-        System.UInt16 effectivePort = port ?? Options.Port;
+        string? effectiveHost = string.IsNullOrWhiteSpace(host) ? Options.Address : host;
+        ushort effectivePort = port ?? Options.Port;
 
-        if (System.String.IsNullOrWhiteSpace(effectiveHost))
+        if (string.IsNullOrWhiteSpace(effectiveHost))
         {
             throw new System.ArgumentException("Host required");
         }
 
         if (IsConnected &&
-            System.String.Equals(_host, effectiveHost, System.StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(_host, effectiveHost, System.StringComparison.OrdinalIgnoreCase) &&
             _port == effectivePort)
         {
             Logging?.Debug($"[SDK.{GetType().Name}] Already connected to {effectiveHost}:{effectivePort}.");
@@ -215,7 +217,7 @@ public sealed class TcpSession : TcpSessionBase
 
         SetState(TcpSessionState.Connecting);
 
-        using var connectCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         if (Options.ConnectTimeoutMillis > 0)
         {
@@ -224,11 +226,11 @@ public sealed class TcpSession : TcpSessionBase
 
         System.Exception? lastEx = null;
 
-        var addrs = await System.Net.Dns.GetHostAddressesAsync(effectiveHost, connectCts.Token);
+        IPAddress[] addrs = await Dns.GetHostAddressesAsync(effectiveHost, connectCts.Token);
 
-        foreach (var addr in addrs)
+        foreach (IPAddress addr in addrs)
         {
-            var s = new System.Net.Sockets.Socket(addr.AddressFamily, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+            System.Net.Sockets.Socket s = new(addr.AddressFamily, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
 
             try
             {
@@ -236,14 +238,14 @@ public sealed class TcpSession : TcpSessionBase
                 s.SendBufferSize = Options.BufferSize;
                 s.ReceiveBufferSize = Options.BufferSize;
 
-                await s.ConnectAsync(new System.Net.IPEndPoint(addr, effectivePort), connectCts.Token);
+                await s.ConnectAsync(new IPEndPoint(addr, effectivePort), connectCts.Token);
 
-                System.Threading.CancellationToken loopToken;
+                CancellationToken loopToken;
 
                 lock (i_sync)
                 {
                     i_socket = s;
-                    i_loopCts = new System.Threading.CancellationTokenSource();
+                    i_loopCts = new CancellationTokenSource();
                     loopToken = i_loopCts.Token;
                     _host = effectiveHost;
                     _port = effectivePort;
@@ -251,7 +253,7 @@ public sealed class TcpSession : TcpSessionBase
 
                 InitializeFrame();
 
-                System.Boolean isReconnect = System.Threading.Interlocked.Exchange(ref _hasEverConnected, 1) == 1;
+                bool isReconnect = Interlocked.Exchange(ref _hasEverConnected, 1) == 1;
                 if (isReconnect)
                 {
                     RaiseConnected();
@@ -264,7 +266,7 @@ public sealed class TcpSession : TcpSessionBase
                 }
 
                 StartReceiveWorker(loopToken);
-                System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
+                _ = Interlocked.Exchange(ref _reconnecting, 0);
 
                 return;
             }
@@ -278,7 +280,7 @@ public sealed class TcpSession : TcpSessionBase
 
         SetState(TcpSessionState.Disconnected);
         Logging?.Error($"[SDK.{GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx);
-        throw lastEx ?? new System.Net.Sockets.SocketException((System.Int32)System.Net.Sockets.SocketError.HostNotFound);
+        throw lastEx ?? new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.HostNotFound);
     }
 
     #endregion APIs
@@ -300,7 +302,7 @@ public sealed class TcpSession : TcpSessionBase
     /// Starts the background worker responsible for receiving data.
     /// </summary>
     /// <param name="loopToken">Cancellation token controlling the receive loop.</param>
-    protected override void StartReceiveWorker(System.Threading.CancellationToken loopToken)
+    protected override void StartReceiveWorker(CancellationToken loopToken)
     {
         if (i_receiver is null)
         {
@@ -314,7 +316,7 @@ public sealed class TcpSession : TcpSessionBase
                 group: "client",
                 work: async (_, workerCt) =>
                 {
-                    var effective = workerCt.CanBeCanceled ? workerCt : loopToken;
+                    CancellationToken effective = workerCt.CanBeCanceled ? workerCt : loopToken;
                     Logging?.Info($"[SDK.{GetType().Name}] Receive worker started");
                     await i_receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
                 },
@@ -332,18 +334,18 @@ public sealed class TcpSession : TcpSessionBase
     }
 
     /// <inheritdoc/>
-    protected override void ReportBytesSent(System.Int32 count)
+    protected override void ReportBytesSent(int count)
     {
-        System.Threading.Interlocked.Add(ref _bytesSent, count);
-        System.Threading.Interlocked.Add(ref _sendCounterForInterval, count);
+        _ = Interlocked.Add(ref _bytesSent, count);
+        _ = Interlocked.Add(ref _sendCounterForInterval, count);
         base.ReportBytesSent(count);
     }
 
     /// <inheritdoc/>
-    protected override void ReportBytesReceived(System.Int32 count)
+    protected override void ReportBytesReceived(int count)
     {
-        System.Threading.Interlocked.Add(ref _bytesReceived, count);
-        System.Threading.Interlocked.Add(ref _receiveCounterForInterval, count);
+        _ = Interlocked.Add(ref _bytesReceived, count);
+        _ = Interlocked.Add(ref _receiveCounterForInterval, count);
         base.ReportBytesReceived(count);
     }
 
@@ -365,7 +367,7 @@ public sealed class TcpSession : TcpSessionBase
 
     private void TriggerReconnect(System.Exception ex)
     {
-        if (System.Threading.Interlocked.CompareExchange(ref _reconnecting, 1, 0) == 0)
+        if (Interlocked.CompareExchange(ref _reconnecting, 1, 0) == 0)
         {
             Logging?.Info($"[SDK.{GetType().Name}] Triggering auto-reconnect after error: {ex.Message}");
             _ = HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
@@ -379,7 +381,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <inheritdoc/>
     protected override void TearDownConnection()
     {
-        System.Boolean wasConnected = IsConnected;
+        bool wasConnected = IsConnected;
         base.TearDownConnection();
 
         try
@@ -388,7 +390,7 @@ public sealed class TcpSession : TcpSessionBase
             {
                 try
                 {
-                    InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                    _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                             .CancelWorker(_receiveHandle.Id);
 
                     _receiveHandle = null;
@@ -425,38 +427,38 @@ public sealed class TcpSession : TcpSessionBase
         Logging?.Debug($"[SDK.{GetType().Name}] ReconnectAsync triggered after: {cause.Message}");
         TearDownConnection();
 
-        if (!Options.ReconnectEnabled || System.Threading.Volatile.Read(ref _disposed) == 1)
+        if (!Options.ReconnectEnabled || Volatile.Read(ref _disposed) == 1)
         {
-            System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
+            _ = Interlocked.Exchange(ref _reconnecting, 0);
             return;
         }
 
-        if (System.String.IsNullOrEmpty(_host) || _port == 0)
+        if (string.IsNullOrEmpty(_host) || _port == 0)
         {
-            System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
+            _ = Interlocked.Exchange(ref _reconnecting, 0);
             return;
         }
 
         SetState(TcpSessionState.Reconnecting);
 
-        System.Int32 attempt = 0;
-        System.Int64 max = System.Math.Max(1, Options.ReconnectMaxDelayMillis);
-        System.Int64 delay = System.Math.Max(1, Options.ReconnectBaseDelayMillis);
+        int attempt = 0;
+        long max = System.Math.Max(1, Options.ReconnectMaxDelayMillis);
+        long delay = System.Math.Max(1, Options.ReconnectBaseDelayMillis);
 
         // Use a dedicated CTS so Dispose() can cancel the delay immediately.
-        using System.Threading.CancellationTokenSource reconnectCts = new();
+        using CancellationTokenSource reconnectCts = new();
 
-        while (System.Threading.Volatile.Read(ref _disposed) == 0
+        while (Volatile.Read(ref _disposed) == 0
            && (Options.ReconnectMaxAttempts == 0
            || attempt < Options.ReconnectMaxAttempts))
         {
             attempt++;
-            System.Int64 jitter = (System.Int64)(Csprng.NextDouble() * delay * 0.3);
+            long jitter = (long)(Csprng.NextDouble() * delay * 0.3);
 
             try
             {
                 await System.Threading.Tasks.Task.Delay(
-                    (System.Int32)System.Math.Min(delay + jitter, System.Int32.MaxValue),
+                    (int)System.Math.Min(delay + jitter, int.MaxValue),
                     reconnectCts.Token).ConfigureAwait(false);
             }
             catch (System.OperationCanceledException)
@@ -483,7 +485,7 @@ public sealed class TcpSession : TcpSessionBase
         }
 
         Logging?.Error($"[SDK.{GetType().Name}] Reconnect exhausted after {attempt} attempt(s).");
-        System.Threading.Interlocked.Exchange(ref _reconnecting, 0);
+        _ = Interlocked.Exchange(ref _reconnecting, 0);
         SetState(TcpSessionState.Disconnected);
     }
 
@@ -494,21 +496,23 @@ public sealed class TcpSession : TcpSessionBase
     private sealed class SessionMonitor
     {
         private readonly TcpSession _session;
-        private readonly System.Threading.CancellationTokenSource _cts;
+        private readonly CancellationTokenSource _cts;
 
         private IWorkerHandle? _samplerHandle;
         private IWorkerHandle? _heartbeatHandle;
 
-        // Monotonic tick captured at the last sample — stored entirely inside this class.
-        private System.Int64 _lastSampleTick;
+        /// <summary>
+        /// Monotonic tick captured at the last sample — stored entirely inside this class.
+        /// </summary>
+        private long _lastSampleTick;
 
-        internal SessionMonitor(TcpSession session, System.Threading.CancellationToken linkedToken)
+        internal SessionMonitor(TcpSession session, CancellationToken linkedToken)
         {
             _session = session;
             _lastSampleTick = Clock.MonoTicksNow();
 
             // Link to the session's loop token so both loops stop on disconnect/dispose.
-            _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(linkedToken);
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(linkedToken);
 
             TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
 
@@ -539,8 +543,8 @@ public sealed class TcpSession : TcpSessionBase
         }
 
         private static IWorkerHandle? ScheduleOrFallback(
-            TaskManager taskManager, System.String name,
-            System.Func<IWorkerContext, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask> work, System.Threading.CancellationToken token)
+            TaskManager taskManager, string name,
+            System.Func<IWorkerContext, CancellationToken, System.Threading.Tasks.ValueTask> work, CancellationToken token)
         {
             try
             {
@@ -565,7 +569,7 @@ public sealed class TcpSession : TcpSessionBase
                 return;
             }
 
-            try { taskManager?.CancelWorker(handle.Id); }
+            try { _ = (taskManager?.CancelWorker(handle.Id)); }
             catch { }
             finally { handle = null; }
         }
@@ -575,10 +579,11 @@ public sealed class TcpSession : TcpSessionBase
         /// <summary>
         /// Samples byte counters at each interval and updates the last BPS readings.
         /// </summary>
-        private async System.Threading.Tasks.ValueTask RateSamplerLoopAsync(System.Threading.CancellationToken ct)
+        /// <param name="ct"></param>
+        private async System.Threading.Tasks.ValueTask RateSamplerLoopAsync(CancellationToken ct)
         {
             // Use half the keep-alive interval, minimum 1 s, as sample cadence.
-            System.Int32 intervalMs = System.Math.Max(1_000, _session.Options.KeepAliveIntervalMillis / 2);
+            int intervalMs = System.Math.Max(1_000, _session.Options.KeepAliveIntervalMillis / 2);
 
             while (!ct.IsCancellationRequested)
             {
@@ -603,20 +608,20 @@ public sealed class TcpSession : TcpSessionBase
         /// </summary>
         private void SampleOnce()
         {
-            System.Int64 now = Clock.MonoTicksNow();
-            System.Int64 elapsed = now - _lastSampleTick;
+            long now = Clock.MonoTicksNow();
+            long elapsed = now - _lastSampleTick;
             _lastSampleTick = now;
 
             // Guard against zero or negative elapsed (clock skew, first tick).
-            System.Double elapsedSec = elapsed > 0
+            double elapsedSec = elapsed > 0
                 ? Clock.MonoTicksToMilliseconds(elapsed) / 1_000.0
                 : 1.0; // fallback: treat as 1 s to avoid divide-by-zero or Infinity
 
-            System.Int64 sent = System.Threading.Interlocked.Exchange(ref _session._sendCounterForInterval, 0);
-            System.Int64 recv = System.Threading.Interlocked.Exchange(ref _session._receiveCounterForInterval, 0);
+            long sent = Interlocked.Exchange(ref _session._sendCounterForInterval, 0);
+            long recv = Interlocked.Exchange(ref _session._receiveCounterForInterval, 0);
 
-            System.Threading.Interlocked.Exchange(ref _session._lastSendBps, (System.Int64)(sent / elapsedSec));
-            System.Threading.Interlocked.Exchange(ref _session._lastReceiveBps, (System.Int64)(recv / elapsedSec));
+            _ = Interlocked.Exchange(ref _session._lastSendBps, (long)(sent / elapsedSec));
+            _ = Interlocked.Exchange(ref _session._lastReceiveBps, (long)(recv / elapsedSec));
         }
 
         // ── Heartbeat ────────────────────────────────────────────────────────
@@ -624,9 +629,10 @@ public sealed class TcpSession : TcpSessionBase
         /// <summary>
         /// Sends a PING control frame at the configured keep-alive interval until cancellation.
         /// </summary>
-        private async System.Threading.Tasks.ValueTask HeartbeatLoopAsync(System.Threading.CancellationToken ct)
+        /// <param name="ct"></param>
+        private async System.Threading.Tasks.ValueTask HeartbeatLoopAsync(CancellationToken ct)
         {
-            System.Int32 intervalMs = _session.Options.KeepAliveIntervalMillis;
+            int intervalMs = _session.Options.KeepAliveIntervalMillis;
 
             // KeepAliveIntervalMillis = 0 nghĩa là heartbeat bị disabled.
             if (intervalMs <= 0)
@@ -668,5 +674,5 @@ public sealed class TcpSession : TcpSessionBase
         }
     }
 
-    #endregion Private
+    #endregion Private 
 }
