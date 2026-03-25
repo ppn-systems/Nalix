@@ -18,14 +18,14 @@ public interface IConnectionHub
     /// </summary>
     /// <param name="id">The unique identifier of the connection to retrieve.</param>
     /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
-    IConnection GetConnection(ISnowflake id);
+    IConnection? GetConnection(ISnowflake id);
 
     /// <summary>
     /// Retrieves a client connection by its unique identifier.
     /// </summary>
     /// <param name="id">The unique identifier of the connection to retrieve.</param>
     /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
-    IConnection GetConnection(ReadOnlySpan<byte> id);
+    IConnection? GetConnection(ReadOnlySpan<byte> id);
 
     /// <summary>
     /// Registers a new client connection to the session manager.

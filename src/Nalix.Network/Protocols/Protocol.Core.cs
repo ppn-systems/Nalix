@@ -24,7 +24,7 @@ public abstract partial class Protocol : IProtocol
     /// </summary>
     /// <param name="sender">The sender of the message.</param>
     /// <param name="args">Event arguments containing the connection and message data.</param>
-    public abstract void ProcessMessage(object sender, IConnectEventArgs args);
+    public abstract void ProcessMessage(object? sender, IConnectEventArgs args);
 
     /// <summary>
     /// Inbound-processes a message after it has been handled.
@@ -36,7 +36,7 @@ public abstract partial class Protocol : IProtocol
     /// <exception cref="ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void PostProcessMessage(object sender, IConnectEventArgs args)
+    public void PostProcessMessage(object? sender, IConnectEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
