@@ -85,7 +85,7 @@ public interface IClientConnection : IDisposable
     /// A cancellation token that can cancel the connection attempt.
     /// </param>
     Task ConnectAsync(
-        string host = null,
+        string? host = null,
         ushort? port = null,
         CancellationToken ct = default);
 

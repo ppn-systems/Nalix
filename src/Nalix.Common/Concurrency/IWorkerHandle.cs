@@ -40,7 +40,7 @@ public interface IWorkerHandle : IDisposable
     /// <summary>
     /// Gets the last note associated with the worker's progress.
     /// </summary>
-    string LastNote { get; }
+    string? LastNote { get; }
 
     /// <summary>
     /// Gets the options used to configure the worker.

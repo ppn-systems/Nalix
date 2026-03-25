@@ -45,7 +45,7 @@ public interface IConnectionHub
     /// Closes all active client connections with an optional reason.
     /// </summary>
     /// <param name="reason">The reason for closing connections, if any. Can be <c>null</c>.</param>
-    void CloseAllConnections(string reason = null);
+    void CloseAllConnections(string? reason = null);
 
     /// <summary>
     /// Associates a username with an existing client connection.

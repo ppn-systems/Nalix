@@ -25,10 +25,7 @@ namespace Nalix.Common.Diagnostics;
 /// The exception related to the log event, or <see langword="null"/>
 /// if no exception is associated.
 /// </param>
-public sealed class LogEventArgs(
-    LogLevel level,
-    string message,
-        Exception exception = null) : EventArgs
+public sealed class LogEventArgs(LogLevel level, string message, Exception? exception = null) : EventArgs
 {
     /// <summary>
     /// Gets the severity level of the log entry.
@@ -47,5 +44,5 @@ public sealed class LogEventArgs(
     /// This property may be <see langword="null"/> when the log entry
     /// is not related to an exception.
     /// </remarks>
-    public Exception Exception { get; } = exception;
+    public Exception? Exception { get; } = exception;
 }

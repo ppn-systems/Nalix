@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Nalix.Common.Concurrency;
@@ -255,16 +256,16 @@ public sealed class PacketDispatchChannel
         StringBuilder sb = new(2048);
 
         // Header
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
-        _ = sb.AppendLine($"Running           : {(System.Threading.Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
-        _ = sb.AppendLine($"DispatchLoops     : {_dispatchLoops}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Running           : {(System.Threading.Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DispatchLoops     : {_dispatchLoops}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Channel Statistics:");
-        _ = sb.AppendLine($"Total Packets     : {_dispatch.TotalPackets}");
-        _ = sb.AppendLine($"Total Connections : {_dispatch.TotalConnections}");
-        _ = sb.AppendLine($"Ready Connections : {_dispatch.ReadyConnections}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Packets     : {_dispatch.TotalPackets}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections : {_dispatch.TotalConnections}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Ready Connections : {_dispatch.ReadyConnections}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Pending by Priority:");
@@ -273,7 +274,7 @@ public sealed class PacketDispatchChannel
         int[] priorities = _dispatch.PendingPerPriority;
         for (int p = priorities.Length - 1; p >= 0; p--)
         {
-            _ = sb.AppendLine($"{GetPriorityName(p),-18}| {priorities[p],-19}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{GetPriorityName(p),-18}| {priorities[p],-19}");
         }
 
         _ = sb.AppendLine();
@@ -283,20 +284,20 @@ public sealed class PacketDispatchChannel
         _ = sb.AppendLine("----------------------|----------");
         foreach (KeyValuePair<IConnection, int> kv in _dispatch.PendingPerConnection.OrderByDescending(x => x.Value).Take(10))
         {
-            _ = sb.AppendLine($"{kv.Key.NetworkEndpoint,-22}| {kv.Value,6}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kv.Key.NetworkEndpoint,-22}| {kv.Value,6}");
         }
 
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Resources / Metrics:");
-        _ = sb.AppendLine($"Semaphore.CurrentCount: {_semaphore.CurrentCount}");
-        _ = sb.AppendLine($"CTS.Cancelled         : {_cts.IsCancellationRequested}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Semaphore.CurrentCount: {_semaphore.CurrentCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CTS.Cancelled         : {_cts.IsCancellationRequested}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Packet Registry:");
-        _ = sb.AppendLine($"Registry Type         : {_catalog?.GetType().Name ?? "(null)"}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Registry Type         : {_catalog?.GetType().Name ?? "(null)"}");
         _ = sb.AppendLine();
 
         // Optionally list registered handlers if available in _catalog
@@ -318,11 +319,11 @@ public sealed class PacketDispatchChannel
     {
         try
         {
-            return System.Enum.GetName(typeof(PacketPriority), index) ?? index.ToString();
+            return System.Enum.GetName(typeof(PacketPriority), index) ?? index.ToString(CultureInfo.InvariantCulture);
         }
         catch
         {
-            return index.ToString();
+            return index.ToString(CultureInfo.InvariantCulture);
         }
     }
 

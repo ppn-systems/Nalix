@@ -19,8 +19,7 @@ public interface IPacketMiddleware<TPacket> where TPacket : IPacket
     /// <param name="context">Encapsulates the packet and its connection metadata.</param>
     /// <param name="next">Delegate to call the next middleware in the sequence.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    System.Threading.Tasks.Task InvokeAsync(
-        [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context,
-        [System.Diagnostics.CodeAnalysis.NotNull]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
+    System.Threading.Tasks.Task InvokeAsync(PacketContext<TPacket> context,
         System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next);
 }

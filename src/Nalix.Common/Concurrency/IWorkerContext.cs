@@ -41,5 +41,5 @@ public interface IWorkerContext
     /// </summary>
     /// <param name="delta">The amount of progress to add.</param>
     /// <param name="note">An optional note describing the progress update.</param>
-    void Advance(long delta, string note = null);
+    void Advance(long delta, string? note = null);
 }

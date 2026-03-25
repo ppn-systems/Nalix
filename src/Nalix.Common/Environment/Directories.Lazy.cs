@@ -30,12 +30,12 @@ public static partial class Directories
     /// <summary>
     /// Raised after a directory has been created. Handlers are isolated per-invocation.
     /// </summary>
-    private static event Action<string> DirectoryCreated;
+    private static event Action<string>? DirectoryCreated;
 
     // ---------- Configuration ----------
 
     /// <summary>Optional base path override (intended for tests).</summary>
-    private static string _basePathOverride;
+    private static string? _basePathOverride;
 
     /// <summary>
     /// Returns an environment variable value or <c>null</c> if empty/whitespace.
@@ -47,7 +47,7 @@ public static partial class Directories
     [return: MaybeNull]
     private static string GET_ENV([DisallowNull] string name)
     {
-        string value = System.Environment.GetEnvironmentVariable(name);
+        string? value = System.Environment.GetEnvironmentVariable(name);
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
@@ -58,13 +58,13 @@ public static partial class Directories
     {
         try
         {
-            string dotnetInContainer = System.Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER");
+            string? dotnetInContainer = System.Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER");
             if (string.Equals(dotnetInContainer, "true", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
 
-            string kubeHost = System.Environment.GetEnvironmentVariable("KUBERNETES_SERVICE_HOST");
+            string? kubeHost = System.Environment.GetEnvironmentVariable("KUBERNETES_SERVICE_HOST");
             if (!string.IsNullOrEmpty(kubeHost))
             {
                 return true;
@@ -102,7 +102,7 @@ public static partial class Directories
         }
 
         // 2) Environment override
-        string env = GET_ENV("NALIX_BASE_PATH");
+        string? env = GET_ENV("NALIX_BASE_PATH");
         if (!string.IsNullOrEmpty(env))
         {
             return Path.GetFullPath(env);
@@ -121,7 +121,7 @@ public static partial class Directories
             return Path.Join(root, "Nalix");
         }
         // XDG base dir or ~/.local/share
-        string xdg = GET_ENV("XDG_DATA_HOME");
+        string? xdg = GET_ENV("XDG_DATA_HOME");
         string dataHome = !string.IsNullOrEmpty(xdg)
             ? xdg
                 : Path.Join(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".local", "share");
@@ -136,7 +136,7 @@ public static partial class Directories
         [DisallowNull] string containerPath,
         [DisallowNull] string relative)
     {
-        string env = GET_ENV(envName);
+        string? env = GET_ENV(envName);
         if (!string.IsNullOrEmpty(env))
         {
             return Path.GetFullPath(env);
@@ -175,14 +175,14 @@ public static partial class Directories
         _ = ENSURE_AND_HARDEN(path, UnixDirPerms.Private700);
 
         int days = 7;
-        string envDaysStr = GET_ENV("NALIX_TEMP_RETENTION_DAYS");
+        string? envDaysStr = GET_ENV("NALIX_TEMP_RETENTION_DAYS");
         if (!string.IsNullOrEmpty(envDaysStr) && int.TryParse(envDaysStr, out int envDaysParsed) && envDaysParsed > 0)
         {
             days = envDaysParsed;
         }
 
         _ = DeleteOldFiles(path, TimeSpan.FromDays(days));
-        return path;
+        return path ?? string.Empty;
     });
 
     #endregion Private Properties

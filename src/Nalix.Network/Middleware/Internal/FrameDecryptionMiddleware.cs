@@ -20,8 +20,9 @@ namespace Nalix.Network.Middleware.Internal;
 internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
 {
     public async System.Threading.Tasks.Task<IBufferLease> InvokeAsync(
-        IBufferLease lease, IConnection connection, System.Threading.CancellationToken ct,
-        System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next)
+        IBufferLease lease, IConnection connection,
+        System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next,
+        System.Threading.CancellationToken ct)
     {
 
 #if DEBUG

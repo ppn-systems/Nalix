@@ -18,7 +18,7 @@ public interface IRecurringOptions
     [Required]
     [MinLength(1)]
     [MaxLength(32)]
-    string Tag { get; init; }
+    string? Tag { get; init; }
 
     /// <summary>
     /// Gets the amount of random jitter to add to the job interval.

@@ -17,11 +17,15 @@ public static class X25519
     [System.Runtime.CompilerServices.SkipLocalsInit]
     public struct X25519KeyPair
     {
-        /// <summary>The private key (32 bytes).</summary>
-        public byte[] PrivateKey;
+        /// <summary>
+        /// The private key (32 bytes).
+        /// </summary>
+        public byte[] PrivateKey { get; set; }
 
-        /// <summary>The public key (32 bytes).</summary>
-        public byte[] PublicKey;
+        /// <summary>
+        /// The public key (32 bytes).
+        /// </summary>
+        public byte[] PublicKey { get; set; }
     }
 
     /// <summary>

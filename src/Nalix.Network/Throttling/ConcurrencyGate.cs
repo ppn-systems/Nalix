@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.Globalization;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
@@ -630,16 +631,16 @@ public sealed class ConcurrencyGate : IReportable
          int TrackedOpcodes) stats,
         double rejectionRate)
     {
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConcurrencyGate Status:");
-        _ = sb.AppendLine($"CleanupInterval    : {CleanupInterval.TotalMinutes:F1} min");
-        _ = sb.AppendLine($"MinIdleAge         : {MinIdleAge.TotalMinutes:F1} min");
-        _ = sb.AppendLine($"TrackedOpcodes     : {stats.TrackedOpcodes}");
-        _ = sb.AppendLine($"TotalAcquired      : {stats.TotalAcquired:N0}");
-        _ = sb.AppendLine($"TotalRejected      : {stats.TotalRejected:N0}");
-        _ = sb.AppendLine($"TotalQueued        : {stats.TotalQueued:N0}");
-        _ = sb.AppendLine($"TotalCleaned       : {stats.TotalCleaned:N0}");
-        _ = sb.AppendLine($"RejectionRate      : {rejectionRate:F2}%");
-        _ = sb.AppendLine($"CircuitBreaker     : {(stats.CircuitBreakerOpen ? "OPEN" : "Closed")} (trips={stats.CircuitBreakerTrips})");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConcurrencyGate Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CleanupInterval    : {CleanupInterval.TotalMinutes:F1} min");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MinIdleAge         : {MinIdleAge.TotalMinutes:F1} min");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TrackedOpcodes     : {stats.TrackedOpcodes}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalAcquired      : {stats.TotalAcquired:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalRejected      : {stats.TotalRejected:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalQueued        : {stats.TotalQueued:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalCleaned       : {stats.TotalCleaned:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"RejectionRate      : {rejectionRate:F2}%");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CircuitBreaker     : {(stats.CircuitBreakerOpen ? "OPEN" : "Closed")} (trips={stats.CircuitBreakerTrips})");
         _ = sb.AppendLine();
     }
 
@@ -685,10 +686,11 @@ public sealed class ConcurrencyGate : IReportable
             int inUse = entry.Capacity - available;
             int queueCount = entry.QueueCount;
             string queueEnabled = entry.Queue ? "yes" : " no";
-            string queueMaxStr = entry.QueueMax == int.MaxValue ? "∞" : entry.QueueMax.ToString();
+            string queueMaxStr = entry.QueueMax == int.MaxValue ? "∞" : entry.QueueMax.ToString(CultureInfo.InvariantCulture);
             System.DateTimeOffset lastUsed = entry.LastUsedUtc;
 
             _ = sb.AppendLine(
+                CultureInfo.InvariantCulture,
                 $"0x{opcode:X4} | " +
                 $"{entry.Capacity,8} | " +
                 $"{inUse,5} | " +

@@ -226,7 +226,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
                     (metadata.AlwaysExecute ? _outboundAlways : _outbound).Add(entry);
                     break;
                 default:
-                    throw new System.ArgumentOutOfRangeException();
+                    throw new System.ArgumentOutOfRangeException(nameof(middleware));
             }
 
             _isSorted = false;

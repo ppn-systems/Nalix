@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Globalization;
 using System.Linq;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
@@ -469,13 +470,10 @@ public sealed partial class TaskManager : ITaskManager
         foreach (System.Collections.Generic.KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
             WorkerState st = kv.Value;
-            if (string.Equals(st.Group, group, System.StringComparison.Ordinal))
+            if (string.Equals(st.Group, group, System.StringComparison.Ordinal) && !st.Cts.IsCancellationRequested)
             {
-                if (!st.Cts.IsCancellationRequested)
-                {
-                    st.Cancel();
-                    n++;
-                }
+                st.Cancel();
+                n++;
             }
         }
         if (n > 0)
@@ -604,11 +602,12 @@ public sealed partial class TaskManager : ITaskManager
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public bool TryGetWorker(
-        [System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id,
+        ISnowflake id,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IWorkerHandle? handle)
     {
         if (_workers.TryGetValue(id, out WorkerState? st)) { handle = st; return true; }
-        handle = null; return false;
+        handle = null;
+        return false;
     }
 
     /// <inheritdoc/>
@@ -616,12 +615,12 @@ public sealed partial class TaskManager : ITaskManager
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public bool TryGetRecurring(
-        [System.Diagnostics.CodeAnalysis.NotNull] string name,
+    public bool TryGetRecurring(string name,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IRecurringHandle? handle)
     {
         if (_recurring.TryGetValue(name, out RecurringState? st)) { handle = st; return true; }
-        handle = null; return false;
+        handle = null;
+        return false;
     }
 
     #endregion APIs
@@ -635,18 +634,18 @@ public sealed partial class TaskManager : ITaskManager
     public string GenerateReport()
     {
         System.Text.StringBuilder sb = new(2048);
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
-        _ = sb.AppendLine($"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={COUNT_RUNNING_WORKERS()})");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={COUNT_RUNNING_WORKERS()})");
         _ = sb.AppendLine();
 
         // ========== CPU Monitoring Section ==========
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("CPU Monitoring:");
-        _ = sb.AppendLine($"Dynamic Adjustment Enabled       : {_options.DynamicAdjustmentEnabled}");
-        _ = sb.AppendLine($"Current Concurrency Limit         : {_currentConcurrencyLimit}/{_options.MaxWorkers}");
-        _ = sb.AppendLine($"High CPU Threshold                : {_options.ThresholdHighCpu:F1}%");
-        _ = sb.AppendLine($"Low CPU Threshold                 : {_options.ThresholdLowCpu:F1}%");
-        _ = sb.AppendLine($"Observing Interval                : {_options.ObservingInterval.TotalSeconds:F1}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Dynamic Adjustment Enabled       : {_options.DynamicAdjustmentEnabled}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Current Concurrency Limit         : {_currentConcurrencyLimit}/{_options.MaxWorkers}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"High CPU Threshold                : {_options.ThresholdHighCpu:F1}%");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Low CPU Threshold                 : {_options.ThresholdLowCpu:F1}%");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Observing Interval                : {_options.ObservingInterval.TotalSeconds:F1}s");
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine();
 
@@ -661,10 +660,10 @@ public sealed partial class TaskManager : ITaskManager
             long virtualMB = proc.VirtualMemorySize64 / (1024 * 1024);
 
             _ = sb.AppendLine("---------------------------------------------------------------------");
-            _ = sb.AppendLine($"Memory Usage:");
-            _ = sb.AppendLine($"Working Set                       : {workingSetMB,6:N0} MB");
-            _ = sb.AppendLine($"Private Bytes                     : {privateMB,6:N0} MB");
-            _ = sb.AppendLine($"Virtual Memory                    : {virtualMB,6:N0} MB");
+            _ = sb.AppendLine("Memory Usage:");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Working Set                       : {workingSetMB,6:N0} MB");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Private Bytes                     : {privateMB,6:N0} MB");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Virtual Memory                    : {virtualMB,6:N0} MB");
             _ = sb.AppendLine("---------------------------------------------------------------------");
             _ = sb.AppendLine();
         }
@@ -677,11 +676,11 @@ public sealed partial class TaskManager : ITaskManager
 
             _ = sb.AppendLine("Process Health:");
             _ = sb.AppendLine("---------------------------------------------------------------------");
-            _ = sb.AppendLine($"Threads                           : {proc.Threads.Count} (running: {proc.Threads.Cast<System.Diagnostics.ProcessThread>().Count(t => t.ThreadState == System.Diagnostics.ThreadState.Running)})");
-            _ = sb.AppendLine($"Handles                           : {proc.HandleCount:N0}");
-            _ = sb.AppendLine($"GC Collections                    : Gen0={System.GC.CollectionCount(0):N0} | Gen1={System.GC.CollectionCount(1):N0} | Gen2={System.GC.CollectionCount(2):N0}");
-            _ = sb.AppendLine($"Managed Heap                      : {System.GC.GetTotalMemory(false) / 1048576:N0} MB");
-            _ = sb.AppendLine($"Uptime                            : {(System.DateTimeOffset.UtcNow - proc.StartTime.ToUniversalTime()).TotalDays:F1} days ({proc.StartTime:yyyy-MM-dd HH:mm:ss} UTC)");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Threads                           : {proc.Threads.Count} (running: {proc.Threads.Cast<System.Diagnostics.ProcessThread>().Count(t => t.ThreadState == System.Diagnostics.ThreadState.Running)})");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Handles                           : {proc.HandleCount:N0}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GC Collections                    : Gen0={System.GC.CollectionCount(0):N0} | Gen1={System.GC.CollectionCount(1):N0} | Gen2={System.GC.CollectionCount(2):N0}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Managed Heap                      : {System.GC.GetTotalMemory(false) / 1048576:N0} MB");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Uptime                            : {(System.DateTimeOffset.UtcNow - proc.StartTime.ToUniversalTime()).TotalDays:F1} days ({proc.StartTime:yyyy-MM-dd HH:mm:ss} UTC)");
             _ = sb.AppendLine("---------------------------------------------------------------------");
             _ = sb.AppendLine();
         }
@@ -689,13 +688,13 @@ public sealed partial class TaskManager : ITaskManager
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Monitoring Statistics:");
-        _ = sb.AppendLine($"Worker Execution Count            : {_workerExecutionCount}");
-        _ = sb.AppendLine($"Average Worker Execution Time     : {AverageWorkerExecutionTime:F2} ms");
-        _ = sb.AppendLine($"Worker Error Count                : {WorkerErrorCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Execution Count            : {_workerExecutionCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Worker Execution Time     : {AverageWorkerExecutionTime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Error Count                : {WorkerErrorCount}");
         _ = sb.AppendLine();
-        _ = sb.AppendLine($"Recurring Execution Count         : {_recurringExecutionCount}");
-        _ = sb.AppendLine($"Average Recurring Execution Time  : {AverageRecurringExecutionTime:F2} ms");
-        _ = sb.AppendLine($"Recurring Error Count             : {RecurringErrorCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring Execution Count         : {_recurringExecutionCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Recurring Execution Time  : {AverageRecurringExecutionTime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring Error Count             : {RecurringErrorCount}");
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine();
 
@@ -708,14 +707,14 @@ public sealed partial class TaskManager : ITaskManager
         {
             RecurringState s = kv.Value;
             string nm = PadName(kv.Key, 28);
-            string runs = s.TotalRuns.ToString().PadLeft(8);
-            string fails = s.ConsecutiveFailures.ToString().PadLeft(5);
+            string runs = s.TotalRuns.ToString(CultureInfo.InvariantCulture).PadLeft(8);
+            string fails = s.ConsecutiveFailures.ToString(CultureInfo.InvariantCulture).PadLeft(5);
             string run = s.IsRunning ? "yes" : " no";
             string last = s.LastRunUtc?.ToString("u") ?? "-";
             string next = s.NextRunUtc?.ToString("u") ?? "-";
             string iv = $"{s.Interval.TotalMilliseconds:F0}ms".PadLeft(9);
             string tag = s.Options.Tag ?? "-";
-            _ = sb.AppendLine($"{nm} | {runs} | {fails} | {run.PadLeft(7)} | {last,-20} | {next,-20} | {iv} | {tag}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{nm} | {runs} | {fails} | {run.PadLeft(7)} | {last,-20} | {next,-20} | {iv} | {tag}");
         }
         _ = sb.AppendLine("---------------------------------------------------------------------------------------------------------------------------------");
         _ = sb.AppendLine();
@@ -726,7 +725,7 @@ public sealed partial class TaskManager : ITaskManager
         _ = sb.AppendLine("------------------------------------------------------------------------------");
         foreach (RecurringState r in _recurring.Values.OrderByDescending(r => r.ConsecutiveFailures).Take(5))
         {
-            _ = sb.AppendLine($"{PadName(r.Name, 28)} | {r.ConsecutiveFailures,8} | {r.LastRunUtc?.ToString("u"),-20} | {r.Options.Tag ?? "-"}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{PadName(r.Name, 28)} | {r.ConsecutiveFailures,8} | {r.LastRunUtc?.ToString("u"),-20} | {r.Options.Tag ?? "-"}");
         }
         _ = sb.AppendLine("------------------------------------------------------------------------------");
         _ = sb.AppendLine();
@@ -750,11 +749,11 @@ public sealed partial class TaskManager : ITaskManager
             {
                 int total = gate.Capacity;
                 int used = total - gate.SemaphoreSlim.CurrentCount;
-                _ = sb.AppendLine($"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | {used}/{total}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | {used}/{total}");
             }
             else
             {
-                _ = sb.AppendLine($"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | -");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | -");
             }
         }
         _ = sb.AppendLine("------------------------------------------------------------");
@@ -775,7 +774,7 @@ public sealed partial class TaskManager : ITaskManager
                 continue;
             }
 
-            _ = sb.AppendLine($"{w.Id} | {PadName(w.Name, 28)} | {PadName(w.Group, 28)} | {FormatAge(w.StartedUtc),7} | {w.Progress,8} |  {w.LastHeartbeatUtc?.ToString("HH:mm:ss") ?? "-"}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{w.Id} | {PadName(w.Name, 28)} | {PadName(w.Group, 28)} | {FormatAge(w.StartedUtc),7} | {w.Progress,8} |  {w.LastHeartbeatUtc?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? "-"}");
             if (++show >= 50)
             {
                 break;
@@ -791,9 +790,18 @@ public sealed partial class TaskManager : ITaskManager
         static string FormatAge(System.DateTimeOffset start)
         {
             System.TimeSpan ts = System.DateTimeOffset.UtcNow - start;
-            return ts.TotalHours >= 1
-                ? $"{(int)ts.TotalHours}h{ts.Minutes:D2}m"
-                : ts.TotalMinutes >= 1 ? $"{(int)ts.TotalMinutes}m{ts.Seconds:D2}s" : $"{(int)ts.TotalSeconds}s";
+            if (ts.TotalHours >= 1)
+            {
+                return $"{(int)ts.TotalHours}h{ts.Minutes:D2}m";
+            }
+            else if (ts.TotalMinutes >= 1)
+            {
+                return $"{(int)ts.TotalMinutes}m{ts.Seconds:D2}s";
+            }
+            else
+            {
+                return $"{(int)ts.TotalSeconds}s";
+            }
         }
     }
 

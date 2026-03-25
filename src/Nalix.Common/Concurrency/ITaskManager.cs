@@ -33,12 +33,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="work">The delegate representing the job work.</param>
     /// <param name="options">Options for the recurring job (optional).</param>
     /// <returns>A handle to manage the recurring job.</returns>
-    IRecurringHandle ScheduleRecurring(
-        [NotNull] string name,
-        [NotNull] TimeSpan interval,
-        [NotNull]
-        Func<CancellationToken, ValueTask> work,
-        [MaybeNull] IRecurringOptions options = null);
+    IRecurringHandle ScheduleRecurring(string name, TimeSpan interval, Func<CancellationToken, ValueTask> work, IRecurringOptions? options = null);
 
     /// <summary>
     /// Executes a single job once.
@@ -47,11 +42,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="work">The delegate representing the job work.</param>
     /// <param name="ct">Cancellation token (optional).</param>
     /// <returns>A ValueTask representing the job execution.</returns>
-    ValueTask RunOnceAsync(
-        [NotNull] string name,
-        [NotNull]
-        Func<CancellationToken, ValueTask> work,
-        [NotNull] CancellationToken ct = default);
+    ValueTask RunOnceAsync(string name, Func<CancellationToken, ValueTask> work, CancellationToken ct = default);
 
     /// <summary>
     /// Starts a long-running worker task.
@@ -61,12 +52,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="work">The delegate representing the worker's work.</param>
     /// <param name="options">Options for the worker (optional).</param>
     /// <returns>A handle to manage the worker.</returns>
-    IWorkerHandle ScheduleWorker(
-        [NotNull] string name,
-        [NotNull] string group,
-        [NotNull]
-        Func<IWorkerContext, CancellationToken, ValueTask> work,
-        [MaybeNull] IWorkerOptions options = null);
+    IWorkerHandle ScheduleWorker(string name, string group, Func<IWorkerContext, CancellationToken, ValueTask> work, IWorkerOptions? options = null);
 
     /// <summary>
     /// Cancels all running workers.
@@ -101,9 +87,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="runningOnly">Whether to list only running workers.</param>
     /// <param name="group">The group to filter by (optional).</param>
     /// <returns>A read-only collection of worker handles.</returns>
-    IReadOnlyCollection<IWorkerHandle> GetWorkers(
-        [NotNull] bool runningOnly = true,
-        [MaybeNull] string group = null);
+    IReadOnlyCollection<IWorkerHandle> GetWorkers(bool runningOnly = true, string? group = null);
 
     /// <summary>
     /// Tries to get a worker by identifier.
@@ -111,9 +95,7 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="id">The worker's identifier.</param>
     /// <param name="handle">The handle to the worker if found.</param>
     /// <returns>True if the worker was found; otherwise, false.</returns>
-    bool TryGetWorker(
-        [NotNull] ISnowflake id,
-        [NotNullWhen(true)] out IWorkerHandle handle);
+    bool TryGetWorker(ISnowflake id, [NotNullWhen(true)] out IWorkerHandle? handle);
 
     /// <summary>
     /// Lists all recurring jobs.
@@ -127,7 +109,5 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="name">The name of the recurring job.</param>
     /// <param name="handle">The handle to the recurring job if found.</param>
     /// <returns>True if the recurring job was found; otherwise, false.</returns>
-    bool TryGetRecurring(
-        [NotNull] string name,
-        [NotNullWhen(true)] out IRecurringHandle handle);
+    bool TryGetRecurring(string name, [NotNullWhen(true)] out IRecurringHandle? handle);
 }

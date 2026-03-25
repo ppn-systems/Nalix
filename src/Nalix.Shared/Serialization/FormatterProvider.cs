@@ -702,7 +702,7 @@ public static class FormatterProvider
 
         if (!TypeMetadata.IsUnmanaged(elem))
         {
-            return throw new NotSupportedException($"MemoryFormatter only supports unmanaged element types. T='{elem.Name}' is not unmanaged. For strings, use IFormatter<string> directly.");
+            throw new NotSupportedException($"MemoryFormatter only supports unmanaged element types. T='{elem.Name}' is not unmanaged. For strings, use IFormatter<string> directly.");
         }
         else if (def == typeof(Memory<>))
         {

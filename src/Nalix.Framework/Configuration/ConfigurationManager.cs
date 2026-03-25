@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Globalization;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Environment;
 using Nalix.Common.Exceptions;
@@ -37,24 +38,34 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 {
     #region Fields
 
-    // volatile: assigned atomically in SetConfigFilePath; all threads must see the latest reference.
+    /// <summary>
+    /// volatile: assigned atomically in SetConfigFilePath; all threads must see the latest reference.
+    /// </summary>
     private volatile Lazy<IniConfig> _iniFile;
+
     private readonly string _baseConfigDirectory;
     private readonly System.Threading.ReaderWriterLockSlim _configLock;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Lazy<ConfigurationLoader>> _configContainerDict;
 
-    // SemaphoreSlim(1,1): serialises ReloadAll / SetConfigFilePath.
-    // Using Wait() instead of Interlocked.Exchange means callers BLOCK until the current
-    // operation completes — fixing the test failure where FileSystemWatcher would grab the
-    // old Interlocked flag just before the test's manual ReloadAll() call.
+    /// <summary>
+    /// SemaphoreSlim(1,1): serialises ReloadAll / SetConfigFilePath.
+    /// Using Wait() instead of Interlocked.Exchange means callers BLOCK until the current
+    /// operation completes — fixing the test failure where FileSystemWatcher would grab the
+    /// old Interlocked flag just before the test's manual ReloadAll() call.
+    /// </summary>
     private readonly System.Threading.SemaphoreSlim _reloadGate;
 
-    // Debounce: FileSystemWatcher fires 2-3 Changed events per single file write on most OSes.
-    // We reset a one-shot timer on every event; only the last one fires ReloadAll().
+    /// <summary>
+    /// Debounce: FileSystemWatcher fires 2-3 Changed events per single file write on most OSes.
+    /// We reset a one-shot timer on every event; only the last one fires ReloadAll().
+    /// </summary>
     private System.Threading.Timer? _debounceTimer;
+
     private static readonly TimeSpan _debounceDelay = TimeSpan.FromMilliseconds(300);
 
-    // volatile: read/written from multiple threads without a full lock.
+    /// <summary>
+    /// volatile: read/written from multiple threads without a full lock.
+    /// </summary>
     private volatile bool _directoryChecked;
 
     private string _configFilePath;
@@ -147,6 +158,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// <see langword="true"/> on success; <see langword="false"/> if the path was unchanged,
     /// the gate timed out, or an auto-reload failed (path is rolled back in that case).
     /// </returns>
+    /// <exception cref="ArgumentException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public bool SetConfigFilePath(string newConfigFilePath, bool autoReload = true)
@@ -415,7 +427,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                     .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] " +
-                           $"reload-fail msg={reloadException?.Message}", reloadException);
+                           $"reload-fail msg={reloadException?.Message}", reloadException!);
             }
 
             return reloadSuccess;
@@ -611,7 +623,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         string normalizedPath = System.IO.Path.GetFullPath(pathToValidate);
         string normalizedBaseDir = System.IO.Path.GetFullPath(_baseConfigDirectory);
 
-        if (!normalizedBaseDir.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString()))
+        if (!normalizedBaseDir.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString(CultureInfo.InvariantCulture), StringComparison.InvariantCulture))
         {
             normalizedBaseDir += System.IO.Path.DirectorySeparatorChar;
         }

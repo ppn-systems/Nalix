@@ -78,7 +78,6 @@ public abstract partial class ConfigurationLoader
     /// The section and key names in the INI file are derived from the class and property names.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1160:Abstract type should not have public constructors", Justification = "<Pending>")]
     public ConfigurationLoader()
     {
     }

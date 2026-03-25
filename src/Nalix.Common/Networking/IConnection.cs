@@ -88,5 +88,5 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// <remarks>
     /// Use this method to terminate the connection gracefully.
     /// </remarks>
-    void Disconnect(string reason = null);
+    void Disconnect(string? reason = null);
 }

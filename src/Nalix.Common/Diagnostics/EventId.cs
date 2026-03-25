@@ -15,7 +15,7 @@ namespace Nalix.Common.Diagnostics;
 /// </remarks>
 /// <param name="id">The numeric identifier for this event.</param>
 /// <param name="name">The name of this event.</param>
-public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
+public readonly struct EventId(int id, string? name = null) : IEquatable<EventId>
 {
     /// <summary>
     /// Represents an empty or uninitialized <see cref="EventId"/> with an ProtocolType of 0.
@@ -53,7 +53,7 @@ public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
     /// <summary>
     /// Gets the name of this event.
     /// </summary>
-    public string Name { get; } = name;
+    public string Name { get; } = name ?? string.Empty;
 
     /// <inheritdoc />
     public override string ToString() => Name ?? Id.ToString(CultureInfo.InvariantCulture);
@@ -66,9 +66,7 @@ public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
     public bool Equals([NotNull] EventId other) => Id == other.Id;
 
     /// <inheritdoc />
-    public override bool Equals(
-        [NotNullWhen(true)] object obj)
-        => obj is not null && obj is EventId eventId && Equals(eventId);
+    public override bool Equals([NotNullWhen(true)] object? obj) => obj is not null && obj is EventId eventId && Equals(eventId);
 
     /// <inheritdoc />
     public override int GetHashCode() => Id;

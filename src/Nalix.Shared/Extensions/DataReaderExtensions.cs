@@ -14,128 +14,128 @@ public static class DataReaderExtensions
     #region Primitive Types
 
     /// <summary>
-    /// Reads a <see cref="System.Byte"/> from the buffer.
+    /// Reads a <see cref="byte"/> from the buffer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Byte ReadByte(this ref DataReader reader)
+    public static byte ReadByte(this ref DataReader reader)
     {
-        ref System.Byte ptr = ref reader.GetSpanReference(sizeof(System.Byte));
-        System.Byte value = ptr;
-        reader.Advance(sizeof(System.Byte));
+        ref byte ptr = ref reader.GetSpanReference(sizeof(byte));
+        byte value = ptr;
+        reader.Advance(sizeof(byte));
         return value;
     }
 
     /// <summary>
-    /// Reads a <see cref="System.UInt16"/> from the buffer.
+    /// Reads a <see cref="ushort"/> from the buffer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt16 ReadUInt16(this ref DataReader reader)
+    public static ushort ReadUInt16(this ref DataReader reader)
     {
-        ref System.Byte ptr = ref reader.GetSpanReference(sizeof(System.UInt16));
-        System.UInt16 value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt16>(ref ptr);
-        reader.Advance(sizeof(System.UInt16));
+        ref byte ptr = ref reader.GetSpanReference(sizeof(ushort));
+        ushort value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ushort>(ref ptr);
+        reader.Advance(sizeof(ushort));
         return value;
     }
 
     /// <summary>
-    /// Reads a <see cref="System.UInt32"/> from the buffer.
+    /// Reads a <see cref="uint"/> from the buffer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt32 ReadUInt32(this ref DataReader reader)
+    public static uint ReadUInt32(this ref DataReader reader)
     {
-        ref System.Byte ptr = ref reader.GetSpanReference(sizeof(System.UInt32));
-        System.UInt32 value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt32>(ref ptr);
-        reader.Advance(sizeof(System.UInt32));
+        ref byte ptr = ref reader.GetSpanReference(sizeof(uint));
+        uint value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ref ptr);
+        reader.Advance(sizeof(uint));
         return value;
     }
 
     /// <summary>
-    /// Reads a <see cref="System.Int32"/> from the buffer.
+    /// Reads a <see cref="int"/> from the buffer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 ReadInt32(this ref DataReader reader)
+    public static int ReadInt32(this ref DataReader reader)
     {
-        ref System.Byte ptr = ref reader.GetSpanReference(sizeof(System.Int32));
-        System.Int32 value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Int32>(ref ptr);
-        reader.Advance(sizeof(System.Int32));
+        ref byte ptr = ref reader.GetSpanReference(sizeof(int));
+        int value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<int>(ref ptr);
+        reader.Advance(sizeof(int));
         return value;
     }
 
     /// <summary>
-    /// Reads a <see cref="System.Int64"/> from the buffer.
+    /// Reads a <see cref="long"/> from the buffer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int64 ReadInt64(this ref DataReader reader)
+    public static long ReadInt64(this ref DataReader reader)
     {
-        ref System.Byte ptr = ref reader.GetSpanReference(sizeof(System.Int64));
-        System.Int64 value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.Int64>(ref ptr);
-        reader.Advance(sizeof(System.Int64));
+        ref byte ptr = ref reader.GetSpanReference(sizeof(long));
+        long value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<long>(ref ptr);
+        reader.Advance(sizeof(long));
         return value;
     }
 
     /// <summary>
-    /// Reads a <see cref="System.UInt64"/> from the buffer.
+    /// Reads a <see cref="ulong"/> from the buffer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt64 ReadUInt64(this ref DataReader reader)
+    public static ulong ReadUInt64(this ref DataReader reader)
     {
-        ref System.Byte ptr = ref reader.GetSpanReference(sizeof(System.UInt64));
-        System.UInt64 value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(ref ptr);
-        reader.Advance(sizeof(System.UInt64));
+        ref byte ptr = ref reader.GetSpanReference(sizeof(ulong));
+        ulong value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(ref ptr);
+        reader.Advance(sizeof(ulong));
         return value;
     }
 
     /// <summary>
-    /// Reads a <see cref="System.Boolean"/> from the buffer.
+    /// Reads a <see cref="bool"/> from the buffer.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean ReadBoolean(this ref DataReader reader) => reader.ReadByte() != 0;
+    public static bool ReadBoolean(this ref DataReader reader) => reader.ReadByte() != 0;
 
     #endregion Primitive Types
 
     #region Enum Types
 
     /// <summary>
-    /// Reads an enum value with underlying type <see cref="System.Byte"/>.
+    /// Reads an enum value with underlying type <see cref="byte"/>.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TEnum ReadEnumByte<TEnum>(this ref DataReader reader)
     where TEnum : unmanaged, System.Enum
     {
-        System.Byte value = reader.ReadByte();
-        return System.Runtime.CompilerServices.Unsafe.As<System.Byte, TEnum>(ref value);
+        byte value = reader.ReadByte();
+        return System.Runtime.CompilerServices.Unsafe.As<byte, TEnum>(ref value);
     }
 
     /// <summary>
-    /// Reads an enum value with underlying type <see cref="System.UInt16"/>.
+    /// Reads an enum value with underlying type <see cref="ushort"/>.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TEnum ReadEnumUInt16<TEnum>(this ref DataReader reader)
     where TEnum : unmanaged, System.Enum
     {
-        System.UInt16 value = reader.ReadUInt16();
-        return System.Runtime.CompilerServices.Unsafe.As<System.UInt16, TEnum>(ref value);
+        ushort value = reader.ReadUInt16();
+        return System.Runtime.CompilerServices.Unsafe.As<ushort, TEnum>(ref value);
     }
 
     /// <summary>
-    /// Reads an enum value with underlying type <see cref="System.UInt32"/>.
+    /// Reads an enum value with underlying type <see cref="uint"/>.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TEnum ReadEnumUInt32<TEnum>(this ref DataReader reader)
     where TEnum : unmanaged, System.Enum
     {
-        System.UInt32 value = reader.ReadUInt32();
-        return System.Runtime.CompilerServices.Unsafe.As<System.UInt32, TEnum>(ref value);
+        uint value = reader.ReadUInt32();
+        return System.Runtime.CompilerServices.Unsafe.As<uint, TEnum>(ref value);
     }
 
     #endregion Enum Types
@@ -147,23 +147,23 @@ public static class DataReaderExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Byte[] ReadBytes(this ref DataReader reader, System.Int32 count)
+    public static byte[] ReadBytes(this ref DataReader reader, int count)
     {
         if (count <= 0)
         {
             return [];
         }
 
-        ref System.Byte ptr = ref reader.GetSpanReference(count);
-        System.Byte[] result = new System.Byte[count];
+        ref byte ptr = ref reader.GetSpanReference(count);
+        byte[] result = new byte[count];
 
         unsafe
         {
-            fixed (System.Byte* pSrc = &ptr)
+            fixed (byte* pSrc = &ptr)
             {
-                fixed (System.Byte* pDst = result)
+                fixed (byte* pDst = result)
                 {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(pDst, pSrc, (System.UInt32)count);
+                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(pDst, pSrc, (uint)count);
                 }
             }
         }
@@ -177,7 +177,7 @@ public static class DataReaderExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Byte[] ReadRemainingBytes(this ref DataReader reader) => reader.ReadBytes(reader.BytesRemaining);
+    public static byte[] ReadRemainingBytes(this ref DataReader reader) => reader.ReadBytes(reader.BytesRemaining);
 
     #endregion Array Types
 
@@ -190,7 +190,7 @@ public static class DataReaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static T ReadUnmanaged<T>(this ref DataReader reader) where T : unmanaged
     {
-        ref System.Byte ptr = ref reader.GetSpanReference(System.Runtime.CompilerServices.Unsafe.SizeOf<T>());
+        ref byte ptr = ref reader.GetSpanReference(System.Runtime.CompilerServices.Unsafe.SizeOf<T>());
         T value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ref ptr);
         reader.Advance(System.Runtime.CompilerServices.Unsafe.SizeOf<T>());
         return value;
@@ -205,7 +205,7 @@ public static class DataReaderExtensions
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Remaining(this ref DataReader reader) => reader.BytesRemaining;
+    public static int Remaining(this ref DataReader reader) => reader.BytesRemaining;
 
     #endregion Helper Properties
 }

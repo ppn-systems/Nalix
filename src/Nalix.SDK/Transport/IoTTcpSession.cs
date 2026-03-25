@@ -255,7 +255,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
                 }
             }
 
-            Logging?.Error($"[SDK.{nameof(IoTTcpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx);
+            Logging?.Error($"[SDK.{nameof(IoTTcpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}");
             SetState(TcpSessionState.Disconnected);
             throw lastEx
                 ?? new System.Net.Sockets.SocketException(
@@ -298,6 +298,7 @@ public sealed class IoTTcpSession : TcpSessionBase, System.IDisposable
     }
 
     /// <inheritdoc/>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "<Pending>")]
     protected override void TearDownConnection()
     {
         bool wasConnected = IsConnected;

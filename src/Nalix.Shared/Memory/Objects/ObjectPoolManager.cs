@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Nalix.Common.Diagnostics;
@@ -77,9 +78,6 @@ public sealed class ObjectPoolManager : IReportable
     internal DateTime _startTime = DateTime.UtcNow;
     internal int _peakPoolCount;
 
-    /// <summary>
-    /// Health monitoring
-    /// </summary>
     private long _lastHealthCheckUtc;
 
     private int _unhealthyPoolCount;
@@ -180,7 +178,7 @@ public sealed class ObjectPoolManager : IReportable
         // Try to get from pool
         T? result = pool.Get<T>();
 
-        if (!EqualityComparer<T>.Default.Equals(result, default(T)))
+        if (!EqualityComparer<T>.Default.Equals(result, default))
         {
             // Hit from pool
             _ = Interlocked.Increment(ref _totalCacheHits);
@@ -215,7 +213,7 @@ public sealed class ObjectPoolManager : IReportable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return<T>([System.Diagnostics.CodeAnalysis.NotNull] T obj) where T : IPoolable, new()
     {
-        if (EqualityComparer<T>.Default.Equals(obj, default(T)))
+        if (EqualityComparer<T>.Default.Equals(obj, default))
         {
             throw new ArgumentNullException(nameof(obj));
         }
@@ -528,23 +526,24 @@ public sealed class ObjectPoolManager : IReportable
         System.Text.StringBuilder sb = new(4096);
 
         // Header
-        _ = sb.AppendLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ObjectPoolManager Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ObjectPoolManager Status:");
         _ = sb.AppendLine();
 
         // Overall Statistics
         _ = sb.AppendLine("======================================================================");
         _ = sb.AppendLine("Overall Statistics");
         _ = sb.AppendLine("======================================================================");
-        _ = sb.AppendLine($"Uptime                 : {Uptime.TotalHours:F2} hours ({Uptime.TotalSeconds:F0}s)");
-        _ = sb.AppendLine($"Total Pools            : {PoolCount} (Peak: {PeakPoolCount})");
-        _ = sb.AppendLine($"Unhealthy Pools        : {UnhealthyPoolCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Last Heal              : {_lastHealthCheckUtc} Ticks");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Uptime                 : {Uptime.TotalHours:F2} hours ({Uptime.TotalSeconds:F0}s)");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Pools            : {PoolCount} (Peak: {PeakPoolCount})");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Unhealthy Pools        : {UnhealthyPoolCount}");
         _ = sb.AppendLine();
 
         // Operation Statistics
         _ = sb.AppendLine("Operation Statistics:");
-        _ = sb.AppendLine($"Total Get Operations   : {TotalGetOperations:N0}");
-        _ = sb.AppendLine($"Total Return Operations: {TotalReturnOperations:N0}");
-        _ = sb.AppendLine($"Net Objects            : {TotalGetOperations - TotalReturnOperations:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Get Operations   : {TotalGetOperations:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Return Operations: {TotalReturnOperations:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Net Objects            : {TotalGetOperations - TotalReturnOperations:N0}");
         _ = sb.AppendLine();
 
         // Cache Performance
@@ -554,9 +553,9 @@ public sealed class ObjectPoolManager : IReportable
         {
             double hitRate = TotalCacheHits / (double)totalOps * 100.0;
             double missRate = TotalCacheMisses / (double)totalOps * 100.0;
-            _ = sb.AppendLine($"Cache Hits             : {TotalCacheHits:N0} ({hitRate:F2}%)");
-            _ = sb.AppendLine($"Cache Misses           : {TotalCacheMisses:N0} ({missRate:F2}%)");
-            _ = sb.AppendLine($"Overall Hit Rate       : {hitRate:F2}%");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Cache Hits             : {TotalCacheHits:N0} ({hitRate:F2}%)");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Cache Misses           : {TotalCacheMisses:N0} ({missRate:F2}%)");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Overall Hit Rate       : {hitRate:F2}%");
         }
         else
         {
@@ -586,8 +585,8 @@ public sealed class ObjectPoolManager : IReportable
                 ? $"{type.Name.AsSpan(0, 21)}..."
                 : type.Name.PadRight(24);
 
-            int available = Convert.ToInt32(typeInfo["AvailableCount"]);
-            int maxCap = Convert.ToInt32(typeInfo["MaxCapacity"]);
+            int maxCap = Convert.ToInt32(typeInfo["MaxCapacity"], CultureInfo.InvariantCulture);
+            int available = Convert.ToInt32(typeInfo["AvailableCount"], CultureInfo.InvariantCulture);
 
             long gets = 0, hits = 0, misses = 0;
             double hitPercent = 0.0;
@@ -606,7 +605,7 @@ public sealed class ObjectPoolManager : IReportable
                 }
             }
 
-            _ = sb.AppendLine($"{typeName} | {available,9} | {maxCap,7} | {gets,7} | {hits,7} | {misses,7} | {hitPercent,6:F1}% | {status}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {available,9} | {maxCap,7} | {gets,7} | {hits,7} | {misses,7} | {hitPercent,6:F1}% | {status}");
         }
 
         _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
@@ -626,7 +625,7 @@ public sealed class ObjectPoolManager : IReportable
                     ? $"{kvp.Key.Name.AsSpan(0, 21)}..."
                     : kvp.Key.Name.PadRight(24);
 
-                _ = sb.AppendLine($"{typeName} | {kvp.Value.ConsecutiveFailures,20} | {kvp.Value.LastAccessUtc:HH:mm:ss}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {kvp.Value.ConsecutiveFailures,20} | {kvp.Value.LastAccessUtc:HH:mm:ss}");
             }
 
             _ = sb.AppendLine("----------------------------------------------------------------------");
@@ -635,7 +634,7 @@ public sealed class ObjectPoolManager : IReportable
 
         // Configuration
         _ = sb.AppendLine("Configuration:");
-        _ = sb.AppendLine($"Default Max s_pool Size  : {DefaultMaxPoolSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Default Max s_pool Size  : {DefaultMaxPoolSize}");
         _ = sb.AppendLine();
 
         return sb.ToString();

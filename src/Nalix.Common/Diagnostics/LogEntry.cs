@@ -24,7 +24,7 @@ public readonly struct LogEntry(
     LogLevel level,
     EventId eventId,
     string message,
-    Exception exception = null)
+    Exception? exception = null)
 {
     /// <summary>
     /// Gets the severity level of the log entry.
@@ -44,7 +44,7 @@ public readonly struct LogEntry(
     /// <summary>
     /// Gets the exception associated with the log entry, if any.
     /// </summary>
-    public readonly Exception Exception { get; } = exception;
+    public readonly Exception? Exception { get; } = exception;
 
     /// <summary>
     /// Gets the UTC timestamp indicating when the log entry was created.

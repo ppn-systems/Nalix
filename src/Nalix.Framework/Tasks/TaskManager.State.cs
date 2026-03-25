@@ -19,13 +19,33 @@ public partial class TaskManager
         #region Backing fields (thread-safe)
 
         private long _progress;
-        private int _isRunning;                  // 0/1
-        private long _totalRuns;                  // count
-        private long _startedUtcTicks;            // DateTimeOffset.UtcNow.Ticks
-        private long _lastHeartbeatUtcTicks;      // 0 == null
-        private long _completedUtcTicks;          // 0 == null
 
-        #endregion
+        /// <summary>
+        /// 0/1
+        /// </summary>
+        private int _isRunning;
+
+        /// <summary>
+        /// count
+        /// </summary>
+        private long _totalRuns;
+
+        /// <summary>
+        /// DateTimeOffset.UtcNow.Ticks
+        /// </summary>
+        private long _startedUtcTicks;
+
+        /// <summary>
+        /// 0 == null
+        /// </summary>
+        private long _lastHeartbeatUtcTicks;
+
+        /// <summary>
+        /// 0 == null
+        /// </summary>
+        private long _completedUtcTicks;
+
+        #endregion Backing fields (thread-safe)
 
         #region Properties
 
@@ -76,7 +96,9 @@ public partial class TaskManager
             }
         }
 
-        // Mark khi worker kết thúc (thành công/huỷ/lỗi) để cleanup theo RetainFor
+        /// <summary>
+        /// Mark khi worker kết thúc (thành công/huỷ/lỗi) để cleanup theo RetainFor
+        /// </summary>
         internal System.DateTimeOffset? CompletedUtc
         {
             get
@@ -225,11 +247,22 @@ public partial class TaskManager
             var x => x
         };
 
-        // backing fields
+        /// <summary>
+        /// backing fields
+        /// </summary>
         private long _totalRuns;
+
         private int _consecutiveFailures;
-        private int _isRunning;          // 0/1
-        private long _lastRunUtcTicks;    // 0 == null
+
+        /// <summary>
+        /// 0/1
+        /// </summary>
+        private int _isRunning;
+
+        /// <summary>
+        /// 0 == null
+        /// </summary>
+        private long _lastRunUtcTicks;
 
         public long TotalRuns
         {
@@ -337,8 +370,8 @@ public partial class TaskManager
         [System.Diagnostics.CodeAnalysis.NotNull] TaskManager owner) : IWorkerContext
     {
         private readonly WorkerState _st = st;
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-            "Roslynator", "RCS1213:Remove unused member declaration", Justification = "<Pending>")]
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0052:Remove unread private members", Justification = "<Pending>")]
         private readonly TaskManager _owner = owner;
 
         public ISnowflake Id => _st.Id;

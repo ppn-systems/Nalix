@@ -279,7 +279,7 @@ public sealed class TcpSession : TcpSessionBase
         }
 
         SetState(TcpSessionState.Disconnected);
-        Logging?.Error($"[SDK.{GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx);
+        Logging?.Error($"[SDK.{GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx!);
         throw lastEx ?? new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.HostNotFound);
     }
 

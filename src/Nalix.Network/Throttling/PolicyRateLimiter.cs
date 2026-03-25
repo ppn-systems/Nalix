@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
@@ -305,9 +306,9 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
     {
         System.Text.StringBuilder sb = new();
 
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PolicyRateLimiter Status:");
-        _ = sb.AppendLine($"Active Policies    : {_limiters.Count}/{MaxPolicies}");
-        _ = sb.AppendLine($"Check Counter      : {System.Threading.Volatile.Read(ref _checkCounter):N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PolicyRateLimiter Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Active Policies    : {_limiters.Count}/{MaxPolicies}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Check Counter      : {System.Threading.Volatile.Read(ref _checkCounter):N0}");
         _ = sb.AppendLine();
 
         if (_limiters.IsEmpty)
@@ -328,8 +329,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
             long lastTicks = entry.LastUsedUtcTicks;
             System.DateTime lastUsed = new(lastTicks, System.DateTimeKind.Utc);
 
-            _ = sb.AppendLine(
-                $"{policy.Rps,4} | {policy.Burst,5} | {lastUsed:yyyy-MM-dd HH:mm:ss}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{policy.Rps,4} | {policy.Burst,5} | {lastUsed:yyyy-MM-dd HH:mm:ss}");
         }
 
         _ = sb.AppendLine("------------------------------------------------------------");

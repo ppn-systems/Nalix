@@ -76,13 +76,13 @@ public unsafe struct DataReader : System.IDisposable
     /// Initializes a new instance of <see cref="DataReader"/> for an unmanaged memory pointer.
     /// This is useful for reading from native memory, stack allocations, or manually allocated buffers.
     /// </summary>
-    /// <param name="ptr">The unmanaged memory pointer.</param>
+    /// <param name="ptrB">The unmanaged memory pointer.</param>
     /// <param name="length">The length of the buffer.</param>
-    public DataReader(byte* ptr, int length)
+    public DataReader(byte* ptrB, int length)
     {
         BytesRead = 0;
 
-        _ptr = ptr;
+        _ptr = ptrB;
         BytesRemaining = length;
         _pin = default;
         _pinned = false;

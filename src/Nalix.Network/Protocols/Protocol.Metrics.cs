@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Globalization;
 using Nalix.Common.Shared;
 
 namespace Nalix.Network.Protocols;
@@ -41,13 +42,13 @@ public abstract partial class Protocol : IReportable
     public virtual string GenerateReport()
     {
         System.Text.StringBuilder sb = new(128);
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Protocol Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Protocol Status:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"Is Disposed             : {_isDisposed}");
-        _ = sb.AppendLine($"Total Messages          : {TotalMessages}");
-        _ = sb.AppendLine($"Total Errors            : {TotalErrors}");
-        _ = sb.AppendLine($"Is Accepting            : {IsAccepting}");
-        _ = sb.AppendLine($"Keep Connections Open   : {KeepConnectionOpen}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Is Disposed             : {_isDisposed}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Messages          : {TotalMessages}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors            : {TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Is Accepting            : {IsAccepting}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Keep Connections Open   : {KeepConnectionOpen}");
         _ = sb.AppendLine("--------------------------------------------");
         _ = sb.AppendLine();
 
