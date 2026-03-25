@@ -15,7 +15,7 @@ public abstract partial class Protocol
     #region Fields
 
     private int _accepting;
-    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     #endregion Fields
 
