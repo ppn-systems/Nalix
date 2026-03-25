@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
-using Nalix.Common.Shared;
 
 namespace Nalix.Network.Middleware;
 

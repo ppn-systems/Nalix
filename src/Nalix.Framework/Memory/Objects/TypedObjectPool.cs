@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Shared;
+using Nalix.Common.Abstractions;
 using Nalix.Framework.Memory.Pools;
 
 

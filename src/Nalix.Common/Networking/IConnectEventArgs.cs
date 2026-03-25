@@ -4,7 +4,7 @@
 #pragma warning disable CA1711
 
 using System;
-using Nalix.Common.Shared;
+using Nalix.Common.Abstractions;
 
 namespace Nalix.Common.Networking;
 

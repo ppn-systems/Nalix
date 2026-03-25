@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.ComponentModel;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
-using Nalix.Common.Shared;
 using Nalix.Network.Listeners.Tcp;
 
 namespace Nalix.Network.Internal.Pooled;

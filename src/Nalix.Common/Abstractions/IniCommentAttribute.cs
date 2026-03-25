@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 using System;
 
-namespace Nalix.Common.Shared;
+namespace Nalix.Common.Abstractions;
 
 /// <summary>
 /// Specifies a comment to be written above a section or key in the INI file.

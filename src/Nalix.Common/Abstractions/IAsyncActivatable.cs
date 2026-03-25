@@ -5,7 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Nalix.Common.Shared;
+namespace Nalix.Common.Abstractions;
 
 /// <summary>
 /// Defines a standard contract for components that can be

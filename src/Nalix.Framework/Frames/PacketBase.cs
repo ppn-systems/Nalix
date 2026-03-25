@@ -9,10 +9,10 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
-using Nalix.Common.Shared;
 using Nalix.Framework.Frames.Internal;
 using Nalix.Framework.Serialization;
 

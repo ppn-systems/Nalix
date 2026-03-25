@@ -11,7 +11,7 @@ public enum SimdMode : byte
     /// <summary>
     /// No SIMD
     /// </summary>
-    NONE = 0,
+    None = 0,
 
     /// <summary>
     /// 128 bit SIMD
@@ -31,5 +31,5 @@ public enum SimdMode : byte
     /// <summary>
     /// Autodetect
     /// </summary>
-    AUTODETECT = 255,
+    AutoDetect = 255,
 }

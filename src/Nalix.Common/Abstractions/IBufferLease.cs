@@ -4,7 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Nalix.Common.Shared;
+namespace Nalix.Common.Abstractions;
 
 /// <summary>
 /// Defines a reference-counted lease over a pooled byte buffer.

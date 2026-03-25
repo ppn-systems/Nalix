@@ -4,8 +4,8 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
-using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 

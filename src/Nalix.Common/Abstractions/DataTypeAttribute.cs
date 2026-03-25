@@ -4,7 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Nalix.Common.Shared;
+namespace Nalix.Common.Abstractions;
 
 /// <summary>
 /// Specifies the data type associated with a field.

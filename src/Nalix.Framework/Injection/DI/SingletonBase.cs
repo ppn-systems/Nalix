@@ -8,8 +8,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-#pragma warning disable CA1000
-
 namespace Nalix.Framework.Injection.DI;
 
 /// <summary>
@@ -20,6 +18,7 @@ namespace Nalix.Framework.Injection.DI;
 [SkipLocalsInit]
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("Instance = {Instance}, IsCreated = {IsCreated}")]
+[SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
 public abstract class SingletonBase<T> : IDisposable where T : class
 {
     #region Fields

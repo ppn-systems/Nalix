@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
-using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 

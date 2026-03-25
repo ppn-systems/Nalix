@@ -121,7 +121,7 @@ namespace Nalix.Common.Networking.Packets;
 /// </param>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public sealed class PacketControllerAttribute(
-    string name = "NONE",
+    string name = "None",
     bool isActive = true,
     string version = "1.0") : Attribute
 {
