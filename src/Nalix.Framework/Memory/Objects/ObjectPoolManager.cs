@@ -9,8 +9,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Pools;
 

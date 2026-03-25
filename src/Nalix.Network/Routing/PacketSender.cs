@@ -4,8 +4,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Frames;

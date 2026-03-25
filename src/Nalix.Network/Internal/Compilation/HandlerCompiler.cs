@@ -171,7 +171,7 @@ internal sealed class HandlerCompiler<
 
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
-                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
+                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[NW.{nameof(HandlerCompiler<,>)}:Internal] dup-opcode {x01}");
@@ -183,14 +183,14 @@ internal sealed class HandlerCompiler<
                 {
                     compiled[opcodeAttr.OpCode] = CompileHandlerMethod(method);
 
-                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
+                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[NW.{nameof(HandlerCompiler<,>)}:Internal] compiled {x01}");
                 }
                 catch (Exception ex)
                 {
-                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
+                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[NW.{nameof(HandlerCompiler<,>)}:Internal] failed-compile {x01} ex={ex.GetType().Name}", ex);
