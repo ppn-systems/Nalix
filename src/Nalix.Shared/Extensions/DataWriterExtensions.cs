@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Nalix.Shared.Memory.Buffers;
 
 namespace Nalix.Shared.Extensions;
@@ -9,7 +11,7 @@ namespace Nalix.Shared.Extensions;
 /// <summary>
 /// Extension methods for writing primitive and common types to <see cref="DataWriter"/>.
 /// </summary>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class DataWriterExtensions
 {
     #region Primitive Types
@@ -19,8 +21,8 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, byte value)
     {
         writer.Expand(sizeof(byte));
@@ -34,13 +36,13 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, ushort value)
     {
         writer.Expand(sizeof(ushort));
         ref byte ptr = ref writer.GetFreeBufferReference();
-        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref ptr, value);
+        Unsafe.WriteUnaligned(ref ptr, value);
         writer.Advance(sizeof(ushort));
     }
 
@@ -49,13 +51,13 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, uint value)
     {
         writer.Expand(sizeof(uint));
         ref byte ptr = ref writer.GetFreeBufferReference();
-        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref ptr, value);
+        Unsafe.WriteUnaligned(ref ptr, value);
         writer.Advance(sizeof(uint));
     }
 
@@ -64,13 +66,13 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, int value)
     {
         writer.Expand(sizeof(int));
         ref byte ptr = ref writer.GetFreeBufferReference();
-        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref ptr, value);
+        Unsafe.WriteUnaligned(ref ptr, value);
         writer.Advance(sizeof(int));
     }
 
@@ -79,13 +81,13 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, long value)
     {
         writer.Expand(sizeof(long));
         ref byte ptr = ref writer.GetFreeBufferReference();
-        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref ptr, value);
+        Unsafe.WriteUnaligned(ref ptr, value);
         writer.Advance(sizeof(long));
     }
 
@@ -94,13 +96,13 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, ulong value)
     {
         writer.Expand(sizeof(ulong));
         ref byte ptr = ref writer.GetFreeBufferReference();
-        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref ptr, value);
+        Unsafe.WriteUnaligned(ref ptr, value);
         writer.Advance(sizeof(ulong));
     }
 
@@ -109,8 +111,8 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, bool value) => writer.Write((byte)(value ? 1 : 0));
 
     #endregion Primitive Types
@@ -124,27 +126,27 @@ public static class DataWriterExtensions
     /// <param name="writer"></param>
     /// <param name="value"></param>
     /// <exception cref="NotSupportedException"></exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void WriteEnum<TEnum>(this ref DataWriter writer, TEnum value) where TEnum : Enum
     {
         Type underlyingType = Enum.GetUnderlyingType(typeof(TEnum));
 
         if (underlyingType == typeof(byte))
         {
-            writer.Write(System.Runtime.CompilerServices.Unsafe.As<TEnum, byte>(ref value));
+            writer.Write(Unsafe.As<TEnum, byte>(ref value));
         }
         else if (underlyingType == typeof(ushort))
         {
-            writer.Write(System.Runtime.CompilerServices.Unsafe.As<TEnum, ushort>(ref value));
+            writer.Write(Unsafe.As<TEnum, ushort>(ref value));
         }
         else if (underlyingType == typeof(uint))
         {
-            writer.Write(System.Runtime.CompilerServices.Unsafe.As<TEnum, uint>(ref value));
+            writer.Write(Unsafe.As<TEnum, uint>(ref value));
         }
         else if (underlyingType == typeof(int))
         {
-            writer.Write(System.Runtime.CompilerServices.Unsafe.As<TEnum, int>(ref value));
+            writer.Write(Unsafe.As<TEnum, int>(ref value));
         }
         else
         {
@@ -161,8 +163,8 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, byte[] value)
     {
         if (value is null || value.Length == 0)
@@ -179,7 +181,7 @@ public static class DataWriterExtensions
             {
                 fixed (byte* pDst = &dst)
                 {
-                    System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(pDst, pSrc, (uint)value.Length);
+                    Unsafe.CopyBlockUnaligned(pDst, pSrc, (uint)value.Length);
                 }
             }
         }
@@ -192,8 +194,8 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, ReadOnlySpan<byte> value)
     {
         if (value.IsEmpty)
@@ -216,14 +218,14 @@ public static class DataWriterExtensions
     /// <typeparam name="T"></typeparam>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void WriteUnmanaged<T>(this ref DataWriter writer, T value) where T : unmanaged
     {
-        writer.Expand(System.Runtime.CompilerServices.Unsafe.SizeOf<T>());
+        writer.Expand(Unsafe.SizeOf<T>());
         ref byte ptr = ref writer.GetFreeBufferReference();
-        System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(System.Runtime.CompilerServices.Unsafe.SizeOf<T>());
+        Unsafe.WriteUnaligned(ref ptr, value);
+        writer.Advance(Unsafe.SizeOf<T>());
     }
 
     #endregion Generic Unmanaged

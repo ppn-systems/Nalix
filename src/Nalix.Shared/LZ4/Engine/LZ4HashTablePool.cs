@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
 using Nalix.Shared.Memory.Internal;
 
 namespace Nalix.Shared.LZ4.Engine;
@@ -8,12 +10,12 @@ namespace Nalix.Shared.LZ4.Engine;
 /// <summary>
 /// Provides pooled hash tables for LZ4 compression to avoid repeated allocations.
 /// </summary>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static class LZ4HashTablePool
 {
     #region Fields
 
-    [System.ThreadStatic]
+    [ThreadStatic]
     private static int[]? t_hashTable;
 
     #endregion Fields
@@ -35,7 +37,7 @@ internal static class LZ4HashTablePool
             t_hashTable = hashTable;
         }
 
-        new System.Span<int>(hashTable).Clear();
+        new Span<int>(hashTable).Clear();
 
         return hashTable;
     }

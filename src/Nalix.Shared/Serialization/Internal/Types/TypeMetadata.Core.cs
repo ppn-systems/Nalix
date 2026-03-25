@@ -1,22 +1,27 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Serialization;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
-    [System.ThreadStatic]
-    private static System.Collections.Generic.HashSet<System.Type>? t_visitedTypes;
+    [ThreadStatic]
+    private static HashSet<Type>? t_visitedTypes;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<bool>> s_isRefCache;
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<int>> s_sizeOfFnCache;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<bool>> s_isRefCache;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<int>> s_sizeOfFnCache;
 
     static TypeMetadata()
     {
@@ -26,20 +31,20 @@ internal static partial class TypeMetadata
         s_sizeOfFnCache = new();
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static bool IsReferenceOrContainsReferences(System.Type type)
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    private static bool IsReferenceOrContainsReferences(Type type)
     {
-        System.Func<bool> fn = s_isRefCache.GetOrAdd(type, static t =>
+        Func<bool> fn = s_isRefCache.GetOrAdd(type, static t =>
         {
-            System.Reflection.MethodInfo method = typeof(System.Runtime.CompilerServices.RuntimeHelpers)
-                .GetMethod(nameof(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences))!
+            MethodInfo method = typeof(RuntimeHelpers)
+                .GetMethod(nameof(RuntimeHelpers.IsReferenceOrContainsReferences))!
                 .MakeGenericMethod(t);
 
-            System.Linq.Expressions.Expression<System.Func<bool>> call =
-                System.Linq.Expressions.Expression.Lambda<System.Func<bool>>(
+            System.Linq.Expressions.Expression<Func<bool>> call =
+                System.Linq.Expressions.Expression.Lambda<Func<bool>>(
                     System.Linq.Expressions.Expression.Call(null, method));
 
             return call.Compile();
@@ -48,20 +53,20 @@ internal static partial class TypeMetadata
         return fn();
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static int UnsafeSizeOf(System.Type type)
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    private static int UnsafeSizeOf(Type type)
     {
-        System.Func<int> del = s_sizeOfFnCache.GetOrAdd(type, static t =>
+        Func<int> del = s_sizeOfFnCache.GetOrAdd(type, static t =>
         {
-            System.Reflection.MethodInfo method = typeof(System.Runtime.CompilerServices.Unsafe)
+            MethodInfo method = typeof(Unsafe)
                 .GetMethod("SizeOf")!
                 .MakeGenericMethod(t);
 
-            System.Linq.Expressions.Expression<System.Func<int>> call =
-                System.Linq.Expressions.Expression.Lambda<System.Func<int>>(
+            System.Linq.Expressions.Expression<Func<int>> call =
+                System.Linq.Expressions.Expression.Lambda<Func<int>>(
                     System.Linq.Expressions.Expression.Call(null, method));
 
             return call.Compile();

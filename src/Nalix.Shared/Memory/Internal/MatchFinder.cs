@@ -1,11 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Nalix.Shared.LZ4.Encoders;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Memory.Internal;
@@ -14,7 +17,7 @@ namespace Nalix.Shared.Memory.Internal;
 /// Provides functionality for finding matches in input data using a hash table.
 /// Optimized for high performance in LZ4 compression.
 /// </summary>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static unsafe class MatchFinder
 {
     #region Constants
@@ -81,8 +84,8 @@ internal static unsafe class MatchFinder
     /// <param name="searchStartPtr">Pointer to the start of the sliding window for searching.</param>
     /// <param name="currentInputOffset">Offset of the current input pointer relative to the input base.</param>
     /// <returns>A <see cref="Match"/> struct representing the longest match found, or a default value if no match is found.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+    MethodImplOptions.AggressiveInlining)]
     public static Match FindLongestMatch(
         int* hashTable,
         byte* inputBase,
@@ -92,11 +95,11 @@ internal static unsafe class MatchFinder
         int currentInputOffset)
     {
 #if DEBUG
-        System.Diagnostics.Debug.Assert(inputBase is not null, "Input base pointer is null");
-        System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table pointer is null");
-        System.Diagnostics.Debug.Assert(currentInputPtr is not null, "Current input pointer is null");
-        System.Diagnostics.Debug.Assert(currentInputPtr >= inputBase, "Current pointer is before base");
-        System.Diagnostics.Debug.Assert(inputLimit >= currentInputPtr, "Input limit is before current pointer");
+        Debug.Assert(inputBase is not null, "Input base pointer is null");
+        Debug.Assert(hashTable is not null, "Hash table pointer is null");
+        Debug.Assert(currentInputPtr is not null, "Current input pointer is null");
+        Debug.Assert(currentInputPtr >= inputBase, "Current pointer is before base");
+        Debug.Assert(inputLimit >= currentInputPtr, "Input limit is before current pointer");
 #endif
 
         // Ensure there are enough bytes to find a match

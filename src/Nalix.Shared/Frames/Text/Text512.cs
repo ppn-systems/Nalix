@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
@@ -15,8 +19,8 @@ namespace Nalix.Shared.Frames.Text;
 /// Represents a simple text-based packet used for transmitting UTF-8 string content over the network.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("TEXT512 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
+[ExcludeFromCodeCoverage]
+[DebuggerDisplay("TEXT512 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
 {
     /// <inheritdoc/>
@@ -27,7 +31,7 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
     /// </summary>
     [SerializeIgnore]
     public override ushort Length =>
-        (ushort)(PacketConstants.HeaderSize + System.Text.Encoding.UTF8.GetByteCount(Content ?? string.Empty));
+        (ushort)(PacketConstants.HeaderSize + Encoding.UTF8.GetByteCount(Content ?? string.Empty));
 
     /// <summary>
     /// Gets or sets the UTF-8 string content of the packet.
@@ -51,14 +55,14 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
     /// <summary>Initializes the packet with content and transport protocol.</summary>
     /// <param name="content">The UTF-8 string to store.</param>
     /// <param name="transport">The target transport protocol.</param>
-    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     public void Initialize(
         string content,
         ProtocolType transport = ProtocolType.TCP)
     {
         if (content.Length > DynamicSize)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(content), $"Text supports at most {DynamicSize} bytes.");
+            throw new ArgumentOutOfRangeException(nameof(content), $"Text supports at most {DynamicSize} bytes.");
         }
 
         Protocol = transport;
@@ -73,8 +77,8 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
     /// </remarks>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="Text512"/> instance.</returns>
-    /// <exception cref="System.InvalidOperationException"></exception>
-    public static Text512 Deserialize(System.ReadOnlySpan<byte> buffer)
+    /// <exception cref="InvalidOperationException"></exception>
+    public static Text512 Deserialize(ReadOnlySpan<byte> buffer)
     {
         Text512 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                  .Get<Text512>();
@@ -84,7 +88,7 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
         {
             InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Return(packet);
-            throw new System.InvalidOperationException("Failed to deserialize packet: No bytes were read.");
+            throw new InvalidOperationException("Failed to deserialize packet: No bytes were read.");
         }
 
         return packet;
@@ -94,7 +98,7 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
     public override byte[] Serialize() => LiteSerializer.Serialize(this);
 
     /// <inheritdoc/>
-    public override int Serialize(System.Span<byte> buffer) => LiteSerializer.Serialize(this, buffer);
+    public override int Serialize(Span<byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
     /// <summary>Resets this instance to its default state for pooling reuse.</summary>
     public override void ResetForPool()
@@ -108,5 +112,5 @@ public class Text512 : FrameBase, IPoolable, IPacketDeserializer<Text512>
     /// <inheritdoc/>
     public override string ToString()
         => $"TEXT512(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-           $"Priority={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
+           $"Priority={Priority}, Protocol={Protocol}, Content={Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

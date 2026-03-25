@@ -1,8 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
@@ -178,7 +182,7 @@ public sealed class BufferConfig : ConfigurationLoader
                     $"Sum of buffer allocation ratios exceeds 1.0 ({totalRatio}).");
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             throw new ValidationException(
                 $"Invalid BufferAllocations: {ex.Message}");
@@ -211,64 +215,64 @@ public sealed class BufferConfig : ConfigurationLoader
     /// <summary>
     /// Parses the buffer allocation settings with caching for repeated configurations.
     /// </summary>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public static (int, double)[] ParseBufferAllocations(string bufferAllocationsString)
     {
         return string.IsNullOrWhiteSpace(bufferAllocationsString)
-            ? throw new System.ArgumentException(
+            ? throw new ArgumentException(
                 $"[{nameof(BufferConfig)}] The input string must not be blank.", nameof(bufferAllocationsString))
             : _allocationPatternCache.GetOrAdd(bufferAllocationsString, key =>
             {
                 try
                 {
                     (int allocationSize, double ratio)[] allocations = PARSE_ALLOCATIONS(key, bufferAllocationsString);
-                    double totalAllocation = System.Linq.Enumerable.Sum(allocations, a => a.ratio);
+                    double totalAllocation = Enumerable.Sum(allocations, a => a.ratio);
                     return totalAllocation > 1.1
-                        ? throw new System.ArgumentException(
+                        ? throw new ArgumentException(
                             $"[{nameof(BufferConfig)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0.")
                         : ((int, double)[])allocations;
                 }
-                catch (System.Exception ex) when (ex is System.FormatException or System.ArgumentException
-                                                      or System.OverflowException or System.ArgumentOutOfRangeException)
+                catch (Exception ex) when (ex is FormatException or ArgumentException
+                                                      or OverflowException or ArgumentOutOfRangeException)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[SH.{nameof(BufferConfig)}:Internal] " +
                                                    $"alloc-parse-fail str='{bufferAllocationsString}' msg={ex.Message}");
 
-                    throw new System.ArgumentException(
+                    throw new ArgumentException(
                         $"[{nameof(BufferConfig)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
                 }
             });
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static (int allocationSize, double ratio)[] PARSE_ALLOCATIONS(
         string key, string bufferAllocationsString)
     {
-        string[] pairs = key.Split(';', System.StringSplitOptions.RemoveEmptyEntries);
+        string[] pairs = key.Split(';', StringSplitOptions.RemoveEmptyEntries);
         List<(int, double)> list = [];
 
         foreach (string pair in pairs)
         {
-            string[] parts = pair.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
+            string[] parts = pair.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length != 2)
             {
-                throw new System.FormatException($"[{nameof(BufferConfig)}] Incorrectly formatted pair: '{pair}'.");
+                throw new FormatException($"[{nameof(BufferConfig)}] Incorrectly formatted pair: '{pair}'.");
             }
 
             if (!int.TryParse(parts[0].Trim(), out int allocationSize) || allocationSize <= 0)
             {
-                throw new System.ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferConfig)}] SIZE must be > 0.");
+                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferConfig)}] SIZE must be > 0.");
             }
 
             if (!double.TryParse(parts[1].Trim(), out double ratio) || ratio <= 0 || ratio > 1)
             {
-                throw new System.ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferConfig)}] Ratio must be (0,1].");
+                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferConfig)}] Ratio must be (0,1].");
             }
 
             list.Add((allocationSize, ratio));

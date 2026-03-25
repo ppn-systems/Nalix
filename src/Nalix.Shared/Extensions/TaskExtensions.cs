@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Nalix.Shared.Extensions;
@@ -17,14 +21,14 @@ public static class TaskExtensions
     /// but is meant to be called from a non-<see langword="async"/> method.</para>
     /// </summary>
     /// <param name="this">The <see cref="Task"/> on which this method is called.</param>
-    /// <exception cref="System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static void Await(this Task @this)
     {
-        System.ArgumentNullException.ThrowIfNull(@this);
+        ArgumentNullException.ThrowIfNull(@this);
 
         @this.GetAwaiter().GetResult();
     }
@@ -38,14 +42,14 @@ public static class TaskExtensions
     /// <typeparam name="TResult">The type of the @this's result.</typeparam>
     /// <param name="this">The <see cref="Task{TResult}"/> on which this method is called.</param>
     /// <returns>The result of <paramref name="this"/>.</returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static TResult Await<TResult>(this Task<TResult> @this)
     {
-        System.ArgumentNullException.ThrowIfNull(@this);
+        ArgumentNullException.ThrowIfNull(@this);
 
         return @this.GetAwaiter().GetResult();
     }
@@ -60,16 +64,16 @@ public static class TaskExtensions
     /// attempts to marshal the continuation back to the original context captured.
     /// This parameter has the same effect as calling the <see cref="Task.ConfigureAwait(bool)"/>
     /// method.</param>
-    /// <exception cref="System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static void Await(
         this Task @this,
         bool continueOnCapturedContext)
     {
-        System.ArgumentNullException.ThrowIfNull(@this);
+        ArgumentNullException.ThrowIfNull(@this);
 
         @this.ConfigureAwait(continueOnCapturedContext).GetAwaiter().GetResult();
     }
@@ -90,10 +94,10 @@ public static class TaskExtensions
     /// <returns>
     /// The result of the task if it completes within the timeout; otherwise, <c>default</c>.
     /// </returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static async Task<T?> WithTimeout<T>(
         this Task<T> @this,
         int msTimeout)
@@ -117,10 +121,10 @@ public static class TaskExtensions
     /// <param name="tcs">The TaskCompletionSource instance.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>IDisposable registration handle.</returns>
-    public static System.IDisposable LinkCancellation<T>(
-        this TaskCompletionSource<T> tcs, System.Threading.CancellationToken token) => !token.CanBeCanceled ? DummyDisposable.Instance : token.Register(() => tcs.TrySetCanceled(token));
+    public static IDisposable LinkCancellation<T>(
+        this TaskCompletionSource<T> tcs, CancellationToken token) => !token.CanBeCanceled ? DummyDisposable.Instance : token.Register(() => tcs.TrySetCanceled(token));
 
-    private sealed class DummyDisposable : System.IDisposable
+    private sealed class DummyDisposable : IDisposable
     {
         public static readonly DummyDisposable Instance = new();
 

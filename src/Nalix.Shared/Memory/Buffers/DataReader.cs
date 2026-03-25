@@ -1,15 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
 
 namespace Nalix.Shared.Memory.Buffers;
@@ -18,13 +16,13 @@ namespace Nalix.Shared.Memory.Buffers;
 /// Provides functionality for reading serialized data from a byte buffer.
 /// Supports managed <c>byte[]</c>, <c>ReadOnlyMemory&lt;byte&gt;</c>, <c>ReadOnlySpan&lt;byte&gt;</c>, and unmanaged memory.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-[System.Diagnostics.DebuggerDisplay("Len={_length}, Read={BytesRead}, Rem={BytesRemaining}, Pinned={_pinned}")]
-public unsafe struct DataReader : System.IDisposable
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[ExcludeFromCodeCoverage]
+[EditorBrowsable(EditorBrowsableState.Never)]
+[StructLayout(LayoutKind.Sequential)]
+[DebuggerDisplay("Len={_length}, Read={BytesRead}, Rem={BytesRemaining}, Pinned={_pinned}")]
+public unsafe struct DataReader : IDisposable
 {
     #region Fields
 
@@ -35,7 +33,7 @@ public unsafe struct DataReader : System.IDisposable
     /// <summary>
     /// Used only when the source is a byte array
     /// </summary>
-    private System.Runtime.InteropServices.GCHandle _pin;
+    private GCHandle _pin;
 
     #endregion Fields
 
@@ -60,11 +58,11 @@ public unsafe struct DataReader : System.IDisposable
     /// This ensures safety by pinning the array to prevent movement by the garbage collector.
     /// </summary>
     /// <param name="buffer">The byte array to read from.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if the provided buffer is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown if the provided buffer is null.</exception>
     public DataReader(byte[] buffer)
     {
-        System.ArgumentNullException.ThrowIfNull(buffer);
-        _pin = System.Runtime.InteropServices.GCHandle.Alloc(buffer, System.Runtime.InteropServices.GCHandleType.Pinned);
+        ArgumentNullException.ThrowIfNull(buffer);
+        _pin = GCHandle.Alloc(buffer, GCHandleType.Pinned);
         _ptr = (byte*)_pin.AddrOfPinnedObject();
         BytesRemaining = buffer.Length;
         _pinned = true;
@@ -93,10 +91,10 @@ public unsafe struct DataReader : System.IDisposable
     /// This constructor creates a pinned copy of the span to ensure safe access to its data.
     /// </summary>
     /// <param name="span">The read-only span of bytes to read from.</param>
-    public DataReader(System.ReadOnlySpan<byte> span)
+    public DataReader(ReadOnlySpan<byte> span)
     {
         _tempArray = span.ToArray();
-        _pin = System.Runtime.InteropServices.GCHandle.Alloc(_tempArray, System.Runtime.InteropServices.GCHandleType.Pinned);
+        _pin = GCHandle.Alloc(_tempArray, GCHandleType.Pinned);
         _ptr = (byte*)_pin.AddrOfPinnedObject();
         BytesRemaining = _tempArray.Length;
         _pinned = true; // Fixed!
@@ -109,11 +107,11 @@ public unsafe struct DataReader : System.IDisposable
     /// This constructor creates a pinned copy of the span to ensure safe access to its data.
     /// </summary>
     /// <param name="memory">The read-only memory of bytes to read from.</param>
-    public DataReader(System.ReadOnlyMemory<byte> memory)
+    public DataReader(ReadOnlyMemory<byte> memory)
     {
-        if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray(memory, out System.ArraySegment<byte> segment))
+        if (MemoryMarshal.TryGetArray(memory, out ArraySegment<byte> segment))
         {
-            _pin = System.Runtime.InteropServices.GCHandle.Alloc(segment.Array, System.Runtime.InteropServices.GCHandleType.Pinned);
+            _pin = GCHandle.Alloc(segment.Array, GCHandleType.Pinned);
             _ptr = (byte*)_pin.AddrOfPinnedObject() + segment.Offset;
             BytesRemaining = segment.Count;
             _pinned = true;
@@ -122,7 +120,7 @@ public unsafe struct DataReader : System.IDisposable
         {
             // fallback: allocate + copy
             byte[] temp = memory.ToArray();
-            _pin = System.Runtime.InteropServices.GCHandle.Alloc(temp, System.Runtime.InteropServices.GCHandleType.Pinned);
+            _pin = GCHandle.Alloc(temp, GCHandleType.Pinned);
             _ptr = (byte*)_pin.AddrOfPinnedObject();
             BytesRemaining = temp.Length;
             _pinned = true;
@@ -143,10 +141,10 @@ public unsafe struct DataReader : System.IDisposable
     /// <exception cref="SerializationException">
     /// Thrown if the requested size exceeds the available buffer size.
     /// </exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public readonly ref byte GetSpanReference(int sizeHint)
     {
         if (sizeHint > BytesRemaining)
@@ -162,16 +160,16 @@ public unsafe struct DataReader : System.IDisposable
     /// Advances the read position in the buffer by the specified number of bytes.
     /// </summary>
     /// <param name="count">The number of bytes to advance.</param>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown if the advance count is negative.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown if the advance count is negative.</exception>
     /// <exception cref="SerializationException">
     /// Thrown if the advance count exceeds the available buffer size.
     /// </exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void Advance(int count)
     {
-        System.ArgumentOutOfRangeException.ThrowIfNegative(count);
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (count > BytesRemaining)
         {
             throw new SerializationException(
@@ -184,10 +182,10 @@ public unsafe struct DataReader : System.IDisposable
     /// <summary>
     /// Releases pinned memory if necessary and resets the reader state.
     /// </summary>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         if (_pinned)

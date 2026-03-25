@@ -1,6 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.Contracts;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 
@@ -10,7 +15,7 @@ namespace Nalix.Shared.Extensions;
 /// Provides high‑performance helpers for reading packet header fields from serialized data.
 /// </summary>
 /// <remarks>
-/// These APIs operate directly on <see cref="System.ReadOnlySpan{T}"/> to avoid allocations.
+/// These APIs operate directly on <see cref="ReadOnlySpan{T}"/> to avoid allocations.
 /// For protocol stability across platforms, use the explicit little‑endian readers.
 /// </remarks>
 public static class HeaderExtensions
@@ -22,12 +27,12 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="this">The source buffer.</param>
     /// <returns>The magic number.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint ReadMagicNumberLE(this System.ReadOnlySpan<byte> @this)
+    /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static uint ReadMagicNumberLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.MagicNumber;
         CheckSize(@this, offs, sizeof(uint));
@@ -40,12 +45,12 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="this">The source buffer.</param>
     /// <returns>The operation code.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ushort ReadOpCodeLE(this System.ReadOnlySpan<byte> @this)
+    /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static ushort ReadOpCodeLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.OpCode;
         CheckSize(@this, offs, sizeof(ushort));
@@ -57,12 +62,12 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="this">The source buffer.</param>
     /// <returns>The packet flags.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static PacketFlags ReadFlagsLE(this System.ReadOnlySpan<byte> @this)
+    /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static PacketFlags ReadFlagsLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.Flags;
         CheckSize(@this, offs, sizeof(byte));
@@ -74,12 +79,12 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="this">The destination buffer.</param>
     /// <param name="flags">The packet flags to write.</param>
-    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void WriteFlagsLE(this System.Span<byte> @this, PacketFlags flags)
+    /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static void WriteFlagsLE(this Span<byte> @this, PacketFlags flags)
     {
         const int offs = (int)PacketHeaderOffset.Flags;
         CheckSize(@this, offs, sizeof(byte));
@@ -91,12 +96,12 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="this">The source buffer.</param>
     /// <returns>The packet priority.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static PacketPriority ReadPriorityLE(this System.ReadOnlySpan<byte> @this)
+    /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static PacketPriority ReadPriorityLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.Priority;
         CheckSize(@this, offs, sizeof(byte));
@@ -108,12 +113,12 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="this">The source buffer.</param>
     /// <returns>The transport protocol.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ProtocolType ReadTransportLE(this System.ReadOnlySpan<byte> @this)
+    /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static ProtocolType ReadTransportLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.Transport;
         CheckSize(@this, offs, sizeof(byte));
@@ -125,12 +130,12 @@ public static class HeaderExtensions
     /// </summary>
     /// <param name="this">The source buffer.</param>
     /// <returns>The sequence identifier.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static uint ReadSequenceIdLE(this System.ReadOnlySpan<byte> @this)
+    /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static uint ReadSequenceIdLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.SequenceId;
         CheckSize(@this, offs, sizeof(uint));
@@ -147,17 +152,17 @@ public static class HeaderExtensions
     /// <param name="buffer">The source buffer.</param>
     /// <param name="offset">The starting offset.</param>
     /// <param name="size">The required byte count.</param>
-    /// <exception cref="System.ArgumentException">Thrown when the buffer is too small.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void CheckSize(System.ReadOnlySpan<byte> buffer, int offset, int size)
+    /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    private static void CheckSize(ReadOnlySpan<byte> buffer, int offset, int size)
     {
         if ((uint)offset > (uint)buffer.Length ||
             (uint)size > (uint)(buffer.Length - offset))
         {
-            throw new System.ArgumentException($"Buffer is too small to read {size} bytes at offset {offset}.");
+            throw new ArgumentException($"Buffer is too small to read {size} bytes at offset {offset}.");
         }
     }
 

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
@@ -11,7 +12,7 @@ namespace Nalix.Shared.Frames.Controls;
 /// A compact, generic server-to-client directive frame for common control scenarios.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-[System.Diagnostics.DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
+[DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
 public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketSequenced
 {
     /// <summary>

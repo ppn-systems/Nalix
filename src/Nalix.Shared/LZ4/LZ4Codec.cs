@@ -1,6 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.LZ4.Engine;
 using Nalix.Shared.Memory.Buffers;
@@ -11,7 +16,7 @@ namespace Nalix.Shared.LZ4;
 /// Provides high-performance methods for compressing and decompressing data using the Nalix LZ4 algorithm.
 /// This class is static-like and designed for zero-allocation workflows.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
+[DebuggerNonUserCode]
 public static class LZ4Codec
 {
     /// <summary>
@@ -20,15 +25,15 @@ public static class LZ4Codec
     /// <param name="input">The input data to compress.</param>
     /// <param name="output">The output buffer to receive the compressed data.</param>
     /// <returns>The number of bytes written to the output buffer, or -1 if compression fails.</returns>
-    /// <exception cref="System.InvalidOperationException"></exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    /// <exception cref="InvalidOperationException"></exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     public static int Encode(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<byte> input,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<byte> output)
+        [DisallowNull] ReadOnlySpan<byte> input,
+        [DisallowNull] Span<byte> output)
     {
         if (output.Length < LZ4BlockHeader.Size)
         {
@@ -39,9 +44,9 @@ public static class LZ4Codec
         {
             return LZ4Encoder.Encode(input, output);
         }
-        catch (System.AccessViolationException ex)
+        catch (AccessViolationException ex)
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Memory access violation during LZ4 encoding. Input length: {input.Length}, Output length: {output.Length}", ex);
         }
     }
@@ -69,13 +74,13 @@ public static class LZ4Codec
     /// }
     /// </code>
     /// </example>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public static bool Encode(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<byte> input,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out BufferLease? lease,
-        [System.Diagnostics.CodeAnalysis.NotNull] out int bytesWritten)
+        [DisallowNull] ReadOnlySpan<byte> input,
+        [NotNullWhen(true)] out BufferLease? lease,
+        [NotNull] out int bytesWritten)
     {
         lease = null;
         bytesWritten = 0;
@@ -103,14 +108,14 @@ public static class LZ4Codec
     /// <param name="input">The compressed input data, including header information.</param>
     /// <param name="output">The output buffer to receive the decompressed data.</param>
     /// <returns>The number of bytes written to the output buffer, or -1 if decompression fails.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     public static int Decode(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<byte> input,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Span<byte> output)
+        [DisallowNull] ReadOnlySpan<byte> input,
+        [DisallowNull] Span<byte> output)
         => LZ4Decoder.Decode(input, output);
 
     /// <summary>
@@ -122,18 +127,18 @@ public static class LZ4Codec
     /// <returns>True if decompression succeeds; otherwise, false.</returns>
     /// <remarks>
     /// This overload allocates a new byte[] for the result.
-    /// For hot paths, prefer <see cref="Decode(System.ReadOnlySpan{byte}, out BufferLease, out int)"/>
+    /// For hot paths, prefer <see cref="Decode(ReadOnlySpan{byte}, out BufferLease, out int)"/>
     /// which rents from the pool instead.
     /// </remarks>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
     public static bool Decode(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<byte> input,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[]? output,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] out int bytesWritten)
+        [DisallowNull] ReadOnlySpan<byte> input,
+        [NotNullWhen(true)] out byte[]? output,
+        [DisallowNull] out int bytesWritten)
         => LZ4Decoder.Decode(input, out output, out bytesWritten);
 
     /// <summary>
@@ -159,11 +164,11 @@ public static class LZ4Codec
     /// }
     /// </code>
     /// </example>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public static bool Decode(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<byte> input,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out BufferLease? lease,
-        [System.Diagnostics.CodeAnalysis.NotNull] out int bytesWritten) => LZ4Decoder.Decode(input, out lease, out bytesWritten);
+        [DisallowNull] ReadOnlySpan<byte> input,
+        [NotNullWhen(true)] out BufferLease? lease,
+        [NotNull] out int bytesWritten) => LZ4Decoder.Decode(input, out lease, out bytesWritten);
 }

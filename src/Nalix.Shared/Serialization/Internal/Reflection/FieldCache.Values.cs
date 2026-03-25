@@ -1,14 +1,20 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Serialization.Internal.Reflection;
 
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static partial class FieldCache<T>
 {
     #region Generic Value Operations - Zero Boxing
@@ -17,13 +23,13 @@ internal static partial class FieldCache<T>
     /// Creates a compiled getter delegate for a field.
     /// Signature:  Func&lt;T, TField&gt;
     /// </summary>
-    private static System.Delegate CreateGetter(System.Reflection.FieldInfo field)
+    private static Delegate CreateGetter(FieldInfo field)
     {
         // Parameter: T obj
         // Body: obj. FieldName
         // Lambda: (T obj) => obj.FieldName
 
-        System.Type x00 = typeof(System.Func<,>).MakeGenericType(typeof(T), field.FieldType);
+        Type x00 = typeof(Func<,>).MakeGenericType(typeof(T), field.FieldType);
         System.Linq.Expressions.ParameterExpression x01 = System.Linq.Expressions.Expression.Parameter(typeof(T), "obj");
         System.Linq.Expressions.MemberExpression x02 = System.Linq.Expressions.Expression.Field(x01, field);
         System.Linq.Expressions.LambdaExpression x03 = System.Linq.Expressions.Expression.Lambda(x00, x02, x01);
@@ -35,13 +41,13 @@ internal static partial class FieldCache<T>
     /// Creates a compiled setter delegate for a field.
     /// Signature: Action&lt;T, TField&gt;
     /// </summary>
-    private static System.Delegate CreateSetter(System.Reflection.FieldInfo field)
+    private static Delegate CreateSetter(FieldInfo field)
     {
         // Parameters: T obj, TField value
         // Body: obj.FieldName = value
         // Lambda:  (T obj, TField value) => obj.FieldName = value
 
-        System.Type x00 = typeof(System.Action<,>).MakeGenericType(typeof(T), field.FieldType);
+        Type x00 = typeof(Action<,>).MakeGenericType(typeof(T), field.FieldType);
         System.Linq.Expressions.ParameterExpression x01 = System.Linq.Expressions.Expression.Parameter(typeof(T), "obj");
         System.Linq.Expressions.ParameterExpression x02 = System.Linq.Expressions.Expression.Parameter(field.FieldType, "value");
         System.Linq.Expressions.MemberExpression x03 = System.Linq.Expressions.Expression.Field(x01, field);
@@ -51,41 +57,41 @@ internal static partial class FieldCache<T>
         return x05.Compile();
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static TField GetValue<TField>(T obj, int fieldIndex)
     {
         FieldSchema metadata = _metadata[fieldIndex];
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
         // Cast and invoke compiled delegate - NO BOXING!
-        System.Func<T, TField> getter = (System.Func<T, TField>)_getters[fieldIndex];
+        Func<T, TField> getter = (Func<T, TField>)_getters[fieldIndex];
         return getter(obj);
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TField>(T obj, int fieldIndex, TField value)
     {
         FieldSchema metadata = _metadata[fieldIndex];
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
         // Cast and invoke compiled delegate - NO BOXING!
-        System.Action<T, TField> setter = (System.Action<T, TField>)_setters[fieldIndex];
+        Action<T, TField> setter = (Action<T, TField>)_setters[fieldIndex];
         setter(obj, value);
     }
 
@@ -103,17 +109,17 @@ internal static partial class FieldCache<T>
     /// Set field value trực tiếp lên struct gốc thông qua ref T.
     /// Chỉ dùng cho value types (struct) — nếu dùng cho class thì dùng overload không có ref.
     /// </summary>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TField>(ref T obj, int fieldIndex, TField value)
     {
         FieldSchema metadata = _metadata[fieldIndex];
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Field '{metadata.Name}' expects type '{metadata.FieldType}', " +
                 $"but got '{typeof(TField)}'.");
         }
@@ -122,8 +128,8 @@ internal static partial class FieldCache<T>
         setter(ref obj, value);
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)] // NoInlining vì chỉ chạy 1 lần per field
+    [MethodImpl(
+        MethodImplOptions.NoInlining)] // NoInlining vì chỉ chạy 1 lần per field
     private static RefSetter<TField> GetOrCreateRefSetter<TField>(
         int fieldIndex,
         FieldSchema metadata)

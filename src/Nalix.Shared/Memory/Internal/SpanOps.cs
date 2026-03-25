@@ -1,9 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Memory.Internal;
@@ -11,9 +16,9 @@ namespace Nalix.Shared.Memory.Internal;
 /// <summary>
 /// Helper methods for working with Spans.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static unsafe class SpanOps
 {
     /// <summary>
@@ -22,16 +27,16 @@ internal static unsafe class SpanOps
     /// </summary>
     /// <param name="dest"></param>
     /// <param name="value"></param>
-    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static int WriteVarInt(byte* dest, int value)
     {
         // Negative should never happen in encoder paths; clamp-to-0 preserves protocol.
         if (value < 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(value), "WriteVarInt does not support negative values.");
+            throw new ArgumentOutOfRangeException(nameof(value), "WriteVarInt does not support negative values.");
         }
 
         // Number of full 0xFF bytes and the final remainder (<255)
@@ -94,10 +99,9 @@ internal static unsafe class SpanOps
     /// <param name="src"></param>
     /// <param name="srcEnd"></param>
     /// <param name="value"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Roslynator", "RCS1089:Use --/++ operator instead of assignment", Justification = "<Pending>")]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static int ReadVarInt(ref byte* src, byte* srcEnd, out int value)
     {
         value = 0;

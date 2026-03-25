@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
 using Nalix.Shared.Extensions;
 
@@ -14,7 +17,7 @@ namespace Nalix.Shared.Frames;
 /// The catalog stores lookups for:
 /// <list type="bullet">
 ///   <item>Packet deserializers mapped by 32-bit magic numbers.</item>
-///   <item>Packet transformers mapped by concrete packet <see cref="System.Type"/>.</item>
+///   <item>Packet transformers mapped by concrete packet <see cref="Type"/>.</item>
 /// </list>
 /// </para>
 /// <para>
@@ -40,13 +43,13 @@ public sealed class PacketRegistry : IPacketRegistry
     /// <param name="deserializers">
     /// A frozen dictionary mapping magic numbers to <see cref="PacketDeserializer"/> delegates.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when either argument is <see langword="null"/>.
     /// </exception>
     public PacketRegistry(
         System.Collections.Frozen.FrozenDictionary<uint, PacketDeserializer> deserializers)
     {
-        System.ArgumentNullException.ThrowIfNull(deserializers);
+        ArgumentNullException.ThrowIfNull(deserializers);
 
         _deserializers = deserializers;
     }
@@ -60,12 +63,12 @@ public sealed class PacketRegistry : IPacketRegistry
     /// explicit packet types, assemblies, and/or namespaces. Must not be
     /// <see langword="null"/>.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="configure"/> is <see langword="null"/>.
     /// </exception>
-    public PacketRegistry(System.Action<PacketRegistryFactory> configure)
+    public PacketRegistry(Action<PacketRegistryFactory> configure)
     {
-        System.ArgumentNullException.ThrowIfNull(configure);
+        ArgumentNullException.ThrowIfNull(configure);
 
         PacketRegistryFactory factory = new();
         configure(factory);
@@ -86,19 +89,19 @@ public sealed class PacketRegistry : IPacketRegistry
     #region Public API
 
     /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public bool IsKnownMagic(uint magic) => _deserializers.ContainsKey(magic);
 
     /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public bool IsRegistered<TPacket>() where TPacket : IPacket => _deserializers.ContainsKey(PacketRegistryFactory.Compute(typeof(TPacket)));
 
     /// <inheritdoc/>
     public bool TryDeserialize(
-        System.ReadOnlySpan<byte> raw,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IPacket? packet)
+        ReadOnlySpan<byte> raw,
+        [NotNullWhen(true)] out IPacket? packet)
     {
         if (raw.Length < PacketConstants.HeaderSize)
         {
@@ -121,7 +124,7 @@ public sealed class PacketRegistry : IPacketRegistry
     /// <inheritdoc/>
     public bool TryGetDeserializer(
         uint magic,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketDeserializer? deserializer)
+        [NotNullWhen(true)] out PacketDeserializer? deserializer)
         => _deserializers.TryGetValue(magic, out deserializer);
 
     #endregion Public API

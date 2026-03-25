@@ -1,6 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Nalix.Shared.LZ4.Encoders;
 using Nalix.Shared.Memory.Buffers;
 using Nalix.Shared.Memory.Internal;
@@ -10,8 +16,8 @@ namespace Nalix.Shared.LZ4.Engine;
 /// <summary>
 /// Provides decompression functionality for the LZ4 format.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static class LZ4Decoder
 {
     #region APIs
@@ -25,11 +31,11 @@ internal static class LZ4Decoder
     /// The number of bytes written to the output buffer (equal to the original length),
     /// or -1 if decompression fails.
     /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static int Decode(
-        System.ReadOnlySpan<byte> input,
-        System.Span<byte> output) => !DecodeInternal(input, output, out int written) ? -1 : written;
+        ReadOnlySpan<byte> input,
+        Span<byte> output) => !DecodeInternal(input, output, out int written) ? -1 : written;
 
     /// <summary>
     /// Decompresses the provided compressed data into a newly allocated output buffer.
@@ -38,13 +44,13 @@ internal static class LZ4Decoder
     /// <param name="output">The decompressed data, or <c>null</c> if decompression fails.</param>
     /// <param name="bytesWritten">The number of bytes written to the output buffer.</param>
     /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public static bool Decode(
-        System.ReadOnlySpan<byte> input,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[]? output,
-        [System.Diagnostics.CodeAnalysis.NotNull] out int bytesWritten)
+        ReadOnlySpan<byte> input,
+        [NotNullWhen(true)] out byte[]? output,
+        [NotNull] out int bytesWritten)
     {
         output = null;
         bytesWritten = 0;
@@ -82,13 +88,13 @@ internal static class LZ4Decoder
     /// </param>
     /// <param name="bytesWritten">The number of bytes written to the lease.</param>
     /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public static bool Decode(
-        System.ReadOnlySpan<byte> input,
+        ReadOnlySpan<byte> input,
         out BufferLease? lease,
-        [System.Diagnostics.CodeAnalysis.NotNull] out int bytesWritten)
+        [NotNull] out int bytesWritten)
     {
         lease = null;
         bytesWritten = 0;
@@ -127,10 +133,10 @@ internal static class LZ4Decoder
     /// </summary>
     /// <param name="input"></param>
     /// <param name="header"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static bool TryReadAndValidateHeader(
-        System.ReadOnlySpan<byte> input,
+        ReadOnlySpan<byte> input,
         out LZ4BlockHeader header)
     {
         header = default;
@@ -148,14 +154,14 @@ internal static class LZ4Decoder
             && header.OriginalLength <= LZ4CompressionConstants.MaxBlockSize;
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     internal static unsafe bool DecodeInternal(
-        System.ReadOnlySpan<byte> input,
-        System.Span<byte> output,
-        [System.Diagnostics.CodeAnalysis.NotNull] out int bytesWritten)
+        ReadOnlySpan<byte> input,
+        Span<byte> output,
+        [NotNull] out int bytesWritten)
     {
         bytesWritten = 0;
 
@@ -175,9 +181,9 @@ internal static class LZ4Decoder
             return true;
         }
 
-        fixed (byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
+        fixed (byte* inputBase = &MemoryMarshal.GetReference(input))
         {
-            fixed (byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
+            fixed (byte* outputBase = &MemoryMarshal.GetReference(output))
             {
                 byte* inputPtr = inputBase + LZ4BlockHeader.Size;
                 byte* inputEnd = inputBase + header.CompressedLength;

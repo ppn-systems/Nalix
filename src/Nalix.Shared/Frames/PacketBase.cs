@@ -1,7 +1,14 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
@@ -37,21 +44,21 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Using System.Linq only at startup (inside the Lazy factory) — never in hot paths.
     /// </summary>
     [SerializeIgnore]
-    private static readonly System.Lazy<PropertyMetadata[]> s_metadata = new(
+    private static readonly Lazy<PropertyMetadata[]> s_metadata = new(
         static () =>
         [
-            .. System.Linq.Enumerable.Select(
-                System.Linq.Enumerable.OrderBy(
-                    System.Linq.Enumerable.Where(
-                        System.Linq.Enumerable.Select(
+            .. Enumerable.Select(
+                Enumerable.OrderBy(
+                    Enumerable.Where(
+                        Enumerable.Select(
                             typeof(TSelf).GetProperties(
-                                System.Reflection.BindingFlags.Public |
-                                System.Reflection.BindingFlags.Instance),
+                                BindingFlags.Public |
+                                BindingFlags.Instance),
                             static p => (
                                 p,
-                                order: System.Reflection.CustomAttributeExtensions
+                                order: CustomAttributeExtensions
                                            .GetCustomAttribute<SerializeOrderAttribute>(p),
-                                ignore: System.Reflection.CustomAttributeExtensions
+                                ignore: CustomAttributeExtensions
                                             .GetCustomAttribute<SerializeIgnoreAttribute>(p)
                             )
                         ),
@@ -73,7 +80,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Using ushort? avoids the "0-as-sentinel" ambiguity from the previous version.
     /// </summary>
     [SerializeIgnore]
-    private static readonly System.Lazy<ushort?> s_cachedFixedSize = new(
+    private static readonly Lazy<ushort?> s_cachedFixedSize = new(
         static () =>
         {
             ushort size = PacketConstants.HeaderSize;
@@ -109,8 +116,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [SerializeIgnore]
     public override ushort Length
     {
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         get
         {
             // Fast path: all properties are fixed-size → return cached value directly.
@@ -124,8 +131,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Fixed-size contributions use the cached <see cref="PropertyMetadata.FixedSize"/>;
     /// dynamic contributions call through to the compiled getter delegate.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private ushort COMPUTE_DYNAMIC_LENGTH()
     {
         ushort size = PacketConstants.HeaderSize;
@@ -145,9 +152,9 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             size += meta.GetValue(this) switch
             {
                 string str when str.Length > 0
-                    => (ushort)(System.Text.Encoding.UTF8.GetByteCount(str) + sizeof(ushort)),
+                    => (ushort)(Encoding.UTF8.GetByteCount(str) + sizeof(ushort)),
 
-                System.String => sizeof(ushort),
+                string => sizeof(ushort),
 
                 byte[] { Length: > 0 } bytes
                     => (ushort)(bytes.Length + sizeof(int)),
@@ -166,18 +173,18 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     #region APIs
 
     /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public override byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
 
     /// <inheritdoc/>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override int Serialize(System.Span<byte> buffer)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public override int Serialize(Span<byte> buffer)
     {
         ushort required = Length;
         return buffer.Length < required
-            ? throw new System.ArgumentException(
+            ? throw new ArgumentException(
                 $"Buffer too small for {typeof(TSelf).Name}. " +
                 $"Required: {required}, Actual: {buffer.Length}.",
                 nameof(buffer))
@@ -190,20 +197,20 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// </summary>
     /// <param name="buffer">The raw wire bytes to deserialize from.</param>
     /// <returns>A <typeparamref name="TSelf"/> instance populated from the buffer.</returns>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="buffer"/> is empty.
     /// </exception>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown when deserialization reads zero bytes (corrupt or truncated frame).
     /// </exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
-    public static TSelf Deserialize(System.ReadOnlySpan<byte> buffer)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
+    public static TSelf Deserialize(ReadOnlySpan<byte> buffer)
     {
         if (buffer.IsEmpty)
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 $"Cannot deserialize {typeof(TSelf).Name} from an empty buffer.",
                 nameof(buffer));
         }
@@ -212,14 +219,14 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         int bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0
-            ? throw new System.InvalidOperationException(
+            ? throw new InvalidOperationException(
                 $"Failed to deserialize {typeof(TSelf).Name}: zero bytes were consumed. " +
                 $"Buffer length: {buffer.Length}.")
             : packet;
     }
 
     /// <inheritdoc/>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public override void ResetForPool()
     {
         // Reset all user-defined serializable properties via compiled delegates.
@@ -252,10 +259,10 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Returns a debug-friendly description of this packet's metadata.
     /// Not intended for production logging — allocates strings.
     /// </summary>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public string GenerateReport()
     {
-        System.Text.StringBuilder sb = new(128);
+        StringBuilder sb = new(128);
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={s_cachedFixedSize.Value?.ToString(CultureInfo.InvariantCulture) ?? "dynamic"} Properties={s_metadata.Value.Length}");
 
         foreach (PropertyMetadata meta in s_metadata.Value)

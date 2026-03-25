@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
@@ -12,7 +14,7 @@ namespace Nalix.Shared.Frames;
 /// Provides common header fields and serialization logic for derived packet types.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[ExcludeFromCodeCoverage]
 public abstract class FrameBase : IPacket
 {
     /// <summary>
@@ -52,6 +54,7 @@ public abstract class FrameBase : IPacket
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.SequenceId)] public uint SequenceId { get; set; }
+    ProtocolType IPacket.Protocol { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
     /// <inheritdoc/>
     public abstract void ResetForPool();
@@ -60,5 +63,5 @@ public abstract class FrameBase : IPacket
     public abstract byte[] Serialize();
 
     /// <inheritdoc/>
-    public abstract int Serialize(System.Span<byte> buffer);
+    public abstract int Serialize(Span<byte> buffer);
 }

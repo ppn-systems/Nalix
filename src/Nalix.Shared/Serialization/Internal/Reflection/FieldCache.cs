@@ -1,22 +1,27 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Serialization;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Serialization.Internal.Reflection;
 
 internal static partial class FieldCache<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
 {
     #region Static Fields
 
@@ -33,17 +38,17 @@ internal static partial class FieldCache<
     /// <summary>
     /// Store as object delegates, will be cast at runtime
     /// </summary>
-    private static readonly System.Delegate[] _getters;
+    private static readonly Delegate[] _getters;
 
-    private static readonly System.Delegate[] _setters;
+    private static readonly Delegate[] _setters;
 
     #endregion Compiled Delegates Cache
 
     #region Static Constructor
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
+    [SuppressMessage("CodeQuality",
         "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
+    [SuppressMessage("Trimming",
         "IL2091:Target generic argument does not satisfy 'DynamicallyAccessedMembersAttribute' in target method or type. " +
         "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
     static FieldCache()
@@ -52,7 +57,7 @@ internal static partial class FieldCache<
 
         _propertyCache = new Dictionary<string, PropertyInfo>(
             capacity: 32,
-            comparer: System.StringComparer.Ordinal
+            comparer: StringComparer.Ordinal
         );
 
         foreach (PropertyInfo p in typeof(T).GetProperties(
@@ -67,8 +72,8 @@ internal static partial class FieldCache<
         _fieldIndex = BuildFieldIndex();
 
         // Create compiled getters/setters for each field
-        _getters = new System.Delegate[_metadata.Length];
-        _setters = new System.Delegate[_metadata.Length];
+        _getters = new Delegate[_metadata.Length];
+        _setters = new Delegate[_metadata.Length];
 
         for (int i = 0; i < _metadata.Length; i++)
         {
@@ -84,14 +89,14 @@ internal static partial class FieldCache<
 
     #region Field Discovery
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static FieldSchema[] DiscoverFields<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicFields)] TField>()
+        [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicFields |
+        DynamicallyAccessedMemberTypes.NonPublicFields)] TField>()
     {
-        System.Type type = typeof(TField);
+        Type type = typeof(TField);
 
         List<FieldInfo> fields = [];
         while (type != null && type != typeof(object))
@@ -145,8 +150,8 @@ internal static partial class FieldCache<
         if (includedFields.Count == 0)
         {
             // Log warning or throw exception
-            System.Diagnostics.Debug.WriteLine($"[FieldCache<{typeof(TField).Name}>] WARNING: Type {typeof(TField).Name} has no serializable fields.");
-            throw new System.InvalidOperationException($"Type {typeof(TField).Name} has no serializable fields.");
+            Debug.WriteLine($"[FieldCache<{typeof(TField).Name}>] WARNING: Type {typeof(TField).Name} has no serializable fields.");
+            throw new InvalidOperationException($"Type {typeof(TField).Name} has no serializable fields.");
         }
 
         return _layout is SerializeLayout.Explicit
@@ -154,13 +159,13 @@ internal static partial class FieldCache<
             : [.. includedFields];
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static Dictionary<string, int> BuildFieldIndex()
     {
         // Performance: StringComparer.Ordinal nhanh hơn default
         Dictionary<string, int> index = new(
-            _metadata.Length, System.StringComparer.Ordinal);
+            _metadata.Length, StringComparer.Ordinal);
 
         for (int i = 0; i < _metadata.Length; i++)
         {
@@ -175,16 +180,16 @@ internal static partial class FieldCache<
     /// </summary>
     /// <param name="field"></param>
     /// <returns></returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality",
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [SuppressMessage("CodeQuality",
         "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Trimming",
+    [SuppressMessage("Trimming",
         "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
         "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
     private static int? GetExplicitOrder(FieldInfo field)
     {
-        System.Type? type = field.DeclaringType;
+        Type? type = field.DeclaringType;
         if (type is null)
         {
             return null;
@@ -207,8 +212,8 @@ internal static partial class FieldCache<
         return null;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static bool IsBackingFieldFor(
         FieldInfo field,
         PropertyInfo property) => field.Name == $"<{property.Name}>k__BackingField";
@@ -217,8 +222,8 @@ internal static partial class FieldCache<
 
     #region Domain Rules - Business Logic
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static bool ShouldIgnoreField(FieldInfo field)
     {
         // Rule 1: Skip backing fields nếu property có SerializeIgnoreAttribute
@@ -243,8 +248,8 @@ internal static partial class FieldCache<
 
     #region Layout Detection
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static SerializeLayout GetSerializeLayout()
     {
         SerializePackableAttribute? packableAttr = CustomAttributeExtensions
@@ -253,18 +258,18 @@ internal static partial class FieldCache<
         return packableAttr?.SerializeLayout ?? SerializeLayout.Sequential;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static SerializeLayout GetLayout() => _layout;
 
     #endregion Layout Detection
 
     #region Ensure - Fail Fast Strategy
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static void EnsureExplicitLayoutIsValid()
     {
         if (_layout is not SerializeLayout.Explicit)
@@ -276,44 +281,44 @@ internal static partial class FieldCache<
         EnsureNoNegativeOrders();
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static void EnsureNoDuplicateOrders()
     {
-        IEnumerable<System.Linq.IGrouping<int, FieldSchema>> orderGroups = System.Linq.Enumerable.Where(
-            System.Linq.Enumerable.GroupBy(_metadata, f => f.Order),
-            g => System.Linq.Enumerable.Count(g) > 1
+        IEnumerable<IGrouping<int, FieldSchema>> orderGroups = Enumerable.Where(
+            Enumerable.GroupBy(_metadata, f => f.Order),
+            g => Enumerable.Count(g) > 1
         );
 
-        if (System.Linq.Enumerable.Any(orderGroups))
+        if (Enumerable.Any(orderGroups))
         {
             string duplicates = string.Join(", ",
-                System.Linq.Enumerable.Select(orderGroups, g =>
+                Enumerable.Select(orderGroups, g =>
                     $"Order {g.Key}: [{string.Join(", ",
-                        System.Linq.Enumerable.Select(g, f => f.Name))}]"));
+                        Enumerable.Select(g, f => f.Name))}]"));
 
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Duplicate serialize orders in type '{typeof(T).Name}': {duplicates}");
         }
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static void EnsureNoNegativeOrders()
     {
-        IEnumerable<FieldSchema> negativeOrders = System.Linq.Enumerable
+        IEnumerable<FieldSchema> negativeOrders = Enumerable
             .Where(_metadata, f => f.Order < 0);
 
-        if (System.Linq.Enumerable.Any(negativeOrders))
+        if (Enumerable.Any(negativeOrders))
         {
             string negativeFields = string.Join(", ",
-                System.Linq.Enumerable.Select(negativeOrders, f => $"{f.Name}({f.Order})"));
+                Enumerable.Select(negativeOrders, f => $"{f.Name}({f.Order})"));
 
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Negative serialize orders not allowed in type '{typeof(T).Name}': {negativeFields}");
         }
     }

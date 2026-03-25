@@ -1,9 +1,19 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Serialization.Internal.Types;
@@ -11,10 +21,10 @@ namespace Nalix.Shared.Serialization.Internal.Types;
 /// <summary>
 /// Provides metadata operations for serialization types.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[ExcludeFromCodeCoverage]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static partial class TypeMetadata
 {
     /// <summary>
@@ -22,32 +32,32 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <typeparam name="T">The unmanaged type to evaluate.</typeparam>
     /// <returns>The size of the type in bytes.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static int SizeOf<T>() => System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static int SizeOf<T>() => Unsafe.SizeOf<T>();
 
     /// <summary>
     /// Determines whether the specified type is unmanaged.
     /// </summary>
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns>True if the type is unmanaged; otherwise, false.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsUnmanaged<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>() => Cache<T>.IsUnmanaged;
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static bool IsUnmanaged<[DynamicallyAccessedMembers(PropertyAccess)] T>() => Cache<T>.IsUnmanaged;
 
     /// <summary>
     /// Determines whether the specified type is unmanaged by examining its structure and fields.
     /// </summary>
     /// <param name="type">The type to check for unmanaged status.</param>
     /// <returns>True if the type is unmanaged; otherwise, false.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="type"/> is null.</exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public static bool IsUnmanaged(System.Type type)
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="type"/> is null.</exception>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    public static bool IsUnmanaged(Type type)
     {
         t_visitedTypes ??= [];
 
@@ -59,11 +69,11 @@ internal static partial class TypeMetadata
         try
         {
             return type.IsValueType &&
-                   System.Runtime.InteropServices.Marshal.SizeOf(type) > 0 &&
-                   System.Linq.Enumerable.All(type.GetFields(
-                   System.Reflection.BindingFlags.Instance |
-                   System.Reflection.BindingFlags.NonPublic |
-                   System.Reflection.BindingFlags.Public), f => IsUnmanaged(f.FieldType));
+                   Marshal.SizeOf(type) > 0 &&
+                   Enumerable.All(type.GetFields(
+                   BindingFlags.Instance |
+                   BindingFlags.NonPublic |
+                   BindingFlags.Public), f => IsUnmanaged(f.FieldType));
         }
         catch
         {
@@ -80,18 +90,18 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns>True if the type is nullable; otherwise, false.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    public static bool IsNullable<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>() => Cache<T>.IsNullable;
+    [Pure]
+    public static bool IsNullable<[DynamicallyAccessedMembers(PropertyAccess)] T>() => Cache<T>.IsNullable;
 
     /// <summary>
     /// Determines whether the type is a reference type or nullable.
     /// </summary>
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns>True if the type is a reference type or nullable; otherwise, false.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsReferenceOrNullable<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>()
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static bool IsReferenceOrNullable<[DynamicallyAccessedMembers(PropertyAccess)] T>()
         => Cache<T>.IsReference || Cache<T>.IsNullable;
 
     /// <summary>
@@ -100,10 +110,10 @@ internal static partial class TypeMetadata
     /// <typeparam name="T">The type to evaluate.</typeparam>
     /// <param name="size">The fixed or unmanaged size of the type.</param>
     /// <returns>The corresponding <see cref="TypeKind"/> value.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TypeKind TryGetFixedOrUnmanagedSize<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>(out int size)
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static TypeKind TryGetFixedOrUnmanagedSize<[DynamicallyAccessedMembers(PropertyAccess)] T>(out int size)
     {
         if (Cache<T>.IsUnmanagedSZArray)
         {
@@ -125,10 +135,10 @@ internal static partial class TypeMetadata
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns>True if the type is anonymous; otherwise, false.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsAnonymous(System.Type type)
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static bool IsAnonymous(Type type)
     {
         // Anonymous types typically have no namespace
         bool hasNoNamespace = type.Namespace == null;
@@ -138,13 +148,13 @@ internal static partial class TypeMetadata
 
         // Anonymous type names usually start with compiler-generated prefixes
         bool nameIndicatesAnonymous =
-            type.Name.StartsWith("<>f__AnonymousType", System.StringComparison.Ordinal) ||
-            type.Name.StartsWith("<>__AnonType", System.StringComparison.Ordinal) ||
-            type.Name.StartsWith("VB$AnonymousType_", System.StringComparison.Ordinal); // For VB.NET
+            type.Name.StartsWith("<>f__AnonymousType", StringComparison.Ordinal) ||
+            type.Name.StartsWith("<>__AnonType", StringComparison.Ordinal) ||
+            type.Name.StartsWith("VB$AnonymousType_", StringComparison.Ordinal); // For VB.NET
 
         // Anonymous types are marked with CompilerGeneratedAttribute
         bool isCompilerGenerated = type.IsDefined(
-            typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute), inherit: false);
+            typeof(CompilerGeneratedAttribute), inherit: false);
 
         return hasNoNamespace && isSealed && nameIndicatesAnonymous && isCompilerGenerated;
     }

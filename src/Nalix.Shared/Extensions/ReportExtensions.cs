@@ -1,6 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.IO;
+using System.Linq;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Environment;
 using Nalix.Common.Shared;
@@ -17,10 +20,10 @@ public static class ReportExtensions
 
     static ReportExtensions()
     {
-        ReportDir = System.IO.Path.GetFullPath(System.IO.Path
+        ReportDir = Path.GetFullPath(Path
                                   .Combine(Directories.DataDirectory, "reports"));
 
-        _ = System.IO.Directory.CreateDirectory(ReportDir);
+        _ = Directory.CreateDirectory(ReportDir);
     }
 
     /// <summary>
@@ -34,26 +37,26 @@ public static class ReportExtensions
         string report = @this.GenerateReport();
         string safePrefix = prefix?.ToLowerInvariant() ?? "null";
 
-        _ = System.IO.Directory.CreateDirectory(ReportDir);
+        _ = Directory.CreateDirectory(ReportDir);
 
-        string filePath = System.IO.Path.Combine(ReportDir, $"{safePrefix}-report-{System.DateTime.UtcNow:yyyyMMdd-HHmm}.txt");
+        string filePath = Path.Combine(ReportDir, $"{safePrefix}-report-{DateTime.UtcNow:yyyyMMdd-HHmm}.txt");
 
         try
         {
-            System.IO.File.WriteAllText(filePath, report);
+            File.WriteAllText(filePath, report);
 
             // Select last 3 segments, or fewer if there are less than 3
-            string[] segments = filePath.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
+            string[] segments = filePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             int segmentCount = segments.Length;
-            string lastSegments = string.Join(System.IO.Path.DirectorySeparatorChar
-                                                      .ToString(), System.Linq.Enumerable
-                                                      .Skip(segments, System.Math
+            string lastSegments = string.Join(Path.DirectorySeparatorChar
+                                                      .ToString(), Enumerable
+                                                      .Skip(segments, Math
                                                       .Max(0, segmentCount - 3)));
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[RP.{@this.GetType().Name}] report-saved path={lastSegments}");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
