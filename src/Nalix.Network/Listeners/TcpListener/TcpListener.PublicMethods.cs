@@ -80,12 +80,19 @@ public abstract partial class TcpListenerBase
             _cancellationToken = _cts.Token;
 
             linkedToken = _cts.Token;
-            _cancelReg = linkedToken.Register(static s => ((TcpListenerBase)s).SCHEDULE_STOP(), this);
+            _cancelReg = linkedToken.Register(static s =>
+            {
+                if (s is TcpListenerBase listener)
+                {
+                    listener.SCHEDULE_STOP();
+                }
+            }, this);
 
             bool needInit;
             try
             {
-                needInit = _listener?.IsBound != true || _listener.SafeHandle.IsInvalid;
+                Socket? listener = _listener;
+                needInit = listener is null || !listener.IsBound || listener.SafeHandle.IsInvalid;
             }
             catch
             {
@@ -187,7 +194,7 @@ public abstract partial class TcpListenerBase
             }
         }
 
-        CancellationTokenSource cts = Interlocked.Exchange(ref _cts, null);
+        CancellationTokenSource? cts = Interlocked.Exchange(ref _cts, null);
         try
         {
             try { _cancelReg.Dispose(); } catch { }
