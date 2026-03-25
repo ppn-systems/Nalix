@@ -142,8 +142,8 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
             _ = Interlocked.Increment(ref _totalRejections);
 
             // Throttled reject log — chỉ log 1 lần mỗi suppress window per IP
-            if (_map.TryGetValue(key, out ConnectionLimitEntry entry))
-            {
+        if (_map.TryGetValue(key, out ConnectionLimitEntry? entry) && entry is not null)
+        {
                 long nowTicks = Clock.NowUtc().Ticks;
                 long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
 
@@ -229,7 +229,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
         bool released = TRY_RELEASE_CONNECTION_SLOT(key, now);
 
-        if (released && _map.TryGetValue(key, out ConnectionLimitEntry closedEntry))
+        if (released && _map.TryGetValue(key, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
         {
             long nowTicks = Clock.NowUtc().Ticks;
             long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
@@ -415,7 +415,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// <param name="now"></param>
     private bool TRY_RELEASE_CONNECTION_SLOT(Connection.Endpoint key, DateTime now)
     {
-        if (!_map.TryGetValue(key, out ConnectionLimitEntry entry))
+        if (!_map.TryGetValue(key, out ConnectionLimitEntry? entry) || entry is null)
         {
             return false;
         }
@@ -748,7 +748,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
             // Remove in separate pass to avoid holding locks
             foreach (INetworkEndpoint key in keysToRemove)
             {
-                if (_map.TryRemove(key, out ConnectionLimitEntry removedEntry))
+                if (_map.TryRemove(key, out ConnectionLimitEntry? removedEntry) && removedEntry is not null)
                 {
                     // Dispose resources
                     lock (removedEntry)

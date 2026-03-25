@@ -207,7 +207,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
                     (_inner?.Equals(other._inner) ?? (other._inner is null)));
         }
 
-        public override bool Equals(object obj) => obj is RateLimitSubject other && Equals(other);
+        public override bool Equals(object? obj) => obj is RateLimitSubject other && Equals(other);
 
         public static bool operator ==(RateLimitSubject left, RateLimitSubject right)
             => left.Equals(right);
@@ -285,7 +285,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             return validationResult.Decision;
         }
 
-        Policy policy = EXTRACT_AND_QUANTIZE_POLICY(context.Attributes.RateLimit);
+        Policy policy = EXTRACT_AND_QUANTIZE_POLICY(context.Attributes.RateLimit!);
 
         CheckResult checkResult = PERFORM_RATE_LIMIT_CHECK(opCode, context, policy);
 
@@ -367,7 +367,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         {
             foreach ((Policy policy, Entry _) in _limiters)
             {
-                if (_limiters.TryRemove(policy, out Entry removed))
+                if (_limiters.TryRemove(policy, out Entry? removed) && removed is not null)
                 {
                     try
                     {
@@ -406,7 +406,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static CheckResult VALIDATE_RATE_LIMIT_ATTRIBUTE(PacketContext<IPacket> context)
     {
-        PacketRateLimitAttribute rl = context.Attributes.RateLimit;
+        PacketRateLimitAttribute? rl = context.Attributes.RateLimit;
 
         if (rl is null)
         {
@@ -547,7 +547,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Entry GET_OR_CREATE_LIMITER_ENTRY(Policy policy)
     {
-        if (_limiters.TryGetValue(policy, out Entry existingEntry))
+        if (_limiters.TryGetValue(policy, out Entry? existingEntry) && existingEntry is not null)
         {
             existingEntry.Touch();
             return existingEntry;
@@ -555,7 +555,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         if (IS_AT_POLICY_CAPACITY())
         {
-            Entry reusedEntry = TRY_REUSE_CLOSEST_POLICY(policy);
+            Entry? reusedEntry = TRY_REUSE_CLOSEST_POLICY(policy);
             if (reusedEntry is not null)
             {
                 return reusedEntry;
@@ -569,7 +569,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     private bool IS_AT_POLICY_CAPACITY() => _limiters.Count >= MaxPolicies;
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private Entry TRY_REUSE_CLOSEST_POLICY(Policy wanted)
+    private Entry? TRY_REUSE_CLOSEST_POLICY(Policy wanted)
     {
         if (_limiters.IsEmpty)
         {
@@ -583,7 +583,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             return null;
         }
 
-        if (_limiters.TryGetValue(closest, out Entry reused))
+        if (_limiters.TryGetValue(closest, out Entry? reused) && reused is not null)
         {
             reused.Touch();
 
@@ -707,7 +707,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         foreach ((Policy policy, Entry entry) in _limiters)
         {
-            if (entry.IsStale(nowTicks, PolicyTtlSeconds) && _limiters.TryRemove(policy, out Entry removed))
+            if (entry.IsStale(nowTicks, PolicyTtlSeconds) && _limiters.TryRemove(policy, out Entry? removed) && removed is not null)
             {
                 removed.Dispose();
                 evictedCount++;
