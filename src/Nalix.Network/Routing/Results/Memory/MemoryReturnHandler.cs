@@ -17,7 +17,7 @@ internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 {
     /// <inheritdoc/>
     public async ValueTask HandleAsync(
-        [AllowNull] object result,
+        object result,
         PacketContext<TPacket> context)
     {
         if (result is not Memory<byte> memory)

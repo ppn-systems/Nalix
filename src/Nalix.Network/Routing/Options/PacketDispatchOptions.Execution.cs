@@ -55,7 +55,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         if (TryGetExpectedPacketType(descriptor.OpCode, out Type expectedType)
             && !expectedType.IsInstanceOfType(context.Packet))
         {
-            Type actualType = context.Packet?.GetType();
+            Type? actualType = context.Packet?.GetType();
+            IPacket packet = context.Packet ?? throw new InvalidOperationException("Packet context contains a null packet.");
 
             Logging?.Warn(
                 $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
@@ -66,7 +67,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.REQUEST_INVALID,
                 action: ProtocolAdvice.FIX_AND_RETRY,
-                sequenceId: context.Packet.SequenceId,
+                sequenceId: packet.SequenceId,
                 flags: ControlFlags.NONE,
                 arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
 
@@ -182,7 +183,17 @@ public sealed partial class PacketDispatchOptions<TPacket>
     private bool TryGetExpectedPacketType(
         ushort opCode,
         [NotNullWhen(true)] out Type expectedType)
-        => _packetTypeMap.TryGetValue(opCode, out expectedType) && expectedType is not null;
+    {
+        if (_packetTypeMap.TryGetValue(opCode, out Type? mappedType)
+            && mappedType is not null)
+        {
+            expectedType = mappedType;
+            return true;
+        }
+
+        expectedType = null!;
+        return false;
+    }
 
     /// <summary>
     /// Inspects a handler <paramref name="method"/>'s parameter list and returns the
@@ -192,7 +203,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <param name="contextType"></param>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Type ResolveConcretePacketType(
+    private static Type? ResolveConcretePacketType(
         MethodInfo method,
         Type contextType)
     {

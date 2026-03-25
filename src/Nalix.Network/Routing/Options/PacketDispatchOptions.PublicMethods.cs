@@ -30,7 +30,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
         Logging = logger;
@@ -51,7 +50,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         Action<Exception, ushort> errorHandler)
     {
@@ -72,7 +70,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithMiddleware(IPacketMiddleware<TPacket> middleware)
     {
         ArgumentNullException.ThrowIfNull(middleware);
@@ -95,7 +92,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int? loopCount)
     {
         if (loopCount.HasValue && (loopCount.Value < 1 || loopCount.Value > 64))
@@ -136,10 +132,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithErrorHandlingMiddleware(
         bool continueOnError,
-        Action<Exception, Type> errorHandler = null)
+        Action<Exception, Type>? errorHandler = null)
     {
         _pipeline.ConfigureErrorHandling(continueOnError, errorHandler);
         return this;
@@ -155,7 +150,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<[
         DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods |
@@ -172,7 +166,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<[
         DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods |
@@ -210,7 +203,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public PacketDispatchOptions<TPacket> WithHandler<
         [DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
@@ -245,7 +237,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             //   • Legacy-style   (SomePacket, IConnection[, CT]) → store SomePacket's Type
             //     even when SomePacket *is* the TPacket interface itself.
             // ------------------------------------------------------------------
-            Type concretePacketType = ResolveConcretePacketType(descriptor.MethodInfo, contextType);
+            Type? concretePacketType = ResolveConcretePacketType(descriptor.MethodInfo, contextType);
             _packetTypeMap[descriptor.OpCode] = concretePacketType;
 
             if (concretePacketType is not null && concretePacketType != typeof(TPacket))
@@ -276,10 +268,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public bool TryResolveHandler(
         ushort opCode,
-        [AllowNull]
         [NotNullWhen(true)] out Func<TPacket, IConnection, Task> handler)
     {
         if (TryResolveHandlerDescriptor(opCode, out PacketHandler<TPacket> descriptor))
@@ -303,7 +293,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return true;
         }
 
-        handler = null;
+        handler = null!;
         return false;
     }
 
@@ -320,7 +310,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public bool TryResolveHandlerDescriptor(
         ushort opCode,
         [NotNullWhen(true)] out PacketHandler<TPacket> descriptor)

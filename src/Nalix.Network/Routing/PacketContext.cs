@@ -98,7 +98,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// based on the current handler's attributes.
     /// Use this instead of calling connection.TCP.SendAsync() directly.
     /// </summary>
-    public IPacketSender<TPacket> Sender { get; private set; }
+    public IPacketSender<TPacket> Sender { get; private set; } = default!;
 
     #endregion Properties
 
@@ -115,10 +115,10 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PacketContext<TPacket>>(options.PacketContextCapacity);
+                                    .Prealloc<PacketContext<TPacket>>(options.PacketContextPreallocate);
 
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PacketContext<TPacket>>(options.PacketContextPreallocate);
+                                    .SetMaxCapacity<PacketContext<TPacket>>(options.PacketContextCapacity);
     }
 
 
@@ -128,7 +128,13 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <remarks>
     /// This constructor is used by the object pool to create instances in the <see cref="PacketContextState.Pooled"/> state.
     /// </remarks>
-    public PacketContext() => _state = (int)PacketContextState.Pooled;
+    public PacketContext()
+    {
+        _state = (int)PacketContextState.Pooled;
+        Packet = default!;
+        Connection = default!;
+        Attributes = default!;
+    }
 
     #endregion Constructor
 
@@ -156,11 +162,15 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
             ref _state,
             (int)PacketContextState.InUse);
 
-        Packet = packet;
-        Connection = connection;
+        Packet = packet ?? throw new ArgumentNullException(nameof(packet));
+        Connection = connection ?? throw new ArgumentNullException(nameof(connection));
         Attributes = descriptor;
         CancellationToken = token;
-        Sender = s_object.Get<PacketSender<TPacket>>() ?? throw new InvalidOperationException($"[{nameof(PacketContext<>)}] object pool returned null {nameof(PacketSender<>)}");
+        PacketSender<TPacket> sender =
+            s_object.Get<PacketSender<TPacket>>()
+            ?? throw new InvalidOperationException($"[{nameof(PacketContext<>)}] object pool returned null {nameof(PacketSender<>)}");
+        sender.Initialize(this);
+        Sender = sender;
         _isInitialized = true;
     }
 
@@ -178,10 +188,10 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
             s_object.Return(concreteSender);
         }
 
-        Sender = default;
-        Packet = default;
-        Attributes = default;
-        Connection = default;
+        Sender = default!;
+        Packet = default!;
+        Attributes = default!;
+        Connection = default!;
 
         _isInitialized = false;
     }

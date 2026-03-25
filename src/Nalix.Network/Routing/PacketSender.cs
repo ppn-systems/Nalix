@@ -23,7 +23,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
 {
     #region Fields
 
-    private PacketContext<TPacket> _context;
+    private PacketContext<TPacket>? _context;
 
     private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
 
@@ -53,21 +53,23 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         TPacket packet,
         CancellationToken ct = default)
     {
-        bool needEncrypt = _context.Attributes.Encryption?.IsEncrypted ?? false;
-        return SEND_CORE_ASYNC(packet, needEncrypt, ct);
+        PacketContext<TPacket> context = GetContextOrThrow();
+        bool needEncrypt = context.Attributes.Encryption?.IsEncrypted ?? false;
+        return PacketSender<TPacket>.SEND_CORE_ASYNC(context, packet, needEncrypt, ct);
     }
 
     /// <inheritdoc/>
     public ValueTask<bool> SendAsync(
         TPacket packet,
         bool forceEncrypt,
-        CancellationToken ct = default) => SEND_CORE_ASYNC(packet, forceEncrypt, ct);
+        CancellationToken ct = default) => PacketSender<TPacket>.SEND_CORE_ASYNC(GetContextOrThrow(), packet, forceEncrypt, ct);
 
     #endregion APIs
 
     #region Private Methods
 
-    private async ValueTask<bool> SEND_CORE_ASYNC(
+    private static async ValueTask<bool> SEND_CORE_ASYNC(
+        PacketContext<TPacket> context,
         TPacket packet,
         bool needEncrypt,
         CancellationToken ct)
@@ -82,7 +84,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         // Case 1: Không nén, không mã hóa
         if (!enableCompress && !needEncrypt)
         {
-            _ = await _context.Connection.TCP.SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
+            _ = await context.Connection.TCP.SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
             rawLease.Dispose();
             return true;
         }
@@ -103,7 +105,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             }
 
             compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-            _ = await _context.Connection.TCP.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
+            _ = await context.Connection.TCP.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
             compressedLease.Dispose();
             return true;
         }
@@ -112,7 +114,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         if (!enableCompress && needEncrypt)
         {
             int maxCipherLength = FrameTransformer.GetMaxCiphertextSize(
-                _context.Connection.Algorithm,
+                context.Connection.Algorithm,
                 rawLease.Length);
 
             BufferLease encryptedLease = BufferLease.Rent(maxCipherLength + FrameTransformer.Offset);
@@ -120,8 +122,8 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             bool encrypted = FrameTransformer.TryEncrypt(
                 rawLease,
                 encryptedLease,
-                _context.Connection.Secret,
-                _context.Connection.Algorithm);
+                context.Connection.Secret,
+                context.Connection.Algorithm);
 
             rawLease.Dispose();
 
@@ -132,7 +134,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             }
 
             encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-            _ = await _context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
+            _ = await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
             encryptedLease.Dispose();
             return true;
         }
@@ -154,7 +156,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
 
             int maxCipherLength = FrameTransformer.GetMaxCiphertextSize(
-                _context.Connection.Algorithm,
+                context.Connection.Algorithm,
                 compressedLease.Length);
 
             BufferLease encryptedLease = BufferLease.Rent(maxCipherLength + FrameTransformer.Offset);
@@ -162,8 +164,8 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             bool encrypted = FrameTransformer.TryEncrypt(
                 compressedLease,
                 encryptedLease,
-                _context.Connection.Secret,
-                _context.Connection.Algorithm);
+                context.Connection.Secret,
+                context.Connection.Algorithm);
 
             compressedLease.Dispose();
             if (!encrypted)
@@ -173,13 +175,16 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             }
 
             encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-            _ = await _context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
+            _ = await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
             encryptedLease.Dispose();
             return true;
         }
 
         throw new InvalidOperationException("Unexpected state in packet sending logic.");
     }
+
+    private PacketContext<TPacket> GetContextOrThrow()
+        => _context ?? throw new InvalidOperationException($"{nameof(PacketSender<>)} must be initialized before sending.");
 
     #endregion Private Methods
 }

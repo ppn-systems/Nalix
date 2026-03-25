@@ -65,9 +65,9 @@ public sealed class PacketDispatchChannel
     private int _running;
     private int _activeLoops;
     private int _dispatchLoops;
-    private IWorkerHandle[] _workerHandle;
-    private CancellationTokenSource _cts;
-    private CancellationTokenSource _linkedCts;
+    private IWorkerHandle[] _workerHandle = [];
+    private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _linkedCts;
 
     #endregion Fields
 
@@ -170,15 +170,18 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        CancellationTokenSource localCts = Interlocked.Exchange(ref _cts, null);
-        CancellationTokenSource linkedCts = Interlocked.Exchange(ref _linkedCts, null);
+        CancellationTokenSource? localCts = Interlocked.Exchange(ref _cts, null);
+        CancellationTokenSource? linkedCts = Interlocked.Exchange(ref _linkedCts, null);
 
         try
         {
             for (int i = 0; i < _dispatchLoops; i++)
             {
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                            .CancelWorker(_workerHandle[i].Id);
+                if (i < _workerHandle.Length && _workerHandle[i] is not null)
+                {
+                    _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                                .CancelWorker(_workerHandle[i].Id);
+                }
             }
 
             if (localCts is { IsCancellationRequested: false })
@@ -293,12 +296,12 @@ public sealed class PacketDispatchChannel
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Resources / Metrics:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Semaphore.CurrentCount: {_semaphore.CurrentCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CTS.Cancelled         : {_cts.IsCancellationRequested}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CTS.Cancelled         : {_cts?.IsCancellationRequested ?? false}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Packet Registry:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Registry Type         : {_catalog?.GetType().Name ?? "(null)"}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Registry Type         : {_catalog.GetType().Name}");
         _ = sb.AppendLine();
 
         // Optionally list registered handlers if available in _catalog
@@ -357,7 +360,7 @@ public sealed class PacketDispatchChannel
                 }
 
                 // Pull from channel (priority-aware)
-                if (!_dispatch.Pull(out IConnection connection, out IBufferLease lease))
+                if (!_dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
                 {
                     if (!_dispatch.HasPacket)
                     {
@@ -372,7 +375,7 @@ public sealed class PacketDispatchChannel
 
                 try
                 {
-                    IBufferLease afterMw = await Options.NetworkPipeline.ExecuteAsync(lease, connection, ct).ConfigureAwait(false);
+                    IBufferLease? afterMw = await Options.NetworkPipeline.ExecuteAsync(lease, connection, ct).ConfigureAwait(false);
 
                     if (afterMw is null)
                     {
@@ -401,7 +404,7 @@ public sealed class PacketDispatchChannel
                 try
                 {
                     // Deserialize packet
-                    if (!_catalog.TryDeserialize(lease.Span, out IPacket packet) || packet is null)
+                    if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
                     {
                         int len = lease.Length;
                         string head = Convert.ToHexString(lease.Span[..Math.Min(16, len)]);

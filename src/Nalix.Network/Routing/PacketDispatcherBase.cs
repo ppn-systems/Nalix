@@ -25,13 +25,12 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// <summary>
     /// Gets the logger instance associated with this dispatcher, if configured.
     /// </summary>
-    [AllowNull]
     protected ILogger Logging => Options.Logging;
 
     /// <summary>
     /// Gets the configuration options for this dispatcher instance.
     /// </summary>
-    protected readonly PacketDispatchOptions<TPacket> Options;
+    protected PacketDispatchOptions<TPacket> Options { get; }
 
     #endregion Properties
 
@@ -67,7 +66,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// </param>
     [SuppressMessage("Style", "IDE1005:Delegate invocation can be simplified.", Justification = "<Pending>")]
     protected PacketDispatcherBase(
-        [AllowNull] Action<PacketDispatchOptions<TPacket>> configure = null)
+        Action<PacketDispatchOptions<TPacket>> configure = null)
             : this(new PacketDispatchOptions<TPacket>())
     {
         if (configure != null)

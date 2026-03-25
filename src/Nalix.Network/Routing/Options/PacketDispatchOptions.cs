@@ -45,13 +45,13 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     ///         For context-style handlers (<c>PacketContext&lt;TPacket&gt;</c>) the entry is
     ///         <see langword="null"/> — no concrete-type check is needed there.
     /// </remarks>
-    private readonly Dictionary<ushort, Type> _packetTypeMap;
+    private readonly Dictionary<ushort, Type?> _packetTypeMap;
 
     /// <summary>
     /// Network buffer middleware pipeline for processing raw byte buffers before packet transformation.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public readonly NetworkBufferMiddlewarePipeline NetworkPipeline;
+    public NetworkBufferMiddlewarePipeline NetworkPipeline { get; }
 
     /// <summary>
     /// Gets or sets a custom error-handling delegate invoked when packet processing fails.
@@ -59,7 +59,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <remarks>
     /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
     /// </remarks>
-    [AllowNull]
     private Action<Exception, ushort> _errorHandler;
 
     /// <summary>
@@ -85,7 +84,6 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Gets the logger instance used for logging within the packet dispatch options.
     /// </summary>
-    [AllowNull]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public ILogger Logging { get; private set; }
 
