@@ -1,11 +1,14 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Shared;
 using Nalix.Framework.Injection.DI;
-using System.Linq;
 
 namespace Nalix.Framework.Injection;
 
@@ -20,40 +23,40 @@ namespace Nalix.Framework.Injection;
 [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
     System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDisposable, IReportable
+public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposable, IReportable
 {
     #region Fields
 
-    private static readonly System.Lazy<System.Reflection.Assembly> EntryAssemblyLazy = new(() =>
-        System.Reflection.Assembly.GetEntryAssembly() ?? throw new System.InvalidOperationException("Entry assembly is null."));
+    private static readonly Lazy<Assembly> EntryAssemblyLazy = new(() =>
+        Assembly.GetEntryAssembly() ?? throw new InvalidOperationException("Entry assembly is null."));
 
     // Keep one OS mutex for lifetime to ensure correctness & performance.
     private static readonly System.Threading.Lock ProcessMutexInitSync = new();
-    private static readonly System.String ApplicationMutexName = "LOW\\{{" + EntryAssemblyLazy.Value.FullName + "}}";
+    private static readonly string ApplicationMutexName = "LOW\\{{" + EntryAssemblyLazy.Value.FullName + "}}";
 
-    private static System.Boolean _processMutexOwner;
+    private static bool _processMutexOwner;
     private static System.Threading.Mutex? _processMutex;
 
     // Track disposables uniquely to avoid duplicate dispose calls.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.IDisposable, System.Byte> _disposables = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<IDisposable, byte> _disposables = new();
 
     // Use RuntimeTypeHandle as key to reduce hashing overhead.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<System.RuntimeTypeHandle, System.Object> _instanceCache = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<RuntimeTypeHandle, object> _instanceCache = new();
 
     // Activator cache is keyed by (Type, ctor signature) to support overloads.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<ActivatorKey, System.Func<System.Object?[], System.Object>> _activatorCache = new();
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<ActivatorKey, System.Object> _signatureInstanceCache = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ActivatorKey, Func<object?[], object>> _activatorCache = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<ActivatorKey, object> _signatureInstanceCache = new();
 
-    [System.ThreadStatic] private static System.RuntimeTypeHandle _tsLastKey;
-    [System.ThreadStatic] private static System.Object? _tsLastValue;
+    [ThreadStatic] private static RuntimeTypeHandle _tsLastKey;
+    [ThreadStatic] private static object? _tsLastValue;
 
     // Near fields
-    private static System.Int32 _slotsInvalidated; // 0 = valid, 1 = invalid
+    private static int _slotsInvalidated; // 0 = valid, 1 = invalid
 
-    private System.Int64 _instanceCreationCount;
-    private System.Int64 _instanceCacheHitCount;
+    private long _instanceCreationCount;
+    private long _instanceCacheHitCount;
 
-    private System.Int32 _isDisposed;
+    private int _isDisposed;
 
     #endregion Fields
 
@@ -62,20 +65,20 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <summary>
     /// Lightweight hashable key for constructor signature.
     /// </summary>
-    private readonly unsafe struct ActivatorKey : System.IEquatable<ActivatorKey>
+    private readonly unsafe struct ActivatorKey : IEquatable<ActivatorKey>
     {
-        public readonly System.Int32 Arity;
-        public readonly System.RuntimeTypeHandle P0;
-        public readonly System.RuntimeTypeHandle P1;
-        public readonly System.RuntimeTypeHandle P2;
-        public readonly System.RuntimeTypeHandle P3;
-        public readonly System.RuntimeTypeHandle P4;
-        public readonly System.RuntimeTypeHandle Target;
+        public readonly int Arity;
+        public readonly RuntimeTypeHandle P0;
+        public readonly RuntimeTypeHandle P1;
+        public readonly RuntimeTypeHandle P2;
+        public readonly RuntimeTypeHandle P3;
+        public readonly RuntimeTypeHandle P4;
+        public readonly RuntimeTypeHandle Target;
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public ActivatorKey(System.Type t, System.Object?[]? args)
+        public ActivatorKey(Type t, object?[]? args)
         {
             Target = t.TypeHandle;
             Arity = args?.Length ?? 0;
@@ -83,33 +86,33 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             P0 = default; P1 = default; P2 = default; P3 = default; P4 = default;
             if (Arity > 0)
             {
-                P0 = (args![0]?.GetType() ?? typeof(System.Object)).TypeHandle;
+                P0 = (args![0]?.GetType() ?? typeof(object)).TypeHandle;
             }
 
             if (Arity > 1)
             {
-                P1 = (args![1]?.GetType() ?? typeof(System.Object)).TypeHandle;
+                P1 = (args![1]?.GetType() ?? typeof(object)).TypeHandle;
             }
 
             if (Arity > 2)
             {
-                P2 = (args![2]?.GetType() ?? typeof(System.Object)).TypeHandle;
+                P2 = (args![2]?.GetType() ?? typeof(object)).TypeHandle;
             }
 
             if (Arity > 3)
             {
-                P3 = (args![3]?.GetType() ?? typeof(System.Object)).TypeHandle;
+                P3 = (args![3]?.GetType() ?? typeof(object)).TypeHandle;
             }
 
             if (Arity > 4)
             {
-                P4 = (args![4]?.GetType() ?? typeof(System.Object)).TypeHandle;
+                P4 = (args![4]?.GetType() ?? typeof(object)).TypeHandle;
             }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean Equals(ActivatorKey other)
+        public bool Equals(ActivatorKey other)
             => Target.Equals(other.Target)
                && P0.Equals(other.P0)
                && P1.Equals(other.P1)
@@ -118,14 +121,14 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                && P4.Equals(other.P4)
                && Arity == other.Arity;
 
-        public override System.Boolean Equals(System.Object? obj)
+        public override bool Equals(object? obj)
             => obj is ActivatorKey k && Equals(k);
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public override System.Int32 GetHashCode()
+        public override int GetHashCode()
         {
-            System.HashCode hc = new();
+            HashCode hc = new();
             hc.Add(Target);
             hc.Add(Arity);
             hc.Add(P0);
@@ -145,7 +148,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// Checks if this application is the only instance currently running.
     /// This method initializes a process-wide named mutex once and holds it.
     /// </summary>
-    public static System.Boolean IsTheOnlyInstance
+    public static bool IsTheOnlyInstance
     {
         get
         {
@@ -167,7 +170,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                     _processMutex = new System.Threading.Mutex(
                         initiallyOwned: true,
                         name: ApplicationMutexName,
-                        createdNew: out System.Boolean createdNew);
+                        createdNew: out bool createdNew);
 
                     _processMutexOwner = createdNew;
                 }
@@ -188,18 +191,18 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <summary>
     /// Raised to log significant events within the instance manager.
     /// </summary>
-    public event System.EventHandler<LogEventArgs>? LogEvent;
+    public event EventHandler<LogEventArgs>? LogEvent;
 
     /// <summary>
     /// Gets the ProtocolType of cached instances.
     /// </summary>
     [System.Diagnostics.Contracts.Pure]
-    public System.Int32 CachedInstanceCount => _instanceCache.Count;
+    public int CachedInstanceCount => _instanceCache.Count;
 
     /// <summary>
     /// Gets the assembly that started the application.
     /// </summary>
-    public static System.Reflection.Assembly EntryAssembly => EntryAssemblyLazy.Value;
+    public static Assembly EntryAssembly => EntryAssemblyLazy.Value;
 
     #endregion Properties
 
@@ -216,7 +219,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
     /// <summary>
     /// Registers an instance of the specified type in the instance cache.
-    /// If the instance implements <see cref="System.IDisposable"/>, it will be tracked for disposal.
+    /// If the instance implements <see cref="IDisposable"/>, it will be tracked for disposal.
     /// </summary>
     /// <typeparam name="T">The type of the instance to register.</typeparam>
     /// <param name="instance">The instance to register.</param>
@@ -226,15 +229,15 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Register<T>(
         [System.Diagnostics.CodeAnalysis.NotNull] T instance,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean registerInterfaces = true) where T : class
+        [System.Diagnostics.CodeAnalysis.NotNull] bool registerInterfaces = true) where T : class
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
-        System.RuntimeTypeHandle key = typeof(T).TypeHandle;
+        RuntimeTypeHandle key = typeof(T).TypeHandle;
 
         // Collect distinct previous objects encountered during atomic replace so we dispose each once.
-        System.Collections.Generic.HashSet<System.Object> prevsToDispose = new(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+        HashSet<object> prevsToDispose = new(ReferenceEqualityComparer.Instance);
 
         // Atomic add/replace for concrete type.
         TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(key, instance, typeof(T).Name, prevsToDispose);
@@ -245,11 +248,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         if (registerInterfaces)
         {
-            System.Type[] itfs = typeof(T).GetInterfaces();
-            for (System.Int32 i = 0; i < itfs.Length; i++)
+            Type[] itfs = typeof(T).GetInterfaces();
+            for (int i = 0; i < itfs.Length; i++)
             {
-                System.Type itf = itfs[i];
-                System.RuntimeTypeHandle itfKey = itf.TypeHandle;
+                Type itf = itfs[i];
+                RuntimeTypeHandle itfKey = itf.TypeHandle;
 
                 TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(itfKey, instance, itf.Name, prevsToDispose);
 
@@ -258,7 +261,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 {
                     PUBLISH_TO_INTERFACE_SLOT(itf, instance);
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warn,
                         $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] publish-slot-fail iface={itf.Name}", ex));
@@ -267,13 +270,13 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         }
 
         // After finishing all replacements, dispose each distinct previous object exactly once.
-        foreach (var prev in prevsToDispose)
+        foreach (object prev in prevsToDispose)
         {
             SAFE_DISPOSE_PREVIOUS(prev, "register-replaced");
         }
 
         // Track disposable AFTER instance successfully stored.
-        if (instance is System.IDisposable disp)
+        if (instance is IDisposable disp)
         {
             _ = _disposables.TryAdd(disp, 0);
         }
@@ -282,11 +285,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         // Local helpers
 
-        void TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(System.RuntimeTypeHandle handleKey, System.Object instanceObj, System.String humanName, System.Collections.Generic.HashSet<System.Object> collectSet)
+        void TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(RuntimeTypeHandle handleKey, object instanceObj, string humanName, HashSet<object> collectSet)
         {
             while (true)
             {
-                if (_instanceCache.TryGetValue(handleKey, out var existing))
+                if (_instanceCache.TryGetValue(handleKey, out object? existing))
                 {
                     // If same reference, nothing to do.
                     if (ReferenceEquals(existing, instanceObj))
@@ -300,7 +303,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                         // We succeeded in replacing: schedule previous for disposal (unique set).
                         if (existing is not null)
                         {
-                            collectSet.Add(existing);
+                            _ = collectSet.Add(existing);
                         }
                         // After successful swap, mark slots valid
                         System.Threading.Volatile.Write(ref _slotsInvalidated, 0);
@@ -325,9 +328,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             }
         }
 
-        void SAFE_DISPOSE_PREVIOUS(System.Object previous, System.String context)
+        void SAFE_DISPOSE_PREVIOUS(object previous, string context)
         {
-            if (previous is not System.IDisposable prevDisp)
+            if (previous is not IDisposable prevDisp)
             {
                 return;
             }
@@ -340,12 +343,12 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 prevDisp.Dispose();
                 LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-ok {context}"));
             }
-            catch (System.ObjectDisposedException odex)
+            catch (ObjectDisposedException odex)
             {
                 // Previously disposed: benign. Log as Trace to reduce noise.
                 LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-already {context}", odex));
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 // Unexpected disposal error: keep Error level.
                 LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-fail {context} ex={ex.Message}", ex));
@@ -377,29 +380,29 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public T GetOrCreateInstance<T>(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] params System.Object?[] args) where T : class
+        [System.Diagnostics.CodeAnalysis.MaybeNull] params object?[] args) where T : class
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
-        args ??= System.Array.Empty<System.Object?>();
+        args ??= Array.Empty<object?>();
 
         // Fast-path generic slot when no signature is used
         if (args.Length == 0)
         {
-            if (TRY_GET_FROM_GENERIC_SLOT<T>(out T? viaSlot))
+            if (TRY_GET_FROM_GENERIC_SLOT(out T? viaSlot))
             {
                 return viaSlot!;
             }
 
-            System.RuntimeTypeHandle key = typeof(T).TypeHandle;
-            if (_instanceCache.TryGetValue(key, out System.Object? existing))
+            RuntimeTypeHandle key = typeof(T).TypeHandle;
+            if (_instanceCache.TryGetValue(key, out object? existing))
             {
-                System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
+                _ = System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
                 return System.Runtime.CompilerServices.Unsafe.As<T>(existing);
             }
 
-            System.Threading.Interlocked.Increment(ref _instanceCreationCount);
+            _ = System.Threading.Interlocked.Increment(ref _instanceCreationCount);
             T created = System.Runtime.CompilerServices.Unsafe.As<T>(GET_OR_CREATE_INSTANCE_SLOW(typeof(T), args));
 
             // Publish to slot after creation
@@ -409,7 +412,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         else
         {
             // Use signature cache for generic type when args provided.
-            System.Object obj = GetOrCreateInstance(typeof(T), args);
+            object obj = GetOrCreateInstance(typeof(T), args);
             return System.Runtime.CompilerServices.Unsafe.As<T>(obj);
         }
     }
@@ -420,7 +423,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <param name="type">The type of the instance to get or create.</param>
     /// <param name="args">The arguments to pass to the constructor if a new instance is created.</param>
     /// <returns>The existing or newly created instance.</returns>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown if the specified type does not have a suitable constructor or
     /// if the instance manager has been disposed.
     /// </exception>
@@ -428,11 +431,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Object GetOrCreateInstance(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Type type,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] params System.Object?[] args)
+    public object GetOrCreateInstance(
+        [System.Diagnostics.CodeAnalysis.NotNull] Type type,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] params object?[] args)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
         args ??= [];
@@ -440,14 +443,14 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         // If no args provided, preserve existing behavior: cache by Type handle.
         if (args.Length == 0)
         {
-            System.RuntimeTypeHandle key = type.TypeHandle;
-            if (_instanceCache.TryGetValue(key, out System.Object? existing))
+            RuntimeTypeHandle key = type.TypeHandle;
+            if (_instanceCache.TryGetValue(key, out object? existing))
             {
                 TRY_PUBLISH_SLOT_BY_TYPE(type, existing);
                 return existing;
             }
 
-            System.Object created = GET_OR_CREATE_INSTANCE_SLOW(type, args);
+            object created = GET_OR_CREATE_INSTANCE_SLOW(type, args);
             TRY_PUBLISH_SLOT_BY_TYPE(type, created);
             return created;
         }
@@ -455,7 +458,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         // For args (signature) use signature cache keyed by ActivatorKey.
         ActivatorKey sigKey = new(type, args);
 
-        if (_signatureInstanceCache.TryGetValue(sigKey, out var sigExisting))
+        if (_signatureInstanceCache.TryGetValue(sigKey, out object? sigExisting))
         {
             // Optionally publish to generic slot (we keep publishing by type to keep fast-path semantics)
             TRY_PUBLISH_SLOT_BY_TYPE(type, sigExisting);
@@ -476,11 +479,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Object CreateInstance(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Type type,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] params System.Object?[] args)
+    public object CreateInstance(
+        [System.Diagnostics.CodeAnalysis.NotNull] Type type,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] params object?[] args)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
         return CREATE_VIA_ACTIVATOR(type, args);
@@ -495,36 +498,36 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Boolean RemoveInstance([System.Diagnostics.CodeAnalysis.NotNull] System.Type type)
+    public bool RemoveInstance([System.Diagnostics.CodeAnalysis.NotNull] Type type)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
-        System.RuntimeTypeHandle key = type.TypeHandle;
-        System.Boolean removedAny = false;
+        RuntimeTypeHandle key = type.TypeHandle;
+        bool removedAny = false;
 
         // Remove the type-keyed instance (if any)
-        if (_instanceCache.TryRemove(key, out var instance))
+        if (_instanceCache.TryRemove(key, out object? instance))
         {
             removedAny = true;
 
             CLEAR_GENERIC_SLOT(type);
 
-            System.Type actual = instance.GetType();
-            foreach (System.Type itf in actual.GetInterfaces())
+            Type actual = instance.GetType();
+            foreach (Type itf in actual.GetInterfaces())
             {
                 CLEAR_GENERIC_SLOT(itf);
             }
 
-            if (instance is System.IDisposable d)
+            if (instance is IDisposable d)
             {
                 _ = _disposables.TryRemove(d, out _);
                 try { d.Dispose(); }
-                catch (System.ObjectDisposedException odex)
+                catch (ObjectDisposedException odex)
                 {
                     LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-already type={type.Name}", odex));
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-fail type={type.Name} ex={ex.Message}", ex));
                 }
@@ -536,8 +539,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         }
 
         // Also remove any signature instances whose target type matches
-        var sigKeys = new System.Collections.Generic.List<ActivatorKey>();
-        foreach (var k in _signatureInstanceCache.Keys)
+        var sigKeys = new List<ActivatorKey>();
+        foreach (ActivatorKey k in _signatureInstanceCache.Keys)
         {
             if (k.Target.Equals(key))
             {
@@ -545,20 +548,20 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             }
         }
 
-        foreach (var sk in sigKeys)
+        foreach (ActivatorKey sk in sigKeys)
         {
-            if (_signatureInstanceCache.TryRemove(sk, out var sinst))
+            if (_signatureInstanceCache.TryRemove(sk, out object? sinst))
             {
                 removedAny = true;
-                if (sinst is System.IDisposable sd)
+                if (sinst is IDisposable sd)
                 {
                     _ = _disposables.TryRemove(sd, out _);
                     try { sd.Dispose(); }
-                    catch (System.ObjectDisposedException odex)
+                    catch (ObjectDisposedException odex)
                     {
                         LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-already signature type={type.Name}", odex));
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
                         LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-fail signature type={type.Name} ex={ex.Message}", ex));
                     }
@@ -584,7 +587,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean HasInstance<T>() => _instanceCache.ContainsKey(typeof(T).TypeHandle);
+    public bool HasInstance<T>() => _instanceCache.ContainsKey(typeof(T).TypeHandle);
 
     /// <summary>
     /// Gets an existing instance of the specified type without creating a new one if it doesn't exist.
@@ -598,31 +601,31 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public T? GetExistingInstance<T>() where T : class
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
         // 1) Generic slot (fastest)
-        if (TRY_GET_FROM_GENERIC_SLOT<T>(out T? viaSlot))
+        if (TRY_GET_FROM_GENERIC_SLOT(out T? viaSlot))
         {
             return viaSlot;
         }
 
         // 2) Thread L1
-        System.RuntimeTypeHandle key = typeof(T).TypeHandle;
+        RuntimeTypeHandle key = typeof(T).TypeHandle;
         if (_tsLastValue is not null && _tsLastKey.Equals(key))
         {
             return _tsLastValue as T;
         }
 
         // 3) Dictionary fallback
-        _ = _instanceCache.TryGetValue(key, out System.Object? instance);
+        _ = _instanceCache.TryGetValue(key, out object? instance);
 
         // Publish to L1 + slot
         _tsLastKey = key;
         _tsLastValue = instance;
         if (instance is not null)
         {
-            System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
+            _ = System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
             System.Threading.Volatile.Write(ref GenericSlot<T>.Value, instance);
         }
 
@@ -632,20 +635,20 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// <summary>
     /// Clears all cached instances, optionally disposing them.
     /// </summary>
-    /// <param name="dispose">If <c>true</c>, disposes any instances that implement <see cref="System.IDisposable"/>.</param>
+    /// <param name="dispose">If <c>true</c>, disposes any instances that implement <see cref="IDisposable"/>.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Clear([System.Diagnostics.CodeAnalysis.NotNull] System.Boolean dispose = true)
+    public void Clear([System.Diagnostics.CodeAnalysis.NotNull] bool dispose = true)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ObjectDisposedException.ThrowIf(System.Threading.Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
         if (dispose)
         {
             // Snapshot keys to avoid modifying collection during enumeration.
-            var disposables = _disposables.Keys.ToArray();
-            foreach (var d in disposables)
+            IDisposable[] disposables = [.. _disposables.Keys];
+            foreach (IDisposable? d in disposables)
             {
                 try
                 {
@@ -654,11 +657,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                     d.Dispose();
                     LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] dispose-ok"));
                 }
-                catch (System.ObjectDisposedException odex)
+                catch (ObjectDisposedException odex)
                 {
                     LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] dispose-already", odex));
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] dispose-fail ex={ex.Message}", ex));
                 }
@@ -683,11 +686,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// Generates a human-readable report of all cached instances.
     /// </summary>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.String GenerateReport()
+    public string GenerateReport()
     {
         System.Text.StringBuilder sb = new(1024);
 
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
+        _ = sb.AppendLine($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
         _ = sb.AppendLine($"CachedInstanceCount: {CachedInstanceCount}");
         _ = sb.AppendLine($"InstanceCreationCount: {System.Threading.Volatile.Read(ref _instanceCreationCount)}");
         _ = sb.AppendLine($"InstanceCacheHitCount: {System.Threading.Volatile.Read(ref _instanceCacheHitCount)}");
@@ -697,18 +700,18 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _ = sb.AppendLine("Type                                          | Disposable | Source        ");
         _ = sb.AppendLine("---------------------------------------------------------------------------");
 
-        foreach (var kvp in _instanceCache)
+        foreach (KeyValuePair<RuntimeTypeHandle, object> kvp in _instanceCache)
         {
-            var type = System.Type.GetTypeFromHandle(kvp.Key)!;
-            var instance = kvp.Value;
-            System.String typeName = type.FullName ?? type.Name;
+            Type type = Type.GetTypeFromHandle(kvp.Key)!;
+            object instance = kvp.Value;
+            string typeName = type.FullName ?? type.Name;
             if (typeName.Length > 32)
             {
                 typeName = "..." + typeName[^29..];
             }
 
-            System.Boolean isDisposable = instance is System.IDisposable;
-            System.String source = ACTIVATOR_CACHE_CONTAINS(type) ? "ActivatorCache" : "ManualRegister";
+            bool isDisposable = instance is IDisposable;
+            string source = ACTIVATOR_CACHE_CONTAINS(type) ? "ActivatorCache" : "ManualRegister";
 
             _ = sb.AppendLine($"{typeName.PadRight(45)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
         }
@@ -716,7 +719,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         _ = sb.AppendLine("----------------------------------------------------------------------");
         return sb.ToString();
 
-        System.Boolean ACTIVATOR_CACHE_CONTAINS(System.Type t)
+        bool ACTIVATOR_CACHE_CONTAINS(Type t)
         {
             // Quick scan by key prefix (Target == t) — cheap since dictionary is relatively small.
             foreach (ActivatorKey k in _activatorCache.Keys)
@@ -736,7 +739,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     #region IDisposable
 
     /// <summary>
-    /// Disposes of all instances in the cache that implement <see cref="System.IDisposable"/>.
+    /// Disposes of all instances in the cache that implement <see cref="IDisposable"/>.
     /// </summary>
     protected override void DisposeManaged()
     {
@@ -746,8 +749,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         }
 
         // Snapshot keys to avoid modifying collection while disposing.
-        var disposables = _disposables.Keys.ToArray();
-        foreach (var d in disposables)
+        IDisposable[] disposables = [.. _disposables.Keys];
+        foreach (IDisposable? d in disposables)
         {
             try
             {
@@ -756,11 +759,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
                 d.Dispose();
                 LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] dispose-ok"));
             }
-            catch (System.ObjectDisposedException odex)
+            catch (ObjectDisposedException odex)
             {
                 LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] dispose-already", odex));
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] dispose-fail", ex));
             }
@@ -772,7 +775,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         if (_processMutexOwner && _processMutex != null)
         {
             try { _processMutex.ReleaseMutex(); }
-            catch (System.Exception ex) { LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warn, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex)); }
+            catch (Exception ex) { LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warn, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex)); }
             _processMutex.Dispose();
             _processMutex = null;
         }
@@ -787,33 +790,33 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     private static class GenericSlot<T>
     {
         // Published with Volatile.Write for cross-thread visibility
-        public static System.Object? Value;
+        public static object? Value;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private System.Object CREATE_OR_GET_SIGNATURE_INSTANCE(System.Type type, System.Object?[] args, ActivatorKey sigKey)
+    private object CREATE_OR_GET_SIGNATURE_INSTANCE(Type type, object?[] args, ActivatorKey sigKey)
     {
         // Create instance
-        System.Object created = CREATE_VIA_ACTIVATOR(type, args);
+        object created = CREATE_VIA_ACTIVATOR(type, args);
 
         // Try to add; if another thread inserted meanwhile, GetOrAdd returns existing one.
-        System.Object stored = _signatureInstanceCache.GetOrAdd(sigKey, created);
+        object stored = _signatureInstanceCache.GetOrAdd(sigKey, created);
 
-        if (!System.Object.ReferenceEquals(stored, created))
+        if (!ReferenceEquals(stored, created))
         {
             // We lost the race: dispose the created instance if it is disposable
-            if (created is System.IDisposable createdDisp)
+            if (created is IDisposable createdDisp)
             {
                 try
                 {
                     createdDisp.Dispose();
                 }
-                catch (System.ObjectDisposedException)
+                catch (ObjectDisposedException)
                 {
                     // benign
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error,
                         $"[FW.{nameof(InstanceManager)}:{nameof(CREATE_OR_GET_SIGNATURE_INSTANCE)}] dispose-fail temp-instance type={type.Name} ex={ex.Message}", ex));
@@ -827,7 +830,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         else
         {
             // We successfully stored the created instance: track disposable and log.
-            if (created is System.IDisposable disp)
+            if (created is IDisposable disp)
             {
                 _ = _disposables.TryAdd(disp, 0);
             }
@@ -841,7 +844,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean TRY_GET_FROM_GENERIC_SLOT<T>(out T? value) where T : class
+    private static bool TRY_GET_FROM_GENERIC_SLOT<T>(out T? value) where T : class
     {
         if (System.Threading.Volatile.Read(ref _slotsInvalidated) != 0)
         {
@@ -849,47 +852,47 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             return false;
         }
 
-        var obj = System.Threading.Volatile.Read(ref GenericSlot<T>.Value);
+        object? obj = System.Threading.Volatile.Read(ref GenericSlot<T>.Value);
         value = obj as T;
         return value is not null;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void TRY_PUBLISH_SLOT_BY_TYPE(System.Type type, System.Object instance)
+    private static void TRY_PUBLISH_SLOT_BY_TYPE(Type type, object instance)
     {
         try
         {
             // Publish for the exact type
-            System.Type gslot = typeof(InstanceManager)
-                .GetNestedType("GenericSlot`1", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            Type gslot = typeof(InstanceManager)
+                .GetNestedType("GenericSlot`1", BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericType(type);
-            System.Reflection.FieldInfo fld = gslot.GetField("Value", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!;
+            FieldInfo fld = gslot.GetField("Value", BindingFlags.Public | BindingFlags.Static)!;
             fld.SetValue(null, instance);
         }
-        catch (System.Exception)
+        catch (Exception)
         {
             // Non-fatal: reflection may fail in trimmed / restricted environments.
-            _ = InstanceManager.Instance; // attempt safe access if possible
-                                          // If we cannot get instance, ignore; otherwise log.
-                                          // We cannot call LogEvent here directly (static context) reliably, so swallow or let caller log if needed.
+            _ = Instance; // attempt safe access if possible
+                          // If we cannot get instance, ignore; otherwise log.
+                          // We cannot call LogEvent here directly (static context) reliably, so swallow or let caller log if needed.
         }
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void PUBLISH_TO_INTERFACE_SLOT(System.Type iface, System.Object instance)
+    private static void PUBLISH_TO_INTERFACE_SLOT(Type iface, object instance)
     {
         // Invoke the generic PublishGenericSlot<T>(object) via reflection.
-        System.Reflection.MethodInfo method = typeof(InstanceManager)
-            .GetMethod(nameof(PUBLISH_GENERIC_SLOT), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+        MethodInfo method = typeof(InstanceManager)
+            .GetMethod(nameof(PUBLISH_GENERIC_SLOT), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(iface);
         // Use proper parameter array and catch exceptions.
         try
         {
             _ = method.Invoke(null, [instance]);
         }
-        catch (System.Reflection.TargetInvocationException tie) when (tie.InnerException != null)
+        catch (TargetInvocationException tie) when (tie.InnerException != null)
         {
             throw tie.InnerException;
         }
@@ -897,19 +900,19 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void PUBLISH_GENERIC_SLOT<T>(System.Object instance) => System.Threading.Volatile.Write(ref GenericSlot<T>.Value, instance);
+    private static void PUBLISH_GENERIC_SLOT<T>(object instance) => System.Threading.Volatile.Write(ref GenericSlot<T>.Value, instance);
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void CLEAR_GENERIC_SLOT(System.Type type)
+    private static void CLEAR_GENERIC_SLOT(Type type)
     {
         try
         {
-            System.Type gslot = typeof(InstanceManager)
-                .GetNestedType("GenericSlot`1", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            Type gslot = typeof(InstanceManager)
+                .GetNestedType("GenericSlot`1", BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericType(type);
 
-            System.Reflection.FieldInfo fld = gslot.GetField("Value", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!;
+            FieldInfo fld = gslot.GetField("Value", BindingFlags.Public | BindingFlags.Static)!;
             fld.SetValue(null, null);
         }
         catch
@@ -920,21 +923,21 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private System.Object GET_OR_CREATE_INSTANCE_SLOW(System.Type type, System.Object?[] args)
+    private object GET_OR_CREATE_INSTANCE_SLOW(Type type, object?[] args)
     {
         try
         {
-            System.RuntimeTypeHandle key = type.TypeHandle;
+            RuntimeTypeHandle key = type.TypeHandle;
 
-            if (_instanceCache.TryGetValue(key, out System.Object? existing))
+            if (_instanceCache.TryGetValue(key, out object? existing))
             {
-                System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
+                _ = System.Threading.Interlocked.Increment(ref _instanceCacheHitCount);
                 return existing;
             }
 
-            System.Object instance = CREATE_VIA_ACTIVATOR(type, args);
+            object instance = CREATE_VIA_ACTIVATOR(type, args);
 
-            if (instance is System.IDisposable d)
+            if (instance is IDisposable d)
             {
                 _ = _disposables.TryAdd(d, 0);
             }
@@ -943,7 +946,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
             return _instanceCache.GetOrAdd(key, instance);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] create-fail type={type.Name}", ex));
 
@@ -953,12 +956,12 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Object CREATE_VIA_ACTIVATOR(System.Type type, System.Object?[] args)
+    private object CREATE_VIA_ACTIVATOR(Type type, object?[] args)
     {
         ActivatorKey sigKey = new(type, args);
-        if (!_activatorCache.TryGetValue(sigKey, out var factory))
+        if (!_activatorCache.TryGetValue(sigKey, out Func<object?[], object>? factory))
         {
-            System.Reflection.ConstructorInfo ctor = RESOLVE_BEST_CONSTRUCTOR(type, args);
+            ConstructorInfo ctor = RESOLVE_BEST_CONSTRUCTOR(type, args);
             factory = BUILD_DYNAMIC_FACTORY(type, ctor);
             _ = _activatorCache.TryAdd(sigKey, factory);
         }
@@ -967,11 +970,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Reflection.ConstructorInfo RESOLVE_BEST_CONSTRUCTOR(System.Type type, System.Object?[] args)
+    private static ConstructorInfo RESOLVE_BEST_CONSTRUCTOR(Type type, object?[] args)
     {
         if (args.Length == 0)
         {
-            var c0 = type.GetConstructor(System.Type.EmptyTypes);
+            ConstructorInfo? c0 = type.GetConstructor(Type.EmptyTypes);
             if (c0 != null)
             {
                 return c0;
@@ -979,28 +982,28 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
         }
 
         // Manual scan – no LINQ, prefer exact match then compatible.
-        System.Reflection.ConstructorInfo? best = null;
-        System.Int32 bestScore = System.Int32.MinValue;
+        ConstructorInfo? best = null;
+        int bestScore = int.MinValue;
 
-        System.Reflection.ConstructorInfo[] ctors = type.GetConstructors(
-            System.Reflection.BindingFlags.Public |
-            System.Reflection.BindingFlags.Instance |
-            System.Reflection.BindingFlags.NonPublic);
+        ConstructorInfo[] ctors = type.GetConstructors(
+            BindingFlags.Public |
+            BindingFlags.Instance |
+            BindingFlags.NonPublic);
 
-        for (System.Int32 i = 0; i < ctors.Length; i++)
+        for (int i = 0; i < ctors.Length; i++)
         {
-            System.Reflection.ConstructorInfo c = ctors[i];
-            System.Reflection.ParameterInfo[] ps = c.GetParameters();
+            ConstructorInfo c = ctors[i];
+            ParameterInfo[] ps = c.GetParameters();
             if (ps.Length != args.Length)
             {
                 continue;
             }
 
-            System.Int32 score = 0;
-            for (System.Int32 j = 0; j < ps.Length; j++)
+            int score = 0;
+            for (int j = 0; j < ps.Length; j++)
             {
-                System.Type p = ps[j].ParameterType;
-                System.Type? a = args[j]?.GetType();
+                Type p = ps[j].ParameterType;
+                Type? a = args[j]?.GetType();
 
                 if (a == null)
                 {
@@ -1033,7 +1036,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
             }
         }
 
-        return best ?? throw new System.InvalidOperationException($"Type {type.Name} does not have a suitable constructor for the provided arguments.");
+        return best ?? throw new InvalidOperationException($"Type {type.Name} does not have a suitable constructor for the provided arguments.");
     }
 
     /// <summary>
@@ -1042,26 +1045,26 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Func<System.Object?[], System.Object> BUILD_DYNAMIC_FACTORY(System.Type type, System.Reflection.ConstructorInfo ctor)
+    private static Func<object?[], object> BUILD_DYNAMIC_FACTORY(Type type, ConstructorInfo ctor)
     {
-        System.Reflection.ParameterInfo[] ps = ctor.GetParameters();
+        ParameterInfo[] ps = ctor.GetParameters();
         System.Reflection.Emit.DynamicMethod dm = new(
             name: type.Name + "_CtorFast",
-            returnType: typeof(System.Object),
-            parameterTypes: [typeof(System.Object?[])],
+            returnType: typeof(object),
+            parameterTypes: [typeof(object?[])],
             m: type.Module,
             skipVisibility: true);
 
         System.Reflection.Emit.ILGenerator il = dm.GetILGenerator();
 
         // Load each argument from object?[] and unbox/cast.
-        for (System.Int32 i = 0; i < ps.Length; i++)
+        for (int i = 0; i < ps.Length; i++)
         {
             il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);           // args
             Ldc_I4(il, i);                                             // index
             il.Emit(System.Reflection.Emit.OpCodes.Ldelem_Ref);        // args[i]
 
-            System.Type pt = ps[i].ParameterType;
+            Type pt = ps[i].ParameterType;
             if (pt.IsValueType)
             {
                 il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, pt); // unbox
@@ -1080,9 +1083,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, System.IDi
 
         il.Emit(System.Reflection.Emit.OpCodes.Ret);
 
-        return (System.Func<System.Object?[], System.Object>)dm.CreateDelegate(typeof(System.Func<System.Object?[], System.Object>));
+        return (Func<object?[], object>)dm.CreateDelegate(typeof(Func<object?[], object>));
 
-        static void Ldc_I4(System.Reflection.Emit.ILGenerator il, System.Int32 v)
+        static void Ldc_I4(System.Reflection.Emit.ILGenerator il, int v)
         {
             switch (v)
             {

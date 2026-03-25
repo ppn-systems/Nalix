@@ -23,7 +23,7 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     private static readonly System.Func<T> s_ctor = CREATE_CONSTRUCTORS();
 
     // 0 = not disposed, 1 = disposed
-    private System.Int32 _disposed;
+    private int _disposed;
 
     #endregion Fields
 
@@ -40,7 +40,7 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Roslynator", "RCS1158:Static member in generic type should use a type parameter",
         Justification = "Property bound to closed generic SingletonBase<T>.")]
-    public static System.Boolean IsCreated => s_instance.IsValueCreated;
+    public static bool IsCreated => s_instance.IsValueCreated;
 
     #endregion Properties
 
@@ -50,7 +50,7 @@ public abstract class SingletonBase<T> : System.IDisposable where T : class
     protected SingletonBase() { }
 
     /// <summary>Best-effort: returns existing instance if created, else false without creating it.</summary>
-    public static System.Boolean TryGetInstance([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T instance)
+    public static bool TryGetInstance([System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out T instance)
     {
         if (IsCreated)
         {

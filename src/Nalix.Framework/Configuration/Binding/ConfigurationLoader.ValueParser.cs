@@ -24,8 +24,8 @@ public partial class ConfigurationLoader
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    private static System.Object? GetConfigValue(
-        IniConfig configFile, System.String section, PropertyMetadata property)
+    private static object? GetConfigValue(
+        IniConfig configFile, string section, PropertyMetadata property)
     {
         // Handle Enums of any underlying type with cached reflection
         if (property.PropertyType.IsEnum)
@@ -67,6 +67,8 @@ public partial class ConfigurationLoader
                 => configFile.GetGuid(section, property.Name),
             System.TypeCode.Object when property.PropertyType == typeof(System.TimeSpan)
                 => configFile.GetTimeSpan(section, property.Name),
+            System.TypeCode.Empty => throw new System.NotImplementedException(),
+            System.TypeCode.DBNull => throw new System.NotImplementedException(),
             _ => ThrowUnsupported(property),
         };
     }
@@ -81,11 +83,11 @@ public partial class ConfigurationLoader
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private void HandleEmptyValue(
-        IniConfig configFile, System.String section, PropertyMetadata property)
+        IniConfig configFile, string section, PropertyMetadata property)
     {
-        System.Object? currentValue = property.PropertyInfo.GetValue(this);
+        object? currentValue = property.PropertyInfo.GetValue(this);
 
-        System.Object valueToWrite = property.PropertyType.IsEnum
+        object valueToWrite = property.PropertyType.IsEnum
             ? currentValue?.ToString()
               ?? System.Enum.GetValues(property.PropertyType).GetValue(0)!.ToString()!
             : currentValue?.ToString()
@@ -111,7 +113,7 @@ public partial class ConfigurationLoader
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.String GetDefaultValueString(PropertyMetadata propertyType)
+    private static string GetDefaultValueString(PropertyMetadata propertyType)
     {
         switch (propertyType.TypeCode)
         {
@@ -129,7 +131,7 @@ public partial class ConfigurationLoader
                 break;
             case System.TypeCode.Char:
             case System.TypeCode.String:
-                return System.String.Empty;
+                return string.Empty;
             case System.TypeCode.Boolean:
                 return "false";
             case System.TypeCode.SByte:
@@ -146,9 +148,15 @@ public partial class ConfigurationLoader
                 return "0";
             case System.TypeCode.DateTime:
                 return System.DateTime.UtcNow.ToString("O", System.Globalization.CultureInfo.InvariantCulture);
+            case System.TypeCode.Empty:
+                break;
+            case System.TypeCode.DBNull:
+                break;
+            default:
+                break;
         }
 
-        return System.String.Empty;
+        return string.Empty;
     }
 
     [System.Diagnostics.StackTraceHidden]
@@ -157,7 +165,7 @@ public partial class ConfigurationLoader
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.Object ThrowUnsupported(PropertyMetadata property)
+    private static object ThrowUnsupported(PropertyMetadata property)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] " +

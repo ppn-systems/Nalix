@@ -25,14 +25,14 @@ public readonly partial struct Snowflake : ISnowflake
     /// <summary>
     /// The size in bytes of the <see cref="Snowflake"/> structure.
     /// </summary>
-    public const System.Byte Size = 7;
+    public const byte Size = 7;
 
     private readonly UInt56 __combined;
-    private static readonly System.UInt16 __machineId = LAZY_LOAD_MACHINE_ID();
+    private static readonly ushort __machineId = LAZY_LOAD_MACHINE_ID();
 
-    private static System.Int32 _sequence = 0;
-    private static System.Int64 _lastTimestampMs = 0;
-    private const System.UInt16 MaxSequence = 0xFFFF; // 16-bit max = 65535
+    private static int _sequence;
+    private static long _lastTimestampMs;
+    private const ushort MaxSequence = 0xFFFF; // 16-bit max = 65535
     private static readonly System.Threading.Lock _generatorLock = new();
 
     #endregion Const
@@ -40,26 +40,26 @@ public readonly partial struct Snowflake : ISnowflake
     #region Decomposition
 
     /// <inheritdoc/>
-    public System.UInt32 Value
+    public uint Value
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get
         {
-            System.UInt64 raw = (System.UInt64)__combined;
-            return (System.UInt32)(raw & 0xFFFFFFFFUL);
+            ulong raw = (ulong)__combined;
+            return (uint)(raw & 0xFFFFFFFFUL);
         }
     }
 
     /// <inheritdoc/>
-    public System.UInt16 MachineId
+    public ushort MachineId
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get
         {
-            System.UInt64 raw = (System.UInt64)__combined;
-            return (System.UInt16)((raw >> 32) & 0xFFFFUL);
+            ulong raw = (ulong)__combined;
+            return (ushort)((raw >> 32) & 0xFFFFUL);
         }
     }
 
@@ -70,7 +70,7 @@ public readonly partial struct Snowflake : ISnowflake
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get
         {
-            System.UInt64 raw = (System.UInt64)__combined;
+            ulong raw = (ulong)__combined;
             return (SnowflakeType)((raw >> 48) & 0xFFUL);
         }
     }
@@ -85,7 +85,7 @@ public readonly partial struct Snowflake : ISnowflake
     public static Snowflake Empty => new(0, 0, 0);
 
     /// <inheritdoc/>
-    public System.Boolean IsEmpty => __combined == 0;
+    public bool IsEmpty => __combined == 0;
 
     #endregion Public Properties
 
@@ -104,7 +104,7 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.DebuggerHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private Snowflake(System.UInt32 value, System.UInt16 machineId, SnowflakeType type) => __combined = new UInt56((System.Byte)type, machineId, value);
+    private Snowflake(uint value, ushort machineId, SnowflakeType type) => __combined = new UInt56((byte)type, machineId, value);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Snowflake"/> struct from a <see cref="UInt56"/> value.
@@ -158,7 +158,7 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Snowflake NewId(System.UInt32 value, System.UInt16 machineId, SnowflakeType type) => new(value, machineId, type);
+    public static Snowflake NewId(uint value, ushort machineId, SnowflakeType type) => new(value, machineId, type);
 
     /// <summary>
     /// Creates a new <see cref="Snowflake"/> with the specified type using the configured machine identifier.
@@ -204,13 +204,13 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static Snowflake NewId(SnowflakeType type, System.UInt16 machineId = 1)
+    public static Snowflake NewId(SnowflakeType type, ushort machineId = 1)
     {
         while (true)
         {
-            System.Int64 now = Clock.EpochMillisecondsNow();
+            long now = Clock.EpochMillisecondsNow();
 
-            System.Int64 last = System.Threading.Volatile.Read(ref _lastTimestampMs);
+            long last = System.Threading.Volatile.Read(ref _lastTimestampMs);
 
             // Handle clock rollback
             if (now < last)
@@ -218,7 +218,7 @@ public readonly partial struct Snowflake : ISnowflake
                 now = last;
             }
 
-            System.Int32 seq;
+            int seq;
 
             if (now == last)
             {
@@ -242,7 +242,7 @@ public readonly partial struct Snowflake : ISnowflake
             {
                 // new millisecond → reset sequence
                 seq = 0;
-                System.Threading.Interlocked.Exchange(ref _sequence, 0);
+                _ = System.Threading.Interlocked.Exchange(ref _sequence, 0);
             }
 
             // try publish timestamp (CAS)
@@ -252,10 +252,10 @@ public readonly partial struct Snowflake : ISnowflake
             }
 
             // pack 32-bit value
-            System.UInt32 timePart = (System.UInt32)(now & 0xFFFFF);   // 20-bit
-            System.UInt32 seqPart = (System.UInt32)seq;               // 12-bit
+            uint timePart = (uint)(now & 0xFFFFF);   // 20-bit
+            uint seqPart = (uint)seq;               // 12-bit
 
-            System.UInt32 value = (timePart << 12) | seqPart;
+            uint value = (timePart << 12) | seqPart;
 
             return new Snowflake(value, machineId, type);
         }
@@ -277,7 +277,7 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.Int32 GetHashCode() => __combined.GetHashCode();
+    public override int GetHashCode() => __combined.GetHashCode();
 
     /// <summary>
     /// Determines whether this identifier is equal to the specified object.
@@ -294,7 +294,7 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.Boolean Equals(System.Object? obj) => obj is Snowflake other && Equals(other);
+    public override bool Equals(object? obj) => obj is Snowflake other && Equals(other);
 
     /// <summary>
     /// Returns the hexadecimal string representation of this identifier.
@@ -308,9 +308,9 @@ public readonly partial struct Snowflake : ISnowflake
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.String ToString()
+    public override string ToString()
     {
-        System.Span<System.Byte> buffer = stackalloc System.Byte[Size];
+        System.Span<byte> buffer = stackalloc byte[Size];
         _ = TryWriteBytes(buffer);
         return System.Convert.ToHexString(buffer);
     }
@@ -319,7 +319,7 @@ public readonly partial struct Snowflake : ISnowflake
 
     #region Private Methods
 
-    private static System.UInt16 LAZY_LOAD_MACHINE_ID() => ConfigurationManager.Instance.Get<SnowflakeOptions>().MachineId;
+    private static ushort LAZY_LOAD_MACHINE_ID() => ConfigurationManager.Instance.Get<SnowflakeOptions>().MachineId;
 
     #endregion Private Methods
 }

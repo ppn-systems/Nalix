@@ -9,14 +9,14 @@ public static partial class Clock
     /// Custom epoch (Unix ms) used for ID generation.
     /// Default: 2025-01-01 UTC.
     /// </summary>
-    public static readonly System.Int64 EpochMilliseconds = new System.DateTimeOffset(2025, 1, 1, 0, 0, 0, System.TimeSpan.Zero).ToUnixTimeMilliseconds();
+    public static readonly long EpochMilliseconds = new System.DateTimeOffset(2025, 1, 1, 0, 0, 0, System.TimeSpan.Zero).ToUnixTimeMilliseconds();
 
     /// <summary>
     /// Returns milliseconds since custom epoch.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int64 EpochMillisecondsNow() => UnixMillisecondsNow() - EpochMilliseconds;
+    public static long EpochMillisecondsNow() => UnixMillisecondsNow() - EpochMilliseconds;
 
     /// <summary>
     /// Returns the current UTC time with high accuracy.
@@ -26,20 +26,20 @@ public static partial class Clock
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static System.DateTime NowUtc()
     {
-        System.Int64 swTicks = UtcStopwatch.ElapsedTicks;
+        long swTicks = UtcStopwatch.ElapsedTicks;
 
         if (!IsSynchronized)
         {
-            System.Int64 ticks = UtcBaseTicks + (System.Int64)(swTicks * _swToDateTimeTicks);
+            long ticks = UtcBaseTicks + (long)(swTicks * _swToDateTimeTicks);
             return new System.DateTime(ticks, System.DateTimeKind.Utc);
         }
 
         // Use Volatile.Read to ensure thread-safe reads of synchronized values
-        System.Double dc = System.Threading.Volatile.Read(ref _driftCorrection);
-        System.Int64 offset = System.Threading.Volatile.Read(ref _timeOffset);
+        double dc = System.Threading.Volatile.Read(ref _driftCorrection);
+        long offset = System.Threading.Volatile.Read(ref _timeOffset);
 
         // Apply drift correction to the entire elapsed time, then add offset
-        System.Int64 corrected = (System.Int64)(swTicks * _swToDateTimeTicks * dc) + offset;
+        long corrected = (long)(swTicks * _swToDateTimeTicks * dc) + offset;
         return new System.DateTime(UtcBaseTicks + corrected, System.DateTimeKind.Utc);
     }
 
@@ -49,7 +49,7 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int64 UnixSecondsNow() => (System.Int64)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
+    public static long UnixSecondsNow() => (long)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
 
     /// <summary>
     /// Current Unix timestamp (seconds) as uint32.
@@ -61,18 +61,18 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.UInt32 UnixSecondsNowUInt32()
+    public static uint UnixSecondsNowUInt32()
     {
-        System.Int64 seconds = (System.Int64)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
+        long seconds = (long)(NowUtc() - System.DateTime.UnixEpoch).TotalSeconds;
 
         // Check for overflow before casting
-        return seconds > System.UInt32.MaxValue
+        return seconds > uint.MaxValue
             ? throw new System.OverflowException(
                 "Unix timestamp exceeds UInt32.MaxValue. This typically occurs after year 2106.")
             : seconds < 0
             ? throw new System.OverflowException(
                 "Unix timestamp is negative, indicating time before Unix epoch.")
-            : (System.UInt32)seconds;
+            : (uint)seconds;
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int64 UnixMillisecondsNow() => (System.Int64)(NowUtc() - System.DateTime.UnixEpoch).TotalMilliseconds;
+    public static long UnixMillisecondsNow() => (long)(NowUtc() - System.DateTime.UnixEpoch).TotalMilliseconds;
 
     /// <summary>
     /// Current Unix timestamp (microseconds) as long.
@@ -89,7 +89,7 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int64 UnixMicrosecondsNow() => (NowUtc() - System.DateTime.UnixEpoch).Ticks / 10;
+    public static long UnixMicrosecondsNow() => (NowUtc() - System.DateTime.UnixEpoch).Ticks / 10;
 
     /// <summary>
     /// Current Unix timestamp (ticks) as long.
@@ -97,7 +97,7 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int64 UnixTicksNow() => (NowUtc() - System.DateTime.UnixEpoch).Ticks;
+    public static long UnixTicksNow() => (NowUtc() - System.DateTime.UnixEpoch).Ticks;
 
     /// <summary>
     /// Returns the current Unix time as TimeSpan.
@@ -115,7 +115,7 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int64 MonoTicksNow() => System.Diagnostics.Stopwatch.GetTimestamp();
+    public static long MonoTicksNow() => System.Diagnostics.Stopwatch.GetTimestamp();
 
     /// <summary>
     /// Converts a monotonic tick delta into milliseconds.
@@ -123,6 +123,6 @@ public static partial class Clock
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Double MonoTicksToMilliseconds(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int64 tickDelta) => tickDelta * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+    public static double MonoTicksToMilliseconds(
+        [System.Diagnostics.CodeAnalysis.NotNull] long tickDelta) => tickDelta * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
 }

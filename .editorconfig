@@ -13,7 +13,7 @@ tab_width = 4
 
 # New line preferences
 end_of_line = crlf
-insert_final_newline = false
+insert_final_newline = true
 
 #### .NET Code Actions ####
 
@@ -29,7 +29,7 @@ dotnet_search_reference_assemblies = true
 
 # Organize usings
 dotnet_separate_import_directive_groups = false
-dotnet_sort_system_directives_first = false
+dotnet_sort_system_directives_first = true
 file_header_template = unset
 
 # this. and Me. preferences
@@ -133,7 +133,7 @@ csharp_prefer_system_threading_lock = true
 csharp_style_namespace_declarations = file_scoped
 csharp_style_prefer_method_group_conversion = true
 csharp_style_prefer_primary_constructors = true
-csharp_style_prefer_top_level_statements = true
+csharp_style_prefer_top_level_statements = false
 
 # Expression-level preferences
 csharp_prefer_simple_default_expression = true
@@ -217,7 +217,7 @@ dotnet_naming_rule.interface_should_be_begins_with_i.severity = suggestion
 dotnet_naming_rule.interface_should_be_begins_with_i.symbols = interface
 dotnet_naming_rule.interface_should_be_begins_with_i.style = begins_with_i
 
-dotnet_naming_rule.types_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.types_should_be_pascal_case.severity = warning
 dotnet_naming_rule.types_should_be_pascal_case.symbols = types
 dotnet_naming_rule.types_should_be_pascal_case.style = pascal_case
 
@@ -250,3 +250,12 @@ dotnet_naming_style.begins_with_i.required_prefix = I
 dotnet_naming_style.begins_with_i.required_suffix = 
 dotnet_naming_style.begins_with_i.word_separator = 
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
+
+end_of_line = lf
+
+dotnet_diagnostic.CS0168.severity = warning
+dotnet_diagnostic.CS0219.severity = warning
+dotnet_analyzer_diagnostic.severity = warning
+
+dotnet_style_predefined_type_for_locals_parameters_members = true
+dotnet_style_predefined_type_for_member_access = true

@@ -23,12 +23,12 @@ public static class Singleton
     private static readonly System.Threading.ReaderWriterLockSlim CacheLock;
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Type> TypeMapping = new();
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<System.Type, System.Object> ResolutionCache = [];
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Lazy<System.Object>> Services = new();
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<System.Object>> Factories = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<System.Type, object> ResolutionCache = [];
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Lazy<object>> Services = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Func<object>> Factories = new();
 
     // Track whether we're in the dispose process
-    private static System.Int32 _isDisposing;
+    private static int _isDisposing;
 
     #endregion Fields
 
@@ -44,7 +44,7 @@ public static class Singleton
     /// Gets a value indicating whether the Singleton container is currently in the process of disposing.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(false, nameof(IsDisposing))]
-    public static System.Boolean IsDisposing => System.Threading.Volatile.Read(ref _isDisposing) != 0;
+    public static bool IsDisposing => System.Threading.Volatile.Read(ref _isDisposing) != 0;
 
     #endregion Properties
 
@@ -63,14 +63,14 @@ public static class Singleton
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Register<TClass>(
         [System.Diagnostics.CodeAnalysis.NotNull] TClass instance,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean allowOverwrite = false)
+        [System.Diagnostics.CodeAnalysis.NotNull] bool allowOverwrite = false)
         where TClass : class
     {
         System.ArgumentNullException.ThrowIfNull(instance);
         System.Type type = typeof(TClass);
 
         // Thread-safe lazy initialization
-        System.Lazy<System.Object> lazy = new(
+        System.Lazy<object> lazy = new(
             () => instance, System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
         // Dispose cache entry if it exists
@@ -147,7 +147,7 @@ public static class Singleton
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public static TClass? Resolve<TClass>(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean createIfNotExists = true) where TClass : class
+        [System.Diagnostics.CodeAnalysis.NotNull] bool createIfNotExists = true) where TClass : class
     {
         System.Type type = typeof(TClass);
 
@@ -156,7 +156,7 @@ public static class Singleton
 
         try
         {
-            if (ResolutionCache.TryGetValue(type, out System.Object? cachedInstance))
+            if (ResolutionCache.TryGetValue(type, out object? cachedInstance))
             {
                 return (TClass)cachedInstance;
             }
@@ -197,7 +197,7 @@ public static class Singleton
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean IsRegistered<TClass>() where TClass : class
+    public static bool IsRegistered<TClass>() where TClass : class
         => Services.ContainsKey(typeof(TClass)) || TypeMapping.ContainsKey(typeof(TClass)) || Factories.ContainsKey(typeof(TClass));
 
     /// <summary>
@@ -282,20 +282,20 @@ public static class Singleton
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    private static TClass? RESOLVE_INTERNAL<TClass>(System.Boolean createIfNotExists) where TClass : class
+    private static TClass? RESOLVE_INTERNAL<TClass>(bool createIfNotExists) where TClass : class
     {
         System.Type type = typeof(TClass);
 
         if (Services.TryGetValue(
-            type, out System.Lazy<System.Object>? lazyService))
+            type, out System.Lazy<object>? lazyService))
         {
             return (TClass)lazyService.Value;
         }
 
         if (Factories.TryGetValue(
-            type, out System.Func<System.Object>? factory))
+            type, out System.Func<object>? factory))
         {
-            System.Lazy<System.Object> lazyInstance = new(
+            System.Lazy<object> lazyInstance = new(
                 () => factory(), System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
 
             _ = Services.TryAdd(type, lazyInstance);
@@ -306,7 +306,7 @@ public static class Singleton
             type, out System.Type? implementationType))
         {
             if (!Services.TryGetValue(
-                implementationType, out System.Lazy<System.Object>? lazyImpl))
+                implementationType, out System.Lazy<object>? lazyImpl))
             {
                 if (!createIfNotExists)
                 {
@@ -315,9 +315,9 @@ public static class Singleton
 
                 try
                 {
-                    System.Lazy<System.Object> lazyInstance = new(() =>
+                    System.Lazy<object> lazyInstance = new(() =>
                     {
-                        System.Object instance = System.Activator.CreateInstance(implementationType)
+                        object instance = System.Activator.CreateInstance(implementationType)
                         ?? throw new System.InvalidOperationException(
                             $"Failed to create instance of type {implementationType.Name}");
 
@@ -358,7 +358,7 @@ public static class Singleton
 
         // Collect disposable instances first to avoid modification during enumeration
         System.Collections.Generic.List<System.IDisposable> disposables = [];
-        foreach (System.Lazy<System.Object> lazyService in Services.Values)
+        foreach (System.Lazy<object> lazyService in Services.Values)
         {
             if (lazyService.IsValueCreated &&
                 lazyService.Value is System.IDisposable disposable)

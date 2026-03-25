@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using Nalix.Common.Exceptions;
 
 #if DEBUG
@@ -18,45 +19,45 @@ namespace Nalix.Framework.Configuration.Internal;
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 [System.Diagnostics.DebuggerDisplay("Path = {_path}, Sections = {_iniData.Count}, Dirty = {_isDirty}")]
-internal sealed class IniConfig
+internal sealed class IniConfig : System.IDisposable
 {
     #region Constants
 
     // LZ4CompressionConstants for better readability and performance
-    private const System.Char SectionStart = '[';
+    private const char SectionStart = '[';
 
-    private const System.Char SectionEnd = ']';
-    private const System.Char KeyValueSeparator = '=';
-    private const System.Char CommentChar = ';';
+    private const char SectionEnd = ']';
+    private const char KeyValueSeparator = '=';
+    private const char CommentChar = ';';
 
     // Standard buffer sizes
-    private const System.Int32 DefaultBufferSize = 4096;
+    private const int DefaultBufferSize = 4096;
 
     #endregion Constants
 
     #region Fields
 
-    private static readonly System.String SectionSeparator = "; " + new System.String('-', 78);
+    private static readonly string SectionSeparator = "; " + new string('-', 78);
 
     // Thread synchronization for file operations
     private readonly System.Threading.ReaderWriterLockSlim _fileLock;
 
     [System.Diagnostics.CodeAnalysis.NotNull]
-    private readonly System.String _path;
-    private readonly System.Collections.Generic.Dictionary<System.String,
-                     System.Collections.Generic.Dictionary<System.String, System.String>> _iniData;
+    private readonly string _path;
+    private readonly Dictionary<string,
+                     Dictionary<string, string>> _iniData;
 
     // Caches for frequently accessed values
-    private readonly System.Collections.Generic.Dictionary<System.String, System.Object> _valueCache;
+    private readonly Dictionary<string, object> _valueCache;
 
     // Track if the file has been modified
-    private System.Boolean _isDirty;
+    private bool _isDirty;
 
     // Stores comments to be written above sections and keys.
     // Key format: "section" for section-level comments,
     //             "section:key" for property-level comments.
     // Values are never loaded from file — only populated by WriteComment().
-    private readonly System.Collections.Generic.Dictionary<System.String, System.String> _comments;
+    private readonly Dictionary<string, string> _comments;
 
     private System.DateTime _lastFileReadTime;
 
@@ -67,7 +68,7 @@ internal sealed class IniConfig
     /// <summary>
     /// Checks whether the file exists at the provided path.
     /// </summary>
-    public System.Boolean ExistsFile => System.IO.File.Exists(_path);
+    public bool ExistsFile => System.IO.File.Exists(_path);
 
     #endregion Properties
 
@@ -80,14 +81,14 @@ internal sealed class IniConfig
     /// <exception cref="System.ArgumentNullException">Thrown when path is null.</exception>
     /// <exception cref="System.ArgumentException">Thrown when path is invalid.</exception>
     /// <exception cref="InternalErrorException">Thrown when path contains path traversal attempts.</exception>
-    public IniConfig(System.String path)
+    public IniConfig(string path)
     {
         if (path == null)
         {
             throw new System.ArgumentNullException(nameof(path), "Configuration file path cannot be null.");
         }
 
-        if (System.String.IsNullOrWhiteSpace(path))
+        if (string.IsNullOrWhiteSpace(path))
         {
             throw new System.ArgumentException("Configuration file path cannot be empty or whitespace.", nameof(path));
         }
@@ -153,9 +154,9 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void WriteValue(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Object value)
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key,
+        [System.Diagnostics.CodeAnalysis.NotNull] object value)
     {
         System.ArgumentNullException.ThrowIfNull(key, nameof(key));
         System.ArgumentNullException.ThrowIfNull(section, nameof(section));
@@ -182,13 +183,13 @@ internal sealed class IniConfig
 
             if (!_iniData.TryGetValue(
                 section,
-                out System.Collections.Generic.Dictionary<System.String, System.String>? sectionData))
+                out Dictionary<string, string>? sectionData))
             {
                 _fileLock.EnterWriteLock();
                 try
                 {
-                    sectionData = new System.Collections.Generic.Dictionary<
-                        System.String, System.String>(System.StringComparer.OrdinalIgnoreCase);
+                    sectionData = new Dictionary<
+                        string, string>(System.StringComparer.OrdinalIgnoreCase);
 
                     _iniData[section] = sectionData;
                 }
@@ -199,16 +200,16 @@ internal sealed class IniConfig
             }
 
             // Only write if the key doesn't exist
-            if (!sectionData.TryGetValue(key, out System.String? existing) || System.String.IsNullOrEmpty(existing))
+            if (!sectionData.TryGetValue(key, out string? existing) || string.IsNullOrEmpty(existing))
             {
                 _fileLock.EnterWriteLock();
                 try
                 {
-                    System.String stringValue = FormatValue(value);
+                    string stringValue = FormatValue(value);
                     sectionData[key] = stringValue;
 
                     // Dispose any cached value for this key
-                    System.String cacheKey = CreateCacheKey(section, key);
+                    string cacheKey = CreateCacheKey(section, key);
                     _ = _valueCache.Remove(cacheKey);
 
                     _isDirty = true;
@@ -249,12 +250,12 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void WriteComment(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        System.String? key,
-        System.String? comment)
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        string? key,
+        string? comment)
     {
         // Silently skip when no comment text is provided — callers do not need to null-check
-        if (System.String.IsNullOrWhiteSpace(comment))
+        if (string.IsNullOrWhiteSpace(comment))
         {
             return;
         }
@@ -262,7 +263,7 @@ internal sealed class IniConfig
         System.ArgumentNullException.ThrowIfNull(section, nameof(section));
 
         // Build the lookup key: "Section" for section-level, "Section:Key" for property-level
-        System.String commentKey = System.String.IsNullOrEmpty(key)
+        string commentKey = string.IsNullOrEmpty(key)
             ? section
             : CreateCacheKey(section, key);
 
@@ -273,11 +274,11 @@ internal sealed class IniConfig
 
             // Only register the comment when the target does not yet exist in the file.
             // This mirrors WriteValue's guard — comment and value are always in sync.
-            System.Boolean targetExists = !System.String.IsNullOrEmpty(key)
+            bool targetExists = !string.IsNullOrEmpty(key)
                 && _iniData.TryGetValue(section,
-                       out System.Collections.Generic.Dictionary<System.String, System.String>? sd)
-                && sd.TryGetValue(key, out System.String? existing)
-                && !System.String.IsNullOrEmpty(existing);
+                       out Dictionary<string, string>? sd)
+                && sd.TryGetValue(key, out string? existing)
+                && !string.IsNullOrEmpty(existing);
 
             if (!targetExists && !_comments.ContainsKey(commentKey))
             {
@@ -310,19 +311,19 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public System.String GetString(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public string GetString(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
         System.ArgumentNullException.ThrowIfNull(key, nameof(key));
         System.ArgumentNullException.ThrowIfNull(section, nameof(section));
 
-        if (System.String.IsNullOrWhiteSpace(key))
+        if (string.IsNullOrWhiteSpace(key))
         {
             throw new System.ArgumentException("Configuration key cannot be empty or whitespace.", nameof(key));
         }
 
-        if (System.String.IsNullOrWhiteSpace(section))
+        if (string.IsNullOrWhiteSpace(section))
         {
             throw new System.ArgumentException("Configuration section cannot be empty or whitespace.", nameof(section));
         }
@@ -334,10 +335,10 @@ internal sealed class IniConfig
         try
         {
             return _iniData.TryGetValue(section,
-                out System.Collections.Generic.Dictionary<System.String, System.String>? sectionData) &&
-                sectionData.TryGetValue(key, out System.String? value)
+                out Dictionary<string, string>? sectionData) &&
+                sectionData.TryGetValue(key, out string? value)
                 ? value.Equals("null", System.StringComparison.OrdinalIgnoreCase) ? null! : value
-                : System.String.Empty;
+                : string.Empty;
         }
         finally
         {
@@ -354,12 +355,12 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Char? GetChar(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public char? GetChar(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String stringValue = GetString(section, key);
-        return !System.String.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : null;
+        string stringValue = GetString(section, key);
+        return !string.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : null;
     }
 
     /// <summary>
@@ -371,25 +372,25 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Boolean? GetBool(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public bool? GetBool(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "bool");
+        string cacheKey = CreateCacheKey(section, key, "bool");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.Boolean?)cachedValue;
+            return (bool?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
-        System.Boolean? result = null;
+        string stringValue = GetString(section, key);
+        bool? result = null;
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (!System.String.IsNullOrEmpty(stringValue))
+        else if (!string.IsNullOrEmpty(stringValue))
         {
             // Optimize common boolean representations
             if (stringValue.Equals("true", System.StringComparison.OrdinalIgnoreCase) ||
@@ -406,7 +407,7 @@ internal sealed class IniConfig
             }
             else
             {
-                _ = System.Boolean.TryParse(stringValue, out System.Boolean parsedValue);
+                _ = bool.TryParse(stringValue, out bool parsedValue);
                 result = parsedValue;
             }
 
@@ -426,26 +427,26 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Decimal? GetDecimal(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public decimal? GetDecimal(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "decimal");
+        string cacheKey = CreateCacheKey(section, key, "decimal");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.Decimal?)cachedValue;
+            return (decimal?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.Decimal.TryParse(
+        else if (decimal.TryParse(
             stringValue, System.Globalization.NumberStyles.Number,
-            System.Globalization.CultureInfo.InvariantCulture, out System.Decimal parsedValue))
+            System.Globalization.CultureInfo.InvariantCulture, out decimal parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -463,24 +464,24 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Byte? GetByte(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public byte? GetByte(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "byte");
+        string cacheKey = CreateCacheKey(section, key, "byte");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.Byte?)cachedValue;
+            return (byte?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.Byte.TryParse(stringValue, out System.Byte parsedValue))
+        else if (byte.TryParse(stringValue, out byte parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -498,24 +499,24 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.SByte? GetSByte(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public sbyte? GetSByte(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "sbyte");
+        string cacheKey = CreateCacheKey(section, key, "sbyte");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.SByte?)cachedValue;
+            return (sbyte?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.SByte.TryParse(stringValue, out System.SByte parsedValue))
+        else if (sbyte.TryParse(stringValue, out sbyte parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -533,24 +534,24 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Int16? GetInt16(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public short? GetInt16(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "int16");
+        string cacheKey = CreateCacheKey(section, key, "int16");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.Int16?)cachedValue;
+            return (short?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.Int16.TryParse(stringValue, out System.Int16 parsedValue))
+        else if (short.TryParse(stringValue, out short parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -568,24 +569,24 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.UInt16? GetUInt16(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public ushort? GetUInt16(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "uint16");
+        string cacheKey = CreateCacheKey(section, key, "uint16");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.UInt16?)cachedValue;
+            return (ushort?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.UInt16.TryParse(stringValue, out System.UInt16 parsedValue))
+        else if (ushort.TryParse(stringValue, out ushort parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -603,24 +604,24 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Int32? GetInt32(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public int? GetInt32(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "int32");
+        string cacheKey = CreateCacheKey(section, key, "int32");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.Int32?)cachedValue;
+            return (int?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.Int32.TryParse(stringValue, out System.Int32 parsedValue))
+        else if (int.TryParse(stringValue, out int parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -638,24 +639,24 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.UInt32? GetUInt32(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public uint? GetUInt32(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "uint32");
+        string cacheKey = CreateCacheKey(section, key, "uint32");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.UInt32?)cachedValue;
+            return (uint?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.UInt32.TryParse(stringValue, out System.UInt32 parsedValue))
+        else if (uint.TryParse(stringValue, out uint parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -673,22 +674,22 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Int64? GetInt64(System.String section, System.String key)
+    public long? GetInt64(string section, string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "int64");
+        string cacheKey = CreateCacheKey(section, key, "int64");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.Int64?)cachedValue;
+            return (long?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.Int64.TryParse(stringValue, out System.Int64 parsedValue))
+        else if (long.TryParse(stringValue, out long parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -706,24 +707,24 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.UInt64? GetUInt64(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public ulong? GetUInt64(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "uint64");
+        string cacheKey = CreateCacheKey(section, key, "uint64");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.UInt64?)cachedValue;
+            return (ulong?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.UInt64.TryParse(stringValue, out System.UInt64 parsedValue))
+        else if (ulong.TryParse(stringValue, out ulong parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -741,26 +742,26 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Single? GetSingle(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+    public float? GetSingle(
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "single");
+        string cacheKey = CreateCacheKey(section, key, "single");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.Single?)cachedValue;
+            return (float?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.Single.TryParse(
+        else if (float.TryParse(
             stringValue, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out System.Single parsedValue))
+            System.Globalization.CultureInfo.InvariantCulture, out float parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -778,24 +779,24 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    public System.Double? GetDouble(System.String section, System.String key)
+    public double? GetDouble(string section, string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "double");
+        string cacheKey = CreateCacheKey(section, key, "double");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
-            return (System.Double?)cachedValue;
+            return (double?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
-        else if (System.Double.TryParse(
+        else if (double.TryParse(
             stringValue, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out System.Double parsedValue))
+            System.Globalization.CultureInfo.InvariantCulture, out double parsedValue))
         {
             _valueCache[cacheKey] = parsedValue;
             return parsedValue;
@@ -814,17 +815,17 @@ internal sealed class IniConfig
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public System.DateTime? GetDateTime(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "datetime");
+        string cacheKey = CreateCacheKey(section, key, "datetime");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
             return (System.DateTime?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
@@ -851,17 +852,17 @@ internal sealed class IniConfig
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public System.TimeSpan? GetTimeSpan(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "timespan");
+        string cacheKey = CreateCacheKey(section, key, "timespan");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
             return (System.TimeSpan?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
@@ -888,17 +889,17 @@ internal sealed class IniConfig
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public System.Guid? GetGuid(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key)
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key)
     {
-        System.String cacheKey = CreateCacheKey(section, key, "guid");
+        string cacheKey = CreateCacheKey(section, key, "guid");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
             return (System.Guid?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
+        string stringValue = GetString(section, key);
 
         if (stringValue.Equals("null", System.StringComparison.OrdinalIgnoreCase))
         {
@@ -924,18 +925,18 @@ internal sealed class IniConfig
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public TEnum? GetEnum<TEnum>(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String section,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String key) where TEnum : struct, System.Enum
+        [System.Diagnostics.CodeAnalysis.NotNull] string section,
+        [System.Diagnostics.CodeAnalysis.NotNull] string key) where TEnum : struct, System.Enum
     {
-        System.String cacheKey = CreateCacheKey(section, key, $"enum:{typeof(TEnum).FullName}");
+        string cacheKey = CreateCacheKey(section, key, $"enum:{typeof(TEnum).FullName}");
 
-        if (_valueCache.TryGetValue(cacheKey, out System.Object? cachedValue))
+        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
         {
             return (TEnum?)cachedValue;
         }
 
-        System.String stringValue = GetString(section, key);
-        if (System.String.IsNullOrEmpty(stringValue))
+        string stringValue = GetString(section, key);
+        if (string.IsNullOrEmpty(stringValue))
         {
             return null;
         }
@@ -945,7 +946,7 @@ internal sealed class IniConfig
         }
 
         // Try parse name (case-insensitive)
-        if (System.Enum.TryParse<TEnum>(stringValue, true, out var result))
+        if (System.Enum.TryParse(stringValue, true, out TEnum result))
         {
             _valueCache[cacheKey] = result;
             return result;
@@ -954,7 +955,7 @@ internal sealed class IniConfig
         // Try parse numeric value (handles all underlying types)
         try
         {
-            System.Object numeric = System.Convert.ChangeType(stringValue,
+            object numeric = System.Convert.ChangeType(stringValue,
                 System.Enum.GetUnderlyingType(typeof(TEnum)),
                 System.Globalization.CultureInfo.InvariantCulture);
 
@@ -992,31 +993,31 @@ internal sealed class IniConfig
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.String CreateCacheKey(
-        System.String section,
-        System.String key,
-        System.String? typeSuffix = null) => typeSuffix == null ? $"{section}:{key}" : $"{section}:{key}:{typeSuffix}";
+    private static string CreateCacheKey(
+        string section,
+        string key,
+        string? typeSuffix = null) => typeSuffix == null ? $"{section}:{key}" : $"{section}:{key}:{typeSuffix}";
 
     /// <summary>
     /// Formats a value for storage in the INI file.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String FormatValue(System.Object value)
+    private static string FormatValue(object value)
     {
         if (value == null)
         {
-            return System.String.Empty;
+            return string.Empty;
         }
 
         // ToByteArray numeric values with invariant culture for consistency
         return value switch
         {
-            System.Single f => f.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
-            System.Double d => d.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
-            System.Decimal m => m.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
+            float f => f.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
+            double d => d.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
+            decimal m => m.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
             System.DateTime dt => dt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
-            _ => value.ToString() ?? System.String.Empty
+            _ => value.ToString() ?? string.Empty
         };
     }
 
@@ -1028,9 +1029,9 @@ internal sealed class IniConfig
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void LoadWithRetry()
     {
-        const System.Int32 maxRetries = 3;
-        System.Int32 retryCount = 0;
-        System.Boolean success = false;
+        const int maxRetries = 3;
+        int retryCount = 0;
+        bool success = false;
 
         while (!success && retryCount < maxRetries)
         {
@@ -1048,7 +1049,7 @@ internal sealed class IniConfig
                 }
 
                 // Push exponential backoff delay
-                System.Threading.Thread.Sleep(100 * (System.Int32)System.Math.Pow(2, retryCount - 1));
+                System.Threading.Thread.Sleep(100 * (int)System.Math.Pow(2, retryCount - 1));
             }
         }
     }
@@ -1071,8 +1072,8 @@ internal sealed class IniConfig
         _fileLock.EnterReadLock();
 
         System.Text.StringBuilder pendingComments = new();
-        System.String currentSection = System.String.Empty;
-        System.Collections.Generic.Dictionary<System.String, System.String> currentSectionData;
+        string currentSection = string.Empty;
+        Dictionary<string, string> currentSectionData;
 
         try
         {
@@ -1087,17 +1088,17 @@ internal sealed class IniConfig
             using var reader = new System.IO.StreamReader(
                 _path, System.Text.Encoding.UTF8, true, DefaultBufferSize);
 
-            System.Int32 lineNumber = 0;
-            System.String? line;
+            int lineNumber = 0;
+            string? line;
 
             while ((line = reader.ReadLine()) != null)
             {
                 lineNumber++;
-                System.String trimmedLine = line.Trim();
+                string trimmedLine = line.Trim();
 
-                if (System.String.IsNullOrEmpty(trimmedLine))
+                if (string.IsNullOrEmpty(trimmedLine))
                 {
-                    pendingComments.Clear(); // blank line → reset comment buffer
+                    _ = pendingComments.Clear(); // blank line → reset comment buffer
                     continue;
                 }
 
@@ -1106,10 +1107,10 @@ internal sealed class IniConfig
                 {
                     if (pendingComments.Length > 0)
                     {
-                        pendingComments.Append('\n');
+                        _ = pendingComments.Append('\n');
                     }
 
-                    pendingComments.Append(trimmedLine[1..].Trim()); // remove ';'
+                    _ = pendingComments.Append(trimmedLine[1..].Trim()); // remove ';'
                     continue;
                 }
 
@@ -1123,7 +1124,7 @@ internal sealed class IniConfig
                     if (pendingComments.Length > 0)
                     {
                         _comments[currentSection] = pendingComments.ToString();
-                        pendingComments.Clear();
+                        _ = pendingComments.Clear();
                     }
 
                     if (!_iniData.TryGetValue(currentSection, out currentSectionData!))
@@ -1136,11 +1137,11 @@ internal sealed class IniConfig
                 }
 
                 // Handle key-value pairs with optimized parsing
-                System.Int32 separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
+                int separatorIndex = trimmedLine.IndexOf(KeyValueSeparator);
                 if (separatorIndex > 0 && separatorIndex < trimmedLine.Length - 1)
                 {
-                    System.String key = trimmedLine[..separatorIndex].Trim();
-                    System.String value = trimmedLine[(separatorIndex + 1)..].Trim();
+                    string key = trimmedLine[..separatorIndex].Trim();
+                    string value = trimmedLine[(separatorIndex + 1)..].Trim();
 
                     currentSectionData[key] = value;
 
@@ -1148,7 +1149,7 @@ internal sealed class IniConfig
                     if (pendingComments.Length > 0)
                     {
                         _comments[CreateCacheKey(currentSection, key)] = pendingComments.ToString();
-                        pendingComments.Clear();
+                        _ = pendingComments.Clear();
                     }
                 }
             }
@@ -1198,18 +1199,18 @@ internal sealed class IniConfig
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private void WriteInlineComment(
         System.IO.StreamWriter writer,
-        System.String section,
-        System.String commentKey)
+        string section,
+        string commentKey)
     {
-        if (!_comments.TryGetValue(commentKey, out System.String? comment))
+        if (!_comments.TryGetValue(commentKey, out string? comment))
         {
             return;
         }
 
         // Extract key name from "Section:Key" so we can prefix the first comment line.
         // Section-level comments have no ':' → keyPrefix stays empty.
-        System.String keyPrefix = System.String.Empty;
-        System.Int32 colonIdx = commentKey.IndexOf(':');
+        string keyPrefix = string.Empty;
+        int colonIdx = commentKey.IndexOf(':');
         if (colonIdx >= 0 && colonIdx < commentKey.Length - 1)
         {
             keyPrefix = commentKey[(colonIdx + 1)..];
@@ -1218,18 +1219,18 @@ internal sealed class IniConfig
         // Support multi-line comments embedded via \n in the attribute string.
         // First line gets the "KeyName: " prefix; subsequent lines are indented with spaces
         // to align with the text after the prefix so the block stays readable.
-        System.ReadOnlySpan<System.Char> remaining = System.MemoryExtensions.AsSpan(comment);
-        System.Boolean isFirstLine = true;
+        System.ReadOnlySpan<char> remaining = System.MemoryExtensions.AsSpan(comment);
+        bool isFirstLine = true;
         while (!remaining.IsEmpty)
         {
-            System.Int32 nl = System.MemoryExtensions.IndexOf(remaining, '\n');
-            System.ReadOnlySpan<System.Char> segment =
+            int nl = System.MemoryExtensions.IndexOf(remaining, '\n');
+            System.ReadOnlySpan<char> segment =
                 nl < 0 ? remaining : remaining[..nl];
 
             writer.Write(CommentChar);
             writer.Write(' ');
 
-            if (isFirstLine && !System.String.IsNullOrEmpty(keyPrefix))
+            if (isFirstLine && !string.IsNullOrEmpty(keyPrefix))
             {
                 // e.g. "; MaxConnectionsPerIp: Max concurrent connections …"
                 writer.Write(keyPrefix);
@@ -1240,7 +1241,7 @@ internal sealed class IniConfig
             writer.WriteLine(System.MemoryExtensions.Trim(segment).ToString());
 
             remaining = nl < 0
-                ? System.ReadOnlySpan<System.Char>.Empty
+                ? System.ReadOnlySpan<char>.Empty
                 : remaining[(nl + 1)..];
         }
     }
@@ -1292,14 +1293,14 @@ internal sealed class IniConfig
                 return;
             }
 
-            System.String? tempFileName = null;
-            System.Boolean committed = false;
+            string? tempFileName = null;
+            bool committed = false;
 
             try
             {
                 // Ensure directory exists with validation
-                System.String? directory = System.IO.Path.GetDirectoryName(_path);
-                if (System.String.IsNullOrWhiteSpace(directory))
+                string? directory = System.IO.Path.GetDirectoryName(_path);
+                if (string.IsNullOrWhiteSpace(directory))
                 {
                     throw new System.InvalidOperationException(
                         "Cannot write configuration file: invalid directory path.");
@@ -1338,10 +1339,10 @@ internal sealed class IniConfig
                 using (System.IO.StreamWriter writer = new(
                     tempFileName, false, System.Text.Encoding.UTF8, DefaultBufferSize))
                 {
-                    System.Boolean isFirstSection = true;
-                    foreach (var section in _iniData)
+                    bool isFirstSection = true;
+                    foreach (KeyValuePair<string, Dictionary<string, string>> section in _iniData)
                     {
-                        if (section.Key != System.String.Empty)
+                        if (section.Key != string.Empty)
                         {
                             // Blank line between sections (except before the first)
                             if (!isFirstSection)
@@ -1349,12 +1350,12 @@ internal sealed class IniConfig
                                 writer.WriteLine();
                             }
 
-                            System.String sectionCommentKey = section.Key;
-                            System.Boolean hasSectionComment = _comments.ContainsKey(sectionCommentKey);
+                            string sectionCommentKey = section.Key;
+                            bool hasSectionComment = _comments.ContainsKey(sectionCommentKey);
 
                             // Check whether any key in this section has a comment
-                            System.Boolean hasAnyKeyComment = false;
-                            foreach (var kv in section.Value)
+                            bool hasAnyKeyComment = false;
+                            foreach (KeyValuePair<string, string> kv in section.Value)
                             {
                                 if (_comments.ContainsKey(CreateCacheKey(section.Key, kv.Key)))
                                 {
@@ -1363,7 +1364,7 @@ internal sealed class IniConfig
                                 }
                             }
 
-                            System.Boolean hasAnyComment = hasSectionComment || hasAnyKeyComment;
+                            bool hasAnyComment = hasSectionComment || hasAnyKeyComment;
 
                             // ── Opening separator ────────────────────────────────────
                             writer.WriteLine(SectionSeparator);
@@ -1375,7 +1376,7 @@ internal sealed class IniConfig
                             }
 
                             // ── Property-level comment lines (above the section header)
-                            foreach (var keyValue in section.Value)
+                            foreach (KeyValuePair<string, string> keyValue in section.Value)
                             {
                                 WriteInlineComment(writer, section.Key,
                                     commentKey: CreateCacheKey(section.Key, keyValue.Key));
@@ -1396,8 +1397,8 @@ internal sealed class IniConfig
                         }
 
                         // Align '=' by padding keys to the longest key in this section
-                        System.Int32 maxKeyLength = 0;
-                        foreach (var kv in section.Value)
+                        int maxKeyLength = 0;
+                        foreach (KeyValuePair<string, string> kv in section.Value)
                         {
                             if (kv.Key.Length > maxKeyLength)
                             {
@@ -1405,7 +1406,7 @@ internal sealed class IniConfig
                             }
                         }
 
-                        foreach (var keyValue in section.Value)
+                        foreach (KeyValuePair<string, string> keyValue in section.Value)
                         {
                             writer.Write(keyValue.Key.PadRight(maxKeyLength));
                             writer.Write(" = ");
@@ -1465,6 +1466,8 @@ internal sealed class IniConfig
             _fileLock.ExitWriteLock();
         }
     }
+
+    public void Dispose() => throw new System.NotImplementedException();
 
     #endregion Private Methods
 }

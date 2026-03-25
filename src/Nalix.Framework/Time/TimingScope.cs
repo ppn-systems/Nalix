@@ -29,7 +29,7 @@ public readonly struct TimingScope
     /// <summary>
     /// The starting timestamp, expressed in monotonic clock ticks.
     /// </summary>
-    private readonly System.Int64 _t0;
+    private readonly long _t0;
 
     #endregion Fields
 
@@ -44,7 +44,7 @@ public readonly struct TimingScope
     /// </param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private TimingScope(System.Int64 startTicks) => _t0 = startTicks;
+    private TimingScope(long startTicks) => _t0 = startTicks;
 
     #endregion Private Constructors
 
@@ -54,7 +54,7 @@ public readonly struct TimingScope
     /// Gets the elapsed time, expressed in monotonic clock ticks,
     /// since the timing scope was started.
     /// </summary>
-    public System.Int64 ElapsedTicks => Clock.MonoTicksNow() - _t0;
+    public long ElapsedTicks => Clock.MonoTicksNow() - _t0;
 
     #endregion Properties
 
@@ -87,7 +87,7 @@ public readonly struct TimingScope
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Double GetElapsedMilliseconds() => Clock.MonoTicksToMilliseconds(Clock.MonoTicksNow() - _t0);
+    public double GetElapsedMilliseconds() => Clock.MonoTicksToMilliseconds(Clock.MonoTicksNow() - _t0);
 
     #endregion APIs
 }

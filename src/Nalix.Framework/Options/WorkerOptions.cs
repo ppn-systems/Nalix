@@ -14,12 +14,12 @@ public sealed class WorkerOptions : IWorkerOptions
     /// <summary>
     /// Gets an optional tag for identifying the worker.
     /// </summary>
-    public System.String? Tag { get; init; }
+    public string? Tag { get; init; }
 
     /// <summary>
     /// Gets the optional machine identifier for the worker instance.
     /// </summary>
-    public System.UInt16 MachineId { get; init; } = 1;
+    public ushort MachineId { get; init; } = 1;
 
     /// <summary>
     /// Gets the optional identifier type for the worker instance.
@@ -41,17 +41,17 @@ public sealed class WorkerOptions : IWorkerOptions
     /// <summary>
     /// Gets the optional per-group concurrency cap. If set, executions in this group are gated.
     /// </summary>
-    public System.Int32? GroupConcurrencyLimit { get; init; }
+    public int? GroupConcurrencyLimit { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether to acquire group slot immediately or cancel if unavailable. Default: false (wait).
     /// </summary>
-    public System.Boolean TryAcquireSlotImmediately { get; init; } = false;
+    public bool TryAcquireSlotImmediately { get; init; }
 
     /// <summary>
     /// Gets the cancellation token that is linked to the worker's execution.
     /// </summary>
-    public System.Threading.CancellationToken CancellationToken { get; init; } = default;
+    public System.Threading.CancellationToken CancellationToken { get; init; }
 
 
     /// <summary>
