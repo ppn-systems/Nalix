@@ -27,18 +27,18 @@ internal sealed class NullableFormatter<
     /// <summary>
     /// Flag indicating that the value is null.
     /// </summary>
-    private const System.Byte NoValueFlag = 0;
+    private const byte NoValueFlag = 0;
 
     /// <summary>
     /// Flag indicating that the value is present.
     /// </summary>
-    private const System.Byte HasValueFlag = 1;
+    private const byte HasValueFlag = 1;
 
     #endregion Constants
 
     #region Fields
 
-    private static System.String DebuggerDisplay => $"NullableFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"NullableFormatter<{typeof(T).FullName}>";
 
     #endregion Fields
 
@@ -52,8 +52,8 @@ internal sealed class NullableFormatter<
     public void Serialize(ref DataWriter writer, T? value)
     {
         // 0 = null, 1 = has value
-        writer.Expand(sizeof(System.Byte));
-        FormatterProvider.Get<System.Byte>()
+        writer.Expand(sizeof(byte));
+        FormatterProvider.Get<byte>()
                          .Serialize(ref writer, value.HasValue ? HasValueFlag : NoValueFlag);
 
         if (value.HasValue)
@@ -74,10 +74,21 @@ internal sealed class NullableFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
-        System.Byte hasValue = FormatterProvider
-            .Get<System.Byte>()
+        byte hasValue = FormatterProvider
+            .Get<byte>()
             .Deserialize(ref reader);
 
-        return hasValue == NoValueFlag ? null : hasValue != HasValueFlag ? throw new SerializationException("Invalid nullable data!") : (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
+        if (hasValue == NoValueFlag)
+        {
+            return null;
+        }
+        else if (hasValue != HasValueFlag)
+        {
+            return throw new SerializationException("Invalid nullable data!");
+        }
+        else
+        {
+            return (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
+        }
     }
 }

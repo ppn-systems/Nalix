@@ -26,7 +26,7 @@ internal static class MemorySecurity
     /// </param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void ZeroMemory(System.Byte[] buffer)
+    public static void ZeroMemory(byte[] buffer)
     {
         if (buffer is null || buffer.Length == 0)
         {
@@ -47,7 +47,7 @@ internal static class MemorySecurity
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void ZeroMemory(System.Span<System.Byte> buffer)
+    public static void ZeroMemory(System.Span<byte> buffer)
     {
         if (buffer.Length == 0)
         {
@@ -55,9 +55,9 @@ internal static class MemorySecurity
         }
 
         // Use a ref-based loop to reduce bounds checks and make elimination harder.
-        ref System.Byte r0 = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer);
+        ref byte r0 = ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer);
 
-        for (System.Int32 i = 0; i < buffer.Length; i++)
+        for (int i = 0; i < buffer.Length; i++)
         {
             // Volatile.Write acts as a barrier against certain optimizations.
             System.Threading.Volatile.Write(

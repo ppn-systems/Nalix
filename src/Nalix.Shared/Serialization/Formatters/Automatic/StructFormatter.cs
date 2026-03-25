@@ -28,7 +28,7 @@ internal sealed class StructFormatter<
 {
     #region Core Fields
 
-    private static String DebuggerDisplay => $"StructFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"StructFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Array of cached field accessors for optimized serialization performance.
@@ -80,7 +80,7 @@ internal sealed class StructFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
-        for (Int32 i = 0; i < _accessors.Length; i++)
+        for (int i = 0; i < _accessors.Length; i++)
         {
             _accessors[i].Serialize(ref writer, value);
         }
@@ -100,7 +100,7 @@ internal sealed class StructFormatter<
     {
         T obj = default;
 
-        for (Int32 i = 0; i < _accessors.Length; i++)
+        for (int i = 0; i < _accessors.Length; i++)
         {
             _accessors[i].Deserialize(ref reader, ref obj); // ← ref obj
         }
@@ -128,7 +128,7 @@ internal sealed class StructFormatter<
 
         FieldAccessor<T>[] accessors = new FieldAccessor<T>[fields.Length];
 
-        for (Int32 i = 0; i < fields.Length; i++)
+        for (int i = 0; i < fields.Length; i++)
         {
             accessors[i] = FieldAccessor<T>.Create(fields[i], i);
         }

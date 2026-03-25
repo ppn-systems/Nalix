@@ -39,12 +39,18 @@ namespace Nalix.Shared.Security.Asymmetric;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal struct FieldElement
 {
-    // 10 limbs, 26/25-bit alternating radix-2^25.5 representation.
-    // Stored inline — no inner array allocation.
-    internal System.Int32 E0, E1, E2, E3, E4, E5, E6, E7, E8, E9;
+    /// <summary>
+    /// 10 limbs, 26/25-bit alternating radix-2^25.5 representation.
+    /// Stored inline — no inner array allocation.
+    /// </summary>
+    internal int E0, E1, E2, E3, E4, E5, E6, E7, E8, E9;
 
-    // ── Indexer (used by legacy call-sites) ──────────────────────────────────
-    public System.Int32 this[System.Int32 i]
+    /// <summary>
+    /// ── Indexer (used by legacy call-sites) ──────────────────────────────────
+    /// </summary>
+    /// <param name="i"></param>
+    /// <returns></returns>
+    public int this[int i]
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -87,39 +93,40 @@ internal struct FieldElement
     // ── Constructors ─────────────────────────────────────────────────────────
 
     /// <summary>feFromBytes — reads a 32-byte little-endian field element.</summary>
+    /// <param name="src"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public FieldElement(System.ReadOnlySpan<System.Byte> src)
+    public FieldElement(System.ReadOnlySpan<byte> src)
     {
         // Read directly from span — no SubArray temp allocation.
-        System.Int64 h0 = Load4(src, 0);
-        System.Int64 h1 = Load3(src, 4) << 6;
-        System.Int64 h2 = Load3(src, 7) << 5;
-        System.Int64 h3 = Load3(src, 10) << 3;
-        System.Int64 h4 = Load3(src, 13) << 2;
-        System.Int64 h5 = Load4(src, 16);
-        System.Int64 h6 = Load3(src, 20) << 7;
-        System.Int64 h7 = Load3(src, 23) << 5;
-        System.Int64 h8 = Load3(src, 26) << 4;
-        System.Int64 h9 = (Load3(src, 29) & 0x7fffff) << 2;
+        long h0 = Load4(src, 0);
+        long h1 = Load3(src, 4) << 6;
+        long h2 = Load3(src, 7) << 5;
+        long h3 = Load3(src, 10) << 3;
+        long h4 = Load3(src, 13) << 2;
+        long h5 = Load4(src, 16);
+        long h6 = Load3(src, 20) << 7;
+        long h7 = Load3(src, 23) << 5;
+        long h8 = Load3(src, 26) << 4;
+        long h9 = (Load3(src, 29) & 0x7fffff) << 2;
 
         // Carry reduction — all scalar locals, zero heap.
-        System.Int64 c9 = (h9 + (1 << 24)) >> 25; h0 += c9 * 19; h9 -= c9 << 25;
-        System.Int64 c1 = (h1 + (1 << 24)) >> 25; h2 += c1; h1 -= c1 << 25;
-        System.Int64 c3 = (h3 + (1 << 24)) >> 25; h4 += c3; h3 -= c3 << 25;
-        System.Int64 c5 = (h5 + (1 << 24)) >> 25; h6 += c5; h5 -= c5 << 25;
-        System.Int64 c7 = (h7 + (1 << 24)) >> 25; h8 += c7; h7 -= c7 << 25;
-        System.Int64 c0 = (h0 + (1 << 25)) >> 26; h1 += c0; h0 -= c0 << 26;
-        System.Int64 c2 = (h2 + (1 << 25)) >> 26; h3 += c2; h2 -= c2 << 26;
-        System.Int64 c4 = (h4 + (1 << 25)) >> 26; h5 += c4; h4 -= c4 << 26;
-        System.Int64 c6 = (h6 + (1 << 25)) >> 26; h7 += c6; h6 -= c6 << 26;
-        System.Int64 c8 = (h8 + (1 << 25)) >> 26; h9 += c8; h8 -= c8 << 26;
+        long c9 = (h9 + (1 << 24)) >> 25; h0 += c9 * 19; h9 -= c9 << 25;
+        long c1 = (h1 + (1 << 24)) >> 25; h2 += c1; h1 -= c1 << 25;
+        long c3 = (h3 + (1 << 24)) >> 25; h4 += c3; h3 -= c3 << 25;
+        long c5 = (h5 + (1 << 24)) >> 25; h6 += c5; h5 -= c5 << 25;
+        long c7 = (h7 + (1 << 24)) >> 25; h8 += c7; h7 -= c7 << 25;
+        long c0 = (h0 + (1 << 25)) >> 26; h1 += c0; h0 -= c0 << 26;
+        long c2 = (h2 + (1 << 25)) >> 26; h3 += c2; h2 -= c2 << 26;
+        long c4 = (h4 + (1 << 25)) >> 26; h5 += c4; h4 -= c4 << 26;
+        long c6 = (h6 + (1 << 25)) >> 26; h7 += c6; h6 -= c6 << 26;
+        long c8 = (h8 + (1 << 25)) >> 26; h9 += c8; h8 -= c8 << 26;
 
-        E0 = (System.Int32)h0; E1 = (System.Int32)h1;
-        E2 = (System.Int32)h2; E3 = (System.Int32)h3;
-        E4 = (System.Int32)h4; E5 = (System.Int32)h5;
-        E6 = (System.Int32)h6; E7 = (System.Int32)h7;
-        E8 = (System.Int32)h8; E9 = (System.Int32)h9;
+        E0 = (int)h0; E1 = (int)h1;
+        E2 = (int)h2; E3 = (int)h3;
+        E4 = (int)h4; E5 = (int)h5;
+        E6 = (int)h6; E7 = (int)h7;
+        E8 = (int)h8; E9 = (int)h9;
     }
 
     // ── Identity ──────────────────────────────────────────────────────────────
@@ -139,15 +146,16 @@ internal struct FieldElement
     /// feToBytes — writes the canonical 32-byte little-endian encoding into
     /// <paramref name="output"/>. No heap allocation.
     /// </summary>
+    /// <param name="output"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly void ToBytes(System.Span<System.Byte> output)
+    public readonly void ToBytes(System.Span<byte> output)
     {
         // Work on local copies so we don't mutate the struct's own fields.
-        System.Int32 h0 = E0, h1 = E1, h2 = E2, h3 = E3, h4 = E4;
-        System.Int32 h5 = E5, h6 = E6, h7 = E7, h8 = E8, h9 = E9;
+        int h0 = E0, h1 = E1, h2 = E2, h3 = E3, h4 = E4;
+        int h5 = E5, h6 = E6, h7 = E7, h8 = E8, h9 = E9;
 
-        System.Int32 q = ((19 * h9) + (1 << 24)) >> 25;
+        int q = ((19 * h9) + (1 << 24)) >> 25;
         q = (h0 + q) >> 26; q = (h1 + q) >> 25; q = (h2 + q) >> 26;
         q = (h3 + q) >> 25; q = (h4 + q) >> 26; q = (h5 + q) >> 25;
         q = (h6 + q) >> 26; q = (h7 + q) >> 25; q = (h8 + q) >> 26;
@@ -156,49 +164,49 @@ internal struct FieldElement
         h0 += 19 * q;
 
         // Carry propagation — scalar locals.
-        System.Int32 c0 = h0 >> 26; h1 += c0; h0 -= c0 << 26;
-        System.Int32 c1 = h1 >> 25; h2 += c1; h1 -= c1 << 25;
-        System.Int32 c2 = h2 >> 26; h3 += c2; h2 -= c2 << 26;
-        System.Int32 c3 = h3 >> 25; h4 += c3; h3 -= c3 << 25;
-        System.Int32 c4 = h4 >> 26; h5 += c4; h4 -= c4 << 26;
-        System.Int32 c5 = h5 >> 25; h6 += c5; h5 -= c5 << 25;
-        System.Int32 c6 = h6 >> 26; h7 += c6; h6 -= c6 << 26;
-        System.Int32 c7 = h7 >> 25; h8 += c7; h7 -= c7 << 25;
-        System.Int32 c8 = h8 >> 26; h9 += c8; h8 -= c8 << 26;
-        System.Int32 c9 = h9 >> 25; h9 -= c9 << 25;
+        int c0 = h0 >> 26; h1 += c0; h0 -= c0 << 26;
+        int c1 = h1 >> 25; h2 += c1; h1 -= c1 << 25;
+        int c2 = h2 >> 26; h3 += c2; h2 -= c2 << 26;
+        int c3 = h3 >> 25; h4 += c3; h3 -= c3 << 25;
+        int c4 = h4 >> 26; h5 += c4; h4 -= c4 << 26;
+        int c5 = h5 >> 25; h6 += c5; h5 -= c5 << 25;
+        int c6 = h6 >> 26; h7 += c6; h6 -= c6 << 26;
+        int c7 = h7 >> 25; h8 += c7; h7 -= c7 << 25;
+        int c8 = h8 >> 26; h9 += c8; h8 -= c8 << 26;
+        int c9 = h9 >> 25; h9 -= c9 << 25;
 
-        output[0] = (System.Byte)(h0 >> 0);
-        output[1] = (System.Byte)(h0 >> 8);
-        output[2] = (System.Byte)(h0 >> 16);
-        output[3] = (System.Byte)((h0 >> 24) | (h1 << 2));
-        output[4] = (System.Byte)(h1 >> 6);
-        output[5] = (System.Byte)(h1 >> 14);
-        output[6] = (System.Byte)((h1 >> 22) | (h2 << 3));
-        output[7] = (System.Byte)(h2 >> 5);
-        output[8] = (System.Byte)(h2 >> 13);
-        output[9] = (System.Byte)((h2 >> 21) | (h3 << 5));
-        output[10] = (System.Byte)(h3 >> 3);
-        output[11] = (System.Byte)(h3 >> 11);
-        output[12] = (System.Byte)((h3 >> 19) | (h4 << 6));
-        output[13] = (System.Byte)(h4 >> 2);
-        output[14] = (System.Byte)(h4 >> 10);
-        output[15] = (System.Byte)(h4 >> 18);
-        output[16] = (System.Byte)(h5 >> 0);
-        output[17] = (System.Byte)(h5 >> 8);
-        output[18] = (System.Byte)(h5 >> 16);
-        output[19] = (System.Byte)((h5 >> 24) | (h6 << 1));
-        output[20] = (System.Byte)(h6 >> 7);
-        output[21] = (System.Byte)(h6 >> 15);
-        output[22] = (System.Byte)((h6 >> 23) | (h7 << 3));
-        output[23] = (System.Byte)(h7 >> 5);
-        output[24] = (System.Byte)(h7 >> 13);
-        output[25] = (System.Byte)((h7 >> 21) | (h8 << 4));
-        output[26] = (System.Byte)(h8 >> 4);
-        output[27] = (System.Byte)(h8 >> 12);
-        output[28] = (System.Byte)((h8 >> 20) | (h9 << 6));
-        output[29] = (System.Byte)(h9 >> 2);
-        output[30] = (System.Byte)(h9 >> 10);
-        output[31] = (System.Byte)(h9 >> 18);
+        output[0] = (byte)(h0 >> 0);
+        output[1] = (byte)(h0 >> 8);
+        output[2] = (byte)(h0 >> 16);
+        output[3] = (byte)((h0 >> 24) | (h1 << 2));
+        output[4] = (byte)(h1 >> 6);
+        output[5] = (byte)(h1 >> 14);
+        output[6] = (byte)((h1 >> 22) | (h2 << 3));
+        output[7] = (byte)(h2 >> 5);
+        output[8] = (byte)(h2 >> 13);
+        output[9] = (byte)((h2 >> 21) | (h3 << 5));
+        output[10] = (byte)(h3 >> 3);
+        output[11] = (byte)(h3 >> 11);
+        output[12] = (byte)((h3 >> 19) | (h4 << 6));
+        output[13] = (byte)(h4 >> 2);
+        output[14] = (byte)(h4 >> 10);
+        output[15] = (byte)(h4 >> 18);
+        output[16] = (byte)(h5 >> 0);
+        output[17] = (byte)(h5 >> 8);
+        output[18] = (byte)(h5 >> 16);
+        output[19] = (byte)((h5 >> 24) | (h6 << 1));
+        output[20] = (byte)(h6 >> 7);
+        output[21] = (byte)(h6 >> 15);
+        output[22] = (byte)((h6 >> 23) | (h7 << 3));
+        output[23] = (byte)(h7 >> 5);
+        output[24] = (byte)(h7 >> 13);
+        output[25] = (byte)((h7 >> 21) | (h8 << 4));
+        output[26] = (byte)(h8 >> 4);
+        output[27] = (byte)(h8 >> 12);
+        output[28] = (byte)((h8 >> 20) | (h9 << 6));
+        output[29] = (byte)(h9 >> 2);
+        output[30] = (byte)(h9 >> 10);
+        output[31] = (byte)(h9 >> 18);
     }
 
     // ── Arithmetic operators ──────────────────────────────────────────────────
@@ -238,62 +246,63 @@ internal struct FieldElement
     // ── Multiply ─────────────────────────────────────────────────────────────
 
     /// <summary>h = this * g  (schoolbook multiplication mod p)</summary>
+    /// <param name="g"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public readonly FieldElement Multiply(FieldElement g)
     {
-        System.Int32 f0 = E0, f1 = E1, f2 = E2, f3 = E3, f4 = E4;
-        System.Int32 f5 = E5, f6 = E6, f7 = E7, f8 = E8, f9 = E9;
-        System.Int32 g0 = g.E0, g1 = g.E1, g2 = g.E2, g3 = g.E3, g4 = g.E4;
-        System.Int32 g5 = g.E5, g6 = g.E6, g7 = g.E7, g8 = g.E8, g9 = g.E9;
+        int f0 = E0, f1 = E1, f2 = E2, f3 = E3, f4 = E4;
+        int f5 = E5, f6 = E6, f7 = E7, f8 = E8, f9 = E9;
+        int g0 = g.E0, g1 = g.E1, g2 = g.E2, g3 = g.E3, g4 = g.E4;
+        int g5 = g.E5, g6 = g.E6, g7 = g.E7, g8 = g.E8, g9 = g.E9;
 
-        System.Int32 g1_19 = 19 * g1, g2_19 = 19 * g2, g3_19 = 19 * g3;
-        System.Int32 g4_19 = 19 * g4, g5_19 = 19 * g5, g6_19 = 19 * g6;
-        System.Int32 g7_19 = 19 * g7, g8_19 = 19 * g8, g9_19 = 19 * g9;
-        System.Int32 f1_2 = 2 * f1, f3_2 = 2 * f3, f5_2 = 2 * f5;
-        System.Int32 f7_2 = 2 * f7, f9_2 = 2 * f9;
+        int g1_19 = 19 * g1, g2_19 = 19 * g2, g3_19 = 19 * g3;
+        int g4_19 = 19 * g4, g5_19 = 19 * g5, g6_19 = 19 * g6;
+        int g7_19 = 19 * g7, g8_19 = 19 * g8, g9_19 = 19 * g9;
+        int f1_2 = 2 * f1, f3_2 = 2 * f3, f5_2 = 2 * f5;
+        int f7_2 = 2 * f7, f9_2 = 2 * f9;
 
-        System.Int64 h0 = ((System.Int64)f0 * g0) + ((System.Int64)f1_2 * g9_19) + ((System.Int64)f2 * g8_19)
-                        + ((System.Int64)f3_2 * g7_19) + ((System.Int64)f4 * g6_19) + ((System.Int64)f5_2 * g5_19)
-                        + ((System.Int64)f6 * g4_19) + ((System.Int64)f7_2 * g3_19) + ((System.Int64)f8 * g2_19)
-                        + ((System.Int64)f9_2 * g1_19);
-        System.Int64 h1 = ((System.Int64)f0 * g1) + ((System.Int64)f1 * g0) + ((System.Int64)f2 * g9_19)
-                        + ((System.Int64)f3 * g8_19) + ((System.Int64)f4 * g7_19) + ((System.Int64)f5 * g6_19)
-                        + ((System.Int64)f6 * g5_19) + ((System.Int64)f7 * g4_19) + ((System.Int64)f8 * g3_19)
-                        + ((System.Int64)f9 * g2_19);
-        System.Int64 h2 = ((System.Int64)f0 * g2) + ((System.Int64)f1_2 * g1) + ((System.Int64)f2 * g0)
-                        + ((System.Int64)f3_2 * g9_19) + ((System.Int64)f4 * g8_19) + ((System.Int64)f5_2 * g7_19)
-                        + ((System.Int64)f6 * g6_19) + ((System.Int64)f7_2 * g5_19) + ((System.Int64)f8 * g4_19)
-                        + ((System.Int64)f9_2 * g3_19);
-        System.Int64 h3 = ((System.Int64)f0 * g3) + ((System.Int64)f1 * g2) + ((System.Int64)f2 * g1)
-                        + ((System.Int64)f3 * g0) + ((System.Int64)f4 * g9_19) + ((System.Int64)f5 * g8_19)
-                        + ((System.Int64)f6 * g7_19) + ((System.Int64)f7 * g6_19) + ((System.Int64)f8 * g5_19)
-                        + ((System.Int64)f9 * g4_19);
-        System.Int64 h4 = ((System.Int64)f0 * g4) + ((System.Int64)f1_2 * g3) + ((System.Int64)f2 * g2)
-                        + ((System.Int64)f3_2 * g1) + ((System.Int64)f4 * g0) + ((System.Int64)f5_2 * g9_19)
-                        + ((System.Int64)f6 * g8_19) + ((System.Int64)f7_2 * g7_19) + ((System.Int64)f8 * g6_19)
-                        + ((System.Int64)f9_2 * g5_19);
-        System.Int64 h5 = ((System.Int64)f0 * g5) + ((System.Int64)f1 * g4) + ((System.Int64)f2 * g3)
-                        + ((System.Int64)f3 * g2) + ((System.Int64)f4 * g1) + ((System.Int64)f5 * g0)
-                        + ((System.Int64)f6 * g9_19) + ((System.Int64)f7 * g8_19) + ((System.Int64)f8 * g7_19)
-                        + ((System.Int64)f9 * g6_19);
-        System.Int64 h6 = ((System.Int64)f0 * g6) + ((System.Int64)f1_2 * g5) + ((System.Int64)f2 * g4)
-                        + ((System.Int64)f3_2 * g3) + ((System.Int64)f4 * g2) + ((System.Int64)f5_2 * g1)
-                        + ((System.Int64)f6 * g0) + ((System.Int64)f7_2 * g9_19) + ((System.Int64)f8 * g8_19)
-                        + ((System.Int64)f9_2 * g7_19);
-        System.Int64 h7 = ((System.Int64)f0 * g7) + ((System.Int64)f1 * g6) + ((System.Int64)f2 * g5)
-                        + ((System.Int64)f3 * g4) + ((System.Int64)f4 * g3) + ((System.Int64)f5 * g2)
-                        + ((System.Int64)f6 * g1) + ((System.Int64)f7 * g0) + ((System.Int64)f8 * g9_19)
-                        + ((System.Int64)f9 * g8_19);
-        System.Int64 h8 = ((System.Int64)f0 * g8) + ((System.Int64)f1_2 * g7) + ((System.Int64)f2 * g6)
-                        + ((System.Int64)f3_2 * g5) + ((System.Int64)f4 * g4) + ((System.Int64)f5_2 * g3)
-                        + ((System.Int64)f6 * g2) + ((System.Int64)f7_2 * g1) + ((System.Int64)f8 * g0)
-                        + ((System.Int64)f9_2 * g9_19);
-        System.Int64 h9 = ((System.Int64)f0 * g9) + ((System.Int64)f1 * g8) + ((System.Int64)f2 * g7)
-                        + ((System.Int64)f3 * g6) + ((System.Int64)f4 * g5) + ((System.Int64)f5 * g4)
-                        + ((System.Int64)f6 * g3) + ((System.Int64)f7 * g2) + ((System.Int64)f8 * g1)
-                        + ((System.Int64)f9 * g0);
+        long h0 = ((long)f0 * g0) + ((long)f1_2 * g9_19) + ((long)f2 * g8_19)
+                        + ((long)f3_2 * g7_19) + ((long)f4 * g6_19) + ((long)f5_2 * g5_19)
+                        + ((long)f6 * g4_19) + ((long)f7_2 * g3_19) + ((long)f8 * g2_19)
+                        + ((long)f9_2 * g1_19);
+        long h1 = ((long)f0 * g1) + ((long)f1 * g0) + ((long)f2 * g9_19)
+                        + ((long)f3 * g8_19) + ((long)f4 * g7_19) + ((long)f5 * g6_19)
+                        + ((long)f6 * g5_19) + ((long)f7 * g4_19) + ((long)f8 * g3_19)
+                        + ((long)f9 * g2_19);
+        long h2 = ((long)f0 * g2) + ((long)f1_2 * g1) + ((long)f2 * g0)
+                        + ((long)f3_2 * g9_19) + ((long)f4 * g8_19) + ((long)f5_2 * g7_19)
+                        + ((long)f6 * g6_19) + ((long)f7_2 * g5_19) + ((long)f8 * g4_19)
+                        + ((long)f9_2 * g3_19);
+        long h3 = ((long)f0 * g3) + ((long)f1 * g2) + ((long)f2 * g1)
+                        + ((long)f3 * g0) + ((long)f4 * g9_19) + ((long)f5 * g8_19)
+                        + ((long)f6 * g7_19) + ((long)f7 * g6_19) + ((long)f8 * g5_19)
+                        + ((long)f9 * g4_19);
+        long h4 = ((long)f0 * g4) + ((long)f1_2 * g3) + ((long)f2 * g2)
+                        + ((long)f3_2 * g1) + ((long)f4 * g0) + ((long)f5_2 * g9_19)
+                        + ((long)f6 * g8_19) + ((long)f7_2 * g7_19) + ((long)f8 * g6_19)
+                        + ((long)f9_2 * g5_19);
+        long h5 = ((long)f0 * g5) + ((long)f1 * g4) + ((long)f2 * g3)
+                        + ((long)f3 * g2) + ((long)f4 * g1) + ((long)f5 * g0)
+                        + ((long)f6 * g9_19) + ((long)f7 * g8_19) + ((long)f8 * g7_19)
+                        + ((long)f9 * g6_19);
+        long h6 = ((long)f0 * g6) + ((long)f1_2 * g5) + ((long)f2 * g4)
+                        + ((long)f3_2 * g3) + ((long)f4 * g2) + ((long)f5_2 * g1)
+                        + ((long)f6 * g0) + ((long)f7_2 * g9_19) + ((long)f8 * g8_19)
+                        + ((long)f9_2 * g7_19);
+        long h7 = ((long)f0 * g7) + ((long)f1 * g6) + ((long)f2 * g5)
+                        + ((long)f3 * g4) + ((long)f4 * g3) + ((long)f5 * g2)
+                        + ((long)f6 * g1) + ((long)f7 * g0) + ((long)f8 * g9_19)
+                        + ((long)f9 * g8_19);
+        long h8 = ((long)f0 * g8) + ((long)f1_2 * g7) + ((long)f2 * g6)
+                        + ((long)f3_2 * g5) + ((long)f4 * g4) + ((long)f5_2 * g3)
+                        + ((long)f6 * g2) + ((long)f7_2 * g1) + ((long)f8 * g0)
+                        + ((long)f9_2 * g9_19);
+        long h9 = ((long)f0 * g9) + ((long)f1 * g8) + ((long)f2 * g7)
+                        + ((long)f3 * g6) + ((long)f4 * g5) + ((long)f5 * g4)
+                        + ((long)f6 * g3) + ((long)f7 * g2) + ((long)f8 * g1)
+                        + ((long)f9 * g0);
 
         return ReduceCarry(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9);
     }
@@ -306,34 +315,34 @@ internal struct FieldElement
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public readonly FieldElement Square()
     {
-        System.Int32 f0 = E0, f1 = E1, f2 = E2, f3 = E3, f4 = E4;
-        System.Int32 f5 = E5, f6 = E6, f7 = E7, f8 = E8, f9 = E9;
+        int f0 = E0, f1 = E1, f2 = E2, f3 = E3, f4 = E4;
+        int f5 = E5, f6 = E6, f7 = E7, f8 = E8, f9 = E9;
 
-        System.Int32 f0_2 = 2 * f0, f1_2 = 2 * f1, f2_2 = 2 * f2, f3_2 = 2 * f3;
-        System.Int32 f4_2 = 2 * f4, f5_2 = 2 * f5, f6_2 = 2 * f6, f7_2 = 2 * f7;
-        System.Int32 f5_38 = 38 * f5, f6_19 = 19 * f6, f7_38 = 38 * f7;
-        System.Int32 f8_19 = 19 * f8, f9_38 = 38 * f9;
+        int f0_2 = 2 * f0, f1_2 = 2 * f1, f2_2 = 2 * f2, f3_2 = 2 * f3;
+        int f4_2 = 2 * f4, f5_2 = 2 * f5, f6_2 = 2 * f6, f7_2 = 2 * f7;
+        int f5_38 = 38 * f5, f6_19 = 19 * f6, f7_38 = 38 * f7;
+        int f8_19 = 19 * f8, f9_38 = 38 * f9;
 
-        System.Int64 h0 = ((System.Int64)f0 * f0) + ((System.Int64)f1_2 * f9_38) + ((System.Int64)f2_2 * f8_19)
-                        + ((System.Int64)f3_2 * f7_38) + ((System.Int64)f4_2 * f6_19) + ((System.Int64)f5 * f5_38);
-        System.Int64 h1 = ((System.Int64)f0_2 * f1) + ((System.Int64)f2 * f9_38) + ((System.Int64)f3_2 * f8_19)
-                        + ((System.Int64)f4 * f7_38) + ((System.Int64)f5_2 * f6_19);
-        System.Int64 h2 = ((System.Int64)f0_2 * f2) + ((System.Int64)f1_2 * f1) + ((System.Int64)f3_2 * f9_38)
-                        + ((System.Int64)f4_2 * f8_19) + ((System.Int64)f5_2 * f7_38) + ((System.Int64)f6 * f6_19);
-        System.Int64 h3 = ((System.Int64)f0_2 * f3) + ((System.Int64)f1_2 * f2) + ((System.Int64)f4 * f9_38)
-                        + ((System.Int64)f5_2 * f8_19) + ((System.Int64)f6 * f7_38);
-        System.Int64 h4 = ((System.Int64)f0_2 * f4) + ((System.Int64)f1_2 * f3_2) + ((System.Int64)f2 * f2)
-                        + ((System.Int64)f5_2 * f9_38) + ((System.Int64)f6_2 * f8_19) + ((System.Int64)f7 * f7_38);
-        System.Int64 h5 = ((System.Int64)f0_2 * f5) + ((System.Int64)f1_2 * f4) + ((System.Int64)f2_2 * f3)
-                        + ((System.Int64)f6 * f9_38) + ((System.Int64)f7_2 * f8_19);
-        System.Int64 h6 = ((System.Int64)f0_2 * f6) + ((System.Int64)f1_2 * f5_2) + ((System.Int64)f2_2 * f4)
-                        + ((System.Int64)f3_2 * f3) + ((System.Int64)f7_2 * f9_38) + ((System.Int64)f8 * f8_19);
-        System.Int64 h7 = ((System.Int64)f0_2 * f7) + ((System.Int64)f1_2 * f6) + ((System.Int64)f2_2 * f5)
-                        + ((System.Int64)f3_2 * f4) + ((System.Int64)f8 * f9_38);
-        System.Int64 h8 = ((System.Int64)f0_2 * f8) + ((System.Int64)f1_2 * f7_2) + ((System.Int64)f2_2 * f6)
-                        + ((System.Int64)f3_2 * f5_2) + ((System.Int64)f4 * f4) + ((System.Int64)f9 * f9_38);
-        System.Int64 h9 = ((System.Int64)f0_2 * f9) + ((System.Int64)f1_2 * f8) + ((System.Int64)f2_2 * f7)
-                        + ((System.Int64)f3_2 * f6) + ((System.Int64)f4_2 * f5);
+        long h0 = ((long)f0 * f0) + ((long)f1_2 * f9_38) + ((long)f2_2 * f8_19)
+                        + ((long)f3_2 * f7_38) + ((long)f4_2 * f6_19) + ((long)f5 * f5_38);
+        long h1 = ((long)f0_2 * f1) + ((long)f2 * f9_38) + ((long)f3_2 * f8_19)
+                        + ((long)f4 * f7_38) + ((long)f5_2 * f6_19);
+        long h2 = ((long)f0_2 * f2) + ((long)f1_2 * f1) + ((long)f3_2 * f9_38)
+                        + ((long)f4_2 * f8_19) + ((long)f5_2 * f7_38) + ((long)f6 * f6_19);
+        long h3 = ((long)f0_2 * f3) + ((long)f1_2 * f2) + ((long)f4 * f9_38)
+                        + ((long)f5_2 * f8_19) + ((long)f6 * f7_38);
+        long h4 = ((long)f0_2 * f4) + ((long)f1_2 * f3_2) + ((long)f2 * f2)
+                        + ((long)f5_2 * f9_38) + ((long)f6_2 * f8_19) + ((long)f7 * f7_38);
+        long h5 = ((long)f0_2 * f5) + ((long)f1_2 * f4) + ((long)f2_2 * f3)
+                        + ((long)f6 * f9_38) + ((long)f7_2 * f8_19);
+        long h6 = ((long)f0_2 * f6) + ((long)f1_2 * f5_2) + ((long)f2_2 * f4)
+                        + ((long)f3_2 * f3) + ((long)f7_2 * f9_38) + ((long)f8 * f8_19);
+        long h7 = ((long)f0_2 * f7) + ((long)f1_2 * f6) + ((long)f2_2 * f5)
+                        + ((long)f3_2 * f4) + ((long)f8 * f9_38);
+        long h8 = ((long)f0_2 * f8) + ((long)f1_2 * f7_2) + ((long)f2_2 * f6)
+                        + ((long)f3_2 * f5_2) + ((long)f4 * f4) + ((long)f9 * f9_38);
+        long h9 = ((long)f0_2 * f9) + ((long)f1_2 * f8) + ((long)f2_2 * f7)
+                        + ((long)f3_2 * f6) + ((long)f4_2 * f5);
 
         return ReduceCarry(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9);
     }
@@ -345,37 +354,37 @@ internal struct FieldElement
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public readonly FieldElement Mul121666()
     {
-        System.Int64 h0 = (System.Int64)E0 * 121666, h1 = (System.Int64)E1 * 121666;
-        System.Int64 h2 = (System.Int64)E2 * 121666, h3 = (System.Int64)E3 * 121666;
-        System.Int64 h4 = (System.Int64)E4 * 121666, h5 = (System.Int64)E5 * 121666;
-        System.Int64 h6 = (System.Int64)E6 * 121666, h7 = (System.Int64)E7 * 121666;
-        System.Int64 h8 = (System.Int64)E8 * 121666, h9 = (System.Int64)E9 * 121666;
+        long h0 = (long)E0 * 121666, h1 = (long)E1 * 121666;
+        long h2 = (long)E2 * 121666, h3 = (long)E3 * 121666;
+        long h4 = (long)E4 * 121666, h5 = (long)E5 * 121666;
+        long h6 = (long)E6 * 121666, h7 = (long)E7 * 121666;
+        long h8 = (long)E8 * 121666, h9 = (long)E9 * 121666;
 
         // Odd-only carry first pass.
-        System.Int64 c9 = (h9 + (1 << 24)) >> 25; h0 += c9 * 19; h9 -= c9 << 25;
-        System.Int64 c1 = (h1 + (1 << 24)) >> 25; h2 += c1; h1 -= c1 << 25;
-        System.Int64 c3 = (h3 + (1 << 24)) >> 25; h4 += c3; h3 -= c3 << 25;
-        System.Int64 c5 = (h5 + (1 << 24)) >> 25; h6 += c5; h5 -= c5 << 25;
-        System.Int64 c7 = (h7 + (1 << 24)) >> 25; h8 += c7; h7 -= c7 << 25;
+        long c9 = (h9 + (1 << 24)) >> 25; h0 += c9 * 19; h9 -= c9 << 25;
+        long c1 = (h1 + (1 << 24)) >> 25; h2 += c1; h1 -= c1 << 25;
+        long c3 = (h3 + (1 << 24)) >> 25; h4 += c3; h3 -= c3 << 25;
+        long c5 = (h5 + (1 << 24)) >> 25; h6 += c5; h5 -= c5 << 25;
+        long c7 = (h7 + (1 << 24)) >> 25; h8 += c7; h7 -= c7 << 25;
         // Even carry second pass.
-        System.Int64 c0 = (h0 + (1 << 25)) >> 26; h1 += c0; h0 -= c0 << 26;
-        System.Int64 c2 = (h2 + (1 << 25)) >> 26; h3 += c2; h2 -= c2 << 26;
-        System.Int64 c4 = (h4 + (1 << 25)) >> 26; h5 += c4; h4 -= c4 << 26;
-        System.Int64 c6 = (h6 + (1 << 25)) >> 26; h7 += c6; h6 -= c6 << 26;
-        System.Int64 c8 = (h8 + (1 << 25)) >> 26; h9 += c8; h8 -= c8 << 26;
+        long c0 = (h0 + (1 << 25)) >> 26; h1 += c0; h0 -= c0 << 26;
+        long c2 = (h2 + (1 << 25)) >> 26; h3 += c2; h2 -= c2 << 26;
+        long c4 = (h4 + (1 << 25)) >> 26; h5 += c4; h4 -= c4 << 26;
+        long c6 = (h6 + (1 << 25)) >> 26; h7 += c6; h6 -= c6 << 26;
+        long c8 = (h8 + (1 << 25)) >> 26; h9 += c8; h8 -= c8 << 26;
 
         return new FieldElement
         {
-            E0 = (System.Int32)h0,
-            E1 = (System.Int32)h1,
-            E2 = (System.Int32)h2,
-            E3 = (System.Int32)h3,
-            E4 = (System.Int32)h4,
-            E5 = (System.Int32)h5,
-            E6 = (System.Int32)h6,
-            E7 = (System.Int32)h7,
-            E8 = (System.Int32)h8,
-            E9 = (System.Int32)h9
+            E0 = (int)h0,
+            E1 = (int)h1,
+            E2 = (int)h2,
+            E3 = (int)h3,
+            E4 = (int)h4,
+            E5 = (int)h5,
+            E6 = (int)h6,
+            E7 = (int)h7,
+            E8 = (int)h8,
+            E9 = (int)h9
         };
     }
 
@@ -397,17 +406,27 @@ internal struct FieldElement
         t1 = t1.Multiply(t2);
 
         // 5 squares unrolled
-        t2 = t1.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square();
+        t2 = t1.Square(); t2 = t2.Square()
+            .Square()
+            .Square()
+            .Square();
         t1 = t2.Multiply(t1);
 
         // 10 squares unrolled
-        t2 = t1.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square();
-        t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square();
-        t2 = t2.Multiply(t1);
+        t2 = t1.Square(); t2 = t2.Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Multiply(t1);
 
         // 20 squares
         FieldElement t3 = t2.Square();
-        for (System.Int32 i = 1; i < 20; i++)
+        for (int i = 1; i < 20; i++)
         {
             t3 = t3.Square();
         }
@@ -415,13 +434,21 @@ internal struct FieldElement
         t2 = t3.Multiply(t2);
 
         // 10 squares unrolled
-        t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square();
-        t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square(); t2 = t2.Square();
+        t2 = t2.Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square();
         t1 = t2.Multiply(t1);
 
         // 50 squares
         t2 = t1.Square();
-        for (System.Int32 i = 1; i < 50; i++)
+        for (int i = 1; i < 50; i++)
         {
             t2 = t2.Square();
         }
@@ -430,7 +457,7 @@ internal struct FieldElement
 
         // 100 squares
         t3 = t2.Square();
-        for (System.Int32 i = 1; i < 100; i++)
+        for (int i = 1; i < 100; i++)
         {
             t3 = t3.Square();
         }
@@ -439,7 +466,7 @@ internal struct FieldElement
 
         // 50 squares
         t2 = t2.Square();
-        for (System.Int32 i = 1; i < 50; i++)
+        for (int i = 1; i < 50; i++)
         {
             t2 = t2.Square();
         }
@@ -447,7 +474,11 @@ internal struct FieldElement
         t1 = t2.Multiply(t1);
 
         // 5 squares unrolled
-        t1 = t1.Square(); t1 = t1.Square(); t1 = t1.Square(); t1 = t1.Square(); t1 = t1.Square();
+        t1 = t1.Square()
+            .Square()
+            .Square()
+            .Square()
+            .Square();
 
         return t1.Multiply(t0);
     }
@@ -458,12 +489,15 @@ internal struct FieldElement
     /// Replaces (f, g) with (g, f) if b == 1; leaves them unchanged if b == 0.
     /// Runs in constant time (no data-dependent branches).
     /// </summary>
+    /// <param name="f"></param>
+    /// <param name="g"></param>
+    /// <param name="b"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void CSwap(ref FieldElement f, ref FieldElement g, System.Int32 b)
+    public static void CSwap(ref FieldElement f, ref FieldElement g, int b)
     {
-        System.Int32 t;
-        System.Int32 mask = -b; // 0x00000000 or 0xFFFFFFFF
+        int t;
+        int mask = -b; // 0x00000000 or 0xFFFFFFFF
 
         t = mask & (f.E0 ^ g.E0); f.E0 ^= t; g.E0 ^= t;
         t = mask & (f.E1 ^ g.E1); f.E1 ^= t; g.E1 ^= t;
@@ -478,6 +512,8 @@ internal struct FieldElement
     }
 
     /// <summary>Copies <paramref name="src"/> into <paramref name="dst"/>.</summary>
+    /// <param name="dst"></param>
+    /// <param name="src"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Copy(ref FieldElement dst, FieldElement src)
@@ -495,13 +531,23 @@ internal struct FieldElement
     /// Returns a new <see cref="FieldElement"/> with all limbs reduced.
     /// All temporaries are scalar locals — zero heap allocation.
     /// </summary>
+    /// <param name="h0"></param>
+    /// <param name="h1"></param>
+    /// <param name="h2"></param>
+    /// <param name="h3"></param>
+    /// <param name="h4"></param>
+    /// <param name="h5"></param>
+    /// <param name="h6"></param>
+    /// <param name="h7"></param>
+    /// <param name="h8"></param>
+    /// <param name="h9"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static FieldElement ReduceCarry(
-        System.Int64 h0, System.Int64 h1, System.Int64 h2, System.Int64 h3, System.Int64 h4,
-        System.Int64 h5, System.Int64 h6, System.Int64 h7, System.Int64 h8, System.Int64 h9)
+        long h0, long h1, long h2, long h3, long h4,
+        long h5, long h6, long h7, long h8, long h9)
     {
-        System.Int64 c0, c1, c2, c3, c4, c5, c6, c7, c8, c9;
+        long c0, c1, c2, c3, c4, c5, c6, c7, c8, c9;
 
         c0 = (h0 + (1 << 25)) >> 26; h1 += c0; h0 -= c0 << 26;
         c4 = (h4 + (1 << 25)) >> 26; h5 += c4; h4 -= c4 << 26;
@@ -518,28 +564,32 @@ internal struct FieldElement
 
         return new FieldElement
         {
-            E0 = (System.Int32)h0,
-            E1 = (System.Int32)h1,
-            E2 = (System.Int32)h2,
-            E3 = (System.Int32)h3,
-            E4 = (System.Int32)h4,
-            E5 = (System.Int32)h5,
-            E6 = (System.Int32)h6,
-            E7 = (System.Int32)h7,
-            E8 = (System.Int32)h8,
-            E9 = (System.Int32)h9
+            E0 = (int)h0,
+            E1 = (int)h1,
+            E2 = (int)h2,
+            E3 = (int)h3,
+            E4 = (int)h4,
+            E5 = (int)h5,
+            E6 = (int)h6,
+            E7 = (int)h7,
+            E8 = (int)h8,
+            E9 = (int)h9
         };
     }
 
     /// <summary>Reads 3 bytes little-endian from <paramref name="src"/> at <paramref name="offset"/>.</summary>
+    /// <param name="src"></param>
+    /// <param name="offset"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int64 Load3(System.ReadOnlySpan<System.Byte> src, System.Int32 offset)
-        => src[offset] | ((System.Int64)src[offset + 1] << 8) | ((System.Int64)src[offset + 2] << 16);
+    private static long Load3(System.ReadOnlySpan<byte> src, int offset)
+        => src[offset] | ((long)src[offset + 1] << 8) | ((long)src[offset + 2] << 16);
 
     /// <summary>Reads 4 bytes little-endian from <paramref name="src"/> at <paramref name="offset"/>.</summary>
+    /// <param name="src"></param>
+    /// <param name="offset"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int64 Load4(System.ReadOnlySpan<System.Byte> src, System.Int32 offset)
+    private static long Load4(System.ReadOnlySpan<byte> src, int offset)
         => System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(src.Slice(offset, 4));
 }

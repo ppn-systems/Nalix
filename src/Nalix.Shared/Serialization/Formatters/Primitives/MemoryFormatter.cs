@@ -17,7 +17,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 /// <list type="bullet">
 /// <item>
 /// <description>
-/// <c>[4 bytes]</c> Length (<see cref="System.Int32"/>, little-endian)
+/// <c>[4 bytes]</c> Length (<see cref="int"/>, little-endian)
 /// — <c>-1</c> indicates default (empty), <c>0</c> indicates zero-length.
 /// </description>
 /// </item>
@@ -38,7 +38,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
     where T : unmanaged
 {
-    private static System.String DebuggerDisplay => $"MemoryFormatter<{typeof(T).Name}>";
+    private static string DebuggerDisplay => $"MemoryFormatter<{typeof(T).Name}>";
 
     // ------------------------------------------------------------------ //
     //  Serialize
@@ -58,9 +58,9 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, System.Memory<T> value)
     {
-        System.Int32 length = value.Length;
-        writer.Expand(sizeof(System.Int32));
-        FormatterProvider.Get<System.Int32>()
+        int length = value.Length;
+        writer.Expand(sizeof(int));
+        FormatterProvider.Get<int>()
                          .Serialize(ref writer, length);
 
         if (length is 0)
@@ -69,7 +69,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         }
 
         // Zero-copy: reinterpret Memory<T> thành raw bytes
-        System.ReadOnlySpan<System.Byte> bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(value.Span);
+        System.ReadOnlySpan<byte> bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(value.Span);
 
         writer.Expand(bytes.Length);
         bytes.CopyTo(writer.FreeBuffer);
@@ -92,7 +92,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Memory<T> Deserialize(ref DataReader reader)
     {
-        System.Int32 length = FormatterProvider.Get<System.Int32>()
+        int length = FormatterProvider.Get<int>()
                                                .Deserialize(ref reader);
 
         if (length <= 0)
@@ -101,13 +101,13 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         }
 
         T[] array = System.GC.AllocateUninitializedArray<T>(length);
-        System.Int32 byteCount = length * System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+        int byteCount = length * System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
 
-        ref System.Byte src = ref reader.GetSpanReference(byteCount);
+        ref byte src = ref reader.GetSpanReference(byteCount);
         ref T first = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array);
-        ref System.Byte dst = ref System.Runtime.CompilerServices.Unsafe.As<T, System.Byte>(ref first);
+        ref byte dst = ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref first);
 
-        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(ref dst, ref src, (System.UInt32)byteCount);
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(ref dst, ref src, (uint)byteCount);
         reader.Advance(byteCount);
 
         return System.MemoryExtensions.AsMemory(array);
@@ -132,13 +132,15 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
 internal sealed class ReadOnlyMemoryFormatter<T> : IFormatter<System.ReadOnlyMemory<T>>
     where T : unmanaged
 {
-    private static System.String DebuggerDisplay => $"ReadOnlyMemoryFormatter<{typeof(T).Name}>";
+    private static string DebuggerDisplay => $"ReadOnlyMemoryFormatter<{typeof(T).Name}>";
 
     private static readonly MemoryFormatter<T> _inner = new();
 
     /// <summary>
     /// Serializes a <see cref="System.ReadOnlyMemory{T}"/> into the specified <see cref="DataWriter"/>.
     /// </summary>
+    /// <param name="writer"></param>
+    /// <param name="value"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, System.ReadOnlyMemory<T> value) => _inner.Serialize(ref writer, System.Runtime.InteropServices.MemoryMarshal.AsMemory(value));
@@ -146,6 +148,7 @@ internal sealed class ReadOnlyMemoryFormatter<T> : IFormatter<System.ReadOnlyMem
     /// <summary>
     /// Deserializes a <see cref="System.ReadOnlyMemory{T}"/> from the specified <see cref="DataReader"/>.
     /// </summary>
+    /// <param name="reader"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.ReadOnlyMemory<T> Deserialize(ref DataReader reader) => _inner.Deserialize(ref reader);

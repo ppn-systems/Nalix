@@ -23,7 +23,7 @@ internal sealed class NullableStructFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : struct
 {
-    private static System.String DebuggerDisplay => $"NullableStructFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"NullableStructFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Serializes a nullable value of type <typeparamref name="T"/> to the specified <see cref="DataWriter"/>.
@@ -40,15 +40,15 @@ internal sealed class NullableStructFormatter<
     {
         if (!value.HasValue)
         {
-            writer.Expand(sizeof(System.Byte));
-            FormatterProvider.Get<System.Byte>()
+            writer.Expand(sizeof(byte));
+            FormatterProvider.Get<byte>()
                              .Serialize(ref writer, 0); // 0 = null
 
             return;
         }
 
-        writer.Expand(sizeof(System.Byte));
-        FormatterProvider.Get<System.Byte>()
+        writer.Expand(sizeof(byte));
+        FormatterProvider.Get<byte>()
                          .Serialize(ref writer, 1); // 1 = not null
 
         FormatterProvider.Get<T>()
@@ -70,7 +70,7 @@ internal sealed class NullableStructFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
-        System.Byte marker = FormatterProvider.Get<System.Byte>()
+        byte marker = FormatterProvider.Get<byte>()
                                               .Deserialize(ref reader);
 
         return marker == 0 ? null

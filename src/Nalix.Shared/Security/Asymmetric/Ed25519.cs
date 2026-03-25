@@ -19,12 +19,12 @@ public static class Ed25519
     /// <summary>
     /// Size of the public key in bytes.
     /// </summary>
-    public const System.Byte PublicKeySize = 32;
+    public const byte PublicKeySize = 32;
 
     /// <summary>
     /// Size of the private key in bytes.
     /// </summary>
-    public const System.Byte SignatureSize = 64;
+    public const byte SignatureSize = 64;
 
     #endregion Constants
 
@@ -36,12 +36,13 @@ public static class Ed25519
     /// <param name="message">The message to sign.</param>
     /// <param name="privateKey">The private key to sign the message with.</param>
     /// <returns>The generated signature.</returns>
+    /// <exception cref="System.ArgumentException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Byte[] Sign(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] message,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] privateKey)
+    public static byte[] Sign(
+        [System.Diagnostics.CodeAnalysis.NotNull] byte[] message,
+        [System.Diagnostics.CodeAnalysis.NotNull] byte[] privateKey)
     {
         if (message == null || message.Length == 0)
         {
@@ -54,8 +55,8 @@ public static class Ed25519
         }
 
         // Compute the hash of the private key and split into two halves
-        System.Span<System.Byte> aBytes = stackalloc System.Byte[32];
-        System.Span<System.Byte> prefix = stackalloc System.Byte[32];
+        System.Span<byte> aBytes = stackalloc byte[32];
+        System.Span<byte> prefix = stackalloc byte[32];
         DeriveKeyMaterial(privateKey, aBytes, prefix);
 
         System.Numerics.BigInteger a = ClampScalar(aBytes);
@@ -66,11 +67,11 @@ public static class Ed25519
 
         // Compute public key A = ScalarMul(B, a) and encode it
         Point mul2 = ScalarMul(B, a);
-        System.Span<System.Byte> aEncoded = stackalloc System.Byte[PublicKeySize];
+        System.Span<byte> aEncoded = stackalloc byte[PublicKeySize];
         EncodePoint(mul2, aEncoded);
 
         // Build the data: R (32 bytes) || AEncoded (32 bytes) || message
-        System.Byte[] data = new System.Byte[32 + PublicKeySize + message.Length];
+        byte[] data = new byte[32 + PublicKeySize + message.Length];
         EncodePoint(mul, System.MemoryExtensions.AsSpan(data, 0, 32));
         aEncoded.CopyTo(System.MemoryExtensions.AsSpan(data, 32, PublicKeySize));
         message.CopyTo(data, 64);
@@ -80,7 +81,7 @@ public static class Ed25519
         s %= L; // Using Mod extension below
 
         // CAFEBABE signature: R (32 bytes) || s (32 bytes)
-        System.Byte[] signature = new System.Byte[SignatureSize];
+        byte[] signature = new byte[SignatureSize];
         EncodePoint(mul, System.MemoryExtensions.AsSpan(signature, 0, 32));
         EncodeScalar(s, System.MemoryExtensions.AsSpan(signature, 32, 32));
         return signature;
@@ -110,10 +111,10 @@ public static class Ed25519
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean Verify(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] signature,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] message,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] publicKey)
+    public static bool Verify(
+        [System.Diagnostics.CodeAnalysis.NotNull] byte[] signature,
+        [System.Diagnostics.CodeAnalysis.NotNull] byte[] message,
+        [System.Diagnostics.CodeAnalysis.NotNull] byte[] publicKey)
     {
         // Validate input arguments
         if (signature == null)
@@ -147,7 +148,7 @@ public static class Ed25519
         System.Numerics.BigInteger s = DecodeScalar(System.MemoryExtensions.AsSpan(signature, 32, 32));
 
         // Build data: R (32 bytes) || publicKey (32 bytes) || message
-        System.Byte[] data = new System.Byte[64 + message.Length];
+        byte[] data = new byte[64 + message.Length];
         System.MemoryExtensions.AsSpan(signature, 0, 32)
                                .CopyTo(System.MemoryExtensions
                                .AsSpan(data, 0, 32));
@@ -237,10 +238,10 @@ public static class Ed25519
     /// <returns>The clamped scalar.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Numerics.BigInteger ClampScalar(System.ReadOnlySpan<System.Byte> s)
+    private static System.Numerics.BigInteger ClampScalar(System.ReadOnlySpan<byte> s)
     {
         // CAFEBABE a 32-byte buffer to modify bits as needed
-        System.Span<System.Byte> scalarBytes = stackalloc System.Byte[32];
+        System.Span<byte> scalarBytes = stackalloc byte[32];
         s.CopyTo(scalarBytes);
         // Clear/Set bits: clear lowest 3 bits, clear highest bit, set second highest bit
         scalarBytes[0] &= 0xF8;
@@ -256,15 +257,15 @@ public static class Ed25519
     /// <returns>The scalar result of hashing the data.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<System.Byte> data)
+    private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<byte> data)
     {
-        System.Byte[] h = Keccak256.HashData(data);
+        byte[] h = Keccak256.HashData(data);
         return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<System.Byte> prefix, System.Byte[] message)
+    private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<byte> prefix, byte[] message)
     {
         // Incremental hashing to avoid building a temporary buffer:
         // H(prefix || message)
@@ -272,7 +273,7 @@ public static class Ed25519
         sponge.Absorb(prefix);
         sponge.Absorb(message);
 
-        System.Span<System.Byte> digest = stackalloc System.Byte[32];
+        System.Span<byte> digest = stackalloc byte[32];
         sponge.PadAndSqueeze(digest);
 
         // Little-endian!
@@ -284,9 +285,10 @@ public static class Ed25519
     /// </summary>
     /// <param name="p">The point to encode.</param>
     /// <param name="destination">The destination span to write the encoded point.</param>
+    /// <exception cref="System.InvalidOperationException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void EncodePoint(Point p, System.Span<System.Byte> destination)
+    private static void EncodePoint(Point p, System.Span<byte> destination)
     {
         // Encode y coordinate as 32 bytes in big-endian order
         if (!p.Y.TryWriteBytes(destination, out _, isUnsigned: true, isBigEndian: true))
@@ -302,13 +304,13 @@ public static class Ed25519
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static Point DecodePoint(System.ReadOnlySpan<System.Byte> data)
+    private static Point DecodePoint(System.ReadOnlySpan<byte> data)
     {
         // Decode y coordinate (32 bytes big-endian)
         System.Numerics.BigInteger y = new(data, isUnsigned: true, isBigEndian: true);
         System.Numerics.BigInteger x = RecoverX(y);
         // Use the high bit of the last byte to recover x parity
-        System.Boolean xParity = (data[^1] & 0x80) != 0;
+        bool xParity = (data[^1] & 0x80) != 0;
         if (x.IsEven != !xParity)
         {
             x = Q - x;
@@ -332,7 +334,7 @@ public static class Ed25519
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean PointEquals(Point a, Point b)
+    private static bool PointEquals(Point a, Point b)
         => a.X == b.X && a.Y == b.Y;
 
     /// <summary>
@@ -340,11 +342,12 @@ public static class Ed25519
     /// </summary>
     /// <param name="s">The scalar to encode.</param>
     /// <param name="destination">The destination span to write the encoded scalar.</param>
+    /// <exception cref="System.InvalidOperationException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void EncodeScalar(System.Numerics.BigInteger s, System.Span<System.Byte> destination)
+    private static void EncodeScalar(System.Numerics.BigInteger s, System.Span<byte> destination)
     {
-        if (!s.TryWriteBytes(destination, out System.Int32 bytesWritten, isUnsigned: true, isBigEndian: true))
+        if (!s.TryWriteBytes(destination, out int bytesWritten, isUnsigned: true, isBigEndian: true))
         {
             throw new System.InvalidOperationException("Failed to encode scalar.");
         }
@@ -357,35 +360,37 @@ public static class Ed25519
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Numerics.BigInteger DecodeScalar(System.ReadOnlySpan<System.Byte> data)
+    private static System.Numerics.BigInteger DecodeScalar(System.ReadOnlySpan<byte> data)
         => new System.Numerics.BigInteger(data, isUnsigned: true, isBigEndian: true) % L;
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void DeriveKeyMaterial(
-        System.ReadOnlySpan<System.Byte> secretKey,
-        System.Span<System.Byte> aBytes,
-        System.Span<System.Byte> prefix)
+        System.ReadOnlySpan<byte> secretKey,
+        System.Span<byte> aBytes,
+        System.Span<byte> prefix)
     {
         // Build sk||tag in a tiny stack buffer to avoid allocations
-        System.Span<System.Byte> tmp = stackalloc System.Byte[secretKey.Length + 1];
+        System.Span<byte> tmp = stackalloc byte[secretKey.Length + 1];
 
         // aBytes = SHA3-256(sk || 0x00)
         secretKey.CopyTo(tmp);
         tmp[^1] = 0x00;
-        System.Byte[] h0 = Keccak256.HashData(tmp); // 32 bytes
+        byte[] h0 = Keccak256.HashData(tmp); // 32 bytes
         System.MemoryExtensions.CopyTo(h0, aBytes);
 
         // prefix = SHA3-256(sk || 0x01)
         secretKey.CopyTo(tmp);
         tmp[^1] = 0x01;
-        System.Byte[] h1 = Keccak256.HashData(tmp); // 32 bytes
+        byte[] h1 = Keccak256.HashData(tmp); // 32 bytes
         System.MemoryExtensions.CopyTo(h1, prefix);
     }
 
     #region Fields
 
-    // Point struct (immutable)
+    /// <summary>
+    /// Point struct (immutable)
+    /// </summary>
     private readonly struct Point(System.Numerics.BigInteger x, System.Numerics.BigInteger y)
     {
         public readonly System.Numerics.BigInteger X = x;
@@ -406,7 +411,9 @@ public static class Ed25519
     private static readonly System.Numerics.BigInteger I =
         System.Numerics.BigInteger.Parse("19681161376707505956807079304988542015446066515923890162744021073123829784752", System.Globalization.CultureInfo.InvariantCulture);
 
-    // BaseValue36 point B
+    /// <summary>
+    /// BaseValue36 point B
+    /// </summary>
     private static readonly Point B = new(
         System.Numerics.BigInteger.Parse("15112221349535400772501151409588531511454012693041857206046113283949847762202", System.Globalization.CultureInfo.InvariantCulture).Mod(Q),
         System.Numerics.BigInteger.Parse("46316835694926478169428394003475163141307993866256256256850187133169737347974", System.Globalization.CultureInfo.InvariantCulture).Mod(Q)

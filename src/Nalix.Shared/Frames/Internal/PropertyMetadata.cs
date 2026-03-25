@@ -30,54 +30,57 @@ internal sealed class PropertyMetadata
     /// Pre-computed fixed byte-size of this property on the wire.
     /// Zero when <see cref="IsDynamic"/> is <see langword="true"/>.
     /// </summary>
-    public System.UInt16 FixedSize { get; }
+    public ushort FixedSize { get; }
 
     /// <summary>
     /// <see langword="true"/> when the property is annotated with
     /// <see cref="SerializeDynamicSizeAttribute"/>, meaning its wire-size
     /// must be evaluated at runtime.
     /// </summary>
-    public System.Boolean IsDynamic { get; }
+    public bool IsDynamic { get; }
 
     /// <summary>
-    /// <see langword="true"/> when the property type is <see cref="System.String"/>.
+    /// <see langword="true"/> when the property type is <see cref="string"/>.
     /// </summary>
-    public System.Boolean IsString { get; }
+    public bool IsString { get; }
 
     /// <summary>
-    /// <see langword="true"/> when the property type is <see cref="System.Byte"/>[].
+    /// <see langword="true"/> when the property type is <see cref="byte"/>[].
     /// </summary>
-    public System.Boolean IsByteArray { get; }
+    public bool IsByteArray { get; }
 
     /// <summary>
     /// Cached result of <see cref="System.Reflection.PropertyInfo.CanWrite"/>.
     /// </summary>
-    public System.Boolean IsWritable { get; }
+    public bool IsWritable { get; }
 
     /// <summary>
     /// <see langword="true"/> when this property has a public getter.
     /// </summary>
-    public System.Boolean IsReadable { get; }
+    public bool IsReadable { get; }
 
     /// <summary>
     /// Pre-computed default value used by <c>ResetForPool</c>.
     /// <list type="bullet">
-    ///   <item><see cref="System.Byte"/>[] → <see cref="System.Array.Empty{T}"/></item>
-    ///   <item><see cref="System.String"/> → <see cref="System.String.Empty"/></item>
+    ///   <item><see cref="byte"/>[] → <see cref="System.Array.Empty{T}"/></item>
+    ///   <item><see cref="string"/> → <see cref="string.Empty"/></item>
     ///   <item>Value type → <see cref="System.Activator.CreateInstance(System.Type)"/></item>
     ///   <item>Reference type → <see langword="null"/></item>
     /// </list>
     /// </summary>
-    public System.Object? DefaultValue { get; }
+    public object? DefaultValue { get; }
 
     #endregion Public Properties
 
     #region Private Fields
 
-    // True compiled open-instance delegates via Expression Trees.
-    // No MethodInfo.Invoke — no argument array allocation, no boxing round-trip.
-    private readonly System.Func<System.Object, System.Object?>? _getter;
-    private readonly System.Action<System.Object, System.Object?>? _setter;
+    /// <summary>
+    /// True compiled open-instance delegates via Expression Trees.
+    /// No MethodInfo.Invoke — no argument array allocation, no boxing round-trip.
+    /// </summary>
+    private readonly System.Func<object, object?>? _getter;
+
+    private readonly System.Action<object, object?>? _setter;
 
     #endregion Private Fields
 
@@ -106,26 +109,26 @@ internal sealed class PropertyMetadata
         Property = prop;
         IsWritable = prop.CanWrite;
         IsReadable = prop.CanRead;
-        IsString = prop.PropertyType == typeof(System.String);
-        IsByteArray = prop.PropertyType == typeof(System.Byte[]);
+        IsString = prop.PropertyType == typeof(string);
+        IsByteArray = prop.PropertyType == typeof(byte[]);
         IsDynamic = System.Reflection.CustomAttributeExtensions
                            .GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
 
         DefaultValue = ComputeDefaultValue(prop.PropertyType);
-        FixedSize = IsDynamic ? (System.UInt16)0 : ComputeFixedSize(prop.PropertyType);
+        FixedSize = IsDynamic ? (ushort)0 : ComputeFixedSize(prop.PropertyType);
 
         // ── Getter delegate ──────────────────────────────────────────────────────
         // (T instance) => (object)instance.Prop
         // Compiled once; avoids MethodInfo.Invoke overhead and argument-array alloc.
         if (prop.CanRead && prop.GetMethod is not null)
         {
-            ParameterExpression instanceParam = Expression.Parameter(typeof(System.Object), "instance");
+            ParameterExpression instanceParam = Expression.Parameter(typeof(object), "instance");
             UnaryExpression castInstance = Expression.Convert(instanceParam, prop.DeclaringType);
             MemberExpression propAccess = Expression.Property(castInstance, prop);
-            UnaryExpression boxResult = Expression.Convert(propAccess, typeof(System.Object));
+            UnaryExpression boxResult = Expression.Convert(propAccess, typeof(object));
 
             _getter = Expression
-                          .Lambda<System.Func<System.Object, System.Object?>>(boxResult, instanceParam)
+                          .Lambda<System.Func<object, object?>>(boxResult, instanceParam)
                           .Compile();
         }
 
@@ -137,15 +140,15 @@ internal sealed class PropertyMetadata
         {
             try
             {
-                ParameterExpression instanceParam = Expression.Parameter(typeof(System.Object), "instance");
-                ParameterExpression valueParam = Expression.Parameter(typeof(System.Object), "value");
+                ParameterExpression instanceParam = Expression.Parameter(typeof(object), "instance");
+                ParameterExpression valueParam = Expression.Parameter(typeof(object), "value");
                 UnaryExpression castInstance = Expression.Convert(instanceParam, prop.DeclaringType);
                 UnaryExpression castValue = Expression.Convert(valueParam, prop.PropertyType);
                 MemberExpression propAccess = Expression.Property(castInstance, prop);
                 BinaryExpression assignExpr = Expression.Assign(propAccess, castValue);
 
                 _setter = Expression
-                              .Lambda<System.Action<System.Object, System.Object?>>(assignExpr, instanceParam, valueParam)
+                              .Lambda<System.Action<object, object?>>(assignExpr, instanceParam, valueParam)
                               .Compile();
             }
             catch (System.Exception ex)
@@ -154,7 +157,7 @@ internal sealed class PropertyMetadata
                 throw new System.InvalidOperationException(
                     $"Failed to compile setter delegate for property '{prop.DeclaringType.Name}.{prop.Name}' " +
                     $"(type: {prop.PropertyType.Name}). " +
-                    $"Ensure the property type is compatible with its default value.", ex);
+                    "Ensure the property type is compatible with its default value.", ex);
             }
         }
     }
@@ -170,7 +173,7 @@ internal sealed class PropertyMetadata
     /// <param name="instance">The packet object to read from. Must not be <see langword="null"/>.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Object? GetValue(System.Object instance)
+    public object? GetValue(object instance)
     {
         System.ArgumentNullException.ThrowIfNull(instance);
         return _getter?.Invoke(instance);
@@ -184,7 +187,7 @@ internal sealed class PropertyMetadata
     /// <param name="value">The value to assign. Must be compatible with the property type.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void SetValue(System.Object instance, System.Object? value)
+    public void SetValue(object instance, object? value)
     {
         System.ArgumentNullException.ThrowIfNull(instance);
         _setter?.Invoke(instance, value);
@@ -193,7 +196,7 @@ internal sealed class PropertyMetadata
     /// <summary>
     /// Returns a human-readable description for debugging purposes.
     /// </summary>
-    public override System.String ToString() =>
+    public override string ToString() =>
         $"{Property.DeclaringType?.Name}.{Property.Name} " +
         $"[{Property.PropertyType.Name}] " +
         $"FixedSize={FixedSize} IsDynamic={IsDynamic} IsWritable={IsWritable}";
@@ -208,7 +211,9 @@ internal sealed class PropertyMetadata
     /// Enum underlying types are resolved recursively.
     /// Missing from previous version: SByte, Char, DateTime, Guid, TimeSpan, DateTimeOffset.
     /// </summary>
-    private static System.UInt16 ComputeFixedSize(System.Type type) =>
+    /// <param name="type"></param>
+    /// <exception cref="System.NotImplementedException"></exception>
+    private static ushort ComputeFixedSize(System.Type type) =>
         System.Type.GetTypeCode(type) switch
         {
             System.TypeCode.Byte => 1,
@@ -249,11 +254,25 @@ internal sealed class PropertyMetadata
     /// Returns the appropriate default / empty value for <paramref name="type"/>
     /// so that <c>ResetForPool</c> never allocates new objects on repeated calls.
     /// </summary>
-    private static System.Object? ComputeDefaultValue(System.Type type)
+    /// <param name="type"></param>
+    private static object? ComputeDefaultValue(System.Type type)
     {
-        return type == typeof(System.Byte[])
-            ? System.Array.Empty<System.Byte>()
-            : type == typeof(System.String) ? System.String.Empty : type.IsValueType ? System.Activator.CreateInstance(type) : null;
+        if (type == typeof(byte[]))
+        {
+            return System.Array.Empty<byte>();
+        }
+        else if (type == typeof(string))
+        {
+            return string.Empty;
+        }
+        else if (type.IsValueType)
+        {
+            return System.Activator.CreateInstance(type);
+        }
+        else
+        {
+            return null;
+        }
     }
 
     #endregion Private Static Helpers

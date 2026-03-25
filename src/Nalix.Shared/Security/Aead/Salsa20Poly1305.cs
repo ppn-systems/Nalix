@@ -42,15 +42,15 @@ public static class Salsa20Poly1305
     #region Constants
 
     /// <summary>The size, in bytes, of the authentication tag (MAC). Value: 16.</summary>
-    public const System.Byte TagSize = 16;
+    public const byte TagSize = 16;
 
     /// <summary>Accepted SALSA20 key sizes in bytes.</summary>
-    private const System.Byte KEY16 = 16, KEY32 = 32;
+    private const byte KEY16 = 16, KEY32 = 32;
 
     /// <summary>The size, in bytes, of the nonce. Value: 8.</summary>
-    private const System.Byte NONCE8 = 8;
+    private const byte NONCE8 = 8;
 
-    #endregion
+    #endregion Constants
 
     #region API (detached, Span-first)
 
@@ -70,13 +70,13 @@ public static class Salsa20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstCiphertext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> tag)
+    public static int Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dstCiphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> tag)
     {
         if (key.Length is not KEY16 and not KEY32)
         {
@@ -97,9 +97,9 @@ public static class Salsa20Poly1305
             ThrowHelper.ThrowInvalidTagLengthException();
         }
 
-        System.Int32 written = 0;
-        System.Span<System.Byte> zeros = stackalloc System.Byte[32];
-        System.Span<System.Byte> polyKey = stackalloc System.Byte[32];
+        int written = 0;
+        System.Span<byte> zeros = stackalloc byte[32];
+        System.Span<byte> polyKey = stackalloc byte[32];
 
         try
         {
@@ -147,13 +147,13 @@ public static class Salsa20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> ciphertext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> aad,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> tag,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> dstPlaintext)
+    public static int Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> tag,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dstPlaintext)
     {
         if (key.Length is not KEY16 and not KEY32)
         {
@@ -174,13 +174,13 @@ public static class Salsa20Poly1305
             ThrowHelper.ThrowOutputLengthMismatchException();
         }
 
-        System.Span<System.Byte> polyKey = stackalloc System.Byte[32];
-        System.Span<System.Byte> computed = stackalloc System.Byte[TagSize];
+        System.Span<byte> polyKey = stackalloc byte[32];
+        System.Span<byte> computed = stackalloc byte[TagSize];
 
         try
         {
             // 1) Poly1305 one-time key (counter=0)
-            System.Span<System.Byte> zeros = stackalloc System.Byte[32];
+            System.Span<byte> zeros = stackalloc byte[32];
             zeros.Clear();
             _ = Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey);
 
@@ -204,18 +204,22 @@ public static class Salsa20Poly1305
         }
     }
 
-    #endregion
+    #endregion API (detached, Span-first)
 
     #region Private helpers (transcript, padding, validation, throw helper)
 
     /// <summary>
     /// Updates Poly1305 with AEAD transcript and writes the final tag.
     /// </summary>
+    /// <param name="mac"></param>
+    /// <param name="aad"></param>
+    /// <param name="ciphertext"></param>
+    /// <param name="tagOut16"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void BUILD_TRANSCRIPT_AND_FINALIZE(
-        Poly1305 mac, System.ReadOnlySpan<System.Byte> aad,
-        System.ReadOnlySpan<System.Byte> ciphertext, System.Span<System.Byte> tagOut16)
+        Poly1305 mac, System.ReadOnlySpan<byte> aad,
+        System.ReadOnlySpan<byte> ciphertext, System.Span<byte> tagOut16)
     {
         // AAD
         if (!aad.IsEmpty)
@@ -234,9 +238,9 @@ public static class Salsa20Poly1305
         Pad16(mac, ciphertext.Length);
 
         // Lengths (LE 64-bit each)
-        System.Span<System.Byte> lens = stackalloc System.Byte[16];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(lens, (System.UInt64)aad.Length);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(lens[8..], (System.UInt64)ciphertext.Length);
+        System.Span<byte> lens = stackalloc byte[16];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(lens, (ulong)aad.Length);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(lens[8..], (ulong)ciphertext.Length);
 
         mac.Update(lens);
         mac.FinalizeTag(tagOut16);
@@ -246,17 +250,19 @@ public static class Salsa20Poly1305
     }
 
     /// <summary>Writes zero padding to align to 16-byte boundary if needed.</summary>
+    /// <param name="mac"></param>
+    /// <param name="length"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Pad16(Poly1305 mac, System.Int32 length)
+    private static void Pad16(Poly1305 mac, int length)
     {
-        System.Int32 rem = length & 0x0F;
+        int rem = length & 0x0F;
         if (rem == 0)
         {
             return;
         }
 
-        System.Span<System.Byte> pad = stackalloc System.Byte[16];
+        System.Span<byte> pad = stackalloc byte[16];
         pad.Clear();
 
         mac.Update(pad[..(16 - rem)]);
@@ -264,7 +270,7 @@ public static class Salsa20Poly1305
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.UInt64 ReverseBytes(System.UInt64 v)
+    private static ulong ReverseBytes(ulong v)
     {
         v = ((v & 0x00FF00FF00FF00FFUL) << 8) | ((v & 0xFF00FF00FF00FF00UL) >> 8);
         v = ((v & 0x0000FFFF0000FFFFUL) << 16) | ((v & 0xFFFF0000FFFF0000UL) >> 16);
@@ -272,5 +278,5 @@ public static class Salsa20Poly1305
         return v;
     }
 
-    #endregion
+    #endregion Private helpers (transcript, padding, validation, throw helper)
 }

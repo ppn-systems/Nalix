@@ -20,26 +20,26 @@ namespace Nalix.Shared.Frames.Text;
 public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
 {
     /// <inheritdoc/>
-    public const System.Int32 DynamicSize = 256;
+    public const int DynamicSize = 256;
 
     /// <summary>Gets the total serialized length in bytes, including header and content.</summary>
     [SerializeIgnore]
-    public override System.UInt16 Length =>
-        (System.UInt16)(PacketConstants.HeaderSize + System.Text.Encoding.UTF8.GetByteCount(Content ?? System.String.Empty));
+    public override ushort Length =>
+        (ushort)(PacketConstants.HeaderSize + System.Text.Encoding.UTF8.GetByteCount(Content ?? string.Empty));
 
     /// <summary>
     /// Gets or sets the UTF-8 string content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
     [SerializeOrder(PacketHeaderOffset.DATA_REGION)]
-    public System.String Content { get; set; }
+    public string Content { get; set; }
 
     /// <summary>Initializes a new <see cref="Text256"/> with empty content.</summary>
     public Text256()
     {
         Flags = PacketFlags.NONE;
         Protocol = ProtocolType.NONE;
-        Content = System.String.Empty;
+        Content = string.Empty;
         Priority = PacketPriority.NONE;
         OpCode = PacketConstants.OPCODE_DEFAULT;
     }
@@ -47,8 +47,9 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
     /// <summary>Initializes the packet with content and transport protocol.</summary>
     /// <param name="content">The UTF-8 string to store.</param>
     /// <param name="transport">The target transport protocol.</param>
+    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
     public void Initialize(
-        System.String content,
+        string content,
         ProtocolType transport = ProtocolType.TCP)
     {
         if (content.Length > DynamicSize)
@@ -57,7 +58,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
         }
 
         Protocol = transport;
-        Content = content ?? System.String.Empty;
+        Content = content ?? string.Empty;
     }
 
     /// <summary>
@@ -68,12 +69,13 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
     /// </remarks>
     /// <param name="buffer">The source buffer.</param>
     /// <returns>A pooled <see cref="Text256"/> instance.</returns>
-    public static Text256 Deserialize(System.ReadOnlySpan<System.Byte> buffer)
+    /// <exception cref="System.InvalidOperationException"></exception>
+    public static Text256 Deserialize(System.ReadOnlySpan<byte> buffer)
     {
         Text256 packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                  .Get<Text256>();
 
-        System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
+        int bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
         if (bytesRead == 0)
         {
             InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -85,10 +87,10 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
     }
 
     /// <inheritdoc/>
-    public override System.Byte[] Serialize() => LiteSerializer.Serialize(this);
+    public override byte[] Serialize() => LiteSerializer.Serialize(this);
 
     /// <inheritdoc/>
-    public override System.Int32 Serialize(System.Span<System.Byte> buffer) => LiteSerializer.Serialize(this, buffer);
+    public override int Serialize(System.Span<byte> buffer) => LiteSerializer.Serialize(this, buffer);
 
     /// <summary>
     /// Resets this instance to its default state for pooling reuse.
@@ -97,12 +99,12 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
     {
         Flags = PacketFlags.NONE;
         Protocol = ProtocolType.NONE;
-        Content = System.String.Empty;
+        Content = string.Empty;
         Priority = PacketPriority.NONE;
     }
 
     /// <inheritdoc/>
-    public override System.String ToString()
+    public override string ToString()
         => $"TEXT256(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
            $"PRIORITY={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }

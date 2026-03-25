@@ -18,18 +18,23 @@ namespace Nalix.Shared.Frames;
 /// full type name via FNV-1a hash — no <c>[MagicNumber]</c> attribute needed.
 /// </para>
 /// </summary>
+/// <typeparam name="TSelf"></typeparam>
 public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPacketDeserializer<TSelf>
     where TSelf : PacketBase<TSelf>, new()
 {
     #region Static Cache
 
-    // Computed once per concrete type at class-load time.
+    /// <summary>
+    /// Computed once per concrete type at class-load time.
+    /// </summary>
     [SerializeIgnore]
-    private static readonly System.UInt32 s_autoMagic = PacketRegistryFactory.Compute(typeof(TSelf));
+    private static readonly uint s_autoMagic = PacketRegistryFactory.Compute(typeof(TSelf));
 
-    // All serializable properties as pre-compiled PropertyMetadata.
-    // Lazy<T> guarantees thread-safe single initialization without explicit locking.
-    // Using System.Linq only at startup (inside the Lazy factory) — never in hot paths.
+    /// <summary>
+    /// All serializable properties as pre-compiled PropertyMetadata.
+    /// Lazy<T> guarantees thread-safe single initialization without explicit locking.
+    /// Using System.Linq only at startup (inside the Lazy factory) — never in hot paths.
+    /// </summary>
     [SerializeIgnore]
     private static readonly System.Lazy<PropertyMetadata[]> s_metadata = new(
         static () =>
@@ -61,14 +66,16 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         isThreadSafe: true
     );
 
-    // null  → has dynamic properties, call ComputeDynamicLength() at runtime.
-    // value → all properties are fixed-size, return directly.
-    // Using ushort? avoids the "0-as-sentinel" ambiguity from the previous version.
+    /// <summary>
+    /// null  → has dynamic properties, call ComputeDynamicLength() at runtime.
+    /// value → all properties are fixed-size, return directly.
+    /// Using ushort? avoids the "0-as-sentinel" ambiguity from the previous version.
+    /// </summary>
     [SerializeIgnore]
-    private static readonly System.Lazy<System.UInt16?> s_cachedFixedSize = new(
+    private static readonly System.Lazy<ushort?> s_cachedFixedSize = new(
         static () =>
         {
-            System.UInt16 size = PacketConstants.HeaderSize;
+            ushort size = PacketConstants.HeaderSize;
             foreach (PropertyMetadata meta in s_metadata.Value)
             {
                 if (meta.IsDynamic)
@@ -99,14 +106,14 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
     /// <inheritdoc/>
     [SerializeIgnore]
-    public override System.UInt16 Length
+    public override ushort Length
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         get
         {
             // Fast path: all properties are fixed-size → return cached value directly.
-            System.UInt16? fixedSize = s_cachedFixedSize.Value;
+            ushort? fixedSize = s_cachedFixedSize.Value;
             return fixedSize ?? COMPUTE_DYNAMIC_LENGTH();
         }
     }
@@ -118,9 +125,9 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private System.UInt16 COMPUTE_DYNAMIC_LENGTH()
+    private ushort COMPUTE_DYNAMIC_LENGTH()
     {
-        System.UInt16 size = PacketConstants.HeaderSize;
+        ushort size = PacketConstants.HeaderSize;
 
         foreach (PropertyMetadata meta in s_metadata.Value)
         {
@@ -136,15 +143,15 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             // Unknown dynamic type: contributes 0 — subclass should override if needed.
             size += meta.GetValue(this) switch
             {
-                System.String str when str.Length > 0
-                    => (System.UInt16)(System.Text.Encoding.UTF8.GetByteCount(str) + sizeof(System.UInt16)),
+                string str when str.Length > 0
+                    => (ushort)(System.Text.Encoding.UTF8.GetByteCount(str) + sizeof(ushort)),
 
-                System.String => sizeof(System.UInt16),
+                System.String => sizeof(ushort),
 
-                System.Byte[] { Length: > 0 } bytes
-                    => (System.UInt16)(bytes.Length + sizeof(System.Int32)),
+                byte[] { Length: > 0 } bytes
+                    => (ushort)(bytes.Length + sizeof(int)),
 
-                System.Byte[] => sizeof(System.Int32),
+                byte[] => sizeof(int),
 
                 _ => 0
             };
@@ -160,14 +167,14 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.Byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
+    public override byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.Int32 Serialize(System.Span<System.Byte> buffer)
+    public override int Serialize(System.Span<byte> buffer)
     {
-        System.UInt16 required = Length;
+        ushort required = Length;
         return buffer.Length < required
             ? throw new System.ArgumentException(
                 $"Buffer too small for {typeof(TSelf).Name}. " +
@@ -190,7 +197,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static TSelf Deserialize(System.ReadOnlySpan<System.Byte> buffer)
+    public static TSelf Deserialize(System.ReadOnlySpan<byte> buffer)
     {
         if (buffer.IsEmpty)
         {
@@ -200,7 +207,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         }
         TSelf packet = new();
 
-        System.Int32 bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
+        int bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         return bytesRead == 0
             ? throw new System.InvalidOperationException(
@@ -244,7 +251,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Not intended for production logging — allocates strings.
     /// </summary>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public System.String GenerateReport()
+    public string GenerateReport()
     {
         System.Text.StringBuilder sb = new(128);
         _ = sb.AppendLine($"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={s_cachedFixedSize.Value?.ToString() ?? "dynamic"} Properties={s_metadata.Value.Length}");
@@ -258,7 +265,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     }
 
     /// <inheritdoc/>
-    public override System.String ToString() => $"{typeof(TSelf).Name}(Magic=0x{MagicNumber:X8}, OpCode={OpCode}, Flags={Flags}, Priority={Priority}, Protocol={Protocol})";
+    public override string ToString() => $"{typeof(TSelf).Name}(Magic=0x{MagicNumber:X8}, OpCode={OpCode}, Flags={Flags}, Priority={Priority}, Protocol={Protocol})";
 
     #endregion Diagnostics
 }

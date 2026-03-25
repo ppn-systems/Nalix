@@ -15,17 +15,20 @@ namespace Nalix.Shared.Serialization.Internal.Accessors;
 /// Strongly-typed field accessor implementation that eliminates boxing
 /// and leverages FieldCache for optimal performance.
 /// </summary>
+/// <typeparam name="T"></typeparam>
+/// <typeparam name="TField"></typeparam>
+/// <param name="index"></param>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class FieldAccessorImpl<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TField>(System.Int32 index) : FieldAccessor<T>
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T, TField>(int index) : FieldAccessor<T>
 {
     #region Fields
 
-    private readonly System.Int32 _index = index;
+    private readonly int _index = index;
     private readonly IFormatter<TField> _formatter = FormatterProvider.Get<TField>();
 
     #endregion Fields

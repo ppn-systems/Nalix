@@ -13,22 +13,25 @@ public static class Pbkdf2
 {
     #region Constants
 
-    private const System.Byte Version = 2; // unified version for encoded format
+    /// <summary>
+    /// unified version for encoded format
+    /// </summary>
+    private const byte Version = 2;
 
     /// <summary>
     /// Standard key size in bytes.
     /// </summary>
-    public const System.Int32 KeySize = 32;
+    public const int KeySize = 32;
 
     /// <summary>
     /// Standard salt size in bytes.
     /// </summary>
-    public const System.Int32 SaltSize = 32;
+    public const int SaltSize = 32;
 
     /// <summary>
     /// Iteration count for PBKDF2_I.
     /// </summary>
-    public const System.Int32 Iterations = 310_000;
+    public const int Iterations = 310_000;
 
     #endregion Constants
 
@@ -43,9 +46,9 @@ public static class Pbkdf2
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Hash(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String credential,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Byte[] salt,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Byte[] hash)
+        [System.Diagnostics.CodeAnalysis.NotNull] string credential,
+        [System.Diagnostics.CodeAnalysis.NotNull] out byte[] salt,
+        [System.Diagnostics.CodeAnalysis.NotNull] out byte[] hash)
     {
         salt = Csprng.GetBytes(SaltSize);
         using PBKDF2_I pbkdf2 = new(salt, Iterations, KeySize);
@@ -62,10 +65,10 @@ public static class Pbkdf2
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean Verify(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String credential,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] salt,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Byte[] hash)
+    public static bool Verify(
+        [System.Diagnostics.CodeAnalysis.NotNull] string credential,
+        [System.Diagnostics.CodeAnalysis.NotNull] byte[] salt,
+        [System.Diagnostics.CodeAnalysis.NotNull] byte[] hash)
     {
         using PBKDF2_I pbkdf2 = new(salt, Iterations, KeySize);
         return BitwiseOperations.FixedTimeEquals(pbkdf2.GenerateKey(credential), hash);
@@ -85,11 +88,11 @@ public static class Pbkdf2
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public static System.String Hash(
-            [System.Diagnostics.CodeAnalysis.NotNull] System.String credential)
+        public static string Hash(
+            [System.Diagnostics.CodeAnalysis.NotNull] string credential)
         {
-            Pbkdf2.Hash(credential, out System.Byte[] salt, out System.Byte[] hash);
-            System.Byte[] blob = new System.Byte[1 + salt.Length + hash.Length];
+            Pbkdf2.Hash(credential, out byte[] salt, out byte[] hash);
+            byte[] blob = new byte[1 + salt.Length + hash.Length];
             blob[0] = Version;
             System.Array.Copy(salt, 0, blob, 1, salt.Length);
             System.Array.Copy(hash, 0, blob, 1 + salt.Length, hash.Length);
@@ -105,41 +108,45 @@ public static class Pbkdf2
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public static System.Boolean Verify(
-            [System.Diagnostics.CodeAnalysis.NotNull] System.String credential,
-            [System.Diagnostics.CodeAnalysis.NotNull] System.String encoded) => TryParse(encoded, out System.Byte[] salt, out System.Byte[] hash, out System.Byte version) && version == Version && Pbkdf2.Verify(credential, salt, hash);
+        public static bool Verify(
+            [System.Diagnostics.CodeAnalysis.NotNull] string credential,
+            [System.Diagnostics.CodeAnalysis.NotNull] string encoded) => TryParse(encoded, out byte[] salt, out byte[] hash, out byte version) && version == Version && Pbkdf2.Verify(credential, salt, hash);
 
         /// <summary>
         /// Parses an encoded Base64([ver|salt|hash]) into parts without throwing.
         /// </summary>
-        internal static System.Boolean TryParse(System.String encoded,
-            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[] salt,
-            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[] hash,
-            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte version)
+        /// <param name="encoded"></param>
+        /// <param name="salt"></param>
+        /// <param name="hash"></param>
+        /// <param name="version"></param>
+        internal static bool TryParse(string encoded,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[] salt,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[] hash,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte version)
         {
             salt = [];
             hash = [];
             version = 0;
 
-            if (System.String.IsNullOrEmpty(encoded))
+            if (string.IsNullOrEmpty(encoded))
             {
                 return false;
             }
 
             try
             {
-                System.Byte[] blob = System.Convert.FromBase64String(encoded);
+                byte[] blob = System.Convert.FromBase64String(encoded);
 
                 // exact length check
-                const System.Int32 expected = 1 + SaltSize + KeySize;
+                const int expected = 1 + SaltSize + KeySize;
                 if (blob.Length != expected)
                 {
                     return false;
                 }
 
                 version = blob[0];
-                salt = new System.Byte[SaltSize];
-                hash = new System.Byte[KeySize];
+                salt = new byte[SaltSize];
+                hash = new byte[KeySize];
 
                 System.Buffer.BlockCopy(blob, 1, salt, 0, SaltSize);
                 System.Buffer.BlockCopy(blob, 1 + SaltSize, hash, 0, KeySize);

@@ -18,20 +18,20 @@ public abstract class FrameBase : IPacket
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
-    [SerializeIgnore] public abstract System.UInt16 Length { get; }
+    [SerializeIgnore] public abstract ushort Length { get; }
 
     /// <inheritdoc/>
-    [SerializeIgnore] System.UInt16 IPacket.Length => Length;
+    [SerializeIgnore] ushort IPacket.Length => Length;
 
     /// <summary>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.MAGIC_NUMBER)] public System.UInt32 MagicNumber { get; set; }
+    [SerializeOrder(PacketHeaderOffset.MAGIC_NUMBER)] public uint MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) of this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.OP_CODE)] public System.UInt16 OpCode { get; set; }
+    [SerializeOrder(PacketHeaderOffset.OP_CODE)] public ushort OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with this packet.
@@ -48,18 +48,17 @@ public abstract class FrameBase : IPacket
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.TRANSPORT)] public ProtocolType Protocol { get; set; }
 
-
     /// <summary>
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.SEQUENCE_ID)] public System.UInt32 SequenceId { get; set; }
+    [SerializeOrder(PacketHeaderOffset.SEQUENCE_ID)] public uint SequenceId { get; set; }
 
     /// <inheritdoc/>
     public abstract void ResetForPool();
 
     /// <inheritdoc/>
-    public abstract System.Byte[] Serialize();
+    public abstract byte[] Serialize();
 
     /// <inheritdoc/>
-    public abstract System.Int32 Serialize(System.Span<System.Byte> buffer);
+    public abstract int Serialize(System.Span<byte> buffer);
 }

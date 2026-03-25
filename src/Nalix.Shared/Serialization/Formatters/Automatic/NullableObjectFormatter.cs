@@ -23,7 +23,7 @@ internal sealed class NullableObjectFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : class, new()
 {
-    private static System.String DebuggerDisplay => $"NullableObjectFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"NullableObjectFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Serializes a nullable reference type value of type <typeparamref name="T"/> to the specified <see cref="DataWriter"/>.
@@ -40,15 +40,15 @@ internal sealed class NullableObjectFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(System.Byte));
-            FormatterProvider.Get<System.Byte>()
+            writer.Expand(sizeof(byte));
+            FormatterProvider.Get<byte>()
                              .Serialize(ref writer, 0);
 
             return;
         }
 
-        writer.Expand(sizeof(System.Byte));
-        FormatterProvider.Get<System.Byte>()
+        writer.Expand(sizeof(byte));
+        FormatterProvider.Get<byte>()
                          .Serialize(ref writer, 1);
 
         FormatterProvider.GetComplex<T>()
@@ -70,7 +70,7 @@ internal sealed class NullableObjectFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
-        System.Byte marker = FormatterProvider.Get<System.Byte>()
+        byte marker = FormatterProvider.Get<byte>()
                                               .Deserialize(ref reader);
         return marker == 0 ? null
             : FormatterProvider.GetComplex<T>()

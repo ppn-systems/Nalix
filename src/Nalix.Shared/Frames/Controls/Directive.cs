@@ -42,24 +42,24 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     /// Multi-purpose argument #0.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 4)]
-    public System.UInt32 Arg0 { get; set; }
+    public uint Arg0 { get; set; }
 
     /// <summary>
     /// Multi-purpose argument #1.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 5)]
-    public System.UInt32 Arg1 { get; set; }
+    public uint Arg1 { get; set; }
 
     /// <summary>
     /// Multi-purpose argument #2.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.DATA_REGION + 6)]
-    public System.UInt16 Arg2 { get; set; }
+    public ushort Arg2 { get; set; }
 
     /// <summary>
     /// Initialize with minimal defaults.
     /// </summary>
-    public Directive() : base()
+    public Directive()
     {
         Protocol = ProtocolType.TCP;
         Priority = PacketPriority.URGENT;
@@ -69,10 +69,18 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     /// <summary>
     /// Initialize all fields without allocations. Keep semantics stable across versions.
     /// </summary>
+    /// <param name="type"></param>
+    /// <param name="reason"></param>
+    /// <param name="action"></param>
+    /// <param name="sequenceId"></param>
+    /// <param name="flags"></param>
+    /// <param name="arg0"></param>
+    /// <param name="arg1"></param>
+    /// <param name="arg2"></param>
     public void Initialize(
         ControlType type, ProtocolReason reason, ProtocolAdvice action,
-        System.UInt32 sequenceId, ControlFlags flags = ControlFlags.NONE,
-        System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
+        uint sequenceId, ControlFlags flags = ControlFlags.NONE,
+        uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
         Arg0 = arg0;
         Arg1 = arg1;
@@ -90,11 +98,20 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     /// <summary>
     /// Initialize all fields with custom opCode.
     /// </summary>
+    /// <param name="opCode"></param>
+    /// <param name="type"></param>
+    /// <param name="reason"></param>
+    /// <param name="action"></param>
+    /// <param name="sequenceId"></param>
+    /// <param name="flags"></param>
+    /// <param name="arg0"></param>
+    /// <param name="arg1"></param>
+    /// <param name="arg2"></param>
     public void Initialize(
-        System.UInt16 opCode,
+        ushort opCode,
         ControlType type, ProtocolReason reason, ProtocolAdvice action,
-        System.UInt32 sequenceId, ControlFlags flags = ControlFlags.NONE,
-        System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
+        uint sequenceId, ControlFlags flags = ControlFlags.NONE,
+        uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
         Arg0 = arg0;
         Arg1 = arg1;
@@ -114,6 +131,6 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     /// Returns a string representation of the directive and all its fields.
     /// </summary>
     /// <returns>String describing the Directive packet.</returns>
-    public override System.String ToString()
+    public override string ToString()
         => $"Directive [SequenceId={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}, Control={Control}, Arg0={Arg0}, Arg1={Arg1}, Arg2={Arg2}, OpCode={OpCode}, Priority={Priority}, Protocol={Protocol}]";
 }

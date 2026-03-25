@@ -25,43 +25,64 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     private sealed class PoolMetrics
     {
-        public Int64 TotalGets;
-        public Int64 TotalReturns;
-        public Int64 CacheMisses;       // Failed to get from pool, created new
-        public Int64 CacheHits;         // Got from pool successfully
-        public Int64 TotalCreated;
-        public Int64 TotalDisposed;
-        public DateTime LastAccessUtc;
-        public String? LastAccessType;
-        public Int32 ConsecutiveFailures;
+        public long TotalGets;
+        public long TotalReturns;
 
-        // Number of objects currently checked out (Get without Return)
-        public Int64 Outstanding;
+        /// <summary>
+        /// Failed to get from pool, created new
+        /// </summary>
+        public long CacheMisses;
+
+        /// <summary>
+        /// Got from pool successfully
+        /// </summary>
+        public long CacheHits;
+
+        public long TotalCreated;
+        public long TotalDisposed;
+        public DateTime LastAccessUtc;
+        public string? LastAccessType;
+        public int ConsecutiveFailures;
+
+        /// <summary>
+        /// Number of objects currently checked out (Get without Return)
+        /// </summary>
+        public long Outstanding;
     }
 
     #endregion Nested Types
 
     #region Fields
 
-    // Thread-safe storage for pools
+    /// <summary>
+    /// Thread-safe storage for pools
+    /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, ObjectPool> _poolDict = new();
 
-    // Per-pool metrics tracking
+    /// <summary>
+    /// Per-pool metrics tracking
+    /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, PoolMetrics> _metricsDict = new();
 
     // Configuration
 
-    // Statistics tracking
-    internal Int64 _totalGetOperations;
-    internal Int64 _totalReturnOperations;
-    internal Int64 _totalCacheMisses;
-    internal Int64 _totalCacheHits;
-    internal DateTime _startTime = DateTime.UtcNow;
-    internal Int32 _peakPoolCount;
+    /// <summary>
+    /// Statistics tracking
+    /// </summary>
+    internal long _totalGetOperations;
 
-    // Health monitoring
-    private Int64 _lastHealthCheckUtc;
-    private Int32 _unhealthyPoolCount;
+    internal long _totalReturnOperations;
+    internal long _totalCacheMisses;
+    internal long _totalCacheHits;
+    internal DateTime _startTime = DateTime.UtcNow;
+    internal int _peakPoolCount;
+
+    /// <summary>
+    /// Health monitoring
+    /// </summary>
+    private long _lastHealthCheckUtc;
+
+    private int _unhealthyPoolCount;
 
     #endregion Fields
 
@@ -70,7 +91,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Gets the default maximum size for new pools.
     /// </summary>
-    public Int32 DefaultMaxPoolSize
+    public int DefaultMaxPoolSize
     {
         get;
         set => field = value > 0 ? value : 1024;
@@ -79,42 +100,42 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Gets the total number of pools currently managed.
     /// </summary>
-    public Int32 PoolCount => _poolDict.Count;
+    public int PoolCount => _poolDict.Count;
 
     /// <summary>
     /// Gets the peak number of pools at any time.
     /// </summary>
-    public Int32 PeakPoolCount => _peakPoolCount;
+    public int PeakPoolCount => _peakPoolCount;
 
     /// <summary>
     /// Gets the total number of get operations performed.
     /// </summary>
-    public Int64 TotalGetOperations => Interlocked.Read(ref _totalGetOperations);
+    public long TotalGetOperations => Interlocked.Read(ref _totalGetOperations);
 
     /// <summary>
     /// Gets the total number of return operations performed.
     /// </summary>
-    public Int64 TotalReturnOperations => Interlocked.Read(ref _totalReturnOperations);
+    public long TotalReturnOperations => Interlocked.Read(ref _totalReturnOperations);
 
     /// <summary>
     /// Gets the total number of cache hits (objects retrieved from pool).
     /// </summary>
-    public Int64 TotalCacheHits => Interlocked.Read(ref _totalCacheHits);
+    public long TotalCacheHits => Interlocked.Read(ref _totalCacheHits);
 
     /// <summary>
     /// Gets the total number of cache misses (new objects created).
     /// </summary>
-    public Int64 TotalCacheMisses => Interlocked.Read(ref _totalCacheMisses);
+    public long TotalCacheMisses => Interlocked.Read(ref _totalCacheMisses);
 
     /// <summary>
     /// Gets the overall cache hit rate as a percentage (0-100).
     /// </summary>
-    public Double CacheHitRate
+    public double CacheHitRate
     {
         get
         {
-            Int64 total = TotalGetOperations;
-            return total == 0 ? 0.0 : TotalCacheHits / (Double)total * 100.0;
+            long total = TotalGetOperations;
+            return total == 0 ? 0.0 : TotalCacheHits / (double)total * 100.0;
         }
     }
 
@@ -126,7 +147,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Gets the number of unhealthy pools (those with high failure rates).
     /// </summary>
-    public Int32 UnhealthyPoolCount => Volatile.Read(ref _unhealthyPoolCount);
+    public int UnhealthyPoolCount => Volatile.Read(ref _unhealthyPoolCount);
 
     #endregion Properties
 
@@ -144,6 +165,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Gets or creates and returns an instance of <typeparamref name="T"/>.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -158,7 +180,7 @@ public sealed class ObjectPoolManager : IReportable
         // Try to get from pool
         T? result = pool.Get<T>();
 
-        if (result != null)
+        if (!EqualityComparer<T>.Default.Equals(result, default(T)))
         {
             // Hit from pool
             _ = Interlocked.Increment(ref _totalCacheHits);
@@ -186,11 +208,14 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Returns an instance of <typeparamref name="T"/> to the pool for future reuse.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="obj"></param>
+    /// <exception cref="ArgumentNullException"><paramref name="obj"/> is <c>null</c>.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return<T>([System.Diagnostics.CodeAnalysis.NotNull] T obj) where T : IPoolable, new()
     {
-        if (obj == null)
+        if (EqualityComparer<T>.Default.Equals(obj, default(T)))
         {
             throw new ArgumentNullException(nameof(obj));
         }
@@ -208,7 +233,7 @@ public sealed class ObjectPoolManager : IReportable
         _ = Interlocked.Increment(ref metrics.TotalReturns);
 
         // Decrement outstanding; ensure it doesn't go negative
-        Int64 outstandingAfter = Interlocked.Decrement(ref metrics.Outstanding);
+        long outstandingAfter = Interlocked.Decrement(ref metrics.Outstanding);
         if (outstandingAfter < 0)
         {
             // Log and reset to zero to avoid negative counters due to bugs
@@ -221,6 +246,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Gets or creates a type-specific pool adapter for more efficient operations with a specific type.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public TypedObjectPoolAdapter<T> GetTypedPool<T>() where T : IPoolable, new()
     {
@@ -231,8 +257,11 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="count"></param>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public Int32 Prealloc<T>([System.Diagnostics.CodeAnalysis.NotNull] Int32 count) where T : IPoolable, new()
+    public int Prealloc<T>([System.Diagnostics.CodeAnalysis.NotNull] int count) where T : IPoolable, new()
     {
         if (count <= 0)
         {
@@ -243,7 +272,7 @@ public sealed class ObjectPoolManager : IReportable
         Type type = typeof(T);
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
 
-        Int32 allocated = pool.Prealloc<T>(count);
+        int allocated = pool.Prealloc<T>(count);
         _ = Interlocked.Add(ref metrics.TotalCreated, allocated);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -255,8 +284,10 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Sets the maximum capacity for a specific type's pool.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="maxCapacity"></param>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public Boolean SetMaxCapacity<T>([System.Diagnostics.CodeAnalysis.NotNull] Int32 maxCapacity) where T : IPoolable
+    public bool SetMaxCapacity<T>([System.Diagnostics.CodeAnalysis.NotNull] int maxCapacity) where T : IPoolable
     {
         if (maxCapacity < 0)
         {
@@ -273,8 +304,8 @@ public sealed class ObjectPoolManager : IReportable
         _poolDict[type] = pool;
 
         // Update peak pool count (use Interlocked to avoid races)
-        Int32 currentCount = _poolDict.Count;
-        Int32 observed;
+        int currentCount = _poolDict.Count;
+        int observed;
         do
         {
             observed = _peakPoolCount;
@@ -293,13 +324,14 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Gets information about a specific type's pool.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public Dictionary<String, Object> GetTypeInfo<T>() where T : IPoolable
+    public Dictionary<string, object> GetTypeInfo<T>() where T : IPoolable
     {
         Type type = typeof(T);
-        Dictionary<String, Object> info = _poolDict.TryGetValue(type, out ObjectPool? pool)
+        Dictionary<string, object> info = _poolDict.TryGetValue(type, out ObjectPool? pool)
             ? pool.GetTypeInfo<T>()
-            : new Dictionary<String, Object>
+            : new Dictionary<string, object>
             {
                 ["TypeName"] = type.Name,
                 ["AvailableCount"] = 0,
@@ -311,7 +343,7 @@ public sealed class ObjectPoolManager : IReportable
         if (_metricsDict.TryGetValue(type, out PoolMetrics? metrics))
         {
             info["CacheHitRate"] = metrics.TotalGets > 0
-                ? (metrics.CacheHits / (Double)metrics.TotalGets * 100.0)
+                ? (metrics.CacheHits / (double)metrics.TotalGets * 100.0)
                 : 0.0;
             info["CacheMisses"] = metrics.CacheMisses;
             info["LastAccessUtc"] = metrics.LastAccessUtc;
@@ -325,13 +357,14 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Clears all objects from a specific type's pool.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public Int32 ClearPool<T>() where T : IPoolable
+    public int ClearPool<T>() where T : IPoolable
     {
         Type type = typeof(T);
         if (_poolDict.TryGetValue(type, out ObjectPool? pool))
         {
-            Int32 removed = pool.ClearType<T>();
+            int removed = pool.ClearType<T>();
             if (_metricsDict.TryGetValue(type, out PoolMetrics? metrics))
             {
                 _ = Interlocked.Add(ref metrics.TotalDisposed, removed);
@@ -345,9 +378,9 @@ public sealed class ObjectPoolManager : IReportable
     /// Clears all objects from all pools.
     /// </summary>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public Int32 ClearAllPools()
+    public int ClearAllPools()
     {
-        Int32 totalRemoved = 0;
+        int totalRemoved = 0;
 
         foreach (ObjectPool pool in _poolDict.Values)
         {
@@ -363,10 +396,11 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Trims all pools to their target sizes.
     /// </summary>
+    /// <param name="percentage"></param>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public Int32 TrimAllPools([System.Diagnostics.CodeAnalysis.NotNull] Int32 percentage = 50)
+    public int TrimAllPools([System.Diagnostics.CodeAnalysis.NotNull] int percentage = 50)
     {
-        Int32 totalRemoved = 0;
+        int totalRemoved = 0;
 
         foreach (ObjectPool pool in _poolDict.Values)
         {
@@ -381,10 +415,10 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <returns>Number of unhealthy pools detected.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public Int32 PerformHealthCheck()
+    public int PerformHealthCheck()
     {
-        Int32 unhealthyCount = 0;
-        const Double FailureThreshold = 0.1; // 10% failure rate
+        int unhealthyCount = 0;
+        const double FailureThreshold = 0.1; // 10% failure rate
 
         foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict)
         {
@@ -395,7 +429,7 @@ public sealed class ObjectPoolManager : IReportable
                 continue;
             }
 
-            Double missRate = metrics.CacheMisses / (Double)metrics.TotalGets;
+            double missRate = metrics.CacheMisses / (double)metrics.TotalGets;
 
             if (missRate > FailureThreshold)
             {
@@ -423,15 +457,15 @@ public sealed class ObjectPoolManager : IReportable
     public void ResetStatistics()
     {
         // Capture snapshot before reset
-        Int64 gets = Interlocked.Read(ref _totalGetOperations);
-        Int64 returns = Interlocked.Read(ref _totalReturnOperations);
-        Int64 hits = Interlocked.Read(ref _totalCacheHits);
-        Int64 misses = Interlocked.Read(ref _totalCacheMisses);
+        long gets = Interlocked.Read(ref _totalGetOperations);
+        long returns = Interlocked.Read(ref _totalReturnOperations);
+        long hits = Interlocked.Read(ref _totalCacheHits);
+        long misses = Interlocked.Read(ref _totalCacheMisses);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[SH.{nameof(ObjectPoolManager)}::{nameof(ResetStatistics)}] " +
                                       $"stats-before-reset gets={gets} returns={returns} hits={hits} misses={misses} " +
-                                      $"hit-rate={(gets > 0 ? (hits / (Double)gets * 100.0) : 0):F1}% " +
+                                      $"hit-rate={(gets > 0 ? (hits / (double)gets * 100.0) : 0):F1}% " +
                                       $"uptime={Uptime.TotalSeconds:F0}s pools={PoolCount}");
 
         _ = Interlocked.Exchange(ref _totalGetOperations, 0);
@@ -453,9 +487,12 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Schedules a regular trimming operation to run in the background.
     /// </summary>
+    /// <param name="interval"></param>
+    /// <param name="percentage"></param>
+    /// <param name="cancellationToken"></param>
     public System.Threading.Tasks.Task ScheduleRegularTrimming(
         [System.Diagnostics.CodeAnalysis.NotNull] TimeSpan interval,
-        [System.Diagnostics.CodeAnalysis.NotNull] Int32 percentage = 50,
+        [System.Diagnostics.CodeAnalysis.NotNull] int percentage = 50,
         [System.Diagnostics.CodeAnalysis.NotNull] CancellationToken cancellationToken = default)
     {
         return System.Threading.Tasks.Task.Run(async () =>
@@ -486,7 +523,7 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <returns>A string containing the detailed report.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public String GenerateReport()
+    public string GenerateReport()
     {
         System.Text.StringBuilder sb = new(4096);
 
@@ -512,20 +549,20 @@ public sealed class ObjectPoolManager : IReportable
 
         // Cache Performance
         _ = sb.AppendLine("Cache Performance:");
-        Int64 totalOps = TotalGetOperations;
+        long totalOps = TotalGetOperations;
         if (totalOps > 0)
         {
-            Double hitRate = TotalCacheHits / (Double)totalOps * 100.0;
-            Double missRate = TotalCacheMisses / (Double)totalOps * 100.0;
+            double hitRate = TotalCacheHits / (double)totalOps * 100.0;
+            double missRate = TotalCacheMisses / (double)totalOps * 100.0;
             _ = sb.AppendLine($"Cache Hits             : {TotalCacheHits:N0} ({hitRate:F2}%)");
             _ = sb.AppendLine($"Cache Misses           : {TotalCacheMisses:N0} ({missRate:F2}%)");
             _ = sb.AppendLine($"Overall Hit Rate       : {hitRate:F2}%");
         }
         else
         {
-            _ = sb.AppendLine($"Cache Hits             : 0 (0.00%)");
-            _ = sb.AppendLine($"Cache Misses           : 0 (0.00%)");
-            _ = sb.AppendLine($"Overall Hit Rate       : N/A");
+            _ = sb.AppendLine("Cache Hits             : 0 (0.00%)");
+            _ = sb.AppendLine("Cache Misses           : 0 (0.00%)");
+            _ = sb.AppendLine("Overall Hit Rate       : N/A");
         }
         _ = sb.AppendLine();
 
@@ -538,30 +575,30 @@ public sealed class ObjectPoolManager : IReportable
 
         // Fix: create sortable list from dictionary
         List<KeyValuePair<Type, ObjectPool>> sortedPools = [.. _poolDict];
-        sortedPools.Sort((a, b) => System.String.CompareOrdinal(a.Key.Name, b.Key.Name));
+        sortedPools.Sort((a, b) => string.CompareOrdinal(a.Key.Name, b.Key.Name));
 
         foreach (KeyValuePair<Type, ObjectPool> kvp in sortedPools)
         {
             Type type = kvp.Key;
-            Dictionary<String, Object> typeInfo = kvp.Value.GetTypeInfoByType(kvp.Key);
+            Dictionary<string, object> typeInfo = kvp.Value.GetTypeInfoByType(kvp.Key);
 
-            String typeName = type.Name.Length > 24
-                ? $"{MemoryExtensions.AsSpan(type.Name, 0, 21)}..."
+            string typeName = type.Name.Length > 24
+                ? $"{type.Name.AsSpan(0, 21)}..."
                 : type.Name.PadRight(24);
 
-            Int32 available = Convert.ToInt32(typeInfo["AvailableCount"]);
-            Int32 maxCap = Convert.ToInt32(typeInfo["MaxCapacity"]);
+            int available = Convert.ToInt32(typeInfo["AvailableCount"]);
+            int maxCap = Convert.ToInt32(typeInfo["MaxCapacity"]);
 
-            Int64 gets = 0, hits = 0, misses = 0;
-            Double hitPercent = 0.0;
-            String status = "OK";
+            long gets = 0, hits = 0, misses = 0;
+            double hitPercent = 0.0;
+            string status = "OK";
 
             if (_metricsDict.TryGetValue(type, out PoolMetrics? metrics))
             {
                 gets = metrics.TotalGets;
                 hits = metrics.CacheHits;
                 misses = metrics.CacheMisses;
-                hitPercent = gets > 0 ? (hits / (Double)gets * 100.0) : 0.0;
+                hitPercent = gets > 0 ? (hits / (double)gets * 100.0) : 0.0;
 
                 if (metrics.ConsecutiveFailures > 0)
                 {
@@ -585,8 +622,8 @@ public sealed class ObjectPoolManager : IReportable
 
             foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict.Where(x => x.Value.ConsecutiveFailures > 0))
             {
-                String typeName = kvp.Key.Name.Length > 24
-                    ? $"{MemoryExtensions.AsSpan(kvp.Key.Name, 0, 21)}..."
+                string typeName = kvp.Key.Name.Length > 24
+                    ? $"{kvp.Key.Name.AsSpan(0, 21)}..."
                     : kvp.Key.Name.PadRight(24);
 
                 _ = sb.AppendLine($"{typeName} | {kvp.Value.ConsecutiveFailures,20} | {kvp.Value.LastAccessUtc:HH:mm:ss}");
@@ -609,9 +646,9 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <returns>A dictionary containing comprehensive statistics.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public Dictionary<String, Object> GetDetailedStatistics()
+    public Dictionary<string, object> GetDetailedStatistics()
     {
-        Dictionary<string, object> stats = new Dictionary<String, Object>
+        Dictionary<string, object> stats = new()
         {
             ["PoolCount"] = PoolCount,
             ["PeakPoolCount"] = PeakPoolCount,
@@ -626,12 +663,12 @@ public sealed class ObjectPoolManager : IReportable
             ["DefaultMaxPoolSize"] = DefaultMaxPoolSize
         };
 
-        Dictionary<string, Dictionary<string, object>> poolStats = new Dictionary<String, Dictionary<String, Object>>();
+        Dictionary<string, Dictionary<string, object>> poolStats = [];
 
         foreach (KeyValuePair<Type, ObjectPool> kvp in _poolDict)
         {
-            String typeName = kvp.Key.Name;
-            Dictionary<String, Object> baseStats = kvp.Value.GetStatistics();
+            string typeName = kvp.Key.Name;
+            Dictionary<string, object> baseStats = kvp.Value.GetStatistics();
 
             // Add metrics if available
             if (_metricsDict.TryGetValue(kvp.Key, out PoolMetrics? metrics))
@@ -639,7 +676,7 @@ public sealed class ObjectPoolManager : IReportable
                 baseStats["CacheHits"] = metrics.CacheHits;
                 baseStats["CacheMisses"] = metrics.CacheMisses;
                 baseStats["CacheHitRate"] = metrics.TotalGets > 0
-                    ? (metrics.CacheHits / (Double)metrics.TotalGets * 100.0)
+                    ? (metrics.CacheHits / (double)metrics.TotalGets * 100.0)
                     : 0.0;
                 baseStats["LastAccessUtc"] = metrics.LastAccessUtc;
                 baseStats["LastAccessType"] = metrics.LastAccessType ?? "None";
@@ -658,6 +695,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Gets or creates an <see cref="ObjectPool"/> for <typeparamref name="T"/>.
     /// </summary>
+    /// <typeparam name="T"></typeparam>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -668,8 +706,8 @@ public sealed class ObjectPoolManager : IReportable
         ObjectPool pool = _poolDict.GetOrAdd(type, _ =>
         {
             // Update peak pool count on new pool creation (this is executed while adding)
-            Int32 currentCount = _poolDict.Count + 1; // approximate expected count after add
-            Int32 observed;
+            int currentCount = _poolDict.Count + 1; // approximate expected count after add
+            int observed;
             do
             {
                 observed = _peakPoolCount;

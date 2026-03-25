@@ -17,7 +17,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// <list type="bullet">
 /// <item>
 /// <description>
-/// <c>[4 bytes]</c> Count (<see cref="System.Int32"/>, little-endian)
+/// <c>[4 bytes]</c> Count (<see cref="int"/>, little-endian)
 /// — <c>-1</c> indicates <c>null</c>, <c>0</c> indicates empty queue.
 /// </description>
 /// </item>
@@ -49,7 +49,7 @@ internal sealed class QueueFormatter<
     /// <summary>
     /// Gets the debugger display string for this formatter.
     /// </summary>
-    private static System.String DebuggerDisplay => $"QueueFormatter<{typeof(T).Name}>";
+    private static string DebuggerDisplay => $"QueueFormatter<{typeof(T).Name}>";
 
     /// <summary>
     /// Formatter used to serialize and deserialize queue elements.
@@ -60,22 +60,22 @@ internal sealed class QueueFormatter<
     /// Initializes a new instance of the <see cref="QueueFormatter{T}"/> class.
     /// </summary>
     /// <exception cref="System.NotSupportedException">
-    /// Thrown when <typeparamref name="T"/> is a class other than <see cref="System.String"/>.
+    /// Thrown when <typeparamref name="T"/> is a class other than <see cref="string"/>.
     /// </exception>
     /// <remarks>
     /// <para>
     /// Element type restrictions:
     /// </para>
     /// <list type="bullet">
-    /// <item><description>Allowed: primitive types, <see cref="System.String"/>, enums, unmanaged structs.</description></item>
-    /// <item><description>Not allowed: reference types (except <see cref="System.String"/>).</description></item>
+    /// <item><description>Allowed: primitive types, <see cref="string"/>, enums, unmanaged structs.</description></item>
+    /// <item><description>Not allowed: reference types (except <see cref="string"/>).</description></item>
     /// </list>
     /// </remarks>
     public QueueFormatter()
     {
         System.Type elementType = typeof(T);
 
-        if (elementType.IsClass && elementType != typeof(System.String))
+        if (elementType.IsClass && elementType != typeof(string))
         {
             throw new System.NotSupportedException(
                 $"QueueFormatter: T='{elementType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as element.");
@@ -111,15 +111,15 @@ internal sealed class QueueFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(System.Int32));
-            FormatterProvider.Get<System.Int32>()
+            writer.Expand(sizeof(int));
+            FormatterProvider.Get<int>()
                              .Serialize(ref writer, -1);
             return;
         }
 
-        System.Int32 count = value.Count;
-        writer.Expand(sizeof(System.Int32));
-        FormatterProvider.Get<System.Int32>()
+        int count = value.Count;
+        writer.Expand(sizeof(int));
+        FormatterProvider.Get<int>()
                          .Serialize(ref writer, count);
 
         if (count is 0)
@@ -165,7 +165,7 @@ internal sealed class QueueFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.Queue<T>? Deserialize(ref DataReader reader)
     {
-        System.Int32 count = FormatterProvider.Get<System.Int32>()
+        int count = FormatterProvider.Get<int>()
                                               .Deserialize(ref reader);
 
         if (count == -1)
@@ -175,7 +175,7 @@ internal sealed class QueueFormatter<
 
         System.Collections.Generic.Queue<T> queue = new(count);
 
-        for (System.Int32 i = 0; i < count; i++)
+        for (int i = 0; i < count; i++)
         {
             queue.Enqueue(_elementFormatter.Deserialize(ref reader));
         }

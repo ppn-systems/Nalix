@@ -6,7 +6,7 @@ namespace Nalix.Shared.Memory.Buffers;
 /// <summary>
 /// A mutable, growable write buffer for high-performance serialization.
 /// Internally stores a <see cref="System.Span{Byte}"/> view and, when rented,
-/// keeps the backing <see cref="System.Byte"/> array to allow expansion and pooling.
+/// keeps the backing <see cref="byte"/> array to allow expansion and pooling.
 /// </summary>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
@@ -14,18 +14,24 @@ namespace Nalix.Shared.Memory.Buffers;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 [System.Diagnostics.DebuggerDisplay("Len={Length}, Written={WrittenCount}, Rent={_rent}, OWNER={( _owner != null )}")]
-public ref struct DataWriter
+public struct DataWriter
 {
     #region Fields
 
-    // Current writable view
-    private System.Span<System.Byte> _span;
+    /// <summary>
+    /// Current writable view
+    /// </summary>
+    private System.Span<byte> _span;
 
-    // Backing array when owned (rented or external array); null if wrapping an external span
-    private System.Byte[]? _owner;
+    /// <summary>
+    /// Backing array when owned (rented or external array); null if wrapping an external span
+    /// </summary>
+    private byte[]? _owner;
 
-    // True when the backing array was rented from ArrayPool and must be returned on Dispose
-    private readonly System.Boolean _rent;
+    /// <summary>
+    /// True when the backing array was rented from ArrayPool and must be returned on Dispose
+    /// </summary>
+    private readonly bool _rent;
 
     #endregion Fields
 
@@ -36,7 +42,7 @@ public ref struct DataWriter
     /// </summary>
     /// <param name="size">Initial capacity in bytes (must be &gt; 0).</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if <paramref name="size"/> is not positive.</exception>
-    public DataWriter(System.Int32 size)
+    public DataWriter(int size)
     {
         if (size <= 0)
         {
@@ -56,7 +62,7 @@ public ref struct DataWriter
     /// </summary>
     /// <param name="buffer">External backing array (length must be &gt; 0).</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if <paramref name="buffer"/> has zero length.</exception>
-    public DataWriter(System.Byte[] buffer)
+    public DataWriter(byte[] buffer)
     {
         if (buffer.Length == 0)
         {
@@ -75,7 +81,7 @@ public ref struct DataWriter
     /// </summary>
     /// <param name="span">External backing array (length must be &gt; 0).</param>
     /// <exception cref="System.ArgumentOutOfRangeException">Thrown if <paramref name="span"/> has zero length.</exception>
-    public DataWriter(System.Span<System.Byte> span)
+    public DataWriter(System.Span<byte> span)
     {
         if (span.Length <= 0)
         {
@@ -94,16 +100,16 @@ public ref struct DataWriter
     #region Properties
 
     /// <summary>
-    /// Gets the number of bytes committed via <see cref="Advance(System.Int32)"/>.
+    /// Gets the number of bytes committed via <see cref="Advance(int)"/>.
     /// </summary>
     [System.Diagnostics.Contracts.Pure]
-    public System.Int32 WrittenCount { get; private set; }
+    public int WrittenCount { get; private set; }
 
     /// <summary>
     /// Gets a span representing the remaining unwritten segment of the buffer.
     /// </summary>
     [System.Diagnostics.Contracts.Pure]
-    public readonly System.Span<System.Byte> FreeBuffer => _span[WrittenCount..];
+    public readonly System.Span<byte> FreeBuffer => _span[WrittenCount..];
 
     #endregion Properties
 
@@ -117,9 +123,9 @@ public ref struct DataWriter
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Advance(System.Int32 count)
+    public void Advance(int count)
     {
-        if (count <= 0 || (System.UInt32)(WrittenCount + count) > (System.UInt32)_span.Length)
+        if (count <= 0 || (uint)(WrittenCount + count) > (uint)_span.Length)
         {
             throw new System.ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
         }
@@ -129,13 +135,13 @@ public ref struct DataWriter
 
     /// <summary>
     /// Returns a reference to the first byte of <see cref="FreeBuffer"/> for ref-based writes.
-    /// Call <see cref="Expand(System.Int32)"/> beforehand to ensure capacity.
+    /// Call <see cref="Expand(int)"/> beforehand to ensure capacity.
     /// </summary>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Diagnostics.CodeAnalysis.UnscopedRef]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly ref System.Byte GetFreeBufferReference() => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(FreeBuffer);
+    public readonly ref byte GetFreeBufferReference() => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(FreeBuffer);
 
     /// <summary>
     /// Ensures at least <paramref name="minimumSize"/> bytes are available in <see cref="FreeBuffer"/>.
@@ -148,7 +154,7 @@ public ref struct DataWriter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Expand(System.Int32 minimumSize)
+    public void Expand(int minimumSize)
     {
         if (minimumSize <= 0)
         {
@@ -166,11 +172,11 @@ public ref struct DataWriter
         }
 
         // Rent a larger buffer and copy committed bytes
-        System.Int32 current = _owner?.Length ?? 0;
-        System.Int32 needed = WrittenCount + minimumSize;
-        System.Int32 newSize = current <= 0 ? needed : System.Math.Max(current * 2, needed);
+        int current = _owner?.Length ?? 0;
+        int needed = WrittenCount + minimumSize;
+        int newSize = current <= 0 ? needed : System.Math.Max(current * 2, needed);
 
-        System.Byte[] newOwner = BufferLease.ByteArrayPool.Rent(newSize);
+        byte[] newOwner = BufferLease.ByteArrayPool.Rent(newSize);
         if (WrittenCount > 0)
         {
             if (current <= 128)
@@ -183,7 +189,7 @@ public ref struct DataWriter
             }
         }
 
-        System.Byte[]? oldOwner = _owner;
+        byte[]? oldOwner = _owner;
 
         _owner = newOwner;
         _span = System.MemoryExtensions.AsSpan(_owner);
@@ -197,22 +203,22 @@ public ref struct DataWriter
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        static unsafe void CopyBytes(System.Byte[]? src, System.Byte[] dst, System.Int32 count)
+        static unsafe void CopyBytes(byte[]? src, byte[] dst, int count)
         {
             System.ArgumentNullException.ThrowIfNull(src);
             System.ArgumentNullException.ThrowIfNull(dst);
             System.ArgumentOutOfRangeException.ThrowIfNegative(count);
 
-            if ((System.UInt32)count > (System.UInt32)src.Length || (System.UInt32)count > (System.UInt32)dst.Length)
+            if ((uint)count > (uint)src.Length || (uint)count > (uint)dst.Length)
             {
                 throw new System.ArgumentOutOfRangeException(nameof(count));
             }
 
-            fixed (System.Byte* pSrc = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(src))
+            fixed (byte* pSrc = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(src))
             {
-                fixed (System.Byte* pDst = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(dst))
+                fixed (byte* pDst = &System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(dst))
                 {
-                    System.Buffer.MemoryCopy(pSrc, pDst, (System.UIntPtr)count, (System.UIntPtr)count);
+                    System.Buffer.MemoryCopy(pSrc, pDst, (nuint)count, (nuint)count);
                 }
             }
         }
@@ -223,10 +229,10 @@ public ref struct DataWriter
     /// </summary>
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
-    public readonly System.Byte[] ToArray()
+    public readonly byte[] ToArray()
     {
-        System.Int32 n = WrittenCount;
-        System.Byte[] result = new System.Byte[n];
+        int n = WrittenCount;
+        byte[] result = new byte[n];
         if (n > 0)
         {
             _span[..n].CopyTo(result);

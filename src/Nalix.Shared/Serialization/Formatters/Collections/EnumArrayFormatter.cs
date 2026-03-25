@@ -21,8 +21,8 @@ internal sealed class EnumArrayFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T[]> where T : struct, System.Enum
 {
-    private static readonly System.Int32 _elementSize;
-    private static System.String DebuggerDisplay => $"EnumArrayFormatter<{typeof(T).FullName}>";
+    private static readonly int _elementSize;
+    private static string DebuggerDisplay => $"EnumArrayFormatter<{typeof(T).FullName}>";
 
     static EnumArrayFormatter()
     {
@@ -30,10 +30,10 @@ internal sealed class EnumArrayFormatter<
 
         _elementSize = underlyingType switch
         {
-            System.Type t when t == typeof(System.Byte) || t == typeof(System.SByte) => 1,
-            System.Type t when t == typeof(System.Int16) || t == typeof(System.UInt16) => 2,
-            System.Type t when t == typeof(System.Int32) || t == typeof(System.UInt32) => 4,
-            System.Type t when t == typeof(System.Int64) || t == typeof(System.UInt64) => 8,
+            System.Type t when t == typeof(byte) || t == typeof(sbyte) => 1,
+            System.Type t when t == typeof(short) || t == typeof(ushort) => 2,
+            System.Type t when t == typeof(int) || t == typeof(uint) => 4,
+            System.Type t when t == typeof(long) || t == typeof(ulong) => 8,
             _ => throw new SerializationException($"Unsupported enum underlying type: {underlyingType}")
         };
     }
@@ -48,35 +48,35 @@ internal sealed class EnumArrayFormatter<
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public unsafe void Serialize(ref DataWriter writer, T[] value)
+    public void Serialize(ref DataWriter writer, T[] value)
     {
         if (value == null)
         {
-            writer.Expand(sizeof(System.UInt16));
-            FormatterProvider.Get<System.UInt16>()
+            writer.Expand(sizeof(ushort));
+            FormatterProvider.Get<ushort>()
                              .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
-        writer.Expand(sizeof(System.UInt16));
-        FormatterProvider.Get<System.UInt16>()
-                         .Serialize(ref writer, (System.UInt16)value.Length);
+        writer.Expand(sizeof(ushort));
+        FormatterProvider.Get<ushort>()
+                         .Serialize(ref writer, (ushort)value.Length);
 
         if (value.Length == 0)
         {
             return;
         }
 
-        System.Int32 totalBytes = value.Length * _elementSize;
+        int totalBytes = value.Length * _elementSize;
         writer.Expand(totalBytes);
 
-        ref System.Byte dstRef = ref writer.GetFreeBufferReference();
+        ref byte dstRef = ref writer.GetFreeBufferReference();
         ref T srcRef = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(value);
 
         System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
             ref dstRef,
-            ref System.Runtime.CompilerServices.Unsafe.As<T, System.Byte>(ref srcRef),
-            (System.UInt32)totalBytes);
+            ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref srcRef),
+            (uint)totalBytes);
 
         writer.Advance(totalBytes);
     }
@@ -91,9 +91,9 @@ internal sealed class EnumArrayFormatter<
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public unsafe T[] Deserialize(ref DataReader reader)
+    public T[] Deserialize(ref DataReader reader)
     {
-        System.UInt16 length = FormatterProvider.Get<System.UInt16>()
+        ushort length = FormatterProvider.Get<ushort>()
                                                 .Deserialize(ref reader);
 
         if (length == 0)
@@ -111,7 +111,7 @@ internal sealed class EnumArrayFormatter<
             throw new SerializationException("Array length out of range");
         }
 
-        System.Int32 totalBytes = length * _elementSize;
+        int totalBytes = length * _elementSize;
 
 #if DEBUG
         if (reader.BytesRemaining < totalBytes)
@@ -122,12 +122,12 @@ internal sealed class EnumArrayFormatter<
 #endif
 
         T[] result = new T[length];
-        ref System.Byte src = ref reader.GetSpanReference(totalBytes);
+        ref byte src = ref reader.GetSpanReference(totalBytes);
         ref T dst = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(result);
 
         System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-            ref System.Runtime.CompilerServices.Unsafe.As<T, System.Byte>(ref dst),
-            ref src, (System.UInt32)totalBytes);
+            ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref dst),
+            ref src, (uint)totalBytes);
 
         reader.Advance(totalBytes);
         return result;

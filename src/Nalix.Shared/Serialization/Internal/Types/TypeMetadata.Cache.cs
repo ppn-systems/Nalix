@@ -3,8 +3,6 @@
 
 using Nalix.Common.Serialization;
 
-
-
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
@@ -27,15 +25,15 @@ internal static partial class TypeMetadata
 
     private static class Cache<[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(PropertyAccess)] T>
     {
-        public static System.Boolean IsUnmanaged;
-        public static System.Boolean IsNullable;
-        public static System.Boolean IsReference;
-        public static System.Boolean IsUnmanagedSZArray;
-        public static System.Boolean IsFixedSizeSerializable;
-        public static System.Boolean IsCompositeSerializable;
+        public static bool IsUnmanaged;
+        public static bool IsNullable;
+        public static bool IsReference;
+        public static bool IsUnmanagedSZArray;
+        public static bool IsFixedSizeSerializable;
+        public static bool IsCompositeSerializable;
 
-        public static System.Int32 SerializableFixedSize;
-        public static System.Int32 UnmanagedSZArrayElementSize;
+        public static int SerializableFixedSize;
+        public static int UnmanagedSZArrayElementSize;
 
         static Cache()
         {
@@ -56,17 +54,14 @@ internal static partial class TypeMetadata
                         UnmanagedSZArrayElementSize = UnsafeSizeOf(elementType);
                     }
                 }
-                else
+                else if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
                 {
-                    if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
-                    {
-                        System.Reflection.PropertyInfo? prop = type.GetProperty(nameof(IFixedSizeSerializable.Size), Flags);
+                    System.Reflection.PropertyInfo? prop = type.GetProperty(nameof(IFixedSizeSerializable.Size), Flags);
 
-                        if (prop?.GetValue(null) is System.Int32 size)
-                        {
-                            IsFixedSizeSerializable = true;
-                            SerializableFixedSize = size;
-                        }
+                    if (prop?.GetValue(null) is int size)
+                    {
+                        IsFixedSizeSerializable = true;
+                        SerializableFixedSize = size;
                     }
                 }
             }

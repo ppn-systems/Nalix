@@ -10,6 +10,7 @@ namespace Nalix.Shared.Serialization.Formatters.Collections;
 /// Serializes/deserializes a List of nullable value-type elements (List&lt;T?&gt; where T : struct).
 /// Writes a 1-byte null flag per element: 0 = null, 1 = present.
 /// </summary>
+/// <typeparam name="T"></typeparam>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
@@ -21,7 +22,7 @@ internal sealed class NullableValueListFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
     : IFormatter<System.Collections.Generic.List<T?>> where T : struct
 {
-    private static System.String DebuggerDisplay => $"NullableValueListFormatter<{typeof(T).FullName}?>";
+    private static string DebuggerDisplay => $"NullableValueListFormatter<{typeof(T).FullName}?>";
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -30,16 +31,16 @@ internal sealed class NullableValueListFormatter<
         // List null?
         if (value == null)
         {
-            writer.Expand(sizeof(System.UInt16));
-            FormatterProvider.Get<System.UInt16>()
+            writer.Expand(sizeof(ushort));
+            FormatterProvider.Get<ushort>()
                              .Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
         // Write length
-        writer.Expand(sizeof(System.UInt16));
-        System.UInt16 count = (System.UInt16)value.Count;
-        FormatterProvider.Get<System.UInt16>().Serialize(ref writer, count);
+        writer.Expand(sizeof(ushort));
+        ushort count = (ushort)value.Count;
+        FormatterProvider.Get<ushort>().Serialize(ref writer, count);
 
         if (count == 0)
         {
@@ -47,10 +48,10 @@ internal sealed class NullableValueListFormatter<
         }
 
         // Per-element: write null flag then payload (if any)
-        IFormatter<System.Byte> byteFormatter = FormatterProvider.Get<System.Byte>();
+        IFormatter<byte> byteFormatter = FormatterProvider.Get<byte>();
         IFormatter<T> elemFormatter = FormatterProvider.Get<T>();
 
-        for (System.Int32 i = 0; i < count; i++)
+        for (int i = 0; i < count; i++)
         {
             T? item = value[i];
             if (!item.HasValue)
@@ -68,7 +69,7 @@ internal sealed class NullableValueListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T?> Deserialize(ref DataReader reader)
     {
-        System.UInt16 length = FormatterProvider.Get<System.UInt16>().Deserialize(ref reader);
+        ushort length = FormatterProvider.Get<ushort>().Deserialize(ref reader);
 
         if (length == SerializerBounds.Null)
         {
@@ -80,13 +81,13 @@ internal sealed class NullableValueListFormatter<
             return [];
         }
 
-        IFormatter<System.Byte> byteFormatter = FormatterProvider.Get<System.Byte>();
+        IFormatter<byte> byteFormatter = FormatterProvider.Get<byte>();
         IFormatter<T> elemFormatter = FormatterProvider.Get<T>();
 
         System.Collections.Generic.List<T?> list = new(length);
-        for (System.Int32 i = 0; i < length; i++)
+        for (int i = 0; i < length; i++)
         {
-            System.Byte flag = byteFormatter.Deserialize(ref reader);
+            byte flag = byteFormatter.Deserialize(ref reader);
             if (flag == 0)
             {
                 list.Add(null);
@@ -106,6 +107,7 @@ internal sealed class NullableValueListFormatter<
 /// Serializes/deserializes a List of nullable reference-type elements (List&lt;T?&gt; where T : class).
 /// Writes a 1-byte null flag per element: 0 = null, 1 = present.
 /// </summary>
+/// <typeparam name="T"></typeparam>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
@@ -118,7 +120,7 @@ internal sealed class NullableRefListFormatter<
     : IFormatter<System.Collections.Generic.List<T?>>
     where T : class
 {
-    private static System.String DebuggerDisplay => $"NullableRefListFormatter<{typeof(T).FullName}?>";
+    private static string DebuggerDisplay => $"NullableRefListFormatter<{typeof(T).FullName}?>";
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -126,22 +128,22 @@ internal sealed class NullableRefListFormatter<
     {
         if (value == null)
         {
-            FormatterProvider.Get<System.UInt16>().Serialize(ref writer, SerializerBounds.Null);
+            FormatterProvider.Get<ushort>().Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
-        System.UInt16 count = (System.UInt16)value.Count;
-        FormatterProvider.Get<System.UInt16>().Serialize(ref writer, count);
+        ushort count = (ushort)value.Count;
+        FormatterProvider.Get<ushort>().Serialize(ref writer, count);
 
         if (count == 0)
         {
             return;
         }
 
-        IFormatter<System.Byte> byteFormatter = FormatterProvider.Get<System.Byte>();
+        IFormatter<byte> byteFormatter = FormatterProvider.Get<byte>();
         IFormatter<T> elemFormatter = FormatterProvider.Get<T>();
 
-        for (System.Int32 i = 0; i < count; i++)
+        for (int i = 0; i < count; i++)
         {
             T? item = value[i];
             if (item is null)
@@ -159,7 +161,7 @@ internal sealed class NullableRefListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T?> Deserialize(ref DataReader reader)
     {
-        System.UInt16 length = FormatterProvider.Get<System.UInt16>().Deserialize(ref reader);
+        ushort length = FormatterProvider.Get<ushort>().Deserialize(ref reader);
 
         if (length == SerializerBounds.Null)
         {
@@ -171,13 +173,13 @@ internal sealed class NullableRefListFormatter<
             return [];
         }
 
-        IFormatter<System.Byte> byteFormatter = FormatterProvider.Get<System.Byte>();
+        IFormatter<byte> byteFormatter = FormatterProvider.Get<byte>();
         IFormatter<T> elemFormatter = FormatterProvider.Get<T>();
 
         System.Collections.Generic.List<T?> list = new(length);
-        for (System.Int32 i = 0; i < length; i++)
+        for (int i = 0; i < length; i++)
         {
-            System.Byte flag = byteFormatter.Deserialize(ref reader);
+            byte flag = byteFormatter.Deserialize(ref reader);
             if (flag == 0)
             {
                 list.Add(null);

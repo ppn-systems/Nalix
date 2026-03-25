@@ -15,19 +15,19 @@ internal sealed class BufferPoolShared : System.IDisposable
 {
     #region Fields
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Int32, BufferPoolShared> Pools = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, BufferPoolShared> Pools = new();
 
     private readonly BufferRing _freeBuffers;
-    private readonly System.Int32 _bufferSize;
-    private readonly System.Boolean _secureClear;
+    private readonly int _bufferSize;
+    private readonly bool _secureClear;
     private readonly System.Threading.Lock _disposeLock;
-    private readonly System.Buffers.ArrayPool<System.Byte> _arrayPool;
+    private readonly System.Buffers.ArrayPool<byte> _arrayPool;
 
-    private System.Int32 _misses;
-    private System.Boolean _disposed;
+    private int _misses;
+    private bool _disposed;
     private BufferPoolState _poolInfo;
-    private System.Int32 _totalBuffers;
-    private System.Int32 _isOptimizing;
+    private int _totalBuffers;
+    private int _isOptimizing;
 
     #endregion Fields
 
@@ -36,12 +36,12 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// The total number of buffers in the pool.
     /// </summary>
-    public System.Int32 TotalBuffers => System.Threading.Volatile.Read(ref _totalBuffers);
+    public int TotalBuffers => System.Threading.Volatile.Read(ref _totalBuffers);
 
     /// <summary>
     /// The number of free buffers in the pool.
     /// </summary>
-    public System.Int32 FreeBuffers => _freeBuffers.Count;
+    public int FreeBuffers => _freeBuffers.Count;
 
     #endregion Properties
 
@@ -50,16 +50,19 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolShared"/> class.
     /// </summary>
-    private BufferPoolShared(System.Int32 bufferSize, System.Int32 initialCapacity, System.Boolean secureClear)
+    /// <param name="bufferSize"></param>
+    /// <param name="initialCapacity"></param>
+    /// <param name="secureClear"></param>
+    private BufferPoolShared(int bufferSize, int initialCapacity, bool secureClear)
     {
         _disposeLock = new();
         _bufferSize = bufferSize;
         _secureClear = secureClear;
-        _arrayPool = System.Buffers.ArrayPool<System.Byte>.Shared;
+        _arrayPool = System.Buffers.ArrayPool<byte>.Shared;
 
-        System.Int32 ringCapacity = initialCapacity <= 0
+        int ringCapacity = initialCapacity <= 0
             ? 4
-            : (System.Int32)System.Numerics.BitOperations.RoundUpToPowerOf2((System.UInt32)initialCapacity);
+            : (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)initialCapacity);
 
         _freeBuffers = new BufferRing(ringCapacity);
 
@@ -73,9 +76,12 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Gets or creates a shared buffer pool for the specified buffer size.
     /// </summary>
+    /// <param name="bufferSize"></param>
+    /// <param name="initialCapacity"></param>
+    /// <param name="secureClear"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static BufferPoolShared GetOrCreatePool(System.Int32 bufferSize, System.Int32 initialCapacity, System.Boolean secureClear)
+    public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity, bool secureClear)
         => Pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity, secureClear));
 
     /// <summary>
@@ -84,16 +90,16 @@ internal sealed class BufferPoolShared : System.IDisposable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Byte[] AcquireBuffer()
+    public byte[] AcquireBuffer()
     {
-        if (_freeBuffers.TryDequeue(out System.Byte[]? buffer) && buffer is not null)
+        if (_freeBuffers.TryDequeue(out byte[]? buffer) && buffer is not null)
         {
             return buffer;
         }
 
         _ = System.Threading.Interlocked.Increment(ref _misses);
 
-        System.Byte[] newBuffer = _arrayPool.Rent(_bufferSize);
+        byte[] newBuffer = _arrayPool.Rent(_bufferSize);
         _ = System.Threading.Interlocked.Increment(ref _totalBuffers);
 
         return newBuffer;
@@ -102,10 +108,12 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Releases a buffer back into the pool.
     /// </summary>
+    /// <param name="buffer"></param>
+    /// <exception cref="System.ArgumentException"></exception>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public unsafe void ReleaseBuffer(System.Byte[] buffer)
+    public void ReleaseBuffer(byte[] buffer)
     {
         if (buffer is null || buffer.Length != _bufferSize)
         {
@@ -127,10 +135,12 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Increases the capacity of the pool by adding buffers.
     /// </summary>
+    /// <param name="additionalCapacity"></param>
+    /// <exception cref="System.ArgumentException"></exception>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void IncreaseCapacity(System.Int32 additionalCapacity)
+    public void IncreaseCapacity(int additionalCapacity)
     {
         if (additionalCapacity <= 0)
         {
@@ -155,10 +165,11 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Decreases the capacity of the pool by removing buffers.
     /// </summary>
+    /// <param name="capacityToRemove"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void DecreaseCapacity(System.Int32 capacityToRemove)
+    public void DecreaseCapacity(int capacityToRemove)
     {
         if (capacityToRemove <= 0)
         {
@@ -172,14 +183,14 @@ internal sealed class BufferPoolShared : System.IDisposable
 
         try
         {
-            System.Int32 removed = 0;
-            System.Int32 target = System.Math.Min(capacityToRemove, _freeBuffers.Count);
+            int removed = 0;
+            int target = System.Math.Min(capacityToRemove, _freeBuffers.Count);
 
-            System.Collections.Generic.List<System.Byte[]> buffersToReturn = new(target);
+            System.Collections.Generic.List<byte[]> buffersToReturn = new(target);
 
-            for (System.Int32 i = 0; i < target; i++)
+            for (int i = 0; i < target; i++)
             {
-                if (_freeBuffers.TryDequeue(out System.Byte[]? buf))
+                if (_freeBuffers.TryDequeue(out byte[]? buf))
                 {
                     buffersToReturn.Add(buf);
                     removed++;
@@ -253,21 +264,22 @@ internal sealed class BufferPoolShared : System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private unsafe void ClearBuffer(System.Byte[] buffer)
+    private unsafe void ClearBuffer(byte[] buffer)
     {
-        fixed (System.Byte* ptr = buffer)
+        fixed (byte* ptr = buffer)
         {
-            System.Runtime.CompilerServices.Unsafe.InitBlock(ptr, 0, (System.UInt32)buffer.Length);
+            System.Runtime.CompilerServices.Unsafe.InitBlock(ptr, 0, (uint)buffer.Length);
         }
     }
 
     /// <summary>
     /// Pre-allocates buffers to the specified capacity.
     /// </summary>
+    /// <param name="capacity"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void PreallocateBuffers(System.Int32 capacity)
+    private void PreallocateBuffers(int capacity)
     {
         if (capacity <= 0)
         {
@@ -281,23 +293,24 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Rents buffers from the ArrayPool and enqueues them into the ring.
     /// </summary>
+    /// <param name="count"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void RentAndEnqueueBuffers(System.Int32 count)
+    private void RentAndEnqueueBuffers(int count)
     {
         if (count <= 0)
         {
             return;
         }
 
-        System.Collections.Generic.List<System.Byte[]> rented = new(count);
-        for (System.Int32 i = 0; i < count; ++i)
+        System.Collections.Generic.List<byte[]> rented = new(count);
+        for (int i = 0; i < count; ++i)
         {
             rented.Add(_arrayPool.Rent(_bufferSize));
         }
 
-        foreach (System.Byte[] buf in rented)
+        foreach (byte[] buf in rented)
         {
             _ = _freeBuffers.TryEnqueue(buf);
         }
@@ -308,14 +321,15 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Returns a collection of buffers to the ArrayPool, optionally clearing them.
     /// </summary>
+    /// <param name="buffers"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void ReturnBuffersToArrayPool(System.Collections.Generic.List<System.Byte[]> buffers)
+    private void ReturnBuffersToArrayPool(System.Collections.Generic.List<byte[]> buffers)
     {
-        for (System.Int32 i = 0; i < buffers.Count; i++)
+        for (int i = 0; i < buffers.Count; i++)
         {
-            System.Byte[] buf = buffers[i];
+            byte[] buf = buffers[i];
             if (_secureClear)
             {
                 ClearBuffer(buf);
@@ -328,14 +342,15 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Returns a buffer array to the ArrayPool, optionally clearing them.
     /// </summary>
+    /// <param name="buffers"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void ReturnBuffersToArrayPool(System.Byte[][] buffers)
+    private void ReturnBuffersToArrayPool(byte[][] buffers)
     {
-        for (System.Int32 i = 0; i < buffers.Length; i++)
+        for (int i = 0; i < buffers.Length; i++)
         {
-            System.Byte[] buf = buffers[i];
+            byte[] buf = buffers[i];
             if (_secureClear)
             {
                 ClearBuffer(buf);
@@ -348,10 +363,11 @@ internal sealed class BufferPoolShared : System.IDisposable
     /// <summary>
     /// Performs the actual resource cleanup.
     /// </summary>
+    /// <param name="disposing"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void Dispose(System.Boolean disposing)
+    private void Dispose(bool disposing)
     {
         if (_disposed)
         {
@@ -368,7 +384,7 @@ internal sealed class BufferPoolShared : System.IDisposable
             if (disposing)
             {
                 // Drain all remaining buffers from ring and return them to ArrayPool.
-                System.Byte[][] buffers = _freeBuffers.DrainAll();
+                byte[][] buffers = _freeBuffers.DrainAll();
                 if (buffers.Length > 0)
                 {
                     ReturnBuffersToArrayPool(buffers);
@@ -401,7 +417,7 @@ internal sealed class BufferPoolShared : System.IDisposable
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private System.Boolean TryBeginOptimize() => System.Threading.Interlocked.CompareExchange(ref _isOptimizing, 1, 0) == 0;
+    private bool TryBeginOptimize() => System.Threading.Interlocked.CompareExchange(ref _isOptimizing, 1, 0) == 0;
 
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -414,15 +430,15 @@ internal sealed class BufferPoolShared : System.IDisposable
 
     private sealed class BufferRing
     {
-        private System.Byte[][] _slots;
-        private System.Int32 _head;
-        private System.Int32 _tail;
-        private System.Int32 _count;
+        private byte[][] _slots;
+        private int _head;
+        private int _tail;
+        private int _count;
         private System.Threading.SpinLock _lock;
 
-        public System.Int32 Count => System.Threading.Volatile.Read(ref _count);
+        public int Count => System.Threading.Volatile.Read(ref _count);
 
-        public BufferRing(System.Int32 capacity)
+        public BufferRing(int capacity)
         {
             if (capacity <= 0)
             {
@@ -432,13 +448,13 @@ internal sealed class BufferPoolShared : System.IDisposable
             _head = 0;
             _tail = 0;
             _count = 0;
-            _slots = new System.Byte[capacity][];
+            _slots = new byte[capacity][];
             _lock = new System.Threading.SpinLock(enableThreadOwnerTracking: false);
         }
 
-        public System.Boolean TryEnqueue(System.Byte[] buffer)
+        public bool TryEnqueue(byte[] buffer)
         {
-            System.Boolean taken = false;
+            bool taken = false;
             try
             {
                 _lock.Enter(ref taken);
@@ -462,10 +478,10 @@ internal sealed class BufferPoolShared : System.IDisposable
             }
         }
 
-        public System.Boolean TryDequeue(
-            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? buffer)
+        public bool TryDequeue(
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[]? buffer)
         {
-            System.Boolean taken = false;
+            bool taken = false;
             try
             {
                 _lock.Enter(ref taken);
@@ -491,9 +507,9 @@ internal sealed class BufferPoolShared : System.IDisposable
             }
         }
 
-        public void EnsureCapacity(System.Int32 targetCapacity)
+        public void EnsureCapacity(int targetCapacity)
         {
-            System.Boolean taken = false;
+            bool taken = false;
             try
             {
                 _lock.Enter(ref taken);
@@ -503,11 +519,11 @@ internal sealed class BufferPoolShared : System.IDisposable
                     return;
                 }
 
-                System.UInt32 newSize = System.Numerics.BitOperations.RoundUpToPowerOf2((System.UInt32)targetCapacity);
+                uint newSize = System.Numerics.BitOperations.RoundUpToPowerOf2((uint)targetCapacity);
 
-                System.Byte[][] newSlots = new System.Byte[newSize][];
+                byte[][] newSlots = new byte[newSize][];
 
-                for (System.Int32 i = 0; i < _count; ++i)
+                for (int i = 0; i < _count; ++i)
                 {
                     newSlots[i] = _slots[(_head + i) & (_slots.Length - 1)];
                 }
@@ -527,22 +543,22 @@ internal sealed class BufferPoolShared : System.IDisposable
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
             "Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
-        public System.Byte[][] DrainAll()
+        public byte[][] DrainAll()
         {
-            System.Boolean taken = false;
+            bool taken = false;
             try
             {
                 _lock.Enter(ref taken);
 
                 if (_count == 0)
                 {
-                    return System.Array.Empty<System.Byte[]>();
+                    return System.Array.Empty<byte[]>();
                 }
 
-                System.Byte[][] result = new System.Byte[_count][];
-                for (System.Int32 i = 0; i < _count; ++i)
+                byte[][] result = new byte[_count][];
+                for (int i = 0; i < _count; ++i)
                 {
-                    System.Int32 index = (_head + i) & (_slots.Length - 1);
+                    int index = (_head + i) & (_slots.Length - 1);
                     result[i] = _slots[index];
                     _slots[index] = null!;
                 }

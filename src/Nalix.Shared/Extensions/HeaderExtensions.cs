@@ -27,12 +27,12 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt32 ReadMagicNumberLE(this System.ReadOnlySpan<System.Byte> @this)
+    public static uint ReadMagicNumberLE(this System.ReadOnlySpan<byte> @this)
     {
-        const System.Int32 offs = (System.Int32)PacketHeaderOffset.MAGIC_NUMBER;
-        CheckSize(@this, offs, sizeof(System.UInt32));
+        const int offs = (int)PacketHeaderOffset.MAGIC_NUMBER;
+        CheckSize(@this, offs, sizeof(uint));
 
-        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(@this[..sizeof(System.UInt32)]);
+        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(@this[..sizeof(uint)]);
     }
 
     /// <summary>
@@ -45,10 +45,10 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt16 ReadOpCodeLE(this System.ReadOnlySpan<System.Byte> @this)
+    public static ushort ReadOpCodeLE(this System.ReadOnlySpan<byte> @this)
     {
-        const System.Int32 offs = (System.Int32)PacketHeaderOffset.OP_CODE;
-        CheckSize(@this, offs, sizeof(System.UInt16));
+        const int offs = (int)PacketHeaderOffset.OP_CODE;
+        CheckSize(@this, offs, sizeof(ushort));
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(@this[offs..]);
     }
 
@@ -62,10 +62,10 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static PacketFlags ReadFlagsLE(this System.ReadOnlySpan<System.Byte> @this)
+    public static PacketFlags ReadFlagsLE(this System.ReadOnlySpan<byte> @this)
     {
-        const System.Int32 offs = (System.Int32)PacketHeaderOffset.FLAGS;
-        CheckSize(@this, offs, sizeof(System.Byte));
+        const int offs = (int)PacketHeaderOffset.FLAGS;
+        CheckSize(@this, offs, sizeof(byte));
         return (PacketFlags)@this[offs];
     }
 
@@ -79,11 +79,11 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void WriteFlagsLE(this System.Span<System.Byte> @this, PacketFlags flags)
+    public static void WriteFlagsLE(this System.Span<byte> @this, PacketFlags flags)
     {
-        const System.Int32 offs = (System.Int32)PacketHeaderOffset.FLAGS;
-        CheckSize(@this, offs, sizeof(System.Byte));
-        @this[offs] = (System.Byte)flags;
+        const int offs = (int)PacketHeaderOffset.FLAGS;
+        CheckSize(@this, offs, sizeof(byte));
+        @this[offs] = (byte)flags;
     }
 
     /// <summary>
@@ -96,10 +96,10 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static PacketPriority ReadPriorityLE(this System.ReadOnlySpan<System.Byte> @this)
+    public static PacketPriority ReadPriorityLE(this System.ReadOnlySpan<byte> @this)
     {
-        const System.Int32 offs = (System.Int32)PacketHeaderOffset.PRIORITY;
-        CheckSize(@this, offs, sizeof(System.Byte));
+        const int offs = (int)PacketHeaderOffset.PRIORITY;
+        CheckSize(@this, offs, sizeof(byte));
         return (PacketPriority)@this[offs];
     }
 
@@ -113,10 +113,10 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static ProtocolType ReadTransportLE(this System.ReadOnlySpan<System.Byte> @this)
+    public static ProtocolType ReadTransportLE(this System.ReadOnlySpan<byte> @this)
     {
-        const System.Int32 offs = (System.Int32)PacketHeaderOffset.TRANSPORT;
-        CheckSize(@this, offs, sizeof(System.Byte));
+        const int offs = (int)PacketHeaderOffset.TRANSPORT;
+        CheckSize(@this, offs, sizeof(byte));
         return (ProtocolType)@this[offs];
     }
 
@@ -130,11 +130,11 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.UInt32 ReadSequenceIdLE(this System.ReadOnlySpan<System.Byte> @this)
+    public static uint ReadSequenceIdLE(this System.ReadOnlySpan<byte> @this)
     {
-        const System.Int32 offs = (System.Int32)PacketHeaderOffset.SEQUENCE_ID;
-        CheckSize(@this, offs, sizeof(System.UInt32));
-        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(@this.Slice(offs, sizeof(System.UInt32)));
+        const int offs = (int)PacketHeaderOffset.SEQUENCE_ID;
+        CheckSize(@this, offs, sizeof(uint));
+        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(@this.Slice(offs, sizeof(uint)));
     }
 
     #endregion Little‑endian header readers (fixed offsets)
@@ -152,10 +152,10 @@ public static class HeaderExtensions
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void CheckSize(System.ReadOnlySpan<System.Byte> buffer, System.Int32 offset, System.Int32 size)
+    private static void CheckSize(System.ReadOnlySpan<byte> buffer, int offset, int size)
     {
-        if ((System.UInt32)offset > (System.UInt32)buffer.Length ||
-            (System.UInt32)size > (System.UInt32)(buffer.Length - offset))
+        if ((uint)offset > (uint)buffer.Length ||
+            (uint)size > (uint)(buffer.Length - offset))
         {
             throw new System.ArgumentException($"Buffer is too small to read {size} bytes at offset {offset}.");
         }

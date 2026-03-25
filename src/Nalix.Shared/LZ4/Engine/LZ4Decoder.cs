@@ -27,9 +27,9 @@ internal static class LZ4Decoder
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 Decode(
-        System.ReadOnlySpan<System.Byte> input,
-        System.Span<System.Byte> output) => !DecodeInternal(input, output, out System.Int32 written) ? -1 : written;
+    public static int Decode(
+        System.ReadOnlySpan<byte> input,
+        System.Span<byte> output) => !DecodeInternal(input, output, out int written) ? -1 : written;
 
     /// <summary>
     /// Decompresses the provided compressed data into a newly allocated output buffer.
@@ -41,10 +41,10 @@ internal static class LZ4Decoder
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public static System.Boolean Decode(
-        System.ReadOnlySpan<System.Byte> input,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Byte[]? output,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 bytesWritten)
+    public static bool Decode(
+        System.ReadOnlySpan<byte> input,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out byte[]? output,
+        [System.Diagnostics.CodeAnalysis.NotNull] out int bytesWritten)
     {
         output = null;
         bytesWritten = 0;
@@ -60,7 +60,7 @@ internal static class LZ4Decoder
             return true;
         }
 
-        output = new System.Byte[header.OriginalLength];
+        output = new byte[header.OriginalLength];
         if (!DecodeInternal(input, output, out bytesWritten))
         {
             output = null;
@@ -85,10 +85,10 @@ internal static class LZ4Decoder
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public static System.Boolean Decode(
-        System.ReadOnlySpan<System.Byte> input,
+    public static bool Decode(
+        System.ReadOnlySpan<byte> input,
         out BufferLease? lease,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 bytesWritten)
+        [System.Diagnostics.CodeAnalysis.NotNull] out int bytesWritten)
     {
         lease = null;
         bytesWritten = 0;
@@ -125,10 +125,12 @@ internal static class LZ4Decoder
     /// Validates input length and reads the LZ4 block header.
     /// Centralises header checks shared by all three Decode overloads.
     /// </summary>
+    /// <param name="input"></param>
+    /// <param name="header"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean TryReadAndValidateHeader(
-        System.ReadOnlySpan<System.Byte> input,
+    private static bool TryReadAndValidateHeader(
+        System.ReadOnlySpan<byte> input,
         out LZ4BlockHeader header)
     {
         header = default;
@@ -150,10 +152,10 @@ internal static class LZ4Decoder
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    internal static unsafe System.Boolean DecodeInternal(
-        System.ReadOnlySpan<System.Byte> input,
-        System.Span<System.Byte> output,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 bytesWritten)
+    internal static unsafe bool DecodeInternal(
+        System.ReadOnlySpan<byte> input,
+        System.Span<byte> output,
+        [System.Diagnostics.CodeAnalysis.NotNull] out int bytesWritten)
     {
         bytesWritten = 0;
 
@@ -173,24 +175,24 @@ internal static class LZ4Decoder
             return true;
         }
 
-        fixed (System.Byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
+        fixed (byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
         {
-            fixed (System.Byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
+            fixed (byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
             {
-                System.Byte* inputPtr = inputBase + LZ4BlockHeader.Size;
-                System.Byte* inputEnd = inputBase + header.CompressedLength;
-                System.Byte* outputPtr = outputBase;
-                System.Byte* outputEnd = outputBase + header.OriginalLength;
+                byte* inputPtr = inputBase + LZ4BlockHeader.Size;
+                byte* inputEnd = inputBase + header.CompressedLength;
+                byte* outputPtr = outputBase;
+                byte* outputEnd = outputBase + header.OriginalLength;
 
                 while (inputPtr < inputEnd)
                 {
-                    System.Byte token = *inputPtr++;
+                    byte token = *inputPtr++;
 
-                    System.Int32 literalLength = (token >> 4) & LZ4CompressionConstants.TokenLiteralMask;
+                    int literalLength = (token >> 4) & LZ4CompressionConstants.TokenLiteralMask;
 
                     if (literalLength == LZ4CompressionConstants.TokenLiteralMask)
                     {
-                        System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
+                        int bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
@@ -218,24 +220,24 @@ internal static class LZ4Decoder
                         break;
                     }
 
-                    if (inputPtr + sizeof(System.UInt16) > inputEnd)
+                    if (inputPtr + sizeof(ushort) > inputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
                         return false;
                     }
 
-                    System.Int32 offset = MemOps.ReadUnaligned<System.UInt16>(inputPtr);
-                    inputPtr += sizeof(System.UInt16);
+                    int offset = MemOps.ReadUnaligned<ushort>(inputPtr);
+                    inputPtr += sizeof(ushort);
                     if (offset == 0 || offset > (outputPtr - outputBase))
                     {
                         MemorySecurity.ZeroMemory(output);
                         return false;
                     }
 
-                    System.Int32 matchLength = token & LZ4CompressionConstants.TokenMatchMask;
+                    int matchLength = token & LZ4CompressionConstants.TokenMatchMask;
                     if (matchLength == LZ4CompressionConstants.TokenMatchMask)
                     {
-                        System.Int32 bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out System.Int32 extraLength);
+                        int bytesRead = SpanOps.ReadVarInt(ref inputPtr, inputEnd, out int extraLength);
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
@@ -246,7 +248,7 @@ internal static class LZ4Decoder
                     }
                     matchLength += LZ4CompressionConstants.MinMatchLength;
 
-                    System.Byte* matchSourcePtr = outputPtr - offset;
+                    byte* matchSourcePtr = outputPtr - offset;
                     if (outputPtr + matchLength > outputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);

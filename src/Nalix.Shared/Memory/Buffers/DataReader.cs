@@ -1,14 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-
 
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
@@ -31,10 +28,14 @@ public unsafe struct DataReader : System.IDisposable
 {
     #region Fields
 
-    private System.Byte* _ptr;
-    private System.Boolean _pinned;
-    private readonly System.Byte[]? _tempArray;
-    private System.Runtime.InteropServices.GCHandle _pin; // Used only when the source is a byte array
+    private byte* _ptr;
+    private bool _pinned;
+    private readonly byte[]? _tempArray;
+
+    /// <summary>
+    /// Used only when the source is a byte array
+    /// </summary>
+    private System.Runtime.InteropServices.GCHandle _pin;
 
     #endregion Fields
 
@@ -43,12 +44,12 @@ public unsafe struct DataReader : System.IDisposable
     /// <summary>
     /// Gets the number of bytes that have been consumed from the buffer.
     /// </summary>
-    public System.Int32 BytesRead { get; private set; }
+    public int BytesRead { get; private set; }
 
     /// <summary>
     /// Gets the number of bytes remaining in the buffer.
     /// </summary>
-    public System.Int32 BytesRemaining { readonly get => field - BytesRead; private set; }
+    public int BytesRemaining { readonly get => field - BytesRead; private set; }
 
     #endregion Properties
 
@@ -60,11 +61,11 @@ public unsafe struct DataReader : System.IDisposable
     /// </summary>
     /// <param name="buffer">The byte array to read from.</param>
     /// <exception cref="System.ArgumentNullException">Thrown if the provided buffer is null.</exception>
-    public DataReader(System.Byte[] buffer)
+    public DataReader(byte[] buffer)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
         _pin = System.Runtime.InteropServices.GCHandle.Alloc(buffer, System.Runtime.InteropServices.GCHandleType.Pinned);
-        _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
+        _ptr = (byte*)_pin.AddrOfPinnedObject();
         BytesRemaining = buffer.Length;
         _pinned = true;
 
@@ -77,7 +78,7 @@ public unsafe struct DataReader : System.IDisposable
     /// </summary>
     /// <param name="ptr">The unmanaged memory pointer.</param>
     /// <param name="length">The length of the buffer.</param>
-    public DataReader(System.Byte* ptr, System.Int32 length)
+    public DataReader(byte* ptr, int length)
     {
         BytesRead = 0;
 
@@ -92,13 +93,13 @@ public unsafe struct DataReader : System.IDisposable
     /// This constructor creates a pinned copy of the span to ensure safe access to its data.
     /// </summary>
     /// <param name="span">The read-only span of bytes to read from.</param>
-    public DataReader(System.ReadOnlySpan<System.Byte> span)
+    public DataReader(System.ReadOnlySpan<byte> span)
     {
         _tempArray = span.ToArray();
         _pin = System.Runtime.InteropServices.GCHandle.Alloc(_tempArray, System.Runtime.InteropServices.GCHandleType.Pinned);
-        _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
+        _ptr = (byte*)_pin.AddrOfPinnedObject();
         BytesRemaining = _tempArray.Length;
-        _pinned = true; // Fixed! 
+        _pinned = true; // Fixed!
 
         BytesRead = 0;
     }
@@ -108,21 +109,21 @@ public unsafe struct DataReader : System.IDisposable
     /// This constructor creates a pinned copy of the span to ensure safe access to its data.
     /// </summary>
     /// <param name="memory">The read-only memory of bytes to read from.</param>
-    public DataReader(System.ReadOnlyMemory<System.Byte> memory)
+    public DataReader(System.ReadOnlyMemory<byte> memory)
     {
-        if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray(memory, out System.ArraySegment<System.Byte> segment))
+        if (System.Runtime.InteropServices.MemoryMarshal.TryGetArray(memory, out System.ArraySegment<byte> segment))
         {
             _pin = System.Runtime.InteropServices.GCHandle.Alloc(segment.Array, System.Runtime.InteropServices.GCHandleType.Pinned);
-            _ptr = (System.Byte*)_pin.AddrOfPinnedObject() + segment.Offset;
+            _ptr = (byte*)_pin.AddrOfPinnedObject() + segment.Offset;
             BytesRemaining = segment.Count;
             _pinned = true;
         }
         else
         {
             // fallback: allocate + copy
-            System.Byte[] temp = memory.ToArray();
+            byte[] temp = memory.ToArray();
             _pin = System.Runtime.InteropServices.GCHandle.Alloc(temp, System.Runtime.InteropServices.GCHandleType.Pinned);
-            _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
+            _ptr = (byte*)_pin.AddrOfPinnedObject();
             BytesRemaining = temp.Length;
             _pinned = true;
         }
@@ -146,7 +147,7 @@ public unsafe struct DataReader : System.IDisposable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly ref System.Byte GetSpanReference(System.Int32 sizeHint)
+    public readonly ref byte GetSpanReference(int sizeHint)
     {
         if (sizeHint > BytesRemaining)
         {
@@ -168,7 +169,7 @@ public unsafe struct DataReader : System.IDisposable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Advance(System.Int32 count)
+    public void Advance(int count)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (count > BytesRemaining)

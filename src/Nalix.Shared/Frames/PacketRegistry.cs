@@ -27,7 +27,7 @@ public sealed class PacketRegistry : IPacketRegistry
 {
     #region Fields
 
-    private readonly System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> _deserializers;
+    private readonly System.Collections.Frozen.FrozenDictionary<uint, PacketDeserializer> _deserializers;
 
     #endregion Fields
 
@@ -44,7 +44,7 @@ public sealed class PacketRegistry : IPacketRegistry
     /// Thrown when either argument is <see langword="null"/>.
     /// </exception>
     public PacketRegistry(
-        System.Collections.Frozen.FrozenDictionary<System.UInt32, PacketDeserializer> deserializers)
+        System.Collections.Frozen.FrozenDictionary<uint, PacketDeserializer> deserializers)
     {
         System.ArgumentNullException.ThrowIfNull(deserializers);
 
@@ -79,7 +79,7 @@ public sealed class PacketRegistry : IPacketRegistry
     #region Diagnostic Properties
 
     /// <inheritdoc/>
-    public System.Int32 DeserializerCount => _deserializers.Count;
+    public int DeserializerCount => _deserializers.Count;
 
     #endregion Diagnostic Properties
 
@@ -88,16 +88,16 @@ public sealed class PacketRegistry : IPacketRegistry
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean IsKnownMagic(System.UInt32 magic) => _deserializers.ContainsKey(magic);
+    public bool IsKnownMagic(uint magic) => _deserializers.ContainsKey(magic);
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Boolean IsRegistered<TPacket>() where TPacket : IPacket => _deserializers.ContainsKey(PacketRegistryFactory.Compute(typeof(TPacket)));
+    public bool IsRegistered<TPacket>() where TPacket : IPacket => _deserializers.ContainsKey(PacketRegistryFactory.Compute(typeof(TPacket)));
 
     /// <inheritdoc/>
-    public System.Boolean TryDeserialize(
-        System.ReadOnlySpan<System.Byte> raw,
+    public bool TryDeserialize(
+        System.ReadOnlySpan<byte> raw,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IPacket? packet)
     {
         if (raw.Length < PacketConstants.HeaderSize)
@@ -106,7 +106,7 @@ public sealed class PacketRegistry : IPacketRegistry
             return false;
         }
 
-        System.UInt32 magic = raw.ReadMagicNumberLE();
+        uint magic = raw.ReadMagicNumberLE();
 
         if (_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer))
         {
@@ -119,8 +119,8 @@ public sealed class PacketRegistry : IPacketRegistry
     }
 
     /// <inheritdoc/>
-    public System.Boolean TryGetDeserializer(
-        System.UInt32 magic,
+    public bool TryGetDeserializer(
+        uint magic,
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out PacketDeserializer? deserializer)
         => _deserializers.TryGetValue(magic, out deserializer);
 

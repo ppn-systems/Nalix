@@ -15,6 +15,8 @@ public static class EnumExtensions
     /// <param name="this">The enumeration value to modify.</param>
     /// <param name="mask">The flag to add.</param>
     /// <returns>A new enumeration value with the specified flag added.</returns>
+    /// <exception cref="System.ArgumentException"></exception>
+    /// <exception cref="System.NotSupportedException"></exception>
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -29,38 +31,38 @@ public static class EnumExtensions
                 $"{typeof(TEnum).Name} must have [Flags] attribute to use AddFlag/RemoveFlag.");
         }
 #endif
-        System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>();
+        int size = System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>();
 
-        if (size == sizeof(System.Byte))
+        if (size == sizeof(byte))
         {
-            System.Byte a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.Byte>(ref @this);
-            System.Byte b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.Byte>(ref mask);
-            System.Byte r = (System.Byte)(a | b);
-            return System.Runtime.CompilerServices.Unsafe.As<System.Byte, TEnum>(ref r);
+            byte a = System.Runtime.CompilerServices.Unsafe.As<TEnum, byte>(ref @this);
+            byte b = System.Runtime.CompilerServices.Unsafe.As<TEnum, byte>(ref mask);
+            byte r = (byte)(a | b);
+            return System.Runtime.CompilerServices.Unsafe.As<byte, TEnum>(ref r);
         }
 
-        if (size == sizeof(System.UInt16))
+        if (size == sizeof(ushort))
         {
-            System.UInt16 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt16>(ref @this);
-            System.UInt16 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt16>(ref mask);
-            System.UInt16 r = (System.UInt16)(a | b);
-            return System.Runtime.CompilerServices.Unsafe.As<System.UInt16, TEnum>(ref r);
+            ushort a = System.Runtime.CompilerServices.Unsafe.As<TEnum, ushort>(ref @this);
+            ushort b = System.Runtime.CompilerServices.Unsafe.As<TEnum, ushort>(ref mask);
+            ushort r = (ushort)(a | b);
+            return System.Runtime.CompilerServices.Unsafe.As<ushort, TEnum>(ref r);
         }
 
-        if (size == sizeof(System.UInt32))
+        if (size == sizeof(uint))
         {
-            System.UInt32 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt32>(ref @this);
-            System.UInt32 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt32>(ref mask);
-            System.UInt32 r = a | b;
-            return System.Runtime.CompilerServices.Unsafe.As<System.UInt32, TEnum>(ref r);
+            uint a = System.Runtime.CompilerServices.Unsafe.As<TEnum, uint>(ref @this);
+            uint b = System.Runtime.CompilerServices.Unsafe.As<TEnum, uint>(ref mask);
+            uint r = a | b;
+            return System.Runtime.CompilerServices.Unsafe.As<uint, TEnum>(ref r);
         }
 
-        if (size == sizeof(System.UInt64))
+        if (size == sizeof(ulong))
         {
-            System.UInt64 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt64>(ref @this);
-            System.UInt64 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt64>(ref mask);
-            System.UInt64 r = a | b;
-            return System.Runtime.CompilerServices.Unsafe.As<System.UInt64, TEnum>(ref r);
+            ulong a = System.Runtime.CompilerServices.Unsafe.As<TEnum, ulong>(ref @this);
+            ulong b = System.Runtime.CompilerServices.Unsafe.As<TEnum, ulong>(ref mask);
+            ulong r = a | b;
+            return System.Runtime.CompilerServices.Unsafe.As<ulong, TEnum>(ref r);
         }
 
         throw new System.NotSupportedException(
@@ -74,6 +76,8 @@ public static class EnumExtensions
     /// <param name="this">The enumeration value to modify.</param>
     /// <param name="mask">The flag to remove.</param>
     /// <returns>A new enumeration value with the specified flag removed.</returns>
+    /// <exception cref="System.ArgumentException"></exception>
+    /// <exception cref="System.NotSupportedException"></exception>
     [System.Diagnostics.Contracts.Pure]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -88,38 +92,38 @@ public static class EnumExtensions
                 $"{typeof(TEnum).Name} must have [Flags] attribute to use AddFlag/RemoveFlag.");
         }
 #endif
-        System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>();
+        int size = System.Runtime.CompilerServices.Unsafe.SizeOf<TEnum>();
 
-        if (size == sizeof(System.Byte))
+        if (size == sizeof(byte))
         {
-            System.Byte a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.Byte>(ref @this);
-            System.Byte b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.Byte>(ref mask);
-            System.Byte r = (System.Byte)(a & ~b);
-            return System.Runtime.CompilerServices.Unsafe.As<System.Byte, TEnum>(ref r);
+            byte a = System.Runtime.CompilerServices.Unsafe.As<TEnum, byte>(ref @this);
+            byte b = System.Runtime.CompilerServices.Unsafe.As<TEnum, byte>(ref mask);
+            byte r = (byte)(a & ~b);
+            return System.Runtime.CompilerServices.Unsafe.As<byte, TEnum>(ref r);
         }
 
-        if (size == sizeof(System.UInt16))
+        if (size == sizeof(ushort))
         {
-            System.UInt16 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt16>(ref @this);
-            System.UInt16 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt16>(ref mask);
-            System.UInt16 r = (System.UInt16)(a & ~b);
-            return System.Runtime.CompilerServices.Unsafe.As<System.UInt16, TEnum>(ref r);
+            ushort a = System.Runtime.CompilerServices.Unsafe.As<TEnum, ushort>(ref @this);
+            ushort b = System.Runtime.CompilerServices.Unsafe.As<TEnum, ushort>(ref mask);
+            ushort r = (ushort)(a & ~b);
+            return System.Runtime.CompilerServices.Unsafe.As<ushort, TEnum>(ref r);
         }
 
-        if (size == sizeof(System.UInt32))
+        if (size == sizeof(uint))
         {
-            System.UInt32 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt32>(ref @this);
-            System.UInt32 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt32>(ref mask);
-            System.UInt32 r = a & ~b;
-            return System.Runtime.CompilerServices.Unsafe.As<System.UInt32, TEnum>(ref r);
+            uint a = System.Runtime.CompilerServices.Unsafe.As<TEnum, uint>(ref @this);
+            uint b = System.Runtime.CompilerServices.Unsafe.As<TEnum, uint>(ref mask);
+            uint r = a & ~b;
+            return System.Runtime.CompilerServices.Unsafe.As<uint, TEnum>(ref r);
         }
 
-        if (size == sizeof(System.UInt64))
+        if (size == sizeof(ulong))
         {
-            System.UInt64 a = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt64>(ref @this);
-            System.UInt64 b = System.Runtime.CompilerServices.Unsafe.As<TEnum, System.UInt64>(ref mask);
-            System.UInt64 r = a & ~b;
-            return System.Runtime.CompilerServices.Unsafe.As<System.UInt64, TEnum>(ref r);
+            ulong a = System.Runtime.CompilerServices.Unsafe.As<TEnum, ulong>(ref @this);
+            ulong b = System.Runtime.CompilerServices.Unsafe.As<TEnum, ulong>(ref mask);
+            ulong r = a & ~b;
+            return System.Runtime.CompilerServices.Unsafe.As<ulong, TEnum>(ref r);
         }
 
         throw new System.NotSupportedException(
