@@ -1,9 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Memory.Internal;
@@ -12,7 +16,7 @@ namespace Nalix.Shared.Memory.Internal;
 /// Provides methods to efficiently write literal bytes directly to a memory destination.
 /// This class is optimized for high-performance memory operations with minimal overhead.
 /// </summary>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static unsafe class LiteralWriter
 {
     /// <summary>
@@ -25,8 +29,8 @@ internal static unsafe class LiteralWriter
     /// This method directly copies bytes from one memory location to another.
     /// It is assumed that `destPtr` has enough space to accommodate `length` bytes.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(
         ref byte* destPtr,
         byte* literalStartPtr,
@@ -53,11 +57,11 @@ internal static unsafe class LiteralWriter
     /// This method is designed to handle scenarios where the source data is in a span.
     /// Spans provide safer and more flexible memory access compared to raw pointers.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Write(
         ref byte* destPtr,
-        System.ReadOnlySpan<byte> literals)
+        ReadOnlySpan<byte> literals)
     {
         if (literals.Length == 0)
         {

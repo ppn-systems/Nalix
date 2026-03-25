@@ -1,13 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel;
+using System.Diagnostics;
+
 namespace Nalix.Shared.LZ4.Encoders;
 
 /// <summary>
 /// Provides LZ4-related compression constants used across the encoder implementation.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class LZ4CompressionConstants
 {
     /// <summary>

@@ -1,6 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 using Nalix.Shared.Memory.Internal;
 
 namespace Nalix.Shared.LZ4.Encoders;
@@ -9,8 +17,8 @@ namespace Nalix.Shared.LZ4.Encoders;
 /// Provides methods for compressing data using the LZ4 greedy compression algorithm.
 /// This encoder is designed to achieve high performance and efficient compression.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class LZ4BlockEncoder
 {
     #region APIs
@@ -21,17 +29,17 @@ public static class LZ4BlockEncoder
     /// </summary>
     /// <param name="input">The size of the data to be compressed.</param>
     /// <returns>The estimated maximum length after compression, including overhead.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     public static int GetMaxLength(int input) => input + (input / 255) + 16 + LZ4BlockHeader.Size;
 
     /// <inheritdoc />
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [Pure]
+    [MethodImpl(
+    MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     public static int GetMinOutputBufferSize(int inputLength) => inputLength + (inputLength / 255) + 16;
 
     /// <summary>
@@ -45,12 +53,12 @@ public static class LZ4BlockEncoder
     /// <returns>
     /// The length of the compressed data, or -1 if the output buffer is too small.
     /// </returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static unsafe int EncodeBlock(System.ReadOnlySpan<byte> input, System.Span<byte> output, int* hashTable)
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
+    public static unsafe int EncodeBlock(ReadOnlySpan<byte> input, Span<byte> output, int* hashTable)
     {
         if (input.IsEmpty || output.IsEmpty)
         {
@@ -58,9 +66,9 @@ public static class LZ4BlockEncoder
         }
 
         // Pin the input and output spans to fixed memory addresses
-        fixed (byte* inputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(input))
+        fixed (byte* inputBase = &MemoryMarshal.GetReference(input))
         {
-            fixed (byte* outputBase = &System.Runtime.InteropServices.MemoryMarshal.GetReference(output))
+            fixed (byte* outputBase = &MemoryMarshal.GetReference(output))
             {
                 return EncodeInternal(inputBase, input.Length, outputBase, output.Length, hashTable);
             }
@@ -82,34 +90,34 @@ public static class LZ4BlockEncoder
     /// <returns>
     /// The length of the compressed data, or -1 if the output buffer is too small.
     /// </returns>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     private static unsafe int EncodeInternal(
         byte* inputBase, int inputLength,
         byte* outputBase, int outputLength,
-        [System.Diagnostics.CodeAnalysis.NotNull] int* hashTable)
+        [NotNull] int* hashTable)
     {
 #if DEBUG
-        System.Diagnostics.Debug.Assert(hashTable is not null, "Hash table cannot be null");
+        Debug.Assert(hashTable is not null, "Hash table cannot be null");
 #endif
 
         if (inputBase == null)
         {
-            throw new System.ArgumentNullException(nameof(inputBase));
+            throw new ArgumentNullException(nameof(inputBase));
         }
 
         if (outputBase == null)
         {
-            throw new System.ArgumentNullException(nameof(outputBase));
+            throw new ArgumentNullException(nameof(outputBase));
         }
 
         if (hashTable == null)
         {
-            throw new System.ArgumentNullException(nameof(hashTable));
+            throw new ArgumentNullException(nameof(hashTable));
         }
 
         if (inputLength <= 0)
@@ -146,7 +154,7 @@ public static class LZ4BlockEncoder
                 return -1;
             }
 
-            byte literalNibble = (byte)System.Math.Min(literalLen, LZ4CompressionConstants.TokenLiteralMask);
+            byte literalNibble = (byte)Math.Min(literalLen, LZ4CompressionConstants.TokenLiteralMask);
             *outputPtr++ = (byte)(literalNibble << 4);
 
             if (litVarBytes != 0)
@@ -173,7 +181,7 @@ public static class LZ4BlockEncoder
         while (inputPtr < matchFindInputLimit)
         {
             int currentInputOffset = (int)(inputPtr - inputBase);
-            byte* windowStartPtr = inputBase + System.Math.Max(0, currentInputOffset - LZ4CompressionConstants.MaxOffset);
+            byte* windowStartPtr = inputBase + Math.Max(0, currentInputOffset - LZ4CompressionConstants.MaxOffset);
 
             MatchFinder.Match match = MatchFinder.FindLongestMatch(
                 hashTable, inputBase, inputPtr,
@@ -205,10 +213,10 @@ public static class LZ4BlockEncoder
     /// <summary>
     /// Writes a sequence of literals and a match to the output buffer.
     /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     private static unsafe bool WriteSequence(
         ref byte* outputPtr,
         byte* outputEnd, byte* literalStartPtr,
@@ -237,8 +245,8 @@ public static class LZ4BlockEncoder
         }
 
         // token
-        byte litTok = (byte)System.Math.Min(literalLength, LZ4CompressionConstants.TokenLiteralMask);
-        byte matchTok = (byte)System.Math.Min(matchLength - LZ4CompressionConstants.MinMatchLength, LZ4CompressionConstants.TokenMatchMask);
+        byte litTok = (byte)Math.Min(literalLength, LZ4CompressionConstants.TokenLiteralMask);
+        byte matchTok = (byte)Math.Min(matchLength - LZ4CompressionConstants.MinMatchLength, LZ4CompressionConstants.TokenMatchMask);
 
         *outputPtr++ = (byte)((litTok << 4) | matchTok);
 
@@ -267,10 +275,10 @@ public static class LZ4BlockEncoder
     /// <summary>
     /// Writes the final literals to the output buffer.
     /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     private static unsafe bool WriteFinalLiterals(
         ref byte* outputPtr, byte* outputEnd, byte* literalStartPtr, int literalLength)
     {
@@ -291,7 +299,7 @@ public static class LZ4BlockEncoder
             return false;
         }
 
-        byte litTok = (byte)System.Math.Min(literalLength, LZ4CompressionConstants.TokenLiteralMask);
+        byte litTok = (byte)Math.Min(literalLength, LZ4CompressionConstants.TokenLiteralMask);
         *outputPtr++ = (byte)(litTok << 4);
 
         if (litVarBytes != 0)

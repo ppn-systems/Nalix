@@ -3,7 +3,13 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Primitives;
 using Nalix.Common.Serialization;
@@ -19,15 +25,15 @@ namespace Nalix.Shared.Serialization;
 /// <summary>
 /// Provides a global registry for registering and retrieving formatters without boxing.
 /// </summary>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class FormatterProvider
 {
     #region Fields
 
     private static int _cntTotal, _cntPrimitives, _cntNullables, _cntArrays, _cntNullableArrays, _cntLists, _cntEnums, _cntStrings;
-    private static readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
+    private static readonly Stopwatch _sw = Stopwatch.StartNew();
 
-    private static readonly System.Collections.Generic.HashSet<Type> s_valueTupleDefinitions =
+    private static readonly HashSet<Type> s_valueTupleDefinitions =
     [
         typeof(ValueTuple<,>),
         typeof(ValueTuple<,,>),
@@ -35,7 +41,7 @@ public static class FormatterProvider
         typeof(ValueTuple<,,,,>)
     ];
 
-    private static readonly System.Collections.Generic.Dictionary<int, Type> s_valueTupleFormatterDefs = new()
+    private static readonly Dictionary<int, Type> s_valueTupleFormatterDefs = new()
     {
         { 2, typeof(ValueTupleFormatter<,>) },
         { 3, typeof(ValueTupleFormatter<,,>) },
@@ -184,15 +190,15 @@ public static class FormatterProvider
     /// <exception cref="ArgumentNullException">
     /// Thrown if the provided formatter is null.
     /// </exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void Register<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
-        [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter)
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
+        [NotNull] IFormatter<T> formatter)
     {
         ArgumentNullException.ThrowIfNull(formatter);
 
@@ -203,29 +209,29 @@ public static class FormatterProvider
         bool isArray = ut.IsArray;
         bool isNullable = ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(Nullable<>);
 
-        _ = System.Threading.Interlocked.Increment(ref _cntTotal);
+        _ = Interlocked.Increment(ref _cntTotal);
         if (t == typeof(string))
         {
-            _ = System.Threading.Interlocked.Increment(ref _cntStrings); return;
+            _ = Interlocked.Increment(ref _cntStrings); return;
         }
 
         if (isArray)
         {
             Type elem = ut.GetElementType()!;
             _ = elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(Nullable<>)
-                ? System.Threading.Interlocked.Increment(ref _cntNullableArrays)
-                : System.Threading.Interlocked.Increment(ref _cntArrays);
+                ? Interlocked.Increment(ref _cntNullableArrays)
+                : Interlocked.Increment(ref _cntArrays);
 
             return;
         }
 
         if (isNullable)
         {
-            _ = System.Threading.Interlocked.Increment(ref _cntNullables); return;
+            _ = Interlocked.Increment(ref _cntNullables); return;
         }
         if (ut.IsEnum)
         {
-            _ = System.Threading.Interlocked.Increment(ref _cntEnums); return;
+            _ = Interlocked.Increment(ref _cntEnums); return;
         }
 
         if (ut.IsPrimitive ||
@@ -236,13 +242,13 @@ public static class FormatterProvider
             ut == typeof(TimeSpan) ||
             ut == typeof(DateTimeOffset))
         {
-            _ = System.Threading.Interlocked.Increment(ref _cntPrimitives);
+            _ = Interlocked.Increment(ref _cntPrimitives);
             return;
         }
 
-        if (ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(System.Collections.Generic.List<>))
+        if (ut.IsGenericType && ut.GetGenericTypeDefinition() == typeof(List<>))
         {
-            _ = System.Threading.Interlocked.Increment(ref _cntLists);
+            _ = Interlocked.Increment(ref _cntLists);
         }
     }
 
@@ -254,15 +260,15 @@ public static class FormatterProvider
     /// <exception cref="InvalidOperationException">
     /// Thrown if the type is unsupported (neither a struct nor a class).
     /// </exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void RegisterComplex<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
-    [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter)
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
+    [NotNull] IFormatter<T> formatter)
     {
         ArgumentNullException.ThrowIfNull(formatter);
 
@@ -273,14 +279,14 @@ public static class FormatterProvider
         {
             // Use Interlocked.CompareExchange to ensure only the first successful writer wins.
             // If another thread already set ComplexTypeCache<T>.Struct, we keep the existing one.
-            _ = System.Threading.Interlocked.CompareExchange(ref ComplexTypeCache<T>.Struct, formatter, default);
+            _ = Interlocked.CompareExchange(ref ComplexTypeCache<T>.Struct, formatter, default);
 
             return;
         }
         else if (type.IsClass)
         {
             // Same for class formatters.
-            _ = System.Threading.Interlocked.CompareExchange(ref ComplexTypeCache<T>.Class, formatter, default);
+            _ = Interlocked.CompareExchange(ref ComplexTypeCache<T>.Class, formatter, default);
 
             return;
         }
@@ -296,14 +302,14 @@ public static class FormatterProvider
     /// <exception cref="InvalidOperationException">
     /// Thrown if no formatter is registered for the given type.
     /// </exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static IFormatter<T> Get<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         // Fast path: cached
         IFormatter<T> cached = FormatterCache<T>.Formatter;
@@ -414,14 +420,14 @@ public static class FormatterProvider
     /// <exception cref="InvalidOperationException">
     /// Thrown if no formatter is registered for the specified type.
     /// </exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static IFormatter<T> GetComplex<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         IFormatter<T> formatter;
         Type type = typeof(T);
@@ -466,11 +472,11 @@ public static class FormatterProvider
 
     #region Private Methods
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> CacheOrGetExisting<T>(IFormatter<T> created)
     {
-        IFormatter<T>? existing = System.Threading.Interlocked.CompareExchange(ref FormatterCache<T>.Formatter, created, null);
+        IFormatter<T>? existing = Interlocked.CompareExchange(ref FormatterCache<T>.Formatter, created, null);
         return existing ?? created;
     }
 
@@ -492,13 +498,13 @@ public static class FormatterProvider
         });
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static EnumFormatter<T>? TryCreateEnumFormatter<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         if (typeof(T).IsEnum)
         {
@@ -510,13 +516,13 @@ public static class FormatterProvider
         return null;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateArrayFormatter<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         Type type = typeof(T);
         if (!type.IsArray)
@@ -554,16 +560,16 @@ public static class FormatterProvider
         return (IFormatter<T>)Activator.CreateInstance(refArrF)!;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+    MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateListFormatter<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         Type t = typeof(T);
-        if (!t.IsGenericType || t.GetGenericTypeDefinition() != typeof(System.Collections.Generic.List<>))
+        if (!t.IsGenericType || t.GetGenericTypeDefinition() != typeof(List<>))
         {
             return null;
         }
@@ -594,13 +600,13 @@ public static class FormatterProvider
         return (IFormatter<T>)Activator.CreateInstance(typeof(ReferenceListFormatter<>).MakeGenericType(elem))!;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-    System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+    MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T>? TryCreateDictionaryFormatter<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         Type t = typeof(T);
 
@@ -608,7 +614,7 @@ public static class FormatterProvider
             ? t.GetGenericArguments()[0] : t;
 
         if (!target.IsGenericType ||
-            target.GetGenericTypeDefinition() != typeof(System.Collections.Generic.Dictionary<,>))
+            target.GetGenericTypeDefinition() != typeof(Dictionary<,>))
         {
             return null;
         }
@@ -623,15 +629,15 @@ public static class FormatterProvider
     }
 
     private static IFormatter<T>? TryCreateQueueFormatter<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         Type t = typeof(T);
 
         if (!t.IsGenericType ||
-            t.GetGenericTypeDefinition() != typeof(System.Collections.Generic.Queue<>))
+            t.GetGenericTypeDefinition() != typeof(Queue<>))
         {
             return null;
         }
@@ -643,15 +649,15 @@ public static class FormatterProvider
     }
 
     private static IFormatter<T>? TryCreateStackFormatter<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         Type t = typeof(T);
 
         if (!t.IsGenericType ||
-            t.GetGenericTypeDefinition() != typeof(System.Collections.Generic.Stack<>))
+            t.GetGenericTypeDefinition() != typeof(Stack<>))
         {
             return null;
         }
@@ -663,15 +669,15 @@ public static class FormatterProvider
     }
 
     private static IFormatter<T>? TryCreateHashSetFormatter<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         Type t = typeof(T);
 
         if (!t.IsGenericType ||
-            t.GetGenericTypeDefinition() != typeof(System.Collections.Generic.HashSet<>))
+            t.GetGenericTypeDefinition() != typeof(HashSet<>))
         {
             return null;
         }
@@ -683,8 +689,8 @@ public static class FormatterProvider
     }
 
     private static IFormatter<T>? TryCreateMemoryFormatter<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.All)] T>()
     {
         Type t = typeof(T);
         if (!t.IsGenericType)
@@ -715,10 +721,10 @@ public static class FormatterProvider
     }
 
     private static IFormatter<T>? TryCreateValueTupleFormatter<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         Type t = typeof(T);
 

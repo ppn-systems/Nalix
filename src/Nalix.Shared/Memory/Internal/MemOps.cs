@@ -1,11 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
 namespace Nalix.Shared.Memory.Internal;
@@ -18,9 +23,9 @@ namespace Nalix.Shared.Memory.Internal;
 /// copying memory blocks, and comparing memory regions. It utilizes `unsafe` code to perform these operations directly
 /// on raw memory, which allows for faster execution and is suitable for performance-critical applications like LZ compression/decompression.
 /// </remarks>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static unsafe class MemOps
 {
     /// <summary>
@@ -29,26 +34,26 @@ internal static unsafe class MemOps
     /// <typeparam name="T">The type of the value to read. Must be unmanaged.</typeparam>
     /// <param name="source">A pointer to the source memory location.</param>
     /// <returns>The value read from the specified memory location.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static T ReadUnaligned<T>(byte* source) where T : unmanaged
-        => System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(source);
+        => Unsafe.ReadUnaligned<T>(source);
 
     /// <summary>
     /// Reads an unaligned value from a span of memory.
     /// </summary>
     /// <typeparam name="T">The type of the value to read. Must be unmanaged.</typeparam>
-    /// <param name="source">A <see cref="System.ReadOnlySpan{Byte}"/> representing the source memory.</param>
+    /// <param name="source">A <see cref="ReadOnlySpan{Byte}"/> representing the source memory.</param>
     /// <returns>The value read from the specified memory location.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static T ReadUnaligned<T>(System.ReadOnlySpan<byte> source) where T : unmanaged
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public static T ReadUnaligned<T>(ReadOnlySpan<byte> source) where T : unmanaged
     {
-        fixed (byte* pSource = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
+        fixed (byte* pSource = &MemoryMarshal.GetReference(source))
         {
-            return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(pSource);
+            return Unsafe.ReadUnaligned<T>(pSource);
         }
     }
 
@@ -58,26 +63,26 @@ internal static unsafe class MemOps
     /// <typeparam name="T">The type of the value to write. Must be unmanaged.</typeparam>
     /// <param name="destination">A pointer to the destination memory location.</param>
     /// <param name="value">The value to write.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static void WriteUnaligned<T>(byte* destination, T value) where T : unmanaged
-        => System.Runtime.CompilerServices.Unsafe.WriteUnaligned(destination, value);
+        => Unsafe.WriteUnaligned(destination, value);
 
     /// <summary>
     /// Writes an unaligned value to a span of memory.
     /// </summary>
     /// <typeparam name="T">The type of the value to write. Must be unmanaged.</typeparam>
-    /// <param name="destination">A <see cref="System.Span{Byte}"/> representing the destination memory.</param>
+    /// <param name="destination">A <see cref="Span{Byte}"/> representing the destination memory.</param>
     /// <param name="value">The value to write.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void WriteUnaligned<T>(System.Span<byte> destination, T value) where T : unmanaged
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public static void WriteUnaligned<T>(Span<byte> destination, T value) where T : unmanaged
     {
-        fixed (byte* pDest = &System.Runtime.InteropServices.MemoryMarshal.GetReference(destination))
+        fixed (byte* pDest = &MemoryMarshal.GetReference(destination))
         {
-            System.Runtime.CompilerServices.Unsafe.WriteUnaligned(pDest, value);
+            Unsafe.WriteUnaligned(pDest, value);
         }
     }
 
@@ -91,9 +96,9 @@ internal static unsafe class MemOps
     /// This method ensures correct handling of memory overlaps, which is crucial when dealing with operations
     /// such as LZ decompression, where memory regions may overlap.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static void Copy(
         byte* source,
         byte* destination, int length)
@@ -110,7 +115,7 @@ internal static unsafe class MemOps
         if (destination < source || destination >= (source + length))
         {
             // Non-overlap or backward-overlap -> block copy OK (nhanh)
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, (uint)length);
+            Unsafe.CopyBlockUnaligned(destination, source, (uint)length);
             return;
         }
 
@@ -124,14 +129,14 @@ internal static unsafe class MemOps
     /// <summary>
     /// Copies memory from a source span to a destination pointer.
     /// </summary>
-    /// <param name="source">A <see cref="System.ReadOnlySpan{Byte}"/> representing the source memory.</param>
+    /// <param name="source">A <see cref="ReadOnlySpan{Byte}"/> representing the source memory.</param>
     /// <param name="destination">A pointer to the destination memory location.</param>
-    [System.Runtime.CompilerServices.SkipLocalsInit]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [SkipLocalsInit]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static void Copy(
-        System.ReadOnlySpan<byte> source,
+        ReadOnlySpan<byte> source,
         byte* destination)
     {
         if (source.IsEmpty)
@@ -139,9 +144,9 @@ internal static unsafe class MemOps
             return;
         }
 
-        fixed (byte* pSource = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
+        fixed (byte* pSource = &MemoryMarshal.GetReference(source))
         {
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            Unsafe.CopyBlockUnaligned(
                 destination, pSource, (uint)source.Length);
         }
     }
@@ -153,9 +158,9 @@ internal static unsafe class MemOps
     /// <param name="p2">A pointer to the second memory region.</param>
     /// <param name="maxLength">The maximum number of bytes to compare.</param>
     /// <returns>The number of matching bytes.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static int CountEqualBytes(
         byte* p1,
         byte* p2,
@@ -211,16 +216,16 @@ internal static unsafe class MemOps
             // 8-byte then scalar
             if (count + sizeof(ulong) <= maxLength)
             {
-                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count) ==
-                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count))
+                if (Unsafe.ReadUnaligned<ulong>(p1 + count) ==
+                    Unsafe.ReadUnaligned<ulong>(p2 + count))
                 {
                     count += sizeof(ulong);
                 }
                 else
                 {
                     // find first diff within 8 bytes
-                    ulong x = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count);
-                    ulong y = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count);
+                    ulong x = Unsafe.ReadUnaligned<ulong>(p1 + count);
+                    ulong y = Unsafe.ReadUnaligned<ulong>(p2 + count);
                     ulong d = x ^ y;
                     int idx = System.Numerics.BitOperations.TrailingZeroCount(d) / 8;
                     return count + idx;
@@ -258,15 +263,15 @@ internal static unsafe class MemOps
             // 8-byte then scalar
             if (count + sizeof(ulong) <= maxLength)
             {
-                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count) ==
-                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count))
+                if (Unsafe.ReadUnaligned<ulong>(p1 + count) ==
+                    Unsafe.ReadUnaligned<ulong>(p2 + count))
                 {
                     count += sizeof(ulong);
                 }
                 else
                 {
-                    ulong x = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count);
-                    ulong y = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count);
+                    ulong x = Unsafe.ReadUnaligned<ulong>(p1 + count);
+                    ulong y = Unsafe.ReadUnaligned<ulong>(p2 + count);
                     ulong d = x ^ y;
                     int idx = System.Numerics.BitOperations.TrailingZeroCount(d) / 8;
                     return count + idx;
@@ -310,8 +315,8 @@ internal static unsafe class MemOps
             // 8-byte then scalar
             if (count + sizeof(ulong) <= maxLength)
             {
-                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count) ==
-                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count))
+                if (Unsafe.ReadUnaligned<ulong>(p1 + count) ==
+                    Unsafe.ReadUnaligned<ulong>(p2 + count))
                 {
                     count += sizeof(ulong);
                 }
@@ -344,8 +349,8 @@ internal static unsafe class MemOps
 
             while (count + vecSize <= maxLength)
             {
-                System.Span<byte> span1 = new(p1 + count, vecSize);
-                System.Span<byte> span2 = new(p2 + count, vecSize);
+                Span<byte> span1 = new(p1 + count, vecSize);
+                Span<byte> span2 = new(p2 + count, vecSize);
 
                 System.Numerics.Vector<byte> v1 = new(span1);
                 System.Numerics.Vector<byte> v2 = new(span2);
@@ -373,8 +378,8 @@ internal static unsafe class MemOps
         // -------------------- Portable fallback --------------------
         // (Already quite fast when paired with the 64-bit path above)
         while (count + sizeof(ulong) <= maxLength &&
-               System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count) ==
-               System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count))
+               Unsafe.ReadUnaligned<ulong>(p1 + count) ==
+               Unsafe.ReadUnaligned<ulong>(p2 + count))
         {
             count += sizeof(ulong);
         }

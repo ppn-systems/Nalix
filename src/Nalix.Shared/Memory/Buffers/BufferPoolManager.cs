@@ -1,7 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
@@ -16,8 +25,8 @@ namespace Nalix.Shared.Memory.Buffers;
 /// Manages buffers of various sizes with optimized allocation/deallocation and optional trimming.
 /// Includes safety guardrails to prevent aggressive shrinking and ensure minimum buffer availability.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-public sealed class BufferPoolManager : System.IDisposable, IReportable
+[DebuggerNonUserCode]
+public sealed class BufferPoolManager : IDisposable, IReportable
 {
     #region Fields & Constants
 
@@ -140,8 +149,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         _bufferAllocations = BufferConfig.ParseBufferAllocations(config.BufferAllocations);
 
-        MinBufferSize = System.Linq.Enumerable.Min(_bufferAllocations, alloc => alloc.BufferSize);
-        MaxBufferSize = System.Linq.Enumerable.Max(_bufferAllocations, alloc => alloc.BufferSize);
+        MinBufferSize = Enumerable.Min(_bufferAllocations, alloc => alloc.BufferSize);
+        MaxBufferSize = Enumerable.Max(_bufferAllocations, alloc => alloc.BufferSize);
 
         _poolManager = new BufferPoolCollection(bufferConfig: config);
         _poolManager.EventShrink += SHRINK_BUFFER_POOL_SIZE;
@@ -153,19 +162,19 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode()),
-                interval: System.TimeSpan.FromMinutes(System.Math.Max(1, _config.TrimIntervalMinutes)),
+                interval: TimeSpan.FromMinutes(Math.Max(1, _config.TrimIntervalMinutes)),
                 work: _ =>
                 {
                     TRIM_EXCESS_BUFFERS(null);
-                    return System.Threading.Tasks.ValueTask.CompletedTask;
+                    return ValueTask.CompletedTask;
                 },
                 options: new RecurringOptions
                 {
                     NonReentrant = true,
                     Tag = TaskNaming.Tags.Service,
-                    Jitter = System.TimeSpan.FromSeconds(5),
-                    ExecutionTimeout = System.TimeSpan.FromSeconds(5),
-                    BackoffCap = System.TimeSpan.FromMinutes(1)
+                    Jitter = TimeSpan.FromSeconds(5),
+                    ExecutionTimeout = TimeSpan.FromSeconds(5),
+                    BackoffCap = TimeSpan.FromMinutes(1)
                 }
             );
         }
@@ -179,11 +188,11 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// Rents a buffer of at least the requested size with optimized caching and optional fallback.
     /// </summary>
     /// <param name="minimumLength"></param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public byte[] Rent([System.Diagnostics.CodeAnalysis.NotNull] int minimumLength = 256)
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
+    public byte[] Rent([NotNull] int minimumLength = 256)
     {
         if (IS_FAST_COMMON_SIZE(minimumLength))
         {
@@ -199,7 +208,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         {
             return RENT_FROM_POOLS_WITH_CACHING(minimumLength);
         }
-        catch (System.ArgumentException ex)
+        catch (ArgumentException ex)
         {
             return HANDLE_RENT_FAILURE(minimumLength, ex);
         }
@@ -210,10 +219,10 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// </summary>
     /// <param name="array"></param>
     /// <param name="arrayClear"></param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     public void Return(byte[]? array, bool arrayClear = false)
     {
         if (array is null)
@@ -225,64 +234,64 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         {
             RETURN_TO_MANAGED_POOLS(array);
         }
-        catch (System.ArgumentException ex)
+        catch (ArgumentException ex)
         {
             HANDLE_RETURN_FAILURE(array, ex);
         }
     }
 
     /// <summary>
-    /// Rents a buffer and wraps it as an <see cref="System.ArraySegment{T}"/> for use with
-    /// <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> (SAEA) workflows.
+    /// Rents a buffer and wraps it as an <see cref="ArraySegment{T}"/> for use with
+    /// <see cref="SocketAsyncEventArgs"/> (SAEA) workflows.
     /// </summary>
     /// <param name="size">The minimum number of bytes required.</param>
     /// <returns>
-    /// An <see cref="System.ArraySegment{T}"/> backed by a pooled buffer,
+    /// An <see cref="ArraySegment{T}"/> backed by a pooled buffer,
     /// with <c>Offset = 0</c> and <c>Count = size</c>.
     /// </returns>
     /// <remarks>
-    /// The caller must return the underlying array via <see cref="Return(System.ArraySegment{byte})"/>
+    /// The caller must return the underlying array via <see cref="Return(ArraySegment{byte})"/>
     /// or <see cref="ReturnFromSaea"/> after use to avoid leaking pool buffers.
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.ArraySegment<byte> RentSegment(int size = 256)
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public ArraySegment<byte> RentSegment(int size = 256)
     {
         byte[] buffer = Rent(size);
-        return new System.ArraySegment<byte>(buffer, 0, size);
+        return new ArraySegment<byte>(buffer, 0, size);
     }
 
     /// <summary>
     /// Returns a buffer that was rented via <see cref="RentSegment"/> back to the pool.
-    /// Only the underlying <see cref="System.ArraySegment{T}.Array"/> is returned;
+    /// Only the underlying <see cref="ArraySegment{T}.Array"/> is returned;
     /// <c>Offset</c> and <c>Count</c> are ignored.
     /// </summary>
     /// <param name="segment">The segment whose backing array will be returned.</param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Return(System.ArraySegment<byte> segment) => Return(segment.Array);
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public void Return(ArraySegment<byte> segment) => Return(segment.Array);
 
     /// <summary>
     /// Rents a buffer from the pool and assigns it to the given
-    /// <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> via
-    /// <see cref="System.Net.Sockets.SocketAsyncEventArgs.SetBuffer(byte[], int, int)"/>.
+    /// <see cref="SocketAsyncEventArgs"/> via
+    /// <see cref="SocketAsyncEventArgs.SetBuffer(byte[], int, int)"/>.
     /// </summary>
-    /// <param name="saea">The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> to configure.</param>
+    /// <param name="saea">The <see cref="SocketAsyncEventArgs"/> to configure.</param>
     /// <param name="size">The minimum buffer size required.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
     /// <remarks>
     /// Call <see cref="ReturnFromSaea"/> when the async operation completes to return the buffer to the pool.
     /// </remarks>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void RentForSaea(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs saea,
+        [NotNull] SocketAsyncEventArgs saea,
         int size = 256)
     {
-        System.ArgumentNullException.ThrowIfNull(saea);
+        ArgumentNullException.ThrowIfNull(saea);
 
         byte[] buffer = Rent(size);
         saea.SetBuffer(buffer, 0, size);
@@ -290,18 +299,18 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
     /// <summary>
     /// Returns the buffer currently assigned to a
-    /// <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> back to the pool
+    /// <see cref="SocketAsyncEventArgs"/> back to the pool
     /// and clears the buffer reference on the SAEA.
     /// </summary>
-    /// <param name="saea">The <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> whose buffer will be returned.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <param name="saea">The <see cref="SocketAsyncEventArgs"/> whose buffer will be returned.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void ReturnFromSaea(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketAsyncEventArgs saea)
+        [NotNull] SocketAsyncEventArgs saea)
     {
-        System.ArgumentNullException.ThrowIfNull(saea);
+        ArgumentNullException.ThrowIfNull(saea);
 
         // Grab the buffer before clearing the reference
         byte[]? buffer = saea.Buffer;
@@ -316,20 +325,20 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// Gets the allocation ratio for a given buffer size with caching for performance.
     /// </summary>
     /// <param name="size"></param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public double GetAllocationForSize([System.Diagnostics.CodeAnalysis.NotNull] int size)
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
+    public double GetAllocationForSize([NotNull] int size)
     {
         if (size > MaxBufferSize)
         {
-            return System.Linq.Enumerable.Last(_bufferAllocations).Allocation;
+            return Enumerable.Last(_bufferAllocations).Allocation;
         }
 
         if (size <= MinBufferSize)
         {
-            return System.Linq.Enumerable.First(_bufferAllocations).Allocation;
+            return Enumerable.First(_bufferAllocations).Allocation;
         }
 
         int left = 0;
@@ -356,20 +365,20 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         }
 
         return left < _bufferAllocations.Length ? _bufferAllocations[left].Allocation
-                                                : System.Linq.Enumerable.Last(_bufferAllocations).Allocation;
+                                                : Enumerable.Last(_bufferAllocations).Allocation;
     }
 
     /// <summary>
     /// Generates a report on the current state of the buffer pools with metrics.
     /// </summary>
     /// <returns>A string containing the report.</returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
     public string GenerateReport()
     {
-        System.Text.StringBuilder sb = new();
+        StringBuilder sb = new();
 
         APPEND_REPORT_HEADER(sb);
         APPEND_REPORT_POOL_DETAILS(sb);
@@ -382,17 +391,17 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
     #region Private: Rent / Return helpers
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static bool IS_FAST_COMMON_SIZE(int size) => size is 256 or 512 or 1024 or 2048 or 4096;
 
     /// <summary>
     /// Rents buffer from configured pools and optionally updates size cache.
     /// </summary>
     /// <param name="size"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private byte[] RENT_FROM_POOLS_WITH_CACHING(int size)
     {
         byte[] buffer = _poolManager.RentBuffer(size);
@@ -408,9 +417,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         return buffer;
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void CACHE_SUITABLE_POOL_SIZE(int requestedSize, int actualSize)
     {
         if (requestedSize is <= 64 or >= 1_000_000)
@@ -431,11 +440,11 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// </summary>
     /// <param name="size"></param>
     /// <param name="ex"></param>
-    /// <exception cref="System.ArgumentException"></exception>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private byte[] HANDLE_RENT_FAILURE(int size, System.ArgumentException ex)
+    /// <exception cref="ArgumentException"></exception>
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    private byte[] HANDLE_RENT_FAILURE(int size, ArgumentException ex)
     {
         if (_config.FallbackToArrayPool)
         {
@@ -454,9 +463,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// Returns a buffer to managed Nalix pools and emits analytics if enabled.
     /// </summary>
     /// <param name="buffer"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void RETURN_TO_MANAGED_POOLS(byte[] buffer)
     {
         _poolManager.ReturnBuffer(buffer);
@@ -473,10 +482,10 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// </summary>
     /// <param name="buffer"></param>
     /// <param name="ex"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void HANDLE_RETURN_FAILURE(byte[] buffer, System.ArgumentException ex)
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    private void HANDLE_RETURN_FAILURE(byte[] buffer, ArgumentException ex)
     {
         ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
@@ -484,7 +493,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         {
             if (_config.SecureClear)
             {
-                System.Array.Clear(buffer, 0, buffer.Length);
+                Array.Clear(buffer, 0, buffer.Length);
             }
 
             _fallbackArrayPool.Return(buffer, clearArray: false);
@@ -502,9 +511,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
     #region Private: Allocation & Trimming
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void ALLOCATE_BUFFERS()
     {
         if (_isInitialized)
@@ -514,7 +523,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         foreach ((int bufferSize, double allocation) in _bufferAllocations)
         {
-            int capacity = System.Math.Max(1, (int)(_config.TotalBuffers * allocation));
+            int capacity = Math.Max(1, (int)(_config.TotalBuffers * allocation));
             _poolManager.CreatePool(bufferSize, capacity);
         }
 
@@ -524,13 +533,13 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
                                       $"init-ok total={_config.TotalBuffers} pools={_bufferAllocations.Length} min={MinBufferSize} max={MaxBufferSize}");
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private void TRIM_EXCESS_BUFFERS(object? _)
     {
-        int cycle = System.Threading.Interlocked.Increment(ref _trimCycleCount);
+        int cycle = Interlocked.Increment(ref _trimCycleCount);
         bool deepTrim = SHOULD_RUN_DEEP_TRIM(cycle);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -559,21 +568,21 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private bool SHOULD_RUN_DEEP_TRIM(int cycle)
     {
-        int deepEvery = System.Math.Max(1, _config.DeepTrimIntervalMinutes / System.Math.Max(1, _config.TrimIntervalMinutes));
+        int deepEvery = Math.Max(1, _config.DeepTrimIntervalMinutes / Math.Max(1, _config.TrimIntervalMinutes));
         return (cycle % deepEvery) == 0;
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private (long TargetBudget, long CurrentUsage, bool OverBudget) COMPUTE_MEMORY_BUDGET()
     {
         // Cache memory budget for 10 seconds to avoid repeated computation
-        long now = System.Environment.TickCount64;
+        long now = Environment.TickCount64;
         const long CacheDurationMs = 10_000;
 
         if (now - _lastBudgetComputeTime < CacheDurationMs && _cachedMemoryBudget > 0)
@@ -589,11 +598,11 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
             return (_cachedMemoryBudget, current, current > _cachedMemoryBudget);
         }
 
-        long totalAvailable = System.GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
+        long totalAvailable = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
         long percentBudget = (long)(totalAvailable * _config.MaxMemoryPercentage);
         long hardCap = _config.MaxMemoryBytes > 0 ? _config.MaxMemoryBytes : long.MaxValue;
 
-        long targetBudget = System.Math.Min(percentBudget, hardCap);
+        long targetBudget = Math.Min(percentBudget, hardCap);
 
         _lastBudgetComputeTime = now;
         _cachedMemoryBudget = targetBudget;
@@ -608,8 +617,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         return (targetBudget, currentUsage, currentUsage > targetBudget);
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static bool SHOULD_TRIM_POOL(in BufferPoolState info, bool overBudget, bool deepTrim)
     {
         // Skip if very low idle time
@@ -630,10 +639,10 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// </summary>
     /// <param name="info"></param>
     /// <param name="cycle"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private int CALCULATE_SAFE_SHRINK_STEP(in BufferPoolState info, int cycle)
     {
         if (info.TotalBuffers <= 0)
@@ -643,16 +652,16 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         // 1. Calculate target based on allocation ratio
         double targetAllocation = GetAllocationForSize(info.BufferSize);
-        int targetBuffers = (int)System.Math.Max(
+        int targetBuffers = (int)Math.Max(
             _shrinkPolicy.AbsoluteMinimum,
             targetAllocation * _config.TotalBuffers
         );
 
         // 2. Enforce minimum retention percentage (default 25%)
-        int minimumRetain = (int)System.Math.Ceiling(
+        int minimumRetain = (int)Math.Ceiling(
             info.TotalBuffers * _shrinkPolicy.MinimumRetentionPercent
         );
-        targetBuffers = System.Math.Max(targetBuffers, minimumRetain);
+        targetBuffers = Math.Max(targetBuffers, minimumRetain);
 
         // 3. Calculate excess buffers
         int excessBuffers = info.FreeBuffers - targetBuffers;
@@ -662,14 +671,14 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         }
 
         // 4. Apply multiple safety limits
-        int maxPerCycle = (int)System.Math.Ceiling(
+        int maxPerCycle = (int)Math.Ceiling(
             info.TotalBuffers * _shrinkPolicy.MaxShrinkPercentPerCycle
         );
 
-        int shrinkStep = System.Math.Min(excessBuffers, maxPerCycle);
-        shrinkStep = System.Math.Min(shrinkStep, _shrinkPolicy.MaxSingleShrinkStep);
+        int shrinkStep = Math.Min(excessBuffers, maxPerCycle);
+        shrinkStep = Math.Min(shrinkStep, _shrinkPolicy.MaxSingleShrinkStep);
 
-        return System.Math.Max(0, shrinkStep);
+        return Math.Max(0, shrinkStep);
     }
 
     /// <summary>
@@ -678,9 +687,9 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     /// <param name="pool"></param>
     /// <param name="info"></param>
     /// <param name="shrinkStep"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void TRIM_SINGLE_POOL(BufferPoolShared pool, in BufferPoolState info, int shrinkStep)
     {
         double usage = info.GetUsageRatio();
@@ -692,7 +701,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         {
             metrics.TotalBytesReturned += (long)shrinkStep * info.BufferSize;
             metrics.ShrinkAttempted++;
-            metrics.LastChangeTime = System.Environment.TickCount64;
+            metrics.LastChangeTime = Environment.TickCount64;
             _metricsCache[info.BufferSize] = metrics;
         }
 
@@ -706,18 +715,18 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
     #region Private: Resize Strategies
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private bool IS_OVER_MEMORY_BUDGET()
     {
         (long _, long _, bool overBudget) = COMPUTE_MEMORY_BUDGET();
         return overBudget;
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void SHRINK_BUFFER_POOL_SIZE(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
@@ -746,7 +755,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         {
             m.TotalBytesReturned += (long)buffersToShrink * poolInfo.BufferSize;
             m.ShrinkAttempted++;
-            m.LastChangeTime = System.Environment.TickCount64;
+            m.LastChangeTime = Environment.TickCount64;
             _metricsCache[poolInfo.BufferSize] = m;
         }
 
@@ -754,8 +763,8 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
                                 .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={latest.BufferSize} by={buffersToShrink}");
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private int CALCULATE_AUTO_SHRINK_AMOUNT(in BufferPoolState poolInfo)
     {
         if (poolInfo.TotalBuffers <= 0)
@@ -766,23 +775,23 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         double targetAllocation = GetAllocationForSize(poolInfo.BufferSize);
         int targetBuffers = (int)(targetAllocation * _config.TotalBuffers);
 
-        int minimumRetain = (int)System.Math.Ceiling(
+        int minimumRetain = (int)Math.Ceiling(
             poolInfo.TotalBuffers * _shrinkPolicy.MinimumRetentionPercent
         );
-        targetBuffers = System.Math.Max(targetBuffers, minimumRetain);
+        targetBuffers = Math.Max(targetBuffers, minimumRetain);
 
         int excessBuffers = poolInfo.FreeBuffers - targetBuffers;
-        return System.Math.Clamp(excessBuffers, 0, _config.MaxBufferIncreaseLimit);
+        return Math.Clamp(excessBuffers, 0, _config.MaxBufferIncreaseLimit);
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private void INCREASE_BUFFER_POOL_SIZE(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
 
-        int threshold = System.Math.Max(1, (int)(poolInfo.TotalBuffers * 0.25));
+        int threshold = Math.Max(1, (int)(poolInfo.TotalBuffers * 0.25));
         if (poolInfo.FreeBuffers > threshold)
         {
             return;
@@ -814,7 +823,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         if (_metricsCache.TryGetValue(poolInfo.BufferSize, out BufferPoolMetrics metrics))
         {
             metrics.ExpandAttempted++;
-            metrics.LastChangeTime = System.Environment.TickCount64;
+            metrics.LastChangeTime = Environment.TickCount64;
             _metricsCache[poolInfo.BufferSize] = metrics;
         }
 
@@ -823,43 +832,43 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
                                        $"increase minimumLength={poolInfo.BufferSize} by={increaseStep} usage={usage:F2}% miss={missRatio:F2}%");
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private int CALCULATE_INCREASE_STEP(in BufferPoolState poolInfo, double usage, double missRatio)
     {
-        int baseIncreasePow2 = System.Math.Max(_config.MinimumIncrease,
+        int baseIncreasePow2 = Math.Max(_config.MinimumIncrease,
                 (int)System.Numerics.BitOperations.RoundUpToPowerOf2(
-                    (uint)System.Math.Max(1, poolInfo.TotalBuffers >> 2)));
+                    (uint)Math.Max(1, poolInfo.TotalBuffers >> 2)));
 
-        double usageFactor = 1.0 + System.Math.Max(0.0, (usage - 0.75) * 2.0);
-        double missFactor = 1.0 + System.Math.Min(1.0, missRatio * 2.0);
+        double usageFactor = 1.0 + Math.Max(0.0, (usage - 0.75) * 2.0);
+        double missFactor = 1.0 + Math.Min(1.0, missRatio * 2.0);
 
-        int scaled = (int)System.Math.Ceiling(
+        int scaled = (int)Math.Ceiling(
             baseIncreasePow2 * usageFactor * missFactor * _config.AdaptiveGrowthFactor);
 
         // Tính soft cap: tối đa 25% TotalBuffers hiện tại mỗi lần expand
         // Tránh spike lớn khi pool đang nhỏ mà miss rate đột ngột cao
-        int softCap = System.Math.Max(
+        int softCap = Math.Max(
             _config.MinimumIncrease,
-            (int)System.Math.Ceiling(poolInfo.TotalBuffers * 0.25));
+            (int)Math.Ceiling(poolInfo.TotalBuffers * 0.25));
 
-        return System.Math.Min(scaled, System.Math.Min(softCap, _config.MaxBufferIncreaseLimit));
+        return Math.Min(scaled, Math.Min(softCap, _config.MaxBufferIncreaseLimit));
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static bool SHOULD_APPLY_SHRINK(in BufferPoolState poolInfo, int buffersToShrink) => buffersToShrink > 0 && poolInfo.FreeBuffers >= buffersToShrink;
 
     #endregion Private: Resize Strategies
 
     #region Private: Reporting
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void APPEND_REPORT_HEADER(System.Text.StringBuilder sb)
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    private void APPEND_REPORT_HEADER(StringBuilder sb)
     {
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] BufferPoolManager Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] BufferPoolManager Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Initialized: {_isInitialized}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Buffers (Configured): {_config.TotalBuffers}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Pools: {_bufferAllocations.Length}");
@@ -880,17 +889,17 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _ = sb.AppendLine();
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void APPEND_REPORT_POOL_DETAILS(System.Text.StringBuilder sb)
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    private void APPEND_REPORT_POOL_DETAILS(StringBuilder sb)
     {
         _ = sb.AppendLine("s_pool Details:");
         _ = sb.AppendLine("----------------------------------------------------------------------");
         _ = sb.AppendLine("SIZE     | Total  | Free   | In Use  | Usage %  | MissRate");
         _ = sb.AppendLine("----------------------------------------------------------------------");
 
-        foreach (BufferPoolShared? pool in System.Linq.Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
+        foreach (BufferPoolShared? pool in Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
         {
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
 
@@ -904,10 +913,10 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _ = sb.AppendLine("----------------------------------------------------------------------");
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void APPEND_REPORT_METRICS(System.Text.StringBuilder sb)
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    private void APPEND_REPORT_METRICS(StringBuilder sb)
     {
         _ = sb.AppendLine();
         _ = sb.AppendLine("s_pool Metrics (Shrink/Expand Operations):");
@@ -915,7 +924,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _ = sb.AppendLine("SIZE     | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
         _ = sb.AppendLine("----------------------------------------------------------------------");
 
-        foreach (BufferPoolShared? pool in System.Linq.Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
+        foreach (BufferPoolShared? pool in Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
         {
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
 
@@ -959,7 +968,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[SH.{nameof(BufferPoolManager)}:{nameof(Dispose)}] disposed");
 
-        System.GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this);
     }
 
     #endregion IDisposable
