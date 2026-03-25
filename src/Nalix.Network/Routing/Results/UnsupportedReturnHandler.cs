@@ -1,28 +1,32 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 
-
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
 namespace Nalix.Network.Routing.Results;
 
 /// <inheritdoc/>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) : IReturnHandler<TPacket> where TPacket : IPacket
+[EditorBrowsable(EditorBrowsableState.Never)]
+internal sealed class UnsupportedReturnHandler<TPacket>(Type returnType) : IReturnHandler<TPacket> where TPacket : IPacket
 {
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, bool> _loggedTypes = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, bool> _loggedTypes = new();
 
     /// <inheritdoc/>
-    public System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
-        [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context)
+    public ValueTask HandleAsync(
+        [AllowNull] object result,
+        [NotNull] PacketContext<TPacket> context)
     {
         if (_loggedTypes.TryAdd(returnType, true))
         {
@@ -30,6 +34,6 @@ internal sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) 
                                     .Warn($"[NW.{nameof(UnsupportedReturnHandler<>)}:{nameof(HandleAsync)}] unsupported-return type={returnType.Name}");
         }
 
-        return System.Threading.Tasks.ValueTask.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

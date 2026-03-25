@@ -1,8 +1,16 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -23,10 +31,10 @@ namespace Nalix.Network.Connections;
 /// This class provides efficient connection management with minimal allocations and fast lookup operations.
 /// It is thread-safe and uses concurrent collections to handle multiple connections simultaneously.
 /// </remarks>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("ConnectionHub (Count={_count})")]
-public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReportable
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[DebuggerDisplay("ConnectionHub (Count={_count})")]
+public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 {
     #region Fields
 
@@ -50,7 +58,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
     private readonly ConnectionHubOptions _options;
 
-    [System.Diagnostics.CodeAnalysis.AllowNull]
+    [AllowNull]
     private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
@@ -78,12 +86,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
-    public event System.Action<IConnection> ConnectionUnregistered;
+    public event Action<IConnection> ConnectionUnregistered;
 
     /// <summary>
     /// Raised when a limit is reached (e.g., max connections) and a connection is rejected.
     /// </summary>
-    public event System.EventHandler<ConnectionHubEventArgs> CapacityLimitReached;
+    public event EventHandler<ConnectionHubEventArgs> CapacityLimitReached;
 
     /// <summary>
     /// Gets the current statistics snapshot for this connection hub.
@@ -117,8 +125,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _options.Validate();
 
-        _shardCount = System.Math.Max(1, _options.ShardCount);
-        int concurrencyLevel = System.Environment.ProcessorCount * 2;
+        _shardCount = Math.Max(1, _options.ShardCount);
+        int concurrencyLevel = Environment.ProcessorCount * 2;
 
         _shards = new();
 
@@ -129,7 +137,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         _usernames = new(concurrencyLevel, _options.InitialUsernameCapacity);
         _anonymousQueue = new System.Collections.Concurrent.ConcurrentQueue<ISnowflake>();
-        _usernameToId = new(concurrencyLevel, _options.InitialUsernameCapacity, System.StringComparer.OrdinalIgnoreCase);
+        _usernameToId = new(concurrencyLevel, _options.InitialUsernameCapacity, StringComparer.OrdinalIgnoreCase);
     }
 
     #endregion Constructor
@@ -142,11 +150,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     /// <param name="connection">The connection to register.</param>
     /// <returns><c>true</c> if the connection was successfully registered; otherwise, <c>false</c>.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public bool RegisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
+    public bool RegisterConnection([NotNull] IConnection connection)
     {
         if (connection is null || _disposed)
         {
@@ -172,7 +180,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         if (shard.TryAdd(connection.ID, connection))
         {
             connection.OnCloseEvent += OnClientDisconnected;
-            _ = System.Threading.Interlocked.Increment(ref _count);
+            _ = Interlocked.Increment(ref _count);
             _anonymousQueue.Enqueue(connection.ID);
 
 
@@ -197,10 +205,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     /// <param name="connection">The connection to unregister.</param>
     /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public bool UnregisterConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
+    public bool UnregisterConnection([NotNull] IConnection connection)
     {
         if (connection is null || _disposed)
         {
@@ -210,7 +218,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         // Wait for OnCloseEvent to complete if configured
         if (_options.UnregisterDrainMillis > 0)
         {
-            _ = System.Threading.Tasks.Task.Delay(_options.UnregisterDrainMillis)
+            _ = Task.Delay(_options.UnregisterDrainMillis)
                                            .ConfigureAwait(false);
         }
 
@@ -243,7 +251,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         (existing ?? connection).OnCloseEvent -= OnClientDisconnected;
 
-        _ = System.Threading.Interlocked.Decrement(ref _count);
+        _ = Interlocked.Decrement(ref _count);
 
         s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={connection.ID} total={_count}");
 
@@ -263,23 +271,23 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     /// <param name="connection">The connection to associate with the username.</param>
     /// <param name="username">The username to associate.</param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="connection"/> or <paramref name="username"/> is null or empty.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.", Justification = "<Pending>")]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [SuppressMessage("Performance", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.", Justification = "<Pending>")]
     public void AssociateUsername(
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNull] string username)
+        [NotNull] IConnection connection,
+        [NotNull] string username)
     {
         if (connection is null || string.IsNullOrWhiteSpace(username) || _disposed)
         {
             return;
         }
 
-        if (!System.Text.RegularExpressions.Regex.IsMatch(username, "^[a-zA-Z0-9_]+$"))
+        if (!Regex.IsMatch(username, "^[a-zA-Z0-9_]+$"))
         {
-            throw new System.ArgumentException("Username contains invalid characters.", nameof(username));
+            throw new ArgumentException("Username contains invalid characters.", nameof(username));
         }
 
         // Apply username policies
@@ -318,11 +326,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     /// <param name="id">The identifier of the connection to retrieve.</param>
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
+    [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
+    public IConnection GetConnection([NotNull] ISnowflake id)
     {
         IConnection connection;
         System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(id);
@@ -335,11 +343,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     /// <param name="id">The serialized identifier of the connection.</param>
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> id)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: MaybeNull]
+    [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
+    public IConnection GetConnection([NotNull] ReadOnlySpan<byte> id)
     {
         ISnowflake snowflake = Snowflake.FromBytes(id);
 
@@ -354,12 +362,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     /// <param name="username">The username associated with the connection.</param>
     /// <returns>The connection associated with the username, or <c>null</c> if not found.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="username"/> is null or empty.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] string username)
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="username"/> is null or empty.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
+    [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
+    public IConnection GetConnection([NotNull] string username)
     {
         ISnowflake id;
         if (string.IsNullOrWhiteSpace(username))
@@ -377,11 +385,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     /// <param name="id">The identifier of the connection.</param>
     /// <returns>The username associated with the connection, or <c>null</c> if not found.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public string GetUsername([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: MaybeNull]
+    [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
+    public string GetUsername([NotNull] ISnowflake id)
     {
         string username;
         return _usernames.TryGetValue(id, out username) ? username : null;
@@ -392,16 +400,16 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// Retrieves a read-only collection of all active connections.
     /// </summary>
     /// <returns>A read-only collection of active connections.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
+    [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public IReadOnlyCollection<IConnection> ListConnections()
     {
         if (_disposed || _count == 0)
         {
-            return System.Array.Empty<IConnection>();
+            return Array.Empty<IConnection>();
         }
 
         if (_count < 10000)
@@ -437,7 +445,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             }
 
             IConnection[] result = new IConnection[index];
-            System.Array.Copy(buffer, result, index);
+            Array.Copy(buffer, result, index);
 
             return result;
         }
@@ -455,15 +463,15 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <param name="sendFunc">The function to send the message to a connection.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous broadcast operation.</returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="message"/> or <paramref name="sendFunc"/> is null.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public async System.Threading.Tasks.Task BroadcastAsync<T>(
-        [System.Diagnostics.CodeAnalysis.NotNull] T message,
-        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
-        System.Threading.CancellationToken cancellationToken = default) where T : class
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public async Task BroadcastAsync<T>(
+        [NotNull] T message,
+        Func<IConnection, T, Task> sendFunc,
+        CancellationToken cancellationToken = default) where T : class
     {
         if (message is null || sendFunc is null || _disposed)
         {
@@ -502,11 +510,11 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Collections.Concurrent.OrderablePartitioner<IConnection> partitioner = System.Collections.Concurrent.Partitioner.Create(
             connections, System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering);
 
-        List<System.Threading.Tasks.Task> tasks = [];
+        List<Task> tasks = [];
         foreach (IEnumerator<IConnection> partition in partitioner.GetPartitions(_shardCount))
         {
             tasks.Add(
-                System.Threading.Tasks.Task.Run(async () =>
+                Task.Run(async () =>
                 {
                     using (partition)
                     {
@@ -521,7 +529,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                             {
                                 await sendFunc(partition.Current, message).ConfigureAwait(false);
                             }
-                            catch (System.Exception ex)
+                            catch (Exception ex)
                             {
                                 s_logger.Error($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] send-failure id={partition.Current.ID}", ex);
                             }
@@ -532,7 +540,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         try
         {
-            await System.Threading.Tasks.Task.WhenAll(tasks).ConfigureAwait(false);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
         finally
         {
@@ -552,15 +560,15 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <param name="predicate">The predicate to filter connections.</param>
     /// <param name="cancellation">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous broadcast operation.</returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="message"/>, <paramref name="sendFunc"/>, or <paramref name="predicate"/> is null.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public async System.Threading.Tasks.Task BroadcastWhereAsync<T>(
-        [System.Diagnostics.CodeAnalysis.NotNull] T message,
-        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc,
-        System.Func<IConnection, bool> predicate, System.Threading.CancellationToken cancellation = default) where T : class
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public async Task BroadcastWhereAsync<T>(
+        [NotNull] T message,
+        Func<IConnection, T, Task> sendFunc,
+        Func<IConnection, bool> predicate, CancellationToken cancellation = default) where T : class
     {
         if (message is null || sendFunc is null || predicate is null || _disposed)
         {
@@ -585,8 +593,8 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return;
         }
 
-        System.Threading.Tasks.Task[] tasks =
-            System.Buffers.ArrayPool<System.Threading.Tasks.Task>.Shared.Rent(filteredConnections.Count);
+        Task[] tasks =
+            System.Buffers.ArrayPool<Task>.Shared.Rent(filteredConnections.Count);
 
         try
         {
@@ -601,17 +609,17 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 tasks[index++] = sendFunc(connection, message);
             }
 
-            await System.Threading.Tasks.Task.WhenAll(System.MemoryExtensions
+            await Task.WhenAll(MemoryExtensions
                                              .AsSpan(tasks, 0, index))
                                              .ConfigureAwait(false);
         }
-        catch (System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastWhereAsync)}] broadcast-cancel");
         }
         finally
         {
-            System.Buffers.ArrayPool<System.Threading.Tasks.Task>.Shared.Return(tasks, clearArray: true);
+            System.Buffers.ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
         }
     }
 
@@ -620,13 +628,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// </summary>
     /// <param name="networkEndpoint">The IP address to forcefully close.</param>
     /// <returns>Number of connections closed.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public int ForceClose([System.Diagnostics.CodeAnalysis.NotNull] INetworkEndpoint networkEndpoint)
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public int ForceClose([NotNull] INetworkEndpoint networkEndpoint)
     {
-        System.ArgumentNullException.ThrowIfNull(networkEndpoint);
+        ArgumentNullException.ThrowIfNull(networkEndpoint);
 
         if (_disposed)
         {
@@ -654,7 +662,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                     conn.Disconnect("Force disconnected by IP.");
                     closedCount++;
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     s_logger.Error($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn?.ID}", ex);
                 }
@@ -673,10 +681,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// Closes all active connections with an optional reason.
     /// </summary>
     /// <param name="reason">The reason for closing the connections, if any.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void CloseAllConnections([System.Diagnostics.CodeAnalysis.AllowNull] string reason = null)
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public void CloseAllConnections([AllowNull] string reason = null)
     {
         if (_disposed)
         {
@@ -685,18 +693,18 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         IReadOnlyCollection<IConnection> connections = ListConnections();
 
-        System.Threading.Tasks.ParallelOptions parallelOptions = new()
+        ParallelOptions parallelOptions = new()
         {
             MaxDegreeOfParallelism = _options.ParallelDisconnectDegree
         };
 
-        _ = System.Threading.Tasks.Parallel.ForEach(connections, parallelOptions, connection =>
+        _ = Parallel.ForEach(connections, parallelOptions, connection =>
         {
             try
             {
                 connection.Disconnect(reason);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 s_logger.Error($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-error id={connection.ID}", ex);
             }
@@ -707,7 +715,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         _usernames.Clear();
         _usernameToId.Clear();
         _anonymousQueue.Clear();
-        _ = System.Threading.Interlocked.Exchange(ref _count, 0);
+        _ = Interlocked.Exchange(ref _count, 0);
 
         s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Count}");
     }
@@ -715,10 +723,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <summary>
     /// Generates a human-readable report of active connections and statistics.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public string GenerateReport()
     {
         const int Limit = 15;
@@ -726,12 +734,12 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         int count = 0;
         long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
 
-        System.Text.StringBuilder sb = new();
+        StringBuilder sb = new();
         ConnectionHubStatistics stats = Statistics;
-        Dictionary<string, int> algoCounts = new(System.StringComparer.OrdinalIgnoreCase);
-        Dictionary<string, int> statusCounts = new(System.StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, int> algoCounts = new(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, int> statusCounts = new(StringComparer.OrdinalIgnoreCase);
 
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {_count}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Users      : {_count - _usernames.Count}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Authenticated Users  : {_usernames.Count}");
@@ -839,9 +847,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <summary>
     /// Releases all resources used by the <see cref="ConnectionHub"/> and closes all connections.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
         if (_disposed)
@@ -859,26 +867,26 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
     #region Private Methods
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private int GetShardIndex(ISnowflake id) => (id.GetHashCode() & 0x7FFFFFFF) % _shardCount;
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> GetShard(ISnowflake id)
     {
         int index = GetShardIndex(id);
         return _shards[index];
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args) => UnregisterConnection(args.Connection);
+        [AllowNull] object sender,
+        [NotNull] IConnectEventArgs args) => UnregisterConnection(args.Connection);
 
-    [System.Diagnostics.StackTraceHidden]
+    [StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)
     {
         s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] connection-limit-reached policy={_options.DropPolicy} max={_options.MaxConnections}");
@@ -888,7 +896,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             case DropPolicy.DropNewest:
                 NotifyCapacityLimit(newConnection, "drop-newest");
                 newConnection.Disconnect("connection limit reached");
-                _ = System.Threading.Interlocked.Increment(ref _rejectedConnections);
+                _ = Interlocked.Increment(ref _rejectedConnections);
                 break;
 
 
@@ -912,7 +920,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
 
                 newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
-                _ = System.Threading.Interlocked.Increment(ref _evictedConnections);
+                _ = Interlocked.Increment(ref _evictedConnections);
                 break;
 
 
@@ -933,13 +941,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     /// <param name="message"></param>
     /// <param name="sendFunc"></param>
     /// <param name="cancellationToken"></param>
-    [System.Diagnostics.StackTraceHidden]
-    private async System.Threading.Tasks.Task BroadcastBatchedAsync<T>(
+    [StackTraceHidden]
+    private async Task BroadcastBatchedAsync<T>(
         IReadOnlyCollection<IConnection> connections, T message,
-        System.Func<IConnection, T, System.Threading.Tasks.Task> sendFunc, System.Threading.CancellationToken cancellationToken) where T : class
+        Func<IConnection, T, Task> sendFunc, CancellationToken cancellationToken) where T : class
     {
         int batchSize = _options.BroadcastBatchSize;
-        List<System.Threading.Tasks.Task> currentBatch = new(batchSize);
+        List<Task> currentBatch = new(batchSize);
 
         foreach (IConnection connection in connections)
         {
@@ -952,7 +960,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
             if (currentBatch.Count >= batchSize)
             {
-                await System.Threading.Tasks.Task.WhenAll(currentBatch)
+                await Task.WhenAll(currentBatch)
                                                  .ConfigureAwait(false);
                 currentBatch.Clear();
             }
@@ -961,13 +969,13 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         // Send remaining batch
         if (currentBatch.Count > 0)
         {
-            await System.Threading.Tasks.Task.WhenAll(currentBatch)
+            await Task.WhenAll(currentBatch)
                                              .ConfigureAwait(false);
         }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void NotifyCapacityLimit(IConnection newConnection, string reason)
     {
         ConnectionHubEventArgs args = new(

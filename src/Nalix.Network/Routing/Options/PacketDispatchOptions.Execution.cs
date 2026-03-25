@@ -1,6 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.IO;
+using System.Net.Sockets;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -12,11 +22,11 @@ namespace Nalix.Network.Routing.Options;
 
 public sealed partial class PacketDispatchOptions<TPacket>
 {
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private async System.Threading.Tasks.ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private async ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
     {
         // ------------------------------------------------------------------
         // Concrete-type guard — fast path: only active for legacy-style handlers
@@ -43,10 +53,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
         //   call is also ~1ns for sealed/concrete types. Total overhead on the
         //   happy path (type matches) is negligible compared to async machinery.
         // ------------------------------------------------------------------
-        if (TryGetExpectedPacketType(descriptor.OpCode, out System.Type expectedType)
+        if (TryGetExpectedPacketType(descriptor.OpCode, out Type expectedType)
             && !expectedType.IsInstanceOfType(context.Packet))
         {
-            System.Type actualType = context.Packet?.GetType();
+            Type actualType = context.Packet?.GetType();
 
             Logging?.Warn(
                 $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
@@ -76,7 +86,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             await InvokeHandlerAsync(context.CancellationToken).ConfigureAwait(false);
         }
 
-        async System.Threading.Tasks.Task InvokeHandlerAsync(System.Threading.CancellationToken ct = default)
+        async Task InvokeHandlerAsync(CancellationToken ct = default)
         {
             try
             {
@@ -111,10 +121,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
                                        .ConfigureAwait(false);
                 }
             }
-            catch (System.OperationCanceledException) when (ct.IsCancellationRequested)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 await HandleDispatchExceptionAsync(descriptor, context, ex)
                           .ConfigureAwait(false);
@@ -122,13 +132,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private async System.Threading.Tasks.ValueTask HandleDispatchExceptionAsync(
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private async ValueTask HandleDispatchExceptionAsync(
         PacketHandler<TPacket> descriptor,
-        PacketContext<TPacket> context, System.Exception exception)
+        PacketContext<TPacket> context, Exception exception)
     {
         Logging?.Error($"[{nameof(PacketDispatchOptions<>)}:{HandleDispatchExceptionAsync}] " +
                             $"handler-failed opcode={descriptor.OpCode}", exception);
@@ -146,20 +156,20 @@ public sealed partial class PacketDispatchOptions<TPacket>
               arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
     }
 
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static bool HasNoOutboundResult(System.Type returnType)
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private static bool HasNoOutboundResult(Type returnType)
         => returnType == typeof(void)
-        || returnType == typeof(System.Threading.Tasks.Task)
-        || returnType == typeof(System.Threading.Tasks.ValueTask);
+        || returnType == typeof(Task)
+        || returnType == typeof(ValueTask);
 
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
     private static T ThrowIfNull<T>(T value, string param) where T : class
-        => value ?? throw new System.ArgumentNullException(param);
+        => value ?? throw new ArgumentNullException(param);
 
 
     /// <summary>
@@ -171,12 +181,12 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <remarks>
     /// Hot path — called once per dispatch. The dictionary lookup is O(1) with a small constant.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private bool TryGetExpectedPacketType(
         ushort opCode,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Type expectedType)
+        [NotNullWhen(true)] out Type expectedType)
         => _packetTypeMap.TryGetValue(opCode, out expectedType) && expectedType is not null;
 
     /// <summary>
@@ -185,21 +195,21 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </summary>
     /// <param name="method"></param>
     /// <param name="contextType"></param>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Type ResolveConcretePacketType(
-        System.Reflection.MethodInfo method,
-        System.Type contextType)
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    private static Type ResolveConcretePacketType(
+        MethodInfo method,
+        Type contextType)
     {
-        System.Reflection.ParameterInfo[] parms = method.GetParameters();
+        ParameterInfo[] parms = method.GetParameters();
 
         if (parms.Length == 0)
         {
             return null;
         }
 
-        System.Type firstParam = parms[0].ParameterType;
+        Type firstParam = parms[0].ParameterType;
 
         // Context-style: (PacketContext<TPacket>[, CancellationToken])
         // The packet type is accessed through the context — no direct cast needed.
@@ -217,51 +227,51 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// Map exception types to ProtocolCode/ProtocolAction/ControlFlags.
     /// </summary>
     /// <param name="ex"></param>
-    /// <exception cref="System.NotImplementedException"></exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) MapExceptionToProtocol(System.Exception ex)
+    /// <exception cref="NotImplementedException"></exception>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    private static (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) MapExceptionToProtocol(Exception ex)
     {
         // 1) Cancellation/Timeout => transient
-        if (ex is System.OperationCanceledException or System.TimeoutException)
+        if (ex is OperationCanceledException or TimeoutException)
         {
             return (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IsTransient);
         }
 
         // 2) Validation/Bad input
-        if (ex is System.ArgumentException or System.FormatException ||
-            ex.GetType().Name.Contains("Validation", System.StringComparison.OrdinalIgnoreCase))
+        if (ex is ArgumentException or FormatException ||
+            ex.GetType().Name.Contains("Validation", StringComparison.OrdinalIgnoreCase))
         {
             return (ProtocolReason.REQUEST_INVALID, ProtocolAdvice.FIX_AND_RETRY, ControlFlags.NONE);
         }
 
         // 3) Unauthorized / security
-        if (ex is System.UnauthorizedAccessException or CryptographyException)
+        if (ex is UnauthorizedAccessException or CryptographyException)
         {
             return (ProtocolReason.ACCOUNT_LOCKED, ProtocolAdvice.NONE, ControlFlags.NONE);
         }
 
         // 4) Unsupported / not implemented
-        if (ex is System.NotSupportedException or System.NotImplementedException)
+        if (ex is NotSupportedException or NotImplementedException)
         {
             return (ProtocolReason.OPERATION_UNSUPPORTED, ProtocolAdvice.NONE, ControlFlags.NONE);
         }
 
         // 5) IO / socket => mostly transient
-        if (ex is System.IO.IOException ioEx && ioEx.InnerException is System.Net.Sockets.SocketException se1)
+        if (ex is IOException ioEx && ioEx.InnerException is SocketException se1)
         {
             return MapSocketExceptionToProtocol(se1);
         }
 
-        if (ex is System.Net.Sockets.SocketException se)
+        if (ex is SocketException se)
         {
             return MapSocketExceptionToProtocol(se);
         }
 
         // 6) ObjectDisposed trong teardown: coi như transient nhẹ
-        if (ex is System.ObjectDisposedException)
+        if (ex is ObjectDisposedException)
         {
             return (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IsTransient);
         }
@@ -269,62 +279,62 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // 7) Default: internal error
         return (ProtocolReason.INTERNAL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE);
 
-        static (ProtocolReason, ProtocolAdvice, ControlFlags) MapSocketExceptionToProtocol(System.Net.Sockets.SocketException se)
+        static (ProtocolReason, ProtocolAdvice, ControlFlags) MapSocketExceptionToProtocol(SocketException se)
         {
             return se.SocketErrorCode switch
             {
-                System.Net.Sockets.SocketError.TimedOut
+                SocketError.TimedOut
                 => (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IsTransient),
 
-                System.Net.Sockets.SocketError.ConnectionReset or
-                System.Net.Sockets.SocketError.ConnectionAborted or
-                System.Net.Sockets.SocketError.HostDown or
-                System.Net.Sockets.SocketError.HostUnreachable or
-                System.Net.Sockets.SocketError.NetworkDown or
-                System.Net.Sockets.SocketError.NetworkUnreachable
+                SocketError.ConnectionReset or
+                SocketError.ConnectionAborted or
+                SocketError.HostDown or
+                SocketError.HostUnreachable or
+                SocketError.NetworkDown or
+                SocketError.NetworkUnreachable
                 => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IsTransient),
 
-                System.Net.Sockets.SocketError.Interrupted or
-                System.Net.Sockets.SocketError.OperationAborted
+                SocketError.Interrupted or
+                SocketError.OperationAborted
                 => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IsTransient),
-                System.Net.Sockets.SocketError.SocketError => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.Success => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.IOPending => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.AccessDenied => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.Fault => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.InvalidArgument => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.TooManyOpenSockets => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.WouldBlock => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.InProgress => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.AlreadyInProgress => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.NotSocket => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.DestinationAddressRequired => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.MessageSize => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.ProtocolType => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.ProtocolOption => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.ProtocolNotSupported => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.SocketNotSupported => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.OperationNotSupported => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.ProtocolFamilyNotSupported => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.AddressFamilyNotSupported => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.AddressAlreadyInUse => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.AddressNotAvailable => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.NetworkReset => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.NoBufferSpaceAvailable => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.IsConnected => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.NotConnected => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.Shutdown => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.ConnectionRefused => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.ProcessLimit => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.SystemNotReady => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.VersionNotSupported => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.NotInitialized => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.Disconnecting => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.TypeNotFound => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.HostNotFound => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.TryAgain => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.NoRecovery => throw new System.NotImplementedException(),
-                System.Net.Sockets.SocketError.NoData => throw new System.NotImplementedException(),
+                SocketError.SocketError => throw new NotImplementedException(),
+                SocketError.Success => throw new NotImplementedException(),
+                SocketError.IOPending => throw new NotImplementedException(),
+                SocketError.AccessDenied => throw new NotImplementedException(),
+                SocketError.Fault => throw new NotImplementedException(),
+                SocketError.InvalidArgument => throw new NotImplementedException(),
+                SocketError.TooManyOpenSockets => throw new NotImplementedException(),
+                SocketError.WouldBlock => throw new NotImplementedException(),
+                SocketError.InProgress => throw new NotImplementedException(),
+                SocketError.AlreadyInProgress => throw new NotImplementedException(),
+                SocketError.NotSocket => throw new NotImplementedException(),
+                SocketError.DestinationAddressRequired => throw new NotImplementedException(),
+                SocketError.MessageSize => throw new NotImplementedException(),
+                SocketError.ProtocolType => throw new NotImplementedException(),
+                SocketError.ProtocolOption => throw new NotImplementedException(),
+                SocketError.ProtocolNotSupported => throw new NotImplementedException(),
+                SocketError.SocketNotSupported => throw new NotImplementedException(),
+                SocketError.OperationNotSupported => throw new NotImplementedException(),
+                SocketError.ProtocolFamilyNotSupported => throw new NotImplementedException(),
+                SocketError.AddressFamilyNotSupported => throw new NotImplementedException(),
+                SocketError.AddressAlreadyInUse => throw new NotImplementedException(),
+                SocketError.AddressNotAvailable => throw new NotImplementedException(),
+                SocketError.NetworkReset => throw new NotImplementedException(),
+                SocketError.NoBufferSpaceAvailable => throw new NotImplementedException(),
+                SocketError.IsConnected => throw new NotImplementedException(),
+                SocketError.NotConnected => throw new NotImplementedException(),
+                SocketError.Shutdown => throw new NotImplementedException(),
+                SocketError.ConnectionRefused => throw new NotImplementedException(),
+                SocketError.ProcessLimit => throw new NotImplementedException(),
+                SocketError.SystemNotReady => throw new NotImplementedException(),
+                SocketError.VersionNotSupported => throw new NotImplementedException(),
+                SocketError.NotInitialized => throw new NotImplementedException(),
+                SocketError.Disconnecting => throw new NotImplementedException(),
+                SocketError.TypeNotFound => throw new NotImplementedException(),
+                SocketError.HostNotFound => throw new NotImplementedException(),
+                SocketError.TryAgain => throw new NotImplementedException(),
+                SocketError.NoRecovery => throw new NotImplementedException(),
+                SocketError.NoData => throw new NotImplementedException(),
                 _ => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.NONE),
             };
         }

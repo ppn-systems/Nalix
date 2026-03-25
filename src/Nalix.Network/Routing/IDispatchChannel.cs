@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
@@ -31,12 +33,12 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <param name="raw">
     /// The packet to be added to the queue.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="raw"/> or <paramref name="connection"/> is <see langword="null"/>.
     /// </exception>
     void Push(
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNull] IBufferLease raw);
+        [NotNull] IConnection connection,
+        [NotNull] IBufferLease raw);
 
     /// <summary>
     /// Attempts to retrieve a packet and its associated connection from the dispatch queue.
@@ -53,8 +55,8 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <see langword="true"/> if a packet was successfully retrieved; otherwise,
     /// <see langword="false"/> if the queue is empty.
     /// </returns>
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [return: NotNull]
     bool Pull(
-        [System.Diagnostics.CodeAnalysis.NotNull] out IConnection connection,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] out IBufferLease raw);
+        [NotNull] out IConnection connection,
+        [MaybeNull] out IBufferLease raw);
 }

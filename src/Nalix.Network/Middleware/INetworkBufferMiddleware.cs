@@ -1,6 +1,10 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Networking;
 using Nalix.Common.Shared;
 
@@ -50,12 +54,12 @@ public interface INetworkBufferMiddleware
     /// dropped, or deemed invalid.
     /// </para>
     /// </remarks>
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
-    System.Threading.Tasks.Task<IBufferLease> InvokeAsync(
+    [return: MaybeNull]
+    [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
+    Task<IBufferLease> InvokeAsync(
         IBufferLease buffer,
         IConnection connection,
-        System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next,
-        System.Threading.CancellationToken ct
+        Func<IBufferLease, CancellationToken, Task<IBufferLease>> next,
+        CancellationToken ct
     );
 }

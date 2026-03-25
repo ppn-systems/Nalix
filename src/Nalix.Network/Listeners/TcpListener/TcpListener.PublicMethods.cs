@@ -1,7 +1,15 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using System.Globalization;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Identity;
 using Nalix.Framework.Injection;
@@ -19,7 +27,7 @@ namespace Nalix.Network.Listeners.Tcp;
 /// This class manages the process of accepting incoming network connections
 /// and handling the associated protocol processing.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay("Port={_port}, StateWrapper={StateWrapper}")]
+[DebuggerDisplay("Port={_port}, StateWrapper={StateWrapper}")]
 public abstract partial class TcpListenerBase
 {
     /// <summary>
@@ -27,50 +35,50 @@ public abstract partial class TcpListenerBase
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC),
     /// as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual void SynchronizeTime([System.Diagnostics.CodeAnalysis.NotNull] long milliseconds) { }
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public virtual void SynchronizeTime([NotNull] long milliseconds) { }
 
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
-    /// The listening process can be cancelled using the provided <see cref="System.Threading.CancellationToken"/>.
+    /// The listening process can be cancelled using the provided <see cref="CancellationToken"/>.
     /// </summary>
-    /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
-    /// <exception cref="System.InvalidOperationException"></exception>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Activate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
+    /// <exception cref="InvalidOperationException"></exception>
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    public void Activate([NotNull] CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
         if (s_config.MaxParallel < 1)
         {
-            throw new System.InvalidOperationException("s_config.MaxParallel must be at least 1.");
+            throw new InvalidOperationException("s_config.MaxParallel must be at least 1.");
         }
 
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
 
-        _lock.Wait(System.Threading.CancellationToken.None);
+        _lock.Wait(CancellationToken.None);
 
-        System.Threading.CancellationToken linkedToken = default;
+        CancellationToken linkedToken = default;
 
         try
         {
-            if ((ListenerState)System.Threading.Volatile.Read(ref _state) != ListenerState.STOPPED)
+            if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={State}");
 
                 return;
             }
 
-            _ = System.Threading.Interlocked.Exchange(ref _stopInitiated, 0);
-            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STARTING);
+            _ = Interlocked.Exchange(ref _stopInitiated, 0);
+            _ = Interlocked.Exchange(ref _state, (int)ListenerState.STARTING);
 
             _cts?.Dispose();
-            _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _cancellationToken = _cts.Token;
 
             linkedToken = _cts.Token;
@@ -91,7 +99,7 @@ public abstract partial class TcpListenerBase
                 Initialize();
             }
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
+            _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
 
             s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
 
@@ -114,7 +122,7 @@ public abstract partial class TcpListenerBase
                         Tag = NetTaskNames.Net,
                         IdType = SnowflakeType.System,
                         CancellationToken = linkedToken,
-                        RetainFor = System.TimeSpan.FromSeconds(30),
+                        RetainFor = TimeSpan.FromSeconds(30),
                     }
                 );
 
@@ -123,23 +131,23 @@ public abstract partial class TcpListenerBase
 
             START_PROCESS_CHANNEL(linkedToken);
         }
-        catch (System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] cancel port={_port}");
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+            _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
-        catch (System.Net.Sockets.SocketException ex)
+        catch (SocketException ex)
         {
             s_logger?.Error($"[NW.{nameof(TcpListenerBase)}: {nameof(Activate)} ] start-failed port= {_port}", ex);
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+            _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger?.Fatal($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+            _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         finally
         {
@@ -151,14 +159,14 @@ public abstract partial class TcpListenerBase
     /// Stops the listener from accepting further connections.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public void Deactivate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    public void Deactivate([NotNull] CancellationToken cancellationToken = default)
     {
         // Skip throwing if already disposed; just return calmly or let ListenerState check handle it.
-        if (System.Threading.Volatile.Read(ref _isDisposed) != 0 && State == ListenerState.STOPPED)
+        if (Volatile.Read(ref _isDisposed) != 0 && State == ListenerState.STOPPED)
         {
             return;
         }
@@ -166,12 +174,12 @@ public abstract partial class TcpListenerBase
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
 
         // Try Running->Stopping; if not, try Starting->Stopping
-        int prev = System.Threading.Interlocked.CompareExchange(ref _state,
+        int prev = Interlocked.CompareExchange(ref _state,
             (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
 
         if (prev != (int)ListenerState.RUNNING)
         {
-            prev = System.Threading.Interlocked.CompareExchange(ref _state,
+            prev = Interlocked.CompareExchange(ref _state,
                 (int)ListenerState.STOPPING, (int)ListenerState.STARTING);
 
             if (prev != (int)ListenerState.STARTING)
@@ -182,7 +190,7 @@ public abstract partial class TcpListenerBase
             }
         }
 
-        System.Threading.CancellationTokenSource cts = System.Threading.Interlocked.Exchange(ref _cts, null);
+        CancellationTokenSource cts = Interlocked.Exchange(ref _cts, null);
         try
         {
             try { _cancelReg.Dispose(); } catch { }
@@ -202,7 +210,7 @@ public abstract partial class TcpListenerBase
             if (s_config.EnableTimeout)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
-                                        .Deactivate(System.Threading.CancellationToken.None);
+                                        .Deactivate(CancellationToken.None);
             }
 
             s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] stop protocol={_protocol} port={_port}");
@@ -216,7 +224,7 @@ public abstract partial class TcpListenerBase
             catch { }
 
             _cts = null;
-            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+            _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
     }
 
@@ -224,16 +232,16 @@ public abstract partial class TcpListenerBase
     /// Generates a diagnostic report of the TCP listener state and metrics.
     /// </summary>
     /// <returns>A formatted string report.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
     public virtual string GenerateReport()
     {
-        System.Text.StringBuilder sb = new(1024);
-        System.Threading.ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
+        StringBuilder sb = new(1024);
+        ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
 
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Port                : {_port}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"StateWrapper        : {State}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Disposed            : {_isDisposed}");

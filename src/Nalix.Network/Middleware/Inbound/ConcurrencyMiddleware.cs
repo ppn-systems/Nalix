@@ -1,6 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
@@ -27,9 +31,9 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
     /// <param name="context">The packet context containing the packet and connection information.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async System.Threading.Tasks.Task InvokeAsync(
+    public async Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
+        Func<CancellationToken, Task> next)
     {
         if (context.Attributes.ConcurrencyLimit is null)
         {

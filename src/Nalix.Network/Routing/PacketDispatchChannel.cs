@@ -1,10 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -44,24 +50,24 @@ namespace Nalix.Network.Routing;
 /// dispatcher.HandlePacket(data, connection);
 /// </code>
 /// </example>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
 public sealed class PacketDispatchChannel
-    : PacketDispatcherBase<IPacket>, IPacketDispatch, System.IDisposable, IActivatable, IReportable
+    : PacketDispatcherBase<IPacket>, IPacketDispatch, IDisposable, IActivatable, IReportable
 {
     #region Fields
 
     private readonly IPacketRegistry _catalog;
     private readonly DispatchChannel<IPacket> _dispatch;
-    private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
+    private readonly SemaphoreSlim _semaphore = new(0);
 
     private int _running;
     private int _activeLoops;
     private int _dispatchLoops;
     private IWorkerHandle[] _workerHandle;
-    private System.Threading.CancellationTokenSource _cts;
-    private System.Threading.CancellationTokenSource _linkedCts;
+    private CancellationTokenSource _cts;
+    private CancellationTokenSource _linkedCts;
 
     #endregion Fields
 
@@ -72,11 +78,11 @@ public sealed class PacketDispatchChannel
     /// with custom configuration options.
     /// </summary>
     /// <param name="options">A delegate used to configure dispatcher options</param>
-    public PacketDispatchChannel(System.Action<PacketDispatchOptions<IPacket>> options) : base(options)
+    public PacketDispatchChannel(Action<PacketDispatchOptions<IPacket>> options) : base(options)
     {
         _dispatch = new DispatchChannel<IPacket>();
         _catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-                   ?? throw new System.InvalidOperationException(
+                   ?? throw new InvalidOperationException(
                        $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager. Make sure to build and register IPacketRegistry before starting dispatcher.");
 
         // Push any additional initialization here if needed
@@ -91,14 +97,14 @@ public sealed class PacketDispatchChannel
     /// Starts the lease processing loop
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [StackTraceHidden]
+    [MethodImpl(
+       MethodImplOptions.NoInlining |
+       MethodImplOptions.AggressiveOptimization)]
     public void Activate(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
+        [NotNull] CancellationToken cancellationToken = default)
     {
-        if (System.Threading.Interlocked.CompareExchange(ref _running, 1, 0) != 0)
+        if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
             Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{Activate}] already-running");
             return;
@@ -108,13 +114,13 @@ public sealed class PacketDispatchChannel
         _linkedCts = null;
 
         _cts?.Dispose();
-        _cts = new System.Threading.CancellationTokenSource();
+        _cts = new CancellationTokenSource();
 
-        System.Threading.CancellationToken linkedToken;
+        CancellationToken linkedToken;
 
         if (cancellationToken.CanBeCanceled)
         {
-            _linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+            _linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
             linkedToken = _linkedCts.Token;
         }
         else
@@ -122,16 +128,16 @@ public sealed class PacketDispatchChannel
             linkedToken = _cts.Token;
         }
 
-        System.Threading.Volatile.Write(ref _activeLoops, 0);
+        Volatile.Write(ref _activeLoops, 0);
 
         // Decide how many parallel dispatch loops to start.
         // Rule of thumb: cores/2, clamped to [1..12]
-        _dispatchLoops = Options.DispatchLoopCount ?? System.Math.Clamp(System.Environment.ProcessorCount / 2, 1, 12);
+        _dispatchLoops = Options.DispatchLoopCount ?? Math.Clamp(Environment.ProcessorCount / 2, 1, 12);
         _workerHandle = new IWorkerHandle[_dispatchLoops];
 
         for (int i = 0; i < _dispatchLoops; i++)
         {
-            _ = System.Threading.Interlocked.Increment(ref _activeLoops);
+            _ = Interlocked.Increment(ref _activeLoops);
 
             _workerHandle[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"{TaskNaming.Tags.Dispatch}.{TaskNaming.Tags.Process}.{i}",
@@ -141,7 +147,7 @@ public sealed class PacketDispatchChannel
                 {
                     IdType = SnowflakeType.System,
                     CancellationToken = linkedToken,
-                    RetainFor = System.TimeSpan.Zero,
+                    RetainFor = TimeSpan.Zero,
                     Tag = NetTaskNames.Net
                 }
             );
@@ -154,20 +160,20 @@ public sealed class PacketDispatchChannel
     /// Stops the lease processing loop
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [StackTraceHidden]
+    [MethodImpl(
+       MethodImplOptions.NoInlining |
+       MethodImplOptions.AggressiveOptimization)]
     public void Deactivate(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
+        [NotNull] CancellationToken cancellationToken = default)
     {
-        if (System.Threading.Interlocked.Exchange(ref _running, 0) == 0)
+        if (Interlocked.Exchange(ref _running, 0) == 0)
         {
             return;
         }
 
-        System.Threading.CancellationTokenSource localCts = System.Threading.Interlocked.Exchange(ref _cts, null);
-        System.Threading.CancellationTokenSource linkedCts = System.Threading.Interlocked.Exchange(ref _linkedCts, null);
+        CancellationTokenSource localCts = Interlocked.Exchange(ref _cts, null);
+        CancellationTokenSource linkedCts = Interlocked.Exchange(ref _linkedCts, null);
 
         try
         {
@@ -185,7 +191,7 @@ public sealed class PacketDispatchChannel
 
             try
             {
-                int releases = System.Math.Max(_dispatchLoops, 1);
+                int releases = Math.Max(_dispatchLoops, 1);
                 for (int i = 0; i < releases; i++)
                 {
                     _ = _semaphore.Release();
@@ -193,11 +199,11 @@ public sealed class PacketDispatchChannel
             }
             catch { /* ignore over-release */ }
         }
-        catch (System.ObjectDisposedException)
+        catch (ObjectDisposedException)
         {
             Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-on-disposed-cts");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Logging?.Error($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-error", ex);
         }
@@ -209,12 +215,12 @@ public sealed class PacketDispatchChannel
     }
 
     /// <inheritdoc />
-    [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+       MethodImplOptions.AggressiveInlining |
+       MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] IBufferLease packet,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
+        [MaybeNull] IBufferLease packet,
+        [NotNull] IConnection connection)
     {
         if (packet is null || packet.Length <= 0)
         {
@@ -234,11 +240,11 @@ public sealed class PacketDispatchChannel
     /// <inheritdoc />
     // If you want typed fast-path, you can implement a separate typed channel.
     // For now, process immediately to avoid mixing typed/lease queues.
-    [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+       MethodImplOptions.NoInlining)]
     public void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
+        [NotNull] IPacket packet,
+        [NotNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
 
     #endregion Public Methods
 
@@ -248,16 +254,16 @@ public sealed class PacketDispatchChannel
     /// Generates a human-readable diagnostic report for the PacketDispatchChannel.
     /// </summary>
     /// <returns>A formatted report string.</returns>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public string GenerateReport()
     {
         StringBuilder sb = new(2048);
 
         // Header
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Running           : {(System.Threading.Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Running           : {(Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DispatchLoops     : {_dispatchLoops}");
         _ = sb.AppendLine();
 
@@ -319,7 +325,7 @@ public sealed class PacketDispatchChannel
     {
         try
         {
-            return System.Enum.GetName(typeof(PacketPriority), index) ?? index.ToString(CultureInfo.InvariantCulture);
+            return Enum.GetName(typeof(PacketPriority), index) ?? index.ToString(CultureInfo.InvariantCulture);
         }
         catch
         {
@@ -336,17 +342,17 @@ public sealed class PacketDispatchChannel
     /// </summary>
     /// <param name="ctx"></param>
     /// <param name="ct"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-       System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-       System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private async System.Threading.Tasks.Task RunLoop(IWorkerContext ctx, System.Threading.CancellationToken ct)
+    [StackTraceHidden]
+    [MethodImpl(
+       MethodImplOptions.NoInlining |
+       MethodImplOptions.AggressiveOptimization)]
+    private async Task RunLoop(IWorkerContext ctx, CancellationToken ct)
     {
-        System.TimeSpan heartbeatInterval = System.TimeSpan.FromSeconds(1);
+        TimeSpan heartbeatInterval = TimeSpan.FromSeconds(1);
 
         try
         {
-            while (System.Threading.Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
+            while (Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
             {
                 ctx.Beat();
 
@@ -388,7 +394,7 @@ public sealed class PacketDispatchChannel
                         lease = afterMw;
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     connection.IncrementErrorCount();
                     Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection.NetworkEndpoint} leaseLen={lease?.Length}", ex);
@@ -404,7 +410,7 @@ public sealed class PacketDispatchChannel
                     if (!_catalog.TryDeserialize(lease.Span, out IPacket packet) || packet is null)
                     {
                         int len = lease.Length;
-                        string head = System.Convert.ToHexString(lease.Span[..System.Math.Min(16, len)]);
+                        string head = Convert.ToHexString(lease.Span[..Math.Min(16, len)]);
                         Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
 
                         lease.Dispose();
@@ -414,7 +420,7 @@ public sealed class PacketDispatchChannel
 
                     await ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     connection.IncrementErrorCount();
                     Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.NetworkEndpoint}", ex);
@@ -428,19 +434,19 @@ public sealed class PacketDispatchChannel
                 ctx.Advance(1);
             }
         }
-        catch (System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             // NONE cancellation, no need to log
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] loop-error", ex);
         }
         finally
         {
-            if (System.Threading.Interlocked.Decrement(ref _activeLoops) == 0)
+            if (Interlocked.Decrement(ref _activeLoops) == 0)
             {
-                System.Threading.Volatile.Write(ref _running, 0);
+                Volatile.Write(ref _running, 0);
             }
         }
     }
@@ -452,7 +458,7 @@ public sealed class PacketDispatchChannel
     /// <summary>
     /// Releases resources used by the dispatcher
     /// </summary>
-    [System.Diagnostics.DebuggerNonUserCode]
+    [DebuggerNonUserCode]
     public void Dispose()
     {
         Deactivate();

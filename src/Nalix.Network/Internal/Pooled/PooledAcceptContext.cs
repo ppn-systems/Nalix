@@ -1,52 +1,60 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Objects;
 
-
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
 namespace Nalix.Network.Internal.Pooled;
 
 /// <summary>
 /// Represents a pooled context for accepting TCP socket connections asynchronously.
-/// Wraps a reusable <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> with built-in pooling logic.
+/// Wraps a reusable <see cref="SocketAsyncEventArgs"/> with built-in pooling logic.
 /// </summary>
-[System.Diagnostics.DebuggerStepThrough]
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("Args={Args}")]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerStepThrough]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[DebuggerDisplay("Args={Args}")]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class PooledAcceptContext : IPoolable
 {
-    private static readonly System.EventHandler<System.Net.Sockets.SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
+    private static readonly EventHandler<SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
     {
-        System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs =
-            (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>)e.UserToken;
+        TaskCompletionSource<Socket> tcs =
+            (TaskCompletionSource<Socket>)e.UserToken;
 
-        _ = e.SocketError == System.Net.Sockets.SocketError.Success
+        _ = e.SocketError == SocketError.Success
             ? tcs.TrySetResult(e.AcceptSocket)
-            : tcs.TrySetException(new System.Net.Sockets.SocketException((int)e.SocketError));
+            : tcs.TrySetException(new SocketException((int)e.SocketError));
     };
 
-    [System.Diagnostics.CodeAnalysis.AllowNull]
-    private System.Net.Sockets.SocketAsyncEventArgs _args;
+    [AllowNull]
+    private SocketAsyncEventArgs _args;
 
     /// <summary>The SAEA currently bound to this context.</summary>
-    /// <exception cref="System.InvalidOperationException"></exception>
-    public System.Net.Sockets.SocketAsyncEventArgs Args =>
-        _args ?? throw new System.InvalidOperationException("Args not bound.");
+    /// <exception cref="InvalidOperationException"></exception>
+    public SocketAsyncEventArgs Args =>
+        _args ?? throw new InvalidOperationException("Args not bound.");
 
     /// <summary>
     /// Ensures that this context has a bound SAEA, acquiring one from the pool if necessary.
     /// </summary>
-    /// <exception cref="System.InvalidOperationException"></exception>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0270:Use coalesce expression", Justification = "<Pending>")]
+    /// <exception cref="InvalidOperationException"></exception>
+    [SuppressMessage("Style", "IDE0270:Use coalesce expression", Justification = "<Pending>")]
     public void EnsureArgsBound()
     {
         if (_args == null)
@@ -57,7 +65,7 @@ internal sealed class PooledAcceptContext : IPoolable
 
             if (pooledArgs == null)
             {
-                throw new System.InvalidOperationException("Failed to acquire PooledSocketAsyncEventArgs.");
+                throw new InvalidOperationException("Failed to acquire PooledSocketAsyncEventArgs.");
             }
 
             BindArgs(pooledArgs);
@@ -65,18 +73,18 @@ internal sealed class PooledAcceptContext : IPoolable
     }
 
     /// <summary>
-    /// Rebinds this context to a new <see cref="System.Net.Sockets.SocketAsyncEventArgs"/>:
+    /// Rebinds this context to a new <see cref="SocketAsyncEventArgs"/>:
     /// detaches from old args (if any) and attaches the shared completion handler.
     /// </summary>
     /// <param name="newArgs"></param>
-    /// <exception cref="System.ArgumentNullException"></exception>
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_args))]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void BindArgs(System.Net.Sockets.SocketAsyncEventArgs newArgs)
+    /// <exception cref="ArgumentNullException"></exception>
+    [MemberNotNull(nameof(_args))]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public void BindArgs(SocketAsyncEventArgs newArgs)
     {
         _args?.Completed -= AsyncAcceptCompleted;
-        _args = newArgs ?? throw new System.ArgumentNullException(nameof(newArgs));
+        _args = newArgs ?? throw new ArgumentNullException(nameof(newArgs));
         _args.Completed += AsyncAcceptCompleted;
     }
 
@@ -84,48 +92,48 @@ internal sealed class PooledAcceptContext : IPoolable
     /// Binds this context to a new SAEA without attaching the async completion handler.
     /// </summary>
     /// <param name="newArgs"></param>
-    /// <exception cref="System.ArgumentNullException"></exception>
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_args))]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void BindArgsForSync(System.Net.Sockets.SocketAsyncEventArgs newArgs)
+    /// <exception cref="ArgumentNullException"></exception>
+    [MemberNotNull(nameof(_args))]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public void BindArgsForSync(SocketAsyncEventArgs newArgs)
     {
         _args?.Completed -= AsyncAcceptCompleted;
-        _args = newArgs ?? throw new System.ArgumentNullException(nameof(newArgs));
+        _args = newArgs ?? throw new ArgumentNullException(nameof(newArgs));
     }
 
     /// <summary>
     /// Starts an async accept. Supports cancellation — when the token is cancelled the
-    /// returned task transitions to <see cref="System.OperationCanceledException"/> and
+    /// returned task transitions to <see cref="OperationCanceledException"/> and
     /// the caller is responsible for returning this context to the pool.
     /// </summary>
     /// <param name="listener"></param>
     /// <param name="cancellationToken"></param>
-    [System.Diagnostics.Contracts.Pure]
-    public System.Threading.Tasks.ValueTask<System.Net.Sockets.Socket> BeginAcceptAsync(
-        System.Net.Sockets.Socket listener,
-        System.Threading.CancellationToken cancellationToken = default)
+    [Pure]
+    public ValueTask<Socket> BeginAcceptAsync(
+        Socket listener,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         EnsureArgsBound();
 
-        System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> tcs = new(
-            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<Socket> tcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Register cancellation — when fired, the awaiter gets OperationCanceledException.
-        System.Threading.CancellationTokenRegistration reg = default;
+        CancellationTokenRegistration reg = default;
         if (cancellationToken.CanBeCanceled)
         {
             reg = cancellationToken.Register(static state =>
             {
-                (System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket> t, System.Threading.CancellationToken ct) = ((System.Threading.Tasks.TaskCompletionSource<System.Net.Sockets.Socket>,
-                                System.Threading.CancellationToken))state;
+                (TaskCompletionSource<Socket> t, CancellationToken ct) = ((TaskCompletionSource<Socket>,
+                                CancellationToken))state;
                 _ = t.TrySetCanceled(ct);
             }, (tcs, cancellationToken));
         }
 
-        System.Net.Sockets.SocketAsyncEventArgs args = Args;
+        SocketAsyncEventArgs args = Args;
         args.UserToken = tcs;
         args.AcceptSocket = null;
 
@@ -134,14 +142,14 @@ internal sealed class PooledAcceptContext : IPoolable
             // Completed synchronously — dispose registration immediately.
             reg.Dispose();
 
-            if (args.SocketError != System.Net.Sockets.SocketError.Success)
+            if (args.SocketError != SocketError.Success)
             {
                 args.AcceptSocket = null;
-                _ = tcs.TrySetException(new System.Net.Sockets.SocketException((int)args.SocketError));
+                _ = tcs.TrySetException(new SocketException((int)args.SocketError));
             }
             else
             {
-                System.Net.Sockets.Socket s = args.AcceptSocket;
+                Socket s = args.AcceptSocket;
                 args.AcceptSocket = null;
                 _ = tcs.TrySetResult(s);
             }
@@ -150,20 +158,20 @@ internal sealed class PooledAcceptContext : IPoolable
         {
             // Completed asynchronously — dispose registration when task finishes.
             _ = tcs.Task.ContinueWith(
-                static (_, state) => ((System.Threading.CancellationTokenRegistration)state).Dispose(),
+                static (_, state) => ((CancellationTokenRegistration)state).Dispose(),
                 reg,
-                System.Threading.Tasks.TaskContinuationOptions.ExecuteSynchronously);
+                TaskContinuationOptions.ExecuteSynchronously);
         }
 
-        return new System.Threading.Tasks.ValueTask<System.Net.Sockets.Socket>(tcs.Task);
+        return new ValueTask<Socket>(tcs.Task);
     }
 
     /// <summary>
     /// Resets internal state before returning to the pool.
     /// Also returns the inner <see cref="PooledSocketAsyncEventArgs"/> to its pool.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
         if (_args != null)

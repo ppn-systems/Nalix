@@ -1,8 +1,12 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
@@ -61,8 +65,8 @@ namespace Nalix.Network.Timekeeping;
 /// </code>
 /// </example>
 /// <seealso cref="IActivatable"/>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
 public sealed class TimingWheel : IActivatable
 {
     #region Fields
@@ -178,7 +182,7 @@ public sealed class TimingWheel : IActivatable
 
         // Value = expected Version of the live task for this connection.
         _active = new ConcurrentDictionary<IConnection, int>(
-            System.Environment.ProcessorCount * 2,
+            Environment.ProcessorCount * 2,
             1024);
 
         _disposed = 0;
@@ -192,11 +196,11 @@ public sealed class TimingWheel : IActivatable
     /// Starts the background timing loop if it is not already running.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public void Activate(CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(TimingWheel));
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(TimingWheel));
 
         if (_cts is { IsCancellationRequested: false })
         {
@@ -218,7 +222,7 @@ public sealed class TimingWheel : IActivatable
                 Tag = NetTaskNames.Wheel,
                 IdType = SnowflakeType.System,
                 CancellationToken = linkedCts.Token,
-                RetainFor = System.TimeSpan.Zero
+                RetainFor = TimeSpan.Zero
             }
         );
 
@@ -231,8 +235,8 @@ public sealed class TimingWheel : IActivatable
     /// Stops the background timing loop and drains all buckets back to the pool.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public void Deactivate(CancellationToken cancellationToken = default)
     {
         CancellationTokenSource cts = Interlocked.Exchange(ref _cts, null);
@@ -270,11 +274,11 @@ public sealed class TimingWheel : IActivatable
     /// The method subscribes to <see cref="IConnection.OnCloseEvent"/> once so that
     /// the connection is automatically unregistered when it closes.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public void Register(IConnection connection)
     {
-        System.ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(connection);
 
         if (Volatile.Read(ref _disposed) != 0)
         {
@@ -292,7 +296,7 @@ public sealed class TimingWheel : IActivatable
         task.Version = 0; // ResetForPool guarantees this, but be explicit.
 
         long baseTick = Interlocked.Read(ref _tick);
-        long ticks = System.Math.Max(1, _idleTimeoutMs / (long)_tickMs);
+        long ticks = Math.Max(1, _idleTimeoutMs / (long)_tickMs);
 
         int bucket = _useMask
             ? (int)((baseTick + ticks) & _mask)
@@ -323,15 +327,15 @@ public sealed class TimingWheel : IActivatable
     /// the <see cref="TimeoutTask"/> to the pool. The task may still be sitting in a wheel
     /// bucket. Returning it here would let the pool reset <c>task.Conn</c> to <c>null</c>
     /// while <see cref="RUN_LOOP"/> could be about to read it, causing a
-    /// <see cref="System.NullReferenceException"/>.
+    /// <see cref="NullReferenceException"/>.
     /// <para>
     /// Instead, removing the entry from <c>_active</c> is sufficient: when the loop next
     /// dequeues the task, <c>TryGetValue</c> returns <c>false</c> and the loop returns the
     /// task to the pool itself — safely, after the task is no longer in any queue.
     /// </para>
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
     public void Unregister(IConnection connection)
     {
         if (connection is null)
@@ -366,9 +370,9 @@ public sealed class TimingWheel : IActivatable
 
     #region Loop
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private async System.Threading.Tasks.Task RUN_LOOP(
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    private async Task RUN_LOOP(
         IWorkerContext ctx,
         CancellationToken ct)
     {
@@ -376,7 +380,7 @@ public sealed class TimingWheel : IActivatable
 
         try
         {
-            using PeriodicTimer timer = new(System.TimeSpan.FromMilliseconds(_tickMs));
+            using PeriodicTimer timer = new(TimeSpan.FromMilliseconds(_tickMs));
 
             while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
             {
@@ -432,7 +436,7 @@ public sealed class TimingWheel : IActivatable
                         {
                             task.Conn.Close(force: true);
                         }
-                        catch (System.Exception ex)
+                        catch (Exception ex)
                         {
                             s_logger?.Warn(
                                 $"[NW.{nameof(TimingWheel)}] close-error " +
@@ -450,7 +454,7 @@ public sealed class TimingWheel : IActivatable
                     // Bump the version so any stale copy of this task that surfaces later
                     // will be discarded by the stale-task check above.
                     long remainingMs = _idleTimeoutMs - idleMs;
-                    long ticksMore = System.Math.Max(1, remainingMs / _tickMs);
+                    long ticksMore = Math.Max(1, remainingMs / _tickMs);
 
                     int newVersion = task.Version + 1;
                     task.Version = newVersion;
@@ -471,11 +475,11 @@ public sealed class TimingWheel : IActivatable
                 ctx.Advance(1);
             }
         }
-        catch (System.OperationCanceledException)
+        catch (OperationCanceledException)
         {
             // Expected on shutdown — swallow silently.
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger?.Error($"[NW.{nameof(TimingWheel)}] loop-error", ex);
         }
@@ -485,8 +489,8 @@ public sealed class TimingWheel : IActivatable
 
     #region Helpers
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClosed(object sender, IConnectEventArgs args)
     {
         if (args?.Connection is not null)

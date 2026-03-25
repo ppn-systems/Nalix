@@ -1,7 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing;
@@ -34,16 +37,16 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
     #region Fields
 
     private readonly Lock _lock = new();
-    private readonly System.Collections.Generic.List<MiddlewareEntry> _inbound = [];
-    private readonly System.Collections.Generic.List<MiddlewareEntry> _outbound = [];
-    private readonly System.Collections.Generic.List<MiddlewareEntry> _outboundAlways = [];
-    private readonly System.Collections.Generic.HashSet<IPacketMiddleware<TPacket>> _registeredMiddlewares = [];
+    private readonly List<MiddlewareEntry> _inbound = [];
+    private readonly List<MiddlewareEntry> _outbound = [];
+    private readonly List<MiddlewareEntry> _outboundAlways = [];
+    private readonly HashSet<IPacketMiddleware<TPacket>> _registeredMiddlewares = [];
 
     private volatile bool _isSorted;
     private bool _continueOnError;
-    private System.Action<System.Exception, System.Type> _errorHandler;
+    private Action<Exception, Type> _errorHandler;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, MiddlewareMetadata>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, MiddlewareMetadata>
         s_metadataCache = new();
 
     #endregion Fields
@@ -85,7 +88,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
     /// </param>
     public void ConfigureErrorHandling(
         bool continueOnError,
-        System.Action<System.Exception, System.Type> errorHandler = null)
+        Action<Exception, Type> errorHandler = null)
     {
         lock (_lock)
         {
@@ -109,23 +112,23 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
     /// <returns>
     /// A task that represents the asynchronous execution of the pipeline.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="context"/> or <paramref name="handler"/> is <see langword="null"/>.
     /// </exception>
-    public System.Threading.Tasks.Task ExecuteAsync(
+    public Task ExecuteAsync(
         PacketContext<TPacket> context,
-        System.Func<CancellationToken, System.Threading.Tasks.Task> handler,
+        Func<CancellationToken, Task> handler,
         CancellationToken ct = default)
     {
-        System.ArgumentNullException.ThrowIfNull(context);
-        System.ArgumentNullException.ThrowIfNull(handler);
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(handler);
 
         // Create immutable snapshots
-        System.Collections.Generic.List<MiddlewareEntry> inboundSnapshot;
-        System.Collections.Generic.List<MiddlewareEntry> outboundSnapshot;
-        System.Collections.Generic.List<MiddlewareEntry> outboundAlwaysSnapshot;
+        List<MiddlewareEntry> inboundSnapshot;
+        List<MiddlewareEntry> outboundSnapshot;
+        List<MiddlewareEntry> outboundAlwaysSnapshot;
         bool continueOnError;
-        System.Action<System.Exception, System.Type> errorHandler;
+        Action<Exception, Type> errorHandler;
 
         lock (_lock)
         {
@@ -147,7 +150,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 {
                     await handler(handlerCts.Token).ConfigureAwait(false);
                 }
-                catch (System.OperationCanceledException)
+                catch (OperationCanceledException)
                 {
                     // Continue to outbound-always even if cancelled
                 }
@@ -157,7 +160,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
                     (ct) =>
                     {
                         ct.ThrowIfCancellationRequested();
-                        return System.Threading.Tasks.Task.CompletedTask;
+                        return Task.CompletedTask;
                     },
                     ct,
                     continueOnError,
@@ -171,7 +174,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
                         (ct) =>
                         {
                             ct.ThrowIfCancellationRequested();
-                            return System.Threading.Tasks.Task.CompletedTask;
+                            return Task.CompletedTask;
                         },
                         inboundCt,
                         continueOnError,
@@ -191,22 +194,22 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
     /// <param name="middleware">
     /// The middleware instance to register.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="middleware"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown when the middleware instance has already been registered.
     /// </exception>
-    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     public void Use(IPacketMiddleware<TPacket> middleware)
     {
-        System.ArgumentNullException.ThrowIfNull(middleware);
+        ArgumentNullException.ThrowIfNull(middleware);
 
         lock (_lock)
         {
             if (!_registeredMiddlewares.Add(middleware))
             {
-                throw new System.InvalidOperationException(
+                throw new InvalidOperationException(
                     $"Middleware '{middleware.GetType().FullName}' already registered");
             }
 
@@ -226,7 +229,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
                     (metadata.AlwaysExecute ? _outboundAlways : _outbound).Add(entry);
                     break;
                 default:
-                    throw new System.ArgumentOutOfRangeException(nameof(middleware));
+                    throw new ArgumentOutOfRangeException(nameof(middleware));
             }
 
             _isSorted = false;
@@ -270,9 +273,9 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
         _isSorted = true;
     }
 
-    private static MiddlewareMetadata GET_MIDDLEWARE_METADATA(System.Type middlewareType)
+    private static MiddlewareMetadata GET_MIDDLEWARE_METADATA(Type middlewareType)
     {
-        System.ArgumentNullException.ThrowIfNull(middlewareType);
+        ArgumentNullException.ThrowIfNull(middlewareType);
 
         return s_metadataCache.GetOrAdd(middlewareType, static type =>
         {
@@ -280,13 +283,13 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
             MiddlewareStage stage = MiddlewareStage.Inbound;
             bool alwaysExecute = false;
 
-            if (System.Attribute.GetCustomAttribute(type, typeof(MiddlewareOrderAttribute))
+            if (Attribute.GetCustomAttribute(type, typeof(MiddlewareOrderAttribute))
                 is MiddlewareOrderAttribute orderAttr)
             {
                 order = orderAttr.Order;
             }
 
-            if (System.Attribute.GetCustomAttribute(type, typeof(MiddlewareStageAttribute))
+            if (Attribute.GetCustomAttribute(type, typeof(MiddlewareStageAttribute))
                 is MiddlewareStageAttribute stageAttr)
             {
                 stage = stageAttr.Stage;
@@ -297,20 +300,20 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
         });
     }
 
-    private static System.Threading.Tasks.Task INVOKE_PIPELINE_ASYNC(
-        System.Collections.Generic.List<MiddlewareEntry> middlewares,
+    private static Task INVOKE_PIPELINE_ASYNC(
+        List<MiddlewareEntry> middlewares,
         PacketContext<TPacket> context,
-        System.Func<CancellationToken, System.Threading.Tasks.Task> final,
+        Func<CancellationToken, Task> final,
         CancellationToken startToken,
         bool continueOnError = false,
-        System.Action<System.Exception, System.Type> errorHandler = null)
+        Action<Exception, Type> errorHandler = null)
     {
-        static System.Func<CancellationToken, System.Threading.Tasks.Task> CreateWrapper(
+        static Func<CancellationToken, Task> CreateWrapper(
             PacketContext<TPacket> context,
             IPacketMiddleware<TPacket> middleware,
-            System.Func<CancellationToken, System.Threading.Tasks.Task> next,
+            Func<CancellationToken, Task> next,
             bool continueOnError,
-            System.Action<System.Exception, System.Type> errorHandler)
+            Action<Exception, Type> errorHandler)
         {
             return async token =>
             {
@@ -318,7 +321,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 {
                     await middleware.InvokeAsync(context, next).ConfigureAwait(false);
                 }
-                catch (System.Exception ex) when (continueOnError)
+                catch (Exception ex) when (continueOnError)
                 {
                     errorHandler?.Invoke(ex, middleware.GetType());
                     await next(token).ConfigureAwait(false);
@@ -326,12 +329,12 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
             };
         }
 
-        System.Func<CancellationToken, System.Threading.Tasks.Task> next = final;
+        Func<CancellationToken, Task> next = final;
 
         for (int i = middlewares.Count - 1; i >= 0; i--)
         {
             IPacketMiddleware<TPacket> current = middlewares[i].Middleware;
-            System.Func<CancellationToken, System.Threading.Tasks.Task> localNext = next;
+            Func<CancellationToken, Task> localNext = next;
             next = CreateWrapper(context, current, localNext, continueOnError, errorHandler);
         }
 

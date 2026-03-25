@@ -1,6 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Networking;
 
 namespace Nalix.Network.Protocols;
@@ -9,9 +13,9 @@ namespace Nalix.Network.Protocols;
 /// Represents an abstract base class for network protocols.
 /// This class defines the common logic for handling connections and processing messages.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("Disposed={_isDisposed != 0}, KeepConnectionOpen={KeepConnectionOpen}")]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[DebuggerDisplay("Disposed={_isDisposed != 0}, KeepConnectionOpen={KeepConnectionOpen}")]
 public abstract partial class Protocol : IProtocol
 {
     /// <summary>
@@ -28,20 +32,20 @@ public abstract partial class Protocol : IProtocol
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="args">Event arguments containing the connection and additional data.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when args is null.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this protocol instance has been disposed.</exception>
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
     public void PostProcessMessage(object sender, IConnectEventArgs args)
     {
-        System.ArgumentNullException.ThrowIfNull(args);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
+        ArgumentNullException.ThrowIfNull(args);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
         try
         {
             OnPostProcess(args);
-            _ = System.Threading.Interlocked.Increment(ref _totalMessages);
+            _ = Interlocked.Increment(ref _totalMessages);
 
             if (!KeepConnectionOpen)
             {
@@ -50,9 +54,9 @@ public abstract partial class Protocol : IProtocol
                 s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
-            _ = System.Threading.Interlocked.Increment(ref _totalErrors);
+            _ = Interlocked.Increment(ref _totalErrors);
 
             s_logger.Error($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
@@ -71,7 +75,7 @@ public abstract partial class Protocol : IProtocol
     /// </param>
     public void SetConnectionAcceptance(bool isEnabled)
     {
-        _ = System.Threading.Interlocked.Exchange(ref _accepting, isEnabled ? 1 : 0);
+        _ = Interlocked.Exchange(ref _accepting, isEnabled ? 1 : 0);
 
         s_logger.Info($"[NW.{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
     }

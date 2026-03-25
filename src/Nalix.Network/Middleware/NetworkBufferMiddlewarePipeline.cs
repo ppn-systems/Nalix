@@ -1,6 +1,10 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
 using Nalix.Common.Shared;
@@ -33,9 +37,9 @@ public class NetworkBufferMiddlewarePipeline
 {
     #region Fields
 
-    private readonly System.Threading.Lock _lock = new();
-    private readonly System.Collections.Generic.List<MiddlewareEntry> _middlewares = [];
-    private readonly System.Collections.Generic.HashSet<INetworkBufferMiddleware> _registered = [];
+    private readonly Lock _lock = new();
+    private readonly List<MiddlewareEntry> _middlewares = [];
+    private readonly HashSet<INetworkBufferMiddleware> _registered = [];
 
     private volatile bool _isSorted;
 
@@ -47,10 +51,10 @@ public class NetworkBufferMiddlewarePipeline
     /// Registers a middleware instance in the pipeline.
     /// </summary>
     /// <param name="middleware">The middleware to register.</param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="middleware"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown if the middleware has already been registered.
     /// </exception>
     /// <remarks>
@@ -59,18 +63,18 @@ public class NetworkBufferMiddlewarePipeline
     /// </remarks>
     public void Use(INetworkBufferMiddleware middleware)
     {
-        System.ArgumentNullException.ThrowIfNull(middleware);
+        ArgumentNullException.ThrowIfNull(middleware);
 
         lock (_lock)
         {
             if (!_registered.Add(middleware))
             {
-                throw new System.InvalidOperationException(
+                throw new InvalidOperationException(
                     $"Middleware '{middleware.GetType().FullName}' already registered.");
             }
 
             int order = 0;
-            if (System.Attribute.GetCustomAttribute(middleware.GetType(), typeof(MiddlewareOrderAttribute))
+            if (Attribute.GetCustomAttribute(middleware.GetType(), typeof(MiddlewareOrderAttribute))
                 is MiddlewareOrderAttribute orderAttr)
             {
                 order = orderAttr.Order;
@@ -120,12 +124,12 @@ public class NetworkBufferMiddlewarePipeline
     /// the pipeline execution is terminated early.
     /// </para>
     /// </remarks>
-    public System.Threading.Tasks.Task<IBufferLease> ExecuteAsync(
+    public Task<IBufferLease> ExecuteAsync(
         IBufferLease buffer,
         IConnection connection,
-        System.Threading.CancellationToken ct = default)
+        CancellationToken ct = default)
     {
-        System.Collections.Generic.List<MiddlewareEntry> snapshot;
+        List<MiddlewareEntry> snapshot;
 
         lock (_lock)
         {
@@ -133,13 +137,13 @@ public class NetworkBufferMiddlewarePipeline
             snapshot = [.. _middlewares];
         }
 
-        System.Func<IBufferLease, System.Threading.CancellationToken,
-            System.Threading.Tasks.Task<IBufferLease>> next = (buf, _) => System.Threading.Tasks.Task.FromResult(buf);
+        Func<IBufferLease, CancellationToken,
+            Task<IBufferLease>> next = (buf, _) => Task.FromResult(buf);
 
         for (int i = snapshot.Count - 1; i >= 0; i--)
         {
             MiddlewareEntry current = snapshot[i];
-            System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> localNext = next;
+            Func<IBufferLease, CancellationToken, Task<IBufferLease>> localNext = next;
             next = async (buffer, token) => await current.Middleware.InvokeAsync(buffer, connection, localNext, token);
         }
 

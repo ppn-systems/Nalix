@@ -1,6 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Threading;
+
 namespace Nalix.Network.Protocols;
 
 public abstract partial class Protocol
@@ -21,15 +26,15 @@ public abstract partial class Protocol
     /// </summary>
     public virtual bool KeepConnectionOpen
     {
-        [System.Diagnostics.DebuggerStepThrough]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => System.Threading.Interlocked.CompareExchange(ref _keepConnectionOpen, 0, 0) == 1;
+        [DebuggerStepThrough]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        get => Interlocked.CompareExchange(ref _keepConnectionOpen, 0, 0) == 1;
 
-        [System.Diagnostics.DebuggerStepThrough]
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        protected set => System.Threading.Interlocked.Exchange(ref _keepConnectionOpen, value ? 1 : 0);
+        [DebuggerStepThrough]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
+        protected set => Interlocked.Exchange(ref _keepConnectionOpen, value ? 1 : 0);
     }
 
     #endregion Properties
@@ -45,7 +50,7 @@ public abstract partial class Protocol
 
         s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
 
-        System.GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -56,7 +61,7 @@ public abstract partial class Protocol
     {
         // Atomic check-and-set: 0 -> 1
         // If already 1, return immediately (already disposed)
-        if (System.Threading.Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
+        if (Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
         {
         }
 

@@ -1,7 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
@@ -20,10 +27,10 @@ namespace Nalix.Network.Routing.Channel;
 /// connections currently have items to dispatch.
 /// </summary>
 /// <typeparam name="TPacket">Packet type transported by this channel.</typeparam>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("TotalPackets={TotalPackets}")]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[DebuggerDisplay("TotalPackets={TotalPackets}")]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where TPacket : IPacket
 {
     #region Nested types
@@ -94,12 +101,12 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     #region Properties
 
     /// <summary>Gets total packets across all per-connection queues.</summary>
-    public long TotalPackets => System.Threading.Volatile.Read(ref _packetCount);
+    public long TotalPackets => Volatile.Read(ref _packetCount);
 
     /// <summary>
     /// Indicates whether this dispatch channel currently has any packet to process.
     /// </summary>
-    public bool HasPacket => System.Threading.Interlocked.Read(ref _packetCount) > 0;
+    public bool HasPacket => Interlocked.Read(ref _packetCount) > 0;
 
     internal int TotalConnections => _queues.Count;
 
@@ -166,13 +173,13 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// </summary>
     /// <param name="connection">The target connection.</param>
     /// <param name="raw">The lease to enqueue.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if <paramref name="raw"/> or <paramref name="connection"/> is null.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="raw"/> or <paramref name="connection"/> is null.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public bool Pull(
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease raw)
+        [NotNullWhen(true)] out IConnection connection,
+        [NotNullWhen(true)] out IBufferLease raw)
     {
         raw = default;
         connection = default;
@@ -205,9 +212,9 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                 // Adjust counters
                 ConnectionState cs = GET_STATE(connection);
 
-                _ = System.Threading.Interlocked.Decrement(ref _packetCount);
-                _ = System.Threading.Interlocked.Decrement(ref cs.ApproxTotal);
-                _ = System.Threading.Interlocked.Decrement(ref cs.ApproxByPriority[dequeuedFromPrio]);
+                _ = Interlocked.Decrement(ref _packetCount);
+                _ = Interlocked.Decrement(ref cs.ApproxTotal);
+                _ = Interlocked.Decrement(ref cs.ApproxByPriority[dequeuedFromPrio]);
 
                 // If anything remains in any priority, re-enqueue connection at its highest available priority
                 if (HAS_ANY(cqs, out int highestRemaining) && _inReady.TryAdd(connection, 1))
@@ -227,11 +234,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// </summary>
     /// <param name="connection">The connection to enqueue the packet for.</param>
     /// <param name="raw">The buffer lease containing the packet data.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
     public void Push(
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNull] IBufferLease raw)
+        [NotNull] IConnection connection,
+        [NotNull] IBufferLease raw)
     {
         ConnectionState cs = GET_STATE(connection);
         ConnectionQueues cqs = _queues.GetOrAdd(connection, static _ => new ConnectionQueues());
@@ -253,7 +260,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                     if (TRY_EVICT_OLDEST(cqs, cs, out _))
                     {
                         // Evicted one; continue to enqueue the new packet.
-                        _ = System.Threading.Interlocked.Decrement(ref _packetCount);
+                        _ = Interlocked.Decrement(ref _packetCount);
                     }
                     else
                     {
@@ -284,7 +291,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                         return;
                     }
 
-                    _ = System.Threading.Interlocked.Decrement(ref _packetCount);
+                    _ = Interlocked.Decrement(ref _packetCount);
                     break;
                 default:
                     break;
@@ -295,9 +302,9 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         cqs.Q[prioIndex].Enqueue(raw);
 
         // Update counters
-        _ = System.Threading.Interlocked.Increment(ref _packetCount);
-        _ = System.Threading.Interlocked.Increment(ref cs.ApproxTotal);
-        _ = System.Threading.Interlocked.Increment(ref cs.ApproxByPriority[prioIndex]);
+        _ = Interlocked.Increment(ref _packetCount);
+        _ = Interlocked.Increment(ref cs.ApproxTotal);
+        _ = Interlocked.Increment(ref cs.ApproxByPriority[prioIndex]);
 
         // Mark connection ready if not already present; enqueue into ready of THIS priority
         if (_inReady.TryAdd(connection, 1))
@@ -310,15 +317,15 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
     #region Private Methods
 
-    private bool WaitForQueueSpace(ConnectionState cs, System.Threading.CancellationToken cancellationToken = default)
+    private bool WaitForQueueSpace(ConnectionState cs, CancellationToken cancellationToken = default)
     {
         // Get configured timeout and threshold from options.
-        System.TimeSpan timeout = _options.BlockTimeout; // configure this, e.g. TimeSpan.FromMilliseconds(100)
+        TimeSpan timeout = _options.BlockTimeout; // configure this, e.g. TimeSpan.FromMilliseconds(100)
         int maxQueue = _options.MaxPerConnectionQueue;
 
         // Short spin for backpressure as original code intended.
-        System.Threading.SpinWait sw = new();
-        System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        SpinWait sw = new();
+        Stopwatch stopwatch = Stopwatch.StartNew();
 
         while (cs.ApproxTotal >= maxQueue)
         {
@@ -330,7 +337,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
             // If we've spun a lot, yield to avoid burning CPU.
             if (sw.Count > 64)
             {
-                _ = System.Threading.Thread.Yield();
+                _ = Thread.Yield();
             }
 
             // Check timeout only occasionally to reduce Stopwatch cost.
@@ -346,17 +353,17 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         return true;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private ConnectionState GET_STATE([System.Diagnostics.CodeAnalysis.NotNull] IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private ConnectionState GET_STATE([NotNull] IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private static bool HAS_ANY(
-        [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
-        [System.Diagnostics.CodeAnalysis.NotNull] out int highest)
+        [NotNull] ConnectionQueues cqs,
+        [NotNull] out int highest)
     {
         for (int p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
         {
@@ -370,15 +377,15 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         return false;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private static bool TRY_DEQUEUE_HIGHEST(
-        [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
-        [System.Diagnostics.CodeAnalysis.NotNull] int startPrio,
-        [System.Diagnostics.CodeAnalysis.AllowNull]
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease raw,
-        [System.Diagnostics.CodeAnalysis.NotNull] out int dequeuedFromPrio)
+        [NotNull] ConnectionQueues cqs,
+        [NotNull] int startPrio,
+        [AllowNull]
+        [NotNullWhen(true)] out IBufferLease raw,
+        [NotNull] out int dequeuedFromPrio)
     {
         // Try from requested priority down to lowest, to avoid a miss due to racing push/pop.
         for (int p = startPrio; p >= LowestPriorityIndex; p--)
@@ -401,14 +408,14 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="cqs"></param>
     /// <param name="cs"></param>
     /// <param name="lease"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private static bool TRY_EVICT_OLDEST(
-        [System.Diagnostics.CodeAnalysis.NotNull] ConnectionQueues cqs,
-        [System.Diagnostics.CodeAnalysis.NotNull] ConnectionState cs,
-        [System.Diagnostics.CodeAnalysis.AllowNull]
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease lease)
+        [NotNull] ConnectionQueues cqs,
+        [NotNull] ConnectionState cs,
+        [AllowNull]
+        [NotNullWhen(true)] out IBufferLease lease)
     {
         for (int p = LowestPriorityIndex; p <= HighestPriorityIndex; p++)
         {
@@ -417,8 +424,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                 // IMPORTANT: free pooled buffer
                 lease.Dispose();
 
-                _ = System.Threading.Interlocked.Decrement(ref cs.ApproxTotal);
-                _ = System.Threading.Interlocked.Decrement(ref cs.ApproxByPriority[p]);
+                _ = Interlocked.Decrement(ref cs.ApproxTotal);
+                _ = Interlocked.Decrement(ref cs.ApproxByPriority[p]);
                 return true;
             }
         }
@@ -432,11 +439,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// Assumes you have an extension ReadPriorityLE() that reads byte at fixed offset.
     /// </summary>
     /// <param name="span"></param>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static int CLASSIFY_PRIORITY_INDEX([System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> span)
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private static int CLASSIFY_PRIORITY_INDEX([NotNull] ReadOnlySpan<byte> span)
     {
         PacketPriority pr = span.ReadPriorityLE();
         int idx = (int)pr;
@@ -452,21 +459,21 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
     #region Events / Cleanup
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void OnUnregistered([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => RemoveConnection(connection);
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private void OnUnregistered([NotNull] IConnection connection) => RemoveConnection(connection);
 
     /// <summary>
     /// Removes a connection, draining all per-priority queues and adjusting counters.
     /// </summary>
     /// <param name="connection"></param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private void RemoveConnection([System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private void RemoveConnection([NotNull] IConnection connection)
     {
         if (_queues.TryRemove(connection, out ConnectionQueues cqs))
         {
@@ -484,7 +491,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
             if (drained != 0)
             {
-                _ = System.Threading.Interlocked.Add(ref _packetCount, -drained);
+                _ = Interlocked.Add(ref _packetCount, -drained);
             }
         }
 

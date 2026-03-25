@@ -2,6 +2,16 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -10,8 +20,8 @@ using Nalix.Network.Routing;
 using Nalix.Network.Routing.Metadata;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
 namespace Nalix.Network.Internal.Compilation;
@@ -22,12 +32,12 @@ namespace Nalix.Network.Internal.Compilation;
 /// </summary>
 /// <typeparam name="TController">The controller type to scan.</typeparam>
 /// <typeparam name="TPacket">The packet type handled by this controller.</typeparam>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class HandlerCompiler<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicMethods)] TController, TPacket>()
     where TController : class where TPacket : IPacket
 {
     #region Fields
@@ -43,7 +53,7 @@ internal sealed class HandlerCompiler<
     /// Caches attribute lookups per method for performance.
     /// </summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Reflection.MethodInfo, PacketMetadata> _attributeCache = new();
+        MethodInfo, PacketMetadata> _attributeCache = new();
 
     #endregion Fields
 
@@ -53,15 +63,15 @@ internal sealed class HandlerCompiler<
     /// <param name="factory">A factory method that creates a controller instance.</param>
     /// <returns>An array of compiled packet handler delegates.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static PacketHandler<TPacket>[] CompileHandlers(Func<TController> factory)
     {
         Type controllerType = typeof(TController);
 
         // Ensure controller has [PacketController] attribute
-        PacketControllerAttribute controllerAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
+        PacketControllerAttribute controllerAttr = CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
             ?? throw new InvalidOperationException($"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -90,8 +100,8 @@ internal sealed class HandlerCompiler<
                 compiledMethod.CompiledInvoker);
         }
 
-        string firstOps = string.Join(",", System.Linq.Enumerable
-                                              .Select(System.Linq.Enumerable
+        string firstOps = string.Join(",", Enumerable
+                                              .Select(Enumerable
                                               .Take(compiledMethods.Keys, 6), o => $"0x{o:X4}"));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -121,22 +131,22 @@ internal sealed class HandlerCompiler<
         ContextWithToken = 3,
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private static System.Collections.Frozen.FrozenDictionary<ushort, CompiledHandler<TPacket>> CompileControllerHandlers(
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] Type x03)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type x03)
     {
         // Get methods with [PacketOpcode] attribute
-        System.Reflection.MethodInfo[] methodInfos = System.Linq.Enumerable.ToArray(
-            System.Linq.Enumerable.Where(
+        MethodInfo[] methodInfos = Enumerable.ToArray(
+            Enumerable.Where(
                 x03.GetMethods(
-                    System.Reflection.BindingFlags.Public |
-                    System.Reflection.BindingFlags.Instance |
-                    System.Reflection.BindingFlags.Static
+                    BindingFlags.Public |
+                    BindingFlags.Instance |
+                    BindingFlags.Static
                 ),
-                m => System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m) is not null));
+                m => CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m) is not null));
 
         if (methodInfos.Length == 0)
         {
@@ -149,11 +159,11 @@ internal sealed class HandlerCompiler<
 
         return _compiledMethodCache.GetOrAdd(x03, static (_, methods) =>
         {
-            System.Collections.Generic.Dictionary<ushort, CompiledHandler<TPacket>> compiled = new(methods.Length);
+            Dictionary<ushort, CompiledHandler<TPacket>> compiled = new(methods.Length);
 
-            foreach (System.Reflection.MethodInfo method in methods)
+            foreach (MethodInfo method in methods)
             {
-                PacketOpcodeAttribute opcodeAttr = System.Reflection.CustomAttributeExtensions
+                PacketOpcodeAttribute opcodeAttr = CustomAttributeExtensions
                     .GetCustomAttribute<PacketOpcodeAttribute>(method);
 
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
@@ -188,11 +198,11 @@ internal sealed class HandlerCompiler<
         }, methodInfos);
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static CompiledHandler<TPacket> CompileHandlerMethod(System.Reflection.MethodInfo x22)
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private static CompiledHandler<TPacket> CompileHandlerMethod(MethodInfo x22)
     {
         // -------------------------------------------------------------------
         // Shared expression nodes — always built regardless of signature kind
@@ -226,7 +236,7 @@ internal sealed class HandlerCompiler<
         //   New     (c) (PacketContext<TPacket>)
         //   New     (d) (PacketContext<TPacket>, CancellationToken)
         // -------------------------------------------------------------------
-        System.Reflection.ParameterInfo[] parms = x22.GetParameters();
+        ParameterInfo[] parms = x22.GetParameters();
 
         SignatureKind kind = ResolveSignatureKind(x22, parms);
 
@@ -252,7 +262,7 @@ internal sealed class HandlerCompiler<
         {
             x12 = BuildContextBridgeInvoker(x22, parms, kind);
         }
-        else if (System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
+        else if (RuntimeFeature.IsDynamicCodeSupported)
         {
             // ---------------------------------------------------------------
             // Normal expression-tree path — types match exactly.
@@ -279,7 +289,7 @@ internal sealed class HandlerCompiler<
         }
 
         Func<object, PacketContext<TPacket>,
-            System.Threading.Tasks.ValueTask<object>> x20 = WrapReturnType(x12, x22.ReturnType);
+            ValueTask<object>> x20 = WrapReturnType(x12, x22.ReturnType);
 
         return new CompiledHandler<TPacket>(x22, x22.ReturnType, x20);
     }
@@ -291,12 +301,12 @@ internal sealed class HandlerCompiler<
     /// <param name="method"></param>
     /// <param name="parms"></param>
     /// <exception cref="InvalidOperationException"></exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static SignatureKind ResolveSignatureKind(
-        System.Reflection.MethodInfo method,
-        System.Reflection.ParameterInfo[] parms)
+        MethodInfo method,
+        ParameterInfo[] parms)
     {
         // ---- new-style: first param is PacketContext<T> for any T : IPacket ----
         // Use generic-definition comparison instead of exact-type equality so that
@@ -329,7 +339,7 @@ internal sealed class HandlerCompiler<
             }
             else
             {
-                return parms.Length == 2 && parms[1].ParameterType == typeof(System.Threading.CancellationToken)
+                return parms.Length == 2 && parms[1].ParameterType == typeof(CancellationToken)
                     ? SignatureKind.ContextWithToken
                     : throw new InvalidOperationException(
                             $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
@@ -355,7 +365,7 @@ internal sealed class HandlerCompiler<
                 // ---- legacy-style: first param must implement IPacket ----
                 return SignatureKind.LegacyNoToken;
             }
-            else if (parms.Length == 3 && parms[2].ParameterType == typeof(System.Threading.CancellationToken))
+            else if (parms.Length == 3 && parms[2].ParameterType == typeof(CancellationToken))
             {
                 // ---- legacy-style: first param must implement IPacket ----
                 return SignatureKind.LegacyWithToken;
@@ -398,9 +408,9 @@ internal sealed class HandlerCompiler<
     /// <see langword="false"/> and cause the compiler to fall through to the legacy-style
     /// check, ultimately throwing "unrecognised signature".
     /// </remarks>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static bool IsPacketContextType(Type type)
         => type.IsGenericType
         && type.GetGenericTypeDefinition() == typeof(PacketContext<>);
@@ -415,12 +425,12 @@ internal sealed class HandlerCompiler<
     /// <param name="connectionExpr"></param>
     /// <param name="ctExpr"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static System.Linq.Expressions.Expression[] BuildArgExpressions(
         SignatureKind kind,
-        System.Reflection.ParameterInfo[] parms,
+        ParameterInfo[] parms,
         System.Linq.Expressions.ParameterExpression context,
         System.Linq.Expressions.MemberExpression packetExpr,
         System.Linq.Expressions.MemberExpression connectionExpr,
@@ -492,12 +502,12 @@ internal sealed class HandlerCompiler<
         }
     }
 
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static Func<object, PacketContext<TPacket>, object> BuildContextBridgeInvoker(
-        System.Reflection.MethodInfo method,
-        System.Reflection.ParameterInfo[] parms,
+        MethodInfo method,
+        ParameterInfo[] parms,
         SignatureKind kind)
     {
         // Capture once at compile time — zero allocation on the hot path.
@@ -538,12 +548,12 @@ internal sealed class HandlerCompiler<
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static Func<object, PacketContext<TPacket>, object> BuildAotInvoker(
-    System.Reflection.MethodInfo method,
-    System.Reflection.ParameterInfo[] parms,
+    MethodInfo method,
+    ParameterInfo[] parms,
     SignatureKind kind)
     {
         return kind switch
@@ -597,19 +607,19 @@ internal sealed class HandlerCompiler<
         };
     }
 
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static Func<object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<object>> WrapReturnType(
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private static Func<object, PacketContext<TPacket>, ValueTask<object>> WrapReturnType(
         Func<object, PacketContext<TPacket>, object> x00,
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] Type x01)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type x01)
     {
-        if (x01 == typeof(System.Threading.Tasks.Task))
+        if (x01 == typeof(Task))
         {
             return async (instance, context) =>
             {
-                if (x00(instance, context) is System.Threading.Tasks.Task t)
+                if (x00(instance, context) is Task t)
                 {
                     await t.ConfigureAwait(false);
                 }
@@ -617,14 +627,14 @@ internal sealed class HandlerCompiler<
             };
         }
 
-        if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>))
+        if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(Task<>))
         {
             // Cache Result getter at compile-time for this x01
-            System.Reflection.PropertyInfo x02 = x01.GetProperty("Result");
+            PropertyInfo x02 = x01.GetProperty("Result");
             return async (instance, context) =>
             {
                 object r = x00(instance, context);
-                if (r is System.Threading.Tasks.Task t)
+                if (r is Task t)
                 {
                     await t.ConfigureAwait(false);
                     return x02.GetValue(t);
@@ -633,19 +643,19 @@ internal sealed class HandlerCompiler<
             };
         }
 
-        if (x01 == typeof(System.Threading.Tasks.ValueTask))
+        if (x01 == typeof(ValueTask))
         {
             // Call .GetAwaiter().GetResult() without allocations
-            System.Reflection.MethodInfo getAwaiter = typeof(System.Threading.Tasks.ValueTask)
-                .GetMethod("GetAwaiter", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            MethodInfo getAwaiter = typeof(ValueTask)
+                .GetMethod("GetAwaiter", BindingFlags.Public | BindingFlags.Instance);
 
-            System.Reflection.PropertyInfo x02 = getAwaiter.ReturnType.GetProperty("IsCompleted");
-            System.Reflection.MethodInfo x03 = getAwaiter.ReturnType.GetMethod("GetResult");
+            PropertyInfo x02 = getAwaiter.ReturnType.GetProperty("IsCompleted");
+            MethodInfo x03 = getAwaiter.ReturnType.GetMethod("GetResult");
 
             return async (instance, context) =>
             {
                 object r = x00(instance, context);
-                if (r is System.Threading.Tasks.ValueTask vt)
+                if (r is ValueTask vt)
                 {
                     // prefer await: lets the compiler pick optimal path
                     await vt.ConfigureAwait(false);
@@ -654,11 +664,11 @@ internal sealed class HandlerCompiler<
             };
         }
 
-        if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.ValueTask<>))
+        if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
             // Build a converter: ValueTask<T> -> Task<T> once, then await Task<T> (no dynamic)
-            System.Reflection.PropertyInfo x06 = x01.GetProperty("Result"); // exists but only valid if completed
-            System.Reflection.MethodInfo x07 = x01.GetMethod("AsTask", Type.EmptyTypes); // ValueTask<T>.AsTask()
+            PropertyInfo x06 = x01.GetProperty("Result"); // exists but only valid if completed
+            MethodInfo x07 = x01.GetMethod("AsTask", Type.EmptyTypes); // ValueTask<T>.AsTask()
 
             return async (instance, context) =>
             {
@@ -670,35 +680,35 @@ internal sealed class HandlerCompiler<
 
                 // x10 AsTask() via reflection once per wrapper
                 object x03 = x07.Invoke(r, null); // Task<T>
-                System.Threading.Tasks.Task x04 = (System.Threading.Tasks.Task)x03;
+                Task x04 = (Task)x03;
                 await x04.ConfigureAwait(false);
 
                 // read Task<T>.Result once completed
-                System.Reflection.PropertyInfo x05 = x03.GetType().GetProperty("Result");
+                PropertyInfo x05 = x03.GetType().GetProperty("Result");
                 return x05.GetValue(x03);
             };
         }
 
-        return (instance, context) => System.Threading.Tasks.ValueTask.FromResult(x00(instance, context));
+        return (instance, context) => ValueTask.FromResult(x00(instance, context));
     }
 
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static PacketMetadata GetPacketMetadata(System.Reflection.MethodInfo method)
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private static PacketMetadata GetPacketMetadata(MethodInfo method)
     {
         return _attributeCache.GetOrAdd(method, static m =>
         {
             PacketMetadataBuilder builder = new()
             {
                 // Core attributes – always populated from the method itself.
-                Opcode = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m),
-                Timeout = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(m),
-                Permission = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(m),
-                Encryption = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(m),
-                RateLimit = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(m),
-                ConcurrencyLimit = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketConcurrencyLimitAttribute>(m)
+                Opcode = CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m),
+                Timeout = CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(m),
+                Permission = CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(m),
+                Encryption = CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(m),
+                RateLimit = CustomAttributeExtensions.GetCustomAttribute<PacketRateLimitAttribute>(m),
+                ConcurrencyLimit = CustomAttributeExtensions.GetCustomAttribute<PacketConcurrencyLimitAttribute>(m)
             };
 
             // Let external providers extend or override metadata.
@@ -711,16 +721,16 @@ internal sealed class HandlerCompiler<
         });
     }
 
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static string FormatHandlerInfo(string x00, ushort x01, System.Reflection.MethodInfo x02 = null, Type x03 = null)
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private static string FormatHandlerInfo(string x00, ushort x01, MethodInfo x02 = null, Type x03 = null)
     {
         string op = $"opcode=0x{x01:X4}";
         string ctrl = $"controller={x00}";
         string m = x02 is null ? "" : $" method={x02.Name}";
-        string sig = x02 is null ? "" : $" sig=({string.Join(",", System.Linq.Enumerable
+        string sig = x02 is null ? "" : $" sig=({string.Join(",", Enumerable
                                                                      .Select(x02
                                                                      .GetParameters(), p => p.ParameterType.Name))})->{x03?.Name ?? "void"}";
 

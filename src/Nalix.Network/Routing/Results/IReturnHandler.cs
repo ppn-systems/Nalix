@@ -1,12 +1,15 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 
-
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
 namespace Nalix.Network.Routing.Results;
@@ -16,7 +19,7 @@ namespace Nalix.Network.Routing.Results;
 /// in a zero-allocation manner.
 /// </summary>
 /// <typeparam name="TPacket">The packet type being handled.</typeparam>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal interface IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <summary>
@@ -24,7 +27,7 @@ internal interface IReturnHandler<TPacket> where TPacket : IPacket
     /// </summary>
     /// <param name="result">The method return value, may be null.</param>
     /// <param name="context">The context associated with the packet and connection.</param>
-    System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
-        [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context);
+    ValueTask HandleAsync(
+        [AllowNull] object result,
+        [NotNull] PacketContext<TPacket> context);
 }

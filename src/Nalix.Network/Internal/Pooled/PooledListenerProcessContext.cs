@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel;
 using Nalix.Common.Networking;
 using Nalix.Common.Shared;
 using Nalix.Network.Listeners.Tcp;
@@ -14,7 +15,7 @@ namespace Nalix.Network.Internal.Pooled;
 /// This object is reused via a pooling mechanism to reduce allocations
 /// when handling incoming TCP connections.
 /// </remarks>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class PooledListenerProcessContext : IPoolable
 {
     /// <summary>

@@ -1,10 +1,8 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-
+using System;
+using System.Collections.Generic;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing.Metadata;
 
@@ -46,18 +44,18 @@ public sealed class PacketMetadataBuilder
     /// </summary>
     public PacketConcurrencyLimitAttribute ConcurrencyLimit { get; set; }
 
-    private readonly System.Collections.Generic.Dictionary<System.Type, System.Attribute> _custom = [];
+    private readonly Dictionary<Type, Attribute> _custom = [];
 
     /// <summary>
     /// Adds or replaces a custom attribute in the metadata builder.
     /// </summary>
     /// <param name="attribute">The attribute to add.</param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="attribute"/> is <see langword="null"/>.
     /// </exception>
-    public void Add(System.Attribute attribute)
+    public void Add(Attribute attribute)
     {
-        System.ArgumentNullException.ThrowIfNull(attribute);
+        ArgumentNullException.ThrowIfNull(attribute);
         _custom[attribute.GetType()] = attribute;
     }
 
@@ -68,20 +66,20 @@ public sealed class PacketMetadataBuilder
     /// <returns>
     /// The attribute instance if it exists; otherwise, <see langword="null"/>.
     /// </returns>
-    public TAttribute Get<TAttribute>() where TAttribute : System.Attribute => _custom.TryGetValue(typeof(TAttribute), out System.Attribute value) ? (TAttribute)value : null;
+    public TAttribute Get<TAttribute>() where TAttribute : Attribute => _custom.TryGetValue(typeof(TAttribute), out Attribute value) ? (TAttribute)value : null;
 
     /// <summary>
     /// Builds an immutable <see cref="PacketMetadata"/> instance from
     /// the current builder state.
     /// </summary>
     /// <returns>A new <see cref="PacketMetadata"/> instance.</returns>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown when the <see cref="Opcode"/> is <see langword="null"/>.
     /// </exception>
     public PacketMetadata Build()
     {
         return Opcode is null
-            ? throw new System.InvalidOperationException("PacketMetadata requires a non-null Opcode. Ensure that a PacketOpcodeAttribute is present.")
+            ? throw new InvalidOperationException("PacketMetadata requires a non-null Opcode. Ensure that a PacketOpcodeAttribute is present.")
             : new PacketMetadata(
                 Opcode,
                 Timeout,
@@ -89,6 +87,6 @@ public sealed class PacketMetadataBuilder
                 Encryption,
                 RateLimit,
                 ConcurrencyLimit,
-                new System.Collections.Generic.Dictionary<System.Type, System.Attribute>(_custom));
+                new Dictionary<Type, Attribute>(_custom));
     }
 }

@@ -32,17 +32,11 @@ dotnet_separate_import_directive_groups = false
 dotnet_sort_system_directives_first = true
 file_header_template = unset
 
-# this. and Me. preferences
-# dotnet_style_qualification_for_event = true
-# dotnet_style_qualification_for_field = true
-# dotnet_style_qualification_for_method = true
-# dotnet_style_qualification_for_property = true
-
 # Prefer using instead of full namespace
-dotnet_style_qualification_for_field = false:suggestion
-dotnet_style_qualification_for_event = false:suggestion
-dotnet_style_qualification_for_method = false:suggestion
-dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_field = false:error
+dotnet_style_qualification_for_event = false:error
+dotnet_style_qualification_for_method = false:error
+dotnet_style_qualification_for_property = false:error
 
 # Language keywords vs BCL types preferences
 dotnet_style_predefined_type_for_locals_parameters_members = true:error

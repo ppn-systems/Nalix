@@ -1,6 +1,9 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -19,10 +22,10 @@ namespace Nalix.Network.Middleware.Internal;
 [MiddlewareOrder(-50)]
 internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
 {
-    public async System.Threading.Tasks.Task<IBufferLease> InvokeAsync(
+    public async Task<IBufferLease> InvokeAsync(
         IBufferLease lease, IConnection connection,
-        System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next,
-        System.Threading.CancellationToken ct)
+        Func<IBufferLease, CancellationToken, Task<IBufferLease>> next,
+        CancellationToken ct)
     {
 
 #if DEBUG
@@ -70,8 +73,8 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[DECRYPT][{debugId}] Decryption success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
 
-            int sampleLen = System.Math.Min(16, dest.Length);
-            string hexSample = System.BitConverter.ToString(dest.Span[..sampleLen].ToArray());
+            int sampleLen = Math.Min(16, dest.Length);
+            string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[DECRYPT][{debugId}] Decrypted buffer sample: {hexSample}");
 #endif

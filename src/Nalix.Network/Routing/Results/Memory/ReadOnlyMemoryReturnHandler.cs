@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
@@ -8,15 +12,15 @@ using Nalix.Framework.Injection;
 namespace Nalix.Network.Routing.Results.Memory;
 
 /// <inheritdoc/>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
-    public async System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
-        [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context)
+    public async ValueTask HandleAsync(
+        [AllowNull] object result,
+        [NotNull] PacketContext<TPacket> context)
     {
-        if (result is not System.ReadOnlyMemory<byte> memory)
+        if (result is not ReadOnlyMemory<byte> memory)
         {
             return;
         }
@@ -37,7 +41,7 @@ internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPac
                                         .Warn($"[NW.{nameof(ReadOnlyMemoryReturnHandler<>)}:{nameof(HandleAsync)}] send-failed");
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[NW.{nameof(ReadOnlyMemoryReturnHandler<>)}:{nameof(HandleAsync)}] error-serializing", ex);

@@ -1,6 +1,10 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Networking;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -12,7 +16,7 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// Dedicated consumer thread — drains the channel at BelowNormal priority.
     /// </summary>
-    private System.Threading.Thread _processThread;
+    private Thread _processThread;
 
     /// <summary>
     /// Bounded channel: N producers (accept-loop workers) → 1 consumer (BelowNormal thread).
@@ -28,7 +32,7 @@ public abstract partial class TcpListenerBase
     /// Call once during listener startup inside <c>Activate</c>.
     /// </summary>
     /// <param name="cancellationToken"></param>
-    private void START_PROCESS_CHANNEL(System.Threading.CancellationToken cancellationToken)
+    private void START_PROCESS_CHANNEL(CancellationToken cancellationToken)
     {
         _processChannel = System.Threading.Channels.Channel.CreateBounded<IConnection>(
             new System.Threading.Channels.BoundedChannelOptions(s_config.ProcessChannelCapacity)
@@ -40,7 +44,7 @@ public abstract partial class TcpListenerBase
                 AllowSynchronousContinuations = false,
             });
 
-        _processThread = new System.Threading.Thread(() => PROCESS_CHANNEL_LOOP(cancellationToken))
+        _processThread = new Thread(() => PROCESS_CHANNEL_LOOP(cancellationToken))
         {
             IsBackground = true,
             Name = $"NW.AcceptDispatch.{_port}",
@@ -48,7 +52,7 @@ public abstract partial class TcpListenerBase
             // OS scheduler prefers Normal-priority ThreadPool threads over this
             // thread whenever both are runnable.
             // → AsyncCallback packet callbacks always win CPU over new-connection setup.
-            Priority = System.Threading.ThreadPriority.BelowNormal,
+            Priority = ThreadPriority.BelowNormal,
         };
 
         _processThread.Start();
@@ -95,10 +99,10 @@ public abstract partial class TcpListenerBase
 
     #region Consumer — BelowNormal background thread
 
-    private void PROCESS_CHANNEL_LOOP(System.Threading.CancellationToken cancellationToken)
+    private void PROCESS_CHANNEL_LOOP(CancellationToken cancellationToken)
     {
         s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
-                        $"thread-started port={_port} priority={System.Threading.Thread.CurrentThread.Priority}");
+                        $"thread-started port={_port} priority={Thread.CurrentThread.Priority}");
 
         System.Threading.Channels.ChannelReader<IConnection> reader = _processChannel.Reader;
 
@@ -112,7 +116,7 @@ public abstract partial class TcpListenerBase
             }
 
             // ── Slow path: wait for next item ─────────────────────────────────
-            System.Threading.Tasks.ValueTask<bool> wait = reader.WaitToReadAsync(cancellationToken);
+            ValueTask<bool> wait = reader.WaitToReadAsync(cancellationToken);
 
             if (wait.IsCompletedSuccessfully)
             {
@@ -132,7 +136,7 @@ public abstract partial class TcpListenerBase
                     break;
                 }
             }
-            catch (System.OperationCanceledException)
+            catch (OperationCanceledException)
             {
                 break;
             }
@@ -152,8 +156,8 @@ public abstract partial class TcpListenerBase
     /// no additional ThreadPool hop needed.
     /// </summary>
     /// <param name="connection"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void INVOKE_PROCESS(IConnection connection)
     {
         try
@@ -162,7 +166,7 @@ public abstract partial class TcpListenerBase
             // The receive loop itself runs as a separate async task on the ThreadPool.
             ProcessConnection(connection);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] error remote={connection?.NetworkEndpoint} port={_port}", ex);
             connection.Close();
