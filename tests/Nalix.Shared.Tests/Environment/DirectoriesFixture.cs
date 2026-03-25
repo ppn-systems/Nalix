@@ -5,7 +5,7 @@ namespace Nalix.Shared.Tests.Environment;
 
 public sealed class DirectoriesFixture
 {
-    public System.String BaseDir;
+    public string BaseDir;
 
     public DirectoriesFixture()
     {
@@ -27,10 +27,10 @@ public sealed class DirectoriesFixture
         System.Environment.SetEnvironmentVariable("NALIX_TEMP_RETENTION_DAYS", "1");
 
         // 3) Đặt override trước khi bất kỳ Lazy nào evaluate
-        Nalix.Common.Environment.Directories.SetBasePathOverride(BaseDir);
+        Common.Environment.Directories.SetBasePathOverride(BaseDir);
 
         // 4) Ép chạy static ctor ngay bây giờ (đã có ENV + override)
         System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(
-            typeof(Nalix.Common.Environment.Directories).TypeHandle);
+            typeof(Common.Environment.Directories).TypeHandle);
     }
 }

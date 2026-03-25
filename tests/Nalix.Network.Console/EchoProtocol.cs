@@ -1,13 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Common.Networking;
-using Nalix.Framework.Injection;
-using Nalix.Network.Connections;
-using Nalix.Network.Protocols;
 using System;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using Nalix.Common.Networking;
+using Nalix.Framework.Injection;
+using Nalix.Network.Connections;
+using Nalix.Network.Protocols;
 
 public class EchoProtocol : Protocol
 {
@@ -20,28 +20,28 @@ public class EchoProtocol : Protocol
     public override void OnAccept(IConnection connection, CancellationToken cancellationToken = default)
     {
         base.OnAccept(connection, cancellationToken);
-        InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
+        _ = InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
                                 .RegisterConnection(connection);
     }
 
 
-    public override void ProcessMessage(Object sender, IConnectEventArgs args)
+    public override void ProcessMessage(object sender, IConnectEventArgs args)
     {
         try
         {
             Console.WriteLine($"[Server] Received message from client {args.Connection.NetworkEndpoint}");
 
             // Defensive copy: avoid pooled-buffer lifetime issues.
-            ReadOnlySpan<Byte> incomingSpan = args.Lease.Span;
-            Byte[] payload = incomingSpan.ToArray();
+            ReadOnlySpan<byte> incomingSpan = args.Lease.Span;
+            byte[] payload = incomingSpan.ToArray();
 
             // Log raw bytes (hex) truncated for safety.
-            String incomingHex = ToHexString(payload, 128);
+            string incomingHex = ToHexString(payload, 128);
             Console.WriteLine($"[Server][DEBUG] Incoming bytes len={payload.Length} hex={incomingHex}");
 
             // Attempt strict UTF-8 decode first (throw on invalid bytes).
-            String message;
-            var utf8Throw = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+            string message;
+            UTF8Encoding utf8Throw = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
             try
             {
                 message = utf8Throw.GetString(payload);
@@ -64,15 +64,15 @@ public class EchoProtocol : Protocol
             }
 
             // Build response based on decoded message (or binary marker).
-            String response = $"Server Received: {message}";
-            Byte[] responseData = Encoding.UTF8.GetBytes(response);
+            string response = $"Server Received: {message}";
+            byte[] responseData = Encoding.UTF8.GetBytes(response);
 
             // Log outgoing payload details (truncated hex and length).
-            String responseHex = ToHexString(responseData, 64);
+            string responseHex = ToHexString(responseData, 64);
             Console.WriteLine($"[Server][DEBUG] Sending {responseData.Length} bytes to {args.Connection.NetworkEndpoint} hex={responseHex}");
 
             // Send and verify result.
-            Boolean sent = args.Connection.TCP.Send(responseData);
+            bool sent = args.Connection.TCP.Send(responseData);
             if (!sent)
             {
                 Console.WriteLine($"[Server][ERROR] Send returned false for {args.Connection.NetworkEndpoint}. Connection may be closed or reset. outgoingHex={responseHex}");
@@ -101,15 +101,15 @@ public class EchoProtocol : Protocol
     /// <summary>
     /// Convert up to maxBytes of data to an uppercase hex string. Append "..." if truncated.
     /// </summary>
-    private static String ToHexString(Byte[] data, Int32 maxBytes)
+    private static string ToHexString(byte[] data, int maxBytes)
     {
         if (data == null || data.Length == 0)
         {
             return "<empty>";
         }
 
-        Int32 show = Math.Min(data.Length, maxBytes);
-        String hex = Convert.ToHexString(data, 0, show);
+        int show = Math.Min(data.Length, maxBytes);
+        string hex = Convert.ToHexString(data, 0, show);
         if (data.Length > show)
         {
             hex += "...";

@@ -1,25 +1,26 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Shared.Serialization;
 using System;
+using Nalix.Shared.Serialization;
 using Xunit;
 
 namespace Nalix.Shared.Tests.Serialization;
-public class LiteSerializer_Guards_Tests
+
+public class LiteSerializerGuardsTests
 {
     [Fact]
-    public void Deserialize_EmptyBuffer_ThrowsArgumentException()
+    public void DeserializeEmptyBufferThrowsArgumentException()
     {
-        var empty = Array.Empty<Byte>();
+        byte[] empty = [];
 
-        Int32 dummy = 0;
-        _ = Assert.Throws<ArgumentException>(() => LiteSerializer.Deserialize<Int32>(empty, ref dummy));
+        int dummy = 0;
+        _ = Assert.Throws<ArgumentException>(() => LiteSerializer.Deserialize(empty, ref dummy));
     }
 
     [Fact]
-    public void Serialize_ToProvidedBuffer_NullBuffer_Throws()
+    public void SerializeToProvidedBufferNullBufferThrows()
     {
-        var value = 123;
-        _ = Assert.Throws<ArgumentNullException>(() => LiteSerializer.Serialize(in value, (Byte[])null!));
+        int value = 123;
+        _ = Assert.Throws<ArgumentNullException>(() => LiteSerializer.Serialize(in value, null));
     }
 }

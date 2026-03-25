@@ -5,11 +5,11 @@ using Xunit;
 
 namespace Nalix.Shared.Tests.Serialization;
 
-public class LiteSerializer_ArrayTests
+public class LiteSerializerArrayTests
 {
     // Kiểm thử serialize/deserialize mảng số nguyên.
     [Fact]
-    public void SerializeDeserialize_IntArray()
+    public void SerializeDeserializeIntArray()
     {
         // Mảng đầu vào [1, 2, 3, 4].
         int[] input = [1, 2, 3, 4];
@@ -18,7 +18,7 @@ public class LiteSerializer_ArrayTests
         // Biến output để lưu kết quả deserialize.
         int[] output = null;
         // Chuyển byte về mảng.
-        LiteSerializer.Deserialize(buffer, ref output);
+        _ = LiteSerializer.Deserialize(buffer, ref output);
 
         // So sánh output với input.
         Assert.Equal(input, output);
@@ -26,7 +26,7 @@ public class LiteSerializer_ArrayTests
 
     // Kiểm thử serialize/deserialize mảng rỗng.
     [Fact]
-    public void SerializeDeserialize_EmptyArray()
+    public void SerializeDeserializeEmptyArray()
     {
         // Mảng đầu vào rỗng.
         int[] input = [];
@@ -36,14 +36,14 @@ public class LiteSerializer_ArrayTests
         int[] output = null;
 
         // Chuyển byte về mảng.
-        LiteSerializer.Deserialize(buffer, ref output);
+        _ = LiteSerializer.Deserialize(buffer, ref output);
         // Kiểm tra output là mảng rỗng.
-        Assert.Empty(output!);
+        Assert.Empty(output);
     }
 
     // Kiểm thử serialize/deserialize mảng null.
     [Fact]
-    public void SerializeDeserialize_NullArray()
+    public void SerializeDeserializeNullArray()
     {
         // Đầu vào là mảng null.
         int[] input = null;
@@ -53,7 +53,7 @@ public class LiteSerializer_ArrayTests
         int[] output = new int[1];
 
         // Chuyển byte về mảng.
-        LiteSerializer.Deserialize(buffer, ref output);
+        _ = LiteSerializer.Deserialize(buffer, ref output);
         // Kiểm tra output là null.
         Assert.Null(output);
     }

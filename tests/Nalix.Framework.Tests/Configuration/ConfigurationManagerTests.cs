@@ -2,13 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 #nullable enable
 
+using System;
+using System.Collections.Generic;
+using System.IO;
 using Nalix.Common.Environment;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Configuration.Binding;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Configuration;
@@ -18,7 +18,7 @@ namespace Nalix.Framework.Tests.Configuration;
 /// </summary>
 public sealed class ConfigurationManagerTests : IDisposable
 {
-    private readonly String _testDirectory;
+    private readonly string _testDirectory;
     private readonly List<ConfigurationManager> _managers = [];
 
     /// <summary>
@@ -31,7 +31,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             "ConfigurationManagerTests",
             Guid.NewGuid().ToString("N"));
 
-        Directory.CreateDirectory(_testDirectory);
+        _ = Directory.CreateDirectory(_testDirectory);
     }
 
     /// <inheritdoc />
@@ -63,9 +63,9 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void Get_WhenConfigurationFileContainsValues_ReturnsInitializedConfiguration()
+    public void GetWhenConfigurationFileContainsValuesReturnsInitializedConfiguration()
     {
-        String filePath = WriteConfigFile(
+        string filePath = WriteConfigFile(
             "appsettings.ini",
             """
             [Sample]
@@ -85,9 +85,9 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void Get_WhenCalledMultipleTimes_ReturnsSameCachedInstance()
+    public void GetWhenCalledMultipleTimesReturnsSameCachedInstance()
     {
-        String filePath = WriteConfigFile(
+        string filePath = WriteConfigFile(
             "cached.ini",
             """
             [Sample]
@@ -104,9 +104,9 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void Get_WhenConfigurationFileDoesNotExist_ReturnsDefaultValues()
+    public void GetWhenConfigurationFileDoesNotExistReturnsDefaultValues()
     {
-        String filePath = Path.Combine(_testDirectory, "missing.ini");
+        string filePath = Path.Combine(_testDirectory, "missing.ini");
 
         using ConfigurationManager manager = CreateManager(filePath);
 
@@ -117,14 +117,14 @@ public sealed class ConfigurationManagerTests : IDisposable
         Assert.NotNull(configuration);
         Assert.True(configuration.IsInitialized);
         Assert.Equal(0, configuration.Number);
-        Assert.Equal(String.Empty, configuration.Message);
+        Assert.Equal(string.Empty, configuration.Message);
         Assert.True(manager.IsLoaded<SampleConfig>());
     }
 
     [Fact]
-    public void Get_WithPathOverload_UsesProvidedConfigurationFile()
+    public void GetWithPathOverloadUsesProvidedConfigurationFile()
     {
-        String filePath = WriteConfigFile(
+        string filePath = WriteConfigFile(
             "overload.ini",
             """
             [Sample]
@@ -145,26 +145,26 @@ public sealed class ConfigurationManagerTests : IDisposable
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void SetConfigFilePath_WhenPathIsNullOrWhitespace_ThrowsArgumentException(String? path)
+    public void SetConfigFilePathWhenPathIsNullOrWhitespaceThrowsArgumentException(string? path)
     {
         using ConfigurationManager manager = CreateManager();
 
-        Assert.Throws<ArgumentException>(() => manager.SetConfigFilePath(path!));
+        _ = Assert.Throws<ArgumentException>(() => manager.SetConfigFilePath(path!));
     }
 
     [Fact]
-    public void SetConfigFilePath_WhenPathIsOutsideConfigurationDirectory_ThrowsInternalErrorException()
+    public void SetConfigFilePathWhenPathIsOutsideConfigurationDirectoryThrowsInternalErrorException()
     {
         using ConfigurationManager manager = CreateManager();
-        String outsidePath = Path.Combine(Path.GetTempPath(), $"outside_{Guid.NewGuid():N}.ini");
+        string outsidePath = Path.Combine(Path.GetTempPath(), $"outside_{Guid.NewGuid():N}.ini");
 
-        Assert.Throws<InternalErrorException>(() => manager.SetConfigFilePath(outsidePath));
+        _ = Assert.Throws<InternalErrorException>(() => manager.SetConfigFilePath(outsidePath));
     }
 
     [Fact]
-    public void SetConfigFilePath_WhenPathIsUnchanged_ReturnsFalse()
+    public void SetConfigFilePathWhenPathIsUnchangedReturnsFalse()
     {
-        String filePath = WriteConfigFile(
+        string filePath = WriteConfigFile(
             "same-path.ini",
             """
             [Sample]
@@ -174,16 +174,16 @@ public sealed class ConfigurationManagerTests : IDisposable
 
         using ConfigurationManager manager = CreateManager(filePath);
 
-        Boolean changed = manager.SetConfigFilePath(filePath);
+        bool changed = manager.SetConfigFilePath(filePath);
 
         Assert.False(changed);
         Assert.Equal(filePath, manager.ConfigFilePath);
     }
 
     [Fact]
-    public void SetConfigFilePath_WhenAutoReloadIsDisabled_KeepsExistingValuesUntilReloadAll()
+    public void SetConfigFilePathWhenAutoReloadIsDisabledKeepsExistingValuesUntilReloadAll()
     {
-        String firstPath = WriteConfigFile(
+        string firstPath = WriteConfigFile(
             "first.ini",
             """
             [Sample]
@@ -191,7 +191,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = first
             """);
 
-        String secondPath = WriteConfigFile(
+        string secondPath = WriteConfigFile(
             "second.ini",
             """
             [Sample]
@@ -202,14 +202,14 @@ public sealed class ConfigurationManagerTests : IDisposable
         using ConfigurationManager manager = CreateManager(firstPath);
         SampleConfig configuration = manager.Get<SampleConfig>();
 
-        Boolean changed = manager.SetConfigFilePath(secondPath, autoReload: false);
+        bool changed = manager.SetConfigFilePath(secondPath, autoReload: false);
 
         Assert.True(changed);
         Assert.Equal(secondPath, manager.ConfigFilePath);
         Assert.Equal(1, configuration.Number);
         Assert.Equal("first", configuration.Message);
 
-        Boolean reloaded = manager.ReloadAll();
+        bool reloaded = manager.ReloadAll();
 
         Assert.True(reloaded);
         Assert.Equal(2, configuration.Number);
@@ -217,9 +217,9 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void SetConfigFilePath_WhenAutoReloadIsEnabled_UpdatesExistingLoadedInstance()
+    public void SetConfigFilePathWhenAutoReloadIsEnabledUpdatesExistingLoadedInstance()
     {
-        String firstPath = WriteConfigFile(
+        string firstPath = WriteConfigFile(
             "auto-first.ini",
             """
             [Sample]
@@ -227,7 +227,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = before
             """);
 
-        String secondPath = WriteConfigFile(
+        string secondPath = WriteConfigFile(
             "auto-second.ini",
             """
             [Sample]
@@ -239,7 +239,7 @@ public sealed class ConfigurationManagerTests : IDisposable
         SampleConfig configuration = manager.Get<SampleConfig>();
 
         DateTime beforeReload = manager.LastReloadTime;
-        Boolean changed = manager.SetConfigFilePath(secondPath, autoReload: true);
+        bool changed = manager.SetConfigFilePath(secondPath, autoReload: true);
 
         Assert.True(changed);
         Assert.Equal(secondPath, manager.ConfigFilePath);
@@ -249,9 +249,9 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void ReloadAll_WhenConfigurationFileChanges_ReloadsLoadedConfigurationsAndUpdatesTimestamp()
+    public void ReloadAllWhenConfigurationFileChangesReloadsLoadedConfigurationsAndUpdatesTimestamp()
     {
-        String filePath = WriteConfigFile(
+        string filePath = WriteConfigFile(
             "reload.ini",
             """
             [Sample]
@@ -273,7 +273,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = updated
             """);
 
-        Boolean reloaded = manager.ReloadAll();
+        bool reloaded = manager.ReloadAll();
 
         Assert.True(reloaded);
         Assert.Equal(99, configuration.Number);
@@ -282,9 +282,9 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void Remove_WhenConfigurationWasLoaded_RemovesItFromCache()
+    public void RemoveWhenConfigurationWasLoadedRemovesItFromCache()
     {
-        String filePath = WriteConfigFile(
+        string filePath = WriteConfigFile(
             "remove.ini",
             """
             [Sample]
@@ -295,7 +295,7 @@ public sealed class ConfigurationManagerTests : IDisposable
         using ConfigurationManager manager = CreateManager(filePath);
         SampleConfig first = manager.Get<SampleConfig>();
 
-        Boolean removed = manager.Remove<SampleConfig>();
+        bool removed = manager.Remove<SampleConfig>();
         SampleConfig second = manager.Get<SampleConfig>();
 
         Assert.True(removed);
@@ -304,19 +304,19 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void Remove_WhenConfigurationWasNotLoaded_ReturnsFalse()
+    public void RemoveWhenConfigurationWasNotLoadedReturnsFalse()
     {
         using ConfigurationManager manager = CreateManager();
 
-        Boolean removed = manager.Remove<SampleConfig>();
+        bool removed = manager.Remove<SampleConfig>();
 
         Assert.False(removed);
     }
 
     [Fact]
-    public void ClearAll_WhenConfigurationsWereLoaded_RemovesAllCachedInstances()
+    public void ClearAllWhenConfigurationsWereLoadedRemovesAllCachedInstances()
     {
-        String filePath = WriteConfigFile(
+        string filePath = WriteConfigFile(
             "clear.ini",
             """
             [Sample]
@@ -343,9 +343,9 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void Flush_WhenConfigurationHasNotBeenCreated_DoesNotThrow()
+    public void FlushWhenConfigurationHasNotBeenCreatedDoesNotThrow()
     {
-        String filePath = Path.Combine(_testDirectory, "flush.ini");
+        string filePath = Path.Combine(_testDirectory, "flush.ini");
 
         using ConfigurationManager manager = CreateManager(filePath);
 
@@ -354,23 +354,23 @@ public sealed class ConfigurationManagerTests : IDisposable
         Assert.Null(exception);
     }
 
-    private ConfigurationManager CreateManager(String? filePath = null)
+    private ConfigurationManager CreateManager(string? filePath = null)
     {
         ConfigurationManager manager = new();
         _managers.Add(manager);
 
         if (filePath is not null)
         {
-            Boolean changed = manager.SetConfigFilePath(filePath, autoReload: true);
+            bool changed = manager.SetConfigFilePath(filePath, autoReload: true);
             Assert.True(changed);
         }
 
         return manager;
     }
 
-    private String WriteConfigFile(String fileName, String content)
+    private string WriteConfigFile(string fileName, string content)
     {
-        String filePath = Path.Combine(_testDirectory, fileName);
+        string filePath = Path.Combine(_testDirectory, fileName);
         File.WriteAllText(filePath, content.ReplaceLineEndings(Environment.NewLine));
         return filePath;
     }
@@ -383,12 +383,12 @@ public sealed class ConfigurationManagerTests : IDisposable
         /// <summary>
         /// Gets or sets the numeric value used by the test configuration.
         /// </summary>
-        public Int32 Number { get; set; }
+        public int Number { get; set; }
 
         /// <summary>
         /// Gets or sets the text value used by the test configuration.
         /// </summary>
-        public String Message { get; set; } = String.Empty;
+        public string Message { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -399,6 +399,6 @@ public sealed class ConfigurationManagerTests : IDisposable
         /// <summary>
         /// Gets or sets a value indicating whether the configuration is enabled.
         /// </summary>
-        public Boolean Enabled { get; set; }
+        public bool Enabled { get; set; }
     }
 }

@@ -10,17 +10,17 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
 {
     private readonly DirectoriesFixture _fx = fx;
 
-    private static System.String Env(System.String name)
+    private static string Env(string name)
     {
-        System.String value = System.Environment.GetEnvironmentVariable(name);
-        return value ?? System.String.Empty;
+        string value = System.Environment.GetEnvironmentVariable(name);
+        return value ?? string.Empty;
     }
 
     [Xunit.Fact]
-    public void BasePath_Respects_Environment_Or_Override()
+    public void BasePathRespectsEnvironmentOrOverride()
     {
-        System.String expected = Env("NALIX_BASE_PATH");
-        Xunit.Assert.False(System.String.IsNullOrEmpty(expected));
+        string expected = Env("NALIX_BASE_PATH");
+        Xunit.Assert.False(string.IsNullOrEmpty(expected));
 
         // Do đã gọi OverrideBasePathForTesting(BaseDir), BasePath phải bằng BaseDir
         Xunit.Assert.Equal(System.IO.Path.GetFullPath(expected),
@@ -28,7 +28,7 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     }
 
     [Xunit.Fact]
-    public void All_Known_Directories_Are_Created_And_Exist()
+    public void AllKnownDirectoriesAreCreatedAndExist()
     {
         Xunit.Assert.True(System.IO.Directory.Exists(Directories.BaseAssetsDirectory));
         Xunit.Assert.True(System.IO.Directory.Exists(Directories.DataDirectory));
@@ -43,12 +43,12 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     }
 
     [Xunit.Fact]
-    public void GetFilePath_Creates_Parent_And_Combines_Safely()
+    public void GetFilePathCreatesParentAndCombinesSafely()
     {
-        System.String parent = System.IO.Path.Combine(
+        string parent = System.IO.Path.Combine(
             Directories.DataDirectory, "unit_parent_" + System.Guid.NewGuid().ToString("N"));
 
-        System.String filePath = Directories.GetFilePath(parent, "foo.bin");
+        string filePath = Directories.GetFilePath(parent, "foo.bin");
 
         Xunit.Assert.True(System.IO.Directory.Exists(parent));
         Xunit.Assert.True(filePath.EndsWith(System.IO.Path.DirectorySeparatorChar + "foo.bin")
@@ -56,29 +56,29 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     }
 
     [Xunit.Fact]
-    public void CreateTimestampedDirectory_Uses_UTC_Format_And_Exists()
+    public void CreateTimestampedDirectoryUsesUTCFormatAndExists()
     {
-        System.String parent = Directories.DataDirectory;
-        System.String dir = Directories.CreateTimestampedDirectory(parent, "px");
+        string parent = Directories.DataDirectory;
+        string dir = Directories.CreateTimestampedDirectory(parent, "px");
 
         Xunit.Assert.True(System.IO.Directory.Exists(dir));
 
-        System.String name = new System.IO.DirectoryInfo(dir).Name;
+        string name = new System.IO.DirectoryInfo(dir).Name;
         // "px_" + "yyyyMMddTHHmmssZ" -> tối thiểu 3 + 16 = 19
         Xunit.Assert.StartsWith("px_", name);
         Xunit.Assert.True(name.Length >= 19);
     }
 
     [Xunit.Fact]
-    public void CleanupDirectory_Removes_Only_Old_Files()
+    public void CleanupDirectoryRemovesOnlyOldFiles()
     {
-        System.String target = System.IO.Path.Combine(
+        string target = System.IO.Path.Combine(
             Directories.TemporaryDirectory, "cleanup_" + System.Guid.NewGuid().ToString("N"));
 
         _ = System.IO.Directory.CreateDirectory(target);
 
-        System.String oldFile = System.IO.Path.Combine(target, "old.tmp");
-        System.String newFile = System.IO.Path.Combine(target, "new.tmp");
+        string oldFile = System.IO.Path.Combine(target, "old.tmp");
+        string newFile = System.IO.Path.Combine(target, "new.tmp");
 
         using (System.IO.File.Create(oldFile)) { }
         using (System.IO.File.Create(newFile)) { }
@@ -87,7 +87,7 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
         System.DateTime past = System.DateTime.UtcNow - System.TimeSpan.FromDays(2);
         System.IO.File.SetLastWriteTimeUtc(oldFile, past);
 
-        System.Int32 removed = Directories.DeleteOldFiles(target, System.TimeSpan.FromDays(1), "*.tmp");
+        int removed = Directories.DeleteOldFiles(target, System.TimeSpan.FromDays(1), "*.tmp");
 
         Xunit.Assert.Equal(1, removed);
         Xunit.Assert.False(System.IO.File.Exists(oldFile));
@@ -95,23 +95,23 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     }
 
     [Xunit.Fact]
-    public void CreateSubdirectory_Raises_DirectoryCreated_Event()
+    public void CreateSubdirectoryRaisesDirectoryCreatedEvent()
     {
-        System.Collections.Generic.List<System.String> hits = [];
+        System.Collections.Generic.List<string> hits = [];
 
-        void handler(System.String p)
+        void handler(string p)
         {
-            if (!System.String.IsNullOrEmpty(p)) { hits.Add(p); }
+            if (!string.IsNullOrEmpty(p)) { hits.Add(p); }
         }
 
         Directories.RegisterDirectoryCreationHandler(handler);
 
         try
         {
-            System.String parent = System.IO.Path.Combine(
+            string parent = System.IO.Path.Combine(
                 Directories.DataDirectory, "evt_" + System.Guid.NewGuid().ToString("N"));
 
-            System.String sub = Directories.CreateSubdirectory(parent, "child");
+            string sub = Directories.CreateSubdirectory(parent, "child");
 
             Xunit.Assert.True(System.IO.Directory.Exists(sub));
             Xunit.Assert.True(hits.Count >= 1);
@@ -124,10 +124,10 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     }
 
     [Xunit.Fact]
-    public void GetFilePath_Blocks_Path_Traversal()
+    public void GetFilePathBlocksPathTraversal()
     {
-        System.String baseDir = Directories.DataDirectory;
-        System.String traversal = ".." + System.IO.Path.DirectorySeparatorChar + "evil.txt";
+        string baseDir = Directories.DataDirectory;
+        string traversal = ".." + System.IO.Path.DirectorySeparatorChar + "evil.txt";
 
         void act() => _ = Directories.GetFilePath(baseDir, traversal);
 
@@ -135,15 +135,15 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     }
 
     [Xunit.Fact]
-    public void CreateHierarchicalDateDirectory_Builds_Y_M_D()
+    public void CreateHierarchicalDateDirectoryBuildsYMD()
     {
-        System.String parent = Directories.DataDirectory;
-        System.String day = Directories.CreateHierarchicalDateDirectory(parent);
+        string parent = Directories.DataDirectory;
+        string day = Directories.CreateHierarchicalDateDirectory(parent);
 
         Xunit.Assert.True(System.IO.Directory.Exists(day));
 
-        System.String rel = day[parent.Length..].Trim(System.IO.Path.DirectorySeparatorChar);
-        System.String[] parts = rel.Split(System.IO.Path.DirectorySeparatorChar);
+        string rel = day[parent.Length..].Trim(System.IO.Path.DirectorySeparatorChar);
+        string[] parts = rel.Split(System.IO.Path.DirectorySeparatorChar);
 
         Xunit.Assert.Equal(3, parts.Length);
         Xunit.Assert.Equal(4, parts[0].Length);
@@ -152,9 +152,9 @@ public sealed class DirectoriesTests(DirectoriesFixture fx) : Xunit.IClassFixtur
     }
 
     [Xunit.Fact]
-    public void ValidateDirectories_Returns_True()
+    public void ValidateDirectoriesReturnsTrue()
     {
-        System.Boolean ok = Directories.CanAccessAllDirectories();
+        bool ok = Directories.CanAccessAllDirectories();
         Xunit.Assert.True(ok);
     }
 }

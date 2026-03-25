@@ -1,10 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Framework.Injection;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Framework.Injection;
 using Xunit;
 
 namespace Nalix.Framework.Tests;
@@ -43,22 +43,20 @@ public class InstanceManagerTests : IDisposable
     // A disposable helper that counts Dispose calls (thread-safe).
     private sealed class DisposableCounter : IDisposable
     {
-        private Int32 _disposed;
-        public Int32 DisposeCount => Volatile.Read(ref _disposed);
+        private int _disposed;
+        public int DisposeCount => Volatile.Read(ref _disposed);
 
         public void Dispose() => Interlocked.Increment(ref _disposed);
     }
 
-    private interface ITestService { String Name { get; } }
+    private interface ITestService { string Name { get; } }
 
     // Service implementing an interface and IDisposable
-    private sealed class TestService : ITestService, IDisposable
+    private sealed class TestService(string name) : ITestService, IDisposable
     {
-        public String Name { get; }
+        public string Name { get; } = name ?? throw new ArgumentNullException(nameof(name));
 
         public TestService() : this("default") { }
-
-        public TestService(String name) => Name = name ?? throw new ArgumentNullException(nameof(name));
 
         public void Dispose()
         {
@@ -69,80 +67,80 @@ public class InstanceManagerTests : IDisposable
     // Class with multiple constructors for activator tests
     private sealed class CtorClass
     {
-        public String SelectedCtor { get; }
+        public string SelectedCtor { get; }
 
         public CtorClass() => SelectedCtor = "empty";
 
-        public CtorClass(String x) => SelectedCtor = $"string:{x}";
+        public CtorClass(string x) => SelectedCtor = $"string:{x}";
 
-        public CtorClass(Int32 n) => SelectedCtor = $"int:{n}";
+        public CtorClass(int n) => SelectedCtor = $"int:{n}";
     }
 
     #endregion
 
     [Fact(DisplayName = "Register same instance twice should not dispose the instance")]
-    public void Register_SameInstance_NotDisposed()
+    public void RegisterSameInstanceNotDisposed()
     {
-        var d = new DisposableCounter();
-        _mgr.Register<DisposableCounter>(d);
+        DisposableCounter d = new();
+        _mgr.Register(d);
 
         // Re-register same instance
-        _mgr.Register<DisposableCounter>(d);
+        _mgr.Register(d);
 
         // No dispose should have been called
         Assert.Equal(0, d.DisposeCount);
 
         // Clean
-        _mgr.RemoveInstance(typeof(DisposableCounter));
+        _ = _mgr.RemoveInstance(typeof(DisposableCounter));
     }
 
     [Fact(DisplayName = "Register replacing instance should dispose previous once")]
-    public void Register_ReplaceInstance_PreviousDisposedOnce()
+    public void RegisterReplaceInstancePreviousDisposedOnce()
     {
-        var a = new DisposableCounter();
-        var b = new DisposableCounter();
+        DisposableCounter a = new();
+        DisposableCounter b = new();
 
-        _mgr.Register<DisposableCounter>(a);
+        _mgr.Register(a);
         // Replace with b
-        _mgr.Register<DisposableCounter>(b);
+        _mgr.Register(b);
 
         // previous must be disposed exactly once
         Assert.Equal(1, a.DisposeCount);
         Assert.Equal(0, b.DisposeCount);
 
-        _mgr.RemoveInstance(typeof(DisposableCounter));
+        _ = _mgr.RemoveInstance(typeof(DisposableCounter));
     }
 
     [Fact(DisplayName = "Register with interfaces publishes interface slot and GetExistingInstance returns it")]
-    public void Register_WithInterfaces_PublishesInterfaceSlot()
+    public void RegisterWithInterfacesPublishesInterfaceSlot()
     {
-        var svc = new TestService("svc1");
+        TestService svc = new("svc1");
         // register and also publish interfaces (default true)
-        _mgr.Register<TestService>(svc, registerInterfaces: true);
+        _mgr.Register(svc, registerInterfaces: true);
 
         // get by interface
-        var fromIface = _mgr.GetExistingInstance<ITestService>();
+        ITestService fromIface = _mgr.GetExistingInstance<ITestService>();
         Assert.Same(svc, fromIface);
 
         // also get by concrete generic
-        var fromConcrete = _mgr.GetExistingInstance<TestService>();
+        TestService fromConcrete = _mgr.GetExistingInstance<TestService>();
         Assert.Same(svc, fromConcrete);
 
         // Clean
-        _mgr.RemoveInstance(typeof(TestService));
+        _ = _mgr.RemoveInstance(typeof(TestService));
     }
 
     [Fact(DisplayName = "GetOrCreateInstance generic caches instance; CreateInstance creates new object")]
-    public void GetOrCreateInstance_Generic_And_CreateInstance()
+    public void GetOrCreateInstanceGenericAndCreateInstance()
     {
-        var t1 = _mgr.GetOrCreateInstance<TestService>();
+        TestService t1 = _mgr.GetOrCreateInstance<TestService>();
         Assert.NotNull(t1);
 
-        var t2 = _mgr.GetOrCreateInstance<TestService>();
+        TestService t2 = _mgr.GetOrCreateInstance<TestService>();
         Assert.Same(t1, t2); // cached
 
         // CreateInstance returns a new instance (not cached)
-        var fresh = (TestService)_mgr.CreateInstance(typeof(TestService));
+        TestService fresh = (TestService)_mgr.CreateInstance(typeof(TestService));
         Assert.NotSame(t1, fresh);
 
         // Clean
@@ -150,47 +148,47 @@ public class InstanceManagerTests : IDisposable
     }
 
     [Fact(DisplayName = "GetOrCreateInstance(Type, args) chooses correct constructor")]
-    public void GetOrCreateInstance_WithArgs_UsesCorrectCtor()
+    public void GetOrCreateInstanceWithArgsUsesCorrectCtor()
     {
         // request ctor with string argument
-        var obj = (CtorClass)_mgr.GetOrCreateInstance(typeof(CtorClass), "hello");
+        CtorClass obj = (CtorClass)_mgr.GetOrCreateInstance(typeof(CtorClass), "hello");
         Assert.Equal("string:hello", obj.SelectedCtor);
 
         // request ctor with int argument (different signature) -> new cached instance for that key
-        var objInt = (CtorClass)_mgr.GetOrCreateInstance(typeof(CtorClass), 42);
+        CtorClass objInt = (CtorClass)_mgr.GetOrCreateInstance(typeof(CtorClass), 42);
         Assert.Equal("int:42", objInt.SelectedCtor);
 
         // Ensure caching works per exact signature: request again with "hello"
-        var obj2 = (CtorClass)_mgr.GetOrCreateInstance(typeof(CtorClass), "hello");
+        CtorClass obj2 = (CtorClass)_mgr.GetOrCreateInstance(typeof(CtorClass), "hello");
         Assert.Same(obj, obj2);
 
         _mgr.Clear(dispose: true);
     }
 
     [Fact(DisplayName = "RemoveInstance disposes and removes instance")]
-    public void RemoveInstance_DisposesAndRemoves()
+    public void RemoveInstanceDisposesAndRemoves()
     {
-        var d = new DisposableCounter();
-        _mgr.Register<DisposableCounter>(d);
+        DisposableCounter d = new();
+        _mgr.Register(d);
 
-        Boolean removed = _mgr.RemoveInstance(typeof(DisposableCounter));
+        bool removed = _mgr.RemoveInstance(typeof(DisposableCounter));
         Assert.True(removed);
         Assert.Equal(1, d.DisposeCount);
         Assert.False(_mgr.HasInstance<DisposableCounter>());
     }
 
     [Fact(DisplayName = "Clear disposes all when dispose=true")]
-    public void Clear_DisposesAll()
+    public void ClearDisposesAll()
     {
-        var a = new DisposableCounter();
-        var b = new DisposableCounter();
+        DisposableCounter a = new();
+        DisposableCounter b = new();
 
-        _mgr.Register<DisposableCounter>(a);
-        _mgr.RegisterForClassOnly<DisposableCounter>(b); // registers class only (will replace the same key)
+        _mgr.Register(a);
+        _mgr.RegisterForClassOnly(b); // registers class only (will replace the same key)
 
         // To ensure both tracked, register a different type as well
-        var svc = new TestService("x");
-        _mgr.Register<TestService>(svc);
+        TestService svc = new("x");
+        _mgr.Register(svc);
 
         _mgr.Clear(dispose: true);
 
@@ -203,14 +201,14 @@ public class InstanceManagerTests : IDisposable
     }
 
     [Fact(DisplayName = "GenerateReport contains registered types")]
-    public void GenerateReport_IncludesTypes()
+    public void GenerateReportIncludesTypes()
     {
         _mgr.Clear(dispose: true);
 
-        _mgr.Register<TestService>(new TestService("r1"));
-        _mgr.Register<DisposableCounter>(new DisposableCounter());
+        _mgr.Register(new TestService("r1"));
+        _mgr.Register(new DisposableCounter());
 
-        String report = _mgr.GenerateReport();
+        string report = _mgr.GenerateReport();
         Assert.Contains(nameof(TestService), report);
         Assert.Contains(nameof(DisposableCounter), report);
 
@@ -218,38 +216,38 @@ public class InstanceManagerTests : IDisposable
     }
 
     [Fact(DisplayName = "Concurrent Register/GetOrCreateInstance should not return disposed instance or throw")]
-    public void Concurrency_Register_And_GetOrCreate_NoExceptionsOrDisposed()
+    public void ConcurrencyRegisterAndGetOrCreateNoExceptionsOrDisposed()
     {
         _mgr.Clear(dispose: true);
 
-        const Int32 threadCount = 16;
-        const Int32 iterations = 500;
-        var exceptions = new ConcurrentQueue<Exception>();
+        const int threadCount = 16;
+        const int iterations = 500;
+        ConcurrentQueue<Exception> exceptions = new();
 
         // Use a disposable test type that will be registered and replaced concurrently.
-        Parallel.For(0, threadCount, _ =>
+        _ = Parallel.For(0, threadCount, _ =>
         {
             try
             {
-                for (Int32 i = 0; i < iterations; i++)
+                for (int i = 0; i < iterations; i++)
                 {
                     // Randomly pick between registering a new disposable or getting/creating instance
                     if ((i & 1) == 0)
                     {
-                        var d = new DisposableCounter();
-                        _mgr.Register<DisposableCounter>(d);
+                        DisposableCounter d = new();
+                        _mgr.Register(d);
                     }
                     else
                     {
                         try
                         {
-                            var inst = _mgr.GetOrCreateInstance<DisposableCounter>();
+                            DisposableCounter inst = _mgr.GetOrCreateInstance<DisposableCounter>();
                             // If disposable, ensure not disposed (we cannot strictly guarantee due to race,
                             // but at least ensure we don't observe an object that has already been disposed count < 1).
                             if (inst is DisposableCounter dc)
                             {
                                 // Accept either 0 or 1 disposes (race), but no exceptions should be thrown.
-                                var cnt = dc.DisposeCount;
+                                int cnt = dc.DisposeCount;
                                 if (cnt < 0) // impossible but defensive
                                 {
                                     exceptions.Enqueue(new InvalidOperationException("Invalid dispose count"));
@@ -272,7 +270,7 @@ public class InstanceManagerTests : IDisposable
         Assert.Empty(exceptions);
 
         // Final sanity: try to get existing instance (may be null)
-        var existing = _mgr.GetExistingInstance<DisposableCounter>();
+        DisposableCounter existing = _mgr.GetExistingInstance<DisposableCounter>();
         if (existing != null)
         {
             // if disposable, its dispose count must be >= 0 and we must not have thrown earlier.
@@ -283,30 +281,30 @@ public class InstanceManagerTests : IDisposable
     }
 
     [Fact(DisplayName = "HasInstance and GetExistingInstance behave as expected")]
-    public void HasInstance_And_GetExistingInstance()
+    public void HasInstanceAndGetExistingInstance()
     {
         _mgr.Clear(dispose: true);
 
         Assert.False(_mgr.HasInstance<TestService>());
         Assert.Null(_mgr.GetExistingInstance<TestService>());
 
-        var svc = new TestService("t");
-        _mgr.Register<TestService>(svc);
+        TestService svc = new("t");
+        _mgr.Register(svc);
 
         Assert.True(_mgr.HasInstance<TestService>());
-        var got = _mgr.GetExistingInstance<TestService>();
+        TestService got = _mgr.GetExistingInstance<TestService>();
         Assert.Same(svc, got);
 
         _mgr.Clear(dispose: true);
     }
 
     [Fact(DisplayName = "CreateInstance does not cache the created object")]
-    public void CreateInstance_NotCached()
+    public void CreateInstanceNotCached()
     {
         _mgr.Clear(dispose: true);
 
-        var first = (TestService)_mgr.CreateInstance(typeof(TestService));
-        var second = (TestService)_mgr.CreateInstance(typeof(TestService));
+        TestService first = (TestService)_mgr.CreateInstance(typeof(TestService));
+        TestService second = (TestService)_mgr.CreateInstance(typeof(TestService));
         Assert.NotSame(first, second);
 
         // Ensure CreateInstance did not add to cache
@@ -316,10 +314,10 @@ public class InstanceManagerTests : IDisposable
     }
 
     [Fact(DisplayName = "IsTheOnlyInstance returns a boolean (non-intrusive check)")]
-    public void IsTheOnlyInstance_Check()
+    public void IsTheOnlyInstanceCheck()
     {
         // Call property to ensure it executes without throwing in test environment.
-        Boolean only = InstanceManager.IsTheOnlyInstance;
-        Assert.IsType<Boolean>(only);
+        bool only = InstanceManager.IsTheOnlyInstance;
+        _ = Assert.IsType<bool>(only);
     }
 }

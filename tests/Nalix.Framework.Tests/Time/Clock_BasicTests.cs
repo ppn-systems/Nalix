@@ -1,36 +1,35 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Framework.Time;
-using System;
 using System.Diagnostics;
+using Nalix.Framework.Time;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
 
 [Collection("ClockTests")]
-public class Clock_BasicTests
+public class ClockBasicTests
 {
-    private static void BusyWaitMs(Double ms)
+    private static void BusyWaitMs(double ms)
     {
-        Int64 ticks = (Int64)(ms / 1000.0 * Stopwatch.Frequency);
-        Int64 start = Stopwatch.GetTimestamp();
+        long ticks = (long)(ms / 1000.0 * Stopwatch.Frequency);
+        long start = Stopwatch.GetTimestamp();
         while (Stopwatch.GetTimestamp() - start < ticks) { }
     }
 
     [Fact]
-    public void Unix_Time_Getters_Increase_And_Agree()
+    public void UnixTimeGettersIncreaseAndAgree()
     {
-        Int64 s1 = Clock.UnixSecondsNow();
-        Int64 ms1 = Clock.UnixMillisecondsNow();
-        Int64 us1 = Clock.UnixMicrosecondsNow();
-        Int64 ticks1 = Clock.UnixTicksNow();
+        long s1 = Clock.UnixSecondsNow();
+        long ms1 = Clock.UnixMillisecondsNow();
+        long us1 = Clock.UnixMicrosecondsNow();
+        long ticks1 = Clock.UnixTicksNow();
 
         BusyWaitMs(3);
 
-        Int64 s2 = Clock.UnixSecondsNow();
-        Int64 ms2 = Clock.UnixMillisecondsNow();
-        Int64 us2 = Clock.UnixMicrosecondsNow();
-        Int64 ticks2 = Clock.UnixTicksNow();
+        long s2 = Clock.UnixSecondsNow();
+        long ms2 = Clock.UnixMillisecondsNow();
+        long us2 = Clock.UnixMicrosecondsNow();
+        long ticks2 = Clock.UnixTicksNow();
 
         Assert.True(s2 >= s1);
         Assert.True(ms2 > ms1);

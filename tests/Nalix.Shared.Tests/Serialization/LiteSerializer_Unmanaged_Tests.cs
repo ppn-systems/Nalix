@@ -1,24 +1,24 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+using System;
 using Nalix.Common.Exceptions;
 using Nalix.Shared.Serialization;
-using System;
 using Xunit;
 
 namespace Nalix.Shared.Tests.Serialization;
 
-public class LiteSerializer_Unmanaged_Tests
+public class LiteSerializerUnmanagedTests
 {
     [Fact]
-    public void SerializeDeserialize_UnmanagedStruct_RoundTrip()
+    public void SerializeDeserializeUnmanagedStructRoundTrip()
     {
-        var input = new ComplexStruct { I32 = 123456789, I16 = -1234, B = 0xAB };
+        ComplexStruct input = new() { I32 = 123456789, I16 = -1234, B = 0xAB };
 
         // byte[] path (unmanaged -> không cần formatter)
-        Byte[] data = LiteSerializer.Serialize(in input);
+        byte[] data = LiteSerializer.Serialize(in input);
 
-        var output = default(ComplexStruct);
-        Int32 read = LiteSerializer.Deserialize<ComplexStruct>(data, ref output);
+        ComplexStruct output = default;
+        int read = LiteSerializer.Deserialize(data, ref output);
 
         Assert.Equal(data.Length, read);
         Assert.Equal(input.I32, output.I32);
@@ -27,15 +27,15 @@ public class LiteSerializer_Unmanaged_Tests
     }
 
     [Fact]
-    public void SerializeDeserialize_NullClass_RoundTrip()
+    public void SerializeDeserializeNullClassRoundTrip()
     {
-        var input = new NullClass { I32 = null, I16 = null };
+        NullClass input = new() { I32 = null, I16 = null };
 
         // byte[] path (unmanaged -> không cần formatter)
-        Byte[] data = LiteSerializer.Serialize(in input);
+        byte[] data = LiteSerializer.Serialize(in input);
 
-        var output = default(NullClass);
-        Int32 read = LiteSerializer.Deserialize<NullClass>(data, ref output);
+        NullClass output = default;
+        int read = LiteSerializer.Deserialize(data, ref output);
 
         Assert.Equal(data.Length, read);
         Assert.Equal(input.I32, output.I32);
@@ -43,18 +43,18 @@ public class LiteSerializer_Unmanaged_Tests
     }
 
     [Fact]
-    public void Serialize_UnmanagedStruct_ToProvidedBuffer_ExactSize_Ok()
+    public void SerializeUnmanagedStructToProvidedBufferExactSizeOk()
     {
-        var value = new ComplexStruct { I32 = 42, I16 = 7, B = 1 };
+        ComplexStruct value = new() { I32 = 42, I16 = 7, B = 1 };
         // Lấy size từ serialize để có kích cỡ tối thiểu
-        Byte[] tmp = LiteSerializer.Serialize(in value);
-        var buffer = new Byte[tmp.Length];
+        byte[] tmp = LiteSerializer.Serialize(in value);
+        byte[] buffer = new byte[tmp.Length];
 
-        Int32 written = LiteSerializer.Serialize(in value, buffer);
+        int written = LiteSerializer.Serialize(in value, buffer);
         Assert.Equal(tmp.Length, written);
 
-        var back = default(ComplexStruct);
-        Int32 read = LiteSerializer.Deserialize<ComplexStruct>(buffer, ref back);
+        ComplexStruct back = default;
+        int read = LiteSerializer.Deserialize(buffer, ref back);
 
         Assert.Equal(buffer.Length, read);
         Assert.Equal(value.I32, back.I32);
@@ -63,27 +63,27 @@ public class LiteSerializer_Unmanaged_Tests
     }
 
     [Fact]
-    public void Serialize_UnmanagedStruct_BufferTooSmall_Throws()
+    public void SerializeUnmanagedStructBufferTooSmallThrows()
     {
-        var value = new ComplexStruct { I32 = 1, I16 = 2, B = 3 };
+        ComplexStruct value = new() { I32 = 1, I16 = 2, B = 3 };
         // Lấy mảng đúng size rồi cắt nhỏ đi 1 byte
-        Byte[] exact = LiteSerializer.Serialize(in value);
-        Byte[] tooSmall = new Byte[exact.Length - 1];
+        byte[] exact = LiteSerializer.Serialize(in value);
+        byte[] tooSmall = new byte[exact.Length - 1];
 
         _ = Assert.Throws<SerializationException>(() => LiteSerializer.Serialize(in value, tooSmall));
     }
 
     [Fact]
-    public void Deserialize_UnmanagedStruct_BufferTooSmall_Throws()
+    public void DeserializeUnmanagedStructBufferTooSmallThrows()
     {
-        var value = new ComplexStruct { I32 = 1, I16 = 2, B = 3 };
-        Byte[] full = LiteSerializer.Serialize(in value);
-        var small = new Byte[full.Length - 1];
+        ComplexStruct value = new() { I32 = 1, I16 = 2, B = 3 };
+        byte[] full = LiteSerializer.Serialize(in value);
+        byte[] small = new byte[full.Length - 1];
 
         // copy thiếu dữ liệu
         Array.Copy(full, small, small.Length);
 
-        var dest = default(ComplexStruct);
-        _ = Assert.Throws<SerializationException>(() => LiteSerializer.Deserialize<ComplexStruct>(small, ref dest));
+        ComplexStruct dest = default;
+        _ = Assert.Throws<SerializationException>(() => LiteSerializer.Deserialize(small, ref dest));
     }
 }

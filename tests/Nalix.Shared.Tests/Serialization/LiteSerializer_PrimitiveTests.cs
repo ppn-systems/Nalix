@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Nalix.Shared.Tests.Serialization;
 
-public class LiteSerializer_PrimitiveTests
+public class LiteSerializerPrimitiveTests
 {
     // Phương thức kiểm thử cho việc serialize và deserialize số nguyên 32-bit (int).
     // Sử dụng thuộc tính [Theory] để cho phép chạy kiểm thử với nhiều giá trị đầu vào khác nhau.
@@ -14,14 +14,14 @@ public class LiteSerializer_PrimitiveTests
     [InlineData(123)]
     [InlineData(0)]
     [InlineData(-999)]
-    public void SerializeDeserialize_Int32(int input)
+    public void SerializeDeserializeInt32(int input)
     {
         // Chuyển đổi giá trị số nguyên đầu vào thành một mảng byte (quá trình serialize).
         byte[] buffer = LiteSerializer.Serialize(input);
         // Khởi tạo biến output với giá trị mặc định là 0 để lưu kết quả sau khi deserialize.
         int output = 0;
         // Chuyển đổi mảng byte trở lại thành số nguyên và lưu vào biến output (quá trình deserialize).
-        LiteSerializer.Deserialize(buffer, ref output);
+        _ = LiteSerializer.Deserialize(buffer, ref output);
 
         // So sánh giá trị đầu vào (input) và đầu ra (output) để đảm bảo chúng giống nhau.
         Assert.Equal(input, output);
@@ -33,14 +33,14 @@ public class LiteSerializer_PrimitiveTests
     [InlineData(3.14)]
     [InlineData(0.0)]
     [InlineData(-1.23)]
-    public void SerializeDeserialize_Double(double input)
+    public void SerializeDeserializeDouble(double input)
     {
         // Chuyển đổi giá trị số thực đầu vào thành một mảng byte (quá trình serialize).
         byte[] buffer = LiteSerializer.Serialize(input);
         // Khởi tạo biến output với giá trị mặc định là 0 để lưu kết quả sau khi deserialize.
         double output = 0;
         // Chuyển đổi mảng byte trở lại thành số thực và lưu vào biến output (quá trình deserialize).
-        LiteSerializer.Deserialize(buffer, ref output);
+        _ = LiteSerializer.Deserialize(buffer, ref output);
 
         // So sánh giá trị đầu vào và đầu ra, với độ chính xác 5 chữ số thập phân để tránh sai số nhỏ do cách biểu diễn số thực.
         Assert.Equal(input, output, precision: 5);
@@ -49,14 +49,14 @@ public class LiteSerializer_PrimitiveTests
     // Phương thức kiểm thử cho việc serialize và deserialize giá trị boolean.
     // Sử dụng [Fact] vì đây là một kiểm thử đơn lẻ, không cần nhiều giá trị đầu vào.
     [Fact]
-    public void SerializeDeserialize_Boolean()
+    public void SerializeDeserializeBoolean()
     {
         // Chuyển đổi giá trị boolean true thành một mảng byte (quá trình serialize).
         byte[] buffer = LiteSerializer.Serialize(true);
         // Khởi tạo biến result với giá trị mặc định là false để lưu kết quả sau khi deserialize.
         bool result = false;
         // Chuyển đổi mảng byte trở lại thành giá trị boolean và lưu vào biến result (quá trình deserialize).
-        LiteSerializer.Deserialize(buffer, ref result);
+        _ = LiteSerializer.Deserialize(buffer, ref result);
         // Kiểm tra xem kết quả sau khi deserialize có đúng là true hay không.
         Assert.True(result);
     }

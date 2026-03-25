@@ -1,34 +1,34 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Shared.Serialization;
 using System;
+using Nalix.Shared.Serialization;
 using Xunit;
 
 namespace Nalix.Shared.Tests.Serialization;
 
-public class LiteSerializer_ReferenceType_Tests
+public class LiteSerializerReferenceTypeTests
 {
     [Theory]
     [InlineData("")]
     [InlineData("hello")]
     [InlineData("xin chào tiếng Việt")]
     [InlineData("😀 unicode")]
-    public void SerializeDeserialize_String_RoundTrip(String input)
+    public void SerializeDeserializeStringRoundTrip(string input)
     {
         // Nhánh reference type => cần formatter cho string (thường có sẵn)
-        Byte[] data = LiteSerializer.Serialize(input);
+        byte[] data = LiteSerializer.Serialize(input);
 
-        String output = null;
-        Int32 read = LiteSerializer.Deserialize<String>(data, ref output);
+        string output = null;
+        int read = LiteSerializer.Deserialize(data, ref output);
 
         Assert.Equal(data.Length, read);
         Assert.Equal(input, output);
     }
 
     [Fact]
-    public void Serialize_ToProvidedBuffer_String_NotSupported_Throws()
+    public void SerializeToProvidedBufferStringNotSupportedThrows()
     {
-        var buf = new Byte[128];
+        byte[] buf = new byte[128];
         _ = Assert.Throws<NotSupportedException>(() => LiteSerializer.Serialize("abc", buf));
     }
 }

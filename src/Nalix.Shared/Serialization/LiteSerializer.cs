@@ -62,10 +62,7 @@ public static class LiteSerializer
             Unsafe.WriteUnaligned(
                 ref MemoryMarshal.GetArrayDataReference(array), value);
 
-            return EqualityComparer<T?>.Default.Equals(value, default)
-                ? throw new SerializationException(
-                    $"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
-                : array;
+            return array;
         }
 
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
@@ -195,10 +192,7 @@ public static class LiteSerializer
             {
                 formatter.Serialize(ref writer, value);
 
-                return EqualityComparer<T?>.Default.Equals(value, default)
-                    ? throw new SerializationException(
-                        $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
-                    : writer.WrittenCount;
+                return writer.WrittenCount;
             }
             finally
             {
@@ -402,15 +396,7 @@ public static class LiteSerializer
             value = Unsafe.ReadUnaligned<T>(
                 ref MemoryMarshal.GetReference(buffer));
 
-            if (EqualityComparer<T?>.Default.Equals(value, default))
-            {
-                throw new SerializationException(
-                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
-            }
-            else
-            {
-                return Unsafe.SizeOf<T>();
-            }
+            return Unsafe.SizeOf<T>();
         }
 
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
