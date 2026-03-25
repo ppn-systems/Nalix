@@ -73,8 +73,7 @@ public static class TaskNaming
         /// <summary>
         /// Build a recurring job id with a hex instance key, e.g. "cleanup.00BC614E".
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static string CleanupJobId(string prefix, int instanceKey) => $"{SanitizeToken(prefix)}.{Tags.Cleanup}.{instanceKey:X8}";
     }
 
@@ -82,8 +81,7 @@ public static class TaskNaming
     /// Sanitizes an arbitrary string into a safe token for task names.
     /// Allows letters, digits, '-', '_', '.', replaces others with '_'.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [SkipLocalsInit]
     public static string SanitizeToken(string s)
     {

@@ -15,8 +15,7 @@ namespace Nalix.Network.Listeners.Tcp;
 public abstract partial class TcpListenerBase
 {
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void Initialize()
     {
         if (s_config.EnableIPv6)
@@ -178,8 +177,7 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [SuppressMessage(
@@ -241,8 +239,7 @@ public abstract partial class TcpListenerBase
     }
 
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     private static bool IsIgnorableAcceptError(
         [NotNull] SocketError code,

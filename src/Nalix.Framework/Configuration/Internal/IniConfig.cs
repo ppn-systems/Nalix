@@ -147,8 +147,7 @@ internal sealed class IniConfig : IDisposable
     /// <summary>
     /// Reloads the INI file from disk, discarding any unsaved changes.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void Reload() => Load();
 
@@ -160,8 +159,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="value">The value to write.</param>
     /// <exception cref="ArgumentNullException">Thrown when section, key, or value is null.</exception>
     /// <exception cref="ArgumentException">Thrown when section or key contains invalid characters.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void WriteValue(
         [NotNull] string section,
         [NotNull] string key,
@@ -256,8 +254,7 @@ internal sealed class IniConfig : IDisposable
     /// Comments are stored in memory and flushed to disk on the next <see cref="WriteFile"/> call.
     /// They are never read back from disk — re-running the application re-registers them from attributes.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void WriteComment(
         [NotNull] string section,
         string? key,
@@ -317,8 +314,7 @@ internal sealed class IniConfig : IDisposable
     /// <returns>The string value, or an empty string if not found.</returns>
     /// <exception cref="ArgumentNullException">Thrown when section or key is null.</exception>
     /// <exception cref="ArgumentException">Thrown when section or key is empty.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public string GetString(
         [NotNull] string section,
@@ -361,8 +357,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The character value if the string has exactly one character; otherwise, null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public char? GetChar(
         [NotNull] string section,
@@ -378,8 +373,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The boolean value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public bool? GetBool(
         [NotNull] string section,
@@ -433,8 +427,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The decimal value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public decimal? GetDecimal(
         [NotNull] string section,
@@ -470,8 +463,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The byte value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public byte? GetByte(
         [NotNull] string section,
@@ -505,8 +497,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The sbyte value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public sbyte? GetSByte(
         [NotNull] string section,
@@ -540,8 +531,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The short value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public short? GetInt16(
         [NotNull] string section,
@@ -575,8 +565,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The unsigned short value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public ushort? GetUInt16(
         [NotNull] string section,
@@ -610,8 +599,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The integer value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public int? GetInt32(
         [NotNull] string section,
@@ -645,8 +633,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The unsigned integer value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public uint? GetUInt32(
         [NotNull] string section,
@@ -680,8 +667,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The long value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public long? GetInt64(string section, string key)
     {
@@ -713,8 +699,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The unsigned long value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public ulong? GetUInt64(
         [NotNull] string section,
@@ -748,8 +733,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The float value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public float? GetSingle(
         [NotNull] string section,
@@ -785,8 +769,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The double value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public double? GetDouble(string section, string key)
     {
@@ -820,8 +803,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The DateTime value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public DateTime? GetDateTime(
         [NotNull] string section,
@@ -857,8 +839,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The TimeSpan value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public TimeSpan? GetTimeSpan(
         [NotNull] string section,
@@ -894,8 +875,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The Guid value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public Guid? GetGuid(
         [NotNull] string section,
@@ -930,8 +910,7 @@ internal sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The enum value if parsed successfully, otherwise null.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public TEnum? GetEnum<TEnum>(
         [NotNull] string section,
@@ -981,8 +960,7 @@ internal sealed class IniConfig : IDisposable
     /// <summary>
     /// Forces a write of any pending changes to the file.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Flush()
     {
         if (_isDirty)
@@ -999,8 +977,7 @@ internal sealed class IniConfig : IDisposable
     /// Creates a cache key from section, key, and optional type suffix.
     /// </summary>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     private static string CreateCacheKey(
         string section,
@@ -1010,8 +987,7 @@ internal sealed class IniConfig : IDisposable
     /// <summary>
     /// Formats a value for storage in the INI file.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string FormatValue(object value)
     {
         if (value == null)
@@ -1034,8 +1010,7 @@ internal sealed class IniConfig : IDisposable
     /// Loads the INI file with retry logic for handling file access issues.
     /// </summary>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void LoadWithRetry()
     {
         const int maxRetries = 3;
@@ -1069,8 +1044,7 @@ internal sealed class IniConfig : IDisposable
     /// <exception cref="IOException">Thrown when file reading fails.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when file access is denied.</exception>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void Load()
     {
         if (!ExistsFile)
@@ -1201,8 +1175,7 @@ internal sealed class IniConfig : IDisposable
     /// </para>
     /// Must only be called from inside a write lock (i.e. from <see cref="WriteFile"/>).
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private void WriteInlineComment(
@@ -1258,8 +1231,7 @@ internal sealed class IniConfig : IDisposable
     /// Checks if the file has been modified externally and reloads if necessary.
     /// </summary>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void CheckFileChanges()
     {
         if (!ExistsFile)
@@ -1288,8 +1260,7 @@ internal sealed class IniConfig : IDisposable
     /// <exception cref="IOException">Thrown when file writing fails.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when file access is denied.</exception>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void WriteFile()
     {
         _fileLock.EnterWriteLock();

@@ -12,8 +12,7 @@ public static partial class NLogixFx
 {
     private const string Sep = "================================================================================";
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void PUBLISH_LOG_ENTRY(
         LogLevel level,
         string message,
@@ -35,8 +34,7 @@ public static partial class NLogixFx
         Publisher.Publish(new LogEntry(level, EventId.Empty, fullMessage, null));
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static string FORMAT_LOG_MESSAGE(
         string message,
         string? sourceName,

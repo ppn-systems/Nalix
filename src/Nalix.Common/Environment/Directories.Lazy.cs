@@ -42,8 +42,7 @@ public static partial class Directories
     /// </summary>
     /// <param name="name">Environment variable name.</param>
     /// <returns>Value or <c>null</c>.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: MaybeNull]
     private static string GET_ENV([DisallowNull] string name)
     {
@@ -129,8 +128,7 @@ public static partial class Directories
         return Path.Join(dataHome, "Nalix");
     });
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string RESOLVE_OR_ENV(
         [DisallowNull] string envName,
         [DisallowNull] string containerPath,

@@ -174,8 +174,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="connection">The target connection.</param>
     /// <param name="raw">The lease to enqueue.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="raw"/> or <paramref name="connection"/> is null.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public bool Pull(
         [NotNullWhen(true)] out IConnection connection,
@@ -234,8 +233,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// </summary>
     /// <param name="connection">The connection to enqueue the packet for.</param>
     /// <param name="raw">The buffer lease containing the packet data.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Push(
         [NotNull] IConnection connection,
         [NotNull] IBufferLease raw)
@@ -353,13 +351,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         return true;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private ConnectionState GET_STATE([NotNull] IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static bool HAS_ANY(
         [NotNull] ConnectionQueues cqs,
@@ -377,8 +373,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         return false;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static bool TRY_DEQUEUE_HIGHEST(
         [NotNull] ConnectionQueues cqs,
@@ -408,8 +403,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="cqs"></param>
     /// <param name="cs"></param>
     /// <param name="lease"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static bool TRY_EVICT_OLDEST(
         [NotNull] ConnectionQueues cqs,
@@ -440,8 +434,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// </summary>
     /// <param name="span"></param>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static int CLASSIFY_PRIORITY_INDEX([NotNull] ReadOnlySpan<byte> span)
     {
@@ -460,8 +453,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     #region Events / Cleanup
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private void OnUnregistered([NotNull] IConnection connection) => RemoveConnection(connection);
 
@@ -470,8 +462,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// </summary>
     /// <param name="connection"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private void RemoveConnection([NotNull] IConnection connection)
     {

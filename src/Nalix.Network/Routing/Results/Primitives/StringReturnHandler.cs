@@ -235,8 +235,7 @@ internal static class UTF8_STRING
 
 
         // Local: simulate encoding to check size incrementally without allocating strings.
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool Measure(
             [DisallowNull] ReadOnlySpan<char> chars,
             [DisallowNull] ref int used,

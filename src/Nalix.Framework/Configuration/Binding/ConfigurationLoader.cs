@@ -96,8 +96,7 @@ public abstract partial class ConfigurationLoader
     /// Creates a shallow clone of this configuration instance.
     /// </summary>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public T Clone<T>() where T : ConfigurationLoader, new()
     {
@@ -130,8 +129,7 @@ public abstract partial class ConfigurationLoader
     /// <param name="configFile">The INI configuration file to load values from.</param>
     /// <exception cref="ArgumentNullException">Thrown when configFile is null.</exception>
     [MemberNotNull(nameof(_isInitialized), nameof(LastInitializationTime))]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     internal void Initialize(IniConfig configFile)
     {
         ArgumentNullException.ThrowIfNull(configFile, nameof(configFile));

@@ -29,8 +29,7 @@ public static class HeaderExtensions
     /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint ReadMagicNumberLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.MagicNumber;
@@ -47,8 +46,7 @@ public static class HeaderExtensions
     /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort ReadOpCodeLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.OpCode;
@@ -64,8 +62,7 @@ public static class HeaderExtensions
     /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PacketFlags ReadFlagsLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.Flags;
@@ -81,8 +78,7 @@ public static class HeaderExtensions
     /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WriteFlagsLE(this Span<byte> @this, PacketFlags flags)
     {
         const int offs = (int)PacketHeaderOffset.Flags;
@@ -98,8 +94,7 @@ public static class HeaderExtensions
     /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PacketPriority ReadPriorityLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.Priority;
@@ -115,8 +110,7 @@ public static class HeaderExtensions
     /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ProtocolType ReadTransportLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.Transport;
@@ -132,8 +126,7 @@ public static class HeaderExtensions
     /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint ReadSequenceIdLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.SequenceId;
@@ -154,8 +147,7 @@ public static class HeaderExtensions
     /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CheckSize(ReadOnlySpan<byte> buffer, int offset, int size)
     {
         if ((uint)offset > (uint)buffer.Length ||

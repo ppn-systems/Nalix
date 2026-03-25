@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -35,8 +35,7 @@ public static class DiagnosticsExtensions
     ///     logger.Warn($"High RTT: {snap.HeartbeatRttMs:F1} ms");
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TcpSessionDiagnostics GetDiagnostics(this TcpSession client)
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -59,8 +58,7 @@ public static class DiagnosticsExtensions
     /// other implementations receive a partial snapshot (RTT = 0, BPS = 0).
     /// </summary>
     /// <param name="client"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TcpSessionDiagnostics GetDiagnostics(this IClientConnection client)
     {
         ArgumentNullException.ThrowIfNull(client);

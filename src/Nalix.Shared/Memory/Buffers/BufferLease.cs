@@ -63,8 +63,7 @@ public sealed class BufferLease : IBufferLease
         /// <remarks>
         /// The returned buffer may be larger than requested. The content of the buffer is undefined.
         /// </remarks>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte[] Rent(int capacity = 256) => RentFunc(capacity);
 
         /// <summary>
@@ -77,8 +76,7 @@ public sealed class BufferLease : IBufferLease
         /// The buffer must have been obtained via <see cref="Rent(int)"/>.
         /// After calling this method, the buffer should not be used again.
         /// </remarks>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Return(byte[] array) => ReturnFunc(array, false);
     }
 
@@ -188,8 +186,7 @@ public sealed class BufferLease : IBufferLease
     /// Convenient ArraySegment over the valid payload slice.
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public ArraySegment<byte> AsSegment()
         => _buffer is null ? default : new ArraySegment<byte>(_buffer, _start, Length);
@@ -201,8 +198,7 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Retain()
     {
         ObjectDisposedException.ThrowIf(_buffer is null, nameof(BufferLease));
@@ -223,8 +219,7 @@ public sealed class BufferLease : IBufferLease
     /// <param name="length"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CommitLength([NotNull] int length)
     {
         if ((uint)length > (uint)Capacity)
@@ -241,8 +236,7 @@ public sealed class BufferLease : IBufferLease
     /// <exception cref="InvalidOperationException"></exception>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
         int newValue = Interlocked.Decrement(ref _refCount);
@@ -307,8 +301,7 @@ public sealed class BufferLease : IBufferLease
     /// <param name="length"></param>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public bool ReleaseOwnership(
         [MaybeNull] out byte[]? buffer,
@@ -344,8 +337,7 @@ public sealed class BufferLease : IBufferLease
     /// <param name="capacity"></param>
     /// <param name="zeroOnDispose"></param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static BufferLease Rent(
         [NotNull] int capacity,
@@ -377,8 +369,7 @@ public sealed class BufferLease : IBufferLease
     /// <param name="buffer"></param>
     /// <param name="length"></param>
     /// <param name="zeroOnDispose"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static BufferLease FromRented(
         [NotNull] byte[] buffer,
@@ -394,8 +385,7 @@ public sealed class BufferLease : IBufferLease
     /// <param name="start"></param>
     /// <param name="length"></param>
     /// <param name="zeroOnDispose"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static BufferLease TakeOwnership(
         [NotNull] byte[] buffer,

@@ -33,8 +33,7 @@ internal static partial class TypeMetadata
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool IsReferenceOrContainsReferences(Type type)
     {
         Func<bool> fn = s_isRefCache.GetOrAdd(type, static t =>
@@ -55,8 +54,7 @@ internal static partial class TypeMetadata
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static int UnsafeSizeOf(Type type)
     {
         Func<int> del = s_sizeOfFnCache.GetOrAdd(type, static t =>

@@ -96,8 +96,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous execution of the handler logic.
     /// </returns>
-    [MethodImpl(
-       MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     protected async ValueTask ExecuteHandlerAsync(
         [NotNull] TPacket packet,
         [NotNull] IConnection connection,
@@ -120,8 +119,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// This method attempts to resolve a packet handler using the packet's OpCode via <see cref="PacketDispatchOptions{TPacket}.TryResolveHandler"/>.
     /// If a handler is found, it is invoked asynchronously. Exceptions are caught and logged.
     /// </remarks>
-    [MethodImpl(
-       MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     protected async Task ExecutePacketHandlerAsync(
         [NotNull] TPacket packet,
         [NotNull] IConnection connection)

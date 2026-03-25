@@ -28,8 +28,7 @@ internal static unsafe class SpanOps
     /// <param name="dest"></param>
     /// <param name="value"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static int WriteVarInt(byte* dest, int value)
     {
@@ -99,8 +98,7 @@ internal static unsafe class SpanOps
     /// <param name="src"></param>
     /// <param name="srcEnd"></param>
     /// <param name="value"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static int ReadVarInt(ref byte* src, byte* srcEnd, out int value)
     {

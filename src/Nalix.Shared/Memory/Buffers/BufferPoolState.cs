@@ -50,15 +50,13 @@ public readonly record struct BufferPoolState : IEquatable<BufferPoolState>
     /// <summary>
     /// Gets the usage ratio of the buffer pool.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double GetUsageRatio()
         => TotalBuffers <= 0 ? 0.0 : Math.Max(0.0, Math.Min(1.0, 1.0 - (FreeBuffers / (double)TotalBuffers)));
 
     /// <summary>
     /// Gets the miss rate as a ratio of total buffers.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double GetMissRate() => TotalBuffers <= 0 ? 0.0 : Math.Min(1.0, Misses / (double)TotalBuffers);
 }

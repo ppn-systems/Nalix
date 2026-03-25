@@ -109,8 +109,7 @@ public static class EnvelopeCipher
     /// <exception cref="ArgumentException">
     /// Thrown when the specified cipher suite is not supported.
     /// </exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetNonceLength(CipherSuiteType type) => type switch
     {
         CipherSuiteType.Chacha20 => ChaCha20.NonceSize,
@@ -156,8 +155,7 @@ public static class EnvelopeCipher
     /// <exception cref="ArgumentException">
     /// Thrown when the specified cipher suite is not supported.
     /// </exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetTagLength(CipherSuiteType type) => type switch
     {
         CipherSuiteType.Chacha20 => 0,
@@ -204,8 +202,7 @@ public static class EnvelopeCipher
     /// var ct2 = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.CHACHA20);
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static bool Encrypt(
         [NotNull] ReadOnlySpan<byte> key,
@@ -261,8 +258,7 @@ public static class EnvelopeCipher
     /// }
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static bool Decrypt(
         [NotNull] ReadOnlySpan<byte> key,
@@ -338,8 +334,7 @@ public static class EnvelopeCipher
     /// var ct2 = EnvelopeCipher.Encrypt(key32, data, CipherSuiteType.CHACHA20);
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static bool Encrypt(
         [NotNull] ReadOnlySpan<byte> key,
@@ -376,8 +371,7 @@ public static class EnvelopeCipher
     /// }
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static bool Decrypt(
         [NotNull] ReadOnlySpan<byte> key,

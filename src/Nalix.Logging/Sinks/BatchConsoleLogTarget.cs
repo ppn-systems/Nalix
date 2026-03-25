@@ -98,8 +98,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
     /// <returns>The configured <see cref="ConsoleLogOptions"/>.</returns>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ConsoleLogOptions Configure(Action<ConsoleLogOptions> configureOptions)
     {
         ConsoleLogOptions options = new();
@@ -117,8 +116,7 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
     /// </summary>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Dispose() => _provider.Dispose();
 
     #endregion IDisposable
