@@ -22,69 +22,6 @@ namespace Nalix.Network.Listeners.Tcp;
 public abstract partial class TcpListenerBase
 {
     /// <summary>
-    /// Generates a diagnostic report of the TCP listener state and metrics.
-    /// </summary>
-    /// <returns>A formatted string report.</returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public virtual System.String GenerateReport()
-    {
-        System.Text.StringBuilder sb = new(512);
-        System.Threading.ThreadPool.GetMinThreads(out System.Int32 minWorker, out System.Int32 minIocp);
-
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
-        _ = sb.AppendLine($"Port                : {_port}");
-        _ = sb.AppendLine($"StateWrapper        : {State}");
-        _ = sb.AppendLine($"Disposed            : {_isDisposed}");
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("Configuration:");
-        _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"EnableTimeout       : {s_config.EnableTimeout}");
-        _ = sb.AppendLine($"MaxParallelAccepts  : {s_config.MaxParallel}");
-        _ = sb.AppendLine($"BufferSize          : {s_config.BufferSize}");
-        _ = sb.AppendLine($"KeepAlive           : {s_config.KeepAlive}");
-        _ = sb.AppendLine($"ReuseAddress        : {s_config.ReuseAddress}");
-        _ = sb.AppendLine($"EnableIPv6          : {s_config.EnableIPv6}");
-        _ = sb.AppendLine($"Backlog             : {s_config.Backlog}");
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("Metrics:");
-        _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"Total Accepted      : {_metrics.TotalAccepted}");
-        _ = sb.AppendLine($"Total Rejected      : {_metrics.TotalRejected}");
-        _ = sb.AppendLine($"Total Errors        : {_metrics.TotalErrors}");
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("Protocol:");
-        _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"BoundProtocol       : {_protocol.ToString() ?? "-"}");
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("Connections:");
-        _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.Count}");
-        _ = sb.AppendLine($"LimiterEnabled      : {true}");
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("Threading:");
-        _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"ThreadPool MinWorker: {minWorker}");
-        _ = sb.AppendLine($"ThreadPool MinIOCP  : {minIocp}");
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("TimeSync:");
-        _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"IsTimeSyncEnabled   : {IsTimeSyncEnabled}");
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("--------------------------------------------");
-        return sb.ToString();
-    }
-
-    /// <summary>
     /// Updates the listener with the current server time, provided as a Unix timestamp.
     /// </summary>
     /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC),
@@ -276,8 +213,72 @@ public abstract partial class TcpListenerBase
                 cts?.Dispose();
             }
             catch { }
+
             _cts = null;
             _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
         }
+    }
+
+    /// <summary>
+    /// Generates a diagnostic report of the TCP listener state and metrics.
+    /// </summary>
+    /// <returns>A formatted string report.</returns>
+    [System.Diagnostics.Contracts.Pure]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public virtual System.String GenerateReport()
+    {
+        System.Text.StringBuilder sb = new(1024);
+        System.Threading.ThreadPool.GetMinThreads(out System.Int32 minWorker, out System.Int32 minIocp);
+
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
+        _ = sb.AppendLine($"Port                : {_port}");
+        _ = sb.AppendLine($"StateWrapper        : {State}");
+        _ = sb.AppendLine($"Disposed            : {_isDisposed}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Configuration:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"EnableTimeout       : {s_config.EnableTimeout}");
+        _ = sb.AppendLine($"MaxParallelAccepts  : {s_config.MaxParallel}");
+        _ = sb.AppendLine($"BufferSize          : {s_config.BufferSize}");
+        _ = sb.AppendLine($"KeepAlive           : {s_config.KeepAlive}");
+        _ = sb.AppendLine($"ReuseAddress        : {s_config.ReuseAddress}");
+        _ = sb.AppendLine($"EnableIPv6          : {s_config.EnableIPv6}");
+        _ = sb.AppendLine($"Backlog             : {s_config.Backlog}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Metrics:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"Total Accepted      : {_metrics.TotalAccepted}");
+        _ = sb.AppendLine($"Total Rejected      : {_metrics.TotalRejected}");
+        _ = sb.AppendLine($"Total Errors        : {_metrics.TotalErrors}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Protocol:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"BoundProtocol       : {_protocol.ToString() ?? "-"}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Connections:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.Count}");
+        _ = sb.AppendLine($"LimiterEnabled      : {true}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Threading:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"ThreadPool MinWorker: {minWorker}");
+        _ = sb.AppendLine($"ThreadPool MinIOCP  : {minIocp}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("TimeSync:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine($"IsTimeSyncEnabled   : {IsTimeSyncEnabled}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("--------------------------------------------");
+        return sb.ToString();
     }
 }

@@ -244,6 +244,7 @@ public sealed class TimingWheel : IActivatable
         try { _worker?.Dispose(); } catch { }
 
         DRAIN_AND_RELEASE_ALL_BUCKETS();
+        CLEAR_ACTIVE_REGISTRATIONS();
 
         s_logger?.Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
     }
@@ -505,6 +506,23 @@ public sealed class TimingWheel : IActivatable
                 }
             }
         }
+    }
+
+    private void CLEAR_ACTIVE_REGISTRATIONS()
+    {
+        foreach (IConnection connection in _active.Keys)
+        {
+            try
+            {
+                connection.OnCloseEvent -= OnConnectionClosed;
+            }
+            catch
+            {
+                // Best-effort cleanup only.
+            }
+        }
+
+        _active.Clear();
     }
 
     #endregion Helpers
