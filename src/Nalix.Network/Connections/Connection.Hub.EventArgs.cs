@@ -23,7 +23,7 @@ public sealed class ConnectionHubEventArgs(
     DropPolicy dropPolicy,
     int currentConnections,
     int maxConnections,
-    ISnowflake triggeredConnectionId,
+    ISnowflake? triggeredConnectionId,
     string reason,
     ConnectionHubStatistics snapshot) : EventArgs
 {
@@ -46,7 +46,7 @@ public sealed class ConnectionHubEventArgs(
     /// <summary>
     /// Gets the connection that triggered the limit (may be null if not available).
     /// </summary>
-    public ISnowflake TriggeredConnectionId { get; } = triggeredConnectionId;
+    public ISnowflake? TriggeredConnectionId { get; } = triggeredConnectionId;
 
     /// <summary>
     /// Gets the textual reason for the limit notification.

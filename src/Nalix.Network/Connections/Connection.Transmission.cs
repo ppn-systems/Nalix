@@ -133,7 +133,6 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        [return: NotNull]
         public bool Send(IPacket packet)
         {
             if (packet.Length == 0)
@@ -165,7 +164,6 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [return: NotNull]
         public bool Send(ReadOnlySpan<byte> message)
         {
             if (message.IsEmpty || _endPoint is null)
@@ -184,7 +182,6 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [return: NotNull]
         public async Task<bool> SendAsync(
             IPacket packet,
             CancellationToken cancellationToken = default)
@@ -219,7 +216,6 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [return: NotNull]
         public async Task<bool> SendAsync(
             ReadOnlyMemory<byte> message,
             CancellationToken cancellationToken = default)
@@ -292,7 +288,6 @@ public sealed partial class Connection : IConnection
         /// </remarks>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        [return: NotNull]
         public bool Send(IPacket packet)
         {
             if (packet.Length == 0)
@@ -327,13 +322,11 @@ public sealed partial class Connection : IConnection
         /// </remarks>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [return: NotNull]
         public bool Send(ReadOnlySpan<byte> message) => _outer._cstream.Send(message);
 
         /// <inheritdoc/>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [return: NotNull]
         [Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]
@@ -398,7 +391,6 @@ public sealed partial class Connection : IConnection
         /// </remarks>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [return: NotNull]
         public async Task<bool> SendAsync(
             IPacket packet,
             CancellationToken cancellationToken = default)
@@ -436,7 +428,6 @@ public sealed partial class Connection : IConnection
         /// </remarks>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [return: NotNull]
         public async Task<bool> SendAsync(
             ReadOnlyMemory<byte> message,
             CancellationToken cancellationToken = default)
@@ -445,7 +436,6 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc/>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        [return: NotNull]
         [Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]

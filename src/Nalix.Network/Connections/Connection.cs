@@ -24,7 +24,6 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    [AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
@@ -170,7 +169,7 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public void Disconnect([AllowNull] string reason = null) => Close(force: true);
+    public void Disconnect(string reason = null) => Close(force: true);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
@@ -220,7 +219,7 @@ public sealed partial class Connection : IConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private void OnCloseEventBridge(
-        [AllowNull] object sender,
+        object sender,
         IConnectEventArgs e)
     {
         if (Interlocked.Exchange(ref _closeSignaled, 1) != 0)
@@ -235,7 +234,7 @@ public sealed partial class Connection : IConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void OnProcessEventBridge(
-        [AllowNull] object sender,
+        object sender,
         IConnectEventArgs e)
     {
         if (sender is not Connection self)
@@ -249,7 +248,7 @@ public sealed partial class Connection : IConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void OnPostProcessEventBridge(
-        [AllowNull] object sender,
+        object sender,
         IConnectEventArgs e)
     {
         if (sender is not Connection self)
