@@ -14,17 +14,33 @@ public sealed class PacketAnalyzerTests
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Common.Networking.Packets;
 
-public sealed class MissingSpanPacket : PacketBase<MissingSpanPacket>
+public sealed class MissingSpanPacket : IPacket
 {
-    public static MissingSpanPacket Deserialize(byte[] buffer) => PacketBase<MissingSpanPacket>.Deserialize(buffer);
+    public static MissingSpanPacket Deserialize(byte[] buffer) => new();
 }
 """;
 
         await Verifier<ResetForPoolCodeFixProvider>.VerifyAnalyzerAsync(
             source,
             "NALIX052");
+    }
+
+    [Fact]
+    public async Task PacketBaseWithInheritedSpanDeserialize_DoesNotProduceDiagnostic()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Framework.DataFrames;
+
+public sealed class InheritedSpanPacket : PacketBase<InheritedSpanPacket>
+{
+    public static InheritedSpanPacket Deserialize(byte[] buffer) => new();
+}
+""";
+
+        await Verifier<ResetForPoolCodeFixProvider>.VerifyAnalyzerAsync(source);
     }
 
     [Fact]

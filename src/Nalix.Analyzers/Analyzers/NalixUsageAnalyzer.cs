@@ -839,10 +839,9 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         bool hasAnyDeserialize = false;
         bool hasReadOnlySpanDeserialize = false;
 
-        foreach (IMethodSymbol method in typeSymbol.GetMembers().OfType<IMethodSymbol>())
+        foreach (IMethodSymbol method in EnumerateDeserializeMethods(typeSymbol))
         {
-            if (method.Name != "Deserialize"
-                || !method.IsStatic
+            if (!method.IsStatic
                 || method.DeclaredAccessibility != Accessibility.Public)
             {
                 continue;
@@ -865,35 +864,32 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzePacketBaseDeserializeContract(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol)
     {
-        ImmutableArray<IMethodSymbol> deserializeMethods = [.. typeSymbol.GetMembers()
+        ImmutableArray<IMethodSymbol> declaredSpanDeserializeMethods = [.. typeSymbol.GetMembers("Deserialize")
             .OfType<IMethodSymbol>()
-            .Where(static method => method.MethodKind == MethodKind.Ordinary && method.Name == "Deserialize")];
+            .Where(static method =>
+                method.MethodKind == MethodKind.Ordinary
+                && IsReadOnlySpanByteType(method.Parameters.FirstOrDefault()?.Type))];
 
-        if (deserializeMethods.Length == 0)
+        if (declaredSpanDeserializeMethods.Length > 0)
         {
-            Report(context, DiagnosticDescriptors.PacketBaseMissingDeserializeMethod, typeSymbol, typeSymbol.Name);
-            return;
-        }
-
-        bool reportedInvalidSignature = false;
-        foreach (IMethodSymbol method in deserializeMethods)
-        {
-            if (!IsReadOnlySpanByteType(method.Parameters.FirstOrDefault()?.Type))
-            {
-                continue;
-            }
-
-            if (IsValidPacketDeserializeSignature(method, typeSymbol))
+            if (declaredSpanDeserializeMethods.Any(method => IsValidPacketDeserializeSignature(method, typeSymbol)))
             {
                 return;
             }
 
-            if (!reportedInvalidSignature)
+            Report(context, DiagnosticDescriptors.PacketDeserializeSignatureInvalid, typeSymbol, typeSymbol.Name);
+            return;
+        }
+
+        foreach (IMethodSymbol method in EnumerateDeserializeMethods(typeSymbol))
+        {
+            if (IsValidPacketDeserializeSignature(method, typeSymbol))
             {
-                Report(context, DiagnosticDescriptors.PacketDeserializeSignatureInvalid, typeSymbol, typeSymbol.Name);
-                reportedInvalidSignature = true;
+                return;
             }
         }
+
+        Report(context, DiagnosticDescriptors.PacketBaseMissingDeserializeMethod, typeSymbol, typeSymbol.Name);
     }
 
     private static bool IsValidPacketDeserializeSignature(IMethodSymbol method, INamedTypeSymbol containingType)
@@ -902,6 +898,19 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
            && method.Parameters.Length == 1
            && IsReadOnlySpanByteType(method.Parameters[0].Type)
            && SymbolEqualityComparer.Default.Equals(method.ReturnType, containingType);
+
+    private static IEnumerable<IMethodSymbol> EnumerateDeserializeMethods(INamedTypeSymbol typeSymbol)
+    {
+        for (INamedTypeSymbol? current = typeSymbol; current is not null; current = current.BaseType)
+        {
+            foreach (IMethodSymbol method in current.GetMembers("Deserialize")
+                .OfType<IMethodSymbol>()
+                .Where(static method => method.MethodKind == MethodKind.Ordinary))
+            {
+                yield return method;
+            }
+        }
+    }
 
     private static bool IsReadOnlySpanByteType(ITypeSymbol? type)
         => type is INamedTypeSymbol parameterType

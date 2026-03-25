@@ -43,6 +43,7 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 | `CompressionThreshold` | `512` | Minimum bytes to trigger compression. |
 | `EncryptionEnabled` | `true` | Enables AEAD packet encryption. |
 | `Algorithm` | `Chacha20Poly1305`| Cipher suite for encrypted communication. |
+| `ServerPublicKey` | `null` | **[NEW]** Pinned X25519 Public Key (Hex) for server identity verification. |
 | `Secret` | `Bytes32.Zero` | **[Ignored]** Runtime zero-allocation encryption key. |
 
 ### Session Resume & Time Sync

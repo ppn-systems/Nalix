@@ -64,30 +64,45 @@ public static class HandshakeExtensions
             throw new NetworkException($"Handshake failed: {serverHello.Reason}");
         }
 
-        if (!Handshake.IsValid(serverHello))
+        if (!serverHello.Validate(serverHello, out string? reason))
         {
-            throw new NetworkException("Malformed Handshake SERVER_HELLO packet.");
+            throw new NetworkException($"Malformed Handshake SERVER_HELLO packet: {reason}");
         }
 
-        Bytes32 sharedSecret = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
+        Bytes32 sharedSecretEE = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
 
-        if (sharedSecret.IsZero)
+        if (sharedSecretEE.IsZero)
         {
-            throw new NetworkException("Handshake key agreement failed: Shared secret is all zero.");
+            throw new NetworkException("Handshake key agreement failed: Ephemeral shared secret is all zero.");
         }
+
+        Bytes32 pinnedServerKey = string.IsNullOrEmpty(session.Options.ServerPublicKey) 
+            ? Bytes32.Zero 
+            : Bytes32.Parse(session.Options.ServerPublicKey);
+
+        Bytes32 sharedSecretSE = pinnedServerKey.IsZero
+            ? Bytes32.Zero 
+            : X25519.Agreement(clientKey.PrivateKey, pinnedServerKey);
+
+        if (!pinnedServerKey.IsZero && sharedSecretSE.IsZero)
+        {
+            throw new NetworkException("Handshake key agreement failed: Static shared secret is all zero.");
+        }
+
+        Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecretEE, sharedSecretSE);
 
         Bytes32 transcriptHash = Handshake.ComputeTranscriptHash(
             HandshakeX25519.ComposeTranscriptBuffer(clientKey.PublicKey, clientNonce, serverHello.PublicKey, serverHello.Nonce));
 
-        Bytes32 expectedProof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
+        Bytes32 expectedProof = HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash);
         if (serverHello.Proof != expectedProof)
         {
-            throw new NetworkException("Handshake SERVER_HELLO proof is invalid.");
+            throw new NetworkException("Handshake SERVER_HELLO proof is invalid. Possible Man-in-the-Middle attack.");
         }
 
-        Bytes32 sessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, clientNonce, serverHello.Nonce, transcriptHash);
+        Bytes32 sessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, clientNonce, serverHello.Nonce, transcriptHash);
 
-        Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Bytes32.Zero, Bytes32.Zero, HandshakeX25519.ComputeClientProof(sharedSecret, transcriptHash))
+        Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Bytes32.Zero, Bytes32.Zero, HandshakeX25519.ComputeClientProof(masterSecret, transcriptHash))
         {
             TranscriptHash = transcriptHash
         };
@@ -103,7 +118,12 @@ public static class HandshakeExtensions
             throw new NetworkException($"Handshake failed during finish: {serverFinish.Reason}");
         }
 
-        Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash);
+        if (!serverFinish.Validate(serverFinish, out string? finishReason))
+        {
+            throw new NetworkException($"Malformed Handshake SERVER_FINISH packet: {finishReason}");
+        }
+
+        Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(masterSecret, transcriptHash);
         if (serverFinish.Proof != expectedFinish)
         {
             throw new NetworkException("Handshake SERVER_FINISH proof is invalid.");

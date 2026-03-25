@@ -31,7 +31,7 @@ await client.HandshakeAsync();
 ## Important notes
 
 - Call this only after the session is connected.
-- The handshake is anonymous and uses X25519 plus transcript proofs.
+- The handshake supports **Identity Pinning** via `TransportOptions.ServerPublicKey`. If configured, the client will verify the server's static identity to prevent MitM.
 - On success, the session switches to `CipherSuiteType.Chacha20Poly1305`.
 
 ## Related APIs

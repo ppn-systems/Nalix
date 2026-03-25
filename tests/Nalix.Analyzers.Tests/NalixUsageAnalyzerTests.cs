@@ -11,11 +11,11 @@ public sealed class NalixUsageAnalyzerTests
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Common.Networking.Packets;
 
-public sealed class MissingSpanPacket : PacketBase<MissingSpanPacket>
+public sealed class MissingSpanPacket : IPacket
 {
-    public static MissingSpanPacket Deserialize(byte[] buffer) => PacketBase<MissingSpanPacket>.Deserialize(buffer);
+    public static MissingSpanPacket Deserialize(byte[] buffer) => new();
 }
 """;
 
@@ -1386,7 +1386,7 @@ public static class Setup
     }
 
     [Fact]
-    public async Task PacketBaseMissingDeserializeMethod_ReportsNalix012()
+    public async Task PacketBaseWithoutExplicitDeserialize_DoesNotReportNalix012()
     {
         const string source = """
 namespace Demo;
@@ -1397,7 +1397,7 @@ public sealed class MissingDeserializePacket : PacketBase<MissingDeserializePack
 }
 """;
 
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX012");
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
     }
 
     [Fact]
@@ -1413,7 +1413,7 @@ public sealed class BadDeserializePacket : PacketBase<BadDeserializePacket>
 }
 """;
 
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX017", "NALIX052");
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX017");
     }
 
     [Fact]

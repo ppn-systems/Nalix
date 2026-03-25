@@ -109,11 +109,11 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor PacketBaseMissingDeserializeMethod = new(
         id: "NALIX012",
         title: "PacketBase packet should expose static Deserialize",
-        messageFormat: "Packet type '{0}' inherits from PacketBase<{0}> but does not expose 'public static new {0} Deserialize(ReadOnlySpan<byte>)'",
+        messageFormat: "Packet type '{0}' inherits from PacketBase<{0}> but no accessible 'public static {0} Deserialize(ReadOnlySpan<byte>)' was found in its inheritance chain",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Nalix packet types built on PacketBase<TSelf> should expose a static Deserialize(ReadOnlySpan<byte>) helper for registry scanning and discoverability.");
+        description: "Nalix packet types built on PacketBase<TSelf> should have an accessible static Deserialize(ReadOnlySpan<byte>) entry point, either declared on the type or inherited from its packet base hierarchy.");
 
     public static readonly DiagnosticDescriptor ExplicitSerializationMemberMissingOrder = new(
         id: "NALIX013",
