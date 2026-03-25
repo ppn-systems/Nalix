@@ -13,9 +13,9 @@ internal static class StringBuilderPool
 {
     #region Constants
 
-    private const System.Int32 DefaultCapacity = 512;
-    private const System.Int32 MaxCapacity = 4096;
-    private const System.Int32 PoolSize = 32;
+    private const int DefaultCapacity = 512;
+    private const int MaxCapacity = 4096;
+    private const int PoolSize = 32;
 
     #endregion Constants
 
@@ -37,7 +37,7 @@ internal static class StringBuilderPool
     /// <returns>A StringBuilder instance from the pool or a new instance.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Text.StringBuilder Rent(System.Int32 capacity = DefaultCapacity)
+    public static System.Text.StringBuilder Rent(int capacity = DefaultCapacity)
     {
         // Fast path: thread-local cache
         System.Text.StringBuilder? sb = t_cachedInstance;

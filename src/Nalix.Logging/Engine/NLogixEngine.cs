@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Text;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration;
 using Nalix.Logging.Configuration;
@@ -14,7 +16,7 @@ namespace Nalix.Logging.Engine;
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public abstract class NLogixEngine : System.IDisposable
+public abstract class NLogixEngine : IDisposable
 {
     #region Fields
 
@@ -22,15 +24,15 @@ public abstract class NLogixEngine : System.IDisposable
     private readonly NLogixDistributor _distributor;
 
     private LogLevel _minLevel;
-    private System.Int32 _isDisposed;
+    private int _isDisposed;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.String, System.Text.CompositeFormat> s_formatCache;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CompositeFormat> s_formatCache;
 
     #endregion Fields
 
     #region Constructors
 
-    static NLogixEngine() => s_formatCache = new(System.StringComparer.Ordinal);
+    static NLogixEngine() => s_formatCache = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NLogixEngine"/> class.
@@ -39,12 +41,12 @@ public abstract class NLogixEngine : System.IDisposable
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    protected NLogixEngine(System.Action<NLogixOptions>? configureOptions = null)
+    protected NLogixEngine(Action<NLogixOptions>? configureOptions = null)
     {
         _distributor = new NLogixDistributor();
         _logOptions = ConfigurationManager.Instance.Get<NLogixOptions>();
 
-        _logOptions.SetPublisher(_distributor);
+        _ = _logOptions.SetPublisher(_distributor);
 
         // Apply configuration if provided
         if (configureOptions != null)
@@ -80,13 +82,13 @@ public abstract class NLogixEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    protected void ConfigureOptions(System.Action<NLogixOptions> configureOptions)
+    protected void ConfigureOptions(Action<NLogixOptions> configureOptions)
     {
         configureOptions?.Invoke(_logOptions);
 
         LogLevel newLevel = _logOptions.MinLevel;
-        System.Threading.Interlocked.Exchange(ref System.Runtime.CompilerServices.Unsafe
-                                    .As<LogLevel, System.Int32>(ref _minLevel), (System.Int32)newLevel);
+        _ = System.Threading.Interlocked.Exchange(ref System.Runtime.CompilerServices.Unsafe
+                                    .As<LogLevel, int>(ref _minLevel), (int)newLevel);
     }
 
     /// <summary>
@@ -97,7 +99,7 @@ public abstract class NLogixEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean IsLevelEnabled(LogLevel level) => level >= _minLevel;
+    public bool IsLevelEnabled(LogLevel level) => level >= _minLevel;
 
     /// <summary>
     /// Creates and publishes a log entry if the log level is enabled.
@@ -116,8 +118,8 @@ public abstract class NLogixEngine : System.IDisposable
     protected void Publish(
         [System.Diagnostics.CodeAnalysis.NotNull] LogLevel level,
         [System.Diagnostics.CodeAnalysis.NotNull] EventId eventId,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String message,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Exception? error = null)
+        [System.Diagnostics.CodeAnalysis.NotNull] string message,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] Exception? error = null)
     {
         if (_isDisposed != 0 || !IsLevelEnabled(level))
         {
@@ -138,7 +140,7 @@ public abstract class NLogixEngine : System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    protected void Publish(LogLevel level, EventId eventId, System.String format, params System.Object[] args)
+    protected void Publish(LogLevel level, EventId eventId, string format, params object[] args)
     {
         // Skip expensive string formatting if the log level is disabled
         if (_isDisposed != 0 || !IsLevelEnabled(level))
@@ -154,7 +156,7 @@ public abstract class NLogixEngine : System.IDisposable
     /// Releases managed and unmanaged resources used by the logging engine.
     /// </summary>
     /// <param name="disposing">True if called from Dispose(), false if called from finalizer.</param>
-    public virtual void Dispose(System.Boolean disposing)
+    public virtual void Dispose(bool disposing)
     {
         // Thread-safe disposal check using Interlocked
         if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
@@ -178,7 +180,7 @@ public abstract class NLogixEngine : System.IDisposable
     public void Dispose()
     {
         Dispose(true);
-        System.GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this);
     }
 
     #endregion Disposable
@@ -188,45 +190,45 @@ public abstract class NLogixEngine : System.IDisposable
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String FormatMessage(System.String format, System.Object[]? args)
+    private static string FormatMessage(string format, object[]? args)
     {
-        if (System.String.IsNullOrEmpty(format) || args == null || args.Length == 0)
+        if (string.IsNullOrEmpty(format) || args == null || args.Length == 0)
         {
             return format;
         }
 
         // Fast path: single argument with "{0}" or "{0:...}" pattern.
-        if (args.Length == 1 && TryParseSimplePlaceholder(format, out var innerFormat))
+        if (args.Length == 1 && TryParseSimplePlaceholder(format, out ReadOnlySpan<char> innerFormat))
         {
-            var arg = args[0];
+            object arg = args[0];
 
             // ISpanFormattable first (DateTime, numeric types, etc. in .NET 7/8)
-            if (arg is System.ISpanFormattable spanFormattable)
+            if (arg is ISpanFormattable spanFormattable)
             {
                 // Heuristic max length. If not enough, grow on-demand.
-                System.Span<System.Char> initial = stackalloc System.Char[64];
+                Span<char> initial = stackalloc char[64];
                 System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.CurrentCulture;
 
-                if (spanFormattable.TryFormat(initial, out System.Int32 written, innerFormat, provider))
+                if (spanFormattable.TryFormat(initial, out int written, innerFormat, provider))
                 {
-                    return new System.String(initial[..written]);
+                    return new string(initial[..written]);
                 }
 
                 // Rerun with rented buffer if initial stack is not enough
-                System.Int32 size = 128;
+                int size = 128;
                 do
                 {
-                    System.Char[] rented = System.Buffers.ArrayPool<System.Char>.Shared.Rent(size);
+                    char[] rented = System.Buffers.ArrayPool<char>.Shared.Rent(size);
                     try
                     {
                         if (spanFormattable.TryFormat(rented, out written, innerFormat, provider))
                         {
-                            return new System.String(rented, 0, written);
+                            return new string(rented, 0, written);
                         }
                     }
                     finally
                     {
-                        System.Buffers.ArrayPool<System.Char>.Shared.Return(rented);
+                        System.Buffers.ArrayPool<char>.Shared.Return(rented);
                     }
                     size <<= 1;
                 }
@@ -234,18 +236,18 @@ public abstract class NLogixEngine : System.IDisposable
             }
 
             // IFormattable fallback (boxed types or custom formattables)
-            if (arg is System.IFormattable formattable)
+            if (arg is IFormattable formattable)
             {
-                return formattable.ToString(innerFormat.ToString(), System.Globalization.CultureInfo.CurrentCulture) ?? System.String.Empty;
+                return formattable.ToString(innerFormat.ToString(), System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty;
             }
 
             // Generic fallback
-            return arg?.ToString() ?? System.String.Empty;
+            return arg?.ToString() ?? string.Empty;
         }
 
         // General path: cached CompositeFormat to avoid reparsing the format string
-        var composite = s_formatCache.GetOrAdd(format, static f => System.Text.CompositeFormat.Parse(f));
-        return System.String.Format(System.Globalization.CultureInfo.CurrentCulture, composite, args);
+        CompositeFormat composite = s_formatCache.GetOrAdd(format, static f => CompositeFormat.Parse(f));
+        return string.Format(System.Globalization.CultureInfo.CurrentCulture, composite, args);
     }
 
     /// <summary>
@@ -255,7 +257,7 @@ public abstract class NLogixEngine : System.IDisposable
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean TryParseSimplePlaceholder(System.String format, out System.ReadOnlySpan<System.Char> innerFormat)
+    private static bool TryParseSimplePlaceholder(string format, out ReadOnlySpan<char> innerFormat)
     {
         innerFormat = default;
 
@@ -270,8 +272,8 @@ public abstract class NLogixEngine : System.IDisposable
         // "{0:formatString}"     -> innerFormat = "formatString"
         // No alignment, no index other than 0, no extra text around.
         // We'll parse a minimal subset to stay fast.
-        System.ReadOnlySpan<System.Char> span = System.MemoryExtensions.AsSpan(format, 1, format.Length - 2); // inside braces
-                                                                                                              // Now span should be "0" or "0:...".
+        ReadOnlySpan<char> span = format.AsSpan(1, format.Length - 2); // inside braces
+                                                                       // Now span should be "0" or "0:...".
         if (span.Length == 1 && span[0] == '0')
         {
             return true;

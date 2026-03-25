@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Threading.Channels;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration;
@@ -25,30 +26,30 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
 {
     #region Fields
 
-    private readonly System.Threading.Channels.Channel<LogEntry> _channel;
-    private readonly System.Threading.Channels.ChannelWriter<LogEntry> _writer;
-    private readonly System.Threading.Channels.ChannelReader<LogEntry> _reader;
+    private readonly Channel<LogEntry> _channel;
+    private readonly ChannelWriter<LogEntry> _writer;
+    private readonly ChannelReader<LogEntry> _reader;
 
     private readonly LogFormatter _formatter;
-    private readonly System.Int32 _batchSize;
-    private readonly System.Boolean _enableFlush;
+    private readonly int _batchSize;
+    private readonly bool _enableFlush;
     private readonly IWorkerHandle? _workerHandle;
-    private readonly System.Boolean _enableColors;
-    private readonly System.Boolean _adaptiveFlush;
+    private readonly bool _enableColors;
+    private readonly bool _adaptiveFlush;
     private readonly System.Threading.CancellationTokenSource _cts;
 
-    private System.Int64 _writtenCount;
-    private System.Int64 _droppedCount;
+    private long _writtenCount;
+    private long _droppedCount;
     private System.TimeSpan _batchDelay;
 
-    private volatile System.Boolean _disposed;
+    private volatile bool _disposed;
 
     #endregion Fields
 
     #region Properties
 
-    public System.Int64 WrittenCount => System.Threading.Interlocked.Read(ref _writtenCount);
-    public System.Int64 DroppedCount => System.Threading.Interlocked.Read(ref _droppedCount);
+    public long WrittenCount => System.Threading.Interlocked.Read(ref _writtenCount);
+    public long DroppedCount => System.Threading.Interlocked.Read(ref _droppedCount);
 
     #endregion Properties
 
@@ -66,7 +67,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
 
         _formatter = new LogFormatter(_enableColors);
 
-        var channelOptions = options.MaxQueueSize > 0
+        ChannelOptions channelOptions = options.MaxQueueSize > 0
             ? new System.Threading.Channels.BoundedChannelOptions(options.MaxQueueSize)
             {
                 SingleReader = true,
@@ -78,11 +79,11 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
                 SingleReader = true,
                 SingleWriter = false,
                 AllowSynchronousContinuations = false
-            } as System.Threading.Channels.ChannelOptions;
+            };
 
         _channel = options.MaxQueueSize > 0
-            ? System.Threading.Channels.Channel.CreateBounded<LogEntry>((System.Threading.Channels.BoundedChannelOptions)channelOptions)
-            : System.Threading.Channels.Channel.CreateUnbounded<LogEntry>((System.Threading.Channels.UnboundedChannelOptions)channelOptions);
+            ? Channel.CreateBounded<LogEntry>((BoundedChannelOptions)channelOptions)
+            : Channel.CreateUnbounded<LogEntry>((UnboundedChannelOptions)channelOptions);
 
         _writer = _channel.Writer;
         _reader = _channel.Reader;
@@ -109,7 +110,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
 
     #region API
 
-    public System.Boolean TryEnqueue(LogEntry log)
+    public bool TryEnqueue(LogEntry log)
     {
         if (_disposed)
         {
@@ -121,7 +122,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
             return true;
         }
 
-        System.Threading.Interlocked.Increment(ref _droppedCount);
+        _ = System.Threading.Interlocked.Increment(ref _droppedCount);
         return false;
     }
 
@@ -138,7 +139,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
         }
         catch
         {
-            System.Threading.Interlocked.Increment(ref _droppedCount);
+            _ = System.Threading.Interlocked.Increment(ref _droppedCount);
         }
     }
 
@@ -150,12 +151,12 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
         }
 
         _disposed = true;
-        _writer.TryComplete();
+        _ = _writer.TryComplete();
         _cts.Cancel();
 
         if (_workerHandle != null)
         {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelWorker(_workerHandle.Id);
         }
 
@@ -176,14 +177,14 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
             while (await _reader.WaitToReadAsync(ct).ConfigureAwait(false))
             {
                 // always fetch at least 1
-                if (!_reader.TryRead(out var first))
+                if (!_reader.TryRead(out LogEntry first))
                 {
                     continue;
                 }
 
                 batch.Add(first);
 
-                System.Int64 batchStartTicks = sw.ElapsedTicks;
+                long batchStartTicks = sw.ElapsedTicks;
 
                 // accumulate batch
                 while (batch.Count < _batchSize)
@@ -193,7 +194,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
                         break;
                     }
 
-                    if (_reader.TryRead(out var log))
+                    if (_reader.TryRead(out LogEntry log))
                     {
                         batch.Add(log);
                     }
@@ -205,7 +206,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
                 }
 
                 WRITE_BATCH(batch);
-                System.Int32 writtenInBatch = batch.Count;
+                int writtenInBatch = batch.Count;
 
                 // **Update progress & heartbeat**
                 ctx.Beat();
@@ -230,7 +231,7 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
         catch (System.OperationCanceledException) { }
         finally
         {
-            while (_reader.TryRead(out var log))
+            while (_reader.TryRead(out LogEntry log))
             {
                 batch.Add(log);
                 if (batch.Count >= _batchSize)
@@ -265,15 +266,15 @@ internal sealed class ConsoleLoggerProvider : System.IDisposable
                 LogMessageBuilder.AppendFormatted(
                     sb, entry.TimeStamp, entry.LogLevel,
                     entry.EventId, entry.Message, entry.Exception, _enableColors);
-                sb.AppendLine();
+                _ = sb.AppendLine();
             }
 
             System.Console.Out.Write(sb);
-            System.Threading.Interlocked.Add(ref _writtenCount, batch.Count);
+            _ = System.Threading.Interlocked.Add(ref _writtenCount, batch.Count);
         }
         catch
         {
-            System.Threading.Interlocked.Add(ref _droppedCount, batch.Count);
+            _ = System.Threading.Interlocked.Add(ref _droppedCount, batch.Count);
         }
         finally
         {
