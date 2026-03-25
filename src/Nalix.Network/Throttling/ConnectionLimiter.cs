@@ -121,7 +121,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// <exception cref="InternalErrorException">Thrown if endPoint is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool IsConnectionAllowed(
-        [NotNull] IPEndPoint endPoint)
+        IPEndPoint endPoint)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(ConnectionLimiter));
 
@@ -178,7 +178,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// <exception cref="InternalErrorException">Thrown if endPoint is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsConnectionAllowed(
-        [NotNull] EndPoint endPoint)
+        EndPoint endPoint)
     {
         if (endPoint is null)
         {
@@ -203,7 +203,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Event handler signature")]
     public void OnConnectionClosed(
         [AllowNull] object sender,
-        [NotNull] IConnectEventArgs args)
+        IConnectEventArgs args)
     {
         if (Volatile.Read(ref _disposed) != 0)
         {

@@ -33,7 +33,7 @@ namespace Nalix.Network.Routing.Metadata;
     MethodImplOptions.AggressiveInlining)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 public readonly struct PacketMetadata(
-    [NotNull] PacketOpcodeAttribute opCode,
+    PacketOpcodeAttribute opCode,
     [AllowNull] PacketTimeoutAttribute timeout,
     [AllowNull] PacketPermissionAttribute permission,
     [AllowNull] PacketEncryptionAttribute encryption,

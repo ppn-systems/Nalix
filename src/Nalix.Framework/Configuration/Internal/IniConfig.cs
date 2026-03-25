@@ -159,9 +159,9 @@ internal sealed class IniConfig : IDisposable
     /// <exception cref="ArgumentException">Thrown when section or key contains invalid characters.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void WriteValue(
-        [NotNull] string section,
-        [NotNull] string key,
-        [NotNull] object value)
+        string section,
+        string key,
+        object value)
     {
         ArgumentNullException.ThrowIfNull(key, nameof(key));
         ArgumentNullException.ThrowIfNull(section, nameof(section));
@@ -254,7 +254,7 @@ internal sealed class IniConfig : IDisposable
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void WriteComment(
-        [NotNull] string section,
+        string section,
         string? key,
         string? comment)
     {
@@ -315,8 +315,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public string GetString(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         ArgumentNullException.ThrowIfNull(key, nameof(key));
         ArgumentNullException.ThrowIfNull(section, nameof(section));
@@ -358,8 +358,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public char? GetChar(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string stringValue = GetString(section, key);
         return !string.IsNullOrEmpty(stringValue) && stringValue.Length == 1 ? stringValue[0] : null;
@@ -374,8 +374,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public bool? GetBool(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "bool");
 
@@ -428,8 +428,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public decimal? GetDecimal(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "decimal");
 
@@ -464,8 +464,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public byte? GetByte(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "byte");
 
@@ -498,8 +498,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public sbyte? GetSByte(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "sbyte");
 
@@ -532,8 +532,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public short? GetInt16(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "int16");
 
@@ -566,8 +566,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public ushort? GetUInt16(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "uint16");
 
@@ -600,8 +600,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public int? GetInt32(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "int32");
 
@@ -634,8 +634,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public uint? GetUInt32(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "uint32");
 
@@ -700,8 +700,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public ulong? GetUInt64(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "uint64");
 
@@ -734,8 +734,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public float? GetSingle(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "single");
 
@@ -804,8 +804,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public DateTime? GetDateTime(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "datetime");
 
@@ -840,8 +840,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public TimeSpan? GetTimeSpan(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "timespan");
 
@@ -876,8 +876,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public Guid? GetGuid(
-        [NotNull] string section,
-        [NotNull] string key)
+        string section,
+        string key)
     {
         string cacheKey = CreateCacheKey(section, key, "guid");
 
@@ -911,8 +911,8 @@ internal sealed class IniConfig : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public TEnum? GetEnum<TEnum>(
-        [NotNull] string section,
-        [NotNull] string key) where TEnum : struct, Enum
+        string section,
+        string key) where TEnum : struct, Enum
     {
         string cacheKey = CreateCacheKey(section, key, $"enum:{typeof(TEnum).FullName}");
 

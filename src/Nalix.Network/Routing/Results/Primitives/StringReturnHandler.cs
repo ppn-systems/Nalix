@@ -32,7 +32,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
     /// <inheritdoc/>
     public async ValueTask HandleAsync(
         [AllowNull] object result,
-        [NotNull] PacketContext<TPacket> context)
+        PacketContext<TPacket> context)
     {
         if (result is string data)
         {

@@ -37,8 +37,8 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// Thrown when <paramref name="raw"/> or <paramref name="connection"/> is <see langword="null"/>.
     /// </exception>
     void Push(
-        [NotNull] IConnection connection,
-        [NotNull] IBufferLease raw);
+        IConnection connection,
+        IBufferLease raw);
 
     /// <summary>
     /// Attempts to retrieve a packet and its associated connection from the dispatch queue.
@@ -57,6 +57,6 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// </returns>
     [return: NotNull]
     bool Pull(
-        [NotNull] out IConnection connection,
+        out IConnection connection,
         [MaybeNull] out IBufferLease raw);
 }

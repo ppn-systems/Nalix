@@ -23,7 +23,7 @@ public sealed class IniCommentAttribute : Attribute
     /// <param name="comment">
     /// The comment text to write above the target section or key.
     /// </param>
-    public IniCommentAttribute([NotNull] string comment)
+    public IniCommentAttribute(string comment)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(comment, nameof(comment));
         Comment = comment;

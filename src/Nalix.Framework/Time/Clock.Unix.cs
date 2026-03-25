@@ -120,5 +120,5 @@ public static partial class Clock
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static double MonoTicksToMilliseconds(
-        [NotNull] long tickDelta) => tickDelta * 1000.0 / Stopwatch.Frequency;
+        long tickDelta) => tickDelta * 1000.0 / Stopwatch.Frequency;
 }

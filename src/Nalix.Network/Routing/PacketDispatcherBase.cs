@@ -98,9 +98,9 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// </returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected async ValueTask ExecuteHandlerAsync(
-        [NotNull] TPacket packet,
-        [NotNull] IConnection connection,
-        [NotNull] Func<TPacket, IConnection, Task> handler)
+        TPacket packet,
+        IConnection connection,
+        Func<TPacket, IConnection, Task> handler)
         => await handler(packet, connection).ConfigureAwait(false);
 
     /// <summary>
@@ -121,8 +121,8 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected async Task ExecutePacketHandlerAsync(
-        [NotNull] TPacket packet,
-        [NotNull] IConnection connection)
+        TPacket packet,
+        IConnection connection)
     {
         if (Options.TryResolveHandler(
             packet.OpCode,

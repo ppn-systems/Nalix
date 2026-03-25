@@ -274,7 +274,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public TokenBucketLimiter.RateLimitDecision Check(ushort opCode,
-        [NotNull] PacketContext<IPacket> context)
+        PacketContext<IPacket> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         ObjectDisposedException.ThrowIf(_disposed != 0, this);

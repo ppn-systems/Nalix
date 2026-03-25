@@ -268,7 +268,7 @@ public sealed partial class Connection : IConnection
     [DebuggerNonUserCode]
     [SkipLocalsInit]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public sealed class TcpTransport([NotNull] Connection outer) : IConnection.ITcp
+    public sealed class TcpTransport(Connection outer) : IConnection.ITcp
     {
         private readonly Connection _outer = outer;
 

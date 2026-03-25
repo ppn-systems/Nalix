@@ -67,7 +67,7 @@ public static class Csprng
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public static void Fill([NotNull] Span<byte> data)
+    public static void Fill(Span<byte> data)
     {
         if (data.Length == 0)
         {
@@ -88,7 +88,7 @@ public static class Csprng
     /// Never reuse a nonce with the same key in authenticated encryption.
     /// </remarks>
     [return: NotNull]
-    public static byte[] CreateNonce([NotNull] int length = 12)
+    public static byte[] CreateNonce(int length = 12)
     {
         if (length <= 0)
         {
@@ -116,7 +116,7 @@ public static class Csprng
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
-    public static byte[] GetBytes([NotNull] int length)
+    public static byte[] GetBytes(int length)
     {
         if (length < 0)
         {
@@ -147,8 +147,8 @@ public static class Csprng
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static int GetInt32(
-        [NotNull] int min,
-        [NotNull] int max)
+        int min,
+        int max)
     {
         if (min >= max)
         {
@@ -183,7 +183,7 @@ public static class Csprng
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static int GetInt32(
-        [NotNull] int max) => GetInt32(0, max);
+        int max) => GetInt32(0, max);
 
     #endregion Get
 
@@ -201,7 +201,7 @@ public static class Csprng
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
-        [NotNull] byte[] buffer)
+        byte[] buffer)
     {
         ArgumentNullException.ThrowIfNull(buffer);
         _f(buffer);
@@ -218,7 +218,7 @@ public static class Csprng
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
-        [NotNull] Span<byte> buffer) => Fill(buffer);
+        Span<byte> buffer) => Fill(buffer);
 
     /// <summary>
     /// Generates a cryptographically strong 32-bit random integer.

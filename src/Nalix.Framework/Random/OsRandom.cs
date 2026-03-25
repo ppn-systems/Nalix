@@ -149,7 +149,7 @@ internal static class OsRandom
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public static void Fill([NotNull] Span<byte> dst)
+    public static void Fill(Span<byte> dst)
     {
         if (dst.Length == 0)
         {

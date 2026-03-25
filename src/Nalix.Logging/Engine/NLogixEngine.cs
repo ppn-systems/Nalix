@@ -120,9 +120,9 @@ public abstract class NLogixEngine : IDisposable
     [SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     protected void Publish(
-        [NotNull] LogLevel level,
-        [NotNull] EventId eventId,
-        [NotNull] string message,
+        LogLevel level,
+        EventId eventId,
+        string message,
         [MaybeNull] Exception? error = null)
     {
         if (_isDisposed != 0 || !IsLevelEnabled(level))

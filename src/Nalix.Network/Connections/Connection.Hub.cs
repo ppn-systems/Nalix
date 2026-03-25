@@ -153,7 +153,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
-    public bool RegisterConnection([NotNull] IConnection connection)
+    public bool RegisterConnection(IConnection connection)
     {
         if (connection is null || _disposed)
         {
@@ -206,7 +206,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
-    public bool UnregisterConnection([NotNull] IConnection connection)
+    public bool UnregisterConnection(IConnection connection)
     {
         if (connection is null || _disposed)
         {
@@ -274,8 +274,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Performance", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.", Justification = "<Pending>")]
     public void AssociateUsername(
-        [NotNull] IConnection connection,
-        [NotNull] string username)
+        IConnection connection,
+        string username)
     {
         if (connection is null || string.IsNullOrWhiteSpace(username) || _disposed)
         {
@@ -326,7 +326,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection([NotNull] ISnowflake id)
+    public IConnection GetConnection(ISnowflake id)
     {
         IConnection connection;
         System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(id);
@@ -342,7 +342,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: MaybeNull]
     [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection([NotNull] ReadOnlySpan<byte> id)
+    public IConnection GetConnection(ReadOnlySpan<byte> id)
     {
         ISnowflake snowflake = Snowflake.FromBytes(id);
 
@@ -361,7 +361,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection([NotNull] string username)
+    public IConnection GetConnection(string username)
     {
         ISnowflake id;
         if (string.IsNullOrWhiteSpace(username))
@@ -382,7 +382,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: MaybeNull]
     [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public string GetUsername([NotNull] ISnowflake id)
+    public string GetUsername(ISnowflake id)
     {
         string username;
         return _usernames.TryGetValue(id, out username) ? username : null;
@@ -460,7 +460,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     public async Task BroadcastAsync<T>(
-        [NotNull] T message,
+        T message,
         Func<IConnection, T, Task> sendFunc,
         CancellationToken cancellationToken = default) where T : class
     {
@@ -556,7 +556,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     public async Task BroadcastWhereAsync<T>(
-        [NotNull] T message,
+        T message,
         Func<IConnection, T, Task> sendFunc,
         Func<IConnection, bool> predicate, CancellationToken cancellation = default) where T : class
     {
@@ -621,7 +621,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public int ForceClose([NotNull] INetworkEndpoint networkEndpoint)
+    public int ForceClose(INetworkEndpoint networkEndpoint)
     {
         ArgumentNullException.ThrowIfNull(networkEndpoint);
 
@@ -867,7 +867,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(
         [AllowNull] object sender,
-        [NotNull] IConnectEventArgs args) => UnregisterConnection(args.Connection);
+        IConnectEventArgs args) => UnregisterConnection(args.Connection);
 
     [StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)

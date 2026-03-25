@@ -40,7 +40,7 @@ public sealed partial class Connection
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         [return: NotNull]
         public static Endpoint FromIpAddress(
-            [NotNull] IPAddress ip)
+            IPAddress ip)
         {
             NormalizeAddress(ip, out ulong hi, out ulong lo, out bool isV6);
             return new Endpoint(hi, lo, 0, isV6, hasPort: false);
@@ -66,10 +66,10 @@ public sealed partial class Connection
         [Pure]
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private static void NormalizeAddress(
-            [NotNull] IPAddress ip,
-            [NotNull] out ulong hi,
-            [NotNull] out ulong lo,
-            [NotNull] out bool isV6)
+            IPAddress ip,
+            out ulong hi,
+            out ulong lo,
+            out bool isV6)
         {
             if (ip.IsIPv4MappedToIPv6)
             {

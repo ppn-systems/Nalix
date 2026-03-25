@@ -69,8 +69,8 @@ public static class Singleton
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void Register<TClass>(
-        [NotNull] TClass instance,
-        [NotNull] bool allowOverwrite = false)
+        TClass instance,
+        bool allowOverwrite = false)
         where TClass : class
     {
         ArgumentNullException.ThrowIfNull(instance);
@@ -152,7 +152,7 @@ public static class Singleton
         MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public static TClass? Resolve<TClass>(
-        [NotNull] bool createIfNotExists = true) where TClass : class
+        bool createIfNotExists = true) where TClass : class
     {
         Type type = typeof(TClass);
 

@@ -65,7 +65,7 @@ internal class PropertyMetadata
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void SetValue(
-        [NotNull] object target,
+        object target,
         [MaybeNull] object? value)
     {
         // Only set if the types are compatible

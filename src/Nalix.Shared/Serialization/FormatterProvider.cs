@@ -197,7 +197,7 @@ public static class FormatterProvider
             DynamicallyAccessedMemberTypes.PublicProperties |
             DynamicallyAccessedMemberTypes.PublicConstructors |
             DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
-        [NotNull] IFormatter<T> formatter)
+        IFormatter<T> formatter)
     {
         ArgumentNullException.ThrowIfNull(formatter);
 
@@ -266,7 +266,7 @@ public static class FormatterProvider
         DynamicallyAccessedMemberTypes.PublicProperties |
         DynamicallyAccessedMemberTypes.PublicConstructors |
         DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
-    [NotNull] IFormatter<T> formatter)
+    IFormatter<T> formatter)
     {
         ArgumentNullException.ThrowIfNull(formatter);
 

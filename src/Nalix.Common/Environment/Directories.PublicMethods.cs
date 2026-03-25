@@ -85,7 +85,7 @@ public static partial class Directories
     [return: NotNull]
     public static string CreateTimestampedDirectory(
         [MaybeNull] string parentPath,
-        [NotNull] string prefix = "")
+        string prefix = "")
     {
         if (string.IsNullOrWhiteSpace(parentPath))
         {
@@ -223,8 +223,8 @@ public static partial class Directories
     [return: NotNull]
     public static int DeleteOldFiles(
         [MaybeNull] string directoryPath,
-        [NotNull] TimeSpan maxAge,
-        [NotNull] string searchPattern = "*")
+        TimeSpan maxAge,
+        string searchPattern = "*")
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
         {
@@ -340,8 +340,8 @@ public static partial class Directories
     [return: NotNull]
     public static IEnumerable<string> EnumerateFiles(
         [MaybeNull] string directory,
-        [NotNull] string searchPattern = "*",
-        [NotNull] bool recursive = false)
+        string searchPattern = "*",
+        bool recursive = false)
     {
         return string.IsNullOrWhiteSpace(directory)
             ? throw new ArgumentNullException(nameof(directory))
@@ -379,7 +379,7 @@ public static partial class Directories
     [return: NotNull]
     public static long CalculateDirectorySize(
         [MaybeNull] string directoryPath,
-        [NotNull] bool includeSubdirectories = true)
+        bool includeSubdirectories = true)
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
         {
@@ -471,8 +471,8 @@ public static partial class Directories
     public static string EnsureShardedPath(
         [MaybeNull] string parentPath,
         [MaybeNull] string key,
-        [NotNull] int depth = 2,
-        [NotNull] int width = 2)
+        int depth = 2,
+        int width = 2)
     {
         if (string.IsNullOrWhiteSpace(parentPath))
         {

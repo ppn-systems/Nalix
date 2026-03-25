@@ -84,7 +84,7 @@ internal static partial class OsCsprng
     /// </remarks>
     /// <exception cref="InvalidOperationException">Thrown when OS CSPRNG is unavailable and fallback fails.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Fill([NotNull] Span<byte> buffer)
+    public static void Fill(Span<byte> buffer)
     {
         if (buffer.Length == 0)
         {

@@ -51,7 +51,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static IReturnHandler<TPacket> ResolveHandler(
-        [NotNull] Type returnType)
+        Type returnType)
     {
         if (_handlers.TryGetValue(returnType, out IReturnHandler<TPacket> handler))
         {
@@ -104,8 +104,8 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static IReturnHandler<TPacket> CreateTaskWrapperHandler(
-        [NotNull] IReturnHandler<TPacket> innerHandler,
-        [NotNull] Type resultType)
+        IReturnHandler<TPacket> innerHandler,
+        Type resultType)
     {
         Type handlerType = typeof(TaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
         return (IReturnHandler<TPacket>)Activator.CreateInstance(handlerType, innerHandler);
@@ -113,8 +113,8 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static IReturnHandler<TPacket> CreateValueTaskWrapperHandler(
-        [NotNull] IReturnHandler<TPacket> innerHandler,
-        [NotNull] Type resultType)
+        IReturnHandler<TPacket> innerHandler,
+        Type resultType)
     {
         Type handlerType = typeof(ValueTaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
         return (IReturnHandler<TPacket>)Activator.CreateInstance(handlerType, innerHandler);

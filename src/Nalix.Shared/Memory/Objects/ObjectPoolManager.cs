@@ -213,7 +213,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="obj"></param>
     /// <exception cref="ArgumentNullException"><paramref name="obj"/> is <c>null</c>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return<T>([NotNull] T obj) where T : IPoolable, new()
+    public void Return<T>(T obj) where T : IPoolable, new()
     {
         if (EqualityComparer<T>.Default.Equals(obj, default))
         {
@@ -261,7 +261,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="count"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [return: NotNull]
-    public int Prealloc<T>([NotNull] int count) where T : IPoolable, new()
+    public int Prealloc<T>(int count) where T : IPoolable, new()
     {
         if (count <= 0)
         {
@@ -287,7 +287,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <typeparam name="T"></typeparam>
     /// <param name="maxCapacity"></param>
     [return: NotNull]
-    public bool SetMaxCapacity<T>([NotNull] int maxCapacity) where T : IPoolable
+    public bool SetMaxCapacity<T>(int maxCapacity) where T : IPoolable
     {
         if (maxCapacity < 0)
         {
@@ -398,7 +398,7 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <param name="percentage"></param>
     [return: NotNull]
-    public int TrimAllPools([NotNull] int percentage = 50)
+    public int TrimAllPools(int percentage = 50)
     {
         int totalRemoved = 0;
 
@@ -491,9 +491,9 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="percentage"></param>
     /// <param name="cancellationToken"></param>
     public Task ScheduleRegularTrimming(
-        [NotNull] TimeSpan interval,
-        [NotNull] int percentage = 50,
-        [NotNull] CancellationToken cancellationToken = default)
+        TimeSpan interval,
+        int percentage = 50,
+        CancellationToken cancellationToken = default)
     {
         return Task.Run(async () =>
         {
