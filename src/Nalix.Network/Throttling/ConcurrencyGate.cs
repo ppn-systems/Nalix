@@ -848,7 +848,8 @@ public sealed class ConcurrencyGate : IReportable
                 }
 
                 // Remove before disposal to prevent new usage
-                if (s_table.TryRemove(opcode, out Entry removedEntry))
+                if (s_table.TryRemove(opcode, out Entry? removedEntry)
+                    && removedEntry is not null)
                 {
                     removedEntry.Dispose();
                     removed++;
