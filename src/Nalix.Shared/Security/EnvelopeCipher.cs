@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Shared.Security.Engine;
 using Nalix.Shared.Security.Internal;
@@ -68,7 +69,7 @@ public static class EnvelopeCipher
     /// Computed as <c>EnvelopeFormat.TagSize + EnvelopeFormat.HeaderSize</c>.
     /// This is an estimate and may be conservative depending on the concrete cipher suite implementation.
     /// </remarks>
-    public const System.Int32 HeaderSize = EnvelopeFormat.HeaderSize;
+    public const int HeaderSize = EnvelopeFormat.HeaderSize;
 
     /// <summary>
     /// Gets the nonce length in bytes required by the specified cipher suite.
@@ -106,7 +107,7 @@ public static class EnvelopeCipher
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 GetNonceLength(CipherSuiteType type) => type switch
+    public static int GetNonceLength(CipherSuiteType type) => type switch
     {
         CipherSuiteType.CHACHA20 => ChaCha20.NonceSize,
         CipherSuiteType.CHACHA20_POLY1305 => ChaCha20.NonceSize,
@@ -154,7 +155,7 @@ public static class EnvelopeCipher
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Int32 GetTagLength(CipherSuiteType type) => type switch
+    public static int GetTagLength(CipherSuiteType type) => type switch
     {
         CipherSuiteType.CHACHA20 => 0,
         CipherSuiteType.CHACHA20_POLY1305 => EnvelopeFormat.TagSize,
@@ -203,34 +204,32 @@ public static class EnvelopeCipher
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> ciphertext,
-        System.ReadOnlySpan<System.Byte> aad, System.UInt32? seq, CipherSuiteType algorithm,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
+    public static bool Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> ciphertext,
+        System.ReadOnlySpan<byte> aad, uint? seq, CipherSuiteType algorithm,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written)
     {
         written = 0;
 
-        System.Int32 nonceLength = GetNonceLength(algorithm);
-        System.Span<System.Byte> nonceStack = stackalloc System.Byte[System.Math.Max(16, nonceLength)];
-        System.Span<System.Byte> nonce = nonceStack[..nonceLength];
+        int nonceLength = GetNonceLength(algorithm);
+        System.Span<byte> nonceStack = stackalloc byte[System.Math.Max(16, nonceLength)];
+        System.Span<byte> nonce = nonceStack[..nonceLength];
         Csprng.Fill(nonce);
 
         switch (algorithm)
         {
             case CipherSuiteType.SALSA20:
             case CipherSuiteType.CHACHA20:
-                {
-                    // Assume SymmetricEngine.Encrypt uses an out parameter for written
-                    return SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written);
-                }
+                // Assume SymmetricEngine.Encrypt uses an out parameter for written
+                return SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written);
+
 
             case CipherSuiteType.SALSA20_POLY1305:
             case CipherSuiteType.CHACHA20_POLY1305:
-                {
-                    return AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written);
-                }
+                return AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written);
+
 
             default:
                 throw new System.ArgumentException("Unsupported cipher type", nameof(algorithm));
@@ -249,7 +248,6 @@ public static class EnvelopeCipher
     /// Optional Associated Data (AEAD suites only). Must match the value (if any) used at encryption time.
     /// Ignored for non-AEAD suites.
     /// </param>
-    /// <param name="written"></param>
     /// <returns>
     /// <c>true</c> if parsing and (for AEAD) authentication succeeded; otherwise <c>false</c>.
     /// </returns>
@@ -272,12 +270,12 @@ public static class EnvelopeCipher
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> envelope,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> plaintext,
-        System.ReadOnlySpan<System.Byte> aad,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written)
+    public static bool Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
+        System.ReadOnlySpan<byte> aad,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written)
     {
         written = 0;
 
@@ -290,26 +288,24 @@ public static class EnvelopeCipher
         {
             case CipherSuiteType.SALSA20:
             case CipherSuiteType.CHACHA20:
+                // Assume SymmetricEngine.Encrypt uses an out parameter for written
+                if (SymmetricEngine.Decrypt(key, envelope, plaintext, out written))
                 {
-                    // Assume SymmetricEngine.Encrypt uses an out parameter for written
-                    if (SymmetricEngine.Decrypt(key, envelope, plaintext, out written))
-                    {
-                        return true;
-                    }
-
-                    break;
+                    return true;
                 }
+
+                break;
+
 
             case CipherSuiteType.SALSA20_POLY1305:
             case CipherSuiteType.CHACHA20_POLY1305:
+                if (AeadEngine.Decrypt(key, envelope, plaintext, aad, out written))
                 {
-                    if (AeadEngine.Decrypt(key, envelope, plaintext, aad, out written))
-                    {
-                        return true;
-                    }
-
-                    break;
+                    return true;
                 }
+
+                break;
+
 
             default:
                 return false;
@@ -353,12 +349,12 @@ public static class EnvelopeCipher
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean Encrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> ciphertext,
-        System.UInt32? seq, CipherSuiteType algorithm,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written) => Encrypt(key, plaintext, ciphertext, default, seq, algorithm, out written);
+    public static bool Encrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> ciphertext,
+        uint? seq, CipherSuiteType algorithm,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written) => Encrypt(key, plaintext, ciphertext, default, seq, algorithm, out written);
 
     /// <summary>
     /// Attempts to decrypt an encrypted envelope.
@@ -368,7 +364,6 @@ public static class EnvelopeCipher
     /// <param name="plaintext">
     /// On success, receives a newly allocated plaintext buffer; otherwise set to <c>null</c>.
     /// </param>
-    /// <param name="written"></param>
     /// <returns>
     /// <c>true</c> if parsing and (for AEAD) authentication succeeded; otherwise <c>false</c>.
     /// </returns>
@@ -391,9 +386,9 @@ public static class EnvelopeCipher
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean Decrypt(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<System.Byte> envelope,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> plaintext,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 written) => Decrypt(key, envelope, plaintext, default, out written);
+    public static bool Decrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int written) => Decrypt(key, envelope, plaintext, default, out written);
 }
