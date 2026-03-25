@@ -1,4 +1,6 @@
-﻿using Nalix.Common.Exceptions;
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+using Nalix.Common.Exceptions;
 using Nalix.Shared.Serialization;
 using System;
 using Xunit;
