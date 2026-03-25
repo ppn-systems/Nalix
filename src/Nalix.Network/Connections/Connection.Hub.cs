@@ -858,7 +858,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(
-        object sender,
+        object? sender,
         IConnectEventArgs args) => UnregisterConnection(args.Connection);
 
     [StackTraceHidden]
@@ -876,8 +876,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
 
             case DropPolicy.DropOldest:
-                while (_anonymousQueue.TryDequeue(out ISnowflake oldestId))
+                while (_anonymousQueue.TryDequeue(out ISnowflake? oldestId))
                 {
+                    if (oldestId is null)
+                    {
+                        continue;
+                    }
+
                     int shardIndex = GetShardIndex(oldestId);
                     System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
