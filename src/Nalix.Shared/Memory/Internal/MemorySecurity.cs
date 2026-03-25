@@ -30,8 +30,7 @@ internal static class MemorySecurity
     /// <param name="buffer">
     /// The byte array containing sensitive information that should be cleared.
     /// </param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ZeroMemory(byte[] buffer)
     {
         if (buffer is null || buffer.Length == 0)
@@ -50,8 +49,7 @@ internal static class MemorySecurity
     /// <param name="buffer">
     /// The span representing sensitive byte data that should be cleared.
     /// </param>
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void ZeroMemory(Span<byte> buffer)
     {

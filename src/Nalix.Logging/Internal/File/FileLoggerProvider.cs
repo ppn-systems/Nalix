@@ -167,8 +167,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
     /// Enqueue một <see cref="LogEntry"/> để ghi vào file.
     /// Không format ở đây — formatting xảy ra tại consumer thread.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     internal void Enqueue(LogEntry entry)
     {

@@ -105,12 +105,10 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     public byte[] Secret
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set;
     }
 
@@ -119,8 +117,7 @@ public sealed partial class Connection : IConnection
     /// </summary>
     public long BytesSent
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Interlocked.Read(ref _bytesSent);
     }
 
@@ -155,8 +152,7 @@ public sealed partial class Connection : IConnection
     #region Methods
 
     /// <inheritdoc />
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Close(bool force = false)
     {
         if (_disposed)
@@ -172,13 +168,11 @@ public sealed partial class Connection : IConnection
     }
 
     /// <inheritdoc />
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void Disconnect([AllowNull] string reason = null) => Close(force: true);
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
 
     #endregion Methods
@@ -186,8 +180,7 @@ public sealed partial class Connection : IConnection
     #region Dispose Pattern
 
     /// <inheritdoc />
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         lock (_lock)
@@ -224,8 +217,7 @@ public sealed partial class Connection : IConnection
 
     #region Event Bridges
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private void OnCloseEventBridge(
         [AllowNull] object sender,
@@ -240,8 +232,7 @@ public sealed partial class Connection : IConnection
         _ = Internal.Transport.AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void OnProcessEventBridge(
         [AllowNull] object sender,
@@ -255,8 +246,7 @@ public sealed partial class Connection : IConnection
         _ = Internal.Transport.AsyncCallback.Invoke(self._onProcessEvent, self, e);
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void OnPostProcessEventBridge(
         [AllowNull] object sender,

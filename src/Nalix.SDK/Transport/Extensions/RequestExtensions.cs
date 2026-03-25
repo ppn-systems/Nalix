@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -124,8 +124,7 @@ public static class RequestExtensions
     /// <param name="timeoutMs">Timeout in milliseconds. Default is <c>5000</c> ms.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>The first matching response packet.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<TPacket> RequestAsync<TPacket>(
         this IClientConnection client,
         TPacket request,

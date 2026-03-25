@@ -31,8 +31,7 @@ internal static class LZ4Encoder
     /// <exception cref="InvalidOperationException"></exception>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static unsafe int Encode(ReadOnlySpan<byte> input, Span<byte> output)
     {
@@ -106,8 +105,7 @@ internal static class LZ4Encoder
     #region Private Methods
 
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int WriteEmptyHeader(Span<byte> output)
     {
         if (output.Length < LZ4BlockHeader.Size)
@@ -121,8 +119,7 @@ internal static class LZ4Encoder
     }
 
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WriteHeader(Span<byte> output, int originalLength, int compressedLength)
     {
         LZ4BlockHeader header = new(originalLength, compressedLength);

@@ -42,8 +42,7 @@ internal class LogFormatter(bool colors = false) : ILoggerFormatter
     /// string log = formatter.FormatLog(logEntry);
     /// </example>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public string Format(LogEntry logMsg) => Format(logMsg.TimeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
 
@@ -60,8 +59,7 @@ internal class LogFormatter(bool colors = false) : ILoggerFormatter
     /// string log = NLogixFormatter.FormatLogEntry(TimeStamp.UtcNow, LogLevel.Information, new EventId(1), "Sample message", null);
     /// </example>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public string Format(
         DateTime timeStamp, LogLevel logLevel,

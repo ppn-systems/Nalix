@@ -20,15 +20,13 @@ public static partial class Clock
     /// <summary>
     /// Returns milliseconds since custom epoch.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long EpochMillisecondsNow() => UnixMillisecondsNow() - EpochMilliseconds;
 
     /// <summary>
     /// Returns the current UTC time with high accuracy.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static DateTime NowUtc()
     {
@@ -52,8 +50,7 @@ public static partial class Clock
     /// <summary>
     /// Current Unix timestamp (seconds) as long.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static long UnixSecondsNow() => (long)(NowUtc() - DateTime.UnixEpoch).TotalSeconds;
 
@@ -64,8 +61,7 @@ public static partial class Clock
     /// </summary>
     /// <returns>The current Unix timestamp in seconds as uint32.</returns>
     /// <exception cref="OverflowException">Thrown when the Unix timestamp exceeds UInt32.MaxValue.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static uint UnixSecondsNowUInt32()
     {
@@ -84,32 +80,28 @@ public static partial class Clock
     /// <summary>
     /// Current Unix timestamp (milliseconds) as long.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static long UnixMillisecondsNow() => (long)(NowUtc() - DateTime.UnixEpoch).TotalMilliseconds;
 
     /// <summary>
     /// Current Unix timestamp (microseconds) as long.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static long UnixMicrosecondsNow() => (NowUtc() - DateTime.UnixEpoch).Ticks / 10;
 
     /// <summary>
     /// Current Unix timestamp (ticks) as long.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static long UnixTicksNow() => (NowUtc() - DateTime.UnixEpoch).Ticks;
 
     /// <summary>
     /// Returns the current Unix time as TimeSpan.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static TimeSpan UnixTime() => NowUtc() - DateTime.UnixEpoch;
 
@@ -118,16 +110,14 @@ public static partial class Clock
     /// These ticks are monotonic (not affected by system clock changes),
     /// suitable for latency/RTT measurement.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static long MonoTicksNow() => Stopwatch.GetTimestamp();
 
     /// <summary>
     /// Converts a monotonic tick delta into milliseconds.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static double MonoTicksToMilliseconds(
         [NotNull] long tickDelta) => tickDelta * 1000.0 / Stopwatch.Frequency;

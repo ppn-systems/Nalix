@@ -50,8 +50,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// <inheritdoc/>
     public uint Value
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             ulong raw = (ulong)__combined;
@@ -62,8 +61,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// <inheritdoc/>
     public ushort MachineId
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             ulong raw = (ulong)__combined;
@@ -74,8 +72,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// <inheritdoc/>
     public SnowflakeType Type
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             ulong raw = (ulong)__combined;
@@ -110,8 +107,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// The components are efficiently combined using bit operations to form the 56-bit identifier.
     /// </remarks>
     [DebuggerHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Snowflake(uint value, ushort machineId, SnowflakeType type) => __combined = new UInt56((byte)type, machineId, value);
 
     /// <summary>
@@ -122,8 +118,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// This constructor allows direct initialization from a pre-composed 56-bit value,
     /// which is useful for deserialization scenarios. No validation is performed on the input.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Snowflake(UInt56 uInt56) => __combined = uInt56;
 
     #endregion Constructors
@@ -141,8 +136,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </remarks>
     [DebuggerHidden]
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(UInt56 uInt56) => new(uInt56);
 
     /// <summary>
@@ -164,8 +158,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </example>
     [DebuggerHidden]
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(uint value, ushort machineId, SnowflakeType type) => new(value, machineId, type);
 
     /// <summary>
@@ -188,8 +181,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </example>
     [DebuggerHidden]
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(SnowflakeType type) => NewId(type, __machineId);
 
     /// <summary>
@@ -210,8 +202,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </example>
     [DebuggerHidden]
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(SnowflakeType type, ushort machineId = 1)
     {
         while (true)
@@ -283,8 +274,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// This implementation ensures consistent hash values for equal identifiers.
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode() => __combined.GetHashCode();
 
     /// <summary>
@@ -300,8 +290,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// for actual comparison. Returns <c>false</c> for null or non-<see cref="Snowflake"/> objects.
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj) => obj is Snowflake other && Equals(other);
 
     /// <summary>
@@ -314,8 +303,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </remarks>
     [DebuggerHidden]
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
     {
         Span<byte> buffer = stackalloc byte[Size];

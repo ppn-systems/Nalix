@@ -88,8 +88,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             Touch();
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch()
         {
             _ = Interlocked.Exchange(
@@ -97,8 +96,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
                 DateTime.UtcNow.Ticks);
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryAcquire()
         {
             if (Volatile.Read(ref _disposed) != 0)
@@ -124,8 +122,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             return true;
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Release()
         {
             int remaining = Interlocked.Decrement(ref _activeUsers);
@@ -137,8 +134,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             }
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsStale(long nowTicks, int ttlSeconds)
         {
             if (Volatile.Read(ref _disposed) != 0)
@@ -275,8 +271,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     /// Rate limit policies are shared and reused across requests with similar limits.
     /// </para>
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public TokenBucketLimiter.RateLimitDecision Check(ushort opCode,
         [NotNull] PacketContext<IPacket> context)
@@ -408,8 +403,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
     #region Validation
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static CheckResult VALIDATE_RATE_LIMIT_ATTRIBUTE(PacketContext<IPacket> context)
     {
         PacketRateLimitAttribute rl = context.Attributes.RateLimit;
@@ -450,8 +444,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
     #region Policy Management
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Policy EXTRACT_AND_QUANTIZE_POLICY(PacketRateLimitAttribute rl)
     {
         int rps = QUANTIZE_VALUE(rl.RequestsPerSecond, s_rpsTiers);
@@ -460,8 +453,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         return new Policy(rps, burst);
     }
 
-    [MethodImpl(
-    MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int QUANTIZE_VALUE(int value, int[] tiers)
     {
         foreach (int tier in tiers)
@@ -475,8 +467,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         return tiers[^1];
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static double QUANTIZE_VALUE(double value, double[] tiers)
     {
         foreach (double tier in tiers)
@@ -553,8 +544,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Entry GET_OR_CREATE_LIMITER_ENTRY(Policy policy)
     {
         if (_limiters.TryGetValue(policy, out Entry existingEntry))
@@ -575,12 +565,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         return CREATE_NEW_LIMITER_ENTRY(policy);
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IS_AT_POLICY_CAPACITY() => _limiters.Count >= MaxPolicies;
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Entry TRY_REUSE_CLOSEST_POLICY(Policy wanted)
     {
         if (_limiters.IsEmpty)
@@ -607,8 +595,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         return null;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private Policy FIND_CLOSEST_POLICY(Policy wanted)
     {
         Policy closest = default;
@@ -635,8 +622,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         return found ? closest : default;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int CALCULATE_POLICY_DISTANCE(Policy a, Policy b) => (int)(Math.Abs(a.Rps - b.Rps) + Math.Abs(a.Burst - b.Burst));
 
     private Entry CREATE_NEW_LIMITER_ENTRY(Policy policy)
@@ -663,8 +649,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
     #region Decision Helpers
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static TokenBucketLimiter.RateLimitDecision CREATE_ALLOWED_DECISION()
     {
         return new TokenBucketLimiter.RateLimitDecision
@@ -676,8 +661,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         };
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static TokenBucketLimiter.RateLimitDecision CREATE_DENIED_DECISION(
         bool isHard,
         int retryAfterMs = 0)
@@ -697,8 +681,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
     #region Cleanup
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void TRY_SCHEDULE_SWEEP()
     {
         int count = Interlocked.Increment(ref _checkCounter);
@@ -716,8 +699,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void EVICT_STALE_POLICIES()
     {
         long nowTicks = DateTime.UtcNow.Ticks;

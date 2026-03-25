@@ -23,8 +23,7 @@ namespace Nalix.Network.Routing.Options;
 public sealed partial class PacketDispatchOptions<TPacket>
 {
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private async ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
     {
@@ -133,8 +132,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private async ValueTask HandleDispatchExceptionAsync(
         PacketHandler<TPacket> descriptor,
@@ -157,8 +155,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static bool HasNoOutboundResult(Type returnType)
         => returnType == typeof(void)
@@ -166,8 +163,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         || returnType == typeof(ValueTask);
 
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static T ThrowIfNull<T>(T value, string param) where T : class
         => value ?? throw new ArgumentNullException(param);
 
@@ -181,8 +177,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <remarks>
     /// Hot path — called once per dispatch. The dictionary lookup is O(1) with a small constant.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private bool TryGetExpectedPacketType(
         ushort opCode,
@@ -196,8 +191,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <param name="method"></param>
     /// <param name="contextType"></param>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Type ResolveConcretePacketType(
         MethodInfo method,
         Type contextType)
@@ -230,8 +224,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <exception cref="NotImplementedException"></exception>
     [Pure]
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) MapExceptionToProtocol(Exception ex)
     {
         // 1) Cancellation/Timeout => transient

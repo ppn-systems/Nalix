@@ -14,8 +14,7 @@ namespace Nalix.Network.Listeners.Udp;
 public abstract partial class UdpListenerBase
 {
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void Initialize()
     {
         _udpClient = new UdpClient(_port)
@@ -30,8 +29,7 @@ public abstract partial class UdpListenerBase
     }
 
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [SuppressMessage(

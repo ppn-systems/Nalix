@@ -116,8 +116,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [SerializeIgnore]
     public override ushort Length
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             // Fast path: all properties are fixed-size → return cached value directly.
@@ -131,8 +130,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Fixed-size contributions use the cached <see cref="PropertyMetadata.FixedSize"/>;
     /// dynamic contributions call through to the compiled getter delegate.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private ushort COMPUTE_DYNAMIC_LENGTH()
     {
         ushort size = PacketConstants.HeaderSize;
@@ -173,13 +171,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     #region APIs
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
     {
         ushort required = Length;
@@ -203,8 +199,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// <exception cref="InvalidOperationException">
     /// Thrown when deserialization reads zero bytes (corrupt or truncated frame).
     /// </exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
     public static TSelf Deserialize(ReadOnlySpan<byte> buffer)
     {

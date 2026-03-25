@@ -41,8 +41,7 @@ internal static class TimestampCache
     /// <param name="timestamp">The DateTime to format.</param>
     /// <param name="format">The format string to use.</param>
     /// <returns>A formatted timestamp string.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string GetFormattedTimestamp(DateTime timestamp, string format)
     {
         // Truncate to millisecond precision for caching

@@ -38,8 +38,7 @@ internal static class LogMessageBuilder
     /// <param name="exception">Optional exception information.</param>
     /// <param name="colors">Whether to include ANSI color codes in the output.</param>
     /// <param name="customTimestampFormat">Custom timestamp format or null to use default.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void AppendFormatted(
         StringBuilder builder,
@@ -85,8 +84,7 @@ internal static class LogMessageBuilder
     /// <summary>
     /// Appends a formatted timestamp to the string builder.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void AppendTimestamp(StringBuilder builder, in DateTime timeStamp, string? format, bool colors)
     {
@@ -114,8 +112,7 @@ internal static class LogMessageBuilder
     /// <summary>
     /// Appends a formatted log level to the string builder.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void AppendLogLevel(StringBuilder builder, LogLevel logLevel, bool colors)
     {
@@ -141,8 +138,7 @@ internal static class LogMessageBuilder
     /// <summary>
     /// Appends a formatted event ProtocolType to the string builder if it exists.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void AppendEventId(StringBuilder builder, in EventId eventId, bool colors)
     {
@@ -187,8 +183,7 @@ internal static class LogMessageBuilder
     /// <summary>
     /// Appends a formatted message to the string builder.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void AppendMessage(StringBuilder builder, string message)
     {
@@ -246,8 +241,7 @@ internal static class LogMessageBuilder
     /// <summary>
     /// Writes the exception header: "Type: Message".
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WriteHeader(StringBuilder builder, Exception ex)
     {
         _ = builder.Append(ex.GetType().Name)
@@ -259,8 +253,7 @@ internal static class LogMessageBuilder
     /// <summary>
     /// Formats stack trace and inner exceptions. Optionally writes header per level.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void FormatExceptionDetails(
         StringBuilder builder, Exception exception,
@@ -328,8 +321,7 @@ internal static class LogMessageBuilder
     /// Calculates the estimated buffer size needed for the complete log message.
     /// </summary>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static int CalculateEstimatedLength(
         string message, in EventId eventId,
@@ -374,8 +366,7 @@ internal static class LogMessageBuilder
     /// Ensures the StringBuilder has sufficient capacity, expanding only when necessary.
     /// </summary>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void EnsureCapacity(StringBuilder builder, int requiredCapacity)
     {

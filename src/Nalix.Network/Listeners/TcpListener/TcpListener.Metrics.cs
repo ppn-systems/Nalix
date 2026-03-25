@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
@@ -49,22 +49,19 @@ public abstract partial class TcpListenerBase
         /// <summary>
         /// Records a successfully accepted connection.
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RECORD_ACCEPTED() => Interlocked.Increment(ref _totalAccepted);
 
         /// <summary>
         /// Records a rejected connection attempt.
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RECORD_REJECTED() => Interlocked.Increment(ref _totalRejected);
 
         /// <summary>
         /// Records an acceptance error.
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RECORD_ERROR() => Interlocked.Increment(ref _totalErrors);
 
         #endregion Internal Methods
@@ -77,8 +74,7 @@ public abstract partial class TcpListenerBase
     public LMetrics Metrics
     {
         [DebuggerStepThrough]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     } = new();
 

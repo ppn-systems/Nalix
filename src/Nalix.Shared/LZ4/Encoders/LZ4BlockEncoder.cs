@@ -30,15 +30,13 @@ public static class LZ4BlockEncoder
     /// <param name="input">The size of the data to be compressed.</param>
     /// <returns>The estimated maximum length after compression, including overhead.</returns>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static int GetMaxLength(int input) => input + (input / 255) + 16 + LZ4BlockHeader.Size;
 
     /// <inheritdoc />
     [Pure]
-    [MethodImpl(
-    MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static int GetMinOutputBufferSize(int inputLength) => inputLength + (inputLength / 255) + 16;
 
@@ -54,8 +52,7 @@ public static class LZ4BlockEncoder
     /// The length of the compressed data, or -1 if the output buffer is too small.
     /// </returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static unsafe int EncodeBlock(ReadOnlySpan<byte> input, Span<byte> output, int* hashTable)
@@ -92,8 +89,7 @@ public static class LZ4BlockEncoder
     /// </returns>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     private static unsafe int EncodeInternal(
@@ -214,8 +210,7 @@ public static class LZ4BlockEncoder
     /// Writes a sequence of literals and a match to the output buffer.
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     private static unsafe bool WriteSequence(
         ref byte* outputPtr,
@@ -276,8 +271,7 @@ public static class LZ4BlockEncoder
     /// Writes the final literals to the output buffer.
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     private static unsafe bool WriteFinalLiterals(
         ref byte* outputPtr, byte* outputEnd, byte* literalStartPtr, int literalLength)

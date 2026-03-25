@@ -81,8 +81,7 @@ public static partial class Clock
     /// <param name="externalTime">The accurate external UTC time.</param>
     /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied.</param>
     /// <returns>The adjustment made in milliseconds.</returns>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public static double SynchronizeTime(
         [NotNull] DateTime externalTime,
@@ -138,8 +137,7 @@ public static partial class Clock
     /// <param name="maxHardAdjustMs">Maximum hard adjustment in milliseconds. Must be positive.</param>
     /// <returns>The adjustment made in milliseconds, or 0 if inputs are invalid or adjustment exceeds limits.</returns>
     /// <exception cref="ArgumentException">Thrown when input parameters are invalid.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static double SynchronizeUnixMilliseconds(
         [NotNull] long serverUnixMs,
@@ -187,8 +185,7 @@ public static partial class Clock
     /// <summary>
     /// Resets time synchronization to use the local system time.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public static void ResetSynchronization()
     {
@@ -204,16 +201,14 @@ public static partial class Clock
     /// A value greater than 1.0 means the local clock is running slower than the reference clock.
     /// A value less than 1.0 means the local clock is running faster than the reference clock.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static double DriftRate() => Volatile.Read(ref _driftCorrection);
 
     /// <summary>
     /// Gets the current error estimate between the synchronized time and system time in milliseconds.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static double CurrentErrorEstimateMs()
     {

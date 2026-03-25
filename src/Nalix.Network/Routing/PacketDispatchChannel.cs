@@ -98,8 +98,7 @@ public sealed class PacketDispatchChannel
     /// </summary>
     /// <param name="cancellationToken"></param>
     [StackTraceHidden]
-    [MethodImpl(
-       MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
        MethodImplOptions.AggressiveOptimization)]
     public void Activate(
         [NotNull] CancellationToken cancellationToken = default)
@@ -161,8 +160,7 @@ public sealed class PacketDispatchChannel
     /// </summary>
     /// <param name="cancellationToken"></param>
     [StackTraceHidden]
-    [MethodImpl(
-       MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
        MethodImplOptions.AggressiveOptimization)]
     public void Deactivate(
         [NotNull] CancellationToken cancellationToken = default)
@@ -215,8 +213,7 @@ public sealed class PacketDispatchChannel
     }
 
     /// <inheritdoc />
-    [MethodImpl(
-       MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
        MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
         [MaybeNull] IBufferLease packet,
@@ -240,8 +237,7 @@ public sealed class PacketDispatchChannel
     /// <inheritdoc />
     // If you want typed fast-path, you can implement a separate typed channel.
     // For now, process immediately to avoid mixing typed/lease queues.
-    [MethodImpl(
-       MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void HandlePacket(
         [NotNull] IPacket packet,
         [NotNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
@@ -255,8 +251,7 @@ public sealed class PacketDispatchChannel
     /// </summary>
     /// <returns>A formatted report string.</returns>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public string GenerateReport()
     {
         StringBuilder sb = new(2048);
@@ -343,8 +338,7 @@ public sealed class PacketDispatchChannel
     /// <param name="ctx"></param>
     /// <param name="ct"></param>
     [StackTraceHidden]
-    [MethodImpl(
-       MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
        MethodImplOptions.AggressiveOptimization)]
     private async Task RunLoop(IWorkerContext ctx, CancellationToken ct)
     {

@@ -25,8 +25,7 @@ public readonly partial struct Snowflake
     /// without any decomposition or validation. Use this when the value is known to be valid.
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake FromUInt56(UInt56 combined) => NewId(combined);
 
     /// <summary>
@@ -43,8 +42,7 @@ public readonly partial struct Snowflake
     /// all in little-endian byte order. The method validates the buffer size before reading.
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake FromBytes(ReadOnlySpan<byte> bytes)
     {
         // Input validation - buffer overflow protection
@@ -80,8 +78,7 @@ public readonly partial struct Snowflake
     /// Prefer using the span-based overload when possible to avoid unnecessary array allocations.
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake FromBytes(byte[] bytes)
     {
         return bytes is null
@@ -95,16 +92,14 @@ public readonly partial struct Snowflake
 
     /// <inheritdoc/>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public UInt56 ToUInt56() => __combined;
 
     /// <inheritdoc/>
     [EditorBrowsable(
         EditorBrowsableState.Never)]
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] ToByteArray()
     {
         byte[] result = new byte[Size];
@@ -113,8 +108,7 @@ public readonly partial struct Snowflake
     }
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryWriteBytes(
         [NotNull] Span<byte> destination,
         [NotNullWhen(true)] out int bytesWritten)
@@ -136,8 +130,7 @@ public readonly partial struct Snowflake
     }
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryWriteBytes(Span<byte> destination)
     {
         // Buffer overflow protection - validate size before writing

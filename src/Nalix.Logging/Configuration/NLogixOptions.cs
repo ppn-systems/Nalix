@@ -122,8 +122,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Applies default configuration settings to the logging configuration.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions ConfigureDefaults(Func<NLogixOptions, NLogixOptions> configure)
     {
@@ -134,8 +133,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Sets the configuration options for file logging.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions ConfigureFileOptions(Action<FileLogOptions> configure)
     {
@@ -149,8 +147,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Adds a logging target to receive log entries.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions RegisterTarget(ILoggerTarget target)
     {
@@ -164,8 +161,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Sets the minimum logging level for filtering log entries.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions SetMinimumLevel(LogLevel level)
     {
@@ -180,8 +176,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// </summary>
     [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly", Justification = "Pattern is intentional")]
     [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {

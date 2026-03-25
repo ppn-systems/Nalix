@@ -28,8 +28,7 @@ public static class LZ4Codec
     /// <exception cref="InvalidOperationException"></exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static int Encode(
         [DisallowNull] ReadOnlySpan<byte> input,
@@ -75,8 +74,7 @@ public static class LZ4Codec
     /// </code>
     /// </example>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Encode(
         [DisallowNull] ReadOnlySpan<byte> input,
         [NotNullWhen(true)] out BufferLease? lease,
@@ -110,8 +108,7 @@ public static class LZ4Codec
     /// <returns>The number of bytes written to the output buffer, or -1 if decompression fails.</returns>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static int Decode(
         [DisallowNull] ReadOnlySpan<byte> input,
@@ -132,8 +129,7 @@ public static class LZ4Codec
     /// </remarks>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public static bool Decode(
         [DisallowNull] ReadOnlySpan<byte> input,
@@ -165,8 +161,7 @@ public static class LZ4Codec
     /// </code>
     /// </example>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Decode(
         [DisallowNull] ReadOnlySpan<byte> input,
         [NotNullWhen(true)] out BufferLease? lease,

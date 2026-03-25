@@ -83,8 +83,7 @@ internal static partial class OsCsprng
     /// Falls back to OsRandom (non-cryptographic) if OS CSPRNG is unavailable.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Thrown when OS CSPRNG is unavailable and fallback fails.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Fill([NotNull] Span<byte> buffer)
     {
         if (buffer.Length == 0)
@@ -113,8 +112,7 @@ internal static partial class OsCsprng
     /// <summary>
     /// Windows-specific CSPRNG implementation using BCryptGenRandom (CNG).
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static void W(Span<byte> b)
     {
@@ -137,8 +135,7 @@ internal static partial class OsCsprng
     /// Linux-specific CSPRNG implementation using getrandom() syscall.
     /// Falls back to /dev/urandom if getrandom is not supported (ENOSYS).
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
     private static unsafe void L(Span<byte> b)
     {
@@ -203,8 +200,7 @@ internal static partial class OsCsprng
     /// Apple platform CSPRNG implementation using SecRandomCopyBytes.
     /// Falls back to /dev/urandom if SecRandomCopyBytes fails.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [System.Runtime.Versioning.SupportedOSPlatform("ios")]
     [System.Runtime.Versioning.SupportedOSPlatform("tvos")]
     [System.Runtime.Versioning.SupportedOSPlatform("macos")]
@@ -228,8 +224,7 @@ internal static partial class OsCsprng
     /// Fallback CSPRNG implementation using /dev/urandom.
     /// Used on platforms without native CSPRNG support or when native APIs fail.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void D(Span<byte> b)
     {
         FileStream fs = GetDevUrandom();
@@ -255,8 +250,7 @@ internal static partial class OsCsprng
     /// Gets a cached FileStream for /dev/urandom (created lazily).
     /// Thread-safe double-checked locking pattern.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static FileStream GetDevUrandom()
     {
         FileStream? fs = Volatile.Read(ref s_devUrandom);

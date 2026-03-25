@@ -63,8 +63,7 @@ internal sealed class HandlerCompiler<
     /// <param name="factory">A factory method that creates a controller instance.</param>
     /// <returns>An array of compiled packet handler delegates.</returns>
     /// <exception cref="InvalidOperationException"></exception>
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static PacketHandler<TPacket>[] CompileHandlers(Func<TController> factory)
     {
@@ -132,8 +131,7 @@ internal sealed class HandlerCompiler<
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static System.Collections.Frozen.FrozenDictionary<ushort, CompiledHandler<TPacket>> CompileControllerHandlers(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type x03)
@@ -199,8 +197,7 @@ internal sealed class HandlerCompiler<
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static CompiledHandler<TPacket> CompileHandlerMethod(MethodInfo x22)
     {
@@ -302,8 +299,7 @@ internal sealed class HandlerCompiler<
     /// <param name="parms"></param>
     /// <exception cref="InvalidOperationException"></exception>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SignatureKind ResolveSignatureKind(
         MethodInfo method,
         ParameterInfo[] parms)
@@ -409,8 +405,7 @@ internal sealed class HandlerCompiler<
     /// check, ultimately throwing "unrecognised signature".
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsPacketContextType(Type type)
         => type.IsGenericType
         && type.GetGenericTypeDefinition() == typeof(PacketContext<>);
@@ -426,8 +421,7 @@ internal sealed class HandlerCompiler<
     /// <param name="ctExpr"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static System.Linq.Expressions.Expression[] BuildArgExpressions(
         SignatureKind kind,
         ParameterInfo[] parms,
@@ -503,8 +497,7 @@ internal sealed class HandlerCompiler<
     }
 
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static Func<object, PacketContext<TPacket>, object> BuildContextBridgeInvoker(
         MethodInfo method,
         ParameterInfo[] parms,
@@ -549,8 +542,7 @@ internal sealed class HandlerCompiler<
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static Func<object, PacketContext<TPacket>, object> BuildAotInvoker(
     MethodInfo method,
     ParameterInfo[] parms,
@@ -608,8 +600,7 @@ internal sealed class HandlerCompiler<
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static Func<object, PacketContext<TPacket>, ValueTask<object>> WrapReturnType(
         Func<object, PacketContext<TPacket>, object> x00,
@@ -693,8 +684,7 @@ internal sealed class HandlerCompiler<
     }
 
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static PacketMetadata GetPacketMetadata(MethodInfo method)
     {
@@ -722,8 +712,7 @@ internal sealed class HandlerCompiler<
     }
 
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static string FormatHandlerInfo(string x00, ushort x01, MethodInfo x02 = null, Type x03 = null)
     {

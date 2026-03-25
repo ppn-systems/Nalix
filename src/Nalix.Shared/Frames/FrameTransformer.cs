@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -88,8 +88,7 @@ public static class FrameTransformer
     /// Only the payload is encrypted.
     /// </remarks>
     /// <exception cref="ArgumentNullException"></exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Encrypt(
         IBufferLease src,
         IBufferLease dest,
@@ -134,8 +133,7 @@ public static class FrameTransformer
     /// Only the payload is decrypted.
     /// </remarks>
     /// <exception cref="ArgumentNullException"></exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Decrypt(
         IBufferLease src,
         IBufferLease dest,
@@ -180,8 +178,7 @@ public static class FrameTransformer
     /// <remarks>
     /// The destination buffer must be large enough to hold the maximum possible compressed data.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Compress(IBufferLease src, IBufferLease dest)
     {
         if (src.Length <= Offset || dest.Capacity <= Offset)
@@ -217,8 +214,7 @@ public static class FrameTransformer
     /// <remarks>
     /// The destination buffer must be large enough to hold the original uncompressed payload.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Decompress(IBufferLease src, IBufferLease dest)
     {
         if (src.Length <= Offset || dest.Capacity <= Offset)
@@ -251,8 +247,7 @@ public static class FrameTransformer
     /// <param name="dest"></param>
     /// <param name="key"></param>
     /// <param name="suite"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryEncrypt(
         IBufferLease src,
         IBufferLease dest,
@@ -275,8 +270,7 @@ public static class FrameTransformer
     /// <param name="src"></param>
     /// <param name="dest"></param>
     /// <param name="key"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryDecrypt(
         IBufferLease src,
         IBufferLease dest,
@@ -297,8 +291,7 @@ public static class FrameTransformer
     /// </summary>
     /// <param name="src"></param>
     /// <param name="dest"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryCompress(IBufferLease src, IBufferLease dest)
     {
         try
@@ -316,8 +309,7 @@ public static class FrameTransformer
     /// </summary>
     /// <param name="src"></param>
     /// <param name="dest"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryDecompress(IBufferLease src, IBufferLease dest)
     {
         try

@@ -73,8 +73,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     /// </summary>
     /// <param name="logMessage">The log entry to be written.</param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Publish(LogEntry logMessage) => _provider.Enqueue(logMessage);
 
     /// <summary>
@@ -85,8 +84,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     /// </remarks>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         _provider.Flush();
@@ -104,8 +102,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     /// <param name="configure">The action that configures the file log options.</param>
     /// <returns>A configured <see cref="FileLogOptions"/> instance.</returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static FileLogOptions Configure(Action<FileLogOptions> configure)
     {
         FileLogOptions opts = new();

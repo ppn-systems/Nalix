@@ -168,8 +168,7 @@ public sealed class ObjectPoolManager : IReportable
     /// Gets or creates and returns an instance of <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public T Get<T>() where T : IPoolable, new()
     {
@@ -213,8 +212,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <typeparam name="T"></typeparam>
     /// <param name="obj"></param>
     /// <exception cref="ArgumentNullException"><paramref name="obj"/> is <c>null</c>.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return<T>([NotNull] T obj) where T : IPoolable, new()
     {
         if (EqualityComparer<T>.Default.Equals(obj, default))
@@ -699,8 +697,7 @@ public sealed class ObjectPoolManager : IReportable
     /// Gets or creates an <see cref="ObjectPool"/> for <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     private ObjectPool GetOrCreatePool<T>() where T : IPoolable, new()
     {

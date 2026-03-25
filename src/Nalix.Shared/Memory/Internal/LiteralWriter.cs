@@ -29,8 +29,7 @@ internal static unsafe class LiteralWriter
     /// This method directly copies bytes from one memory location to another.
     /// It is assumed that `destPtr` has enough space to accommodate `length` bytes.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(
         ref byte* destPtr,
         byte* literalStartPtr,
@@ -57,8 +56,7 @@ internal static unsafe class LiteralWriter
     /// This method is designed to handle scenarios where the source data is in a span.
     /// Spans provide safer and more flexible memory access compared to raw pointers.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(
         ref byte* destPtr,
         ReadOnlySpan<byte> literals)

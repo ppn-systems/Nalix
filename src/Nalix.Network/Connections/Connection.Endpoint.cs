@@ -37,8 +37,7 @@ public sealed partial class Connection
 
         /// <inheritdoc />
         [Pure]
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         [return: NotNull]
         public static Endpoint FromIpAddress(
             [NotNull] IPAddress ip)
@@ -49,8 +48,7 @@ public sealed partial class Connection
 
         /// <inheritdoc />
         [Pure]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         [return: NotNull]
         public static Endpoint FromEndPoint(
@@ -66,8 +64,7 @@ public sealed partial class Connection
         }
 
         [Pure]
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private static void NormalizeAddress(
             [NotNull] IPAddress ip,
             [NotNull] out ulong hi,
@@ -125,8 +122,7 @@ public sealed partial class Connection
         public string Address
         {
             [Pure]
-            [MethodImpl(
-                MethodImplOptions.NoInlining |
+            [MethodImpl(MethodImplOptions.NoInlining |
                 MethodImplOptions.AggressiveOptimization)]
             get
             {
@@ -150,8 +146,7 @@ public sealed partial class Connection
         public int Port
         {
             [Pure]
-            [MethodImpl(
-                MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => HasPort ? _port : 0;
         }
 
@@ -159,8 +154,7 @@ public sealed partial class Connection
         public bool HasPort
         {
             [Pure]
-            [MethodImpl(
-                MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;
         }
 
@@ -168,8 +162,7 @@ public sealed partial class Connection
         public bool IsIPv6
         {
             [Pure]
-            [MethodImpl(
-                MethodImplOptions.AggressiveInlining)]
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get;
         }
 
@@ -179,8 +172,7 @@ public sealed partial class Connection
 
         /// <inheritdoc />
         [Pure]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
         public bool Equals(Endpoint other)
         {
@@ -193,8 +185,7 @@ public sealed partial class Connection
 
         /// <inheritdoc />
         [Pure]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
         public bool Equals([AllowNull] INetworkEndpoint other)
         {
@@ -214,16 +205,14 @@ public sealed partial class Connection
 
         /// <inheritdoc />
         [Pure]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
         public override bool Equals([AllowNull] object obj) =>
             obj is Endpoint k && Equals(k);
 
         /// <inheritdoc />
         [Pure]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
         public override int GetHashCode()
         {
@@ -232,14 +221,12 @@ public sealed partial class Connection
         }
 
         /// <inheritdoc />
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
         public static bool operator ==(Endpoint left, Endpoint right) => left.Equals(right);
 
         /// <inheritdoc />
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
         public static bool operator !=(Endpoint left, Endpoint right) => !left.Equals(right);
 
@@ -249,8 +236,7 @@ public sealed partial class Connection
 
         /// <inheritdoc />
         [Pure]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [return: NotNull]
         public override string ToString()
         {

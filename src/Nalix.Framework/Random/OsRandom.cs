@@ -99,8 +99,7 @@ internal static class OsRandom
     /// This improves randomness quality by periodically refreshing the internal state
     /// with fresh entropy from system sources. Thread-safe.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Attach()
     {
         // Cancel previous schedule if exists
@@ -132,8 +131,7 @@ internal static class OsRandom
     /// Safe to call even if Attach() was never called or has already been detached.
     /// Thread-safe.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Detach()
     {
         IRecurringHandle? h = Interlocked.Exchange(ref s_reseedHandle, null);
@@ -149,8 +147,7 @@ internal static class OsRandom
     /// Automatically reseeds thread-local state when the global state is updated.
     /// WARNING: This is NOT cryptographically secure - use OsCsprng for security-sensitive operations.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void Fill([NotNull] Span<byte> dst)
     {
@@ -194,8 +191,7 @@ internal static class OsRandom
 
     #region Privates
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     private static ulong[] THREAD_STATE()
     {
@@ -227,8 +223,7 @@ internal static class OsRandom
         return local;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static ulong NEXT_U64(ulong[] st)
     {
@@ -243,8 +238,7 @@ internal static class OsRandom
         return r;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static ulong XOSHIRO_NEXT(ulong[] s)
     {
@@ -262,8 +256,7 @@ internal static class OsRandom
         return result;
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void INITIALIZE_STATE(ReadOnlySpan<byte> seed)
     {
         // Expand 32 bytes into 4x64 via SPLIT_MIX_64 to avoid linearities
@@ -291,8 +284,7 @@ internal static class OsRandom
         unchecked { s_version++; }
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void RESEED_GLOBAL()
     {
         Span<byte> seed = stackalloc byte[32];
@@ -330,8 +322,7 @@ internal static class OsRandom
         unchecked { s_version++; }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static ulong SPLIT_MIX_64(ulong z)
     {
@@ -343,8 +334,7 @@ internal static class OsRandom
         return x;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static ulong READ_U64(ReadOnlySpan<byte> s, int offset)
         => System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s.Slice(offset, 8));

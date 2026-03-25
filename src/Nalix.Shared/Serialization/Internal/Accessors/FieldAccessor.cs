@@ -56,8 +56,7 @@ internal abstract class FieldAccessor<
     public abstract void Deserialize(ref DataReader reader, ref T obj);
 
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FieldAccessor<T> Create(FieldSchema schema, int index)
     {
         if (schema.Equals(default))
@@ -101,7 +100,6 @@ internal abstract class FieldAccessor<
     }
 
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static FieldAccessorImpl<T, TField> CreateTyped<TField>(int index) => new(index);
 }

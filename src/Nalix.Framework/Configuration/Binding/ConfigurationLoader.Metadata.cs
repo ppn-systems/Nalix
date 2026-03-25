@@ -20,8 +20,7 @@ public partial class ConfigurationLoader
     /// </summary>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     private static ConfigurationMetadata CreateConfigurationMetadata(Type type)
     {
@@ -71,8 +70,7 @@ public partial class ConfigurationLoader
     /// </summary>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     private static ConfigurationMetadata GetOrCreateMetadata(Type type) => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
 }

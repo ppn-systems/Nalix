@@ -31,8 +31,7 @@ internal sealed class PooledSocketAsyncEventArgs : SocketAsyncEventArgs, IPoolab
     /// <summary>
     /// Resets the internal state before returning to the pool.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
         // Unsubscribe event handlers if needed here (e.g. this.Completed -= SomeHandler)

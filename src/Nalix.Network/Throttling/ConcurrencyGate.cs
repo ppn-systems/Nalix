@@ -166,8 +166,7 @@ public sealed class ConcurrencyGate : IReportable
         /// <summary>
         /// Updates last used timestamp.
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch()
         {
             long nowTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
@@ -216,8 +215,7 @@ public sealed class ConcurrencyGate : IReportable
         /// <summary>
         /// Attempts to acquire usage reference. Returns false if disposed.
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryAcquire()
         {
             // FIX #4: Check disposed BEFORE incrementing
@@ -249,8 +247,7 @@ public sealed class ConcurrencyGate : IReportable
         /// <summary>
         /// Releases usage reference.
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Release()
         {
             int remaining = Interlocked.Decrement(ref _activeUsers);
@@ -266,8 +263,7 @@ public sealed class ConcurrencyGate : IReportable
         /// <summary>
         /// Attempts to increment queue count if under limit.
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryIncrementQueue()
         {
             if (QueueMax == int.MaxValue)
@@ -304,8 +300,7 @@ public sealed class ConcurrencyGate : IReportable
         /// <summary>
         /// Decrements queue count.
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void DecrementQueue()
         {
             int remaining = Interlocked.Decrement(ref _queueCount);
@@ -388,8 +383,7 @@ public sealed class ConcurrencyGate : IReportable
         /// <summary>
         /// Releases the concurrency slot.
         /// </summary>
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
             if (_sem is null || _entry is null)
@@ -426,8 +420,7 @@ public sealed class ConcurrencyGate : IReportable
     /// <param name="opcode"></param>
     /// <param name="attr"></param>
     /// <param name="lease"></param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool TryEnter(
         ushort opcode,
         [NotNull] PacketConcurrencyLimitAttribute attr,
@@ -494,8 +487,7 @@ public sealed class ConcurrencyGate : IReportable
     /// <param name="ct"></param>
     /// <exception cref="ConcurrencyConflictException"></exception>
     /// <exception cref="TimeoutException"></exception>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public async ValueTask<Lease> EnterAsync(
         ushort opcode,
         [NotNull] PacketConcurrencyLimitAttribute attr,
@@ -766,8 +758,7 @@ public sealed class ConcurrencyGate : IReportable
         return false;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void VALIDATE_ATTRIBUTE(PacketConcurrencyLimitAttribute attr)
     {
         ArgumentNullException.ThrowIfNull(attr);
@@ -787,8 +778,7 @@ public sealed class ConcurrencyGate : IReportable
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Entry GET_OR_CREATE_ENTRY(
         ushort opcode,
         PacketConcurrencyLimitAttribute attr)

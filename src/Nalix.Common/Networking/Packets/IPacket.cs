@@ -68,8 +68,7 @@ public interface IPacket : IPacketSequenced
     /// A new byte array containing the serialized form of the packet.
     /// </returns>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     byte[] Serialize();
 
     /// <summary>
@@ -80,8 +79,7 @@ public interface IPacket : IPacketSequenced
     /// The buffer must be large enough to hold the complete packet.
     /// </param>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     int Serialize(Span<byte> buffer);
 
     #endregion Packet Methods

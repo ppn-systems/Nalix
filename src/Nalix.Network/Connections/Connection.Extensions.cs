@@ -37,8 +37,7 @@ public static class ConnectionExtensions
     /// <param name="arg1">Optional argument 1 for the directive (default is 0).</param>
     /// <param name="arg2">Optional argument 2 for the directive (default is 0).</param>
     /// <returns>A task representing the asynchronous send operation.</returns>
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static async Task SendAsync(
         this IConnection connection,

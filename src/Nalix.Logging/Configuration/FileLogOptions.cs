@@ -145,8 +145,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// Gets full path to the current log file.
     /// </summary>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public string GetFullLogFilePath()
         => Path.Combine(Directories.LogsDirectory, LogFileName);

@@ -49,8 +49,7 @@ public static class LiteSerializer
     /// </exception>
     [Pure]
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
@@ -158,8 +157,7 @@ public static class LiteSerializer
     /// </exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public static int Serialize<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value, byte[] buffer)
@@ -227,8 +225,7 @@ public static class LiteSerializer
     /// </exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Serialize<
         [DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.All)] T>(in T value, Span<byte> buffer)
@@ -378,8 +375,7 @@ public static class LiteSerializer
     /// <exception cref="ArgumentException">Thrown if the buffer is empty.</exception>
     [Pure]
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public static int Deserialize<[
@@ -490,8 +486,7 @@ public static class LiteSerializer
     /// <exception cref="ArgumentException"></exception>
     [Pure]
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public static T Deserialize<[
@@ -582,15 +577,13 @@ public static class LiteSerializer
 
     #region Private Methods
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsNullArrayMarker(ReadOnlySpan<byte> buffer) =>
         buffer.Length >= 4 &&
         Unsafe.ReadUnaligned<int>(
             ref MemoryMarshal.GetReference(buffer)) == -1;
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsEmptyArrayMarker(ReadOnlySpan<byte> buffer) =>
         buffer.Length >= 4 &&
         Unsafe.ReadUnaligned<int>(

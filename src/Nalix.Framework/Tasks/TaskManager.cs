@@ -147,8 +147,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the worker cannot be added.</exception>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public IWorkerHandle ScheduleWorker(
         [NotNull] string name,
@@ -332,8 +331,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the interval is less than or equal to zero.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public IRecurringHandle ScheduleRecurring(
         [StringSyntax("identifier")]
@@ -386,8 +384,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public async ValueTask RunOnceAsync(
         [NotNull] string name,
         [NotNull]
@@ -416,8 +413,7 @@ public sealed partial class TaskManager : ITaskManager
 
     /// <inheritdoc/>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public int CancelAllWorkers()
     {
@@ -439,8 +435,7 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public bool CancelWorker([NotNull] ISnowflake id)
     {
@@ -470,8 +465,7 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public int CancelGroup([NotNull] string group)
     {
@@ -495,8 +489,7 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public bool CancelRecurring([MaybeNull] string? name)
     {
@@ -563,8 +556,7 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public IReadOnlyCollection<IWorkerHandle> GetWorkers(
         [NotNull] bool runningOnly = true,
@@ -591,8 +583,7 @@ public sealed partial class TaskManager : ITaskManager
 
     /// <inheritdoc/>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public IReadOnlyCollection<IRecurringHandle> GetRecurring()
     {
@@ -607,8 +598,7 @@ public sealed partial class TaskManager : ITaskManager
 
     /// <inheritdoc/>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public bool TryGetWorker(
         ISnowflake id,
@@ -621,8 +611,7 @@ public sealed partial class TaskManager : ITaskManager
 
     /// <inheritdoc/>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public bool TryGetRecurring(string name,
         [NotNullWhen(true)] out IRecurringHandle? handle)
@@ -638,8 +627,7 @@ public sealed partial class TaskManager : ITaskManager
 
     /// <inheritdoc/>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public string GenerateReport()
     {
         StringBuilder sb = new(2048);
@@ -819,8 +807,7 @@ public sealed partial class TaskManager : ITaskManager
     #region IDisposable
 
     /// <inheritdoc/>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Dispose()
     {
         if (_disposed)

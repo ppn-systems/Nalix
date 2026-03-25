@@ -27,8 +27,7 @@ public partial class ConfigurationLoader
     /// </summary>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     private static object? GetConfigValue(
@@ -86,8 +85,7 @@ public partial class ConfigurationLoader
     /// consistent with <see cref="IniConfig.WriteValue"/> behavior.
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private void HandleEmptyValue(
         IniConfig configFile, string section, PropertyMetadata property)
@@ -116,8 +114,7 @@ public partial class ConfigurationLoader
     /// </summary>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     private static string GetDefaultValueString(PropertyMetadata propertyType)
@@ -169,8 +166,7 @@ public partial class ConfigurationLoader
     [StackTraceHidden]
     [DebuggerStepThrough]
     [DoesNotReturn]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     private static object ThrowUnsupported(PropertyMetadata property)
     {

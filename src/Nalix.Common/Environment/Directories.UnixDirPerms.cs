@@ -38,8 +38,7 @@ public static partial class Directories
     /// </param>
     [EditorBrowsable(
         EditorBrowsableState.Never)]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string ENSURE_AND_HARDEN(
         [DisallowNull] string path,
         UnixDirPerms perms = UnixDirPerms.Default755)
@@ -239,8 +238,7 @@ public static partial class Directories
     /// <exception cref="UnauthorizedAccessException"></exception>
     [EditorBrowsable(
         EditorBrowsableState.Never)]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string COMBINE_SAFE(
         [DisallowNull] string baseDir,
         [DisallowNull] string name)
@@ -266,8 +264,7 @@ public static partial class Directories
 
     [EditorBrowsable(
         EditorBrowsableState.Never)]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool SET_UNIX_FILE_MODE_COMPAT(
         [DisallowNull] string path, UnixFileMode mode)
     {
@@ -309,8 +306,7 @@ public static partial class Directories
 
     [EditorBrowsable(
         EditorBrowsableState.Never)]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint TO_NATIVE_CHMOD_MODE(UnixFileMode mode)
     {
         uint m = 0;

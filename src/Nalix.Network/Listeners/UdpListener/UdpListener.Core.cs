@@ -78,13 +78,11 @@ public abstract partial class UdpListenerBase
     public bool IsTimeSyncEnabled
     {
         [DebuggerStepThrough]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled;
 
         [DebuggerStepThrough]
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set
         {
             if (_isRunning)
@@ -104,8 +102,7 @@ public abstract partial class UdpListenerBase
 
     #region Constructors
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static UdpListenerBase()
     {
         Config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();

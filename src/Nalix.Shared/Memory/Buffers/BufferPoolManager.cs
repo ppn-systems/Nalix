@@ -189,8 +189,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// </summary>
     /// <param name="minimumLength"></param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNull]
     public byte[] Rent([NotNull] int minimumLength = 256)
     {
@@ -220,8 +219,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="array"></param>
     /// <param name="arrayClear"></param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     public void Return(byte[]? array, bool arrayClear = false)
     {
@@ -254,8 +252,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// or <see cref="ReturnFromSaea"/> after use to avoid leaking pool buffers.
     /// </remarks>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ArraySegment<byte> RentSegment(int size = 256)
     {
         byte[] buffer = Rent(size);
@@ -269,8 +266,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// </summary>
     /// <param name="segment">The segment whose backing array will be returned.</param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(ArraySegment<byte> segment) => Return(segment.Array);
 
     /// <summary>
@@ -285,8 +281,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// Call <see cref="ReturnFromSaea"/> when the async operation completes to return the buffer to the pool.
     /// </remarks>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void RentForSaea(
         [NotNull] SocketAsyncEventArgs saea,
         int size = 256)
@@ -305,8 +300,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="saea">The <see cref="SocketAsyncEventArgs"/> whose buffer will be returned.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReturnFromSaea(
         [NotNull] SocketAsyncEventArgs saea)
     {
@@ -326,8 +320,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// </summary>
     /// <param name="size"></param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public double GetAllocationForSize([NotNull] int size)
     {
@@ -373,8 +366,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// </summary>
     /// <returns>A string containing the report.</returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: NotNull]
     public string GenerateReport()
     {
@@ -391,8 +383,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     #region Private: Rent / Return helpers
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IS_FAST_COMMON_SIZE(int size) => size is 256 or 512 or 1024 or 2048 or 4096;
 
     /// <summary>
@@ -400,8 +391,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// </summary>
     /// <param name="size"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private byte[] RENT_FROM_POOLS_WITH_CACHING(int size)
     {
         byte[] buffer = _poolManager.RentBuffer(size);
@@ -418,8 +408,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void CACHE_SUITABLE_POOL_SIZE(int requestedSize, int actualSize)
     {
         if (requestedSize is <= 64 or >= 1_000_000)
@@ -442,8 +431,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="ex"></param>
     /// <exception cref="ArgumentException"></exception>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private byte[] HANDLE_RENT_FAILURE(int size, ArgumentException ex)
     {
         if (_config.FallbackToArrayPool)
@@ -464,8 +452,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// </summary>
     /// <param name="buffer"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void RETURN_TO_MANAGED_POOLS(byte[] buffer)
     {
         _poolManager.ReturnBuffer(buffer);
@@ -483,8 +470,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="buffer"></param>
     /// <param name="ex"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void HANDLE_RETURN_FAILURE(byte[] buffer, ArgumentException ex)
     {
         ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
@@ -512,8 +498,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     #region Private: Allocation & Trimming
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void ALLOCATE_BUFFERS()
     {
         if (_isInitialized)
@@ -534,8 +519,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining |
+    [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
     private void TRIM_EXCESS_BUFFERS(object? _)
     {
@@ -568,8 +552,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool SHOULD_RUN_DEEP_TRIM(int cycle)
     {
         int deepEvery = Math.Max(1, _config.DeepTrimIntervalMinutes / Math.Max(1, _config.TrimIntervalMinutes));
@@ -577,8 +560,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private (long TargetBudget, long CurrentUsage, bool OverBudget) COMPUTE_MEMORY_BUDGET()
     {
         // Cache memory budget for 10 seconds to avoid repeated computation
@@ -617,8 +599,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         return (targetBudget, currentUsage, currentUsage > targetBudget);
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool SHOULD_TRIM_POOL(in BufferPoolState info, bool overBudget, bool deepTrim)
     {
         // Skip if very low idle time
@@ -640,8 +621,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="info"></param>
     /// <param name="cycle"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private int CALCULATE_SAFE_SHRINK_STEP(in BufferPoolState info, int cycle)
     {
@@ -688,8 +668,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="info"></param>
     /// <param name="shrinkStep"></param>
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void TRIM_SINGLE_POOL(BufferPoolShared pool, in BufferPoolState info, int shrinkStep)
     {
         double usage = info.GetUsageRatio();
@@ -716,8 +695,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     #region Private: Resize Strategies
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IS_OVER_MEMORY_BUDGET()
     {
         (long _, long _, bool overBudget) = COMPUTE_MEMORY_BUDGET();
@@ -725,8 +703,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void SHRINK_BUFFER_POOL_SIZE(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
@@ -763,8 +740,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                                 .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={latest.BufferSize} by={buffersToShrink}");
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int CALCULATE_AUTO_SHRINK_AMOUNT(in BufferPoolState poolInfo)
     {
         if (poolInfo.TotalBuffers <= 0)
@@ -785,8 +761,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void INCREASE_BUFFER_POOL_SIZE(BufferPoolShared pool)
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
@@ -832,8 +807,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                                        $"increase minimumLength={poolInfo.BufferSize} by={increaseStep} usage={usage:F2}% miss={missRatio:F2}%");
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int CALCULATE_INCREASE_STEP(in BufferPoolState poolInfo, double usage, double missRatio)
     {
         int baseIncreasePow2 = Math.Max(_config.MinimumIncrease,
@@ -855,8 +829,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         return Math.Min(scaled, Math.Min(softCap, _config.MaxBufferIncreaseLimit));
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool SHOULD_APPLY_SHRINK(in BufferPoolState poolInfo, int buffersToShrink) => buffersToShrink > 0 && poolInfo.FreeBuffers >= buffersToShrink;
 
     #endregion Private: Resize Strategies
@@ -864,8 +837,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     #region Private: Reporting
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void APPEND_REPORT_HEADER(StringBuilder sb)
     {
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] BufferPoolManager Status:");
@@ -890,8 +862,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void APPEND_REPORT_POOL_DETAILS(StringBuilder sb)
     {
         _ = sb.AppendLine("s_pool Details:");
@@ -914,8 +885,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     [StackTraceHidden]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void APPEND_REPORT_METRICS(StringBuilder sb)
     {
         _ = sb.AppendLine();

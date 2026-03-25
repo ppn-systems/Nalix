@@ -45,11 +45,9 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// </summary>
     public TPacket Packet
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get;
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private set;
     }
 
@@ -58,11 +56,9 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// </summary>
     public IConnection Connection
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get;
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         private set;
     }
 
@@ -71,8 +67,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// </summary>
     public PacketMetadata Attributes
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get; private set;
     }
 
@@ -81,11 +76,9 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// </summary>
     public bool SkipOutbound
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get;
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         internal set;
     }
 
@@ -94,11 +87,9 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// </summary>
     public CancellationToken CancellationToken
     {
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get;
-        [MethodImpl(
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         internal set;
     }
 
@@ -154,8 +145,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.InUse"/> state.
     /// </remarks>
     /// <exception cref="InvalidOperationException"></exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Initialize(
         [MaybeNull] TPacket packet,
         [MaybeNull] IConnection connection,
@@ -180,8 +170,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <remarks>
     /// Clears all properties and resets fields to their default values, preparing the context for return to the pool.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Reset()
     {
         if (Sender is PacketSender<TPacket> concreteSender)
@@ -207,8 +196,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <remarks>
     /// If the context is initialized, it is reset and transitioned to the <see cref="PacketContextState.Pooled"/> state.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ResetForPool()
     {
         if (_isInitialized)
@@ -225,8 +213,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <remarks>
     /// This method is thread-safe and ensures the context is only returned if it is in the <see cref="PacketContextState.InUse"/> state.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Return()
     {
         if (Interlocked.Exchange(

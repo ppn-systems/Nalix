@@ -8,8 +8,7 @@ namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string EllipseLeft(string value, int maxLen)
     {
         if (string.IsNullOrEmpty(value) || value.Length <= maxLen)

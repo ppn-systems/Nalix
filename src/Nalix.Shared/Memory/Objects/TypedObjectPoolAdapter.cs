@@ -49,8 +49,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// Gets an object from the pool.
     /// </summary>
     /// <returns>An instance of <typeparamref name="T"/>.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Get()
     {
         _ = Interlocked.Increment(ref _manager._totalGetOperations);
@@ -61,8 +60,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// Returns an object to the pool.
     /// </summary>
     /// <param name="obj">The object to return.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(T obj)
     {
         ArgumentNullException.ThrowIfNull(obj, nameof(obj));
@@ -76,8 +74,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="count">The ProtocolType of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public List<T> GetMultiple(int count)
     {
         _ = Interlocked.Add(ref _manager._totalGetOperations, count);
@@ -89,8 +86,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
     /// <returns>The ProtocolType of objects removed.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Trim(int percentage = 50)
     {
         if (percentage < 0)
@@ -111,8 +107,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="objects">The objects to return.</param>
     /// <returns>The ProtocolType of objects successfully returned to the pool.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ReturnMultiple(IEnumerable<T> objects)
     {
         ArgumentNullException.ThrowIfNull(objects);
@@ -126,8 +121,7 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// Clears this type's pool.
     /// </summary>
     /// <returns>The ProtocolType of objects removed.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Clear() => _pool.ClearType<T>();
 
     /// <summary>
@@ -135,24 +129,21 @@ public sealed class TypedObjectPoolAdapter<T> where T : IPoolable, new()
     /// </summary>
     /// <param name="count">The ProtocolType of objects to preallocate.</param>
     /// <returns>The ProtocolType of objects successfully preallocated.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Prealloc(int count) => _pool.Prealloc<T>(count);
 
     /// <summary>
     /// Gets information about this type's pool.
     /// </summary>
     /// <returns>A dictionary containing pool statistics for this type.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, object> GetInfo() => _pool.GetTypeInfo<T>();
 
     /// <summary>
     /// Sets the maximum capacity for this type's pool.
     /// </summary>
     /// <param name="maxCapacity">The maximum capacity.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetMaxCapacity(int maxCapacity) => _pool.SetMaxCapacity<T>(maxCapacity);
 
     #endregion Public Methods

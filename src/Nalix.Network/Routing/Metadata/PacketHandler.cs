@@ -76,8 +76,7 @@ public readonly struct PacketHandler<TPacket>(
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> that completes with the handler’s result.
     /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public ValueTask<object> ExecuteAsync(PacketContext<TPacket> context) => Invoker(Instance, context);
 
     /// <summary>
@@ -93,8 +92,7 @@ public readonly struct PacketHandler<TPacket>(
     /// <item><description>Custom filters</description></item>
     /// </list>
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool CanExecute(PacketContext<TPacket> _) => true;
 
     #endregion Methods

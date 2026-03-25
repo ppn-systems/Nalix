@@ -19,8 +19,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="byte"/> from the buffer.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte ReadByte(this ref DataReader reader)
     {
         ref byte ptr = ref reader.GetSpanReference(sizeof(byte));
@@ -32,8 +31,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="ushort"/> from the buffer.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort ReadUInt16(this ref DataReader reader)
     {
         ref byte ptr = ref reader.GetSpanReference(sizeof(ushort));
@@ -45,8 +43,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="uint"/> from the buffer.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint ReadUInt32(this ref DataReader reader)
     {
         ref byte ptr = ref reader.GetSpanReference(sizeof(uint));
@@ -58,8 +55,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="int"/> from the buffer.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ReadInt32(this ref DataReader reader)
     {
         ref byte ptr = ref reader.GetSpanReference(sizeof(int));
@@ -71,8 +67,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="long"/> from the buffer.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long ReadInt64(this ref DataReader reader)
     {
         ref byte ptr = ref reader.GetSpanReference(sizeof(long));
@@ -84,8 +79,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="ulong"/> from the buffer.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong ReadUInt64(this ref DataReader reader)
     {
         ref byte ptr = ref reader.GetSpanReference(sizeof(ulong));
@@ -97,8 +91,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="bool"/> from the buffer.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ReadBoolean(this ref DataReader reader) => reader.ReadByte() != 0;
 
     #endregion Primitive Types
@@ -108,8 +101,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads an enum value with underlying type <see cref="byte"/>.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum ReadEnumByte<TEnum>(this ref DataReader reader)
     where TEnum : unmanaged, Enum
     {
@@ -120,8 +112,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads an enum value with underlying type <see cref="ushort"/>.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum ReadEnumUInt16<TEnum>(this ref DataReader reader)
     where TEnum : unmanaged, Enum
     {
@@ -132,8 +123,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads an enum value with underlying type <see cref="uint"/>.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum ReadEnumUInt32<TEnum>(this ref DataReader reader)
     where TEnum : unmanaged, Enum
     {
@@ -148,8 +138,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a byte array with specified length.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ReadBytes(this ref DataReader reader, int count)
     {
         if (count <= 0)
@@ -178,8 +167,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads remaining bytes as byte array.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ReadRemainingBytes(this ref DataReader reader) => reader.ReadBytes(reader.BytesRemaining);
 
     #endregion Array Types
@@ -189,8 +177,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads any unmanaged type directly from buffer.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T ReadUnmanaged<T>(this ref DataReader reader) where T : unmanaged
     {
         ref byte ptr = ref reader.GetSpanReference(Unsafe.SizeOf<T>());
@@ -206,8 +193,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Gets remaining byte count without consuming.
     /// </summary>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Remaining(this ref DataReader reader) => reader.BytesRemaining;
 
     #endregion Helper Properties

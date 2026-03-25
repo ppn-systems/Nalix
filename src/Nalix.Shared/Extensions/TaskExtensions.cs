@@ -23,8 +23,7 @@ public static class TaskExtensions
     /// <param name="this">The <see cref="Task"/> on which this method is called.</param>
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void Await(this Task @this)
     {
@@ -44,8 +43,7 @@ public static class TaskExtensions
     /// <returns>The result of <paramref name="this"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static TResult Await<TResult>(this Task<TResult> @this)
     {
@@ -66,8 +64,7 @@ public static class TaskExtensions
     /// method.</param>
     /// <exception cref="ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static void Await(
         this Task @this,
@@ -95,8 +92,7 @@ public static class TaskExtensions
     /// The result of the task if it completes within the timeout; otherwise, <c>default</c>.
     /// </returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public static async Task<T?> WithTimeout<T>(
         this Task<T> @this,

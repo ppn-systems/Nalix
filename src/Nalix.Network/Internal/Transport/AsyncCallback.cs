@@ -133,8 +133,7 @@ internal static class AsyncCallback
     /// <param name="args">The event arguments.</param>
     /// <returns><see langword="true"/> if the callback was queued; <see langword="false"/> if dropped.</returns>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Invoke(
         [AllowNull] EventHandler<IConnectEventArgs> callback,
         [NotNull] object sender,
@@ -203,8 +202,7 @@ internal static class AsyncCallback
     /// <param name="sender"></param>
     /// <param name="args"></param>
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InvokeHighPriority(
         [AllowNull] EventHandler<IConnectEventArgs> callback,
         [NotNull] object sender,
@@ -238,8 +236,7 @@ internal static class AsyncCallback
 
     #region Private Helpers
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool QUEUE(
         Action<object> invoker,
         EventHandler<IConnectEventArgs> callback,
@@ -279,8 +276,7 @@ internal static class AsyncCallback
         return true;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void EXECUTE_AND_RETURN(PooledConnectEventContext w)
     {
         try

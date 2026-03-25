@@ -89,8 +89,7 @@ internal static partial class FieldCache<
 
     #region Field Discovery
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static FieldSchema[] DiscoverFields<
         [DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicFields |
@@ -159,8 +158,7 @@ internal static partial class FieldCache<
             : [.. includedFields];
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static Dictionary<string, int> BuildFieldIndex()
     {
         // Performance: StringComparer.Ordinal nhanh hơn default
@@ -180,8 +178,7 @@ internal static partial class FieldCache<
     /// </summary>
     /// <param name="field"></param>
     /// <returns></returns>
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [SuppressMessage("CodeQuality",
         "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [SuppressMessage("Trimming",
@@ -212,8 +209,7 @@ internal static partial class FieldCache<
         return null;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsBackingFieldFor(
         FieldInfo field,
         PropertyInfo property) => field.Name == $"<{property.Name}>k__BackingField";
@@ -222,8 +218,7 @@ internal static partial class FieldCache<
 
     #region Domain Rules - Business Logic
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool ShouldIgnoreField(FieldInfo field)
     {
         // Rule 1: Skip backing fields nếu property có SerializeIgnoreAttribute
@@ -248,8 +243,7 @@ internal static partial class FieldCache<
 
     #region Layout Detection
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SerializeLayout GetSerializeLayout()
     {
         SerializePackableAttribute? packableAttr = CustomAttributeExtensions
@@ -258,8 +252,7 @@ internal static partial class FieldCache<
         return packableAttr?.SerializeLayout ?? SerializeLayout.Sequential;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SerializeLayout GetLayout() => _layout;
 
     #endregion Layout Detection
@@ -268,8 +261,7 @@ internal static partial class FieldCache<
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void EnsureExplicitLayoutIsValid()
     {
         if (_layout is not SerializeLayout.Explicit)
@@ -283,8 +275,7 @@ internal static partial class FieldCache<
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void EnsureNoDuplicateOrders()
     {
         IEnumerable<IGrouping<int, FieldSchema>> orderGroups = Enumerable.Where(
@@ -306,8 +297,7 @@ internal static partial class FieldCache<
 
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void EnsureNoNegativeOrders()
     {
         IEnumerable<FieldSchema> negativeOrders = Enumerable

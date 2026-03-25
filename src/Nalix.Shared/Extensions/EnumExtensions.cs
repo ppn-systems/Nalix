@@ -24,8 +24,7 @@ public static class EnumExtensions
     /// <exception cref="NotSupportedException"></exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum AddFlag<TEnum>(this TEnum @this, TEnum mask)
         where TEnum : unmanaged, Enum
     {
@@ -85,8 +84,7 @@ public static class EnumExtensions
     /// <exception cref="NotSupportedException"></exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum RemoveFlag<TEnum>(this TEnum @this, TEnum mask)
         where TEnum : unmanaged, Enum
     {

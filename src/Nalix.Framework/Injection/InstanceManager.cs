@@ -93,8 +93,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         public readonly RuntimeTypeHandle P4;
         public readonly RuntimeTypeHandle Target;
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining |
+        [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public ActivatorKey(Type t, object?[]? args)
         {
@@ -128,8 +127,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             }
         }
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Equals(ActivatorKey other)
             => Target.Equals(other.Target)
                && P0.Equals(other.P0)
@@ -142,8 +140,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         public override bool Equals(object? obj)
             => obj is ActivatorKey k && Equals(k);
 
-        [MethodImpl(
-            MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
             HashCode hc = new();
@@ -242,8 +239,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <typeparam name="T">The type of the instance to register.</typeparam>
     /// <param name="instance">The instance to register.</param>
     /// <param name="registerInterfaces">If <c>true</c>, also registers the instance for all its interfaces.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void Register<T>(
         [NotNull] T instance,
@@ -376,8 +372,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// </summary>
     /// <typeparam name="T">The type of the instance to register.</typeparam>
     /// <param name="instance">The instance to register.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void RegisterForClassOnly<T>(
         [NotNull] T instance) where T : class => Register(instance, registerInterfaces: false);
@@ -388,8 +383,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <typeparam name="T">The type of instance to get or create.</typeparam>
     /// <param name="args">The arguments to pass to the constructor if a new instance is created.</param>
     /// <returns>The existing or newly created instance.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
@@ -439,8 +433,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// Thrown if the specified type does not have a suitable constructor or
     /// if the instance manager has been disposed.
     /// </exception>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public object GetOrCreateInstance(
@@ -487,8 +480,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <param name="type">The type of instance to create.</param>
     /// <param name="args">Constructor arguments.</param>
     /// <returns>A new instance of the specified type.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public object CreateInstance(
@@ -506,8 +498,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// </summary>
     /// <param name="type">The type of the instance to remove.</param>
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public bool RemoveInstance([NotNull] Type type)
@@ -596,8 +587,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <typeparam name="T">The type to check.</typeparam>
     /// <returns><c>true</c> if an instance of the specified type is cached; otherwise, <c>false</c>.</returns>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public bool HasInstance<T>() => _instanceCache.ContainsKey(typeof(T).TypeHandle);
 
@@ -607,8 +597,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <typeparam name="T">The type of the instance to get.</typeparam>
     /// <returns>The existing instance, or <c>null</c> if no instance exists.</returns>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public T? GetExistingInstance<T>() where T : class
@@ -648,8 +637,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// Clears all cached instances, optionally disposing them.
     /// </summary>
     /// <param name="dispose">If <c>true</c>, disposes any instances that implement <see cref="IDisposable"/>.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining |
+    [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void Clear([NotNull] bool dispose = true)
     {
@@ -805,8 +793,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         public static object? Value;
     }
 
-    [MethodImpl(
-    MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private object CREATE_OR_GET_SIGNATURE_INSTANCE(Type type, object?[] args, ActivatorKey sigKey)
     {
         // Create instance
@@ -852,8 +839,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         return created;
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TRY_GET_FROM_GENERIC_SLOT<T>(out T? value) where T : class
     {
         if (Volatile.Read(ref _slotsInvalidated) != 0)
@@ -867,8 +853,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         return value is not null;
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void TRY_PUBLISH_SLOT_BY_TYPE(Type type, object instance)
     {
         try
@@ -889,8 +874,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void PUBLISH_TO_INTERFACE_SLOT(Type iface, object instance)
     {
         // Invoke the generic PublishGenericSlot<T>(object) via reflection.
@@ -908,12 +892,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static void PUBLISH_GENERIC_SLOT<T>(object instance) => Volatile.Write(ref GenericSlot<T>.Value, instance);
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void CLEAR_GENERIC_SLOT(Type type)
     {
         try
@@ -931,8 +913,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private object GET_OR_CREATE_INSTANCE_SLOW(Type type, object?[] args)
     {
         try
@@ -964,8 +945,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
     }
 
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private object CREATE_VIA_ACTIVATOR(Type type, object?[] args)
     {
         ActivatorKey sigKey = new(type, args);
@@ -978,8 +958,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         return factory(args);
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static ConstructorInfo RESOLVE_BEST_CONSTRUCTOR(Type type, object?[] args)
     {
         if (args.Length == 0)
@@ -1049,8 +1028,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         return best ?? throw new InvalidOperationException($"Type {type.Name} does not have a suitable constructor for the provided arguments.");
     }
 
-    [MethodImpl(
-        MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static Func<object?[], object> BUILD_DYNAMIC_FACTORY(Type type, ConstructorInfo ctor)
     {
         ParameterInfo[] ps = ctor.GetParameters();

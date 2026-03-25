@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -174,8 +174,7 @@ internal sealed class PropertyMetadata
     /// using a compiled delegate. Returns <see langword="null"/> if no getter is available.
     /// </summary>
     /// <param name="instance">The packet object to read from. Must not be <see langword="null"/>.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public object? GetValue(object instance)
     {
         ArgumentNullException.ThrowIfNull(instance);
@@ -188,8 +187,7 @@ internal sealed class PropertyMetadata
     /// </summary>
     /// <param name="instance">The packet object to write to. Must not be <see langword="null"/>.</param>
     /// <param name="value">The value to assign. Must be compatible with the property type.</param>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetValue(object instance, object? value)
     {
         ArgumentNullException.ThrowIfNull(instance);

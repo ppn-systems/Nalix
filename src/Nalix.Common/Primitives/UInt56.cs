@@ -167,8 +167,7 @@ public readonly struct UInt56 :
     /// <see cref="ulong"/> value that is within [0, <see cref="MaxValue"/>] is safe.
     /// </para>
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private UInt56(uint lo, ushort mid, byte hi)
     {
         _lo = lo;
@@ -195,8 +194,7 @@ public readonly struct UInt56 :
     /// and <c>_hi</c> takes bits 48–55. Bits 56–63 are discarded (they must be zero
     /// for a valid UInt56 value).
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private UInt56(ulong value, bool trusted)
     {
         if (!trusted && value > MaxValue)
@@ -259,8 +257,7 @@ public readonly struct UInt56 :
     /// </para>
     /// </remarks>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong ToUInt64() => _lo | ((ulong)_mid << 32) | ((ulong)_hi << 48);
 
     /// <summary>
@@ -284,8 +281,7 @@ public readonly struct UInt56 :
     /// constructor is called in trusted mode with no additional checks.
     /// </para>
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static UInt56 FromRaw(ulong raw) => new((uint)raw, (ushort)(raw >> 32), (byte)(raw >> 48));
 
     #endregion Core pack/unpack — hot path
@@ -326,8 +322,7 @@ public readonly struct UInt56 :
     /// // buffer = [FF, 55, 44, 33, 22, 11, 00]
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteBytesLittleEndian(Span<byte> destination)
     {
         if (destination.Length < 7)
@@ -374,8 +369,7 @@ public readonly struct UInt56 :
     /// // buffer = [00, 11, 22, 33, 44, 55, FF]
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteBytesBigEndian(Span<byte> destination)
     {
         if (destination.Length < 7)
@@ -412,8 +406,7 @@ public readonly struct UInt56 :
     /// Console.WriteLine($"0x{value:X}"); // Output: 0x1122334455FF
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UInt56 ReadBytesLittleEndian(ReadOnlySpan<byte> source)
     {
         if (source.Length < 7)
@@ -453,8 +446,7 @@ public readonly struct UInt56 :
     /// Console.WriteLine($"0x{value:X}"); // Output: 0x1122334455FF
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UInt56 ReadBytesBigEndian(ReadOnlySpan<byte> source)
     {
         if (source.Length < 7)
@@ -531,13 +523,11 @@ public readonly struct UInt56 :
     /// without unpacking to <see cref="ulong"/>, making this the fastest possible
     /// equality check for the 7-byte layout.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(UInt56 other) => _lo == other._lo && _mid == other._mid && _hi == other._hi;
 
     /// <inheritdoc />
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj) => obj is UInt56 other && Equals(other);
 
     /// <inheritdoc />
@@ -545,8 +535,7 @@ public readonly struct UInt56 :
     /// Combines all three storage fields using <see cref="HashCode.Combine{T1,T2,T3}"/>
     /// to produce a well-distributed hash code without unpacking to <see cref="ulong"/>.
     /// </remarks>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode() => HashCode.Combine(_lo, _mid, _hi);
 
     /// <inheritdoc />
@@ -621,8 +610,7 @@ public readonly struct UInt56 :
     /// <returns>
     /// The string representation of the value of this instance, formatted using the current culture.
     /// </returns>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString() => ToUInt64().ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
@@ -1224,8 +1212,7 @@ public readonly struct UInt56 :
     /// Console.WriteLine(value == positive); // Output: True
     /// </code>
     /// </example>
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UInt56 operator +(UInt56 value) => value;
 
     #endregion UInt56
@@ -1704,8 +1691,7 @@ public readonly struct UInt56 :
     /// <seealso cref="TryParse(string, NumberStyles, IFormatProvider, out UInt56)"/>
     /// <seealso cref="TryParse(ReadOnlySpan{char}, IFormatProvider, out UInt56)"/>
     [Pure]
-    [MethodImpl(
-        MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryParse(
         [NotNullWhen(true)] string? s,
         IFormatProvider? provider,
