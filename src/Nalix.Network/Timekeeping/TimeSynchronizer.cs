@@ -35,9 +35,9 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
     #region Fields
 
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private readonly Lock _gate = new();
-    private CancellationTokenSource _cts;
+    private CancellationTokenSource? _cts;
 
     private int _isRunning;
     private int _isDisposed;
@@ -52,7 +52,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     /// Raised every tick with the current Unix timestamp in milliseconds.
     /// NOTE: Handlers should be lightweight. Consider enabling FireAndForget if handlers may block.
     /// </summary>
-    public event Action<long> TimeSynchronized;
+    public event Action<long>? TimeSynchronized;
 
     #endregion Events
 
@@ -250,7 +250,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                         }
 
                         long timestamp = Clock.UnixMillisecondsNow();
-                        Action<long> handler = TimeSynchronized;
+                        Action<long>? handler = TimeSynchronized;
 
                         if (handler is not null)
                         {
@@ -322,7 +322,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     {
         _ = Interlocked.Exchange(ref _isRunning, 0);
 
-        CancellationTokenSource toCancel;
+        CancellationTokenSource? toCancel;
         lock (_gate)
         {
             toCancel = _cts;

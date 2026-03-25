@@ -108,8 +108,8 @@ public sealed class TimingWheel : IActivatable
 
     private long _tick;
     private int _disposed;
-    private IWorkerHandle _worker;
-    private CancellationTokenSource _cts;
+    private IWorkerHandle? _worker;
+    private CancellationTokenSource? _cts;
 
     #endregion Fields
 
@@ -122,7 +122,7 @@ public sealed class TimingWheel : IActivatable
     private sealed class TimeoutTask : IPoolable
     {
         /// <summary>The connection being monitored.</summary>
-        public IConnection Conn;
+        public IConnection? Conn;
 
         /// <summary>
         /// Number of full wheel revolutions remaining before the task fires.
@@ -139,7 +139,7 @@ public sealed class TimingWheel : IActivatable
         /// <summary>Resets all fields before returning to the pool.</summary>
         public void ResetForPool()
         {
-            Conn = default;
+            Conn = null;
             Rounds = 0;
             Version = 0;
         }
@@ -237,7 +237,7 @@ public sealed class TimingWheel : IActivatable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Deactivate(CancellationToken cancellationToken = default)
     {
-        CancellationTokenSource cts = Interlocked.Exchange(ref _cts, null);
+        CancellationTokenSource? cts = Interlocked.Exchange(ref _cts, null);
         if (cts is null)
         {
             return;
@@ -485,7 +485,7 @@ public sealed class TimingWheel : IActivatable
     #region Helpers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void OnConnectionClosed(object sender, IConnectEventArgs args)
+    private void OnConnectionClosed(object? sender, IConnectEventArgs args)
     {
         if (args?.Connection is not null)
         {
