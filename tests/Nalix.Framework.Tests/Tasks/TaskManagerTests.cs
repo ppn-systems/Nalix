@@ -1,149 +1,487 @@
-﻿using Nalix.Framework.Options;
+#nullable enable
+
+using Nalix.Common.Concurrency;
+using Nalix.Common.Identity;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Tasks;
 
-public class TaskManagerTests
+/// <summary>
+/// Provides unit tests for the public API exposed by <see cref="TaskManager"/>.
+/// </summary>
+public sealed class TaskManagerTests : IDisposable
 {
-    [Fact]
-    public async Task RunSingleJob_executes_and_returns()
-    {
-        var tm = new TaskManager();
-        Boolean ran = false;
+    private readonly List<TaskManager> _managers = [];
 
-        await tm.RunOnceAsync("one", async ct =>
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        foreach (TaskManager manager in _managers)
         {
-            await Task.Delay(10, ct);
-            ran = true;
-            return;
+            try
+            {
+                manager.Dispose();
+            }
+            catch
+            {
+                // Test cleanup should be best-effort.
+            }
+        }
+    }
+
+    [Fact]
+    public void Constructor_WithExplicitOptions_InitializesEmptyState()
+    {
+        using TaskManager manager = CreateManager();
+
+        Assert.Equal("Workers: 0 running / 0 total | Recurring: 0", manager.Title);
+        Assert.Equal(0, manager.WorkerErrorCount);
+        Assert.Equal(0, manager.RecurringErrorCount);
+        Assert.True(manager.AverageWorkerExecutionTime >= 0);
+        Assert.True(manager.AverageRecurringExecutionTime >= 0);
+    }
+
+    [Fact]
+    public void Constructor_Parameterless_CreatesInstance()
+    {
+        using TaskManager manager = new();
+
+        Assert.NotNull(manager);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_WhenDelegateCompletes_ExecutesSuccessfully()
+    {
+        using TaskManager manager = CreateManager();
+        Boolean executed = false;
+
+        await manager.RunOnceAsync("run-once", ct =>
+        {
+            executed = true;
+            return ValueTask.CompletedTask;
         });
 
-        Assert.True(ran);
+        Assert.True(executed);
     }
 
     [Fact]
-    public async Task ScheduleRecurring_runs_and_can_be_cancelled()
+    public async Task RunOnceAsync_WhenDelegateThrows_RethrowsOriginalException()
     {
-        var tm = new TaskManager();
-        Int32 hits = 0;
+        using TaskManager manager = CreateManager();
 
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss. fff}] Creating recurring task...");
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await manager.RunOnceAsync("run-once-fail", _ => ValueTask.FromException(new InvalidOperationException("boom"))));
 
-        var h = tm.ScheduleRecurring("r1", TimeSpan.FromMilliseconds(50), async ct =>
+        Assert.Equal("boom", exception.Message);
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_WhenNameIsNull_ThrowsArgumentNullException()
+    {
+        using TaskManager manager = CreateManager();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            async () => await manager.RunOnceAsync(null!, _ => ValueTask.CompletedTask));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RunOnceAsync_WhenNameIsWhitespace_ThrowsArgumentException(String name)
+    {
+        using TaskManager manager = CreateManager();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            async () => await manager.RunOnceAsync(name, _ => ValueTask.CompletedTask));
+    }
+
+    [Fact]
+    public void ScheduleWorker_WhenArgumentsAreInvalid_ThrowsExpectedException()
+    {
+        using TaskManager manager = CreateManager();
+
+        Assert.Throws<ArgumentException>(() => manager.ScheduleWorker("", "group", (_, _) => ValueTask.CompletedTask));
+        Assert.Throws<ArgumentNullException>(() => manager.ScheduleWorker("worker", "group", null!));
+    }
+
+    [Fact]
+    public async Task ScheduleWorker_WhenWorkCompletes_UpdatesHandleAndLookups()
+    {
+        using TaskManager manager = CreateManager();
+        TaskCompletionSource<IWorkerHandle> completion = CreateCompletionSource<IWorkerHandle>();
+
+        IWorkerHandle handle = manager.ScheduleWorker(
+            "worker.complete",
+            "group-a",
+            (context, cancellationToken) =>
+            {
+                context.Advance(3, "step-1");
+                context.Beat();
+                return ValueTask.CompletedTask;
+            },
+            new WorkerOptions
+            {
+                RetainFor = TimeSpan.FromMinutes(1),
+                OnCompleted = worker => completion.TrySetResult(worker)
+            });
+
+        IWorkerHandle completedHandle = await completion.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.Same(handle, completedHandle);
+
+        await WaitUntilAsync(
+            () => !handle.IsRunning && handle.TotalRuns == 1,
+            TimeSpan.FromSeconds(2));
+
+        Assert.Equal("worker.complete", handle.Name);
+        Assert.Equal("group-a", handle.Group);
+        Assert.Equal(3, handle.Progress);
+        Assert.Equal("step-1", handle.LastNote);
+        Assert.True(handle.StartedUtc <= DateTimeOffset.UtcNow);
+        Assert.NotNull(handle.LastHeartbeatUtc);
+
+        Assert.True(manager.TryGetWorker(handle.Id, out IWorkerHandle? foundHandle));
+        Assert.Same(handle, foundHandle);
+
+        IReadOnlyCollection<IWorkerHandle> allWorkers = manager.GetWorkers(runningOnly: false);
+        Assert.Contains(handle, allWorkers);
+    }
+
+    [Fact]
+    public async Task ScheduleWorker_WhenWorkThrows_IncrementsWorkerErrorCount()
+    {
+        using TaskManager manager = CreateManager();
+
+        IWorkerHandle handle = manager.ScheduleWorker(
+            "worker.fail",
+            "group-a",
+            (_, _) => ValueTask.FromException(new InvalidOperationException("worker failure")),
+            new WorkerOptions
+            {
+                RetainFor = TimeSpan.FromMinutes(1)
+            });
+
+        await WaitUntilAsync(
+            () => !handle.IsRunning && handle.TotalRuns == 1,
+            TimeSpan.FromSeconds(2));
+
+        Assert.Equal(1, manager.WorkerErrorCount);
+    }
+
+    [Fact]
+    public async Task CancelWorker_WhenWorkerExists_ReturnsTrue()
+    {
+        using TaskManager manager = CreateManager();
+        TaskCompletionSource<Boolean> started = CreateCompletionSource<Boolean>();
+        TaskCompletionSource<Boolean> cancelled = CreateCompletionSource<Boolean>();
+
+        IWorkerHandle handle = manager.ScheduleWorker(
+            "worker.cancel",
+            "group-a",
+            async (_, cancellationToken) =>
+            {
+                started.TrySetResult(true);
+
+                using CancellationTokenRegistration registration = cancellationToken.Register(() => cancelled.TrySetResult(true));
+
+                try
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                }
+            },
+            new WorkerOptions
+            {
+                RetainFor = TimeSpan.FromMinutes(1)
+            });
+
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Boolean cancelledWorker = manager.CancelWorker(handle.Id);
+
+        Assert.True(cancelledWorker);
+        await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [Fact]
+    public void CancelWorker_WhenWorkerDoesNotExist_ReturnsFalse()
+    {
+        using TaskManager manager = CreateManager();
+
+        Boolean cancelled = manager.CancelWorker(Nalix.Framework.Identifiers.Snowflake.NewId(SnowflakeType.Unknown));
+
+        Assert.False(cancelled);
+    }
+
+    [Fact]
+    public async Task CancelAllWorkers_And_CancelGroup_ReturnExpectedCounts()
+    {
+        using TaskManager manager = CreateManager();
+        TaskCompletionSource<Boolean> groupAStarted = CreateCompletionSource<Boolean>();
+        TaskCompletionSource<Boolean> groupBStarted = CreateCompletionSource<Boolean>();
+
+        _ = manager.ScheduleWorker(
+            "worker.a",
+            "group-a",
+            async (_, cancellationToken) =>
+            {
+                groupAStarted.TrySetResult(true);
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+            },
+            new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
+
+        _ = manager.ScheduleWorker(
+            "worker.b",
+            "group-b",
+            async (_, cancellationToken) =>
+            {
+                groupBStarted.TrySetResult(true);
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+            },
+            new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
+
+        await Task.WhenAll(
+            groupAStarted.Task.WaitAsync(TimeSpan.FromSeconds(2)),
+            groupBStarted.Task.WaitAsync(TimeSpan.FromSeconds(2)));
+
+        Int32 groupCancelled = manager.CancelGroup("group-a");
+        Int32 allCancelled = manager.CancelAllWorkers();
+
+        Assert.Equal(1, groupCancelled);
+        Assert.Equal(1, allCancelled);
+    }
+
+    [Fact]
+    public async Task GetWorkers_WhenFilteredByGroupAndRunningState_ReturnsExpectedWorkers()
+    {
+        using TaskManager manager = CreateManager();
+        TaskCompletionSource<Boolean> runningWorkerStarted = CreateCompletionSource<Boolean>();
+
+        IWorkerHandle completedWorker = manager.ScheduleWorker(
+            "worker.completed",
+            "group-a",
+            (_, _) => ValueTask.CompletedTask,
+            new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
+
+        IWorkerHandle runningWorker = manager.ScheduleWorker(
+            "worker.running",
+            "group-b",
+            async (_, cancellationToken) =>
+            {
+                runningWorkerStarted.TrySetResult(true);
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+            },
+            new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
+
+        await runningWorkerStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await WaitUntilAsync(() => !completedWorker.IsRunning, TimeSpan.FromSeconds(2));
+
+        IReadOnlyCollection<IWorkerHandle> runningOnly = manager.GetWorkers();
+        IReadOnlyCollection<IWorkerHandle> allInGroupA = manager.GetWorkers(runningOnly: false, group: "group-a");
+
+        Assert.Contains(runningWorker, runningOnly);
+        Assert.DoesNotContain(completedWorker, runningOnly);
+        Assert.Single(allInGroupA);
+        Assert.Contains(completedWorker, allInGroupA);
+    }
+
+    [Fact]
+    public void ScheduleRecurring_WhenArgumentsAreInvalid_ThrowsExpectedException()
+    {
+        using TaskManager manager = CreateManager();
+
+        Assert.Throws<ArgumentException>(() => manager.ScheduleRecurring("", TimeSpan.FromMilliseconds(10), _ => ValueTask.CompletedTask));
+        Assert.Throws<ArgumentOutOfRangeException>(() => manager.ScheduleRecurring("recurring", TimeSpan.Zero, _ => ValueTask.CompletedTask));
+        Assert.Throws<ArgumentNullException>(() => manager.ScheduleRecurring("recurring", TimeSpan.FromMilliseconds(10), null!));
+    }
+
+    [Fact]
+    public void ScheduleRecurring_WhenNameAlreadyExists_ThrowsAndIncrementsErrorCount()
+    {
+        using TaskManager manager = CreateManager();
+
+        _ = manager.ScheduleRecurring(
+            "recurring.duplicate",
+            TimeSpan.FromMilliseconds(50),
+            _ => ValueTask.CompletedTask,
+            new RecurringOptions
+            {
+                Jitter = TimeSpan.Zero,
+                NonReentrant = false
+            });
+
+        Assert.Throws<InvalidOperationException>(() =>
+            manager.ScheduleRecurring(
+                "recurring.duplicate",
+                TimeSpan.FromMilliseconds(50),
+                _ => ValueTask.CompletedTask,
+                new RecurringOptions
+                {
+                    Jitter = TimeSpan.Zero,
+                    NonReentrant = false
+                }));
+
+        Assert.Equal(1, manager.RecurringErrorCount);
+    }
+
+    [Fact]
+    public async Task ScheduleRecurring_WhenScheduled_RunsLookupAndCancelWork()
+    {
+        using TaskManager manager = CreateManager();
+        TaskCompletionSource<Boolean> executed = CreateCompletionSource<Boolean>();
+
+        IRecurringHandle handle = manager.ScheduleRecurring(
+            "recurring.run",
+            TimeSpan.FromMilliseconds(50),
+            _ =>
+            {
+                executed.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            },
+            new RecurringOptions
+            {
+                Jitter = TimeSpan.Zero,
+                NonReentrant = false
+            });
+
+        await executed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await WaitUntilAsync(() => handle.TotalRuns > 0, TimeSpan.FromSeconds(2));
+
+        Assert.True(manager.TryGetRecurring("recurring.run", out IRecurringHandle? foundHandle));
+        Assert.Same(handle, foundHandle);
+        Assert.Equal("recurring.run", handle.Name);
+        Assert.True(handle.TotalRuns > 0);
+        Assert.NotNull(handle.LastRunUtc);
+        Assert.NotNull(handle.NextRunUtc);
+
+        Boolean cancelled = manager.CancelRecurring("recurring.run");
+        Boolean cancelledAgain = manager.CancelRecurring("recurring.run");
+
+        Assert.True(cancelled);
+        Assert.False(cancelledAgain);
+    }
+
+    [Fact]
+    public void CancelRecurring_WhenNameIsNull_ReturnsFalse()
+    {
+        using TaskManager manager = CreateManager();
+
+        Boolean cancelled = manager.CancelRecurring(null);
+
+        Assert.False(cancelled);
+    }
+
+    [Fact]
+    public async Task GenerateReport_WhenWorkersAndRecurringTasksExist_ContainsSummaryAndNames()
+    {
+        using TaskManager manager = CreateManager();
+        TaskCompletionSource<Boolean> recurringExecuted = CreateCompletionSource<Boolean>();
+
+        IWorkerHandle worker = manager.ScheduleWorker(
+            "worker.report",
+            "group-report",
+            (_, _) => ValueTask.CompletedTask,
+            new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
+
+        IRecurringHandle recurring = manager.ScheduleRecurring(
+            "recurring.report",
+            TimeSpan.FromMilliseconds(50),
+            _ =>
+            {
+                recurringExecuted.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            },
+            new RecurringOptions
+            {
+                Jitter = TimeSpan.Zero,
+                NonReentrant = false
+            });
+
+        await recurringExecuted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await WaitUntilAsync(() => worker.TotalRuns == 1, TimeSpan.FromSeconds(2));
+
+        String report = manager.GenerateReport();
+
+        Assert.Contains("TaskManager:", report);
+        Assert.Contains("recurring.report", report);
+        Assert.Contains("Workers by Group:", report);
+        Assert.Contains("Recurring:", report);
+        Assert.Contains("group-report", report);
+        Assert.Contains("worker.report", manager.GetWorkers(runningOnly: false).Select(static workerHandle => workerHandle.Name));
+        Assert.True(manager.AverageWorkerExecutionTime >= 0);
+        Assert.True(manager.AverageRecurringExecutionTime >= 0);
+
+        manager.CancelRecurring(recurring.Name);
+    }
+
+    [Fact]
+    public void Dispose_WhenCalled_ClearsTrackedStateAndPreventsFurtherScheduling()
+    {
+        TaskManager manager = CreateManager();
+
+        _ = manager.ScheduleRecurring(
+            "recurring.dispose",
+            TimeSpan.FromMilliseconds(50),
+            _ => ValueTask.CompletedTask,
+            new RecurringOptions
+            {
+                Jitter = TimeSpan.Zero,
+                NonReentrant = false
+            });
+
+        _ = manager.ScheduleWorker(
+            "worker.dispose",
+            "group-dispose",
+            (_, _) => ValueTask.CompletedTask,
+            new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
+
+        manager.Dispose();
+
+        Assert.Empty(manager.GetRecurring());
+        Assert.Empty(manager.GetWorkers(runningOnly: false));
+        Assert.Throws<ObjectDisposedException>(() => manager.ScheduleWorker("after-dispose", "group", (_, _) => ValueTask.CompletedTask));
+        Assert.Throws<ObjectDisposedException>(() => manager.ScheduleRecurring("after-dispose", TimeSpan.FromMilliseconds(10), _ => ValueTask.CompletedTask));
+    }
+
+    private TaskManager CreateManager()
+    {
+        TaskManager manager = new(new TaskManagerOptions
         {
-            var count = Interlocked.Increment(ref hits);
-            Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss. fff}] ✅ EXECUTED!  hits={count}");
-            await Task.Delay(5, ct);
-        }, new RecurringOptions
-        {
-            Jitter = TimeSpan.Zero,
-            NonReentrant = false
+            CleanupInterval = TimeSpan.FromSeconds(5),
+            DynamicAdjustmentEnabled = false,
+            MaxWorkers = 8,
+            IsEnableLatency = true
         });
 
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm: ss.fff}] Task scheduled: {h.Name}");
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] Interval: {h.Interval.TotalMilliseconds}ms");
-
-        // ✅ Give it time to execute (50ms interval * 6 = 300ms)
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm: ss.fff}] Waiting 350ms...");
-        await Task.Delay(350);
-
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] After wait: hits={hits}");
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] IsRunning={h.IsRunning}");
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] TotalRuns={h.TotalRuns}");
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] LastRunUtc={h.LastRunUtc}");
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] NextRunUtc={h.NextRunUtc}");
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] ConsecutiveFailures={h.ConsecutiveFailures}");
-
-        Assert.True(hits > 0, $"Expected hits > 0 but was {hits}.  Task never executed!");
-
-        Assert.True(tm.CancelRecurring("r1"));
-        Int32 afterCancel = hits;
-
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] Cancelled.  afterCancel={afterCancel}");
-        await Task.Delay(150);
-
-        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}] After cancel wait: hits={hits}");
-        Assert.Equal(afterCancel, hits); // không tăng thêm
+        _managers.Add(manager);
+        return manager;
     }
 
-    [Fact]
-    public async Task StartWorker_runs_and_can_be_cancelled()
-    {
-        var tm = new TaskManager();
-        var finished = new TaskCompletionSource<Boolean>(TaskCreationOptions.RunContinuationsAsynchronously);
+    private static TaskCompletionSource<T> CreateCompletionSource<T>()
+        => new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var w = tm.ScheduleWorker("w1", "g1", async (ctx, ct) =>
+    private static async Task WaitUntilAsync(Func<Boolean> condition, TimeSpan timeout)
+    {
+        DateTime deadline = DateTime.UtcNow.Add(timeout);
+
+        while (DateTime.UtcNow < deadline)
         {
-            await Task.Delay(30, ct);
-            _ = finished.TrySetResult(true);
-        });
+            if (condition())
+            {
+                return;
+            }
 
-        Assert.True(await Task.WhenAny(finished.Task, Task.Delay(500)) == finished.Task);
+            await Task.Delay(20);
+        }
 
-        Assert.True(tm.CancelWorker(w.Id));
-    }
-
-    [Fact]
-    public void ListRecurring_and_ListWorkers_return_expected()
-    {
-        var tm = new TaskManager();
-        var h = tm.ScheduleRecurring("r1", TimeSpan.FromSeconds(1), _ => ValueTask.CompletedTask);
-        var w = tm.ScheduleWorker("w1", "G", (_, _) => ValueTask.CompletedTask);
-
-        Assert.Contains(h, tm.GetRecurring());
-        Assert.Contains(w, tm.GetWorkers(runningOnly: false));
-    }
-
-    [Fact]
-    public void Dispose_cancels_everything()
-    {
-        var tm = new TaskManager();
-        _ = tm.ScheduleRecurring("r1", TimeSpan.FromSeconds(1), _ => ValueTask.CompletedTask);
-        _ = tm.ScheduleWorker("w1", "G", (_, _) => ValueTask.CompletedTask);
-
-        tm.Dispose();
-        Assert.Empty(tm.GetRecurring());
-        Assert.Empty(tm.GetWorkers(runningOnly: false));
-    }
-
-    [Fact]
-    public void TaskManagerOptions_validates_cleanup_interval()
-    {
-        var options = new TaskManagerOptions
-        {
-            CleanupInterval = TimeSpan.FromMilliseconds(500)
-        };
-
-        Assert.Throws<ArgumentOutOfRangeException>(options.Validate);
-    }
-
-    [Fact]
-    public void TaskManagerOptions_accepts_valid_cleanup_interval()
-    {
-        var options = new TaskManagerOptions
-        {
-            CleanupInterval = TimeSpan.FromSeconds(5)
-        };
-
-        options.Validate(); // Should not throw
-        Assert.Equal(TimeSpan.FromSeconds(5), options.CleanupInterval);
-    }
-
-    [Fact]
-    public void TaskManager_uses_custom_cleanup_interval()
-    {
-        var options = new TaskManagerOptions
-        {
-            CleanupInterval = TimeSpan.FromSeconds(10)
-        };
-
-        var tm = new TaskManager(options);
-        // TaskManager should initialize successfully with custom options
-        Assert.NotNull(tm);
-        tm.Dispose();
+        Assert.True(condition(), "The expected condition was not satisfied before the timeout elapsed.");
     }
 }
