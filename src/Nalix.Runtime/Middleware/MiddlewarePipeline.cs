@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
@@ -37,8 +36,6 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
     private Action<Exception, Type>? _errorHandler;
     private PipelineSnapshot _snapshot = PipelineSnapshot.Empty;
-
-    private static readonly Func<CancellationToken, ValueTask> s_noopFinal = static _ => ValueTask.CompletedTask;
 
     private static readonly ConcurrentDictionary<Type, MiddlewareMetadata> s_metadataCache = new();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
@@ -153,7 +150,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         runner ??= s_pool.Get<PooledPipelineContext>();
 
         // Initialize for full pipeline execution to avoid intermediate closures.
-        runner.InitializeFull(this, snapshot, context, handler, ct);
+        runner.InitializeFull(snapshot, context, handler, ct);
 
         ValueTask pending = runner.RunAsync();
         if (pending.IsCompletedSuccessfully)
@@ -374,7 +371,6 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         private Func<CancellationToken, ValueTask>[] _steps = [];
 
         // Full pipeline state
-        private MiddlewarePipeline<TPacket>? _owner;
         private PipelineSnapshot? _snapshot;
         private PipelineStage _currentStage;
         private Func<CancellationToken, ValueTask>? _rootHandler;
@@ -402,13 +398,11 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         }
 
         public void InitializeFull(
-            MiddlewarePipeline<TPacket> owner,
             PipelineSnapshot snapshot,
             PacketContext<TPacket> context,
             Func<CancellationToken, ValueTask> handler,
             CancellationToken ct)
         {
-            _owner = owner;
             _snapshot = snapshot;
             _context = context;
             _rootHandler = handler;
@@ -429,7 +423,6 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             _rootCt = default;
             _continueOnError = false;
             _errorHandler = null;
-            _owner = null;
             _snapshot = null;
             _rootHandler = null;
             _currentStage = PipelineStage.None;

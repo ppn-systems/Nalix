@@ -10,10 +10,6 @@
 		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<InternalsVisibleTo Include="Nalix.Runtime.Tests" />
-	</ItemGroup>
-
 	<PropertyGroup>
 
 		<Description><![CDATA[
