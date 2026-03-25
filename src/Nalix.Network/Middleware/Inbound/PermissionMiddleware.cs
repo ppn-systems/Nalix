@@ -42,7 +42,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
             $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
 
-        System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
+        uint sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
 
         try
         {
@@ -52,8 +52,8 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 action: ProtocolAdvice.NONE,
                 sequenceId: sequenceId,
                 flags: ControlFlags.NONE,
-                arg0: (System.Byte)context.Attributes.Permission.Level,
-                arg1: (System.Byte)context.Connection.Level,
+                arg0: (byte)context.Attributes.Permission.Level,
+                arg1: (byte)context.Connection.Level,
                 arg2: context.Attributes.PacketOpcode.OpCode).ConfigureAwait(false);
         }
         catch (System.Exception ex)

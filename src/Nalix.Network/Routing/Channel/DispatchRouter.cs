@@ -13,22 +13,22 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
 {
     #region Fields
 
-    private readonly System.Int32 _mask;
+    private readonly int _mask;
     private readonly DispatchChannel<TPacket>[] _shards;
 
-    private System.Int32 _pullIndex;
+    private int _pullIndex;
 
     #endregion Fields
 
     #region Properties
 
     /// <inheritdoc/>
-    public System.Int64 TotalPackets
+    public long TotalPackets
     {
         get
         {
-            System.Int64 total = 0;
-            for (System.Int32 i = 0; i < _shards.Length; i++)
+            long total = 0;
+            for (int i = 0; i < _shards.Length; i++)
             {
                 total += _shards[i].TotalPackets;
             }
@@ -41,14 +41,14 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
     #region Constructors
 
     /// <inheritdoc/>
-    public DispatchRouter(System.Int32 shardCount)
+    public DispatchRouter(int shardCount)
     {
-        shardCount = (System.Int32)System.Numerics.BitOperations.RoundUpToPowerOf2((System.UInt32)shardCount);
+        shardCount = (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)shardCount);
 
         _mask = shardCount - 1;
         _shards = new DispatchChannel<TPacket>[shardCount];
 
-        for (System.Int32 i = 0; i < shardCount; i++)
+        for (int i = 0; i < shardCount; i++)
         {
             _shards[i] = new DispatchChannel<TPacket>();
         }
@@ -61,27 +61,27 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
     /// <inheritdoc/>
     public void Push(
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNull] IBufferLease lease)
-        => GET_SHARD(connection).Push(connection, lease);
+        [System.Diagnostics.CodeAnalysis.NotNull] IBufferLease raw)
+        => GET_SHARD(connection).Push(connection, raw);
 
     /// <inheritdoc/>
-    public System.Boolean Pull(
+    public bool Pull(
         [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection connection,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease lease)
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease raw)
     {
         // Simple round-robin or random over shards
-        System.Int32 start = System.Threading.Interlocked.Increment(ref _pullIndex) & _mask;
+        int start = System.Threading.Interlocked.Increment(ref _pullIndex) & _mask;
 
-        for (System.Int32 i = 0; i < _shards.Length; i++)
+        for (int i = 0; i < _shards.Length; i++)
         {
-            if (_shards[(start + i) & _mask].Pull(out connection, out lease))
+            if (_shards[(start + i) & _mask].Pull(out connection, out raw))
             {
                 return true;
             }
         }
 
-        lease = default!;
-        connection = default!;
+        raw = default;
+        connection = default;
 
         return false;
     }
@@ -90,7 +90,11 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
 
     #region Private Methods
 
-    // Use stable per-connection id / endpoint hash
+    /// <summary>
+    /// Use stable per-connection id / endpoint hash
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <returns></returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private DispatchChannel<TPacket> GET_SHARD(IConnection connection) => _shards[connection.ID.GetHashCode() & _mask];

@@ -17,11 +17,11 @@ namespace Nalix.Network.Routing.Results;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 internal sealed class UnsupportedReturnHandler<TPacket>(System.Type returnType) : IReturnHandler<TPacket> where TPacket : IPacket
 {
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, System.Boolean> _loggedTypes = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Type, bool> _loggedTypes = new();
 
     /// <inheritdoc/>
     public System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context)
     {
         if (_loggedTypes.TryAdd(returnType, true))

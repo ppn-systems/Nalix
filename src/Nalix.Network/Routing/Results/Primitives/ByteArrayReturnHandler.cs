@@ -13,10 +13,10 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket> 
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context)
     {
-        if (result is not System.Byte[] data)
+        if (result is not byte[] data)
         {
             return;
         }
@@ -35,7 +35,7 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket> 
 
         try
         {
-            System.Boolean sent = await context.Connection.TCP.SendAsync(data).ConfigureAwait(false);
+            bool sent = await context.Connection.TCP.SendAsync(data).ConfigureAwait(false);
             if (!sent)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?

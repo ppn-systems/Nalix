@@ -9,21 +9,27 @@ namespace Nalix.Network.Routing.Metadata;
 /// Enhanced version of <c>PacketHandler</c> using compiled delegates for zero-allocation execution.
 /// </summary>
 /// <typeparam name="TPacket">The packet type handled by this delegate.</typeparam>
+/// <param name="opCode"></param>
+/// <param name="metadata"></param>
+/// <param name="controllerInstance"></param>
+/// <param name="method"></param>
+/// <param name="returnType"></param>
+/// <param name="compiledInvoker"></param>
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 [method: System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public readonly struct PacketHandler<TPacket>(
-    System.UInt16 opCode, PacketMetadata metadata,
-    System.Object controllerInstance, System.Reflection.MethodInfo method, System.Type returnType,
-    System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> compiledInvoker) where TPacket : IPacket
+    ushort opCode, PacketMetadata metadata,
+    object controllerInstance, System.Reflection.MethodInfo method, System.Type returnType,
+    System.Func<object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<object>> compiledInvoker) where TPacket : IPacket
 {
     #region Fields
 
     /// <summary>
     /// The OpCode associated with this packet handler.
     /// </summary>
-    public readonly System.UInt16 OpCode = opCode;
+    public readonly ushort OpCode = opCode;
 
     /// <summary>
     /// The return type of the handler method.
@@ -38,7 +44,7 @@ public readonly struct PacketHandler<TPacket>(
     /// <summary>
     /// The controller instance to invoke the handler on (cached for reuse).
     /// </summary>
-    public readonly System.Object Instance = controllerInstance;
+    public readonly object Instance = controllerInstance;
 
     /// <summary>
     /// The original method info, useful for debugging or reflection fallback.
@@ -49,8 +55,8 @@ public readonly struct PacketHandler<TPacket>(
     /// A compiled delegate for invoking the handler directly.
     /// PERFORMANCE CRITICAL: avoids reflection and allocations.
     /// </summary>
-    public readonly System.Func<System.Object, PacketContext<TPacket>,
-                    System.Threading.Tasks.ValueTask<System.Object>> Invoker = compiledInvoker;
+    public readonly System.Func<object, PacketContext<TPacket>,
+                    System.Threading.Tasks.ValueTask<object>> Invoker = compiledInvoker;
 
     #endregion Fields
 
@@ -66,11 +72,12 @@ public readonly struct PacketHandler<TPacket>(
     /// </returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Threading.Tasks.ValueTask<System.Object> ExecuteAsync(PacketContext<TPacket> context) => Invoker(Instance, context);
+    public System.Threading.Tasks.ValueTask<object> ExecuteAsync(PacketContext<TPacket> context) => Invoker(Instance, context);
 
     /// <summary>
     /// Determines whether this handler can be executed for the specified packet context.
     /// </summary>
+    /// <param name="_"></param>
     /// <returns><see langword="true"/> if the handler can be executed; otherwise, <see langword="false"/>.</returns>
     /// <remarks>
     /// This method can be extended to implement validation logic such as:
@@ -82,7 +89,7 @@ public readonly struct PacketHandler<TPacket>(
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.Boolean CanExecute(PacketContext<TPacket> _) => true;
+    public bool CanExecute(PacketContext<TPacket> _) => true;
 
     #endregion Methods
 }

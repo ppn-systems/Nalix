@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Threading;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -20,21 +21,21 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
     /// <inheritdoc/>
     public async System.Threading.Tasks.Task InvokeAsync(
         PacketContext<IPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next)
+        System.Func<CancellationToken, System.Threading.Tasks.Task> next)
     {
-        System.Int32 timeout = context.Attributes.Timeout?.TimeoutMilliseconds ?? 0;
+        int timeout = context.Attributes.Timeout?.TimeoutMilliseconds ?? 0;
         if (timeout <= 0)
         {
             await next(context.CancellationToken).ConfigureAwait(false);
             return;
         }
 
-        System.Threading.CancellationToken tokenToUse;
-        using System.Threading.CancellationTokenSource timeoutCts = new(timeout);
+        CancellationToken tokenToUse;
+        using CancellationTokenSource timeoutCts = new(timeout);
 
         if (timeout > 10_000 && context.CancellationToken.CanBeCanceled)
         {
-            using var linkedCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, timeoutCts.Token);
+            using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, timeoutCts.Token);
             tokenToUse = linkedCts.Token;
             await ExecuteHandlerAsync(timeout, context, next, tokenToUse);
         }
@@ -46,10 +47,10 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
     }
 
     private static async System.Threading.Tasks.Task ExecuteHandlerAsync(
-        System.Int32 timeout,
+        int timeout,
         PacketContext<IPacket> context,
-        System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task> next,
-        System.Threading.CancellationToken token)
+        System.Func<CancellationToken, System.Threading.Tasks.Task> next,
+        CancellationToken token)
     {
         try
         {
@@ -57,7 +58,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         }
         catch (System.OperationCanceledException) when (token.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
         {
-            System.UInt32 sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
+            uint sequenceId = context.Packet is IPacketSequenced sequenced ? sequenced.SequenceId : 0;
 
             try
             {
@@ -67,7 +68,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
                     ProtocolAdvice.RETRY,
                     sequenceId: sequenceId,
                     flags: ControlFlags.IS_TRANSIENT,
-                    arg0: (System.UInt32)(timeout / 100),
+                    arg0: (uint)(timeout / 100),
                     arg1: 0, arg2: 0
                 ).ConfigureAwait(false);
             }

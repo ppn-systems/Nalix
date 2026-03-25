@@ -13,6 +13,7 @@ namespace Nalix.Network.Routing.Results.Primitives;
 /// Selects the smallest text-packet type that fits a UTF-8 payload and sends it.
 /// Falls back to chunking when no single packet can hold the entire content.
 /// </summary>
+/// <typeparam name="TPacket"></typeparam>
 /// <remarks>
 /// - Chooses the minimal packet size to avoid memory waste.
 /// - Splits on Unicode rune boundaries (no broken multi-byte characters).
@@ -23,12 +24,12 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 {
     /// <inheritdoc/>
     public async System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.Object result,
+        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context)
     {
-        if (result is System.String data)
+        if (result is string data)
         {
-            System.Int32 byteCount = System.Text.Encoding.UTF8.GetByteCount(data);
+            int byteCount = System.Text.Encoding.UTF8.GetByteCount(data);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[{nameof(StringReturnHandler<>)}] " +
@@ -39,11 +40,11 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             {
                 if (byteCount <= c.MaxBytes)
                 {
-                    var pkt = c.Rent();
+                    object pkt = c.Rent();
                     try
                     {
                         c.Initialize(pkt, data);
-                        System.Byte[] buffer = c.Serialize(pkt);
+                        byte[] buffer = c.Serialize(pkt);
 
                         if (context?.Connection?.TCP == null)
                         {
@@ -54,7 +55,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
                         try
                         {
-                            System.Boolean sent = await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
+                            bool sent = await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
                             if (!sent)
                             {
                                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -85,17 +86,17 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             }
 
             Candidate max = UTF8_STRING.Candidates[^1];
-            foreach (System.String part in UTF8_STRING.Split(data, max.MaxBytes))
+            foreach (string part in UTF8_STRING.Split(data, max.MaxBytes))
             {
-                var pkt = max.Rent();
+                object pkt = max.Rent();
                 try
                 {
                     max.Initialize(pkt, part);
-                    System.Byte[] buffer = max.Serialize(pkt);
+                    byte[] buffer = max.Serialize(pkt);
 
                     try
                     {
-                        System.Boolean sent = await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
+                        bool sent = await context.Connection.TCP.SendAsync(buffer).ConfigureAwait(false);
                         if (!sent)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -126,12 +127,12 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 /// </summary>
 internal sealed class Candidate
 {
-    public required System.String Name;
-    public required System.Int32 MaxBytes;
-    public required System.Func<System.Object> Rent;
-    public required System.Action<System.Object> Return;
-    public required System.Func<System.Object, System.Byte[]> Serialize;
-    public required System.Action<System.Object, System.String> Initialize;
+    public required string Name;
+    public required int MaxBytes;
+    public required System.Func<object> Rent;
+    public required System.Action<object> Return;
+    public required System.Func<object, byte[]> Serialize;
+    public required System.Action<object, string> Initialize;
 }
 
 internal static class UTF8_STRING
@@ -174,33 +175,33 @@ internal static class UTF8_STRING
     /// <param name="s">The input string.</param>
     /// <param name="byteLimit">Maximum bytes per segment (UTF-8).</param>
     /// <returns>An enumerable of segments.</returns>
-    internal static System.Collections.Generic.IEnumerable<System.String> Split(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.String s,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] System.Int32 byteLimit)
+    internal static System.Collections.Generic.IEnumerable<string> Split(
+        [System.Diagnostics.CodeAnalysis.DisallowNull] string s,
+        [System.Diagnostics.CodeAnalysis.DisallowNull] int byteLimit)
     {
         System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteLimit);
 
         if (s.Length == 0)
         {
-            yield return System.String.Empty;
+            yield return string.Empty;
             yield break;
         }
 
         System.Text.Encoder encoder = System.Text.Encoding.UTF8.GetEncoder();
-        System.Int32 i = 0;
+        int i = 0;
         while (i < s.Length)
         {
-            System.Int32 start = i;
-            System.Int32 bytesUsed = 0;
+            int start = i;
+            int bytesUsed = 0;
 
             // Accumulate runes until the next one would exceed the byte limit.
             while (i < s.Length)
             {
                 // Get the next rune (safe on surrogate pairs).
-                if (!System.Char.IsSurrogatePair(s, i))
+                if (!char.IsSurrogatePair(s, i))
                 {
                     // Single char rune
-                    System.Span<System.Char> ch = [s[i]];
+                    System.Span<char> ch = [s[i]];
                     if (!Measure(ch, ref bytesUsed, byteLimit, encoder))
                     {
                         break;
@@ -211,7 +212,7 @@ internal static class UTF8_STRING
                 else
                 {
                     // Surrogate pair rune
-                    System.Span<System.Char> ch2 = [s[i], s[i + 1]];
+                    System.Span<char> ch2 = [s[i], s[i + 1]];
                     if (!Measure(ch2, ref bytesUsed, byteLimit, encoder))
                     {
                         break;
@@ -229,24 +230,24 @@ internal static class UTF8_STRING
         // Local: simulate encoding to check size incrementally without allocating strings.
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        static System.Boolean Measure(
-            [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<System.Char> chars,
-            [System.Diagnostics.CodeAnalysis.DisallowNull] ref System.Int32 used,
-            [System.Diagnostics.CodeAnalysis.DisallowNull] System.Int32 limit,
+        static bool Measure(
+            [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<char> chars,
+            [System.Diagnostics.CodeAnalysis.DisallowNull] ref int used,
+            [System.Diagnostics.CodeAnalysis.DisallowNull] int limit,
             [System.Diagnostics.CodeAnalysis.DisallowNull] System.Text.Encoder enc)
         {
             enc.Convert(chars, [], flush: false,
-                        out System.Int32 charsUsed, out System.Int32 bytesUsed, out System.Boolean completed);
+                        out int charsUsed, out int bytesUsed, out bool completed);
             // Re-run with a real buffer of the remaining space to get accurate bytes.
-            System.Int32 remaining = limit - used;
+            int remaining = limit - used;
             if (remaining <= 0)
             {
                 return false;
             }
 
-            System.Span<System.Byte> tmp = stackalloc System.Byte[System.Math.Min(remaining, 8)]; // small probe
+            System.Span<byte> tmp = stackalloc byte[System.Math.Min(remaining, 8)]; // small probe
             enc.Convert(chars, tmp, flush: false,
-                        out _, out System.Int32 b2, out _);
+                        out _, out int b2, out _);
 
             if (used + b2 > limit)
             {

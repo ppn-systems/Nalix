@@ -46,30 +46,38 @@ internal static class AsyncCallback
 {
     #region Options
 
-    // Loaded once at startup from NetworkCallbackOptions via ConfigurationManager.
-    // All throttle values are read from config so they can be tuned without recompile.
+    /// <summary>
+    /// Loaded once at startup from NetworkCallbackOptions via ConfigurationManager.
+    /// All throttle values are read from config so they can be tuned without recompile.
+    /// </summary>
     private static readonly NetworkCallbackOptions s_opts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
 
     #endregion Options
 
     #region Fields
 
-    // ── Global counters ────────────────────────────────────────────────────────
-    private static System.Int32 s_pendingNormal;
-    private static System.Int64 s_droppedCallbacks;
-    private static System.Int64 s_totalInvoked;
+    /// <summary>
+    /// ── Global counters ────────────────────────────────────────────────────────
+    /// </summary>
+    private static int s_pendingNormal;
+    private static long s_droppedCallbacks;
+    private static long s_totalInvoked;
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    // ── Per-IP pending counter ─────────────────────────────────────────────────
-    // Key   = remote IP string (e.g. "192.168.1.1")
-    // Value = number of normal callbacks currently queued for that IP
-    // Entries are removed when the counter reaches zero to avoid unbounded growth.
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, System.Int32> s_perIpPending = new();
+    /// <summary>
+    /// ── Per-IP pending counter ─────────────────────────────────────────────────
+    /// Key   = remote IP string (e.g. "192.168.1.1")
+    /// Value = number of normal callbacks currently queued for that IP
+    /// Entries are removed when the counter reaches zero to avoid unbounded growth.
+    /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, int> s_perIpPending = new();
 
-    // ── Static delegates — no closures, no per-invocation allocations ──────────
-    private static readonly System.Action<System.Object> s_invokeNormal = static stateObj =>
+    /// <summary>
+    /// ── Static delegates — no closures, no per-invocation allocations ──────────
+    /// </summary>
+    private static readonly System.Action<object> s_invokeNormal = static stateObj =>
     {
         if (stateObj is not PooledConnectEventContext w)
         {
@@ -77,25 +85,25 @@ internal static class AsyncCallback
         }
 
         // Decrement global counter first.
-        System.Threading.Interlocked.Decrement(ref s_pendingNormal);
+        _ = System.Threading.Interlocked.Decrement(ref s_pendingNormal);
 
         // Decrement per-IP counter; remove key when it hits zero.
         if (w.Args.NetworkEndpoint is not null)
         {
-            s_perIpPending.AddOrUpdate(w.Args.NetworkEndpoint, addValueFactory: static (_, __) => 0,
-                updateValueFactory: static (_, current, __) => current > 1 ? current - 1 : 0, factoryArgument: (System.Object)null!);
+            _ = s_perIpPending.AddOrUpdate(w.Args.NetworkEndpoint, addValueFactory: static (_, __) => 0,
+                updateValueFactory: static (_, current, __) => current > 1 ? current - 1 : 0, factoryArgument: (object)null);
 
             // Clean up zero-valued entries to prevent dictionary growth.
-            if (s_perIpPending.TryGetValue(w.Args.NetworkEndpoint, out System.Int32 v) && v == 0)
+            if (s_perIpPending.TryGetValue(w.Args.NetworkEndpoint, out int v) && v == 0)
             {
-                s_perIpPending.TryRemove(new System.Collections.Generic.KeyValuePair<INetworkEndpoint, System.Int32>(w.Args.NetworkEndpoint, 0));
+                _ = s_perIpPending.TryRemove(new System.Collections.Generic.KeyValuePair<INetworkEndpoint, int>(w.Args.NetworkEndpoint, 0));
             }
         }
 
         EXECUTE_AND_RETURN(w);
     };
 
-    private static readonly System.Action<System.Object> s_invokeHigh = static stateObj =>
+    private static readonly System.Action<object> s_invokeHigh = static stateObj =>
     {
         if (stateObj is not PooledConnectEventContext w)
         {
@@ -120,9 +128,9 @@ internal static class AsyncCallback
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean Invoke(
+    public static bool Invoke(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> callback,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.NotNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         if (callback is null)
@@ -134,7 +142,7 @@ internal static class AsyncCallback
         }
 
         // ── Global backpressure check ──────────────────────────────────────────
-        System.Int32 globalPending = System.Threading.Volatile.Read(ref s_pendingNormal);
+        int globalPending = System.Threading.Volatile.Read(ref s_pendingNormal);
 
         if (globalPending >= s_opts.MaxPendingNormalCallbacks)
         {
@@ -146,7 +154,7 @@ internal static class AsyncCallback
         // ── Per-IP backpressure check ──────────────────────────────────────────
         if (args.NetworkEndpoint is not null)
         {
-            System.Int32 ipPending = s_perIpPending.GetOrAdd(args.NetworkEndpoint, 0);
+            int ipPending = s_perIpPending.GetOrAdd(args.NetworkEndpoint, 0);
 
             if (ipPending >= s_opts.MaxPendingPerIp)
             {
@@ -160,11 +168,11 @@ internal static class AsyncCallback
                 args.NetworkEndpoint,
                 addValueFactory: static (_, __) => 1,
                 updateValueFactory: static (_, current, __) => current + 1,
-                factoryArgument: (System.Object)null!);
+                factoryArgument: (object)null);
         }
 
         // ── Warn when approaching global limit ────────────────────────────────
-        System.Int32 warnThreshold = s_opts.CallbackWarningThreshold;
+        int warnThreshold = s_opts.CallbackWarningThreshold;
         if (warnThreshold > 0 && globalPending >= warnThreshold && globalPending % 1_000 == 0)
         {
             s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
@@ -184,12 +192,15 @@ internal static class AsyncCallback
     /// <see cref="s_pendingNormal"/> is <b>not</b> incremented for these callbacks.
     /// </para>
     /// </summary>
+    /// <param name="callback"></param>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Boolean InvokeHighPriority(
+    public static bool InvokeHighPriority(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> callback,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Object sender,
+        [System.Diagnostics.CodeAnalysis.NotNull] object sender,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
     {
         if (callback is null)
@@ -197,13 +208,13 @@ internal static class AsyncCallback
             return false;
         }
 
-        System.Threading.Interlocked.Increment(ref s_totalInvoked);
+        _ = System.Threading.Interlocked.Increment(ref s_totalInvoked);
 
         return QUEUE(s_invokeHigh, callback, sender, args, isHigh: true);
     }
 
     /// <summary>Gets diagnostic statistics about callback processing.</summary>
-    public static (System.Int32 PendingNormal, System.Int64 Dropped, System.Int64 Total) GetStatistics()
+    public static (int PendingNormal, long Dropped, long Total) GetStatistics()
         => (System.Threading.Volatile.Read(ref s_pendingNormal),
             System.Threading.Volatile.Read(ref s_droppedCallbacks),
             System.Threading.Volatile.Read(ref s_totalInvoked));
@@ -211,8 +222,8 @@ internal static class AsyncCallback
     /// <summary>Resets dropped/total counters. Used for testing or periodic reporting.</summary>
     internal static void ResetStatistics()
     {
-        System.Threading.Interlocked.Exchange(ref s_droppedCallbacks, 0);
-        System.Threading.Interlocked.Exchange(ref s_totalInvoked, 0);
+        _ = System.Threading.Interlocked.Exchange(ref s_droppedCallbacks, 0);
+        _ = System.Threading.Interlocked.Exchange(ref s_totalInvoked, 0);
         // Do NOT reset s_pendingNormal — it tracks live work.
     }
 
@@ -222,12 +233,12 @@ internal static class AsyncCallback
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean QUEUE(
-        System.Action<System.Object> invoker,
+    private static bool QUEUE(
+        System.Action<object> invoker,
         System.EventHandler<IConnectEventArgs> callback,
-        System.Object sender,
+        object sender,
         IConnectEventArgs args,
-        System.Boolean isHigh)
+        bool isHigh)
     {
         PooledConnectEventContext wrapper = PooledConnectEventContext.Get();
         wrapper.Initialize(callback, sender, args);
@@ -237,20 +248,20 @@ internal static class AsyncCallback
             // Queue failure — extremely rare. Undo the increments we already applied.
             if (!isHigh)
             {
-                System.Threading.Interlocked.Decrement(ref s_pendingNormal);
+                _ = System.Threading.Interlocked.Decrement(ref s_pendingNormal);
 
                 if (args.NetworkEndpoint is not null)
                 {
-                    s_perIpPending.AddOrUpdate(
+                    _ = s_perIpPending.AddOrUpdate(
                         args.NetworkEndpoint,
                         addValueFactory: static (_, __) => 0,
                         updateValueFactory: static (_, current, __) =>
                             current > 1 ? current - 1 : 0,
-                        factoryArgument: (System.Object)null!);
+                        factoryArgument: (object)null);
                 }
             }
 
-            System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
+            _ = System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
             s_logger?.Error($"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={args.NetworkEndpoint}");
 
             wrapper.Dispose();

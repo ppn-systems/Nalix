@@ -161,7 +161,7 @@ public abstract partial class TcpListenerBase
     /// runtimes or restricted environments — the method falls back to the Windows-only
     /// <c>SIO_KEEPALIVE_VALS</c> IOControl, which packs the same three values into a
     /// 12-byte little-endian struct sent via
-    /// <see cref="System.Net.Sockets.Socket.IOControl(System.Net.Sockets.IOControlCode, global::System.Byte[], global::System.Byte[])"/>.
+    /// <see cref="System.Net.Sockets.Socket.IOControl(System.Net.Sockets.IOControlCode, byte[], byte[])"/>.
     /// The fallback is silently skipped on non-Windows platforms.
     /// </para>
     /// <para>
@@ -219,11 +219,11 @@ public abstract partial class TcpListenerBase
                     // 2. 3 seconds without data, send Keep-Alive
                     // 3. Send every 1 second if there is no response
 
-                    const System.Int32 on = 1;
-                    const System.Int32 time = 3_000;
-                    const System.Int32 interval = 1_000;
+                    const int on = 1;
+                    const int time = 3_000;
+                    const int interval = 1_000;
 
-                    System.Byte[] vals = new System.Byte[12];
+                    byte[] vals = new byte[12];
                     System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[0..4], on);
                     System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[4..8], time);
                     System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(System.MemoryExtensions.AsSpan(vals)[8..12], interval);
@@ -237,7 +237,7 @@ public abstract partial class TcpListenerBase
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    private static System.Boolean IsIgnorableAcceptError(
+    private static bool IsIgnorableAcceptError(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Net.Sockets.SocketError code,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken token)
         => token.IsCancellationRequested || code

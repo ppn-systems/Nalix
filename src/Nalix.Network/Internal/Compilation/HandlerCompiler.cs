@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -35,8 +36,8 @@ internal sealed class HandlerCompiler<
     /// Caches compiled method delegates for each controller type to eliminate reflection.
     /// </summary>
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        System.Type, System.Collections.Frozen.FrozenDictionary<
-            System.UInt16, CompiledHandler<TPacket>>> _compiledMethodCache = new();
+        Type, System.Collections.Frozen.FrozenDictionary<
+            ushort, CompiledHandler<TPacket>>> _compiledMethodCache = new();
 
     /// <summary>
     /// Caches attribute lookups per method for performance.
@@ -51,33 +52,34 @@ internal sealed class HandlerCompiler<
     /// </summary>
     /// <param name="factory">A factory method that creates a controller instance.</param>
     /// <returns>An array of compiled packet handler delegates.</returns>
+    /// <exception cref="InvalidOperationException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static PacketHandler<TPacket>[] CompileHandlers(System.Func<TController> factory)
+    public static PacketHandler<TPacket>[] CompileHandlers(Func<TController> factory)
     {
-        var controllerType = typeof(TController);
+        Type controllerType = typeof(TController);
 
         // Ensure controller has [PacketController] attribute
         PacketControllerAttribute controllerAttr = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
-            ?? throw new System.InvalidOperationException($"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
+            ?? throw new InvalidOperationException($"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(CompileHandlers)}] scan controller={controllerType.Name}");
 
         // Get or compile all handler methods
-        var compiledMethods = CompileControllerHandlers(controllerType);
+        System.Collections.Frozen.FrozenDictionary<ushort, CompiledHandler<TPacket>> compiledMethods = CompileControllerHandlers(controllerType);
 
         // Create the controller instance
         TController controllerInstance = factory();
 
         // CreateCatalog delegate descriptors
         PacketHandler<TPacket>[] descriptors = new PacketHandler<TPacket>[compiledMethods.Count];
-        System.Int32 index = 0;
+        int index = 0;
 
-        foreach (var (opCode, compiledMethod) in compiledMethods)
+        foreach ((ushort opCode, CompiledHandler<TPacket> compiledMethod) in compiledMethods)
         {
-            var attributes = GetPacketMetadata(compiledMethod.MethodInfo);
+            PacketMetadata attributes = GetPacketMetadata(compiledMethod.MethodInfo);
 
             descriptors[index++] = new PacketHandler<TPacket>(
                 opCode,
@@ -88,13 +90,13 @@ internal sealed class HandlerCompiler<
                 compiledMethod.CompiledInvoker);
         }
 
-        System.String firstOps = System.String.Join(",", System.Linq.Enumerable
+        string firstOps = string.Join(",", System.Linq.Enumerable
                                               .Select(System.Linq.Enumerable
                                               .Take(compiledMethods.Keys, 6), o => $"0x{o:X4}"));
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(HandlerCompiler<,>)}:{nameof(CompileHandlers)}] " +
-                                       $"found count={compiledMethods.Count} controller={controllerType.FullName} ops=[{firstOps}{(compiledMethods.Count > 6 ? ",..." : System.String.Empty)}]");
+                                       $"found count={compiledMethods.Count} controller={controllerType.FullName} ops=[{firstOps}{(compiledMethods.Count > 6 ? ",..." : string.Empty)}]");
 
         return descriptors;
     }
@@ -107,24 +109,24 @@ internal sealed class HandlerCompiler<
     private enum SignatureKind
     {
         /// <summary>(TPacket, IConnection)</summary>
-        LegacyNoToken,
+        LegacyNoToken = 0,
 
         /// <summary>(TPacket, IConnection, CancellationToken)</summary>
-        LegacyWithToken,
+        LegacyWithToken = 1,
 
         /// <summary>(PacketContext&lt;TPacket&gt;)</summary>
-        ContextOnly,
+        ContextOnly = 2,
 
         /// <summary>(PacketContext&lt;TPacket&gt;, CancellationToken)</summary>
-        ContextWithToken,
+        ContextWithToken = 3,
     }
 
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Collections.Frozen.FrozenDictionary<System.UInt16, CompiledHandler<TPacket>> CompileControllerHandlers(
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] System.Type x03)
+    private static System.Collections.Frozen.FrozenDictionary<ushort, CompiledHandler<TPacket>> CompileControllerHandlers(
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] Type x03)
     {
         // Get methods with [PacketOpcode] attribute
         System.Reflection.MethodInfo[] methodInfos = System.Linq.Enumerable.ToArray(
@@ -147,16 +149,16 @@ internal sealed class HandlerCompiler<
 
         return _compiledMethodCache.GetOrAdd(x03, static (_, methods) =>
         {
-            System.Collections.Generic.Dictionary<System.UInt16, CompiledHandler<TPacket>> compiled = new(methods.Length);
+            System.Collections.Generic.Dictionary<ushort, CompiledHandler<TPacket>> compiled = new(methods.Length);
 
             foreach (System.Reflection.MethodInfo method in methods)
             {
                 PacketOpcodeAttribute opcodeAttr = System.Reflection.CustomAttributeExtensions
-                    .GetCustomAttribute<PacketOpcodeAttribute>(method)!;
+                    .GetCustomAttribute<PacketOpcodeAttribute>(method);
 
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
-                    System.String x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
+                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[NW.{nameof(HandlerCompiler<,>)}:Internal] dup-opcode {x01}");
@@ -166,17 +168,16 @@ internal sealed class HandlerCompiler<
 
                 try
                 {
-                    CompiledHandler<TPacket> compiledMethod = CompileHandlerMethod(method);
-                    compiled[opcodeAttr.OpCode] = compiledMethod;
+                    compiled[opcodeAttr.OpCode] = CompileHandlerMethod(method);
 
-                    System.String x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
+                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[NW.{nameof(HandlerCompiler<,>)}:Internal] compiled {x01}");
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    System.String x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
+                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "NONE", opcodeAttr.OpCode, method, method.ReturnType);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[NW.{nameof(HandlerCompiler<,>)}:Internal] failed-compile {x01} ex={ex.GetType().Name}", ex);
@@ -201,21 +202,21 @@ internal sealed class HandlerCompiler<
         // x02..x04 = property reads off x01
         // -------------------------------------------------------------------
         System.Linq.Expressions.ParameterExpression x00 =
-            System.Linq.Expressions.Expression.Parameter(typeof(System.Object), "instance");
+            System.Linq.Expressions.Expression.Parameter(typeof(object), "instance");
 
         System.Linq.Expressions.ParameterExpression x01 =
             System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
 
-        System.Type contextType = typeof(PacketContext<TPacket>);
+        Type contextType = typeof(PacketContext<TPacket>);
 
         System.Linq.Expressions.MemberExpression x02 =
-            System.Linq.Expressions.Expression.Property(x01, contextType.GetProperty(nameof(PacketContext<>.Packet))!);
+            System.Linq.Expressions.Expression.Property(x01, contextType.GetProperty(nameof(PacketContext<>.Packet)));
 
         System.Linq.Expressions.MemberExpression x03 =
-            System.Linq.Expressions.Expression.Property(x01, contextType.GetProperty(nameof(PacketContext<>.Connection))!);
+            System.Linq.Expressions.Expression.Property(x01, contextType.GetProperty(nameof(PacketContext<>.Connection)));
 
         System.Linq.Expressions.MemberExpression x04 =
-            System.Linq.Expressions.Expression.Property(x01, contextType.GetProperty(nameof(PacketContext<>.CancellationToken))!);
+            System.Linq.Expressions.Expression.Property(x01, contextType.GetProperty(nameof(PacketContext<>.CancellationToken)));
 
         // -------------------------------------------------------------------
         // Detect which of the 4 supported signatures this method uses.
@@ -241,11 +242,11 @@ internal sealed class HandlerCompiler<
         // assignability check at runtime via CLR rules, accepting PacketContext<Handshake>
         // without any explicit cast.
         // -------------------------------------------------------------------
-        System.Boolean needsContextBridge =
+        bool needsContextBridge =
             (kind is SignatureKind.ContextOnly or SignatureKind.ContextWithToken)
             && parms[0].ParameterType != typeof(PacketContext<TPacket>);
 
-        System.Func<System.Object, PacketContext<TPacket>, System.Object> x12;
+        Func<object, PacketContext<TPacket>, object> x12;
 
         if (needsContextBridge)
         {
@@ -261,14 +262,14 @@ internal sealed class HandlerCompiler<
             System.Linq.Expressions.Expression x10 = x22.IsStatic
                 ? System.Linq.Expressions.Expression.Call(x22, x09)
                 : System.Linq.Expressions.Expression.Call(
-                    System.Linq.Expressions.Expression.Convert(x00, x22.DeclaringType!), x22, x09);
+                    System.Linq.Expressions.Expression.Convert(x00, x22.DeclaringType), x22, x09);
 
             System.Linq.Expressions.Expression x11 = x22.ReturnType == typeof(void)
-                ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(System.Object)))
-                : System.Linq.Expressions.Expression.Convert(x10, typeof(System.Object));
+                ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(object)))
+                : System.Linq.Expressions.Expression.Convert(x10, typeof(object));
 
             x12 = System.Linq.Expressions.Expression
-                    .Lambda<System.Func<System.Object, PacketContext<TPacket>, System.Object>>(x11, x00, x01)
+                    .Lambda<Func<object, PacketContext<TPacket>, object>>(x11, x00, x01)
                     .Compile();
         }
         else
@@ -277,16 +278,19 @@ internal sealed class HandlerCompiler<
             x12 = BuildAotInvoker(x22, parms, kind);
         }
 
-        System.Func<System.Object, PacketContext<TPacket>,
-            System.Threading.Tasks.ValueTask<System.Object>> x20 = WrapReturnType(x12, x22.ReturnType);
+        Func<object, PacketContext<TPacket>,
+            System.Threading.Tasks.ValueTask<object>> x20 = WrapReturnType(x12, x22.ReturnType);
 
         return new CompiledHandler<TPacket>(x22, x22.ReturnType, x20);
     }
 
     /// <summary>
     /// Determines the <see cref="SignatureKind"/> of a handler method.
-    /// Throws <see cref="System.InvalidOperationException"/> for unrecognised signatures.
+    /// Throws <see cref="InvalidOperationException"/> for unrecognised signatures.
     /// </summary>
+    /// <param name="method"></param>
+    /// <param name="parms"></param>
+    /// <exception cref="InvalidOperationException"></exception>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -308,49 +312,75 @@ internal sealed class HandlerCompiler<
             // even when Handshake : IPacket. Accepting a mismatched T here would
             // compile the expression tree correctly but crash at runtime with
             // "No coercion operator defined". Catch it early with a clear message.
-            System.Type declaredT = parms[0].ParameterType.GetGenericArguments()[0];
-            return declaredT != typeof(TPacket)
-                ? throw new System.InvalidOperationException(
+            Type declaredT = parms[0].ParameterType.GetGenericArguments()[0];
+            if (declaredT != typeof(TPacket))
+            {
+                return throw new InvalidOperationException(
                     $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
                     $"parameter type PacketContext<{declaredT.Name}> does not match " +
                     $"the dispatcher's TPacket={typeof(TPacket).Name}. " +
                     $"Declare the parameter as PacketContext<{typeof(TPacket).Name}> " +
                     $"and cast context.Packet to {declaredT.Name} inside the method body: " +
-                    $"var pkt = ({declaredT.Name})context.Packet;")
-                : parms.Length == 1
-            ? SignatureKind.ContextOnly
-            : parms.Length == 2 && parms[1].ParameterType == typeof(System.Threading.CancellationToken)
-            ? SignatureKind.ContextWithToken
-            : throw new System.InvalidOperationException(
-            $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-            "when the first parameter is PacketContext<TPacket>, " +
-            "the only valid second parameter is CancellationToken. " +
-            $"Found {parms.Length} parameter(s).");
+                    $"var pkt = ({declaredT.Name})context.Packet;");
+            }
+            else if (parms.Length == 1)
+            {
+                return SignatureKind.ContextOnly;
+            }
+            else
+            {
+                return parms.Length == 2 && parms[1].ParameterType == typeof(System.Threading.CancellationToken)
+                    ? SignatureKind.ContextWithToken
+                    : throw new InvalidOperationException(
+                            $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                            "when the first parameter is PacketContext<TPacket>, " +
+                            "the only valid second parameter is CancellationToken. " +
+                            $"Found {parms.Length} parameter(s).");
+            }
         }
 
         // ---- legacy-style: first param must implement IPacket ----
-        return parms.Length >= 1 && typeof(IPacket).IsAssignableFrom(parms[0].ParameterType)
-        ? parms.Length < 2 || !typeof(IConnection).IsAssignableFrom(parms[1].ParameterType)
-        ? throw new System.InvalidOperationException(
-        $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-        "legacy signature requires (TPacket, IConnection[, CancellationToken]). " +
-        "Second parameter must implement IConnection.")
-        : parms.Length == 2
-        ? SignatureKind.LegacyNoToken
-        : parms.Length == 3 && parms[2].ParameterType == typeof(System.Threading.CancellationToken)
-        ? SignatureKind.LegacyWithToken
-        : throw new System.InvalidOperationException(
-        $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-        "legacy signature only supports 2 or 3 parameters " +
-        $"(TPacket, IConnection[, CancellationToken]). Found {parms.Length}.")
-        : throw new System.InvalidOperationException(
-        $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-        "unrecognised signature. " +
-        "Supported forms: " +
-        "(TPacket, IConnection), " +
-        "(TPacket, IConnection, CancellationToken), " +
-        "(PacketContext<T>), " +
-        "(PacketContext<T>, CancellationToken).");
+        if (parms.Length >= 1 && typeof(IPacket).IsAssignableFrom(parms[0].ParameterType))
+        {
+            if (parms.Length < 2 || !typeof(IConnection).IsAssignableFrom(parms[1].ParameterType))
+            {
+                // ---- legacy-style: first param must implement IPacket ----
+                return throw new InvalidOperationException(
+                $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                "legacy signature requires (TPacket, IConnection[, CancellationToken]). " +
+                "Second parameter must implement IConnection.");
+            }
+            else if (parms.Length == 2)
+            {
+                // ---- legacy-style: first param must implement IPacket ----
+                return SignatureKind.LegacyNoToken;
+            }
+            else if (parms.Length == 3 && parms[2].ParameterType == typeof(System.Threading.CancellationToken))
+            {
+                // ---- legacy-style: first param must implement IPacket ----
+                return SignatureKind.LegacyWithToken;
+            }
+            else
+            {
+                // ---- legacy-style: first param must implement IPacket ----
+                return throw new InvalidOperationException(
+                $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                "legacy signature only supports 2 or 3 parameters " +
+                $"(TPacket, IConnection[, CancellationToken]). Found {parms.Length}.");
+            }
+        }
+        else
+        {
+            // ---- legacy-style: first param must implement IPacket ----
+            return throw new InvalidOperationException(
+            $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+            "unrecognised signature. " +
+            "Supported forms: " +
+            "(TPacket, IConnection), " +
+            "(TPacket, IConnection, CancellationToken), " +
+            "(PacketContext<T>), " +
+            "(PacketContext<T>, CancellationToken).");
+        }
     }
 
     /// <summary>
@@ -358,11 +388,12 @@ internal sealed class HandlerCompiler<
     /// constructed from <see cref="PacketContext{TPacket}"/>, regardless of which
     /// concrete type argument was supplied.
     /// </summary>
+    /// <param name="type"></param>
     /// <remarks>
     /// Using <c>GetGenericTypeDefinition()</c> instead of exact-type equality (==) is
     /// required because the dispatcher may be registered with <c>TPacket = IPacket</c>
     /// while individual handler methods declare <c>PacketContext&lt;LoginPacket&gt;</c>.
-    /// The two closed generics are different <see cref="System.Type"/> objects, so
+    /// The two closed generics are different <see cref="Type"/> objects, so
     /// <c>== typeof(PacketContext&lt;TPacket&gt;)</c> would incorrectly return
     /// <see langword="false"/> and cause the compiler to fall through to the legacy-style
     /// check, ultimately throwing "unrecognised signature".
@@ -370,13 +401,20 @@ internal sealed class HandlerCompiler<
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Boolean IsPacketContextType(System.Type type)
+    private static bool IsPacketContextType(Type type)
         => type.IsGenericType
         && type.GetGenericTypeDefinition() == typeof(PacketContext<>);
 
     /// <summary>
     /// Builds the argument expression array for the compiled method-call expression.
     /// </summary>
+    /// <param name="kind"></param>
+    /// <param name="parms"></param>
+    /// <param name="context"></param>
+    /// <param name="packetExpr"></param>
+    /// <param name="connectionExpr"></param>
+    /// <param name="ctExpr"></param>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -397,7 +435,7 @@ internal sealed class HandlerCompiler<
                     // as PacketContext<TPacket> (e.g. PacketContext<IPacket>).
                     // Insert a Convert node when the types differ so the compiled delegate
                     // does not throw InvalidCastException at runtime.
-                    System.Type paramCtxType = parms[0].ParameterType;
+                    Type paramCtxType = parms[0].ParameterType;
                     System.Linq.Expressions.Expression ctxArg =
                         paramCtxType == context.Type
                         ? context
@@ -408,7 +446,7 @@ internal sealed class HandlerCompiler<
 
             case SignatureKind.ContextWithToken:
                 {
-                    System.Type paramCtxType = parms[0].ParameterType;
+                    Type paramCtxType = parms[0].ParameterType;
                     System.Linq.Expressions.Expression ctxArg =
                         paramCtxType == context.Type
                         ? context
@@ -419,8 +457,8 @@ internal sealed class HandlerCompiler<
 
             case SignatureKind.LegacyNoToken:
                 {
-                    System.Type packetType = parms[0].ParameterType;
-                    System.Type connType = parms[1].ParameterType;
+                    Type packetType = parms[0].ParameterType;
+                    Type connType = parms[1].ParameterType;
 
                     System.Linq.Expressions.Expression pktArg = packetType.IsAssignableFrom(typeof(TPacket))
                         ? packetExpr
@@ -435,8 +473,8 @@ internal sealed class HandlerCompiler<
 
             case SignatureKind.LegacyWithToken:
                 {
-                    System.Type packetType = parms[0].ParameterType;
-                    System.Type connType = parms[1].ParameterType;
+                    Type packetType = parms[0].ParameterType;
+                    Type connType = parms[1].ParameterType;
 
                     System.Linq.Expressions.Expression pktArg = packetType.IsAssignableFrom(typeof(TPacket))
                         ? packetExpr
@@ -450,27 +488,27 @@ internal sealed class HandlerCompiler<
                 }
 
             default:
-                throw new System.ArgumentOutOfRangeException(nameof(kind), kind, null);
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
         }
     }
 
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Func<System.Object, PacketContext<TPacket>, System.Object> BuildContextBridgeInvoker(
+    private static Func<object, PacketContext<TPacket>, object> BuildContextBridgeInvoker(
         System.Reflection.MethodInfo method,
         System.Reflection.ParameterInfo[] parms,
         SignatureKind kind)
     {
         // Capture once at compile time — zero allocation on the hot path.
-        System.Boolean isStatic = method.IsStatic;
-        System.Boolean withToken = kind == SignatureKind.ContextWithToken;
+        bool isStatic = method.IsStatic;
+        bool withToken = kind == SignatureKind.ContextWithToken;
 
         return (instance, context) =>
         {
             // MethodInfo.Invoke accepts the concrete PacketContext<T> as-is via
             // object boxing — no coercion operator required.
-            System.Object[] args = withToken
+            object[] args = withToken
                 ? [context, context.CancellationToken]
                 : [context];
 
@@ -484,22 +522,26 @@ internal sealed class HandlerCompiler<
     /// Builds a reflection-based invoker for context-style handlers whose declared
     /// <c>PacketContext&lt;T&gt;</c> type differs from <c>PacketContext&lt;TPacket&gt;</c>.
     /// </summary>
+    /// <param name="method"></param>
+    /// <param name="parms"></param>
+    /// <param name="kind"></param>
     /// <remarks>
     /// Generic classes are invariant in C# — <c>PacketContext&lt;IPacket&gt;</c> and
     /// <c>PacketContext&lt;Handshake&gt;</c> share no subtype relationship even when
     /// <c>Handshake : IPacket</c>, so <c>Expression.Convert</c> between them throws
-    /// <see cref="System.InvalidOperationException"/> at compile time.
+    /// <see cref="InvalidOperationException"/> at compile time.
     /// <para>
     /// <c>MethodInfo.Invoke</c> sidesteps this by boxing every argument to
-    /// <see cref="System.Object"/> before passing it to the CLR, which then applies
+    /// <see cref="object"/> before passing it to the CLR, which then applies
     /// its own runtime assignability check. The concrete <c>PacketContext&lt;Handshake&gt;</c>
     /// object satisfies that check because it IS a <c>PacketContext&lt;Handshake&gt;</c>.
     /// </para>
     /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Func<System.Object, PacketContext<TPacket>, System.Object> BuildAotInvoker(
+    private static Func<object, PacketContext<TPacket>, object> BuildAotInvoker(
     System.Reflection.MethodInfo method,
     System.Reflection.ParameterInfo[] parms,
     SignatureKind kind)
@@ -524,11 +566,11 @@ internal sealed class HandlerCompiler<
             SignatureKind.LegacyNoToken =>
                 (instance, context) =>
                 {
-                    System.Type p0 = parms[0].ParameterType;
-                    System.Type p1 = parms[1].ParameterType;
+                    Type p0 = parms[0].ParameterType;
+                    Type p1 = parms[1].ParameterType;
 
-                    System.Object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : System.Convert.ChangeType(context.Packet, p0);
-                    System.Object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : System.Convert.ChangeType(context.Connection, p1);
+                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0);
+                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1);
 
                     return method.IsStatic
                         ? method.Invoke(null, [pkt, conn])
@@ -539,11 +581,11 @@ internal sealed class HandlerCompiler<
             SignatureKind.LegacyWithToken =>
                 (instance, context) =>
                 {
-                    System.Type p0 = parms[0].ParameterType;
-                    System.Type p1 = parms[1].ParameterType;
+                    Type p0 = parms[0].ParameterType;
+                    Type p1 = parms[1].ParameterType;
 
-                    System.Object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : System.Convert.ChangeType(context.Packet, p0);
-                    System.Object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : System.Convert.ChangeType(context.Connection, p1);
+                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0);
+                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1);
 
                     return method.IsStatic
                         ? method.Invoke(null, [pkt, conn, context.CancellationToken])
@@ -551,7 +593,7 @@ internal sealed class HandlerCompiler<
                 }
             ,
 
-            _ => throw new System.ArgumentOutOfRangeException(nameof(kind), kind, null),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
     }
 
@@ -559,9 +601,9 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.Func<System.Object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<System.Object>> WrapReturnType(
-        System.Func<System.Object, PacketContext<TPacket>, System.Object> x00,
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] System.Type x01)
+    private static Func<object, PacketContext<TPacket>, System.Threading.Tasks.ValueTask<object>> WrapReturnType(
+        Func<object, PacketContext<TPacket>, object> x00,
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties)] Type x01)
     {
         if (x01 == typeof(System.Threading.Tasks.Task))
         {
@@ -570,7 +612,6 @@ internal sealed class HandlerCompiler<
                 if (x00(instance, context) is System.Threading.Tasks.Task t)
                 {
                     await t.ConfigureAwait(false);
-                    return null;
                 }
                 return null;
             };
@@ -579,10 +620,10 @@ internal sealed class HandlerCompiler<
         if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(System.Threading.Tasks.Task<>))
         {
             // Cache Result getter at compile-time for this x01
-            System.Reflection.PropertyInfo x02 = x01.GetProperty("Result")!;
+            System.Reflection.PropertyInfo x02 = x01.GetProperty("Result");
             return async (instance, context) =>
             {
-                System.Object r = x00(instance, context);
+                object r = x00(instance, context);
                 if (r is System.Threading.Tasks.Task t)
                 {
                     await t.ConfigureAwait(false);
@@ -596,19 +637,18 @@ internal sealed class HandlerCompiler<
         {
             // Call .GetAwaiter().GetResult() without allocations
             System.Reflection.MethodInfo getAwaiter = typeof(System.Threading.Tasks.ValueTask)
-                .GetMethod("GetAwaiter", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)!;
+                .GetMethod("GetAwaiter", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
 
-            System.Reflection.PropertyInfo x02 = getAwaiter.ReturnType.GetProperty("IsCompleted")!;
-            System.Reflection.MethodInfo x03 = getAwaiter.ReturnType.GetMethod("GetResult")!;
+            System.Reflection.PropertyInfo x02 = getAwaiter.ReturnType.GetProperty("IsCompleted");
+            System.Reflection.MethodInfo x03 = getAwaiter.ReturnType.GetMethod("GetResult");
 
             return async (instance, context) =>
             {
-                System.Object r = x00(instance, context);
+                object r = x00(instance, context);
                 if (r is System.Threading.Tasks.ValueTask vt)
                 {
                     // prefer await: lets the compiler pick optimal path
                     await vt.ConfigureAwait(false);
-                    return null;
                 }
                 return null;
             };
@@ -618,23 +658,23 @@ internal sealed class HandlerCompiler<
         {
             // Build a converter: ValueTask<T> -> Task<T> once, then await Task<T> (no dynamic)
             System.Reflection.PropertyInfo x06 = x01.GetProperty("Result"); // exists but only valid if completed
-            System.Reflection.MethodInfo x07 = x01.GetMethod("AsTask", System.Type.EmptyTypes)!; // ValueTask<T>.AsTask()
+            System.Reflection.MethodInfo x07 = x01.GetMethod("AsTask", Type.EmptyTypes); // ValueTask<T>.AsTask()
 
             return async (instance, context) =>
             {
-                System.Object r = x00(instance, context);
+                object r = x00(instance, context);
                 if (r is null)
                 {
                     return null;
                 }
 
                 // x10 AsTask() via reflection once per wrapper
-                System.Object x03 = x07.Invoke(r, null)!; // Task<T>
+                object x03 = x07.Invoke(r, null); // Task<T>
                 System.Threading.Tasks.Task x04 = (System.Threading.Tasks.Task)x03;
                 await x04.ConfigureAwait(false);
 
                 // read Task<T>.Result once completed
-                System.Reflection.PropertyInfo x05 = x03.GetType().GetProperty("Result")!;
+                System.Reflection.PropertyInfo x05 = x03.GetType().GetProperty("Result");
                 return x05.GetValue(x03);
             };
         }
@@ -653,7 +693,7 @@ internal sealed class HandlerCompiler<
             PacketMetadataBuilder builder = new()
             {
                 // Core attributes – always populated from the method itself.
-                Opcode = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m)!,
+                Opcode = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketOpcodeAttribute>(m),
                 Timeout = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketTimeoutAttribute>(m),
                 Permission = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketPermissionAttribute>(m),
                 Encryption = System.Reflection.CustomAttributeExtensions.GetCustomAttribute<PacketEncryptionAttribute>(m),
@@ -675,12 +715,12 @@ internal sealed class HandlerCompiler<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static System.String FormatHandlerInfo(System.String x00, System.UInt16 x01, System.Reflection.MethodInfo x02 = null, System.Type x03 = null)
+    private static string FormatHandlerInfo(string x00, ushort x01, System.Reflection.MethodInfo x02 = null, Type x03 = null)
     {
-        System.String op = $"opcode=0x{x01:X4}";
-        System.String ctrl = $"controller={x00}";
-        System.String m = x02 is null ? "" : $" method={x02.Name}";
-        System.String sig = x02 is null ? "" : $" sig=({System.String.Join(",", System.Linq.Enumerable
+        string op = $"opcode=0x{x01:X4}";
+        string ctrl = $"controller={x00}";
+        string m = x02 is null ? "" : $" method={x02.Name}";
+        string sig = x02 is null ? "" : $" sig=({string.Join(",", System.Linq.Enumerable
                                                                      .Select(x02
                                                                      .GetParameters(), p => p.ParameterType.Name))})->{x03?.Name ?? "void"}";
 
