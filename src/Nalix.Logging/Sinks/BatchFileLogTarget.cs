@@ -68,11 +68,11 @@ public sealed class BatchFileLogTarget : ILoggerTarget, System.IDisposable
     /// <summary>
     /// Publishes a log entry to the file logging channel.
     /// </summary>
-    /// <param name="entry">The log entry to be written.</param>
+    /// <param name="logMessage">The log entry to be written.</param>
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Publish(LogEntry entry) => _provider.Enqueue(entry);
+    public void Publish(LogEntry logMessage) => _provider.Enqueue(logMessage);
 
     /// <summary>
     /// Releases all resources used by the <see cref="BatchFileLogTarget"/>.

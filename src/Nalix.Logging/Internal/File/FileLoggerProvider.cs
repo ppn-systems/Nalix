@@ -36,8 +36,10 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
 {
     #region Fields
 
-    // ✅ Channel giờ lưu LogEntry thô thay vì string đã format
-    // → Producer không cần format → không contention trên StringBuilderPool
+    /// <summary>
+    /// ✅ Channel giờ lưu LogEntry thô thay vì string đã format
+    /// → Producer không cần format → không contention trên StringBuilderPool
+    /// </summary>
     private readonly System.Threading.Channels.Channel<LogEntry> _channel;
     private readonly System.Threading.Channels.ChannelWriter<LogEntry> _writer;
     private readonly System.Threading.Channels.ChannelReader<LogEntry> _reader;
@@ -46,18 +48,18 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
     private readonly IWorkerHandle? _workerHandle;
     private readonly System.Threading.CancellationTokenSource _cts;
 
-    private readonly System.Int32 _maxQueueSize;
-    private readonly System.Boolean _blockWhenFull;
+    private readonly int _maxQueueSize;
+    private readonly bool _blockWhenFull;
 
-    private readonly System.Int32 _batchSize;
+    private readonly int _batchSize;
     private readonly ILoggerFormatter _formatter;
-    private readonly System.Boolean _adaptiveFlush;
+    private readonly bool _adaptiveFlush;
     private readonly System.TimeSpan _maxBatchDelay;
 
-    private System.Int32 _queued;
-    private System.Boolean _disposed;
-    private System.Int64 _totalEntriesWritten;
-    private System.Int64 _entriesDroppedCount;
+    private int _queued;
+    private bool _disposed;
+    private long _totalEntriesWritten;
+    private long _entriesDroppedCount;
 
     #endregion Fields
 
@@ -74,9 +76,9 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
     public FileLoggerProvider(
         ILoggerFormatter formatter,
         FileLogOptions? options = null,
-        System.Int32 batchSize = 256,
+        int batchSize = 256,
         System.TimeSpan? maxBatchDelay = null,
-        System.Boolean adaptiveFlush = true)
+        bool adaptiveFlush = true)
     {
         Options = options ?? ConfigurationManager.Instance.Get<FileLogOptions>();
 
@@ -139,15 +141,15 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
     public FileLogOptions Options { get; }
 
     /// <summary>Số entry đang chờ trong queue (ước lượng).</summary>
-    public System.Int32 QueuedEntryCount
+    public int QueuedEntryCount
         => System.Math.Max(0, System.Threading.Volatile.Read(ref _queued));
 
     /// <summary>Tổng số entry đã ghi thành công (từ lúc khởi động).</summary>
-    public System.Int64 TotalEntriesWritten
+    public long TotalEntriesWritten
         => System.Threading.Interlocked.Read(ref _totalEntriesWritten);
 
     /// <summary>Số entry bị drop do queue đầy.</summary>
-    public System.Int64 EntriesDroppedCount
+    public long EntriesDroppedCount
         => System.Threading.Interlocked.Read(ref _entriesDroppedCount);
 
     #endregion Properties
@@ -169,14 +171,9 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
         }
 
         // ✅ TryWrite trực tiếp LogEntry — không format, không allocation ở đây
-        if (_writer.TryWrite(entry))
-        {
-            System.Threading.Interlocked.Increment(ref _queued);
-        }
-        else
-        {
-            System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
-        }
+        _ = _writer.TryWrite(entry)
+            ? System.Threading.Interlocked.Increment(ref _queued)
+            : System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
     }
 
     /// <summary>
@@ -193,11 +190,11 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
         {
             // ✅ Await đúng cách — thực sự block khi queue đầy
             await _writer.WriteAsync(entry, _cts.Token).ConfigureAwait(false);
-            System.Threading.Interlocked.Increment(ref _queued);
+            _ = System.Threading.Interlocked.Increment(ref _queued);
         }
         catch
         {
-            System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
+            _ = System.Threading.Interlocked.Increment(ref _entriesDroppedCount);
         }
     }
 
@@ -205,7 +202,7 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
     public void Flush() => _fileWriter.Flush();
 
     /// <summary>Thông tin chẩn đoán về trạng thái provider.</summary>
-    public System.String GenerateReport()
+    public string GenerateReport()
         => $"FileLoggerProvider [UTC: {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
          + System.Environment.NewLine + $"- USER: {System.Environment.UserName}"
          + System.Environment.NewLine + $"- Log File: {System.IO.Path.Combine(Directories.LogsDirectory, Options.LogFileName)}"
@@ -237,15 +234,15 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
                 }
 
                 batch.Add(first);
-                System.Threading.Interlocked.Decrement(ref _queued);
+                _ = System.Threading.Interlocked.Decrement(ref _queued);
 
                 // Gom thêm entries trong khoảng thời gian currentDelay
-                System.Int64 batchStartTicks = sw.ElapsedTicks;
+                long batchStartTicks = sw.ElapsedTicks;
 
                 while (batch.Count < _batchSize)
                 {
                     // Kiểm tra timeout bằng ticks — tránh tạo TimeSpan object mỗi vòng lặp
-                    System.Int64 elapsedSinceStart = sw.ElapsedTicks - batchStartTicks;
+                    long elapsedSinceStart = sw.ElapsedTicks - batchStartTicks;
                     if (elapsedSinceStart >= currentDelay.Ticks)
                     {
                         break;
@@ -254,7 +251,7 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
                     if (_reader.TryRead(out LogEntry item))
                     {
                         batch.Add(item);
-                        System.Threading.Interlocked.Decrement(ref _queued);
+                        _ = System.Threading.Interlocked.Decrement(ref _queued);
                     }
                     else
                     {
@@ -267,8 +264,8 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
                 _fileWriter.WriteBatch(batch, _formatter);
 
                 // ✅ Capture batchCount TRƯỚC khi Clear — fix bug adaptive flush
-                System.Int32 batchCount = batch.Count;
-                System.Threading.Interlocked.Add(ref _totalEntriesWritten, batchCount);
+                int batchCount = batch.Count;
+                _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, batchCount);
                 ctx.Advance(batchCount, "File logs written");
                 ctx.Beat();
                 batch.Clear();
@@ -304,8 +301,8 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
                 if (batch.Count >= _batchSize)
                 {
                     _fileWriter.WriteBatch(batch, _formatter);
-                    System.Int32 count = batch.Count;
-                    System.Threading.Interlocked.Add(ref _totalEntriesWritten, count);
+                    int count = batch.Count;
+                    _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, count);
                     ctx.Advance(count, "File logs written (shutdown)");
                     ctx.Beat();
                     batch.Clear();
@@ -315,8 +312,8 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
             if (batch.Count > 0)
             {
                 _fileWriter.WriteBatch(batch, _formatter);
-                System.Int32 count = batch.Count;
-                System.Threading.Interlocked.Add(ref _totalEntriesWritten, count);
+                int count = batch.Count;
+                _ = System.Threading.Interlocked.Add(ref _totalEntriesWritten, count);
                 ctx.Advance(count, "File logs written (shutdown)");
                 ctx.Beat();
                 batch.Clear();
@@ -339,12 +336,12 @@ internal sealed class FileLoggerProvider : System.IDisposable, IReportable
 
         try
         {
-            _writer.TryComplete();
+            _ = _writer.TryComplete();
             _cts.Cancel();
 
             if (_workerHandle != null)
             {
-                InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                .CancelWorker(_workerHandle.Id);
             }
 

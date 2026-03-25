@@ -17,7 +17,7 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
 {
     #region Fields
 
-    private System.Int32 _disposed = 0;
+    private int _disposed;
 
     #endregion Fields
 
@@ -45,37 +45,37 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
     /// Gets or sets the timestamp format for log entries.
     /// </summary>
     [IniComment("Timestamp format applied to every log entry (standard .NET date format string)")]
-    public System.String TimestampFormat { get; set; }
+    public string TimestampFormat { get; set; }
 
     /// <summary>
     /// Gets or sets whether to use UTC time for timestamps.
     /// </summary>
     [IniComment("Use UTC time for timestamps (false = local time)")]
-    public System.Boolean UseUtcTimestamp { get; set; }
+    public bool UseUtcTimestamp { get; set; }
 
     /// <summary>
     /// Gets or sets whether to include process ID in log entries.
     /// </summary>
     [IniComment("Include the current process ID in each log entry")]
-    public System.Boolean IncludeProcessId { get; set; }
+    public bool IncludeProcessId { get; set; }
 
     /// <summary>
     /// Gets or sets whether to include timestamp in log entries.
     /// </summary>
     [IniComment("Include a timestamp in each log entry")]
-    public System.Boolean IncludeTimestamp { get; set; }
+    public bool IncludeTimestamp { get; set; }
 
     /// <summary>
     /// Gets or sets whether to include machine name in log entries.
     /// </summary>
     [IniComment("Include the machine name in each log entry")]
-    public System.Boolean IncludeMachineName { get; set; }
+    public bool IncludeMachineName { get; set; }
 
     /// <summary>
     /// Gets or sets the maximum number of concurrent log processing tasks per target.
     /// </summary>
     [IniComment("Max concurrent log processing tasks per target (increase for high-throughput scenarios)")]
-    public System.Int32 GroupConcurrencyLimit { get; set; }
+    public int GroupConcurrencyLimit { get; set; }
 
     #endregion Properties
 

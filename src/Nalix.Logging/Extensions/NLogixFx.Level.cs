@@ -21,12 +21,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Debug(
-        this System.String message,
-        System.String? source = null,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        this string message,
+        string? source = null,
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Debug, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -43,12 +43,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Debug(
-        this System.String message,
+        this string message,
         System.Type source,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Debug, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -66,11 +66,11 @@ public static partial class NLogixFx
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Debug(
         this System.Exception extendedData,
-        System.String source,
-        System.String message,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        string source,
+        string message,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Debug, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -91,12 +91,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Trace(
-        this System.String message,
-        System.String? source = null,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        this string message,
+        string? source = null,
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Trace, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -113,12 +113,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Trace(
-        this System.String message,
+        this string message,
         System.Type source,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Trace, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -136,11 +136,11 @@ public static partial class NLogixFx
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Trace(
         this System.Exception extendedData,
-        System.String source,
-        System.String message,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        string source,
+        string message,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Trace, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -161,12 +161,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Warn(
-        this System.String message,
-        System.String? source = null,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        this string message,
+        string? source = null,
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Warn, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -183,12 +183,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Warn(
-        this System.String message,
+        this string message,
         System.Type source,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Warn, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -206,11 +206,11 @@ public static partial class NLogixFx
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Warn(
         this System.Exception extendedData,
-        System.String source,
-        System.String message,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        string source,
+        string message,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Warn, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -231,12 +231,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Fatal(
-        this System.String message,
-        System.String? source = null,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        this string message,
+        string? source = null,
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -253,12 +253,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Fatal(
-        this System.String message,
+        this string message,
         System.Type source,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Critical, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -276,11 +276,11 @@ public static partial class NLogixFx
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Fatal(
         this System.Exception extendedData,
-        System.String source,
-        System.String message,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        string source,
+        string message,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Critical, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -301,12 +301,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Info(
-        this System.String message,
-        System.String? source = null,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        this string message,
+        string? source = null,
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Info, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -323,12 +323,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Info(
-        this System.String message,
+        this string message,
         System.Type source,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Info, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -346,11 +346,11 @@ public static partial class NLogixFx
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Info(
         this System.Exception extendedData,
-        System.String source,
-        System.String message,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        string source,
+        string message,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Info, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -371,12 +371,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Error(
-        this System.String message,
-        System.String? source = null,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        this string message,
+        string? source = null,
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Error, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -393,12 +393,12 @@ public static partial class NLogixFx
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Error(
-        this System.String message,
+        this string message,
         System.Type source,
-        System.Object? extendedData = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        object? extendedData = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Error, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
@@ -416,11 +416,11 @@ public static partial class NLogixFx
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Error(
         this System.Exception ex,
-        System.String source,
-        System.String message,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String callerMemberName = "",
-        [System.Runtime.CompilerServices.CallerFilePath] System.String callerFilePath = "",
-        [System.Runtime.CompilerServices.CallerLineNumber] System.Int32 callerLineNumber = 0)
+        string source,
+        string message,
+        [System.Runtime.CompilerServices.CallerMemberName] string callerMemberName = "",
+        [System.Runtime.CompilerServices.CallerFilePath] string callerFilePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
             LogLevel.Error, message, source, ex,
             callerMemberName, callerFilePath, callerLineNumber);

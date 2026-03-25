@@ -15,19 +15,19 @@ namespace Nalix.Logging.Exceptions;
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("{Exception.Message,nq} ({OriginalFilePath})")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public sealed class FileError(System.Exception ex, System.String filePath)
+public sealed class FileError(System.Exception ex, string filePath)
 {
     /// <summary>
     /// Gets or sets the new log file name to use when recovering from errors.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.NotNull]
-    public System.String NewLogFileName { get; set; } = System.String.Empty;
+    public string NewLogFileName { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets the original log file path where the error occurred.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.NotNull]
-    public System.String OriginalFilePath { get; } = filePath ?? System.String.Empty;
+    public string OriginalFilePath { get; } = filePath ?? string.Empty;
 
     /// <summary>
     /// Gets the exception that caused the file error.

@@ -12,25 +12,25 @@ public static class NLogixConstants
     /// <summary>
     /// The opening bracket character used in log formatting.
     /// </summary>
-    public const System.Char LogBracketOpen = '[';
+    public const char LogBracketOpen = '[';
 
     /// <summary>
     /// The closing bracket character used in log formatting.
     /// </summary>
-    public const System.Char LogBracketClose = ']';
+    public const char LogBracketClose = ']';
 
     /// <summary>
     /// The default space separator used in log messages.
     /// </summary>
-    public const System.Char LogSpaceSeparator = ' ';
+    public const char LogSpaceSeparator = ' ';
 
     /// <summary>
     /// The default dash separator used in log messages.
     /// </summary>
-    public const System.Char LogDashSeparator = '-';
+    public const char LogDashSeparator = '-';
 
     /// <summary>
     /// The default buffer size for logging operations.
     /// </summary>
-    public const System.Int32 DefaultLogBufferSize = 60;
+    public const int DefaultLogBufferSize = 60;
 }

@@ -16,11 +16,11 @@ namespace Nalix.Logging.Internal.Formatters;
 /// </summary>
 [System.Diagnostics.DebuggerDisplay("Colors={_colors}")]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal class LogFormatter(System.Boolean colors = false) : ILoggerFormatter
+internal class LogFormatter(bool colors = false) : ILoggerFormatter
 {
     #region Fields
 
-    private readonly System.Boolean _colors = colors;
+    private readonly bool _colors = colors;
 
     #endregion Fields
 
@@ -39,7 +39,7 @@ internal class LogFormatter(System.Boolean colors = false) : ILoggerFormatter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.String Format(LogEntry logMsg) => Format(logMsg.TimeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
+    public string Format(LogEntry logMsg) => Format(logMsg.TimeStamp, logMsg.LogLevel, logMsg.EventId, logMsg.Message, logMsg.Exception);
 
     /// <summary>
     /// Formats a static log message.
@@ -57,9 +57,9 @@ internal class LogFormatter(System.Boolean colors = false) : ILoggerFormatter
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public System.String Format(
+    public string Format(
         System.DateTime timeStamp, LogLevel logLevel,
-        EventId eventId, System.String message, System.Exception? exception)
+        EventId eventId, string message, System.Exception? exception)
     {
         // Use pooled StringBuilder for optimal memory usage
         System.Text.StringBuilder logBuilder = StringBuilderPool.Rent(capacity: 256);

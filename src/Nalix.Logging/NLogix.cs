@@ -43,16 +43,18 @@ public sealed partial class NLogix : NLogixEngine, ILogger
 
     #region Private Methods
 
-    // Sanitize log message to prevent log forging
-    // Removes potentially dangerous characters (e.g., newlines or control characters)
+    /// <summary>
+    /// Sanitize log message to prevent log forging
+    /// Removes potentially dangerous characters (e.g., newlines or control characters)
+    /// </summary>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String SanitizeLogMessage(System.String? message)
+    private static string SanitizeLogMessage(string? message)
     {
-        if (System.String.IsNullOrEmpty(message))
+        if (string.IsNullOrEmpty(message))
         {
-            return System.String.Empty;
+            return string.Empty;
         }
 
         // Chỉ allocate nếu thực sự có ký tự cần xóa
@@ -64,15 +66,17 @@ public sealed partial class NLogix : NLogixEngine, ILogger
         return message.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ");
     }
 
-    // Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
+    /// <summary>
+    /// Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
+    /// </summary>
     [System.Diagnostics.Contracts.Pure]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void WriteLog(
         LogLevel level,
         EventId eventId,
-        System.String message,
-        System.Exception? exception = null) => base.Publish(level, eventId, message, exception);
+        string message,
+        System.Exception? exception = null) => Publish(level, eventId, message, exception);
 
     #endregion Private Methods
 }

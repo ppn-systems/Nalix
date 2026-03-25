@@ -18,36 +18,90 @@ internal static class AnsiColors
 {
     #region Constants
 
-    // Basic colors
-    public const System.String Reset = "\u001b[0m";       // Reset all styling
+    /// <summary>
+    /// Basic colors
+    /// </summary>
+    public const string Reset = "\u001b[0m";       // Reset all styling
 
-    public const System.String Black = "\u001b[30m";      // Black text
-    public const System.String Red = "\u001b[31m";        // Red text
-    public const System.String Green = "\u001b[32m";      // Green text
-    public const System.String Yellow = "\u001b[33m";     // Yellow text
-    public const System.String Blue = "\u001b[34m";       // Blue text
-    public const System.String Magenta = "\u001b[35m";    // Magenta text
-    public const System.String Cyan = "\u001b[36m";       // Cyan text
-    public const System.String White = "\u001b[37m";      // White text
+    /// <summary>
+    /// Black text
+    /// </summary>
+    public const string Black = "\u001b[30m";
+    /// <summary>
+    /// Red text
+    /// </summary>
+    public const string Red = "\u001b[31m";
+    /// <summary>
+    /// Green text
+    /// </summary>
+    public const string Green = "\u001b[32m";
+    /// <summary>
+    /// Yellow text
+    /// </summary>
+    public const string Yellow = "\u001b[33m";
+    /// <summary>
+    /// Blue text
+    /// </summary>
+    public const string Blue = "\u001b[34m";
+    /// <summary>
+    /// Magenta text
+    /// </summary>
+    public const string Magenta = "\u001b[35m";
+    /// <summary>
+    /// Cyan text
+    /// </summary>
+    public const string Cyan = "\u001b[36m";
+    /// <summary>
+    /// White text
+    /// </summary>
+    public const string White = "\u001b[37m";
 
-    // Extended colors
-    public const System.String LightGray = "\u001b[38;5;246m";   // Light gray text
+    /// <summary>
+    /// Extended colors
+    /// </summary>
+    public const string LightGray = "\u001b[38;5;246m";   // Light gray text
 
-    public const System.String DarkGray = "\u001b[38;5;240m";    // Dark gray text
-    public const System.String Orange = "\u001b[38;5;208m";      // Orange text
-    public const System.String Pink = "\u001b[38;5;205m";        // Pink text
-    public const System.String LightBlue = "\u001b[38;5;45m";    // Light blue text
-    public const System.String LightGreen = "\u001b[38;5;120m";  // Light green text
-    public const System.String LightYellow = "\u001b[38;5;228m"; // Light yellow text
-    public const System.String LightCyan = "\u001b[38;5;51m";    // Light cyan text
-    public const System.String LightMagenta = "\u001b[38;5;213m"; // Light magenta text
+    /// <summary>
+    /// Dark gray text
+    /// </summary>
+    public const string DarkGray = "\u001b[38;5;240m";
+    /// <summary>
+    /// Orange text
+    /// </summary>
+    public const string Orange = "\u001b[38;5;208m";
+    /// <summary>
+    /// Pink text
+    /// </summary>
+    public const string Pink = "\u001b[38;5;205m";
+    /// <summary>
+    /// Light blue text
+    /// </summary>
+    public const string LightBlue = "\u001b[38;5;45m";
+    /// <summary>
+    /// Light green text
+    /// </summary>
+    public const string LightGreen = "\u001b[38;5;120m";
+    /// <summary>
+    /// Light yellow text
+    /// </summary>
+    public const string LightYellow = "\u001b[38;5;228m";
+    /// <summary>
+    /// Light cyan text
+    /// </summary>
+    public const string LightCyan = "\u001b[38;5;51m";
+    /// <summary>
+    /// Light magenta text
+    /// </summary>
+    public const string LightMagenta = "\u001b[38;5;213m";
 
     #endregion Constants
 
     #region Fields
 
-    // Cache of color codes by log level to avoid repeated switch statements
-    private static readonly System.String[] _levelColorCache = new System.String[(System.Int32)LogLevel.Critical + 1];
+    /// <summary>
+    /// Cache of color codes by log level to avoid repeated switch statements
+    /// </summary>
+    private static readonly string[] _levelColorCache = new string[(int)LogLevel.Critical + 1];
 
     #endregion Fields
 
@@ -59,13 +113,13 @@ internal static class AnsiColors
     static AnsiColors()
     {
         // Initialize color cache
-        _levelColorCache[(System.Int32)LogLevel.None] = Cyan;
-        _levelColorCache[(System.Int32)LogLevel.Trace] = Orange;
-        _levelColorCache[(System.Int32)LogLevel.Debug] = LightCyan;
-        _levelColorCache[(System.Int32)LogLevel.Info] = LightGreen;
-        _levelColorCache[(System.Int32)LogLevel.Warn] = LightYellow;
-        _levelColorCache[(System.Int32)LogLevel.Error] = LightMagenta;
-        _levelColorCache[(System.Int32)LogLevel.Critical] = Red;
+        _levelColorCache[(int)LogLevel.None] = Cyan;
+        _levelColorCache[(int)LogLevel.Trace] = Orange;
+        _levelColorCache[(int)LogLevel.Debug] = LightCyan;
+        _levelColorCache[(int)LogLevel.Info] = LightGreen;
+        _levelColorCache[(int)LogLevel.Warn] = LightYellow;
+        _levelColorCache[(int)LogLevel.Error] = LightMagenta;
+        _levelColorCache[(int)LogLevel.Critical] = Red;
     }
 
     #endregion Constructor
@@ -77,12 +131,12 @@ internal static class AnsiColors
     /// </summary>
     /// <param name="level">The logging level to get a color for.</param>
     /// <returns>An ANSI color code string.</returns>
-    public static System.String GetForLevel(LogLevel level)
+    public static string GetForLevel(LogLevel level)
     {
         // Use the cached color if level is within range
-        if ((System.Int32)level >= 0 && (System.Int32)level < _levelColorCache.Length)
+        if ((int)level >= 0 && (int)level < _levelColorCache.Length)
         {
-            return _levelColorCache[(System.Int32)level];
+            return _levelColorCache[(int)level];
         }
 
         return White; // Default color for unknown levels

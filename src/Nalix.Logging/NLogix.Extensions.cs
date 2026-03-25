@@ -17,8 +17,8 @@ public static class NLogixExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Trace<T>(
-        this ILogger logger, System.String message, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
+        this ILogger logger, string message, EventId? eventId = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string member = "")
         where T : class
         => logger.Trace($"[{typeof(T).Name}:{member}] {message}", eventId);
 
@@ -28,8 +28,8 @@ public static class NLogixExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Debug<T>(
-        this ILogger logger, System.String message, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
+        this ILogger logger, string message, EventId? eventId = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string member = "")
         where T : class
         => logger.Debug($"[{typeof(T).Name}:{member}] {message}", eventId);
 
@@ -39,8 +39,8 @@ public static class NLogixExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Info<T>(
-        this ILogger logger, System.String message, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
+        this ILogger logger, string message, EventId? eventId = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string member = "")
         where T : class
         => logger.Info($"[{typeof(T).Name}:{member}] {message}", eventId);
 
@@ -50,8 +50,8 @@ public static class NLogixExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Warn<T>(
-        this ILogger logger, System.String message, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
+        this ILogger logger, string message, EventId? eventId = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string member = "")
         where T : class
         => logger.Warn($"[{typeof(T).Name}:{member}] {message}", eventId);
 
@@ -63,8 +63,8 @@ public static class NLogixExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Error<T>(
-        this ILogger logger, System.String message, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
+        this ILogger logger, string message, EventId? eventId = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string member = "")
         where T : class
         => logger.Error($"[{typeof(T).Name}:{member}] {message}", eventId);
 
@@ -75,7 +75,7 @@ public static class NLogixExtensions
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void Error<T>(
         this ILogger logger, System.Exception ex, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
+        [System.Runtime.CompilerServices.CallerMemberName] string member = "")
         where T : class
         => logger.Error($"[{typeof(T).Name}:{member}] {ex.Message}", ex, eventId);
 
@@ -89,8 +89,8 @@ public static class NLogixExtensions
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void Fatal<T>(
-        this ILogger logger, System.String message, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
+        this ILogger logger, string message, EventId? eventId = null,
+        [System.Runtime.CompilerServices.CallerMemberName] string member = "")
         where T : class
         => logger.Fatal($"[{typeof(T).Name}:{member}] {message}", eventId);
 
@@ -101,7 +101,7 @@ public static class NLogixExtensions
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public static void Fatal<T>(
         this ILogger logger, System.Exception ex, EventId? eventId = null,
-        [System.Runtime.CompilerServices.CallerMemberName] System.String member = "")
+        [System.Runtime.CompilerServices.CallerMemberName] string member = "")
         where T : class
         => logger.Fatal($"[{typeof(T).Name}:{member}] {ex.Message}", ex, eventId);
 

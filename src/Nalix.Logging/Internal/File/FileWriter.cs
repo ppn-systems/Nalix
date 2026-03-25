@@ -22,18 +22,25 @@ internal sealed class FileWriter : System.IDisposable
 {
     #region Constants
 
-    private const System.Int32 WriteBufferSize = 64 * 1024; // 64 KB stream buffer
+    /// <summary>
+    /// 64 KB stream buffer
+    /// </summary>
+    private const int WriteBufferSize = 64 * 1024;
 
     #endregion Constants
 
     #region Static Fields
 
-    // ✅ Tạo 1 lần duy nhất — tránh allocation mỗi batch
+    /// <summary>
+    /// ✅ Tạo 1 lần duy nhất — tránh allocation mỗi batch
+    /// </summary>
     private static readonly System.Text.UTF8Encoding s_utf8NoBom =
         new(encoderShouldEmitUTF8Identifier: false);
 
-    // ✅ Cache số byte của newline (không đổi trong suốt lifetime)
-    private static readonly System.Int32 s_newlineByteCount =
+    /// <summary>
+    /// ✅ Cache số byte của newline (không đổi trong suốt lifetime)
+    /// </summary>
+    private static readonly int s_newlineByteCount =
         s_utf8NoBom.GetByteCount(System.Environment.NewLine);
 
     #endregion Static Fields
@@ -43,13 +50,13 @@ internal sealed class FileWriter : System.IDisposable
     private readonly FileLoggerProvider _provider;
     private readonly System.Threading.Lock _fileLock = new();
 
-    private System.Boolean _disposed;
-    private System.Int32 _currentIndex;
-    private System.String? _currentPath;
+    private bool _disposed;
+    private int _currentIndex;
+    private string? _currentPath;
     private System.IO.FileStream? _stream;
     private System.IO.StreamWriter? _writer;
     private System.DateTime _currentDayLocal;
-    private System.Int64 _writtenBytesForCurrentFile;
+    private long _writtenBytesForCurrentFile;
 
     #endregion Fields
 
@@ -106,16 +113,16 @@ internal sealed class FileWriter : System.IDisposable
                 foreach (LogEntry entry in entries)
                 {
                     // ✅ Format tại đây — single-threaded, không contention
-                    System.String msg = formatter.Format(entry);
+                    string msg = formatter.Format(entry);
 
-                    if (System.String.IsNullOrEmpty(msg))
+                    if (string.IsNullOrEmpty(msg))
                     {
                         continue;
                     }
 
                     // ✅ Tính byte count 1 lần duy nhất — dùng cho cả size check lẫn tracking
-                    System.Int32 msgBytes = s_utf8NoBom.GetByteCount(msg);
-                    System.Int32 totalBytes = msgBytes + s_newlineByteCount;
+                    int msgBytes = s_utf8NoBom.GetByteCount(msg);
+                    int totalBytes = msgBytes + s_newlineByteCount;
 
                     // Roll file nếu sẽ vượt quá giới hạn kích thước
                     if (_writtenBytesForCurrentFile + totalBytes > _provider.Options.MaxFileSizeBytes)
@@ -198,11 +205,11 @@ internal sealed class FileWriter : System.IDisposable
     /// </summary>
     private void OPEN_NEXT_LOG_FILE_LOCKED()
     {
-        const System.Int32 MaxProbe = 10_000;
+        const int MaxProbe = 10_000;
 
         try
         {
-            System.IO.Directory.CreateDirectory(Directories.LogsDirectory);
+            _ = System.IO.Directory.CreateDirectory(Directories.LogsDirectory);
         }
         catch (System.Exception ex)
         {
@@ -211,14 +218,14 @@ internal sealed class FileWriter : System.IDisposable
             return;
         }
 
-        for (System.Int32 probe = 0; probe < MaxProbe; probe++)
+        for (int probe = 0; probe < MaxProbe; probe++)
         {
             if (_currentIndex <= 0)
             {
                 _currentIndex = 1;
             }
 
-            System.String filename = System.IO.Path.Combine(
+            string filename = System.IO.Path.Combine(
                 Directories.LogsDirectory,
                 _provider.Options.BuildCustomFileName(_currentDayLocal, _currentIndex));
 
@@ -263,7 +270,6 @@ internal sealed class FileWriter : System.IDisposable
                 _provider.Options.HandleFileError?.Invoke(new FileError(ex, filename));
                 CLOSE_LOG_FILE_LOCKED();
                 _currentIndex++;
-                continue;
             }
         }
 
@@ -285,14 +291,14 @@ internal sealed class FileWriter : System.IDisposable
         try
         {
             System.Text.StringBuilder sb = new(256);
-            sb.AppendLine("-----------------------------------------------------");
-            sb.AppendLine($"Log File Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-            sb.AppendLine($"USER: {System.Environment.UserName}");
-            sb.AppendLine($"Machine: {System.Environment.MachineName}");
-            sb.AppendLine($"OS: {System.Environment.OSVersion}");
-            sb.AppendLine("-----------------------------------------------------");
+            _ = sb.AppendLine("-----------------------------------------------------");
+            _ = sb.AppendLine($"Log File Created: {System.DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
+            _ = sb.AppendLine($"USER: {System.Environment.UserName}");
+            _ = sb.AppendLine($"Machine: {System.Environment.MachineName}");
+            _ = sb.AppendLine($"OS: {System.Environment.OSVersion}");
+            _ = sb.AppendLine("-----------------------------------------------------");
 
-            System.String header = sb.ToString();
+            string header = sb.ToString();
             _writer.Write(header);
             _writer.Flush();
 

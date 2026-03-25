@@ -7,25 +7,25 @@ namespace Nalix.Logging.Extensions;
 
 public static partial class NLogixFx
 {
-    private const System.String Sep = "================================================================================";
+    private const string Sep = "================================================================================";
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void PUBLISH_LOG_ENTRY(
         LogLevel level,
-        System.String message,
-        System.String? sourceName,
-        System.Object? extendedData,
-        System.String callerMemberName,
-        System.String callerFilePath,
-        System.Int32 callerLineNumber)
+        string message,
+        string? sourceName,
+        object? extendedData,
+        string callerMemberName,
+        string callerFilePath,
+        int callerLineNumber)
     {
         if (!(level > MinimumLevel))
         {
             return;
         }
 
-        System.String fullMessage = FORMAT_LOG_MESSAGE(
+        string fullMessage = FORMAT_LOG_MESSAGE(
             message, sourceName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
@@ -34,12 +34,12 @@ public static partial class NLogixFx
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal static System.String FORMAT_LOG_MESSAGE(
-        System.String message,
-        System.String? sourceName,
-        System.Object? extendedData,
-        System.String callerMemberName,
-        System.String callerFilePath, System.Int32 callerLineNumber)
+    internal static string FORMAT_LOG_MESSAGE(
+        string message,
+        string? sourceName,
+        object? extendedData,
+        string callerMemberName,
+        string callerFilePath, int callerLineNumber)
     {
         return
             $"{Sep}\n" +
@@ -50,9 +50,9 @@ public static partial class NLogixFx
             $"{Sep}\n";
     }
 
-    private static System.String FORMAT_EXTENDED_DATA(System.Object? extendedData)
+    private static string FORMAT_EXTENDED_DATA(object? extendedData)
     {
-        const System.Int32 MaxLen = 200;
+        const int MaxLen = 200;
 
         if (extendedData is null)
         {
@@ -63,11 +63,11 @@ public static partial class NLogixFx
         {
             if (extendedData is System.Exception ex)
             {
-                System.String m = ex.Message ?? "";
+                string m = ex.Message ?? "";
                 return $"{ex.GetType().Name}: {m}";
             }
 
-            System.String s = extendedData.ToString() ?? "-";
+            string s = extendedData.ToString() ?? "-";
             // Replace new lines to keep single-line appearance and trim long payloads
             s = s.Replace("\r", " ").Replace("\n", " ");
             if (s.Length > MaxLen)
