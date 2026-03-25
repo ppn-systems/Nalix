@@ -157,7 +157,7 @@ public abstract partial class TcpListenerBase
     public void Deactivate([System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationToken cancellationToken = default)
     {
         // Skip throwing if already disposed; just return calmly or let ListenerState check handle it.
-        if (System.Threading.Volatile.Read(ref this._isDisposed) != 0 && State == ListenerState.STOPPED)
+        if (System.Threading.Volatile.Read(ref _isDisposed) != 0 && State == ListenerState.STOPPED)
         {
             return;
         }

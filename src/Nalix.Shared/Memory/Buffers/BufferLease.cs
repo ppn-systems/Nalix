@@ -118,8 +118,8 @@ public sealed class BufferLease : IBufferLease
         _start = start;
         _buffer = buffer;
 
-        this.Length = length;
-        this.ZeroOnDispose = zeroOnDispose;
+        Length = length;
+        ZeroOnDispose = zeroOnDispose;
     }
 
     #region Properties
@@ -210,7 +210,7 @@ public sealed class BufferLease : IBufferLease
             throw new System.ArgumentOutOfRangeException(nameof(length));
         }
 
-        this.Length = length;
+        Length = length;
     }
 
     /// <summary>
@@ -239,16 +239,16 @@ public sealed class BufferLease : IBufferLease
         {
             _buffer = null;
             _start = 0;
-            this.Length = 0;
+            Length = 0;
             return;
         }
 
         System.Byte[]? buf = System.Threading.Interlocked.Exchange(ref _buffer, null);
         System.Int32 start = _start;
-        System.Int32 len = this.Length;
+        System.Int32 len = Length;
 
         _start = 0;
-        this.Length = 0;
+        Length = 0;
 
         if (buf is not null)
         {
@@ -256,7 +256,7 @@ public sealed class BufferLease : IBufferLease
             {
                 System.Span<System.Byte> slice = new(buf, start, len);
 
-                if (this.ZeroOnDispose)
+                if (ZeroOnDispose)
                 {
                     // Security first
                     slice.Clear();
@@ -304,10 +304,10 @@ public sealed class BufferLease : IBufferLease
 
         buffer = System.Threading.Interlocked.Exchange(ref _buffer, null);
         start = _start;
-        length = this.Length;
+        length = Length;
 
         _start = 0;
-        this.Length = 0;
+        Length = 0;
         return buffer is not null;
     }
 

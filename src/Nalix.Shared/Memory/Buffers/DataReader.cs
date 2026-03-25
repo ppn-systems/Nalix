@@ -34,7 +34,7 @@ public unsafe struct DataReader : System.IDisposable
     private System.Byte* _ptr;
     private System.Int32 _length;
     private System.Boolean _pinned;
-    private System.Byte[]? _tempArray;
+    private readonly System.Byte[]? _tempArray;
     private System.Runtime.InteropServices.GCHandle _pin; // Used only when the source is a byte array
 
     #endregion Fields
@@ -69,7 +69,7 @@ public unsafe struct DataReader : System.IDisposable
         _length = buffer.Length;
         _pinned = true;
 
-        this.BytesRead = 0;
+        BytesRead = 0;
     }
 
     /// <summary>
@@ -80,7 +80,7 @@ public unsafe struct DataReader : System.IDisposable
     /// <param name="length">The length of the buffer.</param>
     public DataReader(System.Byte* ptr, System.Int32 length)
     {
-        this.BytesRead = 0;
+        BytesRead = 0;
 
         _ptr = ptr;
         _length = length;
@@ -101,7 +101,7 @@ public unsafe struct DataReader : System.IDisposable
         _length = _tempArray.Length;
         _pinned = true; // Fixed! 
 
-        this.BytesRead = 0;
+        BytesRead = 0;
     }
 
     /// <summary>
@@ -128,7 +128,7 @@ public unsafe struct DataReader : System.IDisposable
             _pinned = true;
         }
 
-        this.BytesRead = 0;
+        BytesRead = 0;
     }
 
     #endregion Constructors
@@ -178,7 +178,7 @@ public unsafe struct DataReader : System.IDisposable
                 $"Cannot advance {count} bytes, only {BytesRemaining} bytes remaining.");
         }
 
-        this.BytesRead += count;
+        BytesRead += count;
     }
 
     /// <summary>
@@ -199,7 +199,7 @@ public unsafe struct DataReader : System.IDisposable
         _length = 0;
         _pinned = false;
 
-        this.BytesRead = 0;
+        BytesRead = 0;
     }
 
     #endregion APIs

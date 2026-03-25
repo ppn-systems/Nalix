@@ -48,7 +48,7 @@ public ref struct DataWriter
         System.Diagnostics.Debug.Assert(_owner.Length >= size, "ArrayPool returned insufficient buffer");
         _span = System.MemoryExtensions.AsSpan(_owner);
 
-        this.WrittenCount = 0;
+        WrittenCount = 0;
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public ref struct DataWriter
         _owner = buffer;                 // owns an external array (but not rented) → cannot expand by rent policy
         _span = System.MemoryExtensions.AsSpan(buffer);
 
-        this.WrittenCount = 0;
+        WrittenCount = 0;
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ public ref struct DataWriter
         _owner = null;      // no backing array ownership
         _rent = false;      // not rented → cannot Expand()
 
-        this.WrittenCount = 0;
+        WrittenCount = 0;
     }
 
     #endregion Constructors
@@ -119,12 +119,12 @@ public ref struct DataWriter
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Advance(System.Int32 count)
     {
-        if (count <= 0 || (System.UInt32)(this.WrittenCount + count) > (System.UInt32)_span.Length)
+        if (count <= 0 || (System.UInt32)(WrittenCount + count) > (System.UInt32)_span.Length)
         {
             throw new System.ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
         }
 
-        this.WrittenCount += count;
+        WrittenCount += count;
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public ref struct DataWriter
     [System.Diagnostics.CodeAnalysis.UnscopedRef]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly ref System.Byte GetFreeBufferReference() => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(this.FreeBuffer);
+    public readonly ref System.Byte GetFreeBufferReference() => ref System.Runtime.InteropServices.MemoryMarshal.GetReference(FreeBuffer);
 
     /// <summary>
     /// Ensures at least <paramref name="minimumSize"/> bytes are available in <see cref="FreeBuffer"/>.
@@ -155,7 +155,7 @@ public ref struct DataWriter
             throw new System.ArgumentOutOfRangeException(nameof(minimumSize), "SIZE must be greater than zero.");
         }
 
-        if (_span.Length - this.WrittenCount >= minimumSize)
+        if (_span.Length - WrittenCount >= minimumSize)
         {
             return;
         }
@@ -167,19 +167,19 @@ public ref struct DataWriter
 
         // Rent a larger buffer and copy committed bytes
         System.Int32 current = _owner?.Length ?? 0;
-        System.Int32 needed = this.WrittenCount + minimumSize;
+        System.Int32 needed = WrittenCount + minimumSize;
         System.Int32 newSize = current <= 0 ? needed : System.Math.Max(current * 2, needed);
 
         System.Byte[] newOwner = BufferLease.ByteArrayPool.Rent(newSize);
-        if (this.WrittenCount > 0)
+        if (WrittenCount > 0)
         {
             if (current <= 128)
             {
-                _span[..this.WrittenCount].CopyTo(newOwner);
+                _span[..WrittenCount].CopyTo(newOwner);
             }
             else
             {
-                CopyBytes(_owner, newOwner, this.WrittenCount);
+                CopyBytes(_owner, newOwner, WrittenCount);
             }
         }
 
@@ -225,7 +225,7 @@ public ref struct DataWriter
     [System.Diagnostics.DebuggerStepThrough]
     public readonly System.Byte[] ToArray()
     {
-        System.Int32 n = this.WrittenCount;
+        System.Int32 n = WrittenCount;
         System.Byte[] result = new System.Byte[n];
         if (n > 0)
         {
@@ -256,7 +256,7 @@ public ref struct DataWriter
         }
 
         _span = [];
-        this.WrittenCount = 0;
+        WrittenCount = 0;
     }
 
     #endregion APIs

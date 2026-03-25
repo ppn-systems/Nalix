@@ -54,7 +54,7 @@ public abstract partial class UdpListenerBase
     /// <summary>
     /// Gets a value indicating whether the UDP listener is currently running and listening for datagrams.
     /// </summary>
-    public System.Boolean IsListening => this._isRunning;
+    public System.Boolean IsListening => _isRunning;
 
 
     /// <summary>
@@ -73,7 +73,7 @@ public abstract partial class UdpListenerBase
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         set
         {
-            if (this._isRunning)
+            if (_isRunning)
             {
                 throw new System.InvalidOperationException($"[{nameof(UdpListenerBase)}] Cannot change IsTimeSyncEnabled while listening.");
             }
@@ -115,7 +115,7 @@ public abstract partial class UdpListenerBase
         _lock = new System.Threading.SemaphoreSlim(1, 1);
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                       .TimeSynchronized += this.SynchronizeTime;
+                       .TimeSynchronized += SynchronizeTime;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
@@ -140,7 +140,7 @@ public abstract partial class UdpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     public void Dispose()
     {
-        this.Dispose(true);
+        Dispose(true);
         System.GC.SuppressFinalize(this);
     }
 
@@ -149,29 +149,29 @@ public abstract partial class UdpListenerBase
     protected virtual void Dispose(System.Boolean disposing)
     {
         // Atomic check-and-set: 0 -> 1
-        if (System.Threading.Interlocked.CompareExchange(ref this._isDisposed, 1, 0) != 0)
+        if (System.Threading.Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
         {
             return;
         }
 
         if (disposing)
         {
-            this._cts?.Cancel();
-            this._cts?.Dispose();
-            this._cts = null;
-            this._cancellationToken = default;
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+            _cancellationToken = default;
 
             try
             {
-                this._udpClient?.Close();
-                this._udpClient = null;
+                _udpClient?.Close();
+                _udpClient = null;
 
                 InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                               .TimeSynchronized -= this.SynchronizeTime;
+                               .TimeSynchronized -= SynchronizeTime;
             }
             catch { }
 
-            this._lock.Dispose();
+            _lock.Dispose();
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?

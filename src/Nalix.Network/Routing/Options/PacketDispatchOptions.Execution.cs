@@ -48,7 +48,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             System.Type actualType = context.Packet?.GetType();
 
-            this.Logging?.Warn(
+            Logging?.Warn(
                 $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
                 $"type-mismatch opcode=0x{descriptor.OpCode:X4} " +
                 $"expected={expectedType.Name} actual={actualType?.Name ?? "null"} — skipping handler");
@@ -68,7 +68,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         if (!_pipeline.IsEmpty)
         {
-            await this._pipeline.ExecuteAsync(context, InvokeHandlerAsync, context.CancellationToken)
+            await _pipeline.ExecuteAsync(context, InvokeHandlerAsync, context.CancellationToken)
                                 .ConfigureAwait(false);
         }
         else
@@ -116,7 +116,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             }
             catch (System.Exception ex)
             {
-                await this.HandleDispatchExceptionAsync(descriptor, context, ex)
+                await HandleDispatchExceptionAsync(descriptor, context, ex)
                           .ConfigureAwait(false);
             }
         }
@@ -130,7 +130,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context, System.Exception exception)
     {
-        this.Logging?.Error($"[{nameof(PacketDispatchOptions<>)}:{HandleDispatchExceptionAsync}] " +
+        Logging?.Error($"[{nameof(PacketDispatchOptions<>)}:{HandleDispatchExceptionAsync}] " +
                             $"handler-failed opcode={descriptor.OpCode}", exception);
 
         _errorHandler?.Invoke(exception, descriptor.OpCode);

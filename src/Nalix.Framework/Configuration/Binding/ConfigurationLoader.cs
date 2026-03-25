@@ -156,7 +156,7 @@ public abstract partial class ConfigurationLoader
                                             .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
 
                     // HandleEmptyValue writes the comment + default value for new keys
-                    this.HandleEmptyValue(configFile, section, propertyInfo);
+                    HandleEmptyValue(configFile, section, propertyInfo);
                     continue;
                 }
 

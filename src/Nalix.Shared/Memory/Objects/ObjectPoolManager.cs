@@ -537,7 +537,7 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
 
         // Fix: create sortable list from dictionary
-        List<KeyValuePair<System.Type, ObjectPool>> sortedPools = _poolDict.ToList();
+        List<KeyValuePair<System.Type, ObjectPool>> sortedPools = [.. _poolDict];
         sortedPools.Sort((a, b) => System.String.CompareOrdinal(a.Key.Name, b.Key.Name));
 
         foreach (var kvp in sortedPools)

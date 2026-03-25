@@ -160,14 +160,14 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
             ref _state,
             (System.Int32)PacketContextState.IN_USE);
 
-        this.Packet = packet;
-        this.Connection = connection;
-        this.Attributes = descriptor;
-        this.CancellationToken = token;
-        this.Sender = s_object.Get<PacketSender<TPacket>>();
-        if (this.Sender is null)
+        Packet = packet;
+        Connection = connection;
+        Attributes = descriptor;
+        CancellationToken = token;
+        Sender = s_object.Get<PacketSender<TPacket>>();
+        if (Sender is null)
         {
-            throw new System.InvalidOperationException($"[{nameof(PacketContext<TPacket>)}] object pool returned null {nameof(PacketSender<TPacket>)}");
+            throw new System.InvalidOperationException($"[{nameof(PacketContext<>)}] object pool returned null {nameof(PacketSender<>)}");
         }
 
         _isInitialized = true;
@@ -183,15 +183,15 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Reset()
     {
-        if (this.Sender is PacketSender<TPacket> concreteSender)
+        if (Sender is PacketSender<TPacket> concreteSender)
         {
             s_object.Return<PacketSender<TPacket>>(concreteSender);
         }
 
-        this.Sender = default!;
-        this.Packet = default!;
-        this.Attributes = default;
-        this.Connection = default!;
+        Sender = default!;
+        Packet = default!;
+        Attributes = default;
+        Connection = default!;
 
         _isInitialized = false;
     }
@@ -210,9 +210,9 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void ResetForPool()
     {
-        if (this._isInitialized)
+        if (_isInitialized)
         {
-            this.Reset();
+            Reset();
         }
 
         _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)PacketContextState.POOLED);

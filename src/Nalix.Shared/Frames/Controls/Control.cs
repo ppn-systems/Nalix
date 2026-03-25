@@ -57,12 +57,12 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
         ControlType type, System.UInt32 sequenceId = 0,
         ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
     {
-        this.Type = type;
-        this.Reason = reasonCode;
-        this.Protocol = transport;
-        this.SequenceId = sequenceId;
-        this.MonoTicks = Clock.MonoTicksNow();
-        this.Timestamp = Clock.UnixMillisecondsNow();
+        Type = type;
+        Reason = reasonCode;
+        Protocol = transport;
+        SequenceId = sequenceId;
+        MonoTicks = Clock.MonoTicksNow();
+        Timestamp = Clock.UnixMillisecondsNow();
     }
 
     /// <summary>
@@ -77,7 +77,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
         System.UInt16 opCode, ControlType type, System.UInt32 sequenceId = 0,
         ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
     {
-        this.OpCode = opCode;
+        OpCode = opCode;
         Initialize(type, sequenceId, reasonCode, transport);
     }
 
@@ -85,12 +85,12 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.Reason = 0;
-        this.Timestamp = 0;
-        this.MonoTicks = 0;
-        this.SequenceId = 0;
-        this.Type = ControlType.NONE;
-        this.Priority = PacketPriority.URGENT;
+        Reason = 0;
+        Timestamp = 0;
+        MonoTicks = 0;
+        SequenceId = 0;
+        Type = ControlType.NONE;
+        Priority = PacketPriority.URGENT;
     }
 
     /// <inheritdoc/>

@@ -151,7 +151,7 @@ public static class DataReaderExtensions
     {
         if (count <= 0)
         {
-            return System.Array.Empty<System.Byte>();
+            return [];
         }
 
         ref System.Byte ptr = ref reader.GetSpanReference(count);

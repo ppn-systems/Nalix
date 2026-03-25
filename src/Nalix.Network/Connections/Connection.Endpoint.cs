@@ -107,8 +107,8 @@ public sealed partial class Connection
             _lo = lo;
             _port = port;
 
-            this.IsIPv6 = isV6;
-            this.HasPort = hasPort;
+            IsIPv6 = isV6;
+            HasPort = hasPort;
         }
 
         #endregion Constructor
@@ -124,7 +124,7 @@ public sealed partial class Connection
                 System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
             get
             {
-                if (!this.IsIPv6)
+                if (!IsIPv6)
                 {
                     // IPv4 stored in low 32 bits
                     System.UInt32 v4 = (System.UInt32)_lo;
@@ -148,7 +148,7 @@ public sealed partial class Connection
             [System.Diagnostics.Contracts.Pure]
             [System.Runtime.CompilerServices.MethodImpl(
                 System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-            get => this.HasPort ? _port : 0;
+            get => HasPort ? _port : 0;
         }
 
         /// <inheritdoc />
@@ -182,9 +182,9 @@ public sealed partial class Connection
         {
             return _hi == other._hi &&
                    _lo == other._lo &&
-                   this.IsIPv6 == other.IsIPv6 &&
-                   this.HasPort == other.HasPort &&
-                   (!this.HasPort || _port == other._port);
+                   IsIPv6 == other.IsIPv6 &&
+                   HasPort == other.HasPort &&
+                   (!HasPort || _port == other._port);
         }
 
         /// <summary>
@@ -229,8 +229,8 @@ public sealed partial class Connection
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         public override System.Int32 GetHashCode()
         {
-            System.Int32 port = this.HasPort ? _port : 0;
-            return System.HashCode.Combine(_hi, _lo, this.IsIPv6, this.HasPort, port);
+            System.Int32 port = HasPort ? _port : 0;
+            return System.HashCode.Combine(_hi, _lo, IsIPv6, HasPort, port);
         }
 
         /// <inheritdoc />
@@ -257,13 +257,13 @@ public sealed partial class Connection
         public override System.String ToString()
         {
             System.String addr = Address;
-            if (!this.HasPort)
+            if (!HasPort)
             {
                 return addr;
             }
 
             // Standard URI-style endpoint formatting.
-            return !this.IsIPv6
+            return !IsIPv6
                 ? $"{addr}:{_port}"
                 : $"[{addr}]:{_port}";
         }

@@ -177,16 +177,10 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     private readonly record struct Policy(System.Int32 Rps, System.Double Burst);
 
-    private readonly struct RateLimitSubject : INetworkEndpoint, System.IEquatable<RateLimitSubject>
+    private readonly struct RateLimitSubject(System.UInt16 op, INetworkEndpoint inner) : INetworkEndpoint, System.IEquatable<RateLimitSubject>
     {
-        private readonly System.UInt16 _op;
-        private readonly INetworkEndpoint _inner;
-
-        public RateLimitSubject(System.UInt16 op, INetworkEndpoint inner)
-        {
-            _op = op;
-            _inner = inner ?? throw new System.ArgumentNullException(nameof(inner));
-        }
+        private readonly System.UInt16 _op = op;
+        private readonly INetworkEndpoint _inner = inner ?? throw new System.ArgumentNullException(nameof(inner));
 
         public System.String Address => $"op:{_op:X4}|ep:{_inner.Address}";
 
@@ -388,13 +382,13 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
                 }
             }
 
-            if (_limiters.Count > 0)
+            if (!_limiters.IsEmpty)
             {
                 System.Threading.Thread.Sleep(50);
             }
         }
 
-        if (_limiters.Count > 0)
+        if (!_limiters.IsEmpty)
         {
             _limiters.Clear();
         }

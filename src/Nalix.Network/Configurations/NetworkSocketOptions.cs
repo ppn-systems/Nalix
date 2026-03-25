@@ -34,7 +34,7 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     [System.ComponentModel.DataAnnotations.Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
     public System.UInt16 Port
     {
-        get => this._port;
+        get => _port;
         set
         {
             if (value is < 1 or > 65535)
@@ -42,7 +42,7 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
                 throw new System.ArgumentOutOfRangeException(nameof(value), "Port must be between 1 and 65535.");
             }
 
-            this._port = value;
+            _port = value;
         }
     }
 

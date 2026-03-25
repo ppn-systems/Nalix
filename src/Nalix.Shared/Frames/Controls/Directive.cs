@@ -61,9 +61,9 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
     /// </summary>
     public Directive() : base()
     {
-        this.Protocol = ProtocolType.TCP;
-        this.Priority = PacketPriority.URGENT;
-        this.OpCode = PacketConstants.OPCODE_DEFAULT;
+        Protocol = ProtocolType.TCP;
+        Priority = PacketPriority.URGENT;
+        OpCode = PacketConstants.OPCODE_DEFAULT;
     }
 
     /// <summary>
@@ -74,17 +74,17 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
         System.UInt32 sequenceId, ControlFlags flags = ControlFlags.NONE,
         System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
     {
-        this.Arg0 = arg0;
-        this.Arg1 = arg1;
-        this.Arg2 = arg2;
-        this.Type = type;
-        this.Reason = reason;
-        this.Action = action;
-        this.Control = flags;
-        this.SequenceId = sequenceId;
+        Arg0 = arg0;
+        Arg1 = arg1;
+        Arg2 = arg2;
+        Type = type;
+        Reason = reason;
+        Action = action;
+        Control = flags;
+        SequenceId = sequenceId;
 
-        this.Protocol = ProtocolType.TCP;
-        this.Priority = PacketPriority.URGENT;
+        Protocol = ProtocolType.TCP;
+        Priority = PacketPriority.URGENT;
     }
 
     /// <summary>
@@ -96,18 +96,18 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IPacketS
         System.UInt32 sequenceId, ControlFlags flags = ControlFlags.NONE,
         System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
     {
-        this.Arg0 = arg0;
-        this.Arg1 = arg1;
-        this.Arg2 = arg2;
-        this.Type = type;
-        this.Reason = reason;
-        this.Action = action;
-        this.Control = flags;
-        this.OpCode = opCode;
-        this.SequenceId = sequenceId;
+        Arg0 = arg0;
+        Arg1 = arg1;
+        Arg2 = arg2;
+        Type = type;
+        Reason = reason;
+        Action = action;
+        Control = flags;
+        OpCode = opCode;
+        SequenceId = sequenceId;
 
-        this.Protocol = ProtocolType.TCP;
-        this.Priority = PacketPriority.URGENT;
+        Protocol = ProtocolType.TCP;
+        Priority = PacketPriority.URGENT;
     }
 
     /// <summary>

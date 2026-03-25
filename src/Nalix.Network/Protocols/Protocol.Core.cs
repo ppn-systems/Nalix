@@ -36,14 +36,14 @@ public abstract partial class Protocol : IProtocol
     public void PostProcessMessage(System.Object sender, IConnectEventArgs args)
     {
         System.ArgumentNullException.ThrowIfNull(args);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref this._isDisposed) != 0, this);
+        System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
 
         try
         {
-            this.OnPostProcess(args);
-            _ = System.Threading.Interlocked.Increment(ref this._totalMessages);
+            OnPostProcess(args);
+            _ = System.Threading.Interlocked.Increment(ref _totalMessages);
 
-            if (!this.KeepConnectionOpen)
+            if (!KeepConnectionOpen)
             {
                 args.Connection.Disconnect();
 
@@ -52,12 +52,12 @@ public abstract partial class Protocol : IProtocol
         }
         catch (System.Exception ex)
         {
-            _ = System.Threading.Interlocked.Increment(ref this._totalErrors);
+            _ = System.Threading.Interlocked.Increment(ref _totalErrors);
 
             s_logger.Error($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
             // Notify protocol-level error handler
-            this.OnConnectionError(args.Connection, ex);
+            OnConnectionError(args.Connection, ex);
             args.Connection.Disconnect();
         }
     }

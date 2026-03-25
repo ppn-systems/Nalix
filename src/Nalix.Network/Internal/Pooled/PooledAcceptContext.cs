@@ -58,7 +58,7 @@ internal sealed class PooledAcceptContext : IPoolable
                 throw new System.InvalidOperationException("Failed to acquire PooledSocketAsyncEventArgs.");
             }
 
-            this.BindArgs(pooledArgs);
+            BindArgs(pooledArgs);
         }
     }
 
@@ -117,7 +117,7 @@ internal sealed class PooledAcceptContext : IPoolable
             }, (tcs, cancellationToken));
         }
 
-        System.Net.Sockets.SocketAsyncEventArgs args = this.Args;
+        System.Net.Sockets.SocketAsyncEventArgs args = Args;
         args.UserToken = tcs;
         args.AcceptSocket = null;
 

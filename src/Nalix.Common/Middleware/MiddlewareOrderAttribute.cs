@@ -7,8 +7,12 @@ namespace Nalix.Common.Middleware;
 /// Specifies the execution order of middleware in the pipeline.
 /// Lower values execute first in inbound processing and last in outbound processing.
 /// </summary>
+/// <remarks>
+/// Initializes a new instance of the <see cref="MiddlewareOrderAttribute"/> class.
+/// </remarks>
+/// <param name="order">The execution order value.</param>
 [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
-public sealed class MiddlewareOrderAttribute : System.Attribute
+public sealed class MiddlewareOrderAttribute(System.Int32 order) : System.Attribute
 {
     /// <summary>
     /// Gets the execution order of the middleware.
@@ -22,11 +26,5 @@ public sealed class MiddlewareOrderAttribute : System.Attribute
     /// - 50: Business logic constraints (e.g., rate limiting, concurrency)
     /// - 100: Post-processing (e.g., wrapping, encryption)
     /// </remarks>
-    public System.Int32 Order { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MiddlewareOrderAttribute"/> class.
-    /// </summary>
-    /// <param name="order">The execution order value.</param>
-    public MiddlewareOrderAttribute(System.Int32 order) => Order = order;
+    public System.Int32 Order { get; } = order;
 }

@@ -826,11 +826,11 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
     private void SCHEDULE_CLEANUP_JOB()
     {
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
+            name: TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode()),
             interval: _cleanupInterval,
             work: _ =>
             {
-                this.RUN_CLEANUP_ONCE();
+                RUN_CLEANUP_ONCE();
                 return System.Threading.Tasks.ValueTask.CompletedTask;
             },
             options: new RecurringOptions
@@ -859,7 +859,7 @@ public sealed class ConnectionLimiter : System.IDisposable, System.IAsyncDisposa
         try
         {
             InstanceManager.Instance.GetExistingInstance<TaskManager>()
-                ?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()));
+                ?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode()));
 
             _map.Clear();
 

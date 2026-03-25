@@ -54,17 +54,17 @@ public sealed partial class Connection : IConnection
         _secret = [];
         _disposed = false;
 
-        this.ID = Snowflake.NewId(SnowflakeType.Session);
-        this.NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint);
+        ID = Snowflake.NewId(SnowflakeType.Session);
+        NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint);
 
         _evtArgs = new ConnectionEventArgs(this);
         _cstream = new FramedSocketConnection(socket);
 
         _cstream.SetCallback(this, _evtArgs, OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 
-        this.TCP = new TcpTransport(this);
+        TCP = new TcpTransport(this);
 
-        s_logger.Debug($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
+        s_logger.Debug($"[NW.{nameof(Connection)}] created remote={NetworkEndpoint} id={ID}");
     }
 
     #endregion Constructor
@@ -87,10 +87,10 @@ public sealed partial class Connection : IConnection
     public System.Int32 ErrorCount => _errorCount;
 
     /// <inheritdoc />
-    public System.Int64 UpTime => this._cstream.Cache.Uptime;
+    public System.Int64 UpTime => _cstream.Cache.Uptime;
 
     /// <inheritdoc />
-    public System.Int64 LastPingTime => this._cstream.Cache.LastPingTime;
+    public System.Int64 LastPingTime => _cstream.Cache.LastPingTime;
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
@@ -128,22 +128,22 @@ public sealed partial class Connection : IConnection
 
     public event System.EventHandler<IConnectEventArgs> OnCloseEvent
     {
-        add => this._onCloseEvent += value;
-        remove => this._onCloseEvent -= value;
+        add => _onCloseEvent += value;
+        remove => _onCloseEvent -= value;
     }
 
     /// <inheritdoc />
     public event System.EventHandler<IConnectEventArgs> OnProcessEvent
     {
-        add => this._onProcessEvent += value;
-        remove => this._onProcessEvent -= value;
+        add => _onProcessEvent += value;
+        remove => _onProcessEvent -= value;
     }
 
     /// <inheritdoc />
     public event System.EventHandler<IConnectEventArgs> OnPostProcessEvent
     {
-        add => this._onPostProcessEvent += value;
-        remove => this._onPostProcessEvent -= value;
+        add => _onPostProcessEvent += value;
+        remove => _onPostProcessEvent -= value;
     }
 
     #endregion Events
@@ -155,15 +155,15 @@ public sealed partial class Connection : IConnection
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Close(System.Boolean force = false)
     {
-        if (this._disposed)
+        if (_disposed)
         {
             return;
         }
 
-        this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
+        OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
 #if DEBUG
-        s_logger.Debug($"[NW.{nameof(Connection)}:{Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
+        s_logger.Debug($"[NW.{nameof(Connection)}:{Close}] close request id={ID} remote={NetworkEndpoint}");
 #endif
     }
 
@@ -171,7 +171,7 @@ public sealed partial class Connection : IConnection
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public void Disconnect([System.Diagnostics.CodeAnalysis.AllowNull] System.String reason = null) => this.Close(force: true);
+    public void Disconnect([System.Diagnostics.CodeAnalysis.AllowNull] System.String reason = null) => Close(force: true);
 
     #endregion Methods
 
@@ -182,21 +182,21 @@ public sealed partial class Connection : IConnection
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void Dispose()
     {
-        lock (this._lock)
+        lock (_lock)
         {
-            if (this._disposed)
+            if (_disposed)
             {
                 return;
             }
 
-            this._disposed = true;
+            _disposed = true;
         }
 
         try
         {
-            this.Disconnect();
+            Disconnect();
 
-            this._cstream.Dispose();
+            _cstream.Dispose();
 
             if (_udp != null)
             {

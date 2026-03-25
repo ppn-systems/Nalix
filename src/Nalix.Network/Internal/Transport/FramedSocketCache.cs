@@ -31,7 +31,7 @@ internal sealed class FramedSocketCache
     /// <summary>
     /// Gets the connection uptime in milliseconds (how long the connection has been active).
     /// </summary>
-    public System.Int64 Uptime => (System.Int64)Clock.UnixTime().TotalMilliseconds - this._startTime;
+    public System.Int64 Uptime => (System.Int64)Clock.UnixTime().TotalMilliseconds - _startTime;
 
     /// <summary>
     /// Gets or sets the timestamp (in milliseconds) of the last received ping.
