@@ -52,12 +52,12 @@ public sealed class PacketDispatchChannel
     private readonly IPacketRegistry _catalog;
     private readonly DispatchChannel<IPacket> _dispatch;
     private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
-    private readonly System.Threading.CancellationTokenSource _cts = new();
 
     private System.Int32 _running;
     private System.Int32 _activeLoops;
     private System.Int32 _dispatchLoops;
     private IWorkerHandle[] _workerHandle;
+    private System.Threading.CancellationTokenSource _cts;
     private System.Threading.CancellationTokenSource _linkedCts;
 
     #endregion Fields
@@ -99,6 +99,12 @@ public sealed class PacketDispatchChannel
             Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{Activate}] already-running");
             return;
         }
+
+        _linkedCts?.Dispose();
+        _linkedCts = null;
+
+        _cts?.Dispose();
+        _cts = new System.Threading.CancellationTokenSource();
 
         System.Threading.CancellationToken linkedToken;
 
@@ -155,18 +161,20 @@ public sealed class PacketDispatchChannel
             return;
         }
 
+        System.Threading.CancellationTokenSource localCts = System.Threading.Interlocked.Exchange(ref _cts, null);
+        System.Threading.CancellationTokenSource linkedCts = System.Threading.Interlocked.Exchange(ref _linkedCts, null);
+
         try
         {
             for (System.Int32 i = 0; i < _dispatchLoops; i++)
             {
-                System.Threading.Interlocked.Decrement(ref _activeLoops);
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                             .CancelWorker(_workerHandle[i].Id);
             }
 
-            if (!_cts.IsCancellationRequested)
+            if (localCts is { IsCancellationRequested: false })
             {
-                _cts.Cancel();
+                localCts.Cancel();
                 Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop");
             }
 
@@ -187,6 +195,11 @@ public sealed class PacketDispatchChannel
         catch (System.Exception ex)
         {
             Logging?.Error($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-error", ex);
+        }
+        finally
+        {
+            try { linkedCts?.Dispose(); } catch { }
+            try { localCts?.Dispose(); } catch { }
         }
     }
 
@@ -438,8 +451,7 @@ public sealed class PacketDispatchChannel
         this.Deactivate();
 
         _linkedCts?.Dispose();
-
-        this._cts.Dispose();
+        _cts?.Dispose();
         this._semaphore.Dispose();
     }
 
