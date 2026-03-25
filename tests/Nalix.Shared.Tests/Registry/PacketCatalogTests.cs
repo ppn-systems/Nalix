@@ -36,14 +36,14 @@ public sealed class PacketCatalogTests : System.IDisposable
     public PacketCatalogTests()
     {
         // Register ObjectPoolManager so PacketBase<TSelf>.Deserialize can use the pool.
-        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
         // Build catalog the same way production code does.
         _catalog = new PacketRegistry(factory =>
         {
-            factory.RegisterPacket<Control>();
-            factory.RegisterPacket<Handshake>();
-            factory.RegisterPacket<Directive>();
+            _ = factory.RegisterPacket<Control>();
+            _ = factory.RegisterPacket<Handshake>();
+            _ = factory.RegisterPacket<Directive>();
         });
     }
 
@@ -56,16 +56,16 @@ public sealed class PacketCatalogTests : System.IDisposable
     #endregion Setup
 
     [Fact]
-    public void Debug_RegistryBuildDirect()
+    public void DebugRegistryBuildDirect()
     {
         // Build registry thủ công, không qua PacketRegistry constructor
         PacketRegistryFactory factory = new();
 
         PacketRegistry registry = factory.CreateCatalog();
 
-        System.UInt32 key = PacketRegistryFactory.Compute(typeof(Control));
+        uint key = PacketRegistryFactory.Compute(typeof(Control));
 
-        System.Boolean hasKey = registry.TryGetDeserializer(key, out _);
+        bool hasKey = registry.TryGetDeserializer(key, out _);
 
         Assert.True(hasKey, $"Key 0x{key:X8} không có trong registry sau khi build, Auto 0x{new Control().MagicNumber:X8}");
     }
@@ -77,11 +77,11 @@ public sealed class PacketCatalogTests : System.IDisposable
     // -------------------------------------------------------------------------
 
     [Fact]
-    public void Control_SerializeThenDeserialize_ReturnsSamePacket()
+    public void ControlSerializeThenDeserializeReturnsSamePacket()
     {
         InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
         // Arrange
-        var original = new Control();
+        Control original = new();
         original.Initialize(
             opCode: 0x0001,
             type: ControlType.PING,
@@ -90,15 +90,15 @@ public sealed class PacketCatalogTests : System.IDisposable
             transport: ProtocolType.TCP);
 
         // Act — serialize to byte[]
-        System.Byte[] bytes = original.Serialize();
+        byte[] bytes = original.Serialize();
 
         // Assert catalog can identify and deserialize it
-        System.Boolean found = _catalog.TryDeserialize(bytes, out IPacket packet);
+        bool found = _catalog.TryDeserialize(bytes, out IPacket packet);
 
         Assert.True(found);
         Assert.NotNull(packet);
 
-        var result = Assert.IsType<Control>(packet);
+        Control result = Assert.IsType<Control>(packet);
         Assert.Equal(original.OpCode, result.OpCode);
         Assert.Equal(original.MagicNumber, result.MagicNumber);
         Assert.Equal(original.SequenceId, result.SequenceId);
@@ -109,19 +109,19 @@ public sealed class PacketCatalogTests : System.IDisposable
     }
 
     [Fact]
-    public void Control_MagicNumber_IsConsistentAcrossInstances()
+    public void ControlMagicNumberIsConsistentAcrossInstances()
     {
         // AutoMagic must be deterministic — same type always yields same hash.
-        var a = new Control();
-        var b = new Control();
+        Control a = new();
+        Control b = new();
         Assert.Equal(a.MagicNumber, b.MagicNumber);
     }
 
     [Fact]
-    public void Control_AfterResetForPool_MagicNumberPreserved()
+    public void ControlAfterResetForPoolMagicNumberPreserved()
     {
-        var packet = new Control();
-        System.UInt32 magicBefore = packet.MagicNumber;
+        Control packet = new();
+        uint magicBefore = packet.MagicNumber;
 
         packet.ResetForPool();
 
@@ -129,21 +129,21 @@ public sealed class PacketCatalogTests : System.IDisposable
     }
 
     [Fact]
-    public void Control_AfterResetForPool_CanRoundTripAgain()
+    public void ControlAfterResetForPoolCanRoundTripAgain()
     {
         // Simulate: get from pool → use → return → get again → use.
-        var packet = new Control();
+        Control packet = new();
         packet.Initialize(0x0002, ControlType.PONG, sequenceId: 99);
         packet.ResetForPool();
 
         // Re-initialize after reset
         packet.Initialize(0x0003, ControlType.PING, sequenceId: 7);
-        System.Byte[] bytes = packet.Serialize();
+        byte[] bytes = packet.Serialize();
 
-        System.Boolean found = _catalog.TryDeserialize(bytes, out IPacket result);
+        bool found = _catalog.TryDeserialize(bytes, out IPacket result);
 
         Assert.True(found);
-        var control = Assert.IsType<Control>(result);
+        Control control = Assert.IsType<Control>(result);
         Assert.Equal(0x0003, control.OpCode);
         Assert.Equal(7u, control.SequenceId);
         Assert.Equal(ControlType.PING, control.Type);
@@ -154,19 +154,19 @@ public sealed class PacketCatalogTests : System.IDisposable
     // -------------------------------------------------------------------------
 
     [Fact]
-    public void Handshake_SerializeThenDeserialize_ReturnsSamePayload()
+    public void HandshakeSerializeThenDeserializeReturnsSamePayload()
     {
         // Arrange
-        System.Byte[] payload = [0x01, 0x02, 0x03, 0xDE, 0xAD, 0xBE, 0xEF];
-        var original = new Handshake(opCode: 0x0010, data: payload, transport: ProtocolType.TCP);
+        byte[] payload = [0x01, 0x02, 0x03, 0xDE, 0xAD, 0xBE, 0xEF];
+        Handshake original = new(opCode: 0x0010, data: payload, transport: ProtocolType.TCP);
 
         // Act
-        System.Byte[] bytes = original.Serialize();
-        System.Boolean found = _catalog.TryDeserialize(bytes, out IPacket packet);
+        byte[] bytes = original.Serialize();
+        bool found = _catalog.TryDeserialize(bytes, out IPacket packet);
 
         // Assert
         Assert.True(found);
-        var result = Assert.IsType<Handshake>(packet);
+        Handshake result = Assert.IsType<Handshake>(packet);
         Assert.Equal(original.OpCode, result.OpCode);
         Assert.Equal(original.MagicNumber, result.MagicNumber);
         Assert.Equal(original.Protocol, result.Protocol);
@@ -174,15 +174,15 @@ public sealed class PacketCatalogTests : System.IDisposable
     }
 
     [Fact]
-    public void Debug_MagicNumbers()
+    public void DebugMagicNumbers()
     {
-        var control = new Control();
-        var handshake = new Handshake();
-        var directive = new Directive();
+        Control control = new();
+        Handshake handshake = new();
+        Directive directive = new();
 
-        System.UInt32 regControl = PacketRegistryFactory.Compute(typeof(Control));
-        System.UInt32 regHandshake = PacketRegistryFactory.Compute(typeof(Handshake));
-        System.UInt32 regDirective = PacketRegistryFactory.Compute(typeof(Directive));
+        uint regControl = PacketRegistryFactory.Compute(typeof(Control));
+        uint regHandshake = PacketRegistryFactory.Compute(typeof(Handshake));
+        uint regDirective = PacketRegistryFactory.Compute(typeof(Directive));
 
         // Xem instance magic vs registry key có khớp không
         Assert.Equal(regControl, control.MagicNumber);
@@ -190,22 +190,22 @@ public sealed class PacketCatalogTests : System.IDisposable
         Assert.Equal(regDirective, directive.MagicNumber);
 
         // Xem bytes[0..4] sau serialize có đúng MagicNumber không
-        System.Byte[] bytes = control.Serialize();
-        System.UInt32 magicInBytes = System.Buffers.Binary.BinaryPrimitives
+        byte[] bytes = control.Serialize();
+        uint magicInBytes = System.Buffers.Binary.BinaryPrimitives
                                            .ReadUInt32LittleEndian(bytes);
         Assert.Equal(regControl, magicInBytes);
     }
 
     [Fact]
-    public void Handshake_EmptyPayload_RoundTripsCorrectly()
+    public void HandshakeEmptyPayloadRoundTripsCorrectly()
     {
-        var original = new Handshake(opCode: 0x0011, data: [], transport: ProtocolType.UDP);
-        System.Byte[] bytes = original.Serialize();
+        Handshake original = new(opCode: 0x0011, data: [], transport: ProtocolType.UDP);
+        byte[] bytes = original.Serialize();
 
-        System.Boolean found = _catalog.TryDeserialize(bytes, out IPacket packet);
+        bool found = _catalog.TryDeserialize(bytes, out IPacket packet);
 
         Assert.True(found);
-        var result = Assert.IsType<Handshake>(packet);
+        Handshake result = Assert.IsType<Handshake>(packet);
         Assert.NotNull(result.Data);
         Assert.Empty(result.Data);
     }
@@ -215,10 +215,10 @@ public sealed class PacketCatalogTests : System.IDisposable
     // -------------------------------------------------------------------------
 
     [Fact]
-    public void Directive_SerializeThenDeserialize_AllFieldsPreserved()
+    public void DirectiveSerializeThenDeserializeAllFieldsPreserved()
     {
         // Arrange
-        var original = new Directive();
+        Directive original = new();
         original.Initialize(
             opCode: 0x0020,
             type: ControlType.ACK,
@@ -231,12 +231,12 @@ public sealed class PacketCatalogTests : System.IDisposable
             arg2: 0xFF);
 
         // Act
-        System.Byte[] bytes = original.Serialize();
-        System.Boolean found = _catalog.TryDeserialize(bytes, out IPacket packet);
+        byte[] bytes = original.Serialize();
+        bool found = _catalog.TryDeserialize(bytes, out IPacket packet);
 
         // Assert
         Assert.True(found);
-        var result = Assert.IsType<Directive>(packet);
+        Directive result = Assert.IsType<Directive>(packet);
 
         Assert.Equal(original.OpCode, result.OpCode);
         Assert.Equal(original.MagicNumber, result.MagicNumber);
@@ -257,33 +257,33 @@ public sealed class PacketCatalogTests : System.IDisposable
     // -------------------------------------------------------------------------
 
     [Fact]
-    public void TryDeserialize_BufferTooShort_ReturnsFalse()
+    public void TryDeserializeBufferTooShortReturnsFalse()
     {
         // Buffer smaller than HeaderSize must return false, not throw.
-        System.Byte[] tooShort = new System.Byte[3];
-        System.Boolean found = _catalog.TryDeserialize(tooShort, out IPacket packet);
+        byte[] tooShort = new byte[3];
+        bool found = _catalog.TryDeserialize(tooShort, out IPacket packet);
 
         Assert.False(found);
         Assert.Null(packet);
     }
 
     [Fact]
-    public void TryDeserialize_UnknownMagicNumber_ReturnsFalse()
+    public void TryDeserializeUnknownMagicNumberReturnsFalse()
     {
         // Build a buffer with a MagicNumber that is not registered.
-        System.Byte[] buf = new System.Byte[Nalix.Common.Networking.Packets.PacketConstants.HeaderSize];
+        byte[] buf = new byte[PacketConstants.HeaderSize];
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buf, 0xDEADBEEF);
 
-        System.Boolean found = _catalog.TryDeserialize(buf, out IPacket packet);
+        bool found = _catalog.TryDeserialize(buf, out IPacket packet);
 
         Assert.False(found);
         Assert.Null(packet);
     }
 
     [Fact]
-    public void TryDeserialize_EmptyBuffer_ReturnsFalse()
+    public void TryDeserializeEmptyBufferReturnsFalse()
     {
-        System.Boolean found = _catalog.TryDeserialize([], out IPacket packet);
+        bool found = _catalog.TryDeserialize([], out IPacket packet);
 
         Assert.False(found);
         Assert.Null(packet);
@@ -294,12 +294,12 @@ public sealed class PacketCatalogTests : System.IDisposable
     // -------------------------------------------------------------------------
 
     [Fact]
-    public void AllRegisteredPackets_HaveUniqueMagicNumbers()
+    public void AllRegisteredPacketsHaveUniqueMagicNumbers()
     {
         // Each concrete packet type must hash to a different UInt32.
-        System.UInt32 controlMagic = new Control().MagicNumber;
-        System.UInt32 handshakeMagic = new Handshake().MagicNumber;
-        System.UInt32 directiveMagic = new Directive().MagicNumber;
+        uint controlMagic = new Control().MagicNumber;
+        uint handshakeMagic = new Handshake().MagicNumber;
+        uint directiveMagic = new Directive().MagicNumber;
 
         Assert.NotEqual(controlMagic, handshakeMagic);
         Assert.NotEqual(controlMagic, directiveMagic);
@@ -307,12 +307,12 @@ public sealed class PacketCatalogTests : System.IDisposable
     }
 
     [Fact]
-    public void DifferentPacketTypes_ProduceDifferentMagicNumbers()
+    public void DifferentPacketTypesProduceDifferentMagicNumbers()
     {
         // PacketRegistryFactory.Compute must be injective for these types.
-        System.UInt32 a = PacketRegistryFactory.Compute(typeof(Control));
-        System.UInt32 b = PacketRegistryFactory.Compute(typeof(Handshake));
-        System.UInt32 c = PacketRegistryFactory.Compute(typeof(Directive));
+        uint a = PacketRegistryFactory.Compute(typeof(Control));
+        uint b = PacketRegistryFactory.Compute(typeof(Handshake));
+        uint c = PacketRegistryFactory.Compute(typeof(Directive));
 
         Assert.NotEqual(a, b);
         Assert.NotEqual(a, c);
