@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
-using Nalix.Shared.Memory.Objects;
+using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Network.Internal.Pooled;
 

@@ -12,10 +12,10 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Compilation;
 using Nalix.Network.Middleware;
 using Nalix.Network.Routing.Metadata;
-using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Routing.Options;
 

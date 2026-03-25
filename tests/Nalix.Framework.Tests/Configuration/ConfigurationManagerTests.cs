@@ -371,7 +371,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     private string WriteConfigFile(string fileName, string content)
     {
         string filePath = Path.Combine(_testDirectory, fileName);
-        File.WriteAllText(filePath, content.ReplaceLineEndings(Environment.NewLine));
+        File.WriteAllText(filePath, content.ReplaceLineEndings(System.Environment.NewLine));
         return filePath;
     }
 

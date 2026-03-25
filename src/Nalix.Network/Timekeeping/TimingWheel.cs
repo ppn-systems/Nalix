@@ -14,12 +14,12 @@ using Nalix.Common.Networking;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Network.Internal;
-using Nalix.Shared.Memory.Objects;
 
 namespace Nalix.Network.Timekeeping;
 

@@ -8,9 +8,9 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Transport;
 using Nalix.Common.Shared;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Transport.Extensions;
-using Nalix.Shared.Extensions;
 
 namespace Nalix.SDK.Transport.Internal;
 
