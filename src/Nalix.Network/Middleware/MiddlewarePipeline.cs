@@ -44,7 +44,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
     private volatile bool _isSorted;
     private bool _continueOnError;
-    private Action<Exception, Type> _errorHandler;
+    private Action<Exception, Type>? _errorHandler;
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, MiddlewareMetadata>
         s_metadataCache = new();
@@ -88,7 +88,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
     /// </param>
     public void ConfigureErrorHandling(
         bool continueOnError,
-        Action<Exception, Type> errorHandler = null)
+        Action<Exception, Type>? errorHandler = null)
     {
         lock (_lock)
         {
@@ -128,7 +128,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
         List<MiddlewareEntry> outboundSnapshot;
         List<MiddlewareEntry> outboundAlwaysSnapshot;
         bool continueOnError;
-        Action<Exception, Type> errorHandler;
+        Action<Exception, Type>? errorHandler;
 
         lock (_lock)
         {
@@ -306,14 +306,14 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
         Func<CancellationToken, Task> final,
         CancellationToken startToken,
         bool continueOnError = false,
-        Action<Exception, Type> errorHandler = null)
+        Action<Exception, Type>? errorHandler = null)
     {
         static Func<CancellationToken, Task> CreateWrapper(
             PacketContext<TPacket> context,
             IPacketMiddleware<TPacket> middleware,
             Func<CancellationToken, Task> next,
             bool continueOnError,
-            Action<Exception, Type> errorHandler)
+            Action<Exception, Type>? errorHandler)
         {
             return async token =>
             {

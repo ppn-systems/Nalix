@@ -124,11 +124,14 @@ public class NetworkBufferMiddlewarePipeline
     /// the pipeline execution is terminated early.
     /// </para>
     /// </remarks>
-    public Task<IBufferLease> ExecuteAsync(
+    public Task<IBufferLease?> ExecuteAsync(
         IBufferLease buffer,
         IConnection connection,
         CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(buffer);
+        ArgumentNullException.ThrowIfNull(connection);
+
         List<MiddlewareEntry> snapshot;
 
         lock (_lock)
@@ -138,13 +141,15 @@ public class NetworkBufferMiddlewarePipeline
         }
 
         Func<IBufferLease, CancellationToken,
-            Task<IBufferLease>> next = (buf, _) => Task.FromResult(buf);
+            Task<IBufferLease?>> next = (buf, _) => Task.FromResult<IBufferLease?>(buf);
 
         for (int i = snapshot.Count - 1; i >= 0; i--)
         {
             MiddlewareEntry current = snapshot[i];
-            Func<IBufferLease, CancellationToken, Task<IBufferLease>> localNext = next;
-            next = async (buffer, token) => await current.Middleware.InvokeAsync(buffer, connection, localNext, token);
+            INetworkBufferMiddleware middleware = current.Middleware
+                ?? throw new InvalidOperationException("Registered middleware cannot be null.");
+            Func<IBufferLease, CancellationToken, Task<IBufferLease?>> localNext = next;
+            next = CreateNext(middleware, connection, localNext);
         }
 
         return next(buffer, ct);
@@ -164,6 +169,12 @@ public class NetworkBufferMiddlewarePipeline
         _middlewares.Sort((a, b) => a.Order.CompareTo(b.Order));
         _isSorted = true;
     }
+
+    private static Func<IBufferLease, CancellationToken, Task<IBufferLease?>> CreateNext(
+        INetworkBufferMiddleware middleware,
+        IConnection connection,
+        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next)
+        => async (buffer, token) => await middleware.InvokeAsync(buffer, connection, next, token).ConfigureAwait(false);
 
     private record MiddlewareEntry(INetworkBufferMiddleware Middleware, int Order);
 
