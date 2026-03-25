@@ -192,7 +192,6 @@ internal static class OsRandom
     #region Privates
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     private static ulong[] THREAD_STATE()
     {
         ulong[]? st = t_state;

@@ -169,7 +169,6 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T"></typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public T Get<T>() where T : IPoolable, new()
     {
         _ = Interlocked.Increment(ref _totalGetOperations);
@@ -247,7 +246,6 @@ public sealed class ObjectPoolManager : IReportable
     /// Gets or creates a type-specific pool adapter for more efficient operations with a specific type.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    [return: NotNull]
     public TypedObjectPoolAdapter<T> GetTypedPool<T>() where T : IPoolable, new()
     {
         ObjectPool pool = GetOrCreatePool<T>();
@@ -260,7 +258,6 @@ public sealed class ObjectPoolManager : IReportable
     /// <typeparam name="T"></typeparam>
     /// <param name="count"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [return: NotNull]
     public int Prealloc<T>(int count) where T : IPoolable, new()
     {
         if (count <= 0)
@@ -286,7 +283,6 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="maxCapacity"></param>
-    [return: NotNull]
     public bool SetMaxCapacity<T>(int maxCapacity) where T : IPoolable
     {
         if (maxCapacity < 0)
@@ -325,7 +321,6 @@ public sealed class ObjectPoolManager : IReportable
     /// Gets information about a specific type's pool.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    [return: NotNull]
     public Dictionary<string, object> GetTypeInfo<T>() where T : IPoolable
     {
         Type type = typeof(T);
@@ -358,7 +353,6 @@ public sealed class ObjectPoolManager : IReportable
     /// Clears all objects from a specific type's pool.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    [return: NotNull]
     public int ClearPool<T>() where T : IPoolable
     {
         Type type = typeof(T);
@@ -377,7 +371,6 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Clears all objects from all pools.
     /// </summary>
-    [return: NotNull]
     public int ClearAllPools()
     {
         int totalRemoved = 0;
@@ -397,7 +390,6 @@ public sealed class ObjectPoolManager : IReportable
     /// Trims all pools to their target sizes.
     /// </summary>
     /// <param name="percentage"></param>
-    [return: NotNull]
     public int TrimAllPools(int percentage = 50)
     {
         int totalRemoved = 0;
@@ -414,7 +406,6 @@ public sealed class ObjectPoolManager : IReportable
     /// Performs a health check on all pools and identifies unhealthy ones.
     /// </summary>
     /// <returns>Number of unhealthy pools detected.</returns>
-    [return: NotNull]
     public int PerformHealthCheck()
     {
         int unhealthyCount = 0;
@@ -522,7 +513,6 @@ public sealed class ObjectPoolManager : IReportable
     /// Generates a comprehensive report on the current state of all pools with detailed metrics.
     /// </summary>
     /// <returns>A string containing the detailed report.</returns>
-    [return: NotNull]
     public string GenerateReport()
     {
         StringBuilder sb = new(4096);
@@ -646,7 +636,6 @@ public sealed class ObjectPoolManager : IReportable
     /// Gets detailed statistics for all pools including cache performance metrics.
     /// </summary>
     /// <returns>A dictionary containing comprehensive statistics.</returns>
-    [return: NotNull]
     public Dictionary<string, object> GetDetailedStatistics()
     {
         Dictionary<string, object> stats = new()
@@ -698,7 +687,6 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T"></typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     private ObjectPool GetOrCreatePool<T>() where T : IPoolable, new()
     {
         Type type = typeof(T);

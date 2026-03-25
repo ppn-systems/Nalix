@@ -59,7 +59,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <remarks>
     /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
     /// </remarks>
-    private Action<Exception, ushort> _errorHandler;
+    private Action<Exception, ushort>? _errorHandler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatchOptions{TPacket}"/> class.
@@ -85,7 +85,7 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// Gets the logger instance used for logging within the packet dispatch options.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public ILogger Logging { get; private set; }
+    public ILogger? Logging { get; private set; }
 
     /// <summary>
     /// Specifies how many dispatch loops the <see cref="PacketDispatchChannel"/> should start.

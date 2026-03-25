@@ -78,12 +78,12 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
     /// One context per connection; returned to the pool on Dispose.
     /// </summary>
-    private IConnection _sender;
-    private IConnectEventArgs _cachedArgs;
-    private PooledSocketReceiveContext _recvCtx;
-    private EventHandler<IConnectEventArgs> _callbackPost;
-    private EventHandler<IConnectEventArgs> _callbackClose;
-    private EventHandler<IConnectEventArgs> _callbackProcess;
+    private IConnection _sender = null!;
+    private IConnectEventArgs _cachedArgs = null!;
+    private PooledSocketReceiveContext _recvCtx = null!;
+    private EventHandler<IConnectEventArgs>? _callbackPost;
+    private EventHandler<IConnectEventArgs>? _callbackClose;
+    private EventHandler<IConnectEventArgs>? _callbackProcess;
 
     private int _pendingProcessCallbacks;
 
@@ -143,9 +143,9 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     public void SetCallback(
         IConnection sender,
         IConnectEventArgs args,
-        EventHandler<IConnectEventArgs> close,
-        EventHandler<IConnectEventArgs> post,
-        EventHandler<IConnectEventArgs> process)
+        EventHandler<IConnectEventArgs>? close,
+        EventHandler<IConnectEventArgs>? post,
+        EventHandler<IConnectEventArgs>? process)
     {
         _callbackPost = post;
         _callbackClose = close;
@@ -636,7 +636,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
                         $"ep={_sender?.NetworkEndpoint.Address} — packet dropped");
 
                     // Return buffer to pool — rent a fresh one for next receive.
-                    byte[] dropped = Interlocked.Exchange(ref buffer, null);
+                    byte[]? dropped = Interlocked.Exchange(ref buffer, null!);
                     if (dropped is not null)
                     {
                         BufferLease.ByteArrayPool.Return(dropped);
@@ -648,7 +648,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
                 // ── Step 5: zero-copy handoff to session cache ────────────
                 // Interlocked.Exchange(null) prevents Dispose from double-returning.
-                byte[] currentBuf = Interlocked.Exchange(ref buffer, null);
+                byte[]? currentBuf = Interlocked.Exchange(ref buffer, null!);
 
                 if (currentBuf is not null)
                 {
@@ -748,12 +748,12 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
             {
                 s_pool.Return(_recvCtx);
 
-                _recvCtx = null;
+                _recvCtx = null!;
             }
 
             // 4. Return the receive buffer (Interlocked prevents double-return).
-            byte[] bufToReturn =
-                Interlocked.Exchange(ref buffer, null);
+            byte[]? bufToReturn =
+                Interlocked.Exchange(ref buffer, null!);
             if (bufToReturn is not null)
             {
                 BufferLease.ByteArrayPool.Return(bufToReturn);
