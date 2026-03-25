@@ -18,10 +18,10 @@ namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
-    private const System.Int64 MaxReplayWindowMs = 30_000;
-    private const System.Int32 TimestampSize = sizeof(System.Int64);
-    private const System.Int32 AuthenticationTagSize = Poly1305.TagSize;
-    private const System.Int32 AuthenticationMetadataSize = Snowflake.Size + TimestampSize + AuthenticationTagSize;
+    private const long MaxReplayWindowMs = 30_000;
+    private const int TimestampSize = sizeof(long);
+    private const int AuthenticationTagSize = Poly1305.TagSize;
+    private const int AuthenticationMetadataSize = Snowflake.Size + TimestampSize + AuthenticationTagSize;
 
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
@@ -40,8 +40,8 @@ public abstract partial class UdpListenerBase
                 System.Net.Sockets.UdpReceiveResult result = await _udpClient.ReceiveAsync(cancellationToken)
                                                                              .ConfigureAwait(false);
 
-                System.Int32 next = System.Threading.Interlocked.Increment(ref _procSeq);
-                System.Int32 idx = next & System.Int32.MaxValue;
+                int next = System.Threading.Interlocked.Increment(ref _procSeq);
+                int idx = next & int.MaxValue;
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
                     name: $"{NetTaskNames.Udp}.{TaskNaming.Tags.Accept}",
@@ -84,14 +84,14 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        System.Byte[] buffer = result.Buffer;
-        System.Int32 payloadLength = buffer.Length - AuthenticationMetadataSize;
+        byte[] buffer = result.Buffer;
+        int payloadLength = buffer.Length - AuthenticationMetadataSize;
 
-        System.ReadOnlySpan<System.Byte> idBytes = System.MemoryExtensions.AsSpan(buffer, payloadLength, Snowflake.Size);
-        System.ReadOnlySpan<System.Byte> timestampBytes = System.MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size, TimestampSize);
-        System.ReadOnlySpan<System.Byte> tagBytes = System.MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size + TimestampSize, AuthenticationTagSize);
+        System.ReadOnlySpan<byte> idBytes = System.MemoryExtensions.AsSpan(buffer, payloadLength, Snowflake.Size);
+        System.ReadOnlySpan<byte> timestampBytes = System.MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size, TimestampSize);
+        System.ReadOnlySpan<byte> tagBytes = System.MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size + TimestampSize, AuthenticationTagSize);
 
-        System.Int64 timestamp = System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(timestampBytes);
+        long timestamp = System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(timestampBytes);
         ISnowflake identifier = Snowflake.FromBytes(idBytes);
 
         ConnectionHub hub = InstanceManager.Instance.GetExistingInstance<ConnectionHub>();
@@ -104,7 +104,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        if (hub.GetConnection(identifier) is not Connections.Connection connection)
+        if (hub.GetConnection(identifier) is not Connection connection)
         {
             _ = System.Threading.Interlocked.Increment(ref _dropUnknown);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -139,44 +139,43 @@ public abstract partial class UdpListenerBase
                                 .Trace($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={lease.Length}");
     }
 
-    private static System.Boolean ValidateAuthenticationToken(
+    private static bool ValidateAuthenticationToken(
         Connection connection,
         System.Net.EndPoint remoteEndPoint,
-        System.ReadOnlySpan<System.Byte> payload,
-        System.ReadOnlySpan<System.Byte> identifierBytes,
-        System.Int64 timestamp,
-        System.ReadOnlySpan<System.Byte> expectedTag)
+        System.ReadOnlySpan<byte> payload,
+        System.ReadOnlySpan<byte> identifierBytes,
+        long timestamp,
+        System.ReadOnlySpan<byte> expectedTag)
     {
         if (connection.Secret is null || connection.Secret.Length < Poly1305.KeySize)
         {
             return false;
         }
 
-        System.Int64 now = Clock.UnixMillisecondsNow();
+        long now = Clock.UnixMillisecondsNow();
         if (System.Math.Abs(now - timestamp) > MaxReplayWindowMs)
         {
             return false;
         }
 
-        System.Span<System.Byte> remoteMeta = stackalloc System.Byte[1 + 16 + sizeof(System.UInt16)];
-        System.Int32 remoteLength = EncodeRemoteEndpoint(remoteEndPoint, remoteMeta);
+        System.Span<byte> remoteMeta = stackalloc byte[1 + 16 + sizeof(ushort)];
+        int remoteLength = EncodeRemoteEndpoint(remoteEndPoint, remoteMeta);
         if (remoteLength == 0)
         {
             return false;
         }
 
-        System.Boolean isValid;
+        bool isValid;
 
         Poly1305 poly = new(System.MemoryExtensions.AsSpan(connection.Secret, 0, Poly1305.KeySize));
 
         try
         {
-            System.Byte[] computedTagArray = new System.Byte[AuthenticationTagSize];
-            System.Span<System.Byte> computedTag = computedTagArray;
+            System.Span<byte> computedTag = new byte[AuthenticationTagSize];
             poly.Update(payload);
             poly.Update(identifierBytes);
 
-            System.Span<System.Byte> timestampBytes = stackalloc System.Byte[TimestampSize];
+            System.Span<byte> timestampBytes = stackalloc byte[TimestampSize];
             System.Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(timestampBytes, timestamp);
 
             poly.Update(timestampBytes);
@@ -195,41 +194,41 @@ public abstract partial class UdpListenerBase
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 EncodeRemoteEndpoint(System.Net.EndPoint remoteEndPoint, System.Span<System.Byte> destination)
+    private static int EncodeRemoteEndpoint(System.Net.EndPoint remoteEndPoint, System.Span<byte> destination)
     {
         if (remoteEndPoint is not System.Net.IPEndPoint endpoint)
         {
             return 0;
         }
 
-        System.Byte[] addressBytes = endpoint.Address.GetAddressBytes();
-        if (addressBytes.Length > 16 || destination.Length < 1 + addressBytes.Length + sizeof(System.UInt16))
+        byte[] addressBytes = endpoint.Address.GetAddressBytes();
+        if (addressBytes.Length > 16 || destination.Length < 1 + addressBytes.Length + sizeof(ushort))
         {
             return 0;
         }
 
-        destination[0] = (System.Byte)addressBytes.Length;
+        destination[0] = (byte)addressBytes.Length;
         System.MemoryExtensions.AsSpan(addressBytes)
                                .CopyTo(destination
                                .Slice(1, addressBytes.Length));
 
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination[(1 + addressBytes.Length)..], (System.UInt16)endpoint.Port);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination[(1 + addressBytes.Length)..], (ushort)endpoint.Port);
 
-        return 1 + addressBytes.Length + sizeof(System.UInt16);
+        return 1 + addressBytes.Length + sizeof(ushort);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static System.Boolean FixedTimeEquals(System.ReadOnlySpan<System.Byte> left, System.ReadOnlySpan<System.Byte> right)
+    private static bool FixedTimeEquals(System.ReadOnlySpan<byte> left, System.ReadOnlySpan<byte> right)
     {
         if (left.Length != right.Length)
         {
             return false;
         }
 
-        System.Int32 result = 0;
+        int result = 0;
 
-        for (System.Int32 i = 0; i < left.Length; i++)
+        for (int i = 0; i < left.Length; i++)
         {
             result |= left[i] ^ right[i];
         }

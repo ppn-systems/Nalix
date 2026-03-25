@@ -48,9 +48,9 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     [IniComment("Max packets queued per connection before dropping (Layer 1, default 8)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1024,
         ErrorMessage = "MaxPerConnectionPendingPackets must be between 1 and 1024.")]
-    public System.Int32 MaxPerConnectionPendingPackets { get; set; } = 8;
+    public int MaxPerConnectionPendingPackets { get; set; } = 8;
 
-    #endregion
+    #endregion Layer 1 — Per-connection receive throttle
 
     #region Layer 2 — Global and per-IP callback caps
 
@@ -65,7 +65,7 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     [IniComment("Max total normal-priority callbacks pending globally (Layer 2, default 10000)")]
     [System.ComponentModel.DataAnnotations.Range(100, 1_000_000,
         ErrorMessage = "MaxPendingNormalCallbacks must be between 100 and 1,000,000.")]
-    public System.Int32 MaxPendingNormalCallbacks { get; set; } = 10_000;
+    public int MaxPendingNormalCallbacks { get; set; } = 10_000;
 
     /// <summary>
     /// Emit a warning log every time pending normal callbacks reaches a
@@ -74,7 +74,7 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     [IniComment("Log warning when pending callbacks crosses this threshold (0 = disabled, default 5000)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "CallbackWarningThreshold must be between 0 and 1,000,000.")]
-    public System.Int32 CallbackWarningThreshold { get; set; } = 5_000;
+    public int CallbackWarningThreshold { get; set; } = 5_000;
 
     /// <summary>
     /// Maximum normal-priority callbacks pending for a <b>single remote IP</b>.
@@ -88,7 +88,7 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     [IniComment("Max normal-priority callbacks per remote IP (Layer 2, default 64)")]
     [System.ComponentModel.DataAnnotations.Range(1, 10_000,
         ErrorMessage = "MaxPendingPerIp must be between 1 and 10,000.")]
-    public System.Int32 MaxPendingPerIp { get; set; } = 64;
+    public int MaxPendingPerIp { get; set; } = 64;
 
     /// <summary>
     /// Maximum number of StateWrapper objects held in the
@@ -101,9 +101,9 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     [IniComment("StateWrapper object pool ceiling inside AsyncCallback (default 1000)")]
     [System.ComponentModel.DataAnnotations.Range(64, 100_000,
         ErrorMessage = "MaxPooledCallbackStates must be between 64 and 100,000.")]
-    public System.Int32 MaxPooledCallbackStates { get; set; } = 1_000;
+    public int MaxPooledCallbackStates { get; set; } = 1_000;
 
-    #endregion
+    #endregion Layer 2 — Global and per-IP callback caps
 
     /// <summary>
     /// Validates all options and throws if any value is out of range.

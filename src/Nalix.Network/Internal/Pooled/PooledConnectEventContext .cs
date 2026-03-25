@@ -24,7 +24,7 @@ internal sealed class PooledConnectEventContext : IPoolable
     /// <summary>
     /// Gets or sets the event sender.
     /// </summary>
-    public System.Object Sender;
+    public object Sender;
 
     /// <summary>
     /// Gets or sets the connection event arguments.
@@ -44,7 +44,7 @@ internal sealed class PooledConnectEventContext : IPoolable
     /// <param name="args">The event arguments.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Initialize(System.EventHandler<IConnectEventArgs> callback, System.Object sender, IConnectEventArgs args)
+    public void Initialize(System.EventHandler<IConnectEventArgs> callback, object sender, IConnectEventArgs args)
     {
         Args = args;
         Sender = sender;

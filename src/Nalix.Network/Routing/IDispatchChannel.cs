@@ -11,6 +11,7 @@ namespace Nalix.Network.Routing;
 /// Defines the contract for a dispatch channel that manages the queuing, retrieval,
 /// and association of packets with connections.
 /// </summary>
+/// <typeparam name="TPacket"></typeparam>
 public interface IDispatchChannel<TPacket> where TPacket : IPacket
 {
     /// <summary>
@@ -19,7 +20,7 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <value>
     /// The total number of packets currently enqueued for processing.
     /// </value>
-    System.Int64 TotalPackets { get; }
+    long TotalPackets { get; }
 
     /// <summary>
     /// Adds a packet to the dispatch queue, associating it with a specific connection.
@@ -53,7 +54,7 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     /// <see langword="false"/> if the queue is empty.
     /// </returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    System.Boolean Pull(
+    bool Pull(
         [System.Diagnostics.CodeAnalysis.NotNull] out IConnection connection,
         [System.Diagnostics.CodeAnalysis.MaybeNull] out IBufferLease raw);
 }

@@ -18,8 +18,8 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// Set to 0 or negative to disable bounding.
     /// </summary>
     [IniComment("Max items in a single connection queue (0 = unlimited)")]
-    [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue, ErrorMessage = "MaxPerConnectionQueue must be -1, 0 (unlimited), or a positive value.")]
-    public System.Int32 MaxPerConnectionQueue { get; init; } = 0;
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "MaxPerConnectionQueue must be -1, 0 (unlimited), or a positive value.")]
+    public int MaxPerConnectionQueue { get; init; }
 
     /// <summary>
     /// Drop strategy when the per-connection queue is full.

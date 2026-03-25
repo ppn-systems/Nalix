@@ -37,7 +37,7 @@ public class NetworkBufferMiddlewarePipeline
     private readonly System.Collections.Generic.List<MiddlewareEntry> _middlewares = [];
     private readonly System.Collections.Generic.HashSet<INetworkBufferMiddleware> _registered = [];
 
-    private volatile System.Boolean _isSorted;
+    private volatile bool _isSorted;
 
     #endregion Fields
 
@@ -69,7 +69,7 @@ public class NetworkBufferMiddlewarePipeline
                     $"Middleware '{middleware.GetType().FullName}' already registered.");
             }
 
-            System.Int32 order = 0;
+            int order = 0;
             if (System.Attribute.GetCustomAttribute(middleware.GetType(), typeof(MiddlewareOrderAttribute))
                 is MiddlewareOrderAttribute orderAttr)
             {
@@ -134,9 +134,9 @@ public class NetworkBufferMiddlewarePipeline
         }
 
         System.Func<IBufferLease, System.Threading.CancellationToken,
-            System.Threading.Tasks.Task<IBufferLease>> next = (buf, _) => System.Threading.Tasks.Task.FromResult<IBufferLease>(buf);
+            System.Threading.Tasks.Task<IBufferLease>> next = (buf, _) => System.Threading.Tasks.Task.FromResult(buf);
 
-        for (System.Int32 i = snapshot.Count - 1; i >= 0; i--)
+        for (int i = snapshot.Count - 1; i >= 0; i--)
         {
             MiddlewareEntry current = snapshot[i];
             System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> localNext = next;
@@ -161,7 +161,7 @@ public class NetworkBufferMiddlewarePipeline
         _isSorted = true;
     }
 
-    private record MiddlewareEntry(INetworkBufferMiddleware Middleware, System.Int32 Order);
+    private record MiddlewareEntry(INetworkBufferMiddleware Middleware, int Order);
 
     #endregion Private Methods
 }

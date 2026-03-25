@@ -9,10 +9,14 @@ public abstract partial class TcpListenerBase
 {
     #region Fields
 
-    // Dedicated consumer thread — drains the channel at BelowNormal priority.
+    /// <summary>
+    /// Dedicated consumer thread — drains the channel at BelowNormal priority.
+    /// </summary>
     private System.Threading.Thread _processThread;
 
-    // Bounded channel: N producers (accept-loop workers) → 1 consumer (BelowNormal thread).
+    /// <summary>
+    /// Bounded channel: N producers (accept-loop workers) → 1 consumer (BelowNormal thread).
+    /// </summary>
     private System.Threading.Channels.Channel<IConnection> _processChannel;
 
     #endregion Fields
@@ -23,6 +27,7 @@ public abstract partial class TcpListenerBase
     /// Creates the channel and starts the consumer thread.
     /// Call once during listener startup inside <c>Activate</c>.
     /// </summary>
+    /// <param name="cancellationToken"></param>
     private void START_PROCESS_CHANNEL(System.Threading.CancellationToken cancellationToken)
     {
         _processChannel = System.Threading.Channels.Channel.CreateBounded<IConnection>(
@@ -55,8 +60,8 @@ public abstract partial class TcpListenerBase
     /// </summary>
     private void STOP_PROCESS_CHANNEL()
     {
-        _processChannel?.Writer.TryComplete();
-        _processThread?.Join(millisecondsTimeout: 5_000);
+        _ = (_processChannel?.Writer.TryComplete());
+        _ = (_processThread?.Join(millisecondsTimeout: 5_000));
     }
 
     #endregion Lifecycle
@@ -69,6 +74,7 @@ public abstract partial class TcpListenerBase
     /// <c>AcceptConnectionsAsync</c> — call like:
     /// <c>DISPATCH_CONNECTION(connection);</c>
     /// </summary>
+    /// <param name="connection"></param>
     private void DISPATCH_CONNECTION(IConnection connection)
     {
         if (_processChannel.Writer.TryWrite(connection))
@@ -79,13 +85,13 @@ public abstract partial class TcpListenerBase
 
         // Channel full → DDoS backpressure: drop the new connection immediately.
         // Existing legitimate connections already in the channel are unaffected.
-        _metrics.RECORD_REJECTED();
+        Metrics.RECORD_REJECTED();
         s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] channel-full remote={connection?.NetworkEndpoint} port={_port} — dropped");
 
         connection.Close();
     }
 
-    #endregion Producer
+    #endregion Producer — called from AcceptConnectionsAsync
 
     #region Consumer — BelowNormal background thread
 
@@ -106,7 +112,7 @@ public abstract partial class TcpListenerBase
             }
 
             // ── Slow path: wait for next item ─────────────────────────────────
-            System.Threading.Tasks.ValueTask<System.Boolean> wait = reader.WaitToReadAsync(cancellationToken);
+            System.Threading.Tasks.ValueTask<bool> wait = reader.WaitToReadAsync(cancellationToken);
 
             if (wait.IsCompletedSuccessfully)
             {
@@ -145,6 +151,7 @@ public abstract partial class TcpListenerBase
     /// Calls <see cref="ProcessConnection"/> directly on the consumer thread —
     /// no additional ThreadPool hop needed.
     /// </summary>
+    /// <param name="connection"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void INVOKE_PROCESS(IConnection connection)
@@ -162,5 +169,5 @@ public abstract partial class TcpListenerBase
         }
     }
 
-    #endregion Consumer
+    #endregion Consumer — BelowNormal background thread
 }

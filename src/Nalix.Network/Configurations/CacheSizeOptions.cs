@@ -23,7 +23,7 @@ public sealed class CacheSizeOptions : ConfigurationLoader
     /// </remarks>
     [IniComment("Maximum incoming frames buffered before processing (10–1,000,000)")]
     [System.ComponentModel.DataAnnotations.Range(10, 1_000_000, ErrorMessage = "Incoming must be between 1 and 1,000,000.")]
-    public System.Int32 Incoming { get; set; } = 100;
+    public int Incoming { get; set; } = 100;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.

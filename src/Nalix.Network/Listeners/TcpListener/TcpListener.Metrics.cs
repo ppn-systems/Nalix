@@ -15,9 +15,9 @@ public abstract partial class TcpListenerBase
     {
         #region Fields
 
-        private System.Int64 _totalErrors;
-        private System.Int64 _totalAccepted;
-        private System.Int64 _totalRejected;
+        private long _totalErrors;
+        private long _totalAccepted;
+        private long _totalRejected;
 
         #endregion Fields
 
@@ -26,17 +26,17 @@ public abstract partial class TcpListenerBase
         /// <summary>
         /// Gets the total number of acceptance errors.
         /// </summary>
-        public System.Int64 TotalErrors => System.Threading.Volatile.Read(ref _totalErrors);
+        public long TotalErrors => System.Threading.Volatile.Read(ref _totalErrors);
 
         /// <summary>
         /// Gets the total number of accepted connections.
         /// </summary>
-        public System.Int64 TotalAccepted => System.Threading.Volatile.Read(ref _totalAccepted);
+        public long TotalAccepted => System.Threading.Volatile.Read(ref _totalAccepted);
 
         /// <summary>
         /// Gets the total number of rejected connections.
         /// </summary>
-        public System.Int64 TotalRejected => System.Threading.Volatile.Read(ref _totalRejected);
+        public long TotalRejected => System.Threading.Volatile.Read(ref _totalRejected);
 
         #endregion Properties
 
@@ -68,7 +68,6 @@ public abstract partial class TcpListenerBase
 
     #endregion Nested Metrics Class
 
-    private readonly LMetrics _metrics = new();
 
     /// <inheritdoc/>
     public LMetrics Metrics
@@ -76,7 +75,7 @@ public abstract partial class TcpListenerBase
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => _metrics;
-    }
+        get;
+    } = new();
 
 }

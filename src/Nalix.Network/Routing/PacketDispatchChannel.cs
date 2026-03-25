@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -13,7 +16,6 @@ using Nalix.Network.Internal;
 using Nalix.Network.Routing.Channel;
 using Nalix.Network.Routing.Options;
 using Nalix.Shared.Extensions;
-using System.Linq;
 
 namespace Nalix.Network.Routing;
 
@@ -53,9 +55,9 @@ public sealed class PacketDispatchChannel
     private readonly DispatchChannel<IPacket> _dispatch;
     private readonly System.Threading.SemaphoreSlim _semaphore = new(0);
 
-    private System.Int32 _running;
-    private System.Int32 _activeLoops;
-    private System.Int32 _dispatchLoops;
+    private int _running;
+    private int _activeLoops;
+    private int _dispatchLoops;
     private IWorkerHandle[] _workerHandle;
     private System.Threading.CancellationTokenSource _cts;
     private System.Threading.CancellationTokenSource _linkedCts;
@@ -87,6 +89,7 @@ public sealed class PacketDispatchChannel
     /// <summary>
     /// Starts the lease processing loop
     /// </summary>
+    /// <param name="cancellationToken"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
@@ -125,9 +128,9 @@ public sealed class PacketDispatchChannel
         _dispatchLoops = Options.DispatchLoopCount ?? System.Math.Clamp(System.Environment.ProcessorCount / 2, 1, 12);
         _workerHandle = new IWorkerHandle[_dispatchLoops];
 
-        for (System.Int32 i = 0; i < _dispatchLoops; i++)
+        for (int i = 0; i < _dispatchLoops; i++)
         {
-            System.Threading.Interlocked.Increment(ref _activeLoops);
+            _ = System.Threading.Interlocked.Increment(ref _activeLoops);
 
             _workerHandle[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"{TaskNaming.Tags.Dispatch}.{TaskNaming.Tags.Process}.{i}",
@@ -149,6 +152,7 @@ public sealed class PacketDispatchChannel
     /// <summary>
     /// Stops the lease processing loop
     /// </summary>
+    /// <param name="cancellationToken"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
@@ -166,7 +170,7 @@ public sealed class PacketDispatchChannel
 
         try
         {
-            for (System.Int32 i = 0; i < _dispatchLoops; i++)
+            for (int i = 0; i < _dispatchLoops; i++)
             {
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                             .CancelWorker(_workerHandle[i].Id);
@@ -180,8 +184,8 @@ public sealed class PacketDispatchChannel
 
             try
             {
-                System.Int32 releases = System.Math.Max(_dispatchLoops, 1);
-                for (System.Int32 i = 0; i < releases; i++)
+                int releases = System.Math.Max(_dispatchLoops, 1);
+                for (int i = 0; i < releases; i++)
                 {
                     _ = _semaphore.Release();
                 }
@@ -208,19 +212,19 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] IBufferLease lease,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] IBufferLease packet,
         [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection)
     {
-        if (lease is null || lease.Length <= 0)
+        if (packet is null || packet.Length <= 0)
         {
             Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.NetworkEndpoint}");
-            lease?.Dispose();
+            packet?.Dispose();
 
             return;
         }
 
         // Enqueue lease into the priority-aware channel (per-connection).
-        _dispatch.Push(connection, lease);
+        _dispatch.Push(connection, packet);
 
         // Signal the worker that an item is available.
         _ = _semaphore.Release();
@@ -233,7 +237,7 @@ public sealed class PacketDispatchChannel
        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     public void HandlePacket(
         [System.Diagnostics.CodeAnalysis.NotNull] IPacket packet,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => base.ExecutePacketHandlerAsync(packet, connection).Await();
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
 
     #endregion Public Methods
 
@@ -246,71 +250,71 @@ public sealed class PacketDispatchChannel
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    public System.String GenerateReport()
+    public string GenerateReport()
     {
-        var sb = new System.Text.StringBuilder(2048);
+        StringBuilder sb = new(2048);
 
         // Header
-        sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
-        sb.AppendLine($"Running           : {(System.Threading.Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
-        sb.AppendLine($"DispatchLoops     : {_dispatchLoops}");
-        sb.AppendLine();
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
+        _ = sb.AppendLine($"Running           : {(System.Threading.Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
+        _ = sb.AppendLine($"DispatchLoops     : {_dispatchLoops}");
+        _ = sb.AppendLine();
 
-        sb.AppendLine("---------------------------------------------------------------------");
-        sb.AppendLine("Channel Statistics:");
-        sb.AppendLine($"Total Packets     : {_dispatch.TotalPackets}");
-        sb.AppendLine($"Total Connections : {_dispatch.TotalConnections}");
-        sb.AppendLine($"Ready Connections : {_dispatch.ReadyConnections}");
-        sb.AppendLine();
+        _ = sb.AppendLine("---------------------------------------------------------------------");
+        _ = sb.AppendLine("Channel Statistics:");
+        _ = sb.AppendLine($"Total Packets     : {_dispatch.TotalPackets}");
+        _ = sb.AppendLine($"Total Connections : {_dispatch.TotalConnections}");
+        _ = sb.AppendLine($"Ready Connections : {_dispatch.ReadyConnections}");
+        _ = sb.AppendLine();
 
-        sb.AppendLine("Pending by Priority:");
-        sb.AppendLine("Priority          | Pending Connections");
-        sb.AppendLine("------------------|---------------------");
-        var priorities = _dispatch.PendingPerPriority;
-        for (System.Int32 p = priorities.Length - 1; p >= 0; p--)
+        _ = sb.AppendLine("Pending by Priority:");
+        _ = sb.AppendLine("Priority          | Pending Connections");
+        _ = sb.AppendLine("------------------|---------------------");
+        int[] priorities = _dispatch.PendingPerPriority;
+        for (int p = priorities.Length - 1; p >= 0; p--)
         {
-            sb.AppendLine($"{GetPriorityName(p),-18}| {priorities[p],-19}");
+            _ = sb.AppendLine($"{GetPriorityName(p),-18}| {priorities[p],-19}");
         }
 
-        sb.AppendLine();
+        _ = sb.AppendLine();
 
-        sb.AppendLine("Top Connections by Pending Packets:");
-        sb.AppendLine("EndPoint              | Pending");
-        sb.AppendLine("----------------------|----------");
-        foreach (var kv in _dispatch.PendingPerConnection.OrderByDescending(x => x.Value).Take(10))
+        _ = sb.AppendLine("Top Connections by Pending Packets:");
+        _ = sb.AppendLine("EndPoint              | Pending");
+        _ = sb.AppendLine("----------------------|----------");
+        foreach (KeyValuePair<IConnection, int> kv in _dispatch.PendingPerConnection.OrderByDescending(x => x.Value).Take(10))
         {
-            sb.AppendLine($"{kv.Key.NetworkEndpoint,-22}| {kv.Value,6}");
+            _ = sb.AppendLine($"{kv.Key.NetworkEndpoint,-22}| {kv.Value,6}");
         }
 
-        sb.AppendLine();
+        _ = sb.AppendLine();
 
-        sb.AppendLine("---------------------------------------------------------------------");
-        sb.AppendLine("Resources / Metrics:");
-        sb.AppendLine($"Semaphore.CurrentCount: {_semaphore.CurrentCount}");
-        sb.AppendLine($"CTS.Cancelled         : {_cts.IsCancellationRequested}");
-        sb.AppendLine();
+        _ = sb.AppendLine("---------------------------------------------------------------------");
+        _ = sb.AppendLine("Resources / Metrics:");
+        _ = sb.AppendLine($"Semaphore.CurrentCount: {_semaphore.CurrentCount}");
+        _ = sb.AppendLine($"CTS.Cancelled         : {_cts.IsCancellationRequested}");
+        _ = sb.AppendLine();
 
-        sb.AppendLine("---------------------------------------------------------------------");
-        sb.AppendLine("Packet Registry:");
-        sb.AppendLine($"Registry Type         : {_catalog?.GetType().Name ?? "(null)"}");
-        sb.AppendLine();
+        _ = sb.AppendLine("---------------------------------------------------------------------");
+        _ = sb.AppendLine("Packet Registry:");
+        _ = sb.AppendLine($"Registry Type         : {_catalog?.GetType().Name ?? "(null)"}");
+        _ = sb.AppendLine();
 
         // Optionally list registered handlers if available in _catalog
         // sb.AppendLine("Registered handlers   : ...");
 
-        sb.AppendLine("---------------------------------------------------------------------");
-        sb.AppendLine("Quick Notes:");
-        sb.AppendLine("• TotalPackets        = total packets pending for processing");
-        sb.AppendLine("• ReadyConnections    = number of connections with packets ready for processing");
-        sb.AppendLine("• PendingPerPriority  = number of ready connections by priority");
-        sb.AppendLine("• Top Connections     = endpoints with the most pending packets");
-        sb.AppendLine("• Resources/Memory    = system resource statistics");
-        sb.AppendLine();
+        _ = sb.AppendLine("---------------------------------------------------------------------");
+        _ = sb.AppendLine("Quick Notes:");
+        _ = sb.AppendLine("• TotalPackets        = total packets pending for processing");
+        _ = sb.AppendLine("• ReadyConnections    = number of connections with packets ready for processing");
+        _ = sb.AppendLine("• PendingPerPriority  = number of ready connections by priority");
+        _ = sb.AppendLine("• Top Connections     = endpoints with the most pending packets");
+        _ = sb.AppendLine("• Resources/Memory    = system resource statistics");
+        _ = sb.AppendLine();
 
         return sb.ToString();
     }
 
-    private static System.String GetPriorityName(System.Int32 index)
+    private static string GetPriorityName(int index)
     {
         try
         {
@@ -329,6 +333,8 @@ public sealed class PacketDispatchChannel
     /// <summary>
     /// Continuously processes packets from the queue
     /// </summary>
+    /// <param name="ctx"></param>
+    /// <param name="ct"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Runtime.CompilerServices.MethodImpl(
        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
@@ -343,7 +349,7 @@ public sealed class PacketDispatchChannel
             {
                 ctx.Beat();
 
-                System.Boolean signaled = await _semaphore.WaitAsync(heartbeatInterval, ct).ConfigureAwait(false);
+                bool signaled = await _semaphore.WaitAsync(heartbeatInterval, ct).ConfigureAwait(false);
                 if (!signaled)
                 {
                     continue;
@@ -396,8 +402,8 @@ public sealed class PacketDispatchChannel
                     // Deserialize packet
                     if (!_catalog.TryDeserialize(lease.Span, out IPacket packet) || packet is null)
                     {
-                        System.Int32 len = lease.Length;
-                        System.String head = System.Convert.ToHexString(lease.Span[..System.Math.Min(16, len)]);
+                        int len = lease.Length;
+                        string head = System.Convert.ToHexString(lease.Span[..System.Math.Min(16, len)]);
                         Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
 
                         lease.Dispose();
@@ -405,7 +411,7 @@ public sealed class PacketDispatchChannel
                         continue;
                     }
 
-                    await base.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
+                    await ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
                 }
                 catch (System.Exception ex)
                 {

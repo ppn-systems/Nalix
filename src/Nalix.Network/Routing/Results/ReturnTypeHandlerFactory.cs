@@ -41,6 +41,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     /// <summary>
     /// Get handler cho specific return type.
     /// </summary>
+    /// <param name="returnType"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -86,12 +87,12 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         {
             [typeof(void)] = new VoidReturnHandler<TPacket>(),
             [typeof(TPacket)] = new PacketReturnHandler<TPacket>(),
-            [typeof(System.String)] = new StringReturnHandler<TPacket>(),
-            [typeof(System.Byte[])] = new ByteArrayReturnHandler<TPacket>(),
-            [typeof(System.Memory<System.Byte>)] = new MemoryReturnHandler<TPacket>(),
+            [typeof(string)] = new StringReturnHandler<TPacket>(),
+            [typeof(byte[])] = new ByteArrayReturnHandler<TPacket>(),
+            [typeof(System.Memory<byte>)] = new MemoryReturnHandler<TPacket>(),
             [typeof(System.Threading.Tasks.Task)] = new TaskVoidReturnHandler<TPacket>(),
             [typeof(System.Threading.Tasks.ValueTask)] = new ValueTaskVoidReturnHandler<TPacket>(),
-            [typeof(System.ReadOnlyMemory<System.Byte>)] = new ReadOnlyMemoryReturnHandler<TPacket>()
+            [typeof(System.ReadOnlyMemory<byte>)] = new ReadOnlyMemoryReturnHandler<TPacket>()
         };
 
         return System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(handlers);
@@ -104,7 +105,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         [System.Diagnostics.CodeAnalysis.NotNull] System.Type resultType)
     {
         System.Type handlerType = typeof(TaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
-        return (IReturnHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler)!;
+        return (IReturnHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -114,6 +115,6 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         [System.Diagnostics.CodeAnalysis.NotNull] System.Type resultType)
     {
         System.Type handlerType = typeof(ValueTaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
-        return (IReturnHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler)!;
+        return (IReturnHandler<TPacket>)System.Activator.CreateInstance(handlerType, innerHandler);
     }
 }

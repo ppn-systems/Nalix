@@ -21,9 +21,9 @@ public sealed partial class Connection
 
         #region Fields
 
-        private readonly System.UInt64 _hi;
-        private readonly System.UInt64 _lo;
-        private readonly System.Int32 _port;
+        private readonly ulong _hi;
+        private readonly ulong _lo;
+        private readonly int _port;
 
         #endregion Fields
 
@@ -37,7 +37,7 @@ public sealed partial class Connection
         public static Endpoint FromIpAddress(
             [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress ip)
         {
-            NormalizeAddress(ip, out System.UInt64 hi, out System.UInt64 lo, out System.Boolean isV6);
+            NormalizeAddress(ip, out ulong hi, out ulong lo, out bool isV6);
             return new Endpoint(hi, lo, 0, isV6, hasPort: false);
         }
 
@@ -55,7 +55,7 @@ public sealed partial class Connection
                 throw new System.ArgumentException("Endpoint must be of type IPEndPoint.", nameof(endpoint));
             }
 
-            NormalizeAddress(ipEndPoint.Address, out System.UInt64 hi, out System.UInt64 lo, out System.Boolean isV6);
+            NormalizeAddress(ipEndPoint.Address, out ulong hi, out ulong lo, out bool isV6);
             return new Endpoint(hi, lo, ipEndPoint.Port, isV6, hasPort: true);
         }
 
@@ -64,19 +64,19 @@ public sealed partial class Connection
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         private static void NormalizeAddress(
             [System.Diagnostics.CodeAnalysis.NotNull] System.Net.IPAddress ip,
-            [System.Diagnostics.CodeAnalysis.NotNull] out System.UInt64 hi,
-            [System.Diagnostics.CodeAnalysis.NotNull] out System.UInt64 lo,
-            [System.Diagnostics.CodeAnalysis.NotNull] out System.Boolean isV6)
+            [System.Diagnostics.CodeAnalysis.NotNull] out ulong hi,
+            [System.Diagnostics.CodeAnalysis.NotNull] out ulong lo,
+            [System.Diagnostics.CodeAnalysis.NotNull] out bool isV6)
         {
             if (ip.IsIPv4MappedToIPv6)
             {
                 ip = ip.MapToIPv4();
             }
 
-            System.Span<System.Byte> buf = stackalloc System.Byte[16];
-            if (!ip.TryWriteBytes(buf, out System.Int32 written))
+            System.Span<byte> buf = stackalloc byte[16];
+            if (!ip.TryWriteBytes(buf, out int written))
             {
-                System.Byte[] tmp = ip.GetAddressBytes();
+                byte[] tmp = ip.GetAddressBytes();
                 System.MemoryExtensions.CopyTo(tmp, buf);
                 written = tmp.Length;
             }
@@ -84,7 +84,7 @@ public sealed partial class Connection
             if (written == 4)
             {
                 // IPv4 stored in low 32 bits of _lo, hi = 0
-                System.UInt32 v4 = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(buf[..4]);
+                uint v4 = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(buf[..4]);
                 hi = 0UL;
                 lo = v4;
                 isV6 = false;
@@ -97,11 +97,11 @@ public sealed partial class Connection
             }
         }
 
-        #endregion
+        #endregion Factory
 
         #region Constructor
 
-        private Endpoint(System.UInt64 hi, System.UInt64 lo, System.Int32 port, System.Boolean isV6, System.Boolean hasPort)
+        private Endpoint(ulong hi, ulong lo, int port, bool isV6, bool hasPort)
         {
             _hi = hi;
             _lo = lo;
@@ -116,7 +116,7 @@ public sealed partial class Connection
         #region IEndpointKey implementation
 
         /// <inheritdoc />
-        public System.String Address
+        public string Address
         {
             [System.Diagnostics.Contracts.Pure]
             [System.Runtime.CompilerServices.MethodImpl(
@@ -127,23 +127,21 @@ public sealed partial class Connection
                 if (!IsIPv6)
                 {
                     // IPv4 stored in low 32 bits
-                    System.UInt32 v4 = (System.UInt32)_lo;
-                    System.Byte[] bytes = new System.Byte[4];
+                    uint v4 = (uint)_lo;
+                    byte[] bytes = new byte[4];
                     System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(bytes, v4);
                     return new System.Net.IPAddress(bytes).ToString();
                 }
-                else
-                {
-                    System.Span<System.Byte> buf = stackalloc System.Byte[16];
-                    System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(buf, _hi);
-                    System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(buf[8..], _lo);
-                    return new System.Net.IPAddress(buf).ToString();
-                }
+                System.Span<byte> buf = stackalloc byte[16];
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(buf, _hi);
+                System.Buffers.Binary.BinaryPrimitives.WriteUInt64BigEndian(buf[8..], _lo);
+
+                return new System.Net.IPAddress(buf).ToString();
             }
         }
 
         /// <inheritdoc />
-        public System.Int32 Port
+        public int Port
         {
             [System.Diagnostics.Contracts.Pure]
             [System.Runtime.CompilerServices.MethodImpl(
@@ -152,7 +150,7 @@ public sealed partial class Connection
         }
 
         /// <inheritdoc />
-        public System.Boolean HasPort
+        public bool HasPort
         {
             [System.Diagnostics.Contracts.Pure]
             [System.Runtime.CompilerServices.MethodImpl(
@@ -161,7 +159,7 @@ public sealed partial class Connection
         }
 
         /// <inheritdoc />
-        public System.Boolean IsIPv6
+        public bool IsIPv6
         {
             [System.Diagnostics.Contracts.Pure]
             [System.Runtime.CompilerServices.MethodImpl(
@@ -169,7 +167,7 @@ public sealed partial class Connection
             get;
         }
 
-        #endregion
+        #endregion IEndpointKey implementation
 
         #region Equality & hashing
 
@@ -178,7 +176,7 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public System.Boolean Equals(Endpoint other)
+        public bool Equals(Endpoint other)
         {
             return _hi == other._hi &&
                    _lo == other._lo &&
@@ -187,18 +185,12 @@ public sealed partial class Connection
                    (!HasPort || _port == other._port);
         }
 
-        /// <summary>
-        /// Compares this instance to another <see cref="INetworkEndpoint"/>.
-        /// </summary>
-        /// <remarks>
-        /// Fast path is used when <paramref name="other"/> is also a <see cref="INetworkEndpoint"/>.
-        /// Otherwise, comparison falls back to the interface properties.
-        /// </remarks>
+        /// <inheritdoc />
         [System.Diagnostics.Contracts.Pure]
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public System.Boolean Equals([System.Diagnostics.CodeAnalysis.AllowNull] INetworkEndpoint other)
+        public bool Equals([System.Diagnostics.CodeAnalysis.AllowNull] INetworkEndpoint other)
         {
             if (other is null)
             {
@@ -208,7 +200,7 @@ public sealed partial class Connection
             // Fast path for same concrete type
             return other is Endpoint concrete
                 ? Equals(concrete)
-                : System.String.Equals(
+                : string.Equals(
                 Address,
                 other.Address,
                 System.StringComparison.Ordinal);
@@ -219,7 +211,7 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public override System.Boolean Equals([System.Diagnostics.CodeAnalysis.AllowNull] System.Object obj) =>
+        public override bool Equals([System.Diagnostics.CodeAnalysis.AllowNull] object obj) =>
             obj is Endpoint k && Equals(k);
 
         /// <inheritdoc />
@@ -227,9 +219,9 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public override System.Int32 GetHashCode()
+        public override int GetHashCode()
         {
-            System.Int32 port = HasPort ? _port : 0;
+            int port = HasPort ? _port : 0;
             return System.HashCode.Combine(_hi, _lo, IsIPv6, HasPort, port);
         }
 
@@ -237,15 +229,15 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public static System.Boolean operator ==(Endpoint left, Endpoint right) => left.Equals(right);
+        public static bool operator ==(Endpoint left, Endpoint right) => left.Equals(right);
 
         /// <inheritdoc />
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public static System.Boolean operator !=(Endpoint left, Endpoint right) => !left.Equals(right);
+        public static bool operator !=(Endpoint left, Endpoint right) => !left.Equals(right);
 
-        #endregion
+        #endregion Equality & hashing
 
         #region Formatting
 
@@ -254,9 +246,9 @@ public sealed partial class Connection
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         [return: System.Diagnostics.CodeAnalysis.NotNull]
-        public override System.String ToString()
+        public override string ToString()
         {
-            System.String addr = Address;
+            string addr = Address;
             if (!HasPort)
             {
                 return addr;
@@ -268,6 +260,6 @@ public sealed partial class Connection
                 : $"[{addr}]:{_port}";
         }
 
-        #endregion
+        #endregion Formatting
     }
 }

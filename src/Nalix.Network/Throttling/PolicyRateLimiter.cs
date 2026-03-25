@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved. 
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+using System.Linq;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -9,7 +11,6 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Network.Routing;
-using System.Linq;
 
 namespace Nalix.Network.Throttling;
 
@@ -36,21 +37,21 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 {
     #region Constants
 
-    private const System.Int32 MaxPolicies = 64;
-    private const System.Int32 PolicyTtlSeconds = 1800;
-    private const System.Int32 SweepEveryNChecks = 1024;
+    private const int MaxPolicies = 64;
+    private const int PolicyTtlSeconds = 1800;
+    private const int SweepEveryNChecks = 1024;
 
     #endregion Constants
 
     #region Fields
 
-    private System.Int32 _checkCounter;
-    private System.Int32 _disposed;
+    private int _checkCounter;
+    private int _disposed;
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> _limiters = new();
 
-    private static readonly System.Int32[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
-    private static readonly System.Double[] s_burstTiers = [0.1, 0.2, 0.5, 1, 2, 4, 8, 16, 32, 64];
+    private static readonly int[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
+    private static readonly double[] s_burstTiers = [0.1, 0.2, 0.5, 1, 2, 4, 8, 16, 32, 64];
 
     [System.Diagnostics.CodeAnalysis.AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
@@ -62,13 +63,13 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     private sealed class Entry : System.IDisposable
     {
-        private System.Int64 _lastUsedUtcTicks;
-        private System.Int32 _activeUsers;
-        private System.Int32 _disposed;
+        private long _lastUsedUtcTicks;
+        private int _activeUsers;
+        private int _disposed;
 
         public TokenBucketLimiter Limiter { get; }
 
-        public System.Int64 LastUsedUtcTicks =>
+        public long LastUsedUtcTicks =>
             System.Threading.Interlocked.Read(ref _lastUsedUtcTicks);
 
         public Entry(TokenBucketLimiter limiter)
@@ -83,31 +84,31 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void Touch()
         {
-            System.Threading.Interlocked.Exchange(
+            _ = System.Threading.Interlocked.Exchange(
                 ref _lastUsedUtcTicks,
                 System.DateTime.UtcNow.Ticks);
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean TryAcquire()
+        public bool TryAcquire()
         {
             if (System.Threading.Volatile.Read(ref _disposed) != 0)
             {
                 return false;
             }
 
-            System.Int32 newCount = System.Threading.Interlocked.Increment(ref _activeUsers);
+            int newCount = System.Threading.Interlocked.Increment(ref _activeUsers);
 
             if (System.Threading.Volatile.Read(ref _disposed) != 0)
             {
-                System.Threading.Interlocked.Decrement(ref _activeUsers);
+                _ = System.Threading.Interlocked.Decrement(ref _activeUsers);
                 return false;
             }
 
             if (newCount <= 0)
             {
-                System.Threading.Interlocked.Decrement(ref _activeUsers);
+                _ = System.Threading.Interlocked.Decrement(ref _activeUsers);
                 s_logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
                 return false;
             }
@@ -119,26 +120,26 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void Release()
         {
-            System.Int32 remaining = System.Threading.Interlocked.Decrement(ref _activeUsers);
+            int remaining = System.Threading.Interlocked.Decrement(ref _activeUsers);
 
             if (remaining < 0)
             {
                 s_logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
-                System.Threading.Interlocked.Exchange(ref _activeUsers, 0);
+                _ = System.Threading.Interlocked.Exchange(ref _activeUsers, 0);
             }
         }
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public System.Boolean IsStale(System.Int64 nowTicks, System.Int32 ttlSeconds)
+        public bool IsStale(long nowTicks, int ttlSeconds)
         {
             if (System.Threading.Volatile.Read(ref _disposed) != 0)
             {
                 return true;
             }
 
-            System.Int64 lastTicks = System.Threading.Interlocked.Read(ref _lastUsedUtcTicks);
-            System.Double ageSec = System.TimeSpan.FromTicks(nowTicks - lastTicks).TotalSeconds;
+            long lastTicks = System.Threading.Interlocked.Read(ref _lastUsedUtcTicks);
+            double ageSec = System.TimeSpan.FromTicks(nowTicks - lastTicks).TotalSeconds;
 
             return ageSec > ttlSeconds;
         }
@@ -150,10 +151,10 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
                 return;
             }
 
-            System.Int32 waitedMs = 0;
-            System.Int32 backoffMs = 1;
-            const System.Int32 maxWaitMs = 500;
-            const System.Int32 maxBackoffMs = 50;
+            int waitedMs = 0;
+            int backoffMs = 1;
+            const int maxWaitMs = 500;
+            const int maxBackoffMs = 50;
 
             while (System.Threading.Volatile.Read(ref _activeUsers) > 0 && waitedMs < maxWaitMs)
             {
@@ -162,7 +163,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
                 backoffMs = System.Math.Min(backoffMs * 2, maxBackoffMs);
             }
 
-            System.Int32 remainingUsers = System.Threading.Volatile.Read(ref _activeUsers);
+            int remainingUsers = System.Threading.Volatile.Read(ref _activeUsers);
 
             try
             {
@@ -175,48 +176,48 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
         }
     }
 
-    private readonly record struct Policy(System.Int32 Rps, System.Double Burst);
+    private readonly record struct Policy(int Rps, double Burst);
 
-    private readonly struct RateLimitSubject(System.UInt16 op, INetworkEndpoint inner) : INetworkEndpoint, System.IEquatable<RateLimitSubject>
+    private readonly struct RateLimitSubject(ushort op, INetworkEndpoint inner) : INetworkEndpoint, System.IEquatable<RateLimitSubject>
     {
-        private readonly System.UInt16 _op = op;
+        private readonly ushort _op = op;
         private readonly INetworkEndpoint _inner = inner ?? throw new System.ArgumentNullException(nameof(inner));
 
-        public System.String Address => $"op:{_op:X4}|ep:{_inner.Address}";
+        public string Address => $"op:{_op:X4}|ep:{_inner.Address}";
 
-        public override System.Int32 GetHashCode()
+        public override int GetHashCode()
         {
             unchecked
             {
-                System.Int32 hash = 17;
+                int hash = 17;
                 hash = (hash * 31) + _op.GetHashCode();
                 hash = (hash * 31) + (_inner?.GetHashCode() ?? 0);
                 return hash;
             }
         }
 
-        public System.Boolean Equals(RateLimitSubject other)
+        public bool Equals(RateLimitSubject other)
         {
             return _op == other._op &&
                    (ReferenceEquals(_inner, other._inner) ||
                     (_inner?.Equals(other._inner) ?? (other._inner is null)));
         }
 
-        public override System.Boolean Equals(System.Object obj) => obj is RateLimitSubject other && Equals(other);
+        public override bool Equals(object obj) => obj is RateLimitSubject other && Equals(other);
 
-        public static System.Boolean operator ==(RateLimitSubject left, RateLimitSubject right)
+        public static bool operator ==(RateLimitSubject left, RateLimitSubject right)
             => left.Equals(right);
 
-        public static System.Boolean operator !=(RateLimitSubject left, RateLimitSubject right)
+        public static bool operator !=(RateLimitSubject left, RateLimitSubject right)
             => !left.Equals(right);
 
-        public override System.String ToString() => Address;
+        public override string ToString() => Address;
     }
 
     private readonly struct CheckResult
     {
         public TokenBucketLimiter.RateLimitDecision Decision { get; init; }
-        public System.Boolean Success { get; init; }
+        public bool Success { get; init; }
     }
 
     #endregion Private Types
@@ -269,7 +270,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public TokenBucketLimiter.RateLimitDecision Check(System.UInt16 opCode,
+    public TokenBucketLimiter.RateLimitDecision Check(ushort opCode,
         [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<IPacket> context)
     {
         System.ArgumentNullException.ThrowIfNull(context);
@@ -281,7 +282,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
             return validationResult.Decision;
         }
 
-        Policy policy = EXTRACT_AND_QUANTIZE_POLICY(context.Attributes.RateLimit!);
+        Policy policy = EXTRACT_AND_QUANTIZE_POLICY(context.Attributes.RateLimit);
 
         CheckResult checkResult = PERFORM_RATE_LIMIT_CHECK(opCode, context, policy);
 
@@ -300,40 +301,38 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
     /// <remarks>
     /// This method is intended for diagnostics, monitoring, and debugging purposes.
     /// </remarks>
-    public System.String GenerateReport()
+    public string GenerateReport()
     {
         System.Text.StringBuilder sb = new();
 
-        sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PolicyRateLimiter Status:");
-        sb.AppendLine($"Active Policies    : {_limiters.Count}/{MaxPolicies}");
-        sb.AppendLine($"Check Counter      : {System.Threading.Volatile.Read(ref _checkCounter):N0}");
-        sb.AppendLine();
+        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PolicyRateLimiter Status:");
+        _ = sb.AppendLine($"Active Policies    : {_limiters.Count}/{MaxPolicies}");
+        _ = sb.AppendLine($"Check Counter      : {System.Threading.Volatile.Read(ref _checkCounter):N0}");
+        _ = sb.AppendLine();
 
         if (_limiters.IsEmpty)
         {
-            sb.AppendLine("(no active policies)");
+            _ = sb.AppendLine("(no active policies)");
             return sb.ToString();
         }
 
-        sb.AppendLine("Active Policies:");
-        sb.AppendLine("------------------------------------------------------------");
-        sb.AppendLine("RPS  | Burst | Last Used (UTC)");
-        sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("Active Policies:");
+        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("RPS  | Burst | Last Used (UTC)");
+        _ = sb.AppendLine("------------------------------------------------------------");
 
-        var sorted = _limiters.OrderByDescending(kv => kv.Key.Rps)
-                              .ThenByDescending(kv => kv.Key.Burst)
-                              .ToList();
+        List<KeyValuePair<Policy, Entry>> sorted = [.. _limiters.OrderByDescending(kv => kv.Key.Rps).ThenByDescending(kv => kv.Key.Burst)];
 
-        foreach (var (policy, entry) in sorted)
+        foreach ((Policy policy, Entry entry) in sorted)
         {
-            System.Int64 lastTicks = entry.LastUsedUtcTicks;
+            long lastTicks = entry.LastUsedUtcTicks;
             System.DateTime lastUsed = new(lastTicks, System.DateTimeKind.Utc);
 
-            sb.AppendLine(
+            _ = sb.AppendLine(
                 $"{policy.Rps,4} | {policy.Burst,5} | {lastUsed:yyyy-MM-dd HH:mm:ss}");
         }
 
-        sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("------------------------------------------------------------");
 
         return sb.ToString();
     }
@@ -356,15 +355,15 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
             return;
         }
 
-        System.Int32 disposedCount = 0;
-        System.Int32 totalCount = _limiters.Count;
+        int disposedCount = 0;
+        int totalCount = _limiters.Count;
 
-        System.Int32 maxAttempts = 10;
-        System.Int32 attempt = 0;
+        const int maxAttempts = 10;
+        int attempt = 0;
 
         while (!_limiters.IsEmpty && attempt++ < maxAttempts)
         {
-            foreach (var (policy, _) in _limiters)
+            foreach ((Policy policy, Entry _) in _limiters)
             {
                 if (_limiters.TryRemove(policy, out Entry removed))
                 {
@@ -448,17 +447,17 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static Policy EXTRACT_AND_QUANTIZE_POLICY(PacketRateLimitAttribute rl)
     {
-        System.Int32 rps = QUANTIZE_VALUE(rl.RequestsPerSecond, s_rpsTiers);
-        System.Double burst = QUANTIZE_VALUE(rl.Burst, s_burstTiers);
+        int rps = QUANTIZE_VALUE(rl.RequestsPerSecond, s_rpsTiers);
+        double burst = QUANTIZE_VALUE(rl.Burst, s_burstTiers);
 
         return new Policy(rps, burst);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
     System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 QUANTIZE_VALUE(System.Int32 value, System.Int32[] tiers)
+    private static int QUANTIZE_VALUE(int value, int[] tiers)
     {
-        foreach (System.Int32 tier in tiers)
+        foreach (int tier in tiers)
         {
             if (value <= tier)
             {
@@ -471,9 +470,9 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Double QUANTIZE_VALUE(System.Double value, System.Double[] tiers)
+    private static double QUANTIZE_VALUE(double value, double[] tiers)
     {
-        foreach (System.Double tier in tiers)
+        foreach (double tier in tiers)
         {
             if (value <= tier)
             {
@@ -488,7 +487,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
     {
         return new TokenBucketOptions
         {
-            CapacityTokens = (System.Int32)policy.Burst,
+            CapacityTokens = (int)policy.Burst,
             RefillTokensPerSecond = policy.Rps,
             TokenScale = s_defaults.TokenScale,
             ShardCount = s_defaults.ShardCount,
@@ -506,7 +505,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     #region Rate Limit Check
 
-    private CheckResult PERFORM_RATE_LIMIT_CHECK(System.UInt16 opCode, PacketContext<IPacket> context, Policy policy)
+    private CheckResult PERFORM_RATE_LIMIT_CHECK(ushort opCode, PacketContext<IPacket> context, Policy policy)
     {
         if (context.Connection?.NetworkEndpoint is null)
         {
@@ -532,8 +531,8 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
         try
         {
-            var subject = new RateLimitSubject(opCode, context.Connection.NetworkEndpoint);
-            var decision = entry.Limiter.Check(subject);
+            RateLimitSubject subject = new(opCode, context.Connection.NetworkEndpoint);
+            TokenBucketLimiter.RateLimitDecision decision = entry.Limiter.Check(subject);
 
             return new CheckResult
             {
@@ -571,7 +570,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private System.Boolean IS_AT_POLICY_CAPACITY() => _limiters.Count >= MaxPolicies;
+    private bool IS_AT_POLICY_CAPACITY() => _limiters.Count >= MaxPolicies;
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -606,12 +605,12 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
     private Policy FIND_CLOSEST_POLICY(Policy wanted)
     {
         Policy closest = default;
-        System.Int32 bestDistance = System.Int32.MaxValue;
-        System.Boolean found = false;
+        int bestDistance = int.MaxValue;
+        bool found = false;
 
         foreach (Policy candidate in _limiters.Keys)
         {
-            System.Int32 distance = CALCULATE_POLICY_DISTANCE(candidate, wanted);
+            int distance = CALCULATE_POLICY_DISTANCE(candidate, wanted);
 
             if (distance < bestDistance)
             {
@@ -631,7 +630,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.Int32 CALCULATE_POLICY_DISTANCE(Policy a, Policy b) => (System.Int32)(System.Math.Abs(a.Rps - b.Rps) + System.Math.Abs(a.Burst - b.Burst));
+    private static int CALCULATE_POLICY_DISTANCE(Policy a, Policy b) => (int)(System.Math.Abs(a.Rps - b.Rps) + System.Math.Abs(a.Burst - b.Burst));
 
     private Entry CREATE_NEW_LIMITER_ENTRY(Policy policy)
     {
@@ -665,7 +664,7 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
         {
             Allowed = true,
             RetryAfterMs = 0,
-            Credit = System.UInt16.MaxValue,
+            Credit = ushort.MaxValue,
             Reason = TokenBucketLimiter.RateLimitReason.None
         };
     }
@@ -673,13 +672,13 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static TokenBucketLimiter.RateLimitDecision CREATE_DENIED_DECISION(
-        System.Boolean isHard,
-        System.Int32 retryAfterMs = 0)
+        bool isHard,
+        int retryAfterMs = 0)
     {
         return new TokenBucketLimiter.RateLimitDecision
         {
             Allowed = false,
-            RetryAfterMs = retryAfterMs > 0 ? retryAfterMs : (isHard ? System.Int32.MaxValue : 1000),
+            RetryAfterMs = retryAfterMs > 0 ? retryAfterMs : (isHard ? int.MaxValue : 1000),
             Credit = 0,
             Reason = isHard
                 ? TokenBucketLimiter.RateLimitReason.HardLockout
@@ -695,11 +694,11 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void TRY_SCHEDULE_SWEEP()
     {
-        System.Int32 count = System.Threading.Interlocked.Increment(ref _checkCounter);
+        int count = System.Threading.Interlocked.Increment(ref _checkCounter);
 
         if (count < 0)
         {
-            System.Threading.Interlocked.CompareExchange(ref _checkCounter, 1, count);
+            _ = System.Threading.Interlocked.CompareExchange(ref _checkCounter, 1, count);
             count = 1;
         }
 
@@ -714,18 +713,15 @@ public sealed class PolicyRateLimiter : IReportable, System.IDisposable
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void EVICT_STALE_POLICIES()
     {
-        System.Int64 nowTicks = System.DateTime.UtcNow.Ticks;
-        System.Int32 evictedCount = 0;
+        long nowTicks = System.DateTime.UtcNow.Ticks;
+        int evictedCount = 0;
 
-        foreach (var (policy, entry) in _limiters)
+        foreach ((Policy policy, Entry entry) in _limiters)
         {
-            if (entry.IsStale(nowTicks, PolicyTtlSeconds))
+            if (entry.IsStale(nowTicks, PolicyTtlSeconds) && _limiters.TryRemove(policy, out Entry removed))
             {
-                if (_limiters.TryRemove(policy, out Entry removed))
-                {
-                    removed.Dispose();
-                    evictedCount++;
-                }
+                removed.Dispose();
+                evictedCount++;
             }
         }
 

@@ -10,6 +10,13 @@ namespace Nalix.Network.Routing.Metadata;
 /// of network packets, such as operation code, timeout policy, rate limits, permission requirements,
 /// and encryption strategy.
 /// </summary>
+/// <param name="opCode"></param>
+/// <param name="timeout"></param>
+/// <param name="permission"></param>
+/// <param name="encryption"></param>
+/// <param name="rateLimit"></param>
+/// <param name="concurrencyLimit"></param>
+/// <param name="customAttributes"></param>
 /// <remarks>
 /// This struct uses sequential layout and is optimized for performance in network dispatch systems.
 /// All attributes are immutable for safe usage in high-throughput scenarios.

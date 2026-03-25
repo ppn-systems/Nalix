@@ -7,10 +7,15 @@ public abstract partial class UdpListenerBase
 {
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static System.String EllipseLeft(System.String value, System.Int32 maxLen)
+    private static string EllipseLeft(string value, int maxLen)
     {
-        return System.String.IsNullOrEmpty(value) || value.Length <= maxLen
-            ? value
-            : maxLen <= 3 ? new System.String('.', maxLen) : $"...{System.MemoryExtensions.AsSpan(value, value.Length - (maxLen - 3))}";
+        if (string.IsNullOrEmpty(value) || value.Length <= maxLen)
+        {
+            return value;
+        }
+        else
+        {
+            return maxLen <= 3 ? new string('.', maxLen) : $"...{System.MemoryExtensions.AsSpan(value, value.Length - (maxLen - 3))}";
+        }
     }
 }

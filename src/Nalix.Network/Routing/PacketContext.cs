@@ -28,8 +28,8 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
 
     private static readonly ObjectPoolManager s_object = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
-    private System.Int32 _state;
-    private System.Boolean _isInitialized;
+    private int _state;
+    private bool _isInitialized;
 
     #endregion Fields
 
@@ -46,7 +46,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         private set;
-    } = default!;
+    }
 
     /// <summary>
     /// Gets the connection associated with the packet.
@@ -59,7 +59,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         private set;
-    } = default!;
+    }
 
     /// <summary>
     /// Gets the packet metadata with attributes.
@@ -74,7 +74,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <summary>
     /// If true, outbound middlewares will be skipped for this context.
     /// </summary>
-    public System.Boolean SkipOutbound
+    public bool SkipOutbound
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -102,7 +102,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// based on the current handler's attributes.
     /// Use this instead of calling connection.TCP.SendAsync() directly.
     /// </summary>
-    public IPacketSender<TPacket> Sender { get; private set; } = default!;
+    public IPacketSender<TPacket> Sender { get; private set; }
 
     #endregion Properties
 
@@ -132,7 +132,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <remarks>
     /// This constructor is used by the object pool to create instances in the <see cref="PacketContextState.POOLED"/> state.
     /// </remarks>
-    public PacketContext() => _state = (System.Int32)PacketContextState.POOLED;
+    public PacketContext() => _state = (int)PacketContextState.POOLED;
 
     #endregion Constructor
 
@@ -148,6 +148,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <remarks>
     /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.IN_USE"/> state.
     /// </remarks>
+    /// <exception cref="System.InvalidOperationException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal void Initialize(
@@ -158,18 +159,13 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     {
         _ = System.Threading.Interlocked.Exchange(
             ref _state,
-            (System.Int32)PacketContextState.IN_USE);
+            (int)PacketContextState.IN_USE);
 
         Packet = packet;
         Connection = connection;
         Attributes = descriptor;
         CancellationToken = token;
-        Sender = s_object.Get<PacketSender<TPacket>>();
-        if (Sender is null)
-        {
-            throw new System.InvalidOperationException($"[{nameof(PacketContext<>)}] object pool returned null {nameof(PacketSender<>)}");
-        }
-
+        Sender = s_object.Get<PacketSender<TPacket>>() ?? throw new System.InvalidOperationException($"[{nameof(PacketContext<>)}] object pool returned null {nameof(PacketSender<>)}");
         _isInitialized = true;
     }
 
@@ -185,13 +181,13 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     {
         if (Sender is PacketSender<TPacket> concreteSender)
         {
-            s_object.Return<PacketSender<TPacket>>(concreteSender);
+            s_object.Return(concreteSender);
         }
 
-        Sender = default!;
-        Packet = default!;
+        Sender = default;
+        Packet = default;
         Attributes = default;
-        Connection = default!;
+        Connection = default;
 
         _isInitialized = false;
     }
@@ -215,7 +211,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
             Reset();
         }
 
-        _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)PacketContextState.POOLED);
+        _ = System.Threading.Interlocked.Exchange(ref _state, (int)PacketContextState.POOLED);
     }
 
     /// <summary>
@@ -229,7 +225,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     public void Return()
     {
         if (System.Threading.Interlocked.Exchange(
-        ref _state, (System.Int32)PacketContextState.RETURNED) != (System.Int32)PacketContextState.IN_USE)
+        ref _state, (int)PacketContextState.RETURNED) != (int)PacketContextState.IN_USE)
         {
             return;
         }

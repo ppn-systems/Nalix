@@ -40,8 +40,8 @@ public static class ConnectionExtensions
     public static async System.Threading.Tasks.Task SendAsync(
         this IConnection connection,
         ControlType controlType, ProtocolReason reason, ProtocolAdvice action,
-        System.UInt32 sequenceId = 0, ControlFlags flags = ControlFlags.NONE,
-        System.UInt32 arg0 = 0, System.UInt32 arg1 = 0, System.UInt16 arg2 = 0)
+        uint sequenceId = 0, ControlFlags flags = ControlFlags.NONE,
+        uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
         System.ArgumentNullException.ThrowIfNull(connection);
 
@@ -51,7 +51,7 @@ public static class ConnectionExtensions
         {
             directive.Initialize(controlType, reason, action, sequenceId: sequenceId, flags: flags, arg0: arg0, arg1: arg1, arg2: arg2);
 
-            System.Int32 len = directive.Length;
+            int len = directive.Length;
 
             if (len >= BufferLease.StackAllocThreshold)
             {
@@ -59,7 +59,7 @@ public static class ConnectionExtensions
 
                 try
                 {
-                    System.Int32 length = directive.Serialize(lease.Span[..len]);
+                    int length = directive.Serialize(lease.Span[..len]);
                     lease.CommitLength(length);
                     _ = await connection.TCP.SendAsync(lease.Memory)
                                             .ConfigureAwait(false);
@@ -74,7 +74,7 @@ public static class ConnectionExtensions
             {
                 try
                 {
-                    System.Boolean sent = await connection.TCP.SendAsync(directive
+                    bool sent = await connection.TCP.SendAsync(directive
                                                               .Serialize())
                                                               .ConfigureAwait(false);
                     if (!sent)

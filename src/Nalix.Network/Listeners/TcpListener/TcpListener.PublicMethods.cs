@@ -29,13 +29,14 @@ public abstract partial class TcpListenerBase
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public virtual void SynchronizeTime([System.Diagnostics.CodeAnalysis.NotNull] System.Int64 milliseconds) { }
+    public virtual void SynchronizeTime([System.Diagnostics.CodeAnalysis.NotNull] long milliseconds) { }
 
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
     /// The listening process can be cancelled using the provided <see cref="System.Threading.CancellationToken"/>.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="System.Threading.CancellationToken"/> to cancel the listening process.</param>
+    /// <exception cref="System.InvalidOperationException"></exception>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -65,16 +66,16 @@ public abstract partial class TcpListenerBase
             }
 
             _ = System.Threading.Interlocked.Exchange(ref _stopInitiated, 0);
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STARTING);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STARTING);
 
             _cts?.Dispose();
             _cts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _cancellationToken = _cts.Token;
 
             linkedToken = _cts.Token;
-            _cancelReg = linkedToken.Register(static s => ((TcpListenerBase)s!).SCHEDULE_STOP(), this);
+            _cancelReg = linkedToken.Register(static s => ((TcpListenerBase)s).SCHEDULE_STOP(), this);
 
-            System.Boolean needInit;
+            bool needInit;
             try
             {
                 needInit = _listener?.IsBound != true || _listener.SafeHandle.IsInvalid;
@@ -89,7 +90,7 @@ public abstract partial class TcpListenerBase
                 Initialize();
             }
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.RUNNING);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
 
             s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
 
@@ -101,7 +102,7 @@ public abstract partial class TcpListenerBase
 
             _acceptWorkerIds.Clear();
 
-            for (System.Int32 i = 0; i < s_config.MaxParallel; i++)
+            for (int i = 0; i < s_config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{NetTaskNames.Tcp}.{TaskNaming.Tags.Accept}.{i}",
@@ -120,26 +121,24 @@ public abstract partial class TcpListenerBase
             }
 
             START_PROCESS_CHANNEL(linkedToken);
-
-            return;
         }
         catch (System.OperationCanceledException)
         {
             s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] cancel port={_port}");
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         catch (System.Net.Sockets.SocketException ex)
         {
             s_logger?.Error($"[NW.{nameof(TcpListenerBase)}: {nameof(Activate)} ] start-failed port= {_port}", ex);
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         catch (System.Exception ex)
         {
             s_logger?.Fatal($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
 
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         finally
         {
@@ -150,6 +149,7 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// Stops the listener from accepting further connections.
     /// </summary>
+    /// <param name="cancellationToken"></param>
     [System.Diagnostics.StackTraceHidden]
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
@@ -165,15 +165,15 @@ public abstract partial class TcpListenerBase
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
 
         // Try Running->Stopping; if not, try Starting->Stopping
-        System.Int32 prev = System.Threading.Interlocked.CompareExchange(ref _state,
-            (System.Int32)ListenerState.STOPPING, (System.Int32)ListenerState.RUNNING);
+        int prev = System.Threading.Interlocked.CompareExchange(ref _state,
+            (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
 
-        if (prev != (System.Int32)ListenerState.RUNNING)
+        if (prev != (int)ListenerState.RUNNING)
         {
             prev = System.Threading.Interlocked.CompareExchange(ref _state,
-                (System.Int32)ListenerState.STOPPING, (System.Int32)ListenerState.STARTING);
+                (int)ListenerState.STOPPING, (int)ListenerState.STARTING);
 
-            if (prev != (System.Int32)ListenerState.STARTING)
+            if (prev != (int)ListenerState.STARTING)
             {
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] ignored-deactivate state={State}");
 
@@ -215,7 +215,7 @@ public abstract partial class TcpListenerBase
             catch { }
 
             _cts = null;
-            _ = System.Threading.Interlocked.Exchange(ref _state, (System.Int32)ListenerState.STOPPED);
+            _ = System.Threading.Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
     }
 
@@ -227,10 +227,10 @@ public abstract partial class TcpListenerBase
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public virtual System.String GenerateReport()
+    public virtual string GenerateReport()
     {
         System.Text.StringBuilder sb = new(1024);
-        System.Threading.ThreadPool.GetMinThreads(out System.Int32 minWorker, out System.Int32 minIocp);
+        System.Threading.ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
 
         _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");
         _ = sb.AppendLine($"Port                : {_port}");
@@ -251,9 +251,9 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Metrics:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine($"Total Accepted      : {_metrics.TotalAccepted}");
-        _ = sb.AppendLine($"Total Rejected      : {_metrics.TotalRejected}");
-        _ = sb.AppendLine($"Total Errors        : {_metrics.TotalErrors}");
+        _ = sb.AppendLine($"Total Accepted      : {Metrics.TotalAccepted}");
+        _ = sb.AppendLine($"Total Rejected      : {Metrics.TotalRejected}");
+        _ = sb.AppendLine($"Total Errors        : {Metrics.TotalErrors}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Protocol:");

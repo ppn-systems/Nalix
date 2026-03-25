@@ -7,8 +7,8 @@ public abstract partial class Protocol
 {
     #region Fields
 
-    private System.Int32 _isDisposed;
-    private System.Int32 _keepConnectionOpen;
+    private int _isDisposed;
+    private int _keepConnectionOpen;
 
     #endregion Fields
 
@@ -19,7 +19,7 @@ public abstract partial class Protocol
     /// Standard value is false unless overridden.
     /// Thread-safe implementation using atomic operations.
     /// </summary>
-    public virtual System.Boolean KeepConnectionOpen
+    public virtual bool KeepConnectionOpen
     {
         [System.Diagnostics.DebuggerStepThrough]
         [System.Runtime.CompilerServices.MethodImpl(
@@ -52,13 +52,12 @@ public abstract partial class Protocol
     /// Core disposal logic. Override to release managed resources.
     /// </summary>
     /// <param name="disposing">True if called from Dispose, false if called from finalizer.</param>
-    protected virtual void Dispose(System.Boolean disposing)
+    protected virtual void Dispose(bool disposing)
     {
         // Atomic check-and-set: 0 -> 1
         // If already 1, return immediately (already disposed)
         if (System.Threading.Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
         {
-            return;
         }
 
         // Optional: clean up managed resources if (disposing)
