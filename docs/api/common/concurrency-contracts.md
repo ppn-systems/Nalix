@@ -23,7 +23,7 @@ This page covers the shared background-work contracts in `Nalix.Common.Concurren
 ## Public members at a glance
 
 | Type | Public members |
-|---|---|
+| --- | --- |
 | `ITaskManager` | `Title`, `ScheduleRecurring(...)`, `RunOnceAsync(...)`, `ScheduleWorker(...)`, `CancelAllWorkers()`, `CancelWorker(...)`, `CancelGroup(...)`, `CancelRecurring(...)`, `GetWorkers(...)`, `TryGetWorker(...)`, `GetRecurring()`, `TryGetRecurring(...)` |
 | `IWorkerContext` | `Beat()`, `Advance(...)`, and worker progress/heartbeat reporting members used by the current runtime |
 | `IWorkerHandle` | worker identity, group, running state, progress, last run, next run, and cancellation/reporting helpers |
@@ -74,7 +74,7 @@ IRecurringHandle recurring = taskManager.ScheduleRecurring(
 - `GetRecurring()`
 - `TryGetRecurring(name, out handle)`
 
-### Common pitfalls
+### 1.Common pitfalls
 
 - scheduling recurring work and then dropping the handle immediately
 - using worker names without a consistent naming convention
@@ -91,7 +91,7 @@ ctx.Beat();
 ctx.Advance(5, "batch completed");
 ```
 
-### Common pitfalls
+### 2.Common pitfalls`
 
 - assuming the worker will update progress automatically
 - forgetting to call `Beat()` inside long-running loops
@@ -111,7 +111,7 @@ You typically read:
 - `LastRunUtc`
 - `NextRunUtc`
 
-### Common pitfalls
+### 3.Common pitfalls
 
 - reading handle state after the manager has already disposed it
 - assuming a recurring job is still active just because the handle exists
@@ -121,7 +121,7 @@ You typically read:
 
 `IWorkerOptions` and `IRecurringOptions` describe the knobs the task manager uses to shape execution.
 
-### Common pitfalls
+### 4.Common pitfalls
 
 - leaving `Tag` empty when you rely on it for diagnostics or grouping
 - setting `ExecutionTimeout` too low for a job that does real work

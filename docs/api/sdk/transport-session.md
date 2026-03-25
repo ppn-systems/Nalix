@@ -45,23 +45,26 @@ The abstract session sits between application code and the socket layer. It keep
 ## API Reference
 
 ### Properties
+
 | Member | Description |
-|---|---|
+| --- | --- |
 | `Options` | Read-only access to the `TransportOptions` configured at construction. |
 | `Catalog` | Access to the `IPacketRegistry` used to resolve packet metadata. |
 | `IsConnected` | Thread-safe check of the current connection status. |
 
 ### Events
+
 | Member | Description |
-|---|---|
+| --- | --- |
 | `OnConnected` | Raised when the transport bridge is successfully established. |
 | `OnDisconnected` | Raised when the connection is intentionally closed or unexpectedly dropped. |
 | `OnMessageReceived` | Surfaces decrypted and decompressed payload for each inbound frame. |
 | `OnError` | Reports general transport or protocol errors. |
 
 ### Methods
+
 | Member | Description |
-|---|---|
+| --- | --- |
 | `ConnectAsync(...)` | Initiates the connection sequence. |
 | `DisconnectAsync()` | Orchestrates a graceful shutdown. |
 | `SendAsync(IPacket)` | Serializes and frames a packet for transport. |

@@ -3,6 +3,7 @@
 Detailed method-level comparison for `SerializerComparisonBenchmarks`, including all benchmarked methods and simplified API signatures.
 
 ## Benchmark Sources
+
 - `docs/Nalix.Benchmark.Framework.Serialization.SerializerComparisonBenchmarks-report-github.md`
 - `benchmarks/Nalix.Benchmark.Framework/Serialization/SerializerComparisonBenchmarks.cs`
 
@@ -18,6 +19,7 @@ Detailed method-level comparison for `SerializerComparisonBenchmarks`, including
 | MessagePack | `MessagePackDeserialize()` | `MessagePackSerializer.Deserialize<BenchPayload>(bytes)` |
 
 ### Signature Simplification Notes
+
 - The benchmark implementation passes serializer options for `System.Text.Json` and `MessagePack`.
 - `LiteSerializer.Deserialize` also includes an `out` consumed-byte parameter in the full call.
 - This page intentionally omits those extra parameters to keep cross-library method comparison easier to scan.

@@ -31,7 +31,7 @@ Precise attribute docs reduce handler-registration errors and avoid policy misun
 ## Attribute Reference
 
 | Attribute | Scope | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `PacketControllerAttribute` | Class | Marks a controller class for packet handlers. |
 | `PacketOpcodeAttribute` | Method | Binds handler to opcode. |
 | `PacketPermissionAttribute` | Method | Declares minimum `PermissionLevel`. |

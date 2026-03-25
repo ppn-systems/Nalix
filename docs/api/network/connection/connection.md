@@ -10,6 +10,7 @@
 ## Why This Type Exists
 
 The `Connection` type provides a unified interface for specialized transport protocols (TCP/UDP) while centralizing:
+
 - **Identity**: Every connection is assigned a unique `Snowflake` ID.
 - **Security Context**: Stores the `Secret` and active `Algorithm` derived during handshake.
 - **Event Orchestration**: Bridges low-level socket-read events into structured `OnProcess` and `OnPostProcess` hooks.
@@ -52,14 +53,18 @@ flowchart TD
 ## Internal Responsibilities (Source-Verified)
 
 ### 1. High-Priority Event Bridging
+
 Connection uses "Bridges" to handle events. Importantly, **Close events are treated as high-priority** and bypass standard backpressure queues to ensure that system resources are released immediately, even if the processing thread pool is saturated.
 
 ### 2. Error Tracking (SEC-54)
+
 The connection maintains an internal `ErrorCount`.
+
 - **Threshold Enforcement**: If the count exceeds `MaxErrorThreshold` (from `NetworkSocketOptions`), the connection is automatically disconnected with the reason "Exceeded maximum error threshold."
 - **Noise Mitigation**: This protects the server from malformed-packet-flood attacks or buggy clients.
 
 ### 3. UDP Replay Protection
+
 Every connection instance maintains a `SlidingWindow` (UdpReplayWindow) to track sequence numbers for incoming UDP datagrams. This prevents replay attacks by immediately rejecting any packet with a sequence ID that has already been observed or falls outside the current window.
 
 ## Public APIs

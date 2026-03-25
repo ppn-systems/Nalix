@@ -105,7 +105,6 @@ The manager includes a background job that monitors pool utilization. It uses a 
 
 The API is backed by the high-performance **SlabBucket** infrastructure and benefits from the same O(1) optimizations.
 
-
 ## BufferOptions
 
 Global tuning for the buffer system is managed via `BufferOptions`.

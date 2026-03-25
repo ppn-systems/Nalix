@@ -1,14 +1,16 @@
 # Nalix.Network.Pipeline
 
-> Standard middleware components and pipeline abstractions for Nalix connection management.
+> Inbound packet middleware and protection primitives for Nalix runtime dispatch.
 
 ## Key Features
 
-| Feature | Description |
-| :--- | :--- |
-| 🛡️ **Connection Guards** | IP-based admission control and session limiting. |
-| 🔌 **Pipeline Abstraction** | Pluggable pipeline that wraps any `IConnection` for pre/post processing. |
-| ⚙️ **Pre-built Middleware** | Throttling, authentication, and audit logging implementations out of the box. |
+| Feature | Source | Description |
+| :--- | :--- | :--- |
+| 🛡️ **Permission Gate** | `Inbound/PermissionMiddleware.cs` | Enforces `[PacketPermission]` metadata and fails closed when permission metadata is missing. |
+| 🚦 **Rate Limiting** | `Inbound/RateLimitMiddleware.cs`, `Throttling/*` | Applies `[PacketRateLimit]` policies or global per-endpoint token buckets. |
+| ⚙️ **Concurrency Gate** | `Inbound/ConcurrencyMiddleware.cs`, `Throttling/ConcurrencyGate.cs` | Enforces `[PacketConcurrencyLimit]` with optional queueing and circuit-breaker protection. |
+| ⏱️ **Timeout Guard** | `Inbound/TimeoutMiddleware.cs` | Applies `[PacketTimeout]` limits and emits transient timeout directives. |
+| 🕒 **Time Sync Service** | `Timekeeping/TimeSynchronizer.cs` | Emits optional Unix-millisecond ticks at a default 16 ms cadence. |
 
 ## Installation
 
@@ -18,4 +20,4 @@ dotnet add package Nalix.Network.Pipeline
 
 ## Documentation
 
-See [Middleware & Pipeline](https://ppn-systems.me/api/pipeline/index) for configuration details and custom middleware authoring.
+See [Nalix.Network.Pipeline](https://ppn-systems.me/packages/nalix-network-pipeline/) for source-mapped package details and option references.

@@ -43,10 +43,11 @@ sequenceDiagram
 ## 3. Protocol Specification
 
 ### Header & Payload
+
 The `SESSION_SIGNAL` packet is a fixed-size frame of **52 bytes**.
 
 | Offset | Field | Type | size | Description |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 0 | `MagicNumber` | `int` | 4 | Fixed protocol magic. |
 | 4 | `OpCode` | `ushort` | 2 | `0x0002` (SESSION_SIGNAL). |
 | 6 | `Flags` | `byte` | 1 | Framing flags. |
@@ -62,7 +63,9 @@ The `SESSION_SIGNAL` packet is a fixed-size frame of **52 bytes**.
 ## 4. Implementation Details
 
 ### Server Handling Logic
+
 When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
+
 1. The incoming packet is strictly validated using `IPacketValidatable` to ensure the `Stage`, `SessionToken`, and `Proof` fields are structurally sound for a `REQUEST`.
 2. The server extracts the `SessionToken` from the payload.
 3. It atomically consumes a valid `SessionEntry` via the active `ISessionStore` (`ConsumeAsync`) to prevent token replay.
@@ -82,6 +85,7 @@ When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
 ---
 
 ## Related Documentation
+
 - [Handshake Protocol (X25519)](./handshake.md)
 - [Session Contracts](../common/session-contracts.md)
 - [Snowflake Identifiers](../framework/runtime/snowflake.md)

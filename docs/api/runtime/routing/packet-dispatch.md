@@ -1,87 +1,120 @@
 # Packet Dispatch
 
-`PacketDispatchChannel` is the high-performance execution engine that bridges the gap between raw transport buffers and your application handlers. It is designed to handle extreme message rates while maintaining connection affinity and low CPU overhead.
+`PacketDispatchChannel` is the runtime bridge between retained transport buffers and
+application packet handlers. It owns the background worker loops, wakes workers when
+new packets are queued, deserializes packets through the registered packet registry,
+and guarantees that packet and buffer leases are disposed after dispatch completes.
 
-## Multi-Worker Wake Model
+## Source Mapping
 
-The following diagram illustrates the lock-free signaling and worker-loop model used to process thousands of concurrent packets.
+- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs`
+- `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs`
+- `src/Nalix.Runtime/Dispatching/Options/PacketDispatchOptions.cs`
+- `src/Nalix.Runtime/Dispatching/Options/PacketDispatchOptions.PublicMethods.cs`
 
-```mermaid
-flowchart TD
-    subgraph Ingress[Ingress Phase]
-        Raw[Raw Buffer / Typed Packet]
-    end
-
-    subgraph Storage[Dispatch Layer]
-        DC[DispatchChannel - Sharded Queues]
-        WC[WakeChannel - Signal Pipe]
-    end
-
-    subgraph Workers[Worker Thread Pool]
-        W1[RunLoop Worker 0]
-        W2[RunLoop Worker 1]
-        WN[RunLoop Worker N]
-    end
-
-    Raw -->|1. PushCore| DC
-    Raw -.->|2. RequestWake| WC
-
-    WC -->|3. WaitToReadAsync Signal| W1 & W2 & WN
-    
-    W1 -->|4. Drain| DC
-    W2 -->|4. Drain| DC
-    WN -->|4. Drain| DC
-```
-
-## Why This Type Exists
-
-`PacketDispatchChannel` decouples the "Receive" concerns of the network layer from the "Execute" concerns of the business logic. This separation allows Nalix to:
-- **Scale Workers Independently**: You can have more worker threads than network listeners to handle CPU-heavy tasks.
-- **Maintain Ordering**: Packets from the same `IConnection` are always processed sequentially within the same channel to prevent state corruption.
-- **Coalesce Wakeups**: Multiple packet arrivals can trigger a single worker wake-up signal, significantly reducing context switches under load.
-
-## Architectural Pipeline (Source-Verified)
+## Runtime Flow
 
 ```mermaid
 flowchart LR
-    A["IBufferLease"] --> B["HandlePacket"]
-    B --> C["Dispatch Queue"]
-    C --> D["Signaled Worker"]
-    D --> E["IPacketRegistry (Deserialize)"]
-    E --> F["MiddlewarePipeline + Handler"]
+    A["Transport IBufferLease"] --> B["HandlePacket"]
+    B --> C["Retain lease"]
+    C --> D["DispatchChannel.PushCore"]
+    D --> E["RequestWake via SemaphoreSlim"]
+    E --> F["Dispatch worker loop"]
+    F --> G["IPacketRegistry.TryDeserialize"]
+    G --> H["MiddlewarePipeline + handler"]
+    H --> I["Dispose packet and lease"]
 ```
 
-## Sharding and Scaling
+## `HandlePacket` Handoff Semantics
 
-`PacketDispatchChannel` is **shard-aware**. It maintains internal connection queues and distributes them across a pool of worker loops.
+`HandlePacket(IBufferLease packet, IConnection connection)` is intentionally small:
 
-- **Connection Affinity**: Nalix ensures that all packets from a single endpoint are processed by the same worker loop across the lifecycle, preserving reliable message order (FIFO).
-- **Worker Configuration**: The number of shards (worker loops) is defined by `Options.DispatchLoopCount`. If unset, it defaults to `ProcessorCount` (clamped between 1 and 64).
-- **Efficient Signaling**: Uses `System.Threading.Channels` for wake signaling, which provides a thread-safe, non-blocking way to wake up sleeping workers.
+1. Ignore `null` inputs and empty leases.
+2. Call `packet.Retain()` before asynchronous handoff.
+3. Enqueue with `_dispatch.PushCore(connection, packet, noBlock: true)`.
+4. Dispose the retained lease if enqueue fails.
+5. Request a worker wake if enqueue succeeds.
 
-## Operational Notes
+This means the transport may dispose its own reference immediately after calling
+`HandlePacket`; the dispatch channel owns a retained reference until execution ends.
 
-### 1. High-Performance Drain
-A worker loop doesn't just process one packet and sleep. It attempts to "drain" up to `MaxDrainPerWake` (default 2048) packets in a tight loop before returning to the wait state, maximizing L1 cache hits and instruction pipelining.
+## Worker Loop Selection
 
-### 2. Diagnostics & Reporting
-`PacketDispatchChannel` provides deep visibility into its internal state:
-- **`TotalPackets`**: Global count of packets currently in flight across all shards.
-- **`ReadyConnections`**: Number of connections that have at least one packet waiting for a worker.
-- **`WakeSignals`**: Counter representing how many times the wake channel has been signaled.
+`Activate()` starts worker loops through `TaskManager.ScheduleWorker`.
+The number of loops is resolved as follows:
 
-!!! tip "Performance Tuning"
-    Monitor `WakeSignals` vs `TotalPackets`. A high ratio of signals to packets might indicate that `MaxDrainPerWake` is set too low for your traffic pattern, causing excessive wake/sleep cycles.
+| Case | Source behavior |
+| --- | --- |
+| `Options.DispatchLoopCount` is set | Use the explicit value. |
+| `Options.DispatchLoopCount` is `null` | Use `Math.Clamp(Environment.ProcessorCount, MinDispatchLoops, MaxDispatchLoops)`. |
 
-### 3. Custom Routing & Shard Keys
-Developers can override the default connection-based sharding by wrapping `IPacketDispatch` in a custom router. This is useful for grouping related connections (e.g., all devices for a single User) into the same sequential worker loop.
+The worker name format is `net.dispatch.process.{index}` through `TaskNaming` tags,
+and workers are scheduled with `WorkerPriority.HIGH`.
 
-!!! example "Shard Wrapping"
-    See the [Custom Packet Router Guide](../../../guides/extensibility/custom-packet-router.md) for a detailed implementation of a Shard Proxy and Custom Router.
+## Wake and Drain Behavior
+
+The current implementation uses a `SemaphoreSlim` wake signal, not a channel-based
+wake pipe. `RequestWake()` coalesces wake requests with `_wakeRequested` so repeated
+packet arrivals do not always release another semaphore count.
+
+Worker loops drain up to `_maxDrainPerWake` packets before waiting again. The drain
+budget is calculated in the constructor:
+
+```csharp
+Math.Clamp(
+    Environment.ProcessorCount * Options.MaxDrainPerWakeMultiplier,
+    Options.MinDrainPerWake,
+    Options.MaxDrainPerWake)
+```
+
+Default option values make this clamp resolve within `64..2048` with multiplier `8`.
+
+## DispatchChannel Queue Behavior
+
+`DispatchChannel<TPacket>` is the internal queue behind `PacketDispatchChannel`.
+It maintains per-connection state and priority-ready queues.
+
+| Concern | Source behavior |
+| --- | --- |
+| Priority classification | Reads the priority byte at `PacketHeaderOffset.Priority`; invalid or short buffers use `PacketPriority.NONE`. |
+| Priority selection | Uses weighted round-robin budgets, scanning from `PacketPriority.URGENT` down to `PacketPriority.NONE`. |
+| Default priority weights | If `DispatchOptions.PriorityWeights` is absent or short, each missing weight uses `1 << priorityIndex`. |
+| Per-connection bounds | Enabled when `DispatchOptions.MaxPerConnectionQueue > 0`. |
+| Overflow handling | Uses `DropPolicy.DropNewest`, `DropOldest`, `Coalesce`, or `Block`; packet dispatch calls `PushCore(..., noBlock: true)`, so block-mode enqueue fails fast from `HandlePacket`. |
+| Cleanup | Subscribes to `IConnectionHub.ConnectionUnregistered` and drains/disposes queued leases for removed connections. |
+
+## Execution and Disposal Guarantees
+
+When a worker pulls a lease:
+
+1. `IPacketRegistry.TryDeserialize(lease.Span, out IPacket?)` is called.
+2. Deserialization failure increments the connection error count and disposes the lease.
+3. Successful packets are executed through `ExecutePacketHandlerAsync`.
+4. Synchronous completions dispose `IDisposable` packets and the lease immediately.
+5. Asynchronous completions are awaited by a helper that disposes both in `finally`.
+6. Non-fatal handler exceptions increment the connection error count and are logged.
+
+## Diagnostics
+
+`GenerateReport()` and `GetReportData()` expose the current runtime snapshot:
+
+| Field | Meaning |
+| --- | --- |
+| `Running` | Whether workers are currently active. |
+| `DispatchLoops` | Number of scheduled dispatch worker loops. |
+| `WakeSignals` | Number of calls that released wake signals. |
+| `WakeReads` | Counter field included in reports. |
+| `WakeRequested` | Current coalesced wake-request flag. |
+| `TotalPackets` | Total queued packets in `DispatchChannel`. |
+| `TotalConnections` | Active tracked connection states. |
+| `ReadyConnections` | Connections currently marked ready. |
+| `PendingPerPriority` | Ready-entry snapshot per priority level. |
+| `PendingByConnection` | Top pending connections in `GetReportData()`. |
 
 ## Related APIs
 
 - [Dispatch Contracts](./dispatch-contracts.md)
 - [Packet Dispatch Options](./packet-dispatch-options.md)
-- [Packet Context](./packet-context.md)
-- [Middleware Pipeline](../middleware/pipeline.md)
+- [Dispatch Channel and Router](./dispatch-channel-and-router.md)
+- [Middleware Pipeline](../../../concepts/runtime/middleware-pipeline.md)

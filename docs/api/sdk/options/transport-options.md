@@ -17,8 +17,9 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 ## Configuration Reference
 
 ### Connection & Connectivity
+
 | Property | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `Address` | `"127.0.0.1"` | Server IP address or hostname. |
 | `Port` | `57206` | Server port (1–65535). |
 | `ConnectTimeoutMillis` | `5000` | Timeout for the initial connection attempt. |
@@ -26,29 +27,32 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 | `ReconnectMaxAttempts` | `0` | Max attempts (0 = unlimited). |
 | `ReconnectBaseDelayMillis` | `500` | Base delay for exponential backoff. |
 | `ReconnectMaxDelayMillis` | `30000` | Maximum delay between attempts. |
-| `KeepAliveIntervalMillis`| `20000` | Heartbeat interval (0 = disabled). |
+| `KeepAliveIntervalMillis` | `20000` | Heartbeat interval (0 = disabled). |
 
 ### Performance & Framing
+
 | Property | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `NoDelay` | `true` | Disables Nagle's algorithm for lower latency. |
 | `BufferSize` | `65536` | Socket send/receive buffer size in bytes. |
 | `AsyncQueueCapacity` | `1024` | Capacity of the internal async message queue. |
 | `MaxUdpDatagramSize` | `1400` | Maximum MTU for UDP (including 7-byte Token). |
 
 ### Security & Compression
+
 | Property | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `CompressionEnabled` | `true` | Enables LZ4 compression for outbound packets. |
 | `CompressionThreshold` | `512` | Minimum bytes to trigger compression. |
 | `EncryptionEnabled` | `true` | Enables AEAD packet encryption. |
-| `Algorithm` | `Chacha20Poly1305`| Cipher suite for encrypted communication. |
+| `Algorithm` | `Chacha20Poly1305` | Cipher suite for encrypted communication. |
 | `ServerPublicKey` | `null` | **[NEW]** Pinned X25519 Public Key (Hex) for server identity verification. |
 | `Secret` | `Bytes32.Zero` | **[Ignored]** Runtime zero-allocation encryption key. |
 
 ### Session Resume & Time Sync
+
 | Property | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `SessionToken` | `default` | **[Ignored]** Runtime session token for resume flows. |
 | `ResumeEnabled` | `true` | Attempts session resume before full handshake. |
 | `ResumeTimeoutMillis` | `3000` | Timeout for resume request/response. |
@@ -58,6 +62,7 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 ## Validation
 
 The `Validate()` method should be called after loading configuration to ensure constraints are met. Common validation errors include:
+
 - `Port` outside [1, 65535].
 - `BufferSize` outside [2KB, 10MB].
 - `ReconnectBaseDelayMillis` > `ReconnectMaxDelayMillis`.

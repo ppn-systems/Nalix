@@ -69,15 +69,19 @@ The UDP listener integrates a high-performance **`DatagramRateLimiter`**. This c
 UDP is vulnerable to spoofing and reflection attacks. Nalix hardens the listener via a 3-stage validation gate:
 
 ### Stage 1: Protocol & Token Validation
+
 - **Minimum Size Guard**: Any datagram smaller than 10 bytes is instantly dropped.
 - **Flag Verification**: The listener validates `payload[6]` (the `PacketFlags` byte) to ensure it carries the `PacketFlags.UNRELIABLE` mask identifying a UDP frame.
 - **Session Lookup**: The first 7 bytes (`SessionToken`) are read natively via `ReadOnlySpan<byte>` and cross-referenced with the `IConnectionHub`. Extremely fast mapping occurs without object allocation.
 
 ### Stage 2: IP Pinning (SEC-30)
+
 Even if an attacker steals a `SessionToken`, the listener verifies that the source `IPEndPoint` of the UDP datagram stringently matches the `Connection.NetworkEndpoint` bound to the TCP socket. Spoofed IPs are instantly dropped down to the networking stack.
 
 ### Stage 3: Sliding Replay Window (SEC-27)
-Due to UDP's nature, an attacker could capture a valid packet and replay it iteratively. 
+
+Due to UDP's nature, an attacker could capture a valid packet and replay it iteratively.
+
 - Nalix utilizes an internal lock-free (via `SpinLock`) `SlidingWindow` instance attached to the connection.
 - It parses the 16-bit `SequenceId` at offset 8.
 - If the packet sequence is historical or already observed within the window, the datagram is rejected.
@@ -86,6 +90,7 @@ Due to UDP's nature, an attacker could capture a valid packet and replay it iter
 ## 3. Buffer Lifecycle & Pipeline Handoff
 
 Once authenticated, the UDP payload follows a standardized processing pipeline:
+
 1. **Extraction**: Nalix extracts a `BufferLease` (rented from the `ByteArrayPool`) containing the raw datagram.
 2. **Slicing**: The 7-byte `SessionToken` prefix is mathematically sliced off using `Memory<byte>` operations without array copies.
 3. **Async Dispatch**: The datagram is offloaded to the **`ThreadPool`** via the `AsyncCallback` dispatcher. This aligns the UDP processing model with TCP, ensuring that heavy decryption or application logic does not block the low-level receive loop.
@@ -96,7 +101,7 @@ Once authenticated, the UDP payload follows a standardized processing pipeline:
 ## 4. Public API Surface
 
 | Method | Description |
-|---|---|
+| :---: | :---: |
 | `Constructor(..., IConnectionHub)` | Requires an explicit `IConnectionHub` instance for session tracking. |
 | `Activate()` | Initializes the `Socket` and launches the continuous SAEA asynchronous receive loops. |
 | `Deactivate()` | Cancels active receive tasks safely. |

@@ -17,15 +17,16 @@ While raw enum values are efficient for transmission and logic, they often conta
 ## API Reference
 
 ### Extended Enums
+
 | Enum | Extension Method | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `ProtocolAdvice` | `ToDisplayString()` | Translates the "What should I do?" hint from the server. |
 | `ProtocolReason` | `ToDisplayString()` | Translates the "Why did this happen?" error code. |
 
 ## Mappings at a glance
 
 | Enum Value | Display String |
-|---|---|
+| --- | --- |
 | `ProtocolAdvice.RETRY` | "Please try again." |
 | `ProtocolAdvice.BACKOFF_RETRY` | "Please wait and try again." |
 | `ProtocolReason.RATE_LIMITED` | "Too many requests." |

@@ -32,7 +32,7 @@ They currently:
 ## Size rules from source
 
 | Type | Key size | Nonce size | Tag size |
-|---|---:|---:|---:|
+| --- | ---: | ---: | ---: |
 | `ChaCha20Poly1305` | `32` | `12` | `16` |
 | `Salsa20Poly1305` | `16` or `32` | `8` | `16` |
 

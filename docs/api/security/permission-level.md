@@ -9,7 +9,7 @@
 ## Enum Definition
 
 | Value | Name | Description |
-|---|---|---|
+| --- | --- | --- |
 | `0` | `NONE` | No authority assigned. |
 | `25` | `GUEST` | Minimal access for anonymous or guest users. |
 | `50` | `READ_ONLY` | Read-only access. |

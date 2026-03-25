@@ -10,6 +10,7 @@
 ## Why This Type Exists
 
 Maintaining session state across disconnects requires a storage mechanism that is:
+
 - **Fast**: Session retrieval happens during the connection "Hot Path" (Resume).
 - **Atomic**: Prevents multiple clients from attempting to resume the same session simultaneously.
 - **Auto-Cleaning**: Expired sessions must be evicted to prevent memory leaks or replay window bloat.
@@ -47,7 +48,9 @@ sequenceDiagram
 ## Internal Responsibilities (Source-Verified)
 
 ### 1. Atomic Consumption (SEC-33)
-The most critical method in the store is `ConsumeAsync(UInt56 sessionToken)`. 
+
+The most critical method in the store is `ConsumeAsync(UInt56 sessionToken)`.
+
 - It retrieves the session entry and **immediately removes it** from the store in a single atomic operation.
 - This prevents "Resumption Replay" where a stolen token could be used by two different clients to gain access simultaneously. Only the first caller succeeds.
 
@@ -55,11 +58,14 @@ The most critical method in the store is `ConsumeAsync(UInt56 sessionToken)`.
     Custom implementations of `ISessionStore` (e.g., Redis implementations) **MUST** implement `ConsumeAsync` as an atomic operation (e.g., using a Lua script in Redis) to comply with SEC-33.
 
 ### 2. Lazy and Active Expiration
+
 The `InMemorySessionStore` employs a dual-layered expiration strategy:
+
 - **Active Scavenger**: A background task (`PeriodicTimer`) runs every minute to scan the `ConcurrentDictionary` and evict keys where `ExpiresAtUnixMilliseconds <= now`.
 - **Lazy Check**: Every time `RetrieveAsync` or `ConsumeAsync` is called, the TTL is checked immediately. If the session has expired, it is treated as "NotFound" and removed even if the scavenger hasn't reached it yet.
 
 ### 3. Session Entry Pooling
+
 To keep the resumption path zero-allocation, `SessionEntry` objects are tracked by the `ObjectPoolManager`. When a session is removed or expires, the system calls `entry.Return()` to reclaim the resources.
 
 ## Public APIs
@@ -74,7 +80,7 @@ To keep the resumption path zero-allocation, `SessionEntry` objects are tracked 
 Control the session lifecycle via `SessionStoreOptions`:
 
 | Option | Description | Typical Value |
-|---|---|---|
+| :---: | :---: | :---: |
 | `SessionExpirationHours` | How long a session remains resumable after creation. | 24 - 48 Hours |
 | `ScavengeIntervalMinutes` | How often the background cleanup task runs. | 1 - 5 Minutes |
 

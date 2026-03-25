@@ -6,12 +6,12 @@
 
 | Feature | Description |
 | :--- | :--- |
-| 📡 **TcpServerListener** | High-throughput TCP listener using asynchronous socket patterns. |
-| 🚀 **UdpServerListener** | Session-aware UDP listener for low-latency communications. |
-| 🔗 **ConnectionHub** | Central management for thousands of active sessions with shard-aware routing. |
-| 💾 **Session Store** | Built-in session persistence and TTL-based resumable session retention. |
-| 🛡️ **Admission Control** | Native support for IP filtering and connection limits. |
-| 🔌 **Protocols** | Pluggable protocol bridge to translate raw streams into packet contexts. |
+| 📡 **TCP listener base** | High-throughput asynchronous TCP listener foundation for custom transports. |
+| 🚀 **UDP listener base** | Session-aware UDP listener foundation with token lookup, endpoint pinning, and replay checks. |
+| 🔗 **ConnectionHub** | Central management for active sessions with shard-aware lookup and reporting. |
+| 💾 **Session Store** | Built-in in-memory session persistence with support for custom stores. |
+| 🛡️ **Admission Control** | Native support for connection limits, datagram guards, and IP-based protection. |
+| 🔌 **Protocols** | Pluggable protocol bridge that translates transport events into packet dispatch. |
 
 ## Installation
 
@@ -19,14 +19,33 @@
 dotnet add package Nalix.Network
 ```
 
-## Quick Example: TCP Listener
+## Usage Guidance
+
+`Nalix.Network` is the low-level package. Its listener types are abstract bases
+that require an `IProtocol` and an `IConnectionHub`:
 
 ```csharp
-using Nalix.Network.Transport;
+public sealed class MyTcpListener : TcpListenerBase
+{
+    public MyTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
+        : base(port, protocol, hub) { }
+}
 
-var protocol = new MyProtocol(); // Inherit from Protocol
-var listener = new TcpServerListener(5000, protocol);
+IConnectionHub hub = new ConnectionHub();
+using var listener = new MyTcpListener(5000, new MyProtocol(), hub);
 listener.Activate();
+```
+
+For normal server applications, prefer `Nalix.Network.Hosting`. The hosting
+builder creates the concrete internal listeners, connection hub, packet dispatch,
+and lifecycle orchestration for you:
+
+```csharp
+using var app = NetworkApplication.CreateBuilder()
+    .AddTcp<MyProtocol>(5000)
+    .Build();
+
+await app.RunAsync();
 ```
 
 ## Documentation

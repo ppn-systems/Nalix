@@ -137,7 +137,7 @@ app.Run();
 The shard-aware system behavior is influenced by `DispatchOptions`. Ensure these are tuned to handle the expected number of logical shards:
 
 | Option | Recommendation |
-|---|---|
+| --- | --- |
 | `BucketCountMultiplier` | Increase if you have many logical shards (e.g., 100,000+ users) to reduce hash collisions in the dispatch buckets. |
 | `MaxPerConnectionQueue` | Limits how many packets can be queued for a single shard (Proxy instance) before the `DropPolicy` kicks in. |
 

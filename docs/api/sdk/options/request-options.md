@@ -35,18 +35,20 @@ sequenceDiagram
 ## API Reference
 
 ### Properties
+
 | Member | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `TimeoutMs` | `5000` | Milliseconds to wait for a response on each attempt. |
 | `RetryCount` | `0` | Additional attempts after the first timeout. |
 | `Encrypt` | `false` | Whether to apply AEAD encryption to the outbound frame. |
 
 ### Fluent Helpers
+
 | Method | Description |
-|---|---|
+| --- | --- |
 | `WithTimeout(ms)` | Returns a clone with the specified timeout. |
-| `WithRetry(count)`| Returns a clone with the specified retry count. |
-| `WithEncrypt(bool)`| Returns a clone with encryption toggled. |
+| `WithRetry(count)` | Returns a clone with the specified retry count. |
+| `WithEncrypt(bool)` | Returns a clone with encryption toggled. |
 
 ## Basic usage
 

@@ -118,14 +118,22 @@ builder.ConfigureDispatch(options =>
     Use this path only if you are building specialized transport libraries or need to bypass the Hosting layer for extreme performance tuning.
 
 ```csharp
-// Manual setup of all components without the Hosting builder
+// Manual setup of all components without the Hosting builder.
+// Prefer the Hosting Builder above unless you are writing transport-level code.
+public sealed class ManualTcpListener : TcpListenerBase
+{
+    public ManualTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
+        : base(port, protocol, hub) { }
+}
+
 PacketDispatchChannel dispatch = new(options =>
 {
     options.WithHandler(() => new MyPingHandler());
 });
 
+IConnectionHub hub = new ConnectionHub();
 MyProtocol protocol = new(dispatch);
-TcpListenerBase listener = new(5000, protocol);
+ManualTcpListener listener = new(5000, protocol, hub);
 
 dispatch.Activate();
 listener.Activate();
@@ -133,8 +141,14 @@ listener.Activate();
 // ... run ...
 
 listener.Deactivate();
+hub.Dispose();
 dispatch.Dispose();
 ```
+
+!!! warning "Manual dependency wiring"
+    `TcpListenerBase` is abstract and its current constructors require an
+    `IConnectionHub`. The Hosting builder creates the concrete internal listener
+    and hub automatically; manual composition must provide both explicitly.
 
 ---
 

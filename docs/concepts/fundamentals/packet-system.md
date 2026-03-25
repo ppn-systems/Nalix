@@ -10,6 +10,7 @@ The Packet System is the foundation of Nalix's networking model. It provides a d
 ## 1. Defining Packets
 
 ### The Mandatory Attribute Pair
+
 For a standard network packet, you must apply both of the following attributes:
 
 1. **`[Packet]`**: Registers the class in the `PacketRegistry` catalog for automatic discovery. Without this, the dispatcher will not know how to map an incoming OpCode to this class.
@@ -50,7 +51,7 @@ public sealed class TradePacket : PacketBase<TradePacket>
 The `[SerializePackable]` attribute requires a `SerializeLayout` value that controls how fields are ordered in the byte stream.
 
 | Layout | Behavior | Member Discovery | Recommended for |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `SerializeLayout.Auto` | Reorders fields to minimize padding (typically by size descending). | All public properties/fields except those marked with `[SerializeIgnore]`. | Internal DTOs where compact size matters and version stability is not critical. |
 | `SerializeLayout.Sequential` | Preserves source code order. | All public properties/fields except those marked with `[SerializeIgnore]`. | Simple packets where source order is intuitive. |
 | `SerializeLayout.Explicit` | Orders fields by `[SerializeOrder]` values. Only includes annotated members. | Only members decorated with `[SerializeOrder]`. | **Production packets.** Recommended for all public-facing network definitions. |
@@ -151,7 +152,6 @@ Nalix supports versioning through **additive evolution**:
 
 !!! warning "Breaking changes"
     The following changes break wire compatibility:
-    
     - Changing the `[SerializeOrder]` of an existing field
     - Removing a field without renumbering successors
     - Changing a field's type
@@ -182,11 +182,13 @@ public sealed class PingRequest : PacketBase<PingRequest>
 ## 6. Edge Cases & Wire Integrity
 
 ### Magic Numbers: Ensuring Type Safety
+
 Every packet in Nalix includes a hidden **Magic Number** derived from its full type name. During deserialization, `PacketBase<T>.Deserialize` validates this number before attempting to read the payload.
 
 If you attempt to deserialize a `PingRequest` buffer into a `TradePacket` object, the system will throw a `SerializationFailureException` due to a magic number mismatch. This prevents silent data corruption and type-conversion bugs.
 
 ### Handling Serialization Failures
+
 Network data can be malformed, truncated, or malicious. Nalix protects the hot path by throwing a `SerializationFailureException` in the following cases:
 
 - **Buffer Too Small**: The incoming data is shorter than the fixed-size header or the expected static payload.
@@ -194,6 +196,7 @@ Network data can be malformed, truncated, or malicious. Nalix protects the hot p
 - **Magic Number Mismatch**: The incoming packet's type identity does not match the target deserialization class.
 
 #### Best Practice: Defensive Dispatch
+
 In a high-performance scenario, let the dispatcher handle these exceptions. It will log the failure, increment the connection's error count via `IConnection.IncrementErrorCount()`, and safely return the buffer to the pool.
 
 ```csharp

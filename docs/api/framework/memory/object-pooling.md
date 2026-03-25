@@ -69,7 +69,7 @@ public interface IPoolable
 | `PerformHealthCheck()` | Identifies "unhealthy" pools (those with consistently high miss rates or leaks). |
 | `GenerateReport()` | Produces a detailed text summary of all managed pools and their metrics. |
 
-## TypedObjectPool<T>
+## TypedObjectPool<`T`>
 
 For performance-critical code, it is recommended to cache a `TypedObjectPool<T>` rather than calling the manager directly.
 
@@ -100,11 +100,13 @@ The manager tracks several critical metrics to help tune pool capacities:
 Advanced diagnostics can be enabled via `ObjectPoolOptions` (usually in `default.ini` under `[ObjectPool]`). These features provide deep insight at a slight performance cost.
 
 ### Statistics Collected
+
 - **Lifetime (Avg/p95/Max)**: How long objects stay rented. High values might indicate slow processing segments.
 - **Suspicious Objects**: Objects held longer than a configurable threshold (e.g., 30s) are listed in reports with their allocation stack trace.
 - **GC Leak Detection**: Uses sentinel finalizers to detect and report objects that were garbage collected without being returned to the pool.
 
 ### Configuration Example
+
 ```ini
 [ObjectPool]
 EnableDiagnostics = true

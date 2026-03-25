@@ -20,12 +20,17 @@ Choose TCP when you need ordered, reliable byte streams by default.
 ```csharp
 public sealed class SampleUdpListener : UdpListenerBase
 {
-    public SampleUdpListener(IProtocol protocol) : base(protocol) { }
+    public SampleUdpListener(IProtocol protocol, IConnectionHub hub)
+        : base(protocol, hub) { }
 
     protected override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
         => true;
 }
 ```
+
+Current `UdpListenerBase` constructors require the `IConnectionHub` that owns the
+session map used by UDP token resolution. The hosting builder wires this for you;
+manual low-level servers must pass it explicitly.
 
 That is the minimum surface, but a real UDP server still needs a session story, an authentication story, and a diagnostics story.
 
@@ -33,7 +38,8 @@ That is the minimum surface, but a real UDP server still needs a session story, 
 
 ### 1. Authentication
 
-`IsAuthenticated(...)` is the first important decision point.
+`IsAuthenticated(...)` is the first application-level UDP policy hook after the
+runtime has resolved the connection from the 7-byte session token.
 
 Use it to:
 
@@ -42,11 +48,12 @@ Use it to:
 - gate traffic until a handshake token or session secret is known
 
 !!! tip
-    If you are using `NetworkApplication` (Hosting layer), you don't need to subclass `UdpListenerBase` just for authentication. You can provide a predicate directly in the builder:
+    If you are using `NetworkApplication` (Hosting layer), you don't need to subclass `UdpListenerBase` just for authentication. Provide a predicate while configuring the builder, before `Build()`:
     ```csharp
-    app.AddUdp<MyProtocol>((connection, endpoint, payload) => {
-        return connection.Level >= PermissionLevel.USER;
-    });
+    using var app = NetworkApplication.CreateBuilder()
+        .AddUdp<MyProtocol>((connection, endpoint, payload) =>
+            connection.Level >= PermissionLevel.USER)
+        .Build();
     ```
 
 ### 2. Protocol behavior
@@ -105,9 +112,15 @@ For client-friendly docs, the easiest mental model is:
 
 ```text
 receive datagram
-  -> authenticate
-  -> protocol handling
-  -> optional diagnostics / time sync logic
+  -> rate-limit by remote IP
+  -> copy socket buffer into a BufferLease
+  -> require 7-byte SessionToken
+  -> validate the Nalix payload header and UNRELIABLE flag
+  -> resolve the connection through IConnectionHub
+  -> verify pinned endpoint
+  -> check the UDP replay window sequence
+  -> run IsAuthenticated(...) or the Hosting AddUdp predicate
+  -> bind UDP transport and dispatch payload to the protocol
 ```
 
 ## What teams often miss

@@ -1,70 +1,111 @@
 # Timeout Middleware
 
-`TimeoutMiddleware` is an inbound security component that enforces execution time limits on packet handlers. If a handler (or subsequent middleware) fails to complete within the allotted time, it automatically cancels the operation and notifies the client.
+`TimeoutMiddleware` enforces per-handler execution time limits for inbound packet
+processing. It wraps downstream middleware and the final handler in a timed
+`CancellationToken` and emits a transient timeout directive when the local timer,
+rather than the caller's cancellation token, causes execution to stop.
 
-## Timeout Flow
+## Source mapping
+
+- `src/Nalix.Network.Pipeline/Inbound/TimeoutMiddleware.cs`
+- `src/Nalix.Common/Networking/Packets/PacketTimeoutAttribute.cs`
+
+## Runtime role
+
+`TimeoutMiddleware` is an inbound middleware with `MiddlewareOrder(75)`. It runs
+late in the inbound chain so earlier security and throttling checks can reject
+bad traffic before a per-request timer is allocated.
+
+The middleware is metadata-driven. It reads `context.Attributes.Timeout`, which
+is populated from `PacketTimeoutAttribute` on the handler method.
+
+## Applying a timeout
+
+```csharp
+[PacketTimeout(5000)]
+public async Task ProcessHeavyData(PacketContext<WorkPacket> request)
+{
+    // This handler is expected to finish within 5 seconds.
+}
+```
+
+`PacketTimeoutAttribute` is declared for methods only and stores one value:
+`TimeoutMilliseconds`.
+
+## Execution behavior
 
 ```mermaid
 sequenceDiagram
     participant P as Pipeline
     participant M as TimeoutMiddleware
-    participant H as Handler
-    participant C as Connection
-    
-    P->>M: InvokeAsync(context)
-    Note over M: Start timer (e.g., 5000ms)
-    M->>H: Invoke(linkedToken)
-    
-    H-->>H: Long running work...
-    H-->>M: OperationCanceledException
-    
-    M->>C: Send Directive(TIMEOUT)
-    M-->>P: Terminate
+    participant H as Downstream middleware or handler
+    participant C as Client sender
+
+    P->>M: InvokeAsync(context, next)
+    M->>M: Read context.Attributes.Timeout
+    alt timeout <= 0 or missing
+        M->>H: next(context.CancellationToken)
+    else timeout configured
+        M->>M: Create linked CTS when caller token can cancel
+        M->>M: CancelAfter(timeoutMilliseconds)
+        M->>H: next(timeout token)
+        H-->>M: OperationCanceledException from timeout token
+        M->>C: Send TIMEOUT directive
+    end
 ```
 
-## Source mapping
+If no timeout attribute exists, or the configured timeout is less than or equal
+to zero, the middleware is a no-op and passes the original context cancellation
+token to `next`.
 
-- `src/Nalix.Network.Pipeline/Inbound/TimeoutMiddleware.cs`
+When a positive timeout is configured:
 
-## Role and Design
+1. if the context token can cancel, a linked `CancellationTokenSource` is created
+2. otherwise a standalone `CancellationTokenSource` is created
+3. `CancelAfter(timeoutMilliseconds)` arms the local timer
+4. downstream execution receives the timeout token
+5. the CTS is disposed when execution completes
 
-Preventing handlers from hanging indefinitely is critical for server availability. `TimeoutMiddleware` wraps the request execution in a linked `CancellationToken` that is automatically triggered after the `PacketTimeoutAttribute` duration.
+## Timeout detection
 
-- **Linked Cancellation**: Respects both the global session cancellation and the per-packet timeout timer.
-- **Graceful Rejection**: Sends a `Directive` frame with `ControlType.TIMEOUT` so the client knows exactly why the request failed.
-- **Zero-Allocation Erroring**: Uses pooled `Directive` instances to handle rejection traffic without stressing the GC.
+The middleware only converts cancellation into a timeout response when both
+conditions are true:
 
-## Configuration
+- the middleware-owned timeout token is canceled
+- `context.CancellationToken` is not canceled
 
-The middleware looks for a `PacketTimeoutAttribute` on the packet metadata. If no attribute is found, it defaults to a no-op (infinite timeout).
+This distinction prevents normal connection shutdown or caller cancellation from
+being reported as a handler timeout.
 
-### Applying the Attribute
-```csharp
-[PacketOpcode(0x1001)]
-[PacketTimeout(5000)] // 5 second limit
-public class ProcessHeavyDataPacket : IPacket { ... }
+## Timeout directive
+
+On a local timeout, `TimeoutMiddleware` first checks `DirectiveGuard` using
+`ConnectionAttributes.InboundDirectiveTimeoutLastSentAtMs`. If notification is
+allowed, it rents a pooled `Directive` and sends:
+
+```text
+ControlType   = TIMEOUT
+Reason        = TIMEOUT
+Advice        = RETRY
+SequenceId    = original packet sequence id
+ControlFlags  = IS_TRANSIENT
+Arg0          = timeoutMilliseconds / 100
 ```
 
-### Pipeline Registration
-```csharp
-builder.ConfigureDispatch(options =>
-{
-    options.WithMiddleware(new TimeoutMiddleware());
-});
-```
+The directive send uses `CancellationToken.None`, so the timeout notification is
+not canceled by the expired handler token.
 
-## Behavior
+If `DirectiveGuard` suppresses the response, the middleware returns silently.
 
-1. **Resolution**: Inspects `context.Attributes.Timeout`.
-2. **Timer**: Creates a `CancellationTokenSource` with `CancelAfter`.
-3. **Execution**: Delegates to the next handler using the timed-out token.
-4. **Rejection**: If a `OperationCanceledException` is caught due to the timer:
-    - Rents a `Directive` from the `ObjectPoolManager`.
-    - Initializes it with `ControlType.TIMEOUT` and `ProtocolAdvice.RETRY`.
-    - Transmits the rejection via the TCP transport.
+## Error handling boundaries
+
+`TimeoutMiddleware` catches only the timeout-shaped
+`OperationCanceledException`. Other exceptions from downstream middleware or the
+handler continue to the pipeline error path.
 
 ## Related APIs
 
-- [Packet Pipeline](./pipeline.md)
-- [Directive Frame](../../framework/packets/built-in-frames.md)
+- [Pipeline](./pipeline.md)
 - [Permission Middleware](./permission-middleware.md)
+- [Policy Rate Limiter](./policy-rate-limiter.md)
+- [Packet Attributes](../routing/packet-attributes.md)

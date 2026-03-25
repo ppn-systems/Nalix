@@ -11,7 +11,7 @@
 
 ## Why This Type Exists
 
-`Protocol` centralizes shared application-level protocol concerns (acceptance, error accounting, post-processing) so derived protocols only provide message logic. 
+`Protocol` centralizes shared application-level protocol concerns (acceptance, error accounting, post-processing) so derived protocols only provide message logic.
 
 !!! important
     Transport-level concerns like decryption and decompression, as well as **connection registration with the ConnectionHub**, are now handled by the **Listener** layer before the protocol is invoked.

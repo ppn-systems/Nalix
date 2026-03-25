@@ -36,14 +36,24 @@ Low-level buffer operations that were previously handled by "Buffer Middleware" 
 
 ## Execution Order
 
-Middleware executes in **registration order** for the inbound path and **reverse registration order** for the outbound path.
+Middleware ordering is attribute-driven, not raw registration order. The pipeline reads
+`MiddlewareOrderAttribute` and `MiddlewareStageAttribute` from each middleware type.
+If `MiddlewareOrderAttribute` is absent, the order defaults to `0`. If
+`MiddlewareStageAttribute` is absent, the stage defaults to `Inbound`.
+
+| Stage bucket | Source behavior |
+| --- | --- |
+| Inbound | Sorted by `MiddlewareOrder` ascending. |
+| Outbound | Sorted by `MiddlewareOrder` descending. |
+| Outbound with `AlwaysExecute=true` | Stored in a separate outbound-always bucket, sorted descending, and executed after the handler even when normal outbound is skipped. |
 
 ```mermaid
 flowchart LR
-    M1["Middleware 1 (Inbound)"] --> M2["Middleware 2 (Inbound)"]
-    M2 --> H["Handler"]
-    H --> M2_Out["Middleware 2 (Outbound)"]
-    M2_Out --> M1_Out["Middleware 1 (Outbound)"]
+    I1["Inbound low order"] --> I2["Inbound high order"]
+    I2 --> H["Handler"]
+    H --> A1["Outbound Always high order"]
+    A1 --> O1["Outbound high order"]
+    O1 --> O2["Outbound low order"]
 ```
 
 Registration example:
@@ -95,7 +105,7 @@ The typical flow is:
     If a middleware does not call `await next(ct)`, the request pipeline is short-circuited. This is intentional for rejection scenarios but can cause silent drops if done accidentally.
 
 !!! warning "Pitfall: Ordering assumptions"
-    Middleware executes in registration order. If your permission middleware runs after your audit middleware, you will audit rejected requests — which may or may not be desirable.
+    Middleware execution uses `MiddlewareOrderAttribute`, not insertion order. If multiple middleware share the same order value, their relative order should not be relied on.
 
 ## See it in action
 

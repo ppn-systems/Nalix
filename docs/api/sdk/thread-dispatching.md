@@ -35,6 +35,7 @@ Networking in Nalix is naturally asynchronous and runs on dedicated background t
 ## Implementation Examples
 
 ### Unity (Main Thread)
+
 ```csharp
 public sealed class UnityDispatcher : IThreadDispatcher
 {
@@ -43,6 +44,7 @@ public sealed class UnityDispatcher : IThreadDispatcher
 ```
 
 ### .NET MAUI
+
 ```csharp
 public sealed class MauiDispatcher : IThreadDispatcher
 {
@@ -51,6 +53,7 @@ public sealed class MauiDispatcher : IThreadDispatcher
 ```
 
 ### WPF / WinForms (SynchronizationContext)
+
 ```csharp
 public sealed class SynchronizationContextDispatcher : IThreadDispatcher
 {

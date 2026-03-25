@@ -141,7 +141,7 @@ public sealed class SdkSubscriptionTests
         public override Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
             => Task.CompletedTask;
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
         }
 

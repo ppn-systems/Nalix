@@ -110,21 +110,28 @@ flowchart TD
 ## Internal Responsibilities (Technical Breakdown)
 
 ### 1. Nalix Framing
+
 TCP is a byte-stream protocol and does not guarantee frame boundaries. `SocketConnection` enforces framing by:
+
 - Prepending a **2-byte little-endian `ushort`** representing the total length of the frame.
 - Performing **Exact Receives** (`SAEA_RECEIVE_EXACTLY_ASYNC`) to ensure partial TCP bundles don't corrupt the protocol state.
 
 ### 2. DDoS Protection (Layer 1 Throttle)
+
 Before any heavy processing (like decryption or large memory slices) occurs, the receive loop checks `_pendingProcessCallbacks`.
+
 - If a connection has more than `MaxPerConnectionPendingPackets` (configured in `NetworkCallbackOptions`) in-flight, subsequent packets are **immediately dropped**.
 - The buffer is returned to the pool, and the connection remains open, protecting the global ThreadPool from starvation.
 
 ### 3. Automatic Fragmentation
+
 For payloads exceeding `MaxChunkSize`:
+
 - **Send**: Automatically splits the payload into a `FragmentStream`, injecting `FragmentHeaders` into individual frames.
 - **Receive**: The `FragmentAssembler` manages memory segments and reassembles them into a single `BufferLease` before the application handler ever sees it.
 
 ### 4. Memory Ownership and SAEA
+
 - **Ownership Transfer**: Uses `Interlocked.Exchange` to hand over the rented buffer to the application layer, preventing double-returns or races during teardown.
 - **SAEA Lifecycle**: Pooled contexts are only returned to the `ObjectPoolManager` after the receive loop task has fully terminated and the socket is confirmed closed.
 

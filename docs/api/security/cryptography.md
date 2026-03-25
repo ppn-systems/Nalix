@@ -16,7 +16,7 @@ Nalix ships several cryptography primitives in `Nalix.Framework.Security`, but t
 ## What is in this package
 
 | Topic | Main types | Read next |
-|---|---|---|
+| --- | --- | --- |
 | Hashing and MAC | `Keccak256`, `Poly1305` | [Hashing and MAC](./hashing-and-mac.md) |
 | AEAD and envelope encryption | `ChaCha20Poly1305`, `Salsa20Poly1305`, `EnvelopeCipher` | [AEAD and Envelope](./aead-and-envelope.md) |
 | Handshake protocol | `HandshakeHandlers`, `X25519` | [Handshake Protocol](./handshake.md) |

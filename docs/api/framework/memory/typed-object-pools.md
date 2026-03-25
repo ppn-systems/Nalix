@@ -19,8 +19,10 @@ graph LR
 
 ## Main Types
 
-### TypedObjectPool<T>
+### TypedObjectPool<`T`>
+
 The primary high-performance wrapper for pools. It can operate in two modes:
+
 1. **Managed**: Connected to `ObjectPoolManager` (Preferred). Provides full metrics and global management.
 2. **Standalone**: Connected directly to an `ObjectPool`. Best for local, isolated pooling.
 
@@ -60,10 +62,10 @@ public void SendData()
 ## Metrics and Diagnostics
 
 When a `TypedObjectPool<T>` is created via `ObjectPoolManager`, it automatically inherits the manager's diagnostic capabilities:
+
 - **Outstanding Tracking**: Tracks objects rented but not yet returned (requires `EnableDiagnostics`).
 - **Cache Statistics**: Tracks hits, misses, and throughput.
 - **Leak Detection**: Integrated with `PoolSentinel` for GC-based leak reporting.
-
 
 ## Related APIs
 

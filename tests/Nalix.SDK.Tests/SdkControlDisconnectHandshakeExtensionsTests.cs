@@ -332,7 +332,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
 
         public void EnqueueResponse(IPacket packet) => _queuedResponses.Enqueue(packet);
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
         }
     }
@@ -355,4 +355,3 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
         }
     }
 }
-

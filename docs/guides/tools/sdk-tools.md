@@ -28,6 +28,7 @@ The SDK Tools application consolidates several specialized utilities into a sing
 The SDK Tools application requires a Windows environment as it is built on **WPF**.
 
 ### 1. Run from Source
+
 Navigate to the tool directory and use the .NET CLI:
 
 ```bash
@@ -62,9 +63,9 @@ Connect the SDK Tools to a running server or client to stream diagnostic logs. T
 
 ## 📋 Prerequisites
 
--   **.NET 10 SDK**
--   **Windows OS** (WPF requirement)
--   **Contracts Assembly**: You will need to point the tool to your compiled DLLs to enable the Builder and Browser features.
+- **.NET 10 SDK**
+- **Windows OS** (WPF requirement)
+- **Contracts Assembly**: You will need to point the tool to your compiled DLLs to enable the Builder and Browser features.
 
 !!! danger "Production Warning"
     While the SDK Tools are powerful for development and staging, ensure that diagnostic ports (used by the Log Monitor) are not exposed on public-facing production servers unless secured via VPN or SSH tunnel.

@@ -7,6 +7,7 @@ This page provides a comprehensive reference for all enumerations defined in `Na
 ## Networking & Packets
 
 ### ProtocolOpCode
+
 Defines the reserved OpCodes for Nalix system and protocol-level internal packets. Values in the range `0x0000-0x00FF` are reserved for system use.
 
 | Member | Value | Description |
@@ -16,6 +17,7 @@ Defines the reserved OpCodes for Nalix system and protocol-level internal packet
 | `SESSION_SIGNAL` | `0x0002` | Unified packet flow for session management (resume, ack, reject). |
 
 ### PacketPriority
+
 Specifies the relative priority level of a network packet. Higher values generally indicate a greater urgency for delivery.
 
 | Member | Value | Description |
@@ -27,6 +29,7 @@ Specifies the relative priority level of a network packet. Higher values general
 | `URGENT` | `0x04` | Highest priority level for urgent packets. |
 
 ### PacketFlags
+
 Defines bitwise flags that describe the state or properties of a network packet.
 
 | Member | Value | Description |
@@ -41,6 +44,7 @@ Defines bitwise flags that describe the state or properties of a network packet.
 | `SYSTEM` | `1 << 7` | The packet is a system-level message (ping, handshake, etc.). |
 
 ### PacketHeaderOffset
+
 Represents the positions of fields in the serialization order.
 
 | Member | Offset | Type | Description |
@@ -54,6 +58,7 @@ Represents the positions of fields in the serialization order.
 | `MaxValue` | `255` | - | The maximum numeric value reserved for the enum. |
 
 ### PacketContextState
+
 Defines the lifecycle states of a `PacketContext` instance.
 
 | Member | Value | Description |
@@ -67,6 +72,7 @@ Defines the lifecycle states of a `PacketContext` instance.
 ## Protocol Control & Signals
 
 ### ControlType
+
 Identifies the kind of control message used by the protocol layer.
 
 | Member | Value | Description |
@@ -94,6 +100,7 @@ Identifies the kind of control message used by the protocol layer.
 | `RESERVED2` | `0xFF` | Reserved for future extension. |
 
 ### ControlFlags
+
 Additional context flags for protocol control messages.
 
 | Member | Value | Description |
@@ -105,6 +112,7 @@ Additional context flags for protocol control messages.
 | `SLOW_DOWN` | `1 << 3` | Suggestion to reduce sending rate. |
 
 ### ProtocolAdvice
+
 High-level actions suggested for a given control reason.
 
 | Member | Value | Description |
@@ -119,6 +127,7 @@ High-level actions suggested for a given control reason.
 | `FIX_AND_RETRY` | `7` | Fix the issue and retry. |
 
 ### ProtocolReason
+
 Standard reason codes for protocol control messages.
 
 | Member | Value | Domain | Description |
@@ -229,6 +238,7 @@ Standard reason codes for protocol control messages.
 ## Security & Identity
 
 ### CipherSuiteType
+
 Defines the supported symmetric and AEAD cipher suites.
 
 | Member | Value | Category | Description |
@@ -239,6 +249,7 @@ Defines the supported symmetric and AEAD cipher suites.
 | `Chacha20Poly1305` | `8` | AEAD | Chacha20 + Poly1305 MAC (RFC 8439). |
 
 ### PermissionLevel
+
 Coarse-grained authority levels used for access control.
 
 | Member | Value | Description |
@@ -253,6 +264,7 @@ Coarse-grained authority levels used for access control.
 | `OWNER` | `255` | Highest authority. |
 
 ### SnowflakeType
+
 Categorizes a snowflake identifier by entity type.
 
 | Member | Value | Category | Description |
@@ -279,6 +291,7 @@ Categorizes a snowflake identifier by entity type.
 ## Serialization & Concurrency
 
 ### SerializeLayout
+
 Describes how fields are ordered when a type is serialized.
 
 | Member | Value | Description |
@@ -288,6 +301,7 @@ Describes how fields are ordered when a type is serialized.
 | `Explicit` | `2` | Order by metadata attributes. |
 
 ### DropPolicy
+
 Behavior when a per-connection queue is full.
 
 | Member | Value | Description |
@@ -298,6 +312,7 @@ Behavior when a per-connection queue is full.
 | `Coalesce` | `3` | Keep only latest unique packet. |
 
 ### MiddlewareStage
+
 Defines the execution stages for middleware.
 
 | Member | Value | Description |
@@ -307,6 +322,7 @@ Defines the execution stages for middleware.
 | `Both` | `2` | Inbound and outbound stages. |
 
 ### WorkerPriority
+
 Specifies the relative dispatch priority for queued workers.
 
 | Member | Value | Description |
