@@ -12,10 +12,9 @@
 // [7]     : nonceLen (1 byte)
 // [8..11] : seq (uint32 little-endian)
 
-
-#if DEBUG
 using Nalix.Common.Security;
 
+#if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
@@ -67,8 +66,6 @@ internal readonly struct EnvelopeHeader
     /// <summary>
     /// Writes header into dest (must be at least Size).
     /// </summary>
-    /// <param name="dest"></param>
-    /// <param name="header"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     internal static void Encode(
@@ -91,8 +88,6 @@ internal readonly struct EnvelopeHeader
     /// <summary>
     /// Try parse header from src. Returns false if malformed/too short.
     /// </summary>
-    /// <param name="src"></param>
-    /// <param name="header"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]

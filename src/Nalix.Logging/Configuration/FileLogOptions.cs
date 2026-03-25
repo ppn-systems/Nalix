@@ -161,7 +161,7 @@ public sealed class FileLogOptions : ConfigurationLoader
 
         string ext = System.IO.Path.GetExtension(baseName);
         string stem = System.IO.Path.GetFileNameWithoutExtension(baseName);
-        string datePart = date.ToString("yy_MM_dd");
+        string datePart = date.ToString("yy_MM_dd", System.Globalization.CultureInfo.InvariantCulture);
         string newName = $"{stem}_{datePart}_{index}{ext}";
 
         if (UsePerProcessSuffix)

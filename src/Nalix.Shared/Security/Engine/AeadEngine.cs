@@ -105,7 +105,7 @@ public static class AeadEngine
                 break;
             case CipherSuiteType.SALSA20:
             case CipherSuiteType.CHACHA20:
-                break;
+                return false;
             default:
                 return false;
         }
@@ -176,7 +176,7 @@ public static class AeadEngine
                 break;
             case CipherSuiteType.SALSA20:
             case CipherSuiteType.CHACHA20:
-                break;
+                return false;
             default:
                 ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
                 break;
