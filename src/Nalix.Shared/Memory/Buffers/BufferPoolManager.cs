@@ -150,7 +150,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         if (_config.EnableMemoryTrimming)
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-                name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
+                name: TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode()),
                 interval: System.TimeSpan.FromMinutes(System.Math.Max(1, _config.TrimIntervalMinutes)),
                 work: _ =>
                 {
@@ -245,7 +245,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.ArraySegment<System.Byte> RentSegment(System.Int32 size = 256)
     {
-        System.Byte[] buffer = this.Rent(size);
+        System.Byte[] buffer = Rent(size);
         return new System.ArraySegment<System.Byte>(buffer, 0, size);
     }
 
@@ -258,7 +258,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Return(System.ArraySegment<System.Byte> segment) => this.Return(segment.Array);
+    public void Return(System.ArraySegment<System.Byte> segment) => Return(segment.Array);
 
     /// <summary>
     /// Rents a buffer from the pool and assigns it to the given
@@ -280,7 +280,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
     {
         System.ArgumentNullException.ThrowIfNull(saea);
 
-        System.Byte[] buffer = this.Rent(size);
+        System.Byte[] buffer = Rent(size);
         saea.SetBuffer(buffer, 0, size);
     }
 
@@ -305,7 +305,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         // Detach buffer from SAEA to avoid accidental reuse after return
         saea.SetBuffer(null, 0, 0);
 
-        this.Return(buffer);
+        Return(buffer);
     }
 
     /// <summary>
@@ -937,7 +937,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         {
             InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelRecurring(TaskNaming.Recurring
-                                    .CleanupJobId(RecurringName, this.GetHashCode()));
+                                    .CleanupJobId(RecurringName, GetHashCode()));
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?

@@ -38,7 +38,7 @@ public abstract partial class TcpListenerBase
                     System.Net.Sockets.SocketOptionLevel.Socket,
                     System.Net.Sockets.SocketOptionName.ReceiveBuffer, s_config.BufferSize);
 
-                System.Net.IPEndPoint epV6Any = new(System.Net.IPAddress.IPv6Any, this._port);
+                System.Net.IPEndPoint epV6Any = new(System.Net.IPAddress.IPv6Any, _port);
 
                 s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
 

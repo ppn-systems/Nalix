@@ -342,7 +342,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     public TClass Get<TClass>(System.String configFilePath, System.Boolean autoReload = true)
         where TClass : ConfigurationLoader, new()
     {
-        this.SetConfigFilePath(configFilePath, autoReload);
+        SetConfigFilePath(configFilePath, autoReload);
         return Get<TClass>();
     }
 
@@ -582,7 +582,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             _debounceTimer = new System.Threading.Timer(
                 _ =>
                 {
-                    if (!this.ReloadAll())
+                    if (!ReloadAll())
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Error($"[FW.{nameof(ConfigurationManager)}:Watcher] reload-failed path={watchedPath}");

@@ -19,12 +19,12 @@ public abstract partial class Protocol : IReportable
     /// <summary>
     /// Total number of errors encountered during message processing.
     /// </summary>
-    public System.UInt64 TotalErrors => System.Threading.Interlocked.Read(ref this._totalErrors);
+    public System.UInt64 TotalErrors => System.Threading.Interlocked.Read(ref _totalErrors);
 
     /// <summary>
     /// Total number of messages processed by this protocol.
     /// </summary>
-    public System.UInt64 TotalMessages => System.Threading.Interlocked.Read(ref this._totalMessages);
+    public System.UInt64 TotalMessages => System.Threading.Interlocked.Read(ref _totalMessages);
 
     #endregion Properties
 

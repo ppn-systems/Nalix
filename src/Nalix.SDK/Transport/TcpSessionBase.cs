@@ -60,7 +60,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
     public IPacketRegistry Catalog { get; protected set; }
 
     /// <inheritdoc/>
-    ITransportOptions IClientConnection.Options => this.Options;
+    ITransportOptions IClientConnection.Options => Options;
 
     /// <summary>
     /// Gets the current lifecycle state of the session.
@@ -354,7 +354,7 @@ public abstract class TcpSessionBase : IClientConnection, System.IAsyncDisposabl
         }
 
         TearDownConnection();
-        Logging?.Info($"[SDK.{this.GetType().Name}] Disconnected (requested).");
+        Logging?.Info($"[SDK.{GetType().Name}] Disconnected (requested).");
         try { OnDisconnected?.Invoke(this, null!); } catch (System.Exception ex) { Logging?.Error($"[SDK.{GetType().Name}] OnDisconnected handler threw: {ex.Message}", ex); }
 
         return System.Threading.Tasks.Task.CompletedTask;

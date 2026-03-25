@@ -143,7 +143,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         if (_options.MaxConnections > 0 && _count >= _options.MaxConnections)
         {
-            this.HandleConnectionLimit(connection);
+            HandleConnectionLimit(connection);
             return false;
         }
 
@@ -159,7 +159,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         if (shard.TryAdd(connection.ID, connection))
         {
-            connection.OnCloseEvent += this.OnClientDisconnected;
+            connection.OnCloseEvent += OnClientDisconnected;
             _ = System.Threading.Interlocked.Increment(ref _count);
             _anonymousQueue.Enqueue(connection.ID);
 
@@ -229,7 +229,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             _ = _usernameToId.TryRemove(username, out _);
         }
 
-        (existing ?? connection).OnCloseEvent -= this.OnClientDisconnected;
+        (existing ?? connection).OnCloseEvent -= OnClientDisconnected;
 
         _ = System.Threading.Interlocked.Decrement(ref _count);
 
@@ -350,7 +350,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     public IConnection GetConnection([System.Diagnostics.CodeAnalysis.NotNull] System.String username)
     {
         ISnowflake id;
-        return System.String.IsNullOrWhiteSpace(username) ? null : (this._usernameToId.TryGetValue(username, out id) ? this.GetConnection(id) : null);
+        return System.String.IsNullOrWhiteSpace(username) ? null : (_usernameToId.TryGetValue(username, out id) ? GetConnection(id) : null);
     }
 
     /// <summary>
@@ -365,7 +365,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
     public System.String GetUsername([System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id)
     {
         System.String username;
-        return this._usernames.TryGetValue(id, out username) ? username : null;
+        return _usernames.TryGetValue(id, out username) ? username : null;
     }
 
     /// <inheritdoc />
@@ -456,7 +456,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return;
         }
 
-        System.Collections.Generic.IReadOnlyCollection<IConnection> connections = this.ListConnections();
+        System.Collections.Generic.IReadOnlyCollection<IConnection> connections = ListConnections();
         if (connections is null || connections.Count == 0)
         {
             s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
@@ -467,7 +467,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         // Use batching if configured
         if (_options.BroadcastBatchSize > 0)
         {
-            await this.BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
+            await BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
                       .ConfigureAwait(false);
 
             return;
@@ -664,7 +664,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             return;
         }
 
-        System.Collections.Generic.IReadOnlyCollection<IConnection> connections = this.ListConnections();
+        System.Collections.Generic.IReadOnlyCollection<IConnection> connections = ListConnections();
 
         System.Threading.Tasks.ParallelOptions parallelOptions = new()
         {
@@ -708,7 +708,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Int64 sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = System.Int64.MaxValue;
 
         System.Text.StringBuilder sb = new();
-        ConnectionHubStatistics stats = this.Statistics;
+        ConnectionHubStatistics stats = Statistics;
         System.Collections.Generic.Dictionary<System.String, System.Int32> algoCounts = new(System.StringComparer.OrdinalIgnoreCase);
         System.Collections.Generic.Dictionary<System.String, System.Int32> statusCounts = new(System.StringComparer.OrdinalIgnoreCase);
 
@@ -831,7 +831,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         }
 
         _disposed = true;
-        this.CloseAllConnections("disposed");
+        CloseAllConnections("disposed");
 
         s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
     }
@@ -857,7 +857,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(
         [System.Diagnostics.CodeAnalysis.AllowNull] System.Object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args) => this.UnregisterConnection(args.Connection);
+        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args) => UnregisterConnection(args.Connection);
 
     [System.Diagnostics.StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)
@@ -868,7 +868,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
         {
             case DropPolicy.DROP_NEWEST:
                 {
-                    this.NotifyCapacityLimit(newConnection, "drop-newest");
+                    NotifyCapacityLimit(newConnection, "drop-newest");
                     newConnection.Disconnect("connection limit reached");
                     System.Threading.Interlocked.Increment(ref _rejectedConnections);
                     break;
@@ -884,7 +884,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                         if (shard.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
                         {
                             s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
-                            this.NotifyCapacityLimit(newConnection, "evict-oldest");
+                            NotifyCapacityLimit(newConnection, "evict-oldest");
 
                             oldestConn.Disconnect("evicted to make room for new connection");
                             return;
@@ -892,7 +892,7 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                     }
 
                     s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
-                    this.NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
+                    NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
 
                     newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
                     System.Threading.Interlocked.Increment(ref _evictedConnections);
@@ -947,12 +947,10 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
             maxConnections: _options.MaxConnections,
             triggeredConnectionId: newConnection?.ID,
             reason: reason ?? System.String.Empty,
-            snapshot: this.Statistics);
+            snapshot: Statistics);
 
-        this.CapacityLimitReached?.Invoke(this, args);
+        CapacityLimitReached?.Invoke(this, args);
     }
 
     #endregion Private Methods
 }
-
-

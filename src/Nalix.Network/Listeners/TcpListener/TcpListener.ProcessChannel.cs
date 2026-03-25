@@ -153,7 +153,7 @@ public abstract partial class TcpListenerBase
         {
             // ProcessConnection → OnAccept → BeginReceive (returns in microseconds).
             // The receive loop itself runs as a separate async task on the ThreadPool.
-            this.ProcessConnection(connection);
+            ProcessConnection(connection);
         }
         catch (System.Exception ex)
         {

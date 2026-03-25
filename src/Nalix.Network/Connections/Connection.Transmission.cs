@@ -141,7 +141,7 @@ public sealed partial class Connection : IConnection
                 try
                 {
 
-                    return this.Send(buffer[..written]);
+                    return Send(buffer[..written]);
                 }
                 catch
                 {
@@ -152,7 +152,7 @@ public sealed partial class Connection : IConnection
             {
                 using BufferLease lease = BufferLease.Rent(packet.Length);
                 System.Int32 written = packet.Serialize(lease.Span);
-                return this.Send(lease.Span[..written]);
+                return Send(lease.Span[..written]);
             }
         }
 
@@ -195,7 +195,7 @@ public sealed partial class Connection : IConnection
                 System.Int32 written = packet.Serialize(buffer);
                 try
                 {
-                    return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
+                    return await SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
                                      .ConfigureAwait(false);
                 }
                 catch
@@ -208,7 +208,7 @@ public sealed partial class Connection : IConnection
                 using BufferLease lease = BufferLease.Rent(packet.Length);
 
                 System.Int32 written = packet.Serialize(lease.Span);
-                return await this.SendAsync(lease.Memory[..written], cancellationToken).ConfigureAwait(false);
+                return await SendAsync(lease.Memory[..written], cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -303,7 +303,7 @@ public sealed partial class Connection : IConnection
                 System.Int32 written = packet.Serialize(buffer);
                 _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
 
-                return this.Send(buffer[..written]);
+                return Send(buffer[..written]);
             }
             else
             {
@@ -312,7 +312,7 @@ public sealed partial class Connection : IConnection
                 System.Int32 written = packet.Serialize(lease.Span);
                 _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
 
-                return this.Send(lease.Span[..written]);
+                return Send(lease.Span[..written]);
             }
         }
 
@@ -352,7 +352,7 @@ public sealed partial class Connection : IConnection
                         System.Byte[] buffer = c.Serialize(pkt);
 
                         _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
-                        _ = this.Send(buffer);
+                        _ = Send(buffer);
                         return true;
                     }
                     finally
@@ -373,7 +373,7 @@ public sealed partial class Connection : IConnection
                     System.Byte[] buffer = max.Serialize(pkt);
 
                     _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
-                    _ = this.Send(buffer);
+                    _ = Send(buffer);
                     return true;
                 }
                 finally
@@ -413,7 +413,7 @@ public sealed partial class Connection : IConnection
                 System.Int32 written = packet.Serialize(buffer);
 
                 _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
-                return await this.SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
+                return await SendAsync(new System.ReadOnlyMemory<System.Byte>(buffer, 0, written), cancellationToken)
                                  .ConfigureAwait(false);
             }
             else
@@ -423,7 +423,7 @@ public sealed partial class Connection : IConnection
                 System.Int32 written = packet.Serialize(lease.Span);
                 _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, written);
 
-                return await this.SendAsync(lease.Memory[..written], cancellationToken)
+                return await SendAsync(lease.Memory[..written], cancellationToken)
                                  .ConfigureAwait(false);
             }
         }
@@ -469,7 +469,7 @@ public sealed partial class Connection : IConnection
                         System.Byte[] buffer = c.Serialize(pkt);
 
                         _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
-                        return await this.SendAsync(buffer, cancellationToken)
+                        return await SendAsync(buffer, cancellationToken)
                                          .ConfigureAwait(false);
                     }
                     finally
@@ -490,7 +490,7 @@ public sealed partial class Connection : IConnection
                     System.Byte[] buffer = max.Serialize(pkt);
 
                     _ = System.Threading.Interlocked.Add(ref _outer._bytesSent, buffer.Length);
-                    return await this.SendAsync(buffer, cancellationToken)
+                    return await SendAsync(buffer, cancellationToken)
                                      .ConfigureAwait(false);
                 }
                 finally
