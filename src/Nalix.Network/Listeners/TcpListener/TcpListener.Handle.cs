@@ -38,6 +38,8 @@ public abstract partial class TcpListenerBase
     protected void ProcessConnection(
         IConnection connection)
     {
+        ArgumentNullException.ThrowIfNull(connection);
+
         try
         {
             _protocol.OnAccept(connection, _cancellationToken);
@@ -49,6 +51,7 @@ public abstract partial class TcpListenerBase
         {
             s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection?.NetworkEndpoint}", ex);
 
+            ArgumentNullException.ThrowIfNull(connection);
             connection.Close();
         }
     }
@@ -76,7 +79,7 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     [DebuggerStepThrough]
     protected void HandleConnectionClose(
-        [AllowNull] object sender,
+        object? sender,
         IConnectEventArgs args)
     {
         if (args?.Connection == null)
@@ -88,8 +91,8 @@ public abstract partial class TcpListenerBase
         args.Connection.OnCloseEvent -= HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
-        args.Connection.OnProcessEvent -= _protocol.ProcessMessage;
-        args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
+        args.Connection.OnProcessEvent -= ForwardProcessMessage;
+        args.Connection.OnPostProcessEvent -= ForwardPostProcessMessage;
 
         args.Connection.Dispose();
 
@@ -140,8 +143,8 @@ public abstract partial class TcpListenerBase
         connection.OnCloseEvent += HandleConnectionClose;
         connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
-        connection.OnProcessEvent += _protocol.ProcessMessage;
-        connection.OnPostProcessEvent += _protocol.PostProcessMessage;
+        connection.OnProcessEvent += ForwardProcessMessage;
+        connection.OnPostProcessEvent += ForwardPostProcessMessage;
 
         if (s_config.EnableTimeout)
         {
@@ -350,7 +353,7 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     [DebuggerStepThrough]
     protected void OnSyncAcceptCompleted(
-        [AllowNull] object sender,
+        object? sender,
         SocketAsyncEventArgs args)
     {
         try
@@ -425,8 +428,8 @@ public abstract partial class TcpListenerBase
         while (!cancellationToken.IsCancellationRequested)
         {
             // Take a stable local copy to reduce races
-            Socket s = Volatile.Read(ref _listener);
-            if (s?.IsBound != true)
+            Socket? s = Volatile.Read(ref _listener);
+            if (s is null || !s.IsBound)
             {
                 break;
             }
@@ -661,7 +664,8 @@ public abstract partial class TcpListenerBase
             socket = await context.BeginAcceptAsync(_listener, cancellationToken)
                                   .ConfigureAwait(false);
 
-            if (!_limiter.IsConnectionAllowed(socket.RemoteEndPoint))
+            EndPoint? remoteEndPoint = socket.RemoteEndPoint;
+            if (remoteEndPoint is null || !_limiter.IsConnectionAllowed(remoteEndPoint))
             {
                 SafeCloseSocket(socket);
 
@@ -670,7 +674,7 @@ public abstract partial class TcpListenerBase
                 s_pool.Return(context);
 
                 Metrics.RECORD_REJECTED();
-                throw new NetworkException($"Connection rejected: {socket.RemoteEndPoint}");
+                throw new NetworkException($"Connection rejected: {remoteEndPoint}");
             }
 
             return InitializeConnection(socket, context);
@@ -715,4 +719,12 @@ public abstract partial class TcpListenerBase
             throw new NetworkException($"Accept failed. Listener={remote}, ContextReturned={contextReturned}", ex);
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ForwardProcessMessage(object? sender, IConnectEventArgs args)
+        => _protocol.ProcessMessage(sender, args);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ForwardPostProcessMessage(object? sender, IConnectEventArgs args)
+        => _protocol.PostProcessMessage(sender, args);
 }

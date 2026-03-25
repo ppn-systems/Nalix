@@ -36,16 +36,16 @@ public abstract partial class TcpListenerBase : IListener
     #region Fields
 
     private readonly ushort _port;
-    private readonly IProtocol _protocol;
-    private readonly ConnectionLimiter _limiter;
-    private readonly SemaphoreSlim _lock;
-    private readonly List<ISnowflake> _acceptWorkerIds;
+    private readonly IProtocol _protocol = default!;
+    private readonly ConnectionLimiter _limiter = default!;
+    private readonly SemaphoreSlim _lock = default!;
+    private readonly List<ISnowflake> _acceptWorkerIds = default!;
 
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
-    private Socket _listener;
-    private CancellationTokenSource _cts;
+    private Socket? _listener;
+    private CancellationTokenSource? _cts;
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
 
@@ -192,9 +192,12 @@ public abstract partial class TcpListenerBase : IListener
             return;
         }
 
-        static void cb([AllowNull] object state)
+        static void cb(object? state)
         {
-            TcpListenerBase self = (TcpListenerBase)state;
+            if (state is not TcpListenerBase self)
+            {
+                return;
+            }
 
             try
             {

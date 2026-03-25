@@ -21,7 +21,7 @@ public abstract partial class TcpListenerBase
         if (s_config.EnableIPv6)
         {
             // Try IPv6 + DualMode first
-            Socket sock = null;
+            Socket? sock = null;
             try
             {
                 sock = new Socket(

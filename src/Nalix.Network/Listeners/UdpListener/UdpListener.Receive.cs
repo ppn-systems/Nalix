@@ -100,7 +100,7 @@ public abstract partial class UdpListenerBase
         long timestamp = System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(timestampBytes);
         ISnowflake identifier = Snowflake.FromBytes(idBytes);
 
-        ConnectionHub hub = InstanceManager.Instance.GetExistingInstance<ConnectionHub>();
+        ConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<ConnectionHub>();
 
         if (hub is null)
         {
