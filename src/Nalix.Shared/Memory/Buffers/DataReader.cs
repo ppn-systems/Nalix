@@ -32,7 +32,6 @@ public unsafe struct DataReader : System.IDisposable
     #region Fields
 
     private System.Byte* _ptr;
-    private System.Int32 _length;
     private System.Boolean _pinned;
     private readonly System.Byte[]? _tempArray;
     private System.Runtime.InteropServices.GCHandle _pin; // Used only when the source is a byte array
@@ -49,7 +48,7 @@ public unsafe struct DataReader : System.IDisposable
     /// <summary>
     /// Gets the number of bytes remaining in the buffer.
     /// </summary>
-    public readonly System.Int32 BytesRemaining => _length - BytesRead;
+    public System.Int32 BytesRemaining { readonly get => field - BytesRead; private set; }
 
     #endregion Properties
 
@@ -66,7 +65,7 @@ public unsafe struct DataReader : System.IDisposable
         System.ArgumentNullException.ThrowIfNull(buffer);
         _pin = System.Runtime.InteropServices.GCHandle.Alloc(buffer, System.Runtime.InteropServices.GCHandleType.Pinned);
         _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
-        _length = buffer.Length;
+        BytesRemaining = buffer.Length;
         _pinned = true;
 
         BytesRead = 0;
@@ -83,7 +82,7 @@ public unsafe struct DataReader : System.IDisposable
         BytesRead = 0;
 
         _ptr = ptr;
-        _length = length;
+        BytesRemaining = length;
         _pin = default;
         _pinned = false;
     }
@@ -98,7 +97,7 @@ public unsafe struct DataReader : System.IDisposable
         _tempArray = span.ToArray();
         _pin = System.Runtime.InteropServices.GCHandle.Alloc(_tempArray, System.Runtime.InteropServices.GCHandleType.Pinned);
         _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
-        _length = _tempArray.Length;
+        BytesRemaining = _tempArray.Length;
         _pinned = true; // Fixed! 
 
         BytesRead = 0;
@@ -115,7 +114,7 @@ public unsafe struct DataReader : System.IDisposable
         {
             _pin = System.Runtime.InteropServices.GCHandle.Alloc(segment.Array, System.Runtime.InteropServices.GCHandleType.Pinned);
             _ptr = (System.Byte*)_pin.AddrOfPinnedObject() + segment.Offset;
-            _length = segment.Count;
+            BytesRemaining = segment.Count;
             _pinned = true;
         }
         else
@@ -124,7 +123,7 @@ public unsafe struct DataReader : System.IDisposable
             System.Byte[] temp = memory.ToArray();
             _pin = System.Runtime.InteropServices.GCHandle.Alloc(temp, System.Runtime.InteropServices.GCHandleType.Pinned);
             _ptr = (System.Byte*)_pin.AddrOfPinnedObject();
-            _length = temp.Length;
+            BytesRemaining = temp.Length;
             _pinned = true;
         }
 
@@ -196,7 +195,7 @@ public unsafe struct DataReader : System.IDisposable
         }
 
         _ptr = null;
-        _length = 0;
+        BytesRemaining = 0;
         _pinned = false;
 
         BytesRead = 0;

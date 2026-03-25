@@ -12,8 +12,6 @@
 // [7]     : nonceLen (1 byte)
 // [8..11] : seq (uint32 little-endian)
 
-using Nalix.Common.Security;
-
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]

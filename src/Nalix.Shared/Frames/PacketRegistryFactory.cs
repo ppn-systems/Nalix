@@ -132,7 +132,7 @@ public sealed class PacketRegistryFactory
     {
         foreach (System.Reflection.Assembly asm in System.AppDomain.CurrentDomain.GetAssemblies())
         {
-            IncludeAssembly(asm);
+            _ = IncludeAssembly(asm);
         }
 
         return this;
@@ -280,7 +280,7 @@ public sealed class PacketRegistryFactory
                 continue;
             }
 
-            if (deserializers.TryGetValue(key, out var existing))
+            if (deserializers.TryGetValue(key, out PacketDeserializer? existing))
             {
                 System.Type existingType = FIND_TYPE_BY_MAGIC(key);
 
@@ -296,7 +296,7 @@ public sealed class PacketRegistryFactory
             // Bind deserialize pointer into PacketFunctionTable<TPacket>
             try
             {
-                BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize]);
+                _ = BindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize]);
             }
             catch (System.Exception ex)
             {

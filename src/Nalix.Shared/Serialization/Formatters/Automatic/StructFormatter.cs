@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection;
@@ -27,7 +28,7 @@ internal sealed class StructFormatter<
 {
     #region Core Fields
 
-    private static System.String DebuggerDisplay => $"StructFormatter<{typeof(T).FullName}>";
+    private static String DebuggerDisplay => $"StructFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Array of cached field accessors for optimized serialization performance.
@@ -53,7 +54,7 @@ internal sealed class StructFormatter<
                                     .Trace($"[StructFormatter<{typeof(T).Name}>] " +
                                            $"init-ok fields={_accessors.Length} layout={FieldCache<T>.GetLayout()}");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[StructFormatter<{typeof(T).Name}>] " +
@@ -79,7 +80,7 @@ internal sealed class StructFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
-        for (System.Int32 i = 0; i < _accessors.Length; i++)
+        for (Int32 i = 0; i < _accessors.Length; i++)
         {
             _accessors[i].Serialize(ref writer, value);
         }
@@ -99,7 +100,7 @@ internal sealed class StructFormatter<
     {
         T obj = default;
 
-        for (System.Int32 i = 0; i < _accessors.Length; i++)
+        for (Int32 i = 0; i < _accessors.Length; i++)
         {
             _accessors[i].Deserialize(ref reader, ref obj); // ← ref obj
         }
@@ -119,15 +120,15 @@ internal sealed class StructFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static FieldAccessor<T>[] CreateAccessors()
     {
-        var fields = FieldCache<T>.GetFields();
+        ReadOnlySpan<FieldSchema> fields = FieldCache<T>.GetFields();
         if (fields.Length is 0)
         {
             return [];
         }
 
-        var accessors = new FieldAccessor<T>[fields.Length];
+        FieldAccessor<T>[] accessors = new FieldAccessor<T>[fields.Length];
 
-        for (System.Int32 i = 0; i < fields.Length; i++)
+        for (Int32 i = 0; i < fields.Length; i++)
         {
             accessors[i] = FieldAccessor<T>.Create(fields[i], i);
         }

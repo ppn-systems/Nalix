@@ -175,7 +175,7 @@ internal sealed class HashSetFormatter<
 
         for (System.Int32 i = 0; i < count; i++)
         {
-            set.Add(_elementFormatter.Deserialize(ref reader));
+            _ = set.Add(_elementFormatter.Deserialize(ref reader));
         }
 
         return set;

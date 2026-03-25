@@ -500,7 +500,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
             return;
         }
 
-        foreach (var (bufferSize, allocation) in _bufferAllocations)
+        foreach ((System.Int32 bufferSize, System.Double allocation) in _bufferAllocations)
         {
             System.Int32 capacity = System.Math.Max(1, (System.Int32)(_config.TotalBuffers * allocation));
             _poolManager.CreatePool(bufferSize, capacity);
@@ -527,7 +527,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         // Compute memory budget once per cycle (cache it)
         (System.Int64 targetBudget, System.Int64 currentUsage, System.Boolean overBudget) = COMPUTE_MEMORY_BUDGET();
 
-        foreach (var pool in _poolManager.GetAllPools())
+        foreach (BufferPoolShared pool in _poolManager.GetAllPools())
         {
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
 
@@ -568,7 +568,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         {
             // Return cached value
             System.Int64 current = 0;
-            foreach (var pool in _poolManager.GetAllPools())
+            foreach (BufferPoolShared pool in _poolManager.GetAllPools())
             {
                 ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
                 current += info.TotalBuffers * (System.Int64)info.BufferSize;
@@ -587,7 +587,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _cachedMemoryBudget = targetBudget;
 
         System.Int64 currentUsage = 0;
-        foreach (var pool in _poolManager.GetAllPools())
+        foreach (BufferPoolShared pool in _poolManager.GetAllPools())
         {
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
             currentUsage += info.TotalBuffers * (System.Int64)info.BufferSize;
@@ -695,7 +695,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private System.Boolean IS_OVER_MEMORY_BUDGET()
     {
-        var (_, _, overBudget) = COMPUTE_MEMORY_BUDGET();
+        (System.Int64 _, System.Int64 _, System.Boolean overBudget) = COMPUTE_MEMORY_BUDGET();
         return overBudget;
     }
 
@@ -874,7 +874,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _ = sb.AppendLine("SIZE     | Total  | Free   | In Use  | Usage %  | MissRate");
         _ = sb.AppendLine("----------------------------------------------------------------------");
 
-        foreach (var pool in System.Linq.Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
+        foreach (BufferPoolShared? pool in System.Linq.Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
         {
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
 
@@ -899,7 +899,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
         _ = sb.AppendLine("SIZE     | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
         _ = sb.AppendLine("----------------------------------------------------------------------");
 
-        foreach (var pool in System.Linq.Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
+        foreach (BufferPoolShared? pool in System.Linq.Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
         {
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
 
@@ -935,7 +935,7 @@ public sealed class BufferPoolManager : System.IDisposable, IReportable
 
         if (_config.EnableMemoryTrimming)
         {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelRecurring(TaskNaming.Recurring
                                     .CleanupJobId(RecurringName, GetHashCode()));
         }

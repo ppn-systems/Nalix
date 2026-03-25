@@ -252,7 +252,7 @@ public static class LZ4BlockEncoder
         LiteralWriter.Write(ref outputPtr, literalStartPtr, literalLength);
 
         // offset
-        MemOps.WriteUnaligned<System.UInt16>(outputPtr, (System.UInt16)offset);
+        MemOps.WriteUnaligned(outputPtr, (System.UInt16)offset);
         outputPtr += sizeof(System.UInt16);
 
         // match length varint

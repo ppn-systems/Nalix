@@ -5,7 +5,6 @@
 // Supports: CHACHA20 (nonce 12 bytes, counter uint32), SALSA20 (nonce 8 bytes, counter uint64).
 // Also includes envelope helpers using EnvelopeFormat (header || nonce || ciphertext).
 
-using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Shared.Security.Internal;
 using Nalix.Shared.Security.Symmetric;
@@ -136,8 +135,8 @@ public static class SymmetricEngine
         System.UInt64 counter = seqVal;
         System.Span<System.Byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + nonce.Length, plaintext.Length);
 
-        Encrypt(algorithm, key, nonce, counter, plaintext, ctSlice, out _);
-        EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctSlice);
+        _ = Encrypt(algorithm, key, nonce, counter, plaintext, ctSlice, out _);
+        _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctSlice);
         written = total;
         return true;
     }
@@ -157,12 +156,12 @@ public static class SymmetricEngine
     {
         written = 0;
 
-        if (!EnvelopeFormat.TryParseEnvelope(envelope, out var env))
+        if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env))
         {
             return false;
         }
 
-        Encrypt(env.AeadType, key, env.Nonce, env.Seq, env.Ciphertext, plaintext, out written);
+        _ = Encrypt(env.AeadType, key, env.Nonce, env.Seq, env.Ciphertext, plaintext, out written);
         return true;
     }
 

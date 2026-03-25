@@ -125,7 +125,7 @@ internal sealed class ObjectFormatter<
             return [];
         }
 
-        var accessors = new FieldAccessor<T>[fields.Length];
+        FieldAccessor<T>[] accessors = new FieldAccessor<T>[fields.Length];
 
         for (System.Int32 i = 0; i < fields.Length; i++)
         {

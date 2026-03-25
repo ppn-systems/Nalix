@@ -180,6 +180,16 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<System.UInt64, T>(ref v);
                 }
             ),
+            System.TypeCode.Empty => throw new System.NotImplementedException(),
+            System.TypeCode.Object => throw new System.NotImplementedException(),
+            System.TypeCode.DBNull => throw new System.NotImplementedException(),
+            System.TypeCode.Boolean => throw new System.NotImplementedException(),
+            System.TypeCode.Char => throw new System.NotImplementedException(),
+            System.TypeCode.Single => throw new System.NotImplementedException(),
+            System.TypeCode.Double => throw new System.NotImplementedException(),
+            System.TypeCode.Decimal => throw new System.NotImplementedException(),
+            System.TypeCode.DateTime => throw new System.NotImplementedException(),
+            System.TypeCode.String => throw new System.NotImplementedException(),
             _ => throw new System.NotSupportedException($"Enum underlying type '{UnderlyingTypeCode}' is not supported."),
         };
     }

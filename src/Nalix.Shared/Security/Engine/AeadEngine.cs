@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Shared.Security.Aead;
 using Nalix.Shared.Security.Internal;
@@ -97,11 +96,11 @@ public static class AeadEngine
         switch (algorithm)
         {
             case CipherSuiteType.CHACHA20_POLY1305:
-                ChaCha20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
+                _ = ChaCha20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
                 break;
 
             case CipherSuiteType.SALSA20_POLY1305:
-                Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
+                _ = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
                 break;
 
             default:
@@ -111,7 +110,7 @@ public static class AeadEngine
         // Write the envelope header/nonce and copy ciphertext+tag into the output span.
         // ctDestination/tagDestination already point into ciphertext; WriteEnvelope should
         // write header and nonce and then copy provided ct/tag into the envelope region.
-        EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctDestination, tagDestination);
+        _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctDestination, tagDestination);
 
         // Clear sensitive temporary areas if necessary (we avoid extra temporaries here).
         written = total;

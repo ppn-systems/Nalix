@@ -24,7 +24,7 @@ internal class TypePool(System.Int32 maxCapacity)
 {
     #region Fields
 
-    private System.Int32 _count = 0;
+    private System.Int32 _count;
     private System.Int32 _maxCapacity = maxCapacity;
     private readonly System.Collections.Concurrent.ConcurrentStack<IPoolable> _objects = new();
 
@@ -81,7 +81,7 @@ internal class TypePool(System.Int32 maxCapacity)
 
         if (newCount > _maxCapacity)
         {
-            System.Threading.Interlocked.Decrement(ref _count);
+            _ = System.Threading.Interlocked.Decrement(ref _count);
             return false;
         }
 
@@ -100,7 +100,7 @@ internal class TypePool(System.Int32 maxCapacity)
     {
         if (_objects.TryPop(out obj))
         {
-            System.Threading.Interlocked.Decrement(ref _count);
+            _ = System.Threading.Interlocked.Decrement(ref _count);
             return true;
         }
 
@@ -117,7 +117,7 @@ internal class TypePool(System.Int32 maxCapacity)
     {
         System.Int32 count = _objects.Count;
         _objects.Clear();
-        System.Threading.Interlocked.Exchange(ref _count, 0);
+        _ = System.Threading.Interlocked.Exchange(ref _count, 0);
         return count;
     }
 
@@ -161,7 +161,7 @@ internal class TypePool(System.Int32 maxCapacity)
         {
             if (_objects.TryPop(out _))
             {
-                System.Threading.Interlocked.Decrement(ref _count);
+                _ = System.Threading.Interlocked.Decrement(ref _count);
                 removed++;
             }
             else

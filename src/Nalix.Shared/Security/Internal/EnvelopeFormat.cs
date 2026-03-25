@@ -6,8 +6,6 @@
 // and Symmetric (header || nonce || ciphertext) formats.
 // Header + nonce SHOULD be included in AEAD AAD.
 
-using Nalix.Common.Security;
-
 
 
 #if DEBUG
@@ -46,7 +44,7 @@ internal static class EnvelopeFormat
             return false;
         }
 
-        if (!EnvelopeHeader.Decode(blob[..HeaderSize], out var header))
+        if (!EnvelopeHeader.Decode(blob[..HeaderSize], out EnvelopeHeader header))
         {
             return false;
         }

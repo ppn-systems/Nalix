@@ -602,9 +602,9 @@ public ref struct Poly1305
     {
         if (!_cleared)
         {
-            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_r));
-            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_s));
-            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes<System.UInt32>((System.Span<System.UInt32>)_acc));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes((System.Span<System.UInt32>)_r));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes((System.Span<System.UInt32>)_s));
+            MemorySecurity.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes((System.Span<System.UInt32>)_acc));
             MemorySecurity.ZeroMemory(_pending);
 
             _pendingLen = 0;
