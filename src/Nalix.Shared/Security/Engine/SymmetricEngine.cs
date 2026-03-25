@@ -70,9 +70,8 @@ public static class SymmetricEngine
 
 
             case CipherSuiteType.SALSA20_POLY1305:
-                break;
             case CipherSuiteType.CHACHA20_POLY1305:
-                break;
+                return false;
             default:
                 ThrowHelper.ThrowNotSupportedException("Unsupported symmetric algorithm");
                 return false;
@@ -115,7 +114,10 @@ public static class SymmetricEngine
     {
         written = 0;
 
-        // Resolve seq / counter
+        int nonceLength = EnvelopeCipher.GetNonceLength(algorithm);
+        int resolvedNonceLength = nonce.IsEmpty ? nonceLength : nonce.Length;
+        int total = EnvelopeFormat.HeaderSize + resolvedNonceLength + plaintext.Length;
+
         uint seqVal;
         if (seq is null)
         {
@@ -128,18 +130,31 @@ public static class SymmetricEngine
             seqVal = seq.Value;
         }
 
-        int total = EnvelopeFormat.HeaderSize + nonce.Length + plaintext.Length;
-
         if (ciphertext.Length < total)
         {
             return false;
         }
 
-        ulong counter = seqVal;
-        System.Span<byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + nonce.Length, plaintext.Length);
+        System.Span<byte> nonceBuffer = stackalloc byte[System.Math.Max(16, resolvedNonceLength)];
+        System.Span<byte> nonceToUse = nonceBuffer[..resolvedNonceLength];
+        if (nonce.IsEmpty)
+        {
+            Csprng.Fill(nonceToUse);
+        }
+        else
+        {
+            nonce.CopyTo(nonceToUse);
+        }
 
-        _ = Encrypt(algorithm, key, nonce, counter, plaintext, ctSlice, out _);
-        _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctSlice);
+        ulong counter = seqVal;
+        System.Span<byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + resolvedNonceLength, plaintext.Length);
+
+        if (!Encrypt(algorithm, key, nonceToUse, counter, plaintext, ctSlice, out _))
+        {
+            return false;
+        }
+
+        _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonceToUse, ctSlice);
         written = total;
         return true;
     }

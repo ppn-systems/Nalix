@@ -30,6 +30,7 @@ public sealed partial class Connection : IConnection
     private UdpTransport _udp;
     private int _errorCount;
     private int _closeSignaled;
+    private long _bytesSent;
 
     private volatile bool _disposed;
 
@@ -115,7 +116,7 @@ public sealed partial class Connection : IConnection
     {
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        get => System.Threading.Interlocked.Read(ref field); private set;
+        get => System.Threading.Interlocked.Read(ref _bytesSent);
     }
 
     #endregion Properties
@@ -170,6 +171,10 @@ public sealed partial class Connection : IConnection
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Disconnect([System.Diagnostics.CodeAnalysis.AllowNull] string reason = null) => Close(force: true);
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal void AddBytesSent(int count) => _ = System.Threading.Interlocked.Add(ref _bytesSent, count);
 
     #endregion Methods
 

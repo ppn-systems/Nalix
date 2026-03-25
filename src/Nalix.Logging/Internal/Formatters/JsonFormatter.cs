@@ -40,7 +40,7 @@ internal static class JsonFormatter
                     if (c is < (char)32 or (>= (char)0x7f and <= (char)0x9f))
                     {
                         _ = sb.Append("\\u");
-                        _ = sb.Append(((int)c).ToString("x4"));
+                        _ = sb.Append(((int)c).ToString("x4", System.Globalization.CultureInfo.InvariantCulture));
                     }
                     else
                     {
@@ -60,5 +60,5 @@ internal static class JsonFormatter
     /// <summary>
     /// Formats a DateTime as ISO 8601 (round-trip 'o' format).
     /// </summary>
-    public static string FormatDateTime(System.DateTime value) => value.ToString("o");
+    public static string FormatDateTime(System.DateTime value) => value.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
 }

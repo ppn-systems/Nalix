@@ -248,6 +248,7 @@ public static class EnvelopeCipher
     /// Optional Associated Data (AEAD suites only). Must match the value (if any) used at encryption time.
     /// Ignored for non-AEAD suites.
     /// </param>
+    /// <param name="written">Number of plaintext bytes written on success.</param>
     /// <returns>
     /// <c>true</c> if parsing and (for AEAD) authentication succeeded; otherwise <c>false</c>.
     /// </returns>
@@ -364,6 +365,7 @@ public static class EnvelopeCipher
     /// <param name="plaintext">
     /// On success, receives a newly allocated plaintext buffer; otherwise set to <c>null</c>.
     /// </param>
+    /// <param name="written">Number of plaintext bytes written on success.</param>
     /// <returns>
     /// <c>true</c> if parsing and (for AEAD) authentication succeeded; otherwise <c>false</c>.
     /// </returns>

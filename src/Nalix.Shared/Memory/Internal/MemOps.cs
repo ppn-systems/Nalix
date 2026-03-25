@@ -2,11 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 #if DEBUG
-using System.Runtime.Intrinsics;
-
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
+
+using System.Runtime.Intrinsics;
 
 namespace Nalix.Shared.Memory.Internal;
 
@@ -32,7 +32,7 @@ internal static unsafe class MemOps
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static T ReadUnaligned<T>(System.Byte* source) where T : unmanaged
+    public static T ReadUnaligned<T>(byte* source) where T : unmanaged
         => System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(source);
 
     /// <summary>
@@ -44,9 +44,9 @@ internal static unsafe class MemOps
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static T ReadUnaligned<T>(System.ReadOnlySpan<System.Byte> source) where T : unmanaged
+    public static T ReadUnaligned<T>(System.ReadOnlySpan<byte> source) where T : unmanaged
     {
-        fixed (System.Byte* pSource = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
+        fixed (byte* pSource = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
         {
             return System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(pSource);
         }
@@ -61,7 +61,7 @@ internal static unsafe class MemOps
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void WriteUnaligned<T>(System.Byte* destination, T value) where T : unmanaged
+    public static void WriteUnaligned<T>(byte* destination, T value) where T : unmanaged
         => System.Runtime.CompilerServices.Unsafe.WriteUnaligned(destination, value);
 
     /// <summary>
@@ -73,9 +73,9 @@ internal static unsafe class MemOps
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void WriteUnaligned<T>(System.Span<System.Byte> destination, T value) where T : unmanaged
+    public static void WriteUnaligned<T>(System.Span<byte> destination, T value) where T : unmanaged
     {
-        fixed (System.Byte* pDest = &System.Runtime.InteropServices.MemoryMarshal.GetReference(destination))
+        fixed (byte* pDest = &System.Runtime.InteropServices.MemoryMarshal.GetReference(destination))
         {
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(pDest, value);
         }
@@ -95,8 +95,8 @@ internal static unsafe class MemOps
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Copy(
-        System.Byte* source,
-        System.Byte* destination, System.Int32 length)
+        byte* source,
+        byte* destination, int length)
     {
         if (length <= 0 || source == destination)
         {
@@ -110,12 +110,12 @@ internal static unsafe class MemOps
         if (destination < source || destination >= (source + length))
         {
             // Non-overlap or backward-overlap -> block copy OK (nhanh)
-            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, (System.UInt32)length);
+            System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(destination, source, (uint)length);
             return;
         }
 
         // Forward-overlap: copy từng byte theo chiều tiến để giữ semantics LZ backref
-        for (System.Int32 i = 0; i < length; i++)
+        for (int i = 0; i < length; i++)
         {
             destination[i] = source[i];
         }
@@ -131,18 +131,18 @@ internal static unsafe class MemOps
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void Copy(
-        System.ReadOnlySpan<System.Byte> source,
-        System.Byte* destination)
+        System.ReadOnlySpan<byte> source,
+        byte* destination)
     {
         if (source.IsEmpty)
         {
             return;
         }
 
-        fixed (System.Byte* pSource = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
+        fixed (byte* pSource = &System.Runtime.InteropServices.MemoryMarshal.GetReference(source))
         {
             System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
-                destination, pSource, (System.UInt32)source.Length);
+                destination, pSource, (uint)source.Length);
         }
     }
 
@@ -156,12 +156,12 @@ internal static unsafe class MemOps
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static System.Int32 CountEqualBytes(
-        System.Byte* p1,
-        System.Byte* p2,
-        System.Int32 maxLength)
+    public static int CountEqualBytes(
+        byte* p1,
+        byte* p2,
+        int maxLength)
     {
-        System.Int32 count = 0;
+        int count = 0;
         if (maxLength <= 0)
         {
             return 0;
@@ -172,9 +172,9 @@ internal static unsafe class MemOps
         {
             while (count + 32 <= maxLength)
             {
-                Vector256<System.Byte> a = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p1 + count);
-                Vector256<System.Byte> b = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p2 + count);
-                Vector256<System.Byte> cmp = System.Runtime.Intrinsics.X86.Avx2.CompareEqual(a, b);
+                Vector256<byte> a = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p1 + count);
+                Vector256<byte> b = System.Runtime.Intrinsics.X86.Avx.LoadVector256(p2 + count);
+                Vector256<byte> cmp = System.Runtime.Intrinsics.X86.Avx2.CompareEqual(a, b);
 
                 if (Vector256.EqualsAll(cmp, Vector256<byte>.AllBitsSet))
                 {
@@ -183,18 +183,18 @@ internal static unsafe class MemOps
                 }
 
                 // Find first differing byte inside this 32B block
-                System.Int32 mask = ~System.Runtime.Intrinsics.X86.Avx2.MoveMask(cmp); // 1 where bytes differ
-                                                                                       // mask is 32-bit, each bit corresponds to a byte
-                System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
+                int mask = ~System.Runtime.Intrinsics.X86.Avx2.MoveMask(cmp); // 1 where bytes differ
+                                                                              // mask is 32-bit, each bit corresponds to a byte
+                int idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
                 return count + idx;
             }
 
             // Fall down to 16B SSE2 lane for the tail (if any)
             if (count + 16 <= maxLength)
             {
-                Vector128<System.Byte> a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
-                Vector128<System.Byte> b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
-                Vector128<System.Byte> cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
+                Vector128<byte> a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
+                Vector128<byte> b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
+                Vector128<byte> cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
 
                 if (Vector128.EqualsAll(cmp, Vector128<byte>.AllBitsSet))
                 {
@@ -202,27 +202,27 @@ internal static unsafe class MemOps
                 }
                 else
                 {
-                    System.Int32 mask = ~System.Runtime.Intrinsics.X86.Sse2.MoveMask(cmp);
-                    System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
+                    int mask = ~System.Runtime.Intrinsics.X86.Sse2.MoveMask(cmp);
+                    int idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
                     return count + idx;
                 }
             }
 
             // 8-byte then scalar
-            if (count + sizeof(System.UInt64) <= maxLength)
+            if (count + sizeof(ulong) <= maxLength)
             {
-                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
-                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
+                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count) ==
+                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count))
                 {
-                    count += sizeof(System.UInt64);
+                    count += sizeof(ulong);
                 }
                 else
                 {
                     // find first diff within 8 bytes
-                    System.UInt64 x = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count);
-                    System.UInt64 y = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count);
-                    System.UInt64 d = x ^ y;
-                    System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(d) / 8;
+                    ulong x = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count);
+                    ulong y = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count);
+                    ulong d = x ^ y;
+                    int idx = System.Numerics.BitOperations.TrailingZeroCount(d) / 8;
                     return count + idx;
                 }
             }
@@ -240,9 +240,9 @@ internal static unsafe class MemOps
         {
             while (count + 16 <= maxLength)
             {
-                Vector128<System.Byte> a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
-                Vector128<System.Byte> b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
-                Vector128<System.Byte> cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
+                Vector128<byte> a = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p1 + count);
+                Vector128<byte> b = System.Runtime.Intrinsics.X86.Sse2.LoadVector128(p2 + count);
+                Vector128<byte> cmp = System.Runtime.Intrinsics.X86.Sse2.CompareEqual(a, b);
 
                 if (Vector128.EqualsAll(cmp, Vector128<byte>.AllBitsSet))
                 {
@@ -250,25 +250,25 @@ internal static unsafe class MemOps
                     continue;
                 }
 
-                System.Int32 mask = ~System.Runtime.Intrinsics.X86.Sse2.MoveMask(cmp);
-                System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
+                int mask = ~System.Runtime.Intrinsics.X86.Sse2.MoveMask(cmp);
+                int idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
                 return count + idx;
             }
 
             // 8-byte then scalar
-            if (count + sizeof(System.UInt64) <= maxLength)
+            if (count + sizeof(ulong) <= maxLength)
             {
-                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
-                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
+                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count) ==
+                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count))
                 {
-                    count += sizeof(System.UInt64);
+                    count += sizeof(ulong);
                 }
                 else
                 {
-                    System.UInt64 x = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count);
-                    System.UInt64 y = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count);
-                    System.UInt64 d = x ^ y;
-                    System.Int32 idx = System.Numerics.BitOperations.TrailingZeroCount(d) / 8;
+                    ulong x = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count);
+                    ulong y = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count);
+                    ulong d = x ^ y;
+                    int idx = System.Numerics.BitOperations.TrailingZeroCount(d) / 8;
                     return count + idx;
                 }
             }
@@ -286,9 +286,9 @@ internal static unsafe class MemOps
         {
             while (count + 16 <= maxLength)
             {
-                Vector128<System.Byte> a = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p1 + count);
-                Vector128<System.Byte> b = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p2 + count);
-                Vector128<System.Byte> cmp = System.Runtime.Intrinsics.Arm.AdvSimd.CompareEqual(a, b); // 0xFF where equal
+                Vector128<byte> a = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p1 + count);
+                Vector128<byte> b = System.Runtime.Intrinsics.Arm.AdvSimd.LoadVector128(p2 + count);
+                Vector128<byte> cmp = System.Runtime.Intrinsics.Arm.AdvSimd.CompareEqual(a, b); // 0xFF where equal
 
                 if (Vector128.EqualsAll(cmp, Vector128<byte>.AllBitsSet))
                 {
@@ -297,7 +297,7 @@ internal static unsafe class MemOps
                 }
 
                 // Fallback: scan within this 16-byte chunk (cheap)
-                for (System.Int32 j = 0; j < 16; j++)
+                for (int j = 0; j < 16; j++)
                 {
                     if (p1[count + j] != p2[count + j])
                     {
@@ -308,16 +308,16 @@ internal static unsafe class MemOps
             }
 
             // 8-byte then scalar
-            if (count + sizeof(System.UInt64) <= maxLength)
+            if (count + sizeof(ulong) <= maxLength)
             {
-                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
-                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
+                if (System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count) ==
+                    System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count))
                 {
-                    count += sizeof(System.UInt64);
+                    count += sizeof(ulong);
                 }
                 else
                 {
-                    for (System.Int32 j = 0; j < 8; j++)
+                    for (int j = 0; j < 8; j++)
                     {
                         if (p1[count + j] != p2[count + j])
                         {
@@ -338,27 +338,27 @@ internal static unsafe class MemOps
 
         // -------------------- Generic SIMD (.NET Vector<T>) --------------------
         if (System.Numerics.Vector.IsHardwareAccelerated &&
-            maxLength - count >= System.Numerics.Vector<System.Byte>.Count * 2)
+            maxLength - count >= System.Numerics.Vector<byte>.Count * 2)
         {
-            System.Int32 vecSize = System.Numerics.Vector<System.Byte>.Count;
+            int vecSize = System.Numerics.Vector<byte>.Count;
 
             while (count + vecSize <= maxLength)
             {
-                System.Span<System.Byte> span1 = new(p1 + count, vecSize);
-                System.Span<System.Byte> span2 = new(p2 + count, vecSize);
+                System.Span<byte> span1 = new(p1 + count, vecSize);
+                System.Span<byte> span2 = new(p2 + count, vecSize);
 
-                System.Numerics.Vector<System.Byte> v1 = new(span1);
-                System.Numerics.Vector<System.Byte> v2 = new(span2);
+                System.Numerics.Vector<byte> v1 = new(span1);
+                System.Numerics.Vector<byte> v2 = new(span2);
 
-                System.Numerics.Vector<System.Byte> diff = System.Numerics.Vector.Xor(v1, v2);
-                if (System.Numerics.Vector.EqualsAll(diff, System.Numerics.Vector<System.Byte>.Zero))
+                System.Numerics.Vector<byte> diff = System.Numerics.Vector.Xor(v1, v2);
+                if (System.Numerics.Vector.EqualsAll(diff, System.Numerics.Vector<byte>.Zero))
                 {
                     count += vecSize;
                     continue;
                 }
 
                 // Find first differing byte in this vector
-                for (System.Int32 i = 0; i < vecSize; i++)
+                for (int i = 0; i < vecSize; i++)
                 {
                     if (span1[i] != span2[i])
                     {
@@ -372,11 +372,11 @@ internal static unsafe class MemOps
 
         // -------------------- Portable fallback --------------------
         // (Already quite fast when paired with the 64-bit path above)
-        while (count + sizeof(System.UInt64) <= maxLength &&
-               System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p1 + count) ==
-               System.Runtime.CompilerServices.Unsafe.ReadUnaligned<System.UInt64>(p2 + count))
+        while (count + sizeof(ulong) <= maxLength &&
+               System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p1 + count) ==
+               System.Runtime.CompilerServices.Unsafe.ReadUnaligned<ulong>(p2 + count))
         {
-            count += sizeof(System.UInt64);
+            count += sizeof(ulong);
         }
         while (count < maxLength && p1[count] == p2[count])
         {

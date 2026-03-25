@@ -395,21 +395,21 @@ public static class Ed25519
     // Precomputed constants
 
     private static readonly System.Numerics.BigInteger Q =
-        System.Numerics.BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949");
+        System.Numerics.BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949", System.Globalization.CultureInfo.InvariantCulture);
 
     private static readonly System.Numerics.BigInteger L =
-        System.Numerics.BigInteger.Parse("7237005577332262213973186563042994240857116359379907606001950938285454250989");
+        System.Numerics.BigInteger.Parse("7237005577332262213973186563042994240857116359379907606001950938285454250989", System.Globalization.CultureInfo.InvariantCulture);
 
     private static readonly System.Numerics.BigInteger D =
-        System.Numerics.BigInteger.Parse("-4513249062541557337682894930092624173785641285191125241628941591882900924598840740");
+        System.Numerics.BigInteger.Parse("-4513249062541557337682894930092624173785641285191125241628941591882900924598840740", System.Globalization.CultureInfo.InvariantCulture);
 
     private static readonly System.Numerics.BigInteger I =
-        System.Numerics.BigInteger.Parse("19681161376707505956807079304988542015446066515923890162744021073123829784752");
+        System.Numerics.BigInteger.Parse("19681161376707505956807079304988542015446066515923890162744021073123829784752", System.Globalization.CultureInfo.InvariantCulture);
 
     // BaseValue36 point B
     private static readonly Point B = new(
-        System.Numerics.BigInteger.Parse("15112221349535400772501151409588531511454012693041857206046113283949847762202").Mod(Q),
-        System.Numerics.BigInteger.Parse("46316835694926478169428394003475163141307993866256256256850187133169737347974").Mod(Q)
+        System.Numerics.BigInteger.Parse("15112221349535400772501151409588531511454012693041857206046113283949847762202", System.Globalization.CultureInfo.InvariantCulture).Mod(Q),
+        System.Numerics.BigInteger.Parse("46316835694926478169428394003475163141307993866256256256850187133169737347974", System.Globalization.CultureInfo.InvariantCulture).Mod(Q)
     );
 
     #endregion Fields

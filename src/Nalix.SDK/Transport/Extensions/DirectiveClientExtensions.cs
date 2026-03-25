@@ -190,7 +190,7 @@ public static class DirectiveClientExtensions
                 return true;
         }
 
-        return null;
+        return false;
     }
 
     /// <summary>
