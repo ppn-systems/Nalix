@@ -86,8 +86,8 @@ public static class RequestExtensions
     public static System.Threading.Tasks.Task<TResponse> RequestAsync<TRequest, TResponse>(
         this IClientConnection client,
         TRequest request,
-        System.Func<TResponse, System.Boolean> predicate,
-        System.Int32 timeoutMs = 5000,
+        System.Func<TResponse, bool> predicate,
+        int timeoutMs = 5000,
         System.Threading.CancellationToken ct = default)
         where TRequest : class, IPacket
         where TResponse : class, IPacket
@@ -126,8 +126,8 @@ public static class RequestExtensions
     public static System.Threading.Tasks.Task<TPacket> RequestAsync<TPacket>(
         this IClientConnection client,
         TPacket request,
-        System.Func<TPacket, System.Boolean> predicate,
-        System.Int32 timeoutMs = 5000,
+        System.Func<TPacket, bool> predicate,
+        int timeoutMs = 5000,
         System.Threading.CancellationToken ct = default)
         where TPacket : class, IPacket => RequestAsync<TPacket, TPacket>(client, request, predicate, timeoutMs, ct);
 
@@ -188,7 +188,7 @@ public static class RequestExtensions
         this IClientConnection client,
         IPacket request,
         RequestOptions? options = null,
-        System.Func<TResponse, System.Boolean>? predicate = null,
+        System.Func<TResponse, bool>? predicate = null,
         System.Threading.CancellationToken ct = default)
         where TResponse : class, IPacket
     {
@@ -211,11 +211,11 @@ public static class RequestExtensions
                 $"[SDK.RequestAsync<{typeof(TResponse).Name}>] RequestOptions.Encrypt=true requires TcpSessionBase. Got: {client.GetType().Name}", nameof(client));
         }
 
-        System.Func<TResponse, System.Boolean> effectivePredicate = predicate ?? (_ => true);
+        System.Func<TResponse, bool> effectivePredicate = predicate ?? (_ => true);
         System.Exception? lastException = null;
-        System.Int32 totalAttempts = options.RetryCount + 1;
+        int totalAttempts = options.RetryCount + 1;
 
-        for (System.Int32 attempt = 1; attempt <= totalAttempts; attempt++)
+        for (int attempt = 1; attempt <= totalAttempts; attempt++)
         {
             ct.ThrowIfCancellationRequested();
 

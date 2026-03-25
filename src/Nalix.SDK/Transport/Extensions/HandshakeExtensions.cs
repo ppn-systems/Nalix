@@ -30,7 +30,7 @@ namespace Nalix.SDK.Transport.Extensions;
 public static class HandshakeExtensions
 {
     /// <summary>Length of X25519 public keys in bytes.</summary>
-    public const System.Int32 PublicKeyLength = 32;
+    public const int PublicKeyLength = 32;
 
     /// <summary>
     /// Performs a full X25519 Diffie-Hellman handshake with the server.
@@ -52,11 +52,12 @@ public static class HandshakeExtensions
     /// and automatically unsubscribes via <see cref="SubscriptionExtensions.SubscribeTemp"/>.
     /// </remarks>
     /// <exception cref="System.ArgumentNullException"></exception>
-    public static async System.Threading.Tasks.Task<System.Boolean> HandshakeAsync(
+    /// <exception cref="System.InvalidOperationException"></exception>
+    public static async System.Threading.Tasks.Task<bool> HandshakeAsync(
         this IClientConnection client,
-        System.UInt16 opCode = 1,
-        System.Int32 timeoutMs = -1,
-        System.Func<System.Byte[], System.Boolean>? validateServerPublicKey = null,
+        ushort opCode = 1,
+        int timeoutMs = -1,
+        System.Func<byte[], bool>? validateServerPublicKey = null,
         System.Threading.CancellationToken ct = default)
     {
         System.ArgumentNullException.ThrowIfNull(client);
@@ -80,7 +81,7 @@ public static class HandshakeExtensions
 
         using System.Threading.CancellationTokenSource linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
 
-        System.Int32 effectiveTimeout = timeoutMs > 0 ? timeoutMs : client.Options.ConnectTimeoutMillis;
+        int effectiveTimeout = timeoutMs > 0 ? timeoutMs : client.Options.ConnectTimeoutMillis;
         linked.CancelAfter(effectiveTimeout);
 
         // Generate ephemeral key pair.
@@ -91,7 +92,7 @@ public static class HandshakeExtensions
 
         try
         {
-            await client.SendAsync(new Handshake(opCode, kp.PublicKey, ProtocolType.TCP), linked.Token)
+            _ = await client.SendAsync(new Handshake(opCode, kp.PublicKey, ProtocolType.TCP), linked.Token)
                         .ConfigureAwait(false);
 
             TcpSession.Logging?.Debug("[SDK.HandshakeAsync] Handshake request sent.");
@@ -114,7 +115,7 @@ public static class HandshakeExtensions
                     return false;
                 }
 
-                System.Byte[]? secret = null;
+                byte[]? secret = null;
                 try
                 {
                     secret = X25519.Agreement(kp.PrivateKey, hs.Data);
@@ -149,7 +150,7 @@ public static class HandshakeExtensions
             return false;
         }
 
-        void OnMessageReceived(System.Object? _, IBufferLease buffer)
+        void OnMessageReceived(object? _, IBufferLease buffer)
         {
             // Always dispose the lease; deserialize takes a ReadOnlySpan copy.
             using (buffer)
@@ -163,11 +164,11 @@ public static class HandshakeExtensions
                     hs.OpCode == opCode &&
                     hs.Protocol == ProtocolType.TCP)
                 {
-                    tcs.TrySetResult(hs);
+                    _ = tcs.TrySetResult(hs);
                 }
             }
         }
 
-        void OnDisconnected(System.Object? _, System.Exception ex) => tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
+        void OnDisconnected(object? _, System.Exception ex) => tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
     }
 }

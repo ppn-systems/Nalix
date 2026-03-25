@@ -49,7 +49,7 @@ public static class Localization
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.String Get(System.String id)
+    public static string Get(string id)
         => Localizer.Get(id);
 
     /// <summary>
@@ -67,7 +67,7 @@ public static class Localization
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.String GetParticular(System.String context, System.String id)
+    public static string GetParticular(string context, string id)
         => Localizer.GetParticular(context, id);
 
     /// <summary>
@@ -87,7 +87,7 @@ public static class Localization
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.String GetPlural(System.String id, System.String idPlural, System.Int32 n)
+    public static string GetPlural(string id, string idPlural, int n)
         => Localizer.GetPlural(id, idPlural, n);
 
     /// <summary>
@@ -108,7 +108,7 @@ public static class Localization
     /// </example>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.String GetParticularPlural(System.String context, System.String id, System.String idPlural, System.Int32 n)
+    public static string GetParticularPlural(string context, string id, string idPlural, int n)
         => Localizer.GetParticularPlural(context, id, idPlural, n);
 
     #endregion Public API

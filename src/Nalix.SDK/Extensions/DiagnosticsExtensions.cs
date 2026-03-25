@@ -55,6 +55,7 @@ public static class DiagnosticsExtensions
     /// Only <see cref="TcpSession"/> instances expose the full metric set;
     /// other implementations receive a partial snapshot (RTT = 0, BPS = 0).
     /// </summary>
+    /// <param name="client"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static TcpSessionDiagnostics GetDiagnostics(this IClientConnection client)
@@ -90,32 +91,32 @@ public readonly struct TcpSessionDiagnostics
     /// <summary>
     /// Whether the client is currently connected.
     /// </summary>
-    public System.Boolean IsConnected { get; init; }
+    public bool IsConnected { get; init; }
 
     /// <summary>
     /// Endpoint the client is connected to (or last attempted).
     /// </summary>
-    public System.String Endpoint { get; init; }
+    public string Endpoint { get; init; }
 
     /// <summary>
     /// Total bytes sent since the last <c>ConnectAsync</c>.
     /// </summary>
-    public System.Int64 TotalBytesSent { get; init; }
+    public long TotalBytesSent { get; init; }
 
     /// <summary>
     /// Total bytes received since the last <c>ConnectAsync</c>.
     /// </summary>
-    public System.Int64 TotalBytesReceived { get; init; }
+    public long TotalBytesReceived { get; init; }
 
     /// <summary>
     /// Send throughput in bytes/second over the last sample interval (~1 s).
     /// </summary>
-    public System.Int64 SendBytesPerSecond { get; init; }
+    public long SendBytesPerSecond { get; init; }
 
     /// <summary>
     /// Receive throughput in bytes/second over the last sample interval (~1 s).
     /// </summary>
-    public System.Int64 ReceiveBytesPerSecond { get; init; }
+    public long ReceiveBytesPerSecond { get; init; }
 
     /// <summary>
     /// UTC time when the snapshot was taken.
@@ -125,7 +126,7 @@ public readonly struct TcpSessionDiagnostics
     /// <summary>
     /// Returns a human-readable summary of the snapshot suitable for logging.
     /// </summary>
-    public override System.String ToString()
+    public override string ToString()
         => $"[Diagnostics @ {CapturedAt:HH:mm:ss.fff}] " +
            $"Connected={IsConnected} Endpoint={Endpoint} " +
            $"Sent={TotalBytesSent:N0} B Recv={TotalBytesReceived:N0} B " +
