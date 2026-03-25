@@ -8,20 +8,20 @@ namespace Nalix.Common.Networking.Packets;
 /// </summary>
 [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
 public sealed class PacketConcurrencyLimitAttribute(
-    System.Int32 max, System.Boolean queue = false, System.Int32 queueMax = 0) : System.Attribute
+    int max, bool queue = false, int queueMax = 0) : System.Attribute
 {
     /// <summary>
     /// Maximum concurrent executions allowed.
     /// </summary>
-    public System.Int32 Max { get; } = max;
+    public int Max { get; } = max;
 
     /// <summary>
     /// If true, enqueue instead of rejecting when full.
     /// </summary>
-    public System.Boolean Queue { get; } = queue;
+    public bool Queue { get; } = queue;
 
     /// <summary>
     /// Maximum queue length (0 = no queue, reject when full).
     /// </summary>
-    public System.Int32 QueueMax { get; } = queueMax;
+    public int QueueMax { get; } = queueMax;
 }

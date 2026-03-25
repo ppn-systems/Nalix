@@ -23,7 +23,7 @@ public interface IClientConnection : System.IDisposable
     /// <summary>
     /// Gets a value indicating whether the client is currently connected to the server.
     /// </summary>
-    System.Boolean IsConnected { get; }
+    bool IsConnected { get; }
 
     /// <summary>
     /// Gets the packet registry (catalog) used to resolve and manage
@@ -56,10 +56,10 @@ public interface IClientConnection : System.IDisposable
     event System.EventHandler<IBufferLease> OnMessageReceived;
 
     /// <summary>Occurs when bytes are written to the socket. Argument = byte count sent.</summary>
-    event System.EventHandler<System.Int64> OnBytesSent;
+    event System.EventHandler<long> OnBytesSent;
 
     /// <summary>Occurs when bytes are received from the socket. Argument = byte count (header+payload).</summary>
-    event System.EventHandler<System.Int64> OnBytesReceived;
+    event System.EventHandler<long> OnBytesReceived;
 
     /// <summary>Occurs when an internal error happens — useful for logging and diagnostics.</summary>
     event System.EventHandler<System.Exception> OnError;
@@ -73,8 +73,8 @@ public interface IClientConnection : System.IDisposable
     /// Stores host/port for automatic reconnects.
     /// </summary>
     System.Threading.Tasks.Task ConnectAsync(
-        System.String host = null,
-        System.UInt16? port = null,
+        string host = null,
+        ushort? port = null,
         System.Threading.CancellationToken ct = default);
 
     /// <summary>Disconnects and cancels all background loops.</summary>
@@ -82,14 +82,14 @@ public interface IClientConnection : System.IDisposable
 
     /// <summary>Serializes and sends <paramref name="packet"/> asynchronously.</summary>
     /// <returns><c>true</c> if sent successfully; <c>false</c> on socket error.</returns>
-    System.Threading.Tasks.Task<System.Boolean> SendAsync(
+    System.Threading.Tasks.Task<bool> SendAsync(
         IPacket packet,
         System.Threading.CancellationToken ct = default);
 
     /// <summary>Sends a raw payload (without framing header) asynchronously.</summary>
     /// <returns><c>true</c> if sent successfully; <c>false</c> on socket error.</returns>
-    System.Threading.Tasks.Task<System.Boolean> SendAsync(
-        System.ReadOnlyMemory<System.Byte> payload,
+    System.Threading.Tasks.Task<bool> SendAsync(
+        System.ReadOnlyMemory<byte> payload,
         System.Threading.CancellationToken ct = default);
 
     #endregion Methods

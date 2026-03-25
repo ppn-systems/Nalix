@@ -6,7 +6,7 @@ namespace Nalix.Common.Middleware;
 /// <summary>
 /// Defines the execution stages for middleware.
 /// </summary>
-public enum MiddlewareStage : System.Byte
+public enum MiddlewareStage : byte
 {
     /// <summary>
     /// Executes before the main handler (inbound processing).

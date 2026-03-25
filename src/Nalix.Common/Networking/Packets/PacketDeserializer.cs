@@ -4,7 +4,7 @@
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// Represents a delegate that constructs an <see cref="IPacket"/> 
+/// Represents a delegate that constructs an <see cref="IPacket"/>
 /// instance from a raw byte buffer.
 /// </summary>
 /// <param name="raw">
@@ -14,4 +14,4 @@ namespace Nalix.Common.Networking.Packets;
 /// An <see cref="IPacket"/> instance created from the provided buffer.
 /// </returns>
 [System.Diagnostics.DebuggerDisplay("PacketDeserializer Delegate")]
-public delegate IPacket PacketDeserializer(System.ReadOnlySpan<System.Byte> raw);
+public delegate IPacket PacketDeserializer(System.ReadOnlySpan<byte> raw);

@@ -48,14 +48,13 @@ public partial interface IConnection
         /// Sends a packet synchronously over the connection.
         /// </summary>
         /// <param name="packet">The packet to send.</param>
-        /// <returns></returns>
-        System.Boolean Send(IPacket packet);
+        bool Send(IPacket packet);
 
         /// <summary>
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        System.Boolean Send(System.ReadOnlySpan<System.Byte> message);
+        bool Send(System.ReadOnlySpan<byte> message);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -66,7 +65,7 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        System.Threading.Tasks.Task<System.Boolean> SendAsync(
+        System.Threading.Tasks.Task<bool> SendAsync(
             IPacket packet,
             System.Threading.CancellationToken cancellationToken = default);
 
@@ -79,8 +78,8 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        System.Threading.Tasks.Task<System.Boolean> SendAsync(
-            System.ReadOnlyMemory<System.Byte> message,
+        System.Threading.Tasks.Task<bool> SendAsync(
+            System.ReadOnlyMemory<byte> message,
             System.Threading.CancellationToken cancellationToken = default);
     }
 
@@ -116,7 +115,7 @@ public partial interface IConnection
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        System.Boolean Send(System.String message);
+        bool Send(string message);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -127,8 +126,8 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        System.Threading.Tasks.Task<System.Boolean> SendAsync(
-            System.String message,
+        System.Threading.Tasks.Task<bool> SendAsync(
+            string message,
             System.Threading.CancellationToken cancellationToken = default);
     }
 

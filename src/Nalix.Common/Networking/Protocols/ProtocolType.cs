@@ -6,7 +6,7 @@ namespace Nalix.Common.Networking.Protocols;
 /// <summary>
 /// Specifies the transport protocol used by the network packet.
 /// </summary>
-public enum ProtocolType : System.Byte
+public enum ProtocolType : byte
 {
     /// <summary>
     /// No transport protocol specified.

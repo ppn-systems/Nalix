@@ -17,7 +17,7 @@ public sealed class ConcurrencyConflictException : InternalErrorException
     /// <summary>
     /// Initializes a new instance of the <see cref="ConcurrencyConflictException"/> class.
     /// </summary>
-    public ConcurrencyConflictException() : base()
+    public ConcurrencyConflictException()
     {
     }
 
@@ -26,7 +26,7 @@ public sealed class ConcurrencyConflictException : InternalErrorException
     /// with a specified error message.
     /// </summary>
     /// <param name="message">A message that describes the error.</param>
-    public ConcurrencyConflictException(System.String message) : base(message)
+    public ConcurrencyConflictException(string message) : base(message)
     {
     }
 
@@ -36,7 +36,7 @@ public sealed class ConcurrencyConflictException : InternalErrorException
     /// </summary>
     /// <param name="message">A message that describes the error.</param>
     /// <param name="details">Additional information that provides more context about the error.</param>
-    public ConcurrencyConflictException(System.String message, System.String details) : base(message, details)
+    public ConcurrencyConflictException(string message, string details) : base(message, details)
     {
     }
 
@@ -46,7 +46,7 @@ public sealed class ConcurrencyConflictException : InternalErrorException
     /// </summary>
     /// <param name="message">A message that describes the error.</param>
     /// <param name="innerException">The exception that caused the current exception.</param>
-    public ConcurrencyConflictException(System.String message, System.Exception innerException) : base(message, innerException)
+    public ConcurrencyConflictException(string message, System.Exception innerException) : base(message, innerException)
     {
     }
 }

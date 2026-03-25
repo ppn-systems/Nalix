@@ -117,23 +117,23 @@ namespace Nalix.Common.Networking.Packets;
 /// </param>
 [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public sealed class PacketControllerAttribute(
-    System.String name = "NONE",
-    System.Boolean isActive = true,
-    System.String version = "1.0") : System.Attribute
+    string name = "NONE",
+    bool isActive = true,
+    string version = "1.0") : System.Attribute
 {
     /// <summary>
     /// Gets the name of the packet controller.
     /// Used primarily for logging and debugging purposes.
     /// </summary>
-    public System.String Name { get; } = name;
+    public string Name { get; } = name;
 
     /// <summary>
     /// Gets the version string of the packet controller.
     /// </summary>
-    public System.String Version { get; } = version;
+    public string Version { get; } = version;
 
     /// <summary>
     /// Gets a value indicating whether the packet controller is active.
     /// </summary>
-    public System.Boolean IsActive { get; } = isActive;
+    public bool IsActive { get; } = isActive;
 }

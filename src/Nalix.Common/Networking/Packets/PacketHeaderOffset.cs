@@ -9,55 +9,55 @@ namespace Nalix.Common.Networking.Packets;
 /// Represents the positions of fields in the serialization order.
 /// Each value corresponds to a specific position in the serialized data.
 /// </summary>
-public enum PacketHeaderOffset : System.Int32
+public enum PacketHeaderOffset
 {
     /// <summary>
     /// Represents the magic number field, which uniquely identifies the packet format or protocol.
     /// This field comes first in the serialized data.
     /// </summary>
-    [DataType(typeof(System.Int32))]
+    [DataType(typeof(int))]
     MAGIC_NUMBER = 0,
 
     /// <summary>
     /// Represents the operation code (OpCode) field, specifying the command or type of the packet.
     /// This field comes second in the serialized data.
     /// </summary>
-    [DataType(typeof(System.UInt16))]
-    OP_CODE = MAGIC_NUMBER + sizeof(System.UInt32),
+    [DataType(typeof(ushort))]
+    OP_CODE = MAGIC_NUMBER + sizeof(uint),
 
     /// <summary>
     /// Represents the flags field, which contains state or processing options for the packet.
     /// This field comes third in the serialized data.
     /// </summary>
-    [DataType(typeof(System.Byte))]
-    FLAGS = OP_CODE + sizeof(System.UInt16),
+    [DataType(typeof(byte))]
+    FLAGS = OP_CODE + sizeof(ushort),
 
     /// <summary>
     /// Represents the priority field, indicating the processing priority of the packet.
     /// This field comes fourth in the serialized data.
     /// </summary>
-    [DataType(typeof(System.Byte))]
-    PRIORITY = FLAGS + sizeof(System.Byte),
+    [DataType(typeof(byte))]
+    PRIORITY = FLAGS + sizeof(byte),
 
     /// <summary>
     /// Represents the transport protocol field, indicating the transport protocol (e.g., TCP or UDP) used.
     /// This field comes fifth in the serialized data.
     /// </summary>
-    [DataType(typeof(System.Byte))]
-    TRANSPORT = PRIORITY + sizeof(System.Byte),
+    [DataType(typeof(byte))]
+    TRANSPORT = PRIORITY + sizeof(byte),
 
     /// <summary>
     /// SequenceId field: Used for packet sequence correlation.
     /// </summary>
-    [DataType(typeof(System.UInt32))]
-    SEQUENCE_ID = TRANSPORT + sizeof(System.Byte),
+    [DataType(typeof(uint))]
+    SEQUENCE_ID = TRANSPORT + sizeof(byte),
 
     /// <summary>
     /// Represents the end offset of the packet header fields in the serialized data.
     /// This value is equal to the offset of the last field and can be used to determine the total header size.
     /// </summary>
-    DATA_REGION = TRANSPORT + sizeof(System.UInt32),
+    DATA_REGION = TRANSPORT + sizeof(uint),
 
     /// <inheritdoc/>
-    MAX_VALUE = System.Byte.MaxValue,
+    MAX_VALUE = byte.MaxValue,
 }

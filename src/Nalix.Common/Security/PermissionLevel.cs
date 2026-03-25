@@ -7,7 +7,7 @@ namespace Nalix.Common.Security;
 /// Specifies the authority levels of users in the system.
 /// Each level determines the scope of access and control.
 /// </summary>
-public enum PermissionLevel : System.Byte
+public enum PermissionLevel : byte
 {
     /// <summary>
     /// No authority level assigned.
@@ -25,7 +25,7 @@ public enum PermissionLevel : System.Byte
     /// Read-only access, no modifications allowed.
     /// Suitable for auditors or strictly view-only users.
     /// </summary>
-    READ_ONLY = 50,
+    READONLY = 50,
 
     /// <summary>
     /// Standard registered user with access to general features
@@ -45,14 +45,14 @@ public enum PermissionLevel : System.Byte
     /// Can manage users and settings within that tenant, but has no
     /// authority over other tenants or global platform configuration.
     /// </summary>
-    TENANT_ADMINISTRATOR = 200,
+    TENANTADMINISTRATOR = 200,
 
     /// <summary>
     /// System-wide administrative authority across all tenants.
     /// Can manage global configuration, tenants, and system-level policies.
     /// Typically used by the operations or platform team.
     /// </summary>
-    SYSTEM_ADMINISTRATOR = 225,
+    SYSTEMADMINISTRATOR = 225,
 
     /// <summary>
     /// Highest authority level with unrestricted control over all

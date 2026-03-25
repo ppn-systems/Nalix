@@ -14,7 +14,7 @@ public interface IRecurringOptions
     [System.ComponentModel.DataAnnotations.Required]
     [System.ComponentModel.DataAnnotations.MinLength(1)]
     [System.ComponentModel.DataAnnotations.MaxLength(32)]
-    System.String Tag { get; init; }
+    string Tag { get; init; }
 
     /// <summary>
     /// Gets the amount of random jitter to add to the job interval.
@@ -41,11 +41,11 @@ public interface IRecurringOptions
     /// Non-reentrant jobs prevent overlapping executions.
     /// </summary>
     [System.ComponentModel.DefaultValue(true)]
-    System.Boolean NonReentrant { get; init; }
+    bool NonReentrant { get; init; }
 
     /// <summary>
     /// Gets the maximum number of consecutive failures before applying backoff logic.
     /// </summary>
-    [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue)]
-    System.Int32 FailuresBeforeBackoff { get; init; }
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+    int FailuresBeforeBackoff { get; init; }
 }

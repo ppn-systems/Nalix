@@ -12,20 +12,20 @@ namespace Nalix.Common.Networking.Packets;
 /// is currently in the object pool, in use by a handler, or has been returned
 /// after processing.
 /// </remarks>
-public enum PacketContextState : System.Byte
+public enum PacketContextState : byte
 {
     /// <summary>
     /// The context is stored in the object pool and available for allocation.
     /// </summary>
-    POOLED,
+    POOLED = 0,
 
     /// <summary>
     /// The context is actively in use by a packet handler and not available for pooling.
     /// </summary>
-    IN_USE,
+    IN_USE = 1,
 
     /// <summary>
     /// The context has completed processing and has been returned for reuse.
     /// </summary>
-    RETURNED
+    RETURNED = 2
 }

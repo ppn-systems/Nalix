@@ -19,17 +19,17 @@ public interface IWorkerContext
     /// <summary>
     /// Gets the name of the worker.
     /// </summary>
-    System.String Name { get; }
+    string Name { get; }
 
     /// <summary>
     /// Gets the group to which the worker belongs.
     /// </summary>
-    System.String Group { get; }
+    string Group { get; }
 
     /// <summary>
     /// Gets a value indicating whether cancellation has been requested for the worker.
     /// </summary>
-    System.Boolean IsCancellationRequested { get; }
+    bool IsCancellationRequested { get; }
 
     /// <summary>
     /// Sends a heartbeat signal to indicate the worker is still active.
@@ -41,5 +41,5 @@ public interface IWorkerContext
     /// </summary>
     /// <param name="delta">The amount of progress to add.</param>
     /// <param name="note">An optional note describing the progress update.</param>
-    void Advance(System.Int64 delta, System.String note = null);
+    void Advance(long delta, string note = null);
 }

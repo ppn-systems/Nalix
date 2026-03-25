@@ -7,7 +7,7 @@ namespace Nalix.Common.Networking.Protocols;
 /// High-level client actions suggested by the server for a given reason.
 /// Clients should treat these as hints to guide behavior.
 /// </summary>
-public enum ProtocolAdvice : System.Byte
+public enum ProtocolAdvice : byte
 {
     /// <summary>
     /// No specific action. Log and continue.

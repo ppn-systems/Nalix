@@ -28,7 +28,7 @@ public class SerializationException : BaseException
     /// <param name="message">
     /// The error message that describes the reason for the exception.
     /// </param>
-    public SerializationException(System.String message)
+    public SerializationException(string message)
         : base(message)
     {
     }
@@ -44,7 +44,7 @@ public class SerializationException : BaseException
     /// <param name="innerException">
     /// The exception that is the cause of the current exception.
     /// </param>
-    public SerializationException(System.String message, System.Exception innerException)
+    public SerializationException(string message, System.Exception innerException)
         : base(message, innerException)
     {
     }

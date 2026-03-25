@@ -34,7 +34,7 @@ namespace Nalix.Common.Security;
 /// factory dispatching, and format serialization.
 /// </para>
 /// </remarks>
-public enum CipherSuiteType : System.Byte
+public enum CipherSuiteType : byte
 {
     // ────────────────────────────────
     // Base symmetric ciphers

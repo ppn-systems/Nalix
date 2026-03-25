@@ -11,31 +11,31 @@ public static class SerializerBounds
 {
     /// <summary>
     /// Special marker for a <c>null</c> value.
-    /// Equal to <see cref="System.UInt16.MaxValue"/> (65535).
+    /// Equal to <see cref="ushort.MaxValue"/> (65535).
     /// </summary>
-    public const System.UInt16 Null = System.UInt16.MaxValue;
+    public const ushort Null = ushort.MaxValue;
 
     /// <summary>
     /// Maximum allowed array size.
-    /// Equal to <see cref="System.UInt16.MaxValue"/> - 1 (65534).
+    /// Equal to <see cref="ushort.MaxValue"/> - 1 (65534).
     /// </summary>
-    public const System.UInt16 MaxArray = System.UInt16.MaxValue - 1;
+    public const ushort MaxArray = ushort.MaxValue - 1;
 
     /// <summary>
     /// Maximum allowed string length.
-    /// Equal to <see cref="System.UInt16.MaxValue"/> - 2 (65533).
+    /// Equal to <see cref="ushort.MaxValue"/> - 2 (65533).
     /// </summary>
-    public const System.UInt16 MaxString = System.UInt16.MaxValue - 2;
+    public const ushort MaxString = ushort.MaxValue - 2;
 
     /// <summary>
     /// Special marker for a <c>null</c> array.
     /// Consists of four bytes with value 255: [255, 255, 255, 255].
     /// </summary>
-    public static System.ReadOnlySpan<System.Byte> NullArrayMarker => [255, 255, 255, 255];
+    public static System.ReadOnlySpan<byte> NullArrayMarker => [255, 255, 255, 255];
 
     /// <summary>
     /// Special marker for an empty array.
     /// Consists of four zero bytes: [0, 0, 0, 0].
     /// </summary>
-    public static System.ReadOnlySpan<System.Byte> EmptyArrayMarker => [0, 0, 0, 0];
+    public static System.ReadOnlySpan<byte> EmptyArrayMarker => [0, 0, 0, 0];
 }

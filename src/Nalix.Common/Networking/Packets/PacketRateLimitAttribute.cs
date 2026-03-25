@@ -13,15 +13,15 @@ namespace Nalix.Common.Networking.Packets;
 /// <param name="requestsPerSecond">Maximum requests per second allowed.</param>
 /// <param name="burst">Burst size (default is 1).</param>
 [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
-public sealed class PacketRateLimitAttribute(System.Int32 requestsPerSecond, System.Double burst = 1) : System.Attribute
+public sealed class PacketRateLimitAttribute(int requestsPerSecond, double burst = 1) : System.Attribute
 {
     /// <summary>
     /// The burst size allowed for requests. Default is 1.
     /// </summary>
-    public System.Double Burst { get; } = burst;
+    public double Burst { get; } = burst;
 
     /// <summary>
     /// The maximum number of requests allowed per second.
     /// </summary>
-    public System.Int32 RequestsPerSecond { get; } = requestsPerSecond;
+    public int RequestsPerSecond { get; } = requestsPerSecond;
 }

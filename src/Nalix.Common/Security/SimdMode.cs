@@ -6,7 +6,7 @@ namespace Nalix.Common.Security;
 /// <summary>
 /// Chosen SIMD mode
 /// </summary>
-public enum SimdMode : System.Byte
+public enum SimdMode : byte
 {
     /// <summary>
     /// No SIMD
@@ -31,5 +31,5 @@ public enum SimdMode : System.Byte
     /// <summary>
     /// Autodetect
     /// </summary>
-    AUTO_DETECT = 255,
+    AUTODETECT = 255,
 }

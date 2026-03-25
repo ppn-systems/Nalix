@@ -12,7 +12,7 @@ namespace Nalix.Common.Middleware;
 /// </remarks>
 /// <param name="order">The execution order value.</param>
 [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
-public sealed class MiddlewareOrderAttribute(System.Int32 order) : System.Attribute
+public sealed class MiddlewareOrderAttribute(int order) : System.Attribute
 {
     /// <summary>
     /// Gets the execution order of the middleware.
@@ -26,5 +26,5 @@ public sealed class MiddlewareOrderAttribute(System.Int32 order) : System.Attrib
     /// - 50: Business logic constraints (e.g., rate limiting, concurrency)
     /// - 100: Post-processing (e.g., wrapping, encryption)
     /// </remarks>
-    public System.Int32 Order { get; } = order;
+    public int Order { get; } = order;
 }

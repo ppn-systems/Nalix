@@ -7,6 +7,7 @@ namespace Nalix.Common.Serialization;
 /// An attribute that marks a class, struct, or interface as serializable with a specified layout.
 /// This attribute is used to configure the serialization behavior for types in the Nalix serialization framework.
 /// </summary>
+/// <param name="layout"></param>
 [System.AttributeUsage(
     System.AttributeTargets.Class | System.AttributeTargets.Struct |
     System.AttributeTargets.Interface, Inherited = true)]

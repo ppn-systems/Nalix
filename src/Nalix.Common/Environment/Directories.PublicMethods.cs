@@ -14,10 +14,10 @@ public static partial class Directories
     /// The handler to invoke when a directory is created.
     /// </param>
     public static void RegisterDirectoryCreationHandler(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Action<System.String> handler)
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Action<string> handler)
     {
         System.ArgumentNullException.ThrowIfNull(handler);
-        Directories.DirectoryCreated += handler;
+        DirectoryCreated += handler;
     }
 
     /// <summary>
@@ -27,10 +27,10 @@ public static partial class Directories
     /// The handler to remove.
     /// </param>
     public static void UnregisterDirectoryCreationHandler(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Action<System.String> handler)
+        [System.Diagnostics.CodeAnalysis.MaybeNull] System.Action<string> handler)
     {
         System.ArgumentNullException.ThrowIfNull(handler);
-        Directories.DirectoryCreated -= handler;
+        DirectoryCreated -= handler;
     }
 
     // -------- Helpers to build paths --------
@@ -38,22 +38,23 @@ public static partial class Directories
     /// <summary>
     /// Creates a subdirectory under the specified parent directory, if it does not exist.
     /// </summary>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String CreateSubdirectory(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryName)
+    public static string CreateSubdirectory(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string parentPath,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string directoryName)
     {
-        if (System.String.IsNullOrWhiteSpace(parentPath))
+        if (string.IsNullOrWhiteSpace(parentPath))
         {
             throw new System.ArgumentNullException(nameof(parentPath));
         }
 
-        if (System.String.IsNullOrWhiteSpace(directoryName))
+        if (string.IsNullOrWhiteSpace(directoryName))
         {
             throw new System.ArgumentNullException(nameof(directoryName));
         }
 
-        System.String fullPath = COMBINE_SAFE(parentPath, directoryName);
+        string fullPath = COMBINE_SAFE(parentPath, directoryName);
         ENSURE_DIRECTORY_EXISTS(fullPath);
         return fullPath;
     }
@@ -61,18 +62,19 @@ public static partial class Directories
     /// <summary>
     /// Creates a subdirectory with a UTC timestamp-based name (yyyyMMddTHHmmssZ).
     /// </summary>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String CreateTimestampedDirectory(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String prefix = "")
+    public static string CreateTimestampedDirectory(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string parentPath,
+        [System.Diagnostics.CodeAnalysis.NotNull] string prefix = "")
     {
-        if (System.String.IsNullOrWhiteSpace(parentPath))
+        if (string.IsNullOrWhiteSpace(parentPath))
         {
             throw new System.ArgumentNullException(nameof(parentPath));
         }
 
-        System.String timestamp = System.DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
-        System.String directoryName = System.String.IsNullOrEmpty(prefix) ? timestamp : (prefix + "_" + timestamp);
+        string timestamp = System.DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
+        string directoryName = string.IsNullOrEmpty(prefix) ? timestamp : (prefix + "_" + timestamp);
 
         return CreateSubdirectory(parentPath, directoryName);
     }
@@ -80,17 +82,18 @@ public static partial class Directories
     /// <summary>
     /// Returns a full file path under a given directory, ensuring the directory exists.
     /// </summary>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String GetFilePath(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryPath,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName)
+    public static string GetFilePath(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string directoryPath,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string fileName)
     {
-        if (System.String.IsNullOrWhiteSpace(directoryPath))
+        if (string.IsNullOrWhiteSpace(directoryPath))
         {
             throw new System.ArgumentNullException(nameof(directoryPath));
         }
 
-        if (System.String.IsNullOrWhiteSpace(fileName))
+        if (string.IsNullOrWhiteSpace(fileName))
         {
             throw new System.ArgumentNullException(nameof(fileName));
         }
@@ -103,30 +106,31 @@ public static partial class Directories
     /// Returns a temp file path under <see cref="TemporaryDirectory"/>.
     /// </summary>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String GetTempFilePath(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(TemporaryDirectory, fileName);
+    public static string GetTempFilePath(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string fileName) => GetFilePath(TemporaryDirectory, fileName);
 
     /// <summary>
     /// Returns a timestamped file path (yyyyMMddTHHmmssZ) under a directory.
     /// </summary>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String GetTimestampedFilePath(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryPath,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileNameBase,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String extension)
+    public static string GetTimestampedFilePath(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string directoryPath,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string fileNameBase,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string extension)
     {
-        if (System.String.IsNullOrWhiteSpace(directoryPath))
+        if (string.IsNullOrWhiteSpace(directoryPath))
         {
             throw new System.ArgumentNullException(nameof(directoryPath));
         }
 
-        if (System.String.IsNullOrWhiteSpace(fileNameBase))
+        if (string.IsNullOrWhiteSpace(fileNameBase))
         {
             throw new System.ArgumentNullException(nameof(fileNameBase));
         }
 
-        System.String timestamp = System.DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
-        System.String fileName = fileNameBase + "_" + timestamp + "." + extension.TrimStart('.');
+        string timestamp = System.DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ");
+        string fileName = fileNameBase + "_" + timestamp + "." + extension.TrimStart('.');
 
         return GetFilePath(directoryPath, fileName);
     }
@@ -135,29 +139,29 @@ public static partial class Directories
     /// Returns a log file path under <see cref="LogsDirectory"/>.
     /// </summary>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String GetLogFilePath(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(LogsDirectory, fileName);
+    public static string GetLogFilePath(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string fileName) => GetFilePath(LogsDirectory, fileName);
 
     /// <summary>
     /// Returns a config file path under <see cref="ConfigurationDirectory"/>.
     /// </summary>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String GetConfigFilePath(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(ConfigurationDirectory, fileName);
+    public static string GetConfigFilePath(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string fileName) => GetFilePath(ConfigurationDirectory, fileName);
 
     /// <summary>
     /// Returns a storage file path under <see cref="StorageDirectory"/>.
     /// </summary>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String GetStorageFilePath(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(StorageDirectory, fileName);
+    public static string GetStorageFilePath(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string fileName) => GetFilePath(StorageDirectory, fileName);
 
     /// <summary>
     /// Returns a database file path under <see cref="DatabaseDirectory"/>.
     /// </summary>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String GetDatabaseFilePath(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String fileName) => GetFilePath(DatabaseDirectory, fileName);
+    public static string GetDatabaseFilePath(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string fileName) => GetFilePath(DatabaseDirectory, fileName);
 
     // -------- Maintenance --------
 
@@ -166,13 +170,14 @@ public static partial class Directories
     /// <param name="maxAge">The maximum age to keep.</param>
     /// <param name="searchPattern">Glob pattern to select files.</param>
     /// <returns>Number of files deleted.</returns>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int32 DeleteOldFiles(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryPath,
+    public static int DeleteOldFiles(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string directoryPath,
         [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan maxAge,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String searchPattern = "*")
+        [System.Diagnostics.CodeAnalysis.NotNull] string searchPattern = "*")
     {
-        if (System.String.IsNullOrWhiteSpace(directoryPath))
+        if (string.IsNullOrWhiteSpace(directoryPath))
         {
             throw new System.ArgumentNullException(nameof(directoryPath));
         }
@@ -182,7 +187,7 @@ public static partial class Directories
             return 0;
         }
 
-        System.Int32 deleted = 0;
+        int deleted = 0;
         System.DateTime cutoff = System.DateTime.UtcNow - maxAge;
 
         System.IO.EnumerationOptions opts = new()
@@ -193,7 +198,7 @@ public static partial class Directories
 
         try
         {
-            foreach (System.String filePath in System.IO.Directory.EnumerateFiles(directoryPath, searchPattern, opts))
+            foreach (string filePath in System.IO.Directory.EnumerateFiles(directoryPath, searchPattern, opts))
             {
                 try
                 {
@@ -219,11 +224,11 @@ public static partial class Directories
     /// <c>true</c> if all directories accept writes; otherwise <c>false</c>.
     /// </returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Boolean CanAccessAllDirectories()
+    public static bool CanAccessAllDirectories()
     {
         try
         {
-            System.String[] testPaths =
+            string[] testPaths =
             [
                 LogsDirectory,
                 DataDirectory,
@@ -236,10 +241,10 @@ public static partial class Directories
                 ConfigurationDirectory
             ];
 
-            for (System.Int32 i = 0; i < testPaths.Length; i++)
+            for (int i = 0; i < testPaths.Length; i++)
             {
-                System.String path = testPaths[i];
-                System.String test = System.IO.Path.Join(path, "test_" + System.Guid.NewGuid().ToString("N") + ".tmp");
+                string path = testPaths[i];
+                string test = System.IO.Path.Join(path, "test_" + System.Guid.NewGuid().ToString("N") + ".tmp");
                 using (System.IO.File.Create(test)) { }
                 System.IO.File.Delete(test);
             }
@@ -255,10 +260,11 @@ public static partial class Directories
     /// <summary>
     /// Overrides the base path for testing. The override is not persisted across process restarts.
     /// </summary>
+    /// <exception cref="System.ArgumentNullException"></exception>
     public static void SetBasePathOverride(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String path)
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string path)
     {
-        if (System.String.IsNullOrWhiteSpace(path))
+        if (string.IsNullOrWhiteSpace(path))
         {
             throw new System.ArgumentNullException(nameof(path));
         }
@@ -269,16 +275,17 @@ public static partial class Directories
     /// <summary>
     /// Enumerates files from a directory with optional recursion.
     /// </summary>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Collections.Generic.IEnumerable<System.String> EnumerateFiles(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directory,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String searchPattern = "*",
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean recursive = false)
+    public static System.Collections.Generic.IEnumerable<string> EnumerateFiles(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string directory,
+        [System.Diagnostics.CodeAnalysis.NotNull] string searchPattern = "*",
+        [System.Diagnostics.CodeAnalysis.NotNull] bool recursive = false)
     {
-        return System.String.IsNullOrWhiteSpace(directory)
+        return string.IsNullOrWhiteSpace(directory)
             ? throw new System.ArgumentNullException(nameof(directory))
             : EnumerateFilesCore();
-        System.Collections.Generic.IEnumerable<System.String> EnumerateFilesCore()
+        System.Collections.Generic.IEnumerable<string> EnumerateFilesCore()
         {
             if (!System.IO.Directory.Exists(directory))
             {
@@ -291,7 +298,7 @@ public static partial class Directories
                 IgnoreInaccessible = true
             };
 
-            foreach (System.String file in System.IO.Directory.EnumerateFiles(directory, searchPattern, opts))
+            foreach (string file in System.IO.Directory.EnumerateFiles(directory, searchPattern, opts))
             {
                 yield return file;
             }
@@ -301,12 +308,13 @@ public static partial class Directories
     /// <summary>
     /// Computes the size of a directory in bytes.
     /// </summary>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.Int64 CalculateDirectorySize(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String directoryPath,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Boolean includeSubdirectories = true)
+    public static long CalculateDirectorySize(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string directoryPath,
+        [System.Diagnostics.CodeAnalysis.NotNull] bool includeSubdirectories = true)
     {
-        if (System.String.IsNullOrWhiteSpace(directoryPath))
+        if (string.IsNullOrWhiteSpace(directoryPath))
         {
             throw new System.ArgumentNullException(nameof(directoryPath));
         }
@@ -316,7 +324,7 @@ public static partial class Directories
             return 0;
         }
 
-        System.Int64 size = 0;
+        long size = 0;
 
         try
         {
@@ -326,7 +334,7 @@ public static partial class Directories
                 IgnoreInaccessible = true
             };
 
-            foreach (System.String file in System.IO.Directory.EnumerateFiles(directoryPath, "*", opts))
+            foreach (string file in System.IO.Directory.EnumerateFiles(directoryPath, "*", opts))
             {
                 try { size += new System.IO.FileInfo(file).Length; } catch { }
             }
@@ -339,16 +347,17 @@ public static partial class Directories
     /// <summary>
     /// Creates a date-based directory (yyyy-MM-dd) under the specified parent path.
     /// </summary>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String CreateDateDirectory(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath)
+    public static string CreateDateDirectory(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string parentPath)
     {
-        if (System.String.IsNullOrWhiteSpace(parentPath))
+        if (string.IsNullOrWhiteSpace(parentPath))
         {
             throw new System.ArgumentNullException(nameof(parentPath));
         }
 
-        System.String dir = System.IO.Path.Join(parentPath, System.DateTime.UtcNow.ToString("yyyy-MM-dd"));
+        string dir = System.IO.Path.Join(parentPath, System.DateTime.UtcNow.ToString("yyyy-MM-dd"));
         ENSURE_DIRECTORY_EXISTS(dir);
         return dir;
     }
@@ -356,21 +365,22 @@ public static partial class Directories
     /// <summary>
     /// Creates a hierarchical date-based directory (yyyy/MM/dd) under the specified parent path.
     /// </summary>
+    /// <exception cref="System.ArgumentNullException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String CreateHierarchicalDateDirectory(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath)
+    public static string CreateHierarchicalDateDirectory(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string parentPath)
     {
-        if (System.String.IsNullOrWhiteSpace(parentPath))
+        if (string.IsNullOrWhiteSpace(parentPath))
         {
             throw new System.ArgumentNullException(nameof(parentPath));
         }
 
         System.DateTime now = System.DateTime.UtcNow;
-        System.String year = System.IO.Path.Join(parentPath, now.ToString("yyyy"));
-        System.String month = System.IO.Path.Join(year, now.ToString("MM"));
-        System.String day = System.IO.Path.Join(month, now.ToString("dd"));
+        string year = System.IO.Path.Join(parentPath, now.ToString("yyyy"));
+        string month = System.IO.Path.Join(year, now.ToString("MM"));
+        string day = System.IO.Path.Join(month, now.ToString("dd"));
 
         ENSURE_DIRECTORY_EXISTS(day);
         return day;
@@ -383,19 +393,21 @@ public static partial class Directories
     /// <param name="key">A key used to derive shard segments.</param>
     /// <param name="depth">Number of shard levels (e.g., 2).</param>
     /// <param name="width">Hex digits per level (e.g., 2 => 00..FF).</param>
+    /// <exception cref="System.ArgumentNullException"></exception>
+    /// <exception cref="System.ArgumentOutOfRangeException"></exception>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static System.String EnsureShardedPath(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String parentPath,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] System.String key,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 depth = 2,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Int32 width = 2)
+    public static string EnsureShardedPath(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string parentPath,
+        [System.Diagnostics.CodeAnalysis.MaybeNull] string key,
+        [System.Diagnostics.CodeAnalysis.NotNull] int depth = 2,
+        [System.Diagnostics.CodeAnalysis.NotNull] int width = 2)
     {
-        if (System.String.IsNullOrWhiteSpace(parentPath))
+        if (string.IsNullOrWhiteSpace(parentPath))
         {
             throw new System.ArgumentNullException(nameof(parentPath));
         }
 
-        if (System.String.IsNullOrWhiteSpace(key))
+        if (string.IsNullOrWhiteSpace(key))
         {
             throw new System.ArgumentNullException(nameof(key));
         }
@@ -408,18 +420,18 @@ public static partial class Directories
         // FNV-1a 32-bit
         unchecked
         {
-            System.UInt32 h = 2166136261;
-            for (System.Int32 i = 0; i < key.Length; i++)
+            uint h = 2166136261;
+            for (int i = 0; i < key.Length; i++)
             {
                 h ^= key[i];
                 h *= 16777619;
             }
 
-            System.String p = parentPath;
-            for (System.Int32 i = 0; i < depth; i++)
+            string p = parentPath;
+            for (int i = 0; i < depth; i++)
             {
-                System.UInt32 mask = (System.UInt32)((1 << (width * 4)) - 1);
-                System.String seg = (h & mask).ToString("X" + width.ToString());
+                uint mask = (uint)((1 << (width * 4)) - 1);
+                string seg = (h & mask).ToString("X" + width.ToString());
                 p = System.IO.Path.Join(p, seg);
                 h >>= width * 4;
             }

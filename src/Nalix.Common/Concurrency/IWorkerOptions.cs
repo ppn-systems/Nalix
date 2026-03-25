@@ -16,12 +16,12 @@ public interface IWorkerOptions
     [System.ComponentModel.DataAnnotations.Required]
     [System.ComponentModel.DataAnnotations.MinLength(1)]
     [System.ComponentModel.DataAnnotations.MaxLength(32)]
-    System.String Tag { get; init; }
+    string Tag { get; init; }
 
     /// <summary>
     /// Gets the optional machine identifier for the worker instance.
     /// </summary>
-    System.UInt16 MachineId { get; init; }
+    ushort MachineId { get; init; }
 
     /// <summary>
     /// Gets the optional identifier type for the worker instance.
@@ -55,15 +55,15 @@ public interface IWorkerOptions
     /// Gets the optional concurrency cap for workers in the same group.
     /// If set, executions in this group are limited by this value.
     /// </summary>
-    [System.ComponentModel.DataAnnotations.Range(0, System.Int32.MaxValue)]
-    System.Int32? GroupConcurrencyLimit { get; init; }
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue)]
+    int? GroupConcurrencyLimit { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the group slot should be acquired immediately or the worker should be cancelled if unavailable.
     /// Default is <c>false</c>, which means the worker will wait for a slot.
     /// </summary>
     [System.ComponentModel.DefaultValue(false)]
-    System.Boolean TryAcquireSlotImmediately { get; init; }
+    bool TryAcquireSlotImmediately { get; init; }
 
     /// <summary>
     /// Gets the cancellation token that is linked to the worker's execution.

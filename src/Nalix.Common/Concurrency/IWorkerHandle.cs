@@ -19,27 +19,27 @@ public interface IWorkerHandle : System.IDisposable
     /// <summary>
     /// Gets the name of the worker.
     /// </summary>
-    System.String Name { get; }
+    string Name { get; }
 
     /// <summary>
     /// Gets the group to which the worker belongs.
     /// </summary>
-    System.String Group { get; }
+    string Group { get; }
 
     /// <summary>
     /// Gets the total number of internal iterations performed by the worker.
     /// </summary>
-    System.Int64 TotalRuns { get; }
+    long TotalRuns { get; }
 
     /// <summary>
     /// Gets the current progress value, in user-defined units (e.g., bytes, messages).
     /// </summary>
-    System.Int64 Progress { get; }
+    long Progress { get; }
 
     /// <summary>
     /// Gets the last note associated with the worker's progress.
     /// </summary>
-    System.String LastNote { get; }
+    string LastNote { get; }
 
     /// <summary>
     /// Gets the options used to configure the worker.
@@ -49,7 +49,7 @@ public interface IWorkerHandle : System.IDisposable
     /// <summary>
     /// Gets a value indicating whether the worker is currently running.
     /// </summary>
-    System.Boolean IsRunning { get; }
+    bool IsRunning { get; }
 
     /// <summary>
     /// Gets the UTC start time of the worker.

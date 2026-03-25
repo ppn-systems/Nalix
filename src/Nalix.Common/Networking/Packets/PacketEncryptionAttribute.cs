@@ -29,7 +29,7 @@ public sealed class PacketEncryptionAttribute : System.Attribute
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketEncryptionAttribute(
-        System.Boolean isEncrypted = true,
+        bool isEncrypted = true,
         CipherSuiteType algorithmType = CipherSuiteType.CHACHA20_POLY1305)
     {
         IsEncrypted = isEncrypted;
@@ -39,7 +39,7 @@ public sealed class PacketEncryptionAttribute : System.Attribute
     /// <summary>
     /// Gets a value indicating whether encryption is enabled for the target method.
     /// </summary>
-    public System.Boolean IsEncrypted { get; }
+    public bool IsEncrypted { get; }
 
     /// <summary>
     /// Gets the symmetric encryption algorithm type to be used if encryption is enabled.

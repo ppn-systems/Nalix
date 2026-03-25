@@ -21,7 +21,7 @@ namespace Nalix.Common.Diagnostics;
 public readonly struct LogEntry(
     LogLevel level,
     EventId eventId,
-    System.String message,
+    string message,
     System.Exception exception = null)
 {
     /// <summary>
@@ -37,7 +37,7 @@ public readonly struct LogEntry(
     /// <summary>
     /// Gets the content of the log message.
     /// </summary>
-    public readonly System.String Message = message;
+    public readonly string Message = message;
 
     /// <summary>
     /// Gets the exception associated with the log entry, if any.

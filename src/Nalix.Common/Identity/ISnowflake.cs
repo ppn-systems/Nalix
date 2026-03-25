@@ -18,7 +18,7 @@ public interface ISnowflake
     /// Extracts the lower 32 bits of the identifier, representing the main value.
     /// This operation is optimized for performance using direct bit manipulation.
     /// </remarks>
-    System.Boolean IsEmpty { get; }
+    bool IsEmpty { get; }
 
     /// <summary>
     /// Gets the 8-bit type component.
@@ -32,7 +32,7 @@ public interface ISnowflake
     /// <summary>
     /// Gets the underlying 32-bit unsigned integer value of the identifier.
     /// </summary>
-    System.UInt32 Value { get; }
+    uint Value { get; }
 
     /// <summary>
     /// Gets the 16-bit machine identifier component.
@@ -41,7 +41,7 @@ public interface ISnowflake
     /// Extracts bits 32-47 of the identifier, representing the machine ID.
     /// This operation is optimized for performance using direct bit manipulation.
     /// </remarks>
-    System.UInt16 MachineId { get; }
+    ushort MachineId { get; }
 
     /// <summary>
     /// Converts this <see cref="ISnowflake"/> to its underlying 56-bit representation.
@@ -63,9 +63,9 @@ public interface ISnowflake
     /// <remarks>
     /// This method allocates a new 7-byte array and writes the identifier in little-endian format.
     /// The layout is: [0-3]=Value, [4-5]=MachineId, [6]=Type.
-    /// For better performance, use <see cref="TryWriteBytes(System.Span{System.Byte})"/> with a pre-allocated buffer.
+    /// For better performance, use <see cref="TryWriteBytes(System.Span{byte})"/> with a pre-allocated buffer.
     /// </remarks>
-    System.Byte[] ToByteArray();
+    byte[] ToByteArray();
 
     /// <summary>
     /// Attempts to write the serialized <see cref="ISnowflake"/> to the specified byte span.
@@ -76,10 +76,10 @@ public interface ISnowflake
     /// is too small (less than 7 bytes).
     /// </returns>
     /// <remarks>
-    /// This overload is identical to <see cref="TryWriteBytes(System.Span{System.Byte}, out System.Int32)"/> but does not
+    /// This overload is identical to <see cref="TryWriteBytes(System.Span{byte}, out int)"/> but does not
     /// return the number of bytes written. Use this when you don't need the byte count.
     /// </remarks>
-    System.Boolean TryWriteBytes(System.Span<System.Byte> destination);
+    bool TryWriteBytes(System.Span<byte> destination);
 
     /// <summary>
     /// Attempts to write the serialized <see cref="ISnowflake"/> to the specified byte span.
@@ -98,7 +98,7 @@ public interface ISnowflake
     /// The method validates the destination buffer size before writing to prevent buffer overflows.
     /// This is the recommended serialization method for performance-critical scenarios.
     /// </remarks>
-    System.Boolean TryWriteBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<System.Byte> destination,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out System.Int32 bytesWritten);
+    bool TryWriteBytes(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> destination,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out int bytesWritten);
 }

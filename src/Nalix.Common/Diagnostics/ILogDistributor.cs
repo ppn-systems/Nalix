@@ -44,7 +44,7 @@ public interface ILogDistributor : System.IDisposable
     /// <returns>
     /// <see langword="true"/> if the target was successfully removed; otherwise, <see langword="false"/>.
     /// </returns>
-    System.Boolean UnregisterTarget(ILoggerTarget loggerHandler);
+    bool UnregisterTarget(ILoggerTarget loggerHandler);
 
     /// <summary>
     /// Publishes the specified log entry to all registered logging targets.

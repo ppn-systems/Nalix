@@ -20,19 +20,19 @@ public partial interface IConnection : System.IDisposable, IConnectionErrorTrack
     /// Gets the total duration (in milliseconds) since the connection was established.
     /// Useful for measuring connection lifetime or session activity.
     /// </summary>
-    System.Int64 UpTime { get; }
+    long UpTime { get; }
 
     /// <summary>
     /// Gets the total number of bytes sent over the connection.
     /// Useful for monitoring bandwidth usage and data transfer statistics.
     /// </summary>
-    System.Int64 BytesSent { get; }
+    long BytesSent { get; }
 
     /// <summary>
     /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.
     /// This value can help determine the latency of the network connection.
     /// </summary>
-    System.Int64 LastPingTime { get; }
+    long LastPingTime { get; }
 
     /// <summary>
     /// Key identifying the endpoint associated with the connection.
@@ -42,7 +42,7 @@ public partial interface IConnection : System.IDisposable, IConnectionErrorTrack
     /// <summary>
     /// Gets the encryption key used for securing communication.
     /// </summary>
-    System.Byte[] Secret { get; set; }
+    byte[] Secret { get; set; }
 
     /// <summary>
     /// Gets the authority levels associated with the connection.
@@ -75,7 +75,7 @@ public partial interface IConnection : System.IDisposable, IConnectionErrorTrack
     /// <remarks>
     /// Ensures that both the socket and associated streams are properly closed.
     /// </remarks>
-    void Close(System.Boolean force = false);
+    void Close(bool force = false);
 
     /// <summary>
     /// Disconnects the connection safely with an optional reason.
@@ -84,5 +84,5 @@ public partial interface IConnection : System.IDisposable, IConnectionErrorTrack
     /// <remarks>
     /// Use this method to terminate the connection gracefully.
     /// </remarks>
-    void Disconnect(System.String reason = null);
+    void Disconnect(string reason = null);
 }

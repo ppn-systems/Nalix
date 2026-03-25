@@ -23,7 +23,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.Boolean IsRunningInContainer
+    public static bool IsRunningInContainer
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => IsContainerLazy.Value;
@@ -47,7 +47,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String BaseAssetsDirectory
+    public static string BaseAssetsDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => BasePathLazy.Value;
@@ -68,7 +68,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String LogsDirectory
+    public static string LogsDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => LogsPathLazy.Value;
@@ -88,7 +88,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String DataDirectory
+    public static string DataDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => DataPathLazy.Value;
@@ -109,7 +109,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String ConfigurationDirectory
+    public static string ConfigurationDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => ConfigPathLazy.Value;
@@ -132,7 +132,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String TemporaryDirectory
+    public static string TemporaryDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => TempPathLazy.Value;
@@ -153,7 +153,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String StorageDirectory
+    public static string StorageDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => StoragePathLazy.Value;
@@ -174,7 +174,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String DatabaseDirectory
+    public static string DatabaseDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => DatabasePathLazy.Value;
@@ -189,7 +189,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String CacheDirectory
+    public static string CacheDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => CachesPathLazy.Value;
@@ -204,7 +204,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String UploadsDirectory
+    public static string UploadsDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => UploadsPathLazy.Value;
@@ -219,7 +219,7 @@ public static partial class Directories
     [System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.DisallowNull]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
-    public static System.String BackupsDirectory
+    public static string BackupsDirectory
     {
         [return: System.Diagnostics.CodeAnalysis.NotNull]
         get => BackupsPathLazy.Value;

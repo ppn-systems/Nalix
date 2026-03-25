@@ -11,7 +11,7 @@ namespace Nalix.Common.Identity;
 /// Defines the category of an <see cref="ISnowflake"/> value,
 /// used to distinguish between different purposes or entities in the system.
 /// </summary>
-public enum SnowflakeType : System.Byte
+public enum SnowflakeType : byte
 {
     #region Core System
 
