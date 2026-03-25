@@ -44,7 +44,7 @@ public sealed class ConcurrencyGate : IReportable
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, Entry> s_table = new();
 
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
 
     private long _totalAcquired;
     private long _totalRejected;

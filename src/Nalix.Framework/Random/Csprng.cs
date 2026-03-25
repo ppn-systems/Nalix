@@ -87,7 +87,6 @@ public static class Csprng
     /// 96-bit (12-byte) nonces are recommended for most AEAD schemes like AES-GCM and ChaCha20-Poly1305.
     /// Never reuse a nonce with the same key in authenticated encryption.
     /// </remarks>
-    [return: NotNull]
     public static byte[] CreateNonce(int length = 12)
     {
         if (length <= 0)
@@ -115,7 +114,6 @@ public static class Csprng
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static byte[] GetBytes(int length)
     {
         if (length < 0)
@@ -145,7 +143,6 @@ public static class Csprng
     /// Thread-safe. Suitable for security-sensitive applications requiring unpredictable integers.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static int GetInt32(
         int min,
         int max)
@@ -181,7 +178,6 @@ public static class Csprng
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static int GetInt32(
         int max) => GetInt32(0, max);
 
@@ -230,7 +226,6 @@ public static class Csprng
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static uint NextUInt32()
     {
         Span<byte> b = stackalloc byte[4];
@@ -248,7 +243,6 @@ public static class Csprng
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static ulong NextUInt64()
     {
         Span<byte> b = stackalloc byte[8];
@@ -266,7 +260,6 @@ public static class Csprng
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static double NextDouble() => (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
 
     #endregion Next

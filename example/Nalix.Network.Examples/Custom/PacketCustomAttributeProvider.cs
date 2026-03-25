@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Network.Routing;
 using System.Reflection;
+using Nalix.Network.Routing;
 
 namespace Nalix.Network.Examples.Custom;
 
@@ -23,7 +23,7 @@ public sealed class PacketCustomAttributeProvider : IPacketMetadataProvider
         ArgumentNullException.ThrowIfNull(builder);
 
         // Try to get the custom attribute from the method
-        var attr = method.GetCustomAttribute<PacketCustomAttribute>(inherit: false);
+        PacketCustomAttribute? attr = method.GetCustomAttribute<PacketCustomAttribute>(inherit: false);
         if (attr != null)
         {
             // Store the attribute in the builder's custom attribute bag

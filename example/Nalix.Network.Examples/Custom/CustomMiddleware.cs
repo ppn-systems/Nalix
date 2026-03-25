@@ -5,7 +5,6 @@ using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Middleware;
 using Nalix.Network.Routing;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Network.Examples.Custom;
 
@@ -22,13 +21,13 @@ public class CustomMiddleware : IPacketMiddleware<IPacket>
     /// <param name="context">The packet context containing the packet and connection information.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async System.Threading.Tasks.Task InvokeAsync(
+    public async Task InvokeAsync(
         PacketContext<IPacket> context,
         Func<CancellationToken, Task> next)
     {
         // Try get the attribute instance from the custom attribute dictionary.
         // The dictionary is keyed by Type, so use typeof(PacketCustomAttribute).
-        if (!context.Attributes.CustomAttributes.TryGetValue(typeof(PacketCustomAttribute), out var attr)
+        if (!context.Attributes.CustomAttributes.TryGetValue(typeof(PacketCustomAttribute), out Attribute? attr)
             || attr is not PacketCustomAttribute)
         {
             // Attribute not present -> continue pipeline.

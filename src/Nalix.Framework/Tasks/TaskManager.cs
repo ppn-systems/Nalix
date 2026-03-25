@@ -148,7 +148,6 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the worker cannot be added.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public IWorkerHandle ScheduleWorker(string name, string group, Func<IWorkerContext, CancellationToken, ValueTask> work, IWorkerOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
@@ -327,7 +326,6 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public IRecurringHandle ScheduleRecurring([StringSyntax("identifier")] string name, TimeSpan interval, Func<CancellationToken, ValueTask> work, IRecurringOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(work);
@@ -399,7 +397,6 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public int CancelAllWorkers()
     {
         int n = 0;
@@ -421,7 +418,6 @@ public sealed partial class TaskManager : ITaskManager
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public bool CancelWorker(ISnowflake id)
     {
         if (_workers.TryGetValue(id, out WorkerState? st))
@@ -452,7 +448,6 @@ public sealed partial class TaskManager : ITaskManager
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public int CancelGroup(string group)
     {
         int n = 0;
@@ -476,7 +471,6 @@ public sealed partial class TaskManager : ITaskManager
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public bool CancelRecurring(string? name)
     {
         if (name is null)
@@ -543,7 +537,6 @@ public sealed partial class TaskManager : ITaskManager
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public IReadOnlyCollection<IWorkerHandle> GetWorkers(bool runningOnly = true, string? group = null)
     {
         List<IWorkerHandle> list = new(_workers.Count);
@@ -568,7 +561,6 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public IReadOnlyCollection<IRecurringHandle> GetRecurring()
     {
         List<IRecurringHandle> list = new(_recurring.Count);
@@ -583,7 +575,6 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public bool TryGetWorker(
         ISnowflake id,
         [NotNullWhen(true)] out IWorkerHandle? handle)
@@ -596,7 +587,6 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public bool TryGetRecurring(string name,
         [NotNullWhen(true)] out IRecurringHandle? handle)
     {

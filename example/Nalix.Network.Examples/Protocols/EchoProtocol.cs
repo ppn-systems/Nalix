@@ -7,10 +7,10 @@
 //
 // Note: Replace mocks with real Nalix types in your project.
 
+using System.Text;
 using Nalix.Common.Networking;
 using Nalix.Common.Shared;
 using Nalix.Network.Protocols;
-using System.Text;
 
 namespace Nalix.Network.Examples.Protocols;
 
@@ -23,24 +23,24 @@ public class EchoProtocol : Protocol
     /// ProcessMessage is called when a message is available for processing.
     /// Implement domain-specific parsing and response logic here.
     /// </summary>
-    public override void ProcessMessage(Object sender, IConnectEventArgs args)
+    public override void ProcessMessage(object sender, IConnectEventArgs args)
     {
         // Basic null-check and defensive programming.
         if (args != null)
         {
             // Assume IConnectEventArgs exposes a ReadOnlyMemory<byte> Payload (this is a mock).
             using IBufferLease incoming = args.Lease;
-            ReadOnlyMemory<Byte> payload = incoming.Memory;
+            ReadOnlyMemory<byte> payload = incoming.Memory;
 
             // Convert to string for logging/debugging.
-            String text = Encoding.UTF8.GetString(payload.Span);
+            string text = Encoding.UTF8.GetString(payload.Span);
 
             // Business logic: echo back upper-cased message.
-            String response = $"ECHO: {text.ToUpperInvariant()}";
+            string response = $"ECHO: {text.ToUpperInvariant()}";
 
             // Send response via connection (assume IConnection has a Send method).
             // In a real implementation, sending is asynchronous and may use buffer pooling.
-            args.Connection?.TCP.Send(Encoding.UTF8.GetBytes(response));
+            _ = (args.Connection?.TCP.Send(Encoding.UTF8.GetBytes(response)));
         }
         else
         {

@@ -200,7 +200,6 @@ public static class Singleton
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static bool IsRegistered<TClass>() where TClass : class
         => Services.ContainsKey(typeof(TClass)) || TypeMapping.ContainsKey(typeof(TClass)) || Factories.ContainsKey(typeof(TClass));
 

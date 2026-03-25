@@ -55,7 +55,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     private readonly TimeSpan _inactivityThreshold;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
 
-    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
 
     private int _disposed;
 
@@ -84,7 +84,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// </summary>
     /// <param name="config">Configuration options. If null, uses global configuration.</param>
     /// <exception cref="InternalErrorException">Thrown when configuration validation fails.</exception>
-    public ConnectionLimiter(ConnectionLimitOptions config = null)
+    public ConnectionLimiter(ConnectionLimitOptions? config = null)
     {
         _config = config ?? ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
         _config.Validate();
@@ -201,7 +201,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Event handler signature")]
     public void OnConnectionClosed(
-        object sender,
+        object? sender,
         IConnectEventArgs args)
     {
         if (Volatile.Read(ref _disposed) != 0)

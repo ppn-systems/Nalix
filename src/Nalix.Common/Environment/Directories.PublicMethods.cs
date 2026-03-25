@@ -52,7 +52,6 @@ public static partial class Directories
     /// The name of the subdirectory to create.
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    [return: NotNull]
     public static string CreateSubdirectory(
         [MaybeNull] string parentPath,
         [MaybeNull] string directoryName)
@@ -82,7 +81,6 @@ public static partial class Directories
     /// An optional prefix to prepend to the generated timestamp-based directory name.
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    [return: NotNull]
     public static string CreateTimestampedDirectory(
         [MaybeNull] string parentPath,
         string prefix = "")
@@ -108,7 +106,6 @@ public static partial class Directories
     /// The file name to append to the directory path.
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    [return: NotNull]
     public static string GetFilePath(
         [MaybeNull] string directoryPath,
         [MaybeNull] string fileName)
@@ -133,7 +130,6 @@ public static partial class Directories
     /// <param name="fileName">
     /// The file name to place under the temporary directory.
     /// </param>
-    [return: NotNull]
     public static string GetTempFilePath(
         [MaybeNull] string fileName) => GetFilePath(TemporaryDirectory, fileName);
 
@@ -150,7 +146,6 @@ public static partial class Directories
     /// The file extension to append to the generated file name.
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    [return: NotNull]
     public static string GetTimestampedFilePath(
         [MaybeNull] string directoryPath,
         [MaybeNull] string fileNameBase,
@@ -178,7 +173,6 @@ public static partial class Directories
     /// <param name="fileName">
     /// The file name to place under the logs directory.
     /// </param>
-    [return: NotNull]
     public static string GetLogFilePath(
         [MaybeNull] string fileName) => GetFilePath(LogsDirectory, fileName);
 
@@ -188,7 +182,6 @@ public static partial class Directories
     /// <param name="fileName">
     /// The file name to place under the configuration directory.
     /// </param>
-    [return: NotNull]
     public static string GetConfigFilePath(
         [MaybeNull] string fileName) => GetFilePath(ConfigurationDirectory, fileName);
 
@@ -198,7 +191,6 @@ public static partial class Directories
     /// <param name="fileName">
     /// The file name to place under the storage directory.
     /// </param>
-    [return: NotNull]
     public static string GetStorageFilePath(
         [MaybeNull] string fileName) => GetFilePath(StorageDirectory, fileName);
 
@@ -208,7 +200,6 @@ public static partial class Directories
     /// <param name="fileName">
     /// The file name to place under the database directory.
     /// </param>
-    [return: NotNull]
     public static string GetDatabaseFilePath(
         [MaybeNull] string fileName) => GetFilePath(DatabaseDirectory, fileName);
 
@@ -220,7 +211,6 @@ public static partial class Directories
     /// <param name="searchPattern">Glob pattern to select files.</param>
     /// <returns>Number of files deleted.</returns>
     /// <exception cref="ArgumentNullException"></exception>
-    [return: NotNull]
     public static int DeleteOldFiles(
         [MaybeNull] string directoryPath,
         TimeSpan maxAge,
@@ -272,7 +262,6 @@ public static partial class Directories
     /// <returns>
     /// <c>true</c> if all directories accept writes; otherwise <c>false</c>.
     /// </returns>
-    [return: NotNull]
     public static bool CanAccessAllDirectories()
     {
         try
@@ -337,7 +326,6 @@ public static partial class Directories
     /// <c>true</c> to include subdirectories; otherwise, <c>false</c>.
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    [return: NotNull]
     public static IEnumerable<string> EnumerateFiles(
         [MaybeNull] string directory,
         string searchPattern = "*",
@@ -376,7 +364,6 @@ public static partial class Directories
     /// <c>true</c> to include files in subdirectories; otherwise, <c>false</c>.
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    [return: NotNull]
     public static long CalculateDirectorySize(
         [MaybeNull] string directoryPath,
         bool includeSubdirectories = true)
@@ -418,7 +405,6 @@ public static partial class Directories
     /// The parent directory where the date-based directory should be created.
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    [return: NotNull]
     public static string CreateDateDirectory(
         [MaybeNull] string parentPath)
     {
@@ -440,7 +426,6 @@ public static partial class Directories
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public static string CreateHierarchicalDateDirectory(
         [MaybeNull] string parentPath)
     {
@@ -467,7 +452,6 @@ public static partial class Directories
     /// <param name="width">Hex digits per level (e.g., 2 => 00..FF).</param>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [return: NotNull]
     public static string EnsureShardedPath(
         [MaybeNull] string parentPath,
         [MaybeNull] string key,

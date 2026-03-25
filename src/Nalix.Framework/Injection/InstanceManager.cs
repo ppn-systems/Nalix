@@ -385,7 +385,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <returns>The existing or newly created instance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public T GetOrCreateInstance<T>(
         [MaybeNull] params object?[] args) where T : class
@@ -435,7 +434,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public object GetOrCreateInstance(
         Type type,
         [MaybeNull] params object?[] args)
@@ -482,7 +480,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <returns>A new instance of the specified type.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public object CreateInstance(
         Type type,
         [MaybeNull] params object?[] args)
@@ -500,7 +497,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public bool RemoveInstance(Type type)
     {
         ObjectDisposedException.ThrowIf(Interlocked
@@ -684,7 +680,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <summary>
     /// Generates a human-readable report of all cached instances.
     /// </summary>
-    [return: NotNull]
     public string GenerateReport()
     {
         StringBuilder sb = new(1024);

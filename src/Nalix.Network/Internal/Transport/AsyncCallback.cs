@@ -70,7 +70,7 @@ internal static class AsyncCallback
     private static long s_droppedCallbacks;
     private static long s_totalInvoked;
 
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// ── Per-IP pending counter ─────────────────────────────────────────────────
@@ -134,7 +134,7 @@ internal static class AsyncCallback
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Invoke(
-        EventHandler<IConnectEventArgs> callback,
+        EventHandler<IConnectEventArgs>? callback,
         object? sender,
         IConnectEventArgs args)
     {
@@ -203,7 +203,7 @@ internal static class AsyncCallback
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InvokeHighPriority(
-        EventHandler<IConnectEventArgs> callback,
+        EventHandler<IConnectEventArgs>? callback,
         object? sender,
         IConnectEventArgs args)
     {

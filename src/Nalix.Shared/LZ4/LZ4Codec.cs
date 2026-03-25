@@ -29,7 +29,6 @@ public static class LZ4Codec
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public static int Encode(
         [DisallowNull] ReadOnlySpan<byte> input,
         [DisallowNull] Span<byte> output)
@@ -109,7 +108,6 @@ public static class LZ4Codec
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     public static int Decode(
         [DisallowNull] ReadOnlySpan<byte> input,
         [DisallowNull] Span<byte> output)
@@ -130,7 +128,6 @@ public static class LZ4Codec
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public static bool Decode(
         [DisallowNull] ReadOnlySpan<byte> input,
         [NotNullWhen(true)] out byte[]? output,

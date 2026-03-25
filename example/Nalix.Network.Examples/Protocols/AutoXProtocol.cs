@@ -30,14 +30,14 @@ public sealed class AutoXProtocol : Protocol
         KeepConnectionOpen = true;
     }
 
-    public override void OnAccept(IConnection connection, System.Threading.CancellationToken cancellationToken = default)
+    public override void OnAccept(IConnection connection, CancellationToken cancellationToken = default)
     {
         base.OnAccept(connection, cancellationToken);
 
         // Log new connection and register with ConnectionHub if available
         // Auto unregisters on disconnect via ConnectionHub's internal tracking
-        InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
-                                .RegisterConnection(connection);
+        _ = (InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
+                                .RegisterConnection(connection));
     }
 
     /// <summary>
@@ -46,13 +46,13 @@ public sealed class AutoXProtocol : Protocol
     /// </summary>
     /// <param name="sender">The source of the event.</param>
     /// <param name="args">Event arguments containing the connection and message information.</param>
-    public override void ProcessMessage(System.Object sender, IConnectEventArgs args)
+    public override void ProcessMessage(object sender, IConnectEventArgs args)
     {
         // Validate arguments and protocol state
-        System.ArgumentNullException.ThrowIfNull(args);
+        ArgumentNullException.ThrowIfNull(args);
 
         // TODO: Parse message and implement business logic here
-        System.Console.WriteLine($"[AutoX.{nameof(AutoXProtocol)}:{nameof(ProcessMessage)}] Received message from connection id={args.Connection.ID}");
+        Console.WriteLine($"[AutoX.{nameof(AutoXProtocol)}:{nameof(ProcessMessage)}] Received message from connection id={args.Connection.ID}");
         // Auto dispose the incoming packet after processing
         s_Dispatch.HandlePacket(args.Lease, args.Connection);
 
@@ -65,7 +65,7 @@ public sealed class AutoXProtocol : Protocol
     /// </summary>
     /// <param name="connection">The connection to validate.</param>
     /// <returns>True if accepted; false otherwise.</returns>
-    protected override System.Boolean ValidateConnection(IConnection connection)
+    protected override bool ValidateConnection(IConnection connection)
     {
         // TODO: Add custom validation logic, e.g. check IP, token, etc.
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -90,7 +90,7 @@ public sealed class AutoXProtocol : Protocol
     /// </summary>
     /// <param name="connection">The connection where the error occurred.</param>
     /// <param name="exception">The exception thrown.</param>
-    protected override void OnConnectionError(IConnection connection, System.Exception exception)
+    protected override void OnConnectionError(IConnection connection, Exception exception)
     {
         base.OnConnectionError(connection, exception);
 

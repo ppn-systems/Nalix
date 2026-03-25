@@ -24,7 +24,7 @@ public sealed partial class Connection : IConnection
 {
     #region Fields
 
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly Lock _lock;
@@ -58,7 +58,7 @@ public sealed partial class Connection : IConnection
         _disposed = false;
 
         ID = Snowflake.NewId(SnowflakeType.Session);
-        NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint);
+        NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint ?? throw new InvalidOperationException("Socket does not expose a remote endpoint."));
 
         _evtArgs = new ConnectionEventArgs(this);
         _cstream = new FramedSocketConnection(socket);
@@ -169,7 +169,7 @@ public sealed partial class Connection : IConnection
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public void Disconnect(string reason = null) => Close(force: true);
+    public void Disconnect(string? reason = null) => Close(force: true);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
@@ -219,7 +219,7 @@ public sealed partial class Connection : IConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private void OnCloseEventBridge(
-        object sender,
+        object? sender,
         IConnectEventArgs e)
     {
         if (Interlocked.Exchange(ref _closeSignaled, 1) != 0)
@@ -234,7 +234,7 @@ public sealed partial class Connection : IConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void OnProcessEventBridge(
-        object sender,
+        object? sender,
         IConnectEventArgs e)
     {
         if (sender is not Connection self)
@@ -248,7 +248,7 @@ public sealed partial class Connection : IConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     private static void OnPostProcessEventBridge(
-        object sender,
+        object? sender,
         IConnectEventArgs e)
     {
         if (sender is not Connection self)

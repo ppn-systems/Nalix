@@ -313,7 +313,6 @@ internal sealed class IniConfig : IDisposable
     /// <exception cref="ArgumentNullException">Thrown when section or key is null.</exception>
     /// <exception cref="ArgumentException">Thrown when section or key is empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public string GetString(
         string section,
         string key)
@@ -976,7 +975,6 @@ internal sealed class IniConfig : IDisposable
     /// </summary>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
     private static string CreateCacheKey(
         string section,
         string key,

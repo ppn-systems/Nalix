@@ -35,8 +35,8 @@ public abstract partial class UdpListenerBase
     private readonly IProtocol _protocol;
     private readonly SemaphoreSlim _lock;
 
-    private UdpClient _udpClient;
-    private CancellationTokenSource _cts;
+    private UdpClient? _udpClient;
+    private CancellationTokenSource? _cts;
     private CancellationToken _cancellationToken;
 
     private int _isDisposed;

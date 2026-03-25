@@ -116,7 +116,6 @@ public partial class ConfigurationLoader
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     private static string GetDefaultValueString(PropertyMetadata propertyType)
     {
         switch (propertyType.TypeCode)
@@ -167,7 +166,6 @@ public partial class ConfigurationLoader
     [DebuggerStepThrough]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     private static object ThrowUnsupported(PropertyMetadata property)
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?

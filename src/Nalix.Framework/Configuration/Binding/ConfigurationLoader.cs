@@ -97,7 +97,6 @@ public abstract partial class ConfigurationLoader
     /// </summary>
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public T Clone<T>() where T : ConfigurationLoader, new()
     {
         T clone = new();

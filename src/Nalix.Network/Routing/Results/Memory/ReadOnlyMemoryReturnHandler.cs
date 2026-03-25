@@ -17,7 +17,7 @@ internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPac
 {
     /// <inheritdoc/>
     public async ValueTask HandleAsync(
-        object result,
+        object? result,
         PacketContext<TPacket> context)
     {
         if (result is not ReadOnlyMemory<byte> memory)
