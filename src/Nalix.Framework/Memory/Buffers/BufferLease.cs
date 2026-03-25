@@ -301,10 +301,7 @@ public sealed class BufferLease : IBufferLease
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public bool ReleaseOwnership(
-        [MaybeNull] out byte[]? buffer,
-        out int start,
-        out int length)
+    public bool ReleaseOwnership(out byte[]? buffer, out int start, out int length)
     {
         // Ensure single-owner detach (avoid breaking other holders)
         if (Volatile.Read(ref _refCount) != 1)
