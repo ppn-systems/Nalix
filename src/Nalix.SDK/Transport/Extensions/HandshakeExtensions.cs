@@ -1,6 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
@@ -26,7 +31,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// </list>
 /// Private key and shared secret bytes are zeroed immediately after use.
 /// </remarks>
-[System.Runtime.CompilerServices.SkipLocalsInit]
+[SkipLocalsInit]
 public static class HandshakeExtensions
 {
     /// <summary>Length of X25519 public keys in bytes.</summary>
@@ -51,16 +56,16 @@ public static class HandshakeExtensions
     /// <see cref="IClientConnection.OnDisconnected"/> only for the duration of the handshake
     /// and automatically unsubscribes via <see cref="SubscriptionExtensions.SubscribeTemp"/>.
     /// </remarks>
-    /// <exception cref="System.ArgumentNullException"></exception>
-    /// <exception cref="System.InvalidOperationException"></exception>
-    public static async System.Threading.Tasks.Task<bool> HandshakeAsync(
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="InvalidOperationException"></exception>
+    public static async Task<bool> HandshakeAsync(
         this IClientConnection client,
         ushort opCode = 1,
         int timeoutMs = -1,
-        System.Func<byte[], bool>? validateServerPublicKey = null,
-        System.Threading.CancellationToken ct = default)
+        Func<byte[], bool>? validateServerPublicKey = null,
+        CancellationToken ct = default)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(client);
 
         if (!client.IsConnected)
         {
@@ -75,11 +80,11 @@ public static class HandshakeExtensions
         }
 
         IPacketRegistry catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-            ?? throw new System.InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
+            ?? throw new InvalidOperationException("IPacketRegistry instance not found in InstanceManager.");
 
-        System.Threading.Tasks.TaskCompletionSource<Handshake> tcs = new(System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<Handshake> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        using System.Threading.CancellationTokenSource linked = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         int effectiveTimeout = timeoutMs > 0 ? timeoutMs : client.Options.ConnectTimeoutMillis;
         linked.CancelAfter(effectiveTimeout);
@@ -88,7 +93,7 @@ public static class HandshakeExtensions
         X25519.X25519KeyPair kp = X25519.GenerateKeyPair();
 
         // Subscribe BEFORE sending to avoid a race where the server responds before we listen.
-        using System.IDisposable sub = client.SubscribeTemp(OnMessageReceived, OnDisconnected);
+        using IDisposable sub = client.SubscribeTemp(OnMessageReceived, OnDisconnected);
 
         try
         {
@@ -129,22 +134,22 @@ public static class HandshakeExtensions
                     // Zero sensitive material immediately, regardless of success or failure.
                     if (kp.PrivateKey is { Length: > 0 })
                     {
-                        System.Array.Clear(kp.PrivateKey, 0, kp.PrivateKey.Length);
+                        Array.Clear(kp.PrivateKey, 0, kp.PrivateKey.Length);
                     }
 
                     if (secret is { Length: > 0 })
                     {
-                        System.Array.Clear(secret, 0, secret.Length);
+                        Array.Clear(secret, 0, secret.Length);
                     }
                 }
             }
         }
-        catch (System.OperationCanceledException oce)
+        catch (OperationCanceledException oce)
         {
             TcpSession.Logging?.Debug($"[SDK.HandshakeAsync] Canceled: {oce.Message}.");
             return false;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             TcpSession.Logging?.Error($"[SDK.HandshakeAsync] Failed: {ex}.");
             return false;
@@ -169,6 +174,6 @@ public static class HandshakeExtensions
             }
         }
 
-        void OnDisconnected(object? _, System.Exception ex) => tcs.TrySetException(ex ?? new System.InvalidOperationException("Disconnected during handshake."));
+        void OnDisconnected(object? _, Exception ex) => tcs.TrySetException(ex ?? new InvalidOperationException("Disconnected during handshake."));
     }
 }

@@ -1,6 +1,9 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
@@ -17,7 +20,7 @@ namespace Nalix.SDK.Transport.Internal;
 /// <remarks>
 /// <para>
 /// The channel has a fixed capacity of <see cref="SendQueueCapacity"/> slots.
-/// When the channel is full, <see cref="SendAsync(System.ReadOnlyMemory{byte}, System.Threading.CancellationToken)"/>
+/// When the channel is full, <see cref="SendAsync(ReadOnlyMemory{byte}, CancellationToken)"/>
 /// </para>
 /// <para>
 /// A single drain loop (<see cref="DRAIN_LOOP_ASYNC"/>) runs for the lifetime of the sender
@@ -28,7 +31,7 @@ namespace Nalix.SDK.Transport.Internal;
 /// <see cref="BufferPoolManager"/> and returned by the drain loop after the send completes.
 /// </para>
 /// </remarks>
-internal sealed class FRAME_SENDER : System.IDisposable
+internal sealed class FRAME_SENDER : IDisposable
 {
     // ── Constants ────────────────────────────────────────────────────────────
 
@@ -38,9 +41,9 @@ internal sealed class FRAME_SENDER : System.IDisposable
     // ── Fields ───────────────────────────────────────────────────────────────
 
     private readonly TransportOptions _options;
-    private readonly System.Func<System.Net.Sockets.Socket> _getSocket;
-    private readonly System.Action<int> _reportBytesSent;
-    private readonly System.Action<System.Exception> _onError;
+    private readonly Func<Socket> _getSocket;
+    private readonly Action<int> _reportBytesSent;
+    private readonly Action<Exception> _onError;
 
     /// <summary>
     /// Each item carries:
@@ -60,7 +63,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// <summary>
     /// CTS that stops the drain loop when the sender is disposed or the connection drops.
     /// </summary>
-    private readonly System.Threading.CancellationTokenSource _drainCts = new();
+    private readonly CancellationTokenSource _drainCts = new();
 
     /// <summary>Dispose guard: 0 = live, 1 = disposed.</summary>
     private int _disposed;
@@ -68,15 +71,15 @@ internal sealed class FRAME_SENDER : System.IDisposable
     // ── Constructor ──────────────────────────────────────────────────────────
 
     internal FRAME_SENDER(
-        System.Func<System.Net.Sockets.Socket> getSocket,
+        Func<Socket> getSocket,
         TransportOptions options,
-        System.Action<int> reportBytesSent,
-        System.Action<System.Exception> onError)
+        Action<int> reportBytesSent,
+        Action<Exception> onError)
     {
-        _options = options ?? throw new System.ArgumentNullException(nameof(options));
-        _getSocket = getSocket ?? throw new System.ArgumentNullException(nameof(getSocket));
-        _reportBytesSent = reportBytesSent ?? throw new System.ArgumentNullException(nameof(reportBytesSent));
-        _onError = onError ?? throw new System.ArgumentNullException(nameof(onError));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
+        _reportBytesSent = reportBytesSent ?? throw new ArgumentNullException(nameof(reportBytesSent));
+        _onError = onError ?? throw new ArgumentNullException(nameof(onError));
 
         // BoundedChannelFullMode.Wait → callers await when queue is full (backpressure).
         _sendQueue = System.Threading.Channels.Channel.CreateBounded<(
@@ -93,7 +96,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
         // Start the drain loop as a background task.
         _ = Task.Run(
             () => DRAIN_LOOP_ASYNC(_drainCts.Token),
-            System.Threading.CancellationToken.None);
+            CancellationToken.None);
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -107,23 +110,23 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// <returns>
     /// <c>true</c> if the frame was sent successfully; <c>false</c> on socket error.
     /// </returns>
-    /// <exception cref="System.ArgumentOutOfRangeException">
+    /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="payload"/> exceeds <see cref="TransportOptions.MaxPacketSize"/>.
     /// </exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown when this instance has been disposed.</exception>
-    /// <exception cref="System.OperationCanceledException">
+    /// <exception cref="ObjectDisposedException">Thrown when this instance has been disposed.</exception>
+    /// <exception cref="OperationCanceledException">
     /// Thrown when <paramref name="cancellationToken"/> is canceled while waiting for a queue slot.
     /// </exception>
     public async Task<bool> SendAsync(
-        System.ReadOnlyMemory<byte> payload,
-        System.Threading.CancellationToken cancellationToken = default)
+        ReadOnlyMemory<byte> payload,
+        CancellationToken cancellationToken = default)
     {
-        System.ObjectDisposedException.ThrowIf(
-            System.Threading.Volatile.Read(ref _disposed) == 1, nameof(FRAME_SENDER));
+        ObjectDisposedException.ThrowIf(
+            Volatile.Read(ref _disposed) == 1, nameof(FRAME_SENDER));
 
         if (payload.Length > _options.MaxPacketSize)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(payload), "Payload exceeds MaxPacketSize.");
+            throw new ArgumentOutOfRangeException(nameof(payload), "Payload exceeds MaxPacketSize.");
         }
 
         // ── 1. Frame the packet into a rented buffer ──────────────────────
@@ -135,11 +138,11 @@ internal sealed class FRAME_SENDER : System.IDisposable
         byte[] frame = BufferLease.ByteArrayPool.Rent(totalLen);
 
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(
-            System.MemoryExtensions.AsSpan(frame, 0, TcpSession.HeaderSize),
+            MemoryExtensions.AsSpan(frame, 0, TcpSession.HeaderSize),
             (ushort)totalLen);
 
         payload.Span.CopyTo(
-            System.MemoryExtensions.AsSpan(frame, TcpSession.HeaderSize, payload.Length));
+            MemoryExtensions.AsSpan(frame, TcpSession.HeaderSize, payload.Length));
 
         // ── 2. Enqueue and await the result ───────────────────────────────
         //
@@ -174,7 +177,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// <param name="cancellationToken"></param>
     public Task<bool> SendAsync(
         IPacket packet,
-        System.Threading.CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
         => SendAsync(packet.Serialize(), cancellationToken);
 
     /// <summary>
@@ -182,7 +185,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (System.Threading.Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
         {
             return;
         }
@@ -210,7 +213,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// </summary>
     /// <param name="token"></param>
     private async Task DRAIN_LOOP_ASYNC(
-        System.Threading.CancellationToken token)
+        CancellationToken token)
     {
         System.Threading.Channels.ChannelReader<(
             byte[] frame,
@@ -229,11 +232,11 @@ internal sealed class FRAME_SENDER : System.IDisposable
                 }
             }
         }
-        catch (System.OperationCanceledException) when (token.IsCancellationRequested)
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             // Normal shutdown path — drain loop exits cleanly.
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                 .Error($"[SDK.{nameof(FRAME_SENDER)}] drain-loop-faulted: {ex.Message}", ex);
@@ -260,29 +263,29 @@ internal sealed class FRAME_SENDER : System.IDisposable
     /// <param name="frameLen"></param>
     /// <param name="tcs"></param>
     /// <param name="token"></param>
-    /// <exception cref="System.Net.Sockets.SocketException"></exception>
+    /// <exception cref="SocketException"></exception>
     private async Task SEND_FRAME_ASYNC(
         byte[] frame,
         int frameLen,
         TaskCompletionSource<bool> tcs,
-        System.Threading.CancellationToken token)
+        CancellationToken token)
     {
         try
         {
-            System.Net.Sockets.Socket s = _getSocket();
+            Socket s = _getSocket();
 
             int sent = 0;
             while (sent < frameLen)
             {
                 int n = await s.SendAsync(
-                    new System.ReadOnlyMemory<byte>(frame, sent, frameLen - sent),
-                    System.Net.Sockets.SocketFlags.None,
+                    new ReadOnlyMemory<byte>(frame, sent, frameLen - sent),
+                    SocketFlags.None,
                     token).ConfigureAwait(false);
 
                 if (n == 0)
                 {
-                    throw new System.Net.Sockets.SocketException(
-                        (int)System.Net.Sockets.SocketError.ConnectionReset);
+                    throw new SocketException(
+                        (int)SocketError.ConnectionReset);
                 }
 
                 sent += n;
@@ -292,7 +295,7 @@ internal sealed class FRAME_SENDER : System.IDisposable
 
             _ = tcs.TrySetResult(true);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[SDK.{nameof(FRAME_SENDER)}:{nameof(SEND_FRAME_ASYNC)}] send-error: {ex.Message}", ex);

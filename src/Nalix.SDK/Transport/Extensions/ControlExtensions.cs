@@ -1,6 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
@@ -22,7 +27,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// <seealso cref="Control"/>
 /// <seealso cref="Clock"/>
 /// <seealso cref="TcpSession"/>
-[System.Runtime.CompilerServices.SkipLocalsInit]
+[SkipLocalsInit]
 public static class ControlExtensions
 {
     /// <summary>
@@ -40,22 +45,22 @@ public static class ControlExtensions
         /// <summary>Sets the sequence identifier.</summary>
         /// <param name="seq">The sequence identifier to assign.</param>
         /// <returns>The current builder.</returns>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithSeq(uint seq) { c.SequenceId = seq; return this; }
 
         /// <summary>Sets the reason code.</summary>
         /// <param name="reason">The protocol reason code.</param>
         /// <returns>The current builder.</returns>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithReason(ProtocolReason reason) { c.Reason = reason; return this; }
 
         /// <summary>Sets the transport type.</summary>
         /// <param name="tr">The transport type (e.g., <see cref="ProtocolType.TCP"/> or UDP).</param>
         /// <returns>The current builder.</returns>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithTransport(ProtocolType tr) { c.Protocol = tr; return this; }
 
         /// <summary>
@@ -63,8 +68,8 @@ public static class ControlExtensions
         /// Note: <see cref="Control.Initialize(ushort, ControlType, uint, ProtocolReason, ProtocolType)"/> already stamps on construction; call this only to refresh.
         /// </summary>
         /// <returns>The current builder.</returns>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         public ControlBuilder StampNow()
         {
             c.MonoTicks = Clock.MonoTicksNow();
@@ -74,8 +79,8 @@ public static class ControlExtensions
 
         /// <summary>Builds and returns the configured <see cref="Control"/> instance.</summary>
         /// <returns>The configured <see cref="Control"/>.</returns>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         public Control Build() => c;
     }
 
@@ -93,8 +98,8 @@ public static class ControlExtensions
     /// Control ping = client.NewControl(opCode, ControlType.PING).WithSeq(123).Build();
     /// </code>
     /// </example>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static ControlBuilder NewControl(
         this IClientConnection _,
         ushort opCode,
@@ -117,25 +122,25 @@ public static class ControlExtensions
     /// <param name="timeoutMs">Maximum wait time in milliseconds.</param>
     /// <param name="ct">A token to cancel the operation.</param>
     /// <returns>The first matching packet.</returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="client"/> or <paramref name="predicate"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
-    /// <exception cref="System.TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
-    /// <exception cref="System.OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    public static System.Threading.Tasks.Task<TPkt> AwaitPacketAsync<TPkt>(
+    /// <exception cref="InvalidOperationException">Thrown when the client is not connected.</exception>
+    /// <exception cref="TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
+    public static Task<TPkt> AwaitPacketAsync<TPkt>(
         this IClientConnection client,
-        System.Func<TPkt, bool> predicate,
+        Func<TPkt, bool> predicate,
         int timeoutMs,
-        System.Threading.CancellationToken ct = default)
+        CancellationToken ct = default)
         where TPkt : class, IPacket
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(predicate);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(predicate);
 
         if (!client.IsConnected)
         {
-            throw new System.InvalidOperationException("Client not connected.");
+            throw new InvalidOperationException("Client not connected.");
         }
 
         // Delegate all TCS + subscribe + timeout logic to PacketAwaiter.
@@ -144,7 +149,7 @@ public static class ControlExtensions
             client,
             predicate,
             timeoutMs,
-            sendAsync: _ => System.Threading.Tasks.Task.CompletedTask,
+            sendAsync: _ => Task.CompletedTask,
             ct);
     }
 
@@ -166,10 +171,10 @@ public static class ControlExtensions
     /// <item><description><c>pong</c> — the received PONG control frame.</description></item>
     /// </list>
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
-    /// <exception cref="System.TimeoutException">Thrown when a matching PONG is not received within <paramref name="timeoutMs"/>.</exception>
-    /// <exception cref="System.OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the client is not connected.</exception>
+    /// <exception cref="TimeoutException">Thrown when a matching PONG is not received within <paramref name="timeoutMs"/>.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     /// <remarks>
     /// RTT is computed using monotonic ticks. If the server echoes the sender's <see cref="Control.MonoTicks"/>,
     /// that value is preferred over the locally captured send tick.
@@ -179,19 +184,19 @@ public static class ControlExtensions
     /// var (rtt, pong) = await client.PingAsync(opCode: 3, timeoutMs: 2000, syncClock: true, ct: ct);
     /// </code>
     /// </example>
-    public static async System.Threading.Tasks.Task<(double rttMs, Control pong)> PingAsync(
+    public static async Task<(double rttMs, Control pong)> PingAsync(
         this IClientConnection client,
         ushort opCode,
         uint? sequenceId = null,
         int timeoutMs = 3000,
         bool syncClock = false,
-        System.Threading.CancellationToken ct = default)
+        CancellationToken ct = default)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(client);
 
         if (!client.IsConnected)
         {
-            throw new System.InvalidOperationException("Client not connected.");
+            throw new InvalidOperationException("Client not connected.");
         }
 
         uint seq = sequenceId ?? Csprng.NextUInt32();
@@ -216,7 +221,7 @@ public static class ControlExtensions
 
         if (syncClock && pong.Timestamp > 0)
         {
-            System.DateTime serverUtc = System.DateTime.UnixEpoch.AddMilliseconds(pong.Timestamp + (rtt * 0.5));
+            DateTime serverUtc = DateTime.UnixEpoch.AddMilliseconds(pong.Timestamp + (rtt * 0.5));
             _ = Clock.SynchronizeTime(serverUtc);
         }
 
@@ -232,18 +237,18 @@ public static class ControlExtensions
     /// <param name="timeoutMs">The maximum time to wait, in milliseconds.</param>
     /// <param name="ct">A token to cancel the operation.</param>
     /// <returns>The first CONTROL packet matching <paramref name="predicate"/>.</returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="client"/> or <paramref name="predicate"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="System.TimeoutException">Thrown when no matching CONTROL is received within <paramref name="timeoutMs"/>.</exception>
-    /// <exception cref="System.OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Threading.Tasks.Task<Control> AwaitControlAsync(
+    /// <exception cref="TimeoutException">Thrown when no matching CONTROL is received within <paramref name="timeoutMs"/>.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static Task<Control> AwaitControlAsync(
         this IClientConnection client,
-        System.Func<Control, bool> predicate,
+        Func<Control, bool> predicate,
         int timeoutMs,
-        System.Threading.CancellationToken ct = default)
+        CancellationToken ct = default)
         => AwaitPacketAsync(client, predicate, timeoutMs, ct);
 
     /// <summary>
@@ -259,8 +264,8 @@ public static class ControlExtensions
     /// </param>
     /// <param name="ct">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous send operation.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
-    /// <exception cref="System.InvalidOperationException">Thrown when the client is not connected.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the client is not connected.</exception>
     /// <example>
     /// <code>
     /// await client.SendControlAsync(
@@ -270,20 +275,20 @@ public static class ControlExtensions
     ///     ct: ct);
     /// </code>
     /// </example>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Threading.Tasks.Task SendControlAsync(
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static Task SendControlAsync(
         this IClientConnection client,
         ushort opCode,
         ControlType type,
-        System.Action<Control>? configure = null,
-        System.Threading.CancellationToken ct = default)
+        Action<Control>? configure = null,
+        CancellationToken ct = default)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(client);
 
         if (!client.IsConnected)
         {
-            throw new System.InvalidOperationException("Client not connected.");
+            throw new InvalidOperationException("Client not connected.");
         }
 
         // Materialize the Control from the builder first; ref structs cannot be lambda-captured.

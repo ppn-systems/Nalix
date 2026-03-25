@@ -2,6 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Configuration;
 using Nalix.Shared.Extensions;
@@ -20,7 +25,7 @@ namespace Nalix.SDK.Transport.Internal;
 ///   FRAME_READER never touches the lease after calling _onMessage.
 /// </remarks>
 internal sealed class FRAME_READER(
-    Func<System.Net.Sockets.Socket> getSocket,
+    Func<Socket> getSocket,
     TransportOptions options,
     Action<BufferLease> onMessage,
     Action<Exception> onError,
@@ -28,7 +33,7 @@ internal sealed class FRAME_READER(
 {
     private readonly TransportOptions _options = options ?? throw new ArgumentNullException(nameof(options));
 
-    private readonly Func<System.Net.Sockets.Socket> _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
+    private readonly Func<Socket> _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
 
     private readonly Action<Exception> _onError = onError ?? throw new ArgumentNullException(nameof(onError));
 
@@ -45,12 +50,12 @@ internal sealed class FRAME_READER(
     /// On each full frame, creates a BufferLease (ownership transferred to _onMessage).
     /// </summary>
     /// <param name="token"></param>
-    /// <exception cref="System.Net.Sockets.SocketException"></exception>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "<Pending>")]
-    public async System.Threading.Tasks.Task ReceiveLoopAsync(
-        System.Threading.CancellationToken token)
+    /// <exception cref="SocketException"></exception>
+    [SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "<Pending>")]
+    public async Task ReceiveLoopAsync(
+        CancellationToken token)
     {
-        System.Net.Sockets.Socket s;
+        Socket s;
         try
         {
             s = _getSocket();
@@ -89,8 +94,8 @@ internal sealed class FRAME_READER(
                             $"[SDK.{nameof(FRAME_READER)}] invalid-packet-size totalLen={totalLen} " +
                             $"headerSize={TcpSession.HeaderSize} max={_options.MaxPacketSize} " +
                             $"endpoint={FORMAT_ENDPOINT(s)}");
-                        throw new System.Net.Sockets.SocketException(
-                            (int)System.Net.Sockets.SocketError.ProtocolNotSupported);
+                        throw new SocketException(
+                            (int)SocketError.ProtocolNotSupported);
                     }
 
                     int payloadLen = totalLen - TcpSession.HeaderSize;
@@ -231,23 +236,23 @@ internal sealed class FRAME_READER(
         }
     }
 
-    private static async System.Threading.Tasks.Task RECEIVE_EXACTLY_ASYNC(
-        System.Net.Sockets.Socket s,
+    private static async Task RECEIVE_EXACTLY_ASYNC(
+        Socket s,
         Memory<byte> dst,
-        System.Threading.CancellationToken token)
+        CancellationToken token)
     {
         int read = 0;
         while (read < dst.Length)
         {
             int n = await s.ReceiveAsync(
                 dst[read..],
-                System.Net.Sockets.SocketFlags.None,
+                SocketFlags.None,
                 token).ConfigureAwait(false);
 
             if (n == 0)
             {
-                throw new System.Net.Sockets.SocketException(
-                    (int)System.Net.Sockets.SocketError.ConnectionReset);
+                throw new SocketException(
+                    (int)SocketError.ConnectionReset);
             }
 
             read += n;
@@ -259,8 +264,8 @@ internal sealed class FRAME_READER(
     /// </summary>
     /// <param name="s"></param>
     /// <returns></returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    private static string FORMAT_ENDPOINT(System.Net.Sockets.Socket? s)
+    [DebuggerStepThrough]
+    private static string FORMAT_ENDPOINT(Socket? s)
     {
         if (s is null)
         {
