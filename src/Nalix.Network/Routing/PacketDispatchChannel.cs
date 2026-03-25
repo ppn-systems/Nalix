@@ -101,7 +101,7 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.NoInlining |
        MethodImplOptions.AggressiveOptimization)]
     public void Activate(
-        [NotNull] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
@@ -163,7 +163,7 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.NoInlining |
        MethodImplOptions.AggressiveOptimization)]
     public void Deactivate(
-        [NotNull] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref _running, 0) == 0)
         {
@@ -217,7 +217,7 @@ public sealed class PacketDispatchChannel
        MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(
         [MaybeNull] IBufferLease packet,
-        [NotNull] IConnection connection)
+        IConnection connection)
     {
         if (packet is null || packet.Length <= 0)
         {
@@ -239,8 +239,8 @@ public sealed class PacketDispatchChannel
     // For now, process immediately to avoid mixing typed/lease queues.
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void HandlePacket(
-        [NotNull] IPacket packet,
-        [NotNull] IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
+        IPacket packet,
+        IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
 
     #endregion Public Methods
 

@@ -221,7 +221,7 @@ public sealed partial class Connection : IConnection
         MethodImplOptions.AggressiveOptimization)]
     private void OnCloseEventBridge(
         [AllowNull] object sender,
-        [NotNull] IConnectEventArgs e)
+        IConnectEventArgs e)
     {
         if (Interlocked.Exchange(ref _closeSignaled, 1) != 0)
         {
@@ -236,7 +236,7 @@ public sealed partial class Connection : IConnection
         MethodImplOptions.AggressiveOptimization)]
     private static void OnProcessEventBridge(
         [AllowNull] object sender,
-        [NotNull] IConnectEventArgs e)
+        IConnectEventArgs e)
     {
         if (sender is not Connection self)
         {
@@ -250,7 +250,7 @@ public sealed partial class Connection : IConnection
         MethodImplOptions.AggressiveOptimization)]
     private static void OnPostProcessEventBridge(
         [AllowNull] object sender,
-        [NotNull] IConnectEventArgs e)
+        IConnectEventArgs e)
     {
         if (sender is not Connection self)
         {

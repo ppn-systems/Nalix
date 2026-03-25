@@ -242,8 +242,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void Register<T>(
-        [NotNull] T instance,
-        [NotNull] bool registerInterfaces = true) where T : class
+        T instance,
+        bool registerInterfaces = true) where T : class
     {
         ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -375,7 +375,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void RegisterForClassOnly<T>(
-        [NotNull] T instance) where T : class => Register(instance, registerInterfaces: false);
+        T instance) where T : class => Register(instance, registerInterfaces: false);
 
     /// <summary>
     /// Gets or creates an instance of the specified type with high performance.
@@ -437,7 +437,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public object GetOrCreateInstance(
-        [NotNull] Type type,
+        Type type,
         [MaybeNull] params object?[] args)
     {
         ObjectDisposedException.ThrowIf(Interlocked
@@ -484,7 +484,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
     public object CreateInstance(
-        [NotNull] Type type,
+        Type type,
         [MaybeNull] params object?[] args)
     {
         ObjectDisposedException.ThrowIf(Interlocked
@@ -501,7 +501,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     [return: NotNull]
-    public bool RemoveInstance([NotNull] Type type)
+    public bool RemoveInstance(Type type)
     {
         ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -639,7 +639,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <param name="dispose">If <c>true</c>, disposes any instances that implement <see cref="IDisposable"/>.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public void Clear([NotNull] bool dispose = true)
+    public void Clear(bool dispose = true)
     {
         ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
