@@ -169,7 +169,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return<T>(T obj) where T : IPoolable, new()
     {
-        if (EqualityComparer<T>.Default.Equals(obj, default(T)))
+        if (EqualityComparer<T>.Default.Equals(obj, default))
         {
             throw new ArgumentNullException(nameof(obj));
         }
@@ -442,7 +442,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
 
         foreach (T obj in objects)
         {
-            if (EqualityComparer<T>.Default.Equals(obj, default(T)))
+            if (EqualityComparer<T>.Default.Equals(obj, default))
             {
                 continue;
             }

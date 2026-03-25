@@ -40,7 +40,7 @@ public sealed class PacketRegistryFactory
 
     // Built-in namespaces whose types are pre-registered in the default constructor
     // and must NOT be re-added during assembly scanning (would cause duplicate magic).
-    private static readonly System.Collections.Frozen.FrozenSet<System.String> BuiltInNamespaces;
+    private static readonly System.Collections.Frozen.FrozenSet<string> BuiltInNamespaces;
 
     #endregion Static: Defaults & Utilities
 
@@ -51,7 +51,7 @@ public sealed class PacketRegistryFactory
 
     // namespace → recursive flag
     // Key: namespace string (exact or prefix match when recursive=true)
-    private readonly System.Collections.Generic.Dictionary<System.String, System.Boolean> _namespaceScan = new(System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.Dictionary<string, bool> _namespaceScan = new(System.StringComparer.Ordinal);
 
     #endregion Fields
 
@@ -99,7 +99,7 @@ public sealed class PacketRegistryFactory
     public PacketRegistryFactory RegisterPacket<TPacket>() where TPacket : IPacket
     {
         System.Type t = typeof(TPacket);
-        System.Boolean added = _explicitPacketTypes.Add(t);
+        bool added = _explicitPacketTypes.Add(t);
 
         TRACE(added
             ? $"reg-type type={t.Name}"
@@ -116,7 +116,7 @@ public sealed class PacketRegistryFactory
     {
         if (asm is null) { TRACE("include-asm-null"); return this; }
 
-        System.Boolean added = _assemblies.Add(asm);
+        bool added = _assemblies.Add(asm);
         TRACE(added
             ? $"include-asm name={asm.GetName().Name}"
             : $"include-asm-skip name={asm.GetName().Name}");
@@ -151,12 +151,12 @@ public sealed class PacketRegistryFactory
     /// (e.g. <c>MyGame.Network.Packets.Auth</c>), use
     /// <see cref="IncludeNamespaceRecursive"/> instead.
     /// </remarks>
-    public PacketRegistryFactory IncludeNamespace(System.String ns)
+    public PacketRegistryFactory IncludeNamespace(string ns)
     {
         System.ArgumentException.ThrowIfNullOrWhiteSpace(ns);
 
         // If already registered as recursive, keep recursive (superset).
-        if (!_namespaceScan.TryGetValue(ns, out System.Boolean existing) || !existing)
+        if (!_namespaceScan.TryGetValue(ns, out bool existing) || !existing)
         {
             _namespaceScan[ns] = false;
         }
@@ -180,7 +180,7 @@ public sealed class PacketRegistryFactory
     /// Prefer <see cref="IncludeNamespace"/> when you only want a single namespace
     /// level to avoid accidentally picking up unrelated types.
     /// </remarks>
-    public PacketRegistryFactory IncludeNamespaceRecursive(System.String rootNs)
+    public PacketRegistryFactory IncludeNamespaceRecursive(string rootNs)
     {
         System.ArgumentException.ThrowIfNullOrWhiteSpace(rootNs);
 
@@ -199,10 +199,10 @@ public sealed class PacketRegistryFactory
     /// </exception>
     public PacketRegistry CreateCatalog()
     {
-        System.Int32 estimated =
+        int estimated =
             System.Math.Max(16, _explicitPacketTypes.Count + System.Math.Min(64, _assemblies.Count * 8));
 
-        System.Collections.Generic.Dictionary<System.UInt32, PacketDeserializer> deserializers = new(estimated);
+        System.Collections.Generic.Dictionary<uint, PacketDeserializer> deserializers = new(estimated);
 
         // ── 1. Collect candidates ────────────────────────────────────────────────
         System.Collections.Generic.HashSet<System.Type> candidates = [.. _explicitPacketTypes];
@@ -236,7 +236,7 @@ public sealed class PacketRegistryFactory
                     continue;
                 }
 
-                System.String? typeNs = type.Namespace;
+                string? typeNs = type.Namespace;
 
                 // Built-in namespace: skip unless explicitly registered
                 if (typeNs is not null && BuiltInNamespaces.Contains(typeNs))
@@ -266,12 +266,12 @@ public sealed class PacketRegistryFactory
         // ── 2. Bind per type ─────────────────────────────────────────────────────
         foreach (System.Type type in candidates)
         {
-            System.UInt32 key = Compute(type);
+            uint key = Compute(type);
 
             System.Reflection.MethodInfo? miDeserialize = FIND_STATIC_METHOD(
                 type, StaticPublic,
                 nameof(IPacketDeserializer<>.Deserialize),
-                [typeof(System.ReadOnlySpan<System.Byte>)]);
+                [typeof(System.ReadOnlySpan<byte>)]);
 
             // ── Deserializer (required) ──────────────────────────────────────────
             if (miDeserialize is null)
@@ -338,19 +338,19 @@ public sealed class PacketRegistryFactory
     /// using FNV-1a. Consistent across machines and .NET versions as long as
     /// the type's full name does not change.
     /// </summary>
-    public static System.UInt32 Compute(System.Type type)
+    public static uint Compute(System.Type type)
     {
         System.ArgumentNullException.ThrowIfNull(type);
 
         // Standard FNV-1a hashes BYTES, not chars. For ASCII-safe type names the result
         // is the same, but for any non-ASCII char the high byte was silently dropped.
-        System.ReadOnlySpan<System.Char> name = System.MemoryExtensions.AsSpan(type.FullName ?? type.Name);
-        System.Span<System.Byte> buf = stackalloc System.Byte[System.Text.Encoding.UTF8.GetMaxByteCount(name.Length)];
+        System.ReadOnlySpan<char> name = System.MemoryExtensions.AsSpan(type.FullName ?? type.Name);
+        System.Span<byte> buf = stackalloc byte[System.Text.Encoding.UTF8.GetMaxByteCount(name.Length)];
 
-        System.Int32 written = System.Text.Encoding.UTF8.GetBytes(name, buf);
+        int written = System.Text.Encoding.UTF8.GetBytes(name, buf);
 
-        System.UInt32 hash = 2166136261u; // FNV-1a 32-bit offset basis
-        foreach (System.Byte b in buf[..written])
+        uint hash = 2166136261u; // FNV-1a 32-bit offset basis
+        foreach (byte b in buf[..written])
         {
             hash ^= b;
             hash *= 16777619u; // FNV-1a 32-bit prime
@@ -367,17 +367,17 @@ public sealed class PacketRegistryFactory
     /// Returns <see langword="true"/> if <paramref name="typeNs"/> matches any registered
     /// namespace entry — either exact or recursive-prefix.
     /// </summary>
-    private System.Boolean MATCHES_NAMESPACE_FILTER(System.String? typeNs)
+    private bool MATCHES_NAMESPACE_FILTER(string? typeNs)
     {
         if (typeNs is null)
         {
             return false;
         }
 
-        foreach (System.Collections.Generic.KeyValuePair<System.String, System.Boolean> entry in _namespaceScan)
+        foreach (System.Collections.Generic.KeyValuePair<string, bool> entry in _namespaceScan)
         {
-            System.String ns = entry.Key;
-            System.Boolean recursive = entry.Value;
+            string ns = entry.Key;
+            bool recursive = entry.Value;
 
             if (recursive)
             {
@@ -430,11 +430,11 @@ public sealed class PacketRegistryFactory
     private static System.Reflection.MethodInfo? FIND_STATIC_METHOD(
         System.Type startType,
         System.Reflection.BindingFlags flags,
-        System.String name,
+        string name,
         System.Type[] parameterTypes)
     {
         System.Type? current = startType;
-        while (current is not null && current != typeof(System.Object))
+        while (current is not null && current != typeof(object))
         {
             System.Reflection.MethodInfo? mi = current.GetMethod(
                 name, flags, binder: null, parameterTypes, modifiers: null);
@@ -456,7 +456,7 @@ public sealed class PacketRegistryFactory
     /// Reverse-lookup helper: given a magic number, find which type is currently
     /// registered for it. Used to produce clear duplicate-magic error messages.
     /// </summary>
-    private static System.Type FIND_TYPE_BY_MAGIC(System.UInt32 magic)
+    private static System.Type FIND_TYPE_BY_MAGIC(uint magic)
     {
         // Only called on duplicate detection (rare, startup-only) — linear scan is fine.
         foreach (System.Type t in System.Linq.Enumerable.Where(System.Linq.Enumerable
@@ -469,14 +469,14 @@ public sealed class PacketRegistryFactory
                 return t;
             }
         }
-        return typeof(System.Object); // fallback, should never happen
+        return typeof(object); // fallback, should never happen
     }
 
     // ── Logger helpers ────────────────────────────────────────────────────────
 
     private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    private static void TRACE(System.String msg) => Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
+    private static void TRACE(string msg) => Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
 
     #endregion Private Helpers
 
@@ -488,11 +488,11 @@ public sealed class PacketRegistryFactory
     /// </summary>
     private static unsafe class PacketFunctionTable<TPacket> where TPacket : IPacket
     {
-        public static delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> DeserializePtr;
+        public static delegate* managed<System.ReadOnlySpan<byte>, TPacket> DeserializePtr;
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public static IPacket InvokeDeserialize(System.ReadOnlySpan<System.Byte> raw) => DeserializePtr(raw);
+        public static IPacket InvokeDeserialize(System.ReadOnlySpan<byte> raw) => DeserializePtr(raw);
     }
 
     #endregion Private: Function Pointer Table
@@ -501,10 +501,10 @@ public sealed class PacketRegistryFactory
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static unsafe delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket> BIND_DESERIALIZE_PTR<TPacket>(System.Reflection.MethodInfo mi)
+    private static unsafe delegate* managed<System.ReadOnlySpan<byte>, TPacket> BIND_DESERIALIZE_PTR<TPacket>(System.Reflection.MethodInfo mi)
     {
-        System.IntPtr ptr = mi.MethodHandle.GetFunctionPointer();
-        return (delegate* managed<System.ReadOnlySpan<System.Byte>, TPacket>)ptr;
+        nint ptr = mi.MethodHandle.GetFunctionPointer();
+        return (delegate* managed<System.ReadOnlySpan<byte>, TPacket>)ptr;
     }
 
     /// <summary>

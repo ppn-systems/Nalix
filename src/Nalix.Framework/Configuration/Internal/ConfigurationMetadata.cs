@@ -1,9 +1,15 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests.")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Configuration.Internal;
@@ -11,8 +17,8 @@ namespace Nalix.Framework.Configuration.Internal;
 /// <summary>
 /// Stores metadata about a configuration type.
 /// </summary>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-[System.Diagnostics.DebuggerDisplay("{ConfigurationType?.Naming,nq} ({BindableProperties?.Length ?? 0} props)")]
+[EditorBrowsable(EditorBrowsableState.Never)]
+[DebuggerDisplay("{ConfigurationType?.Naming,nq} ({BindableProperties?.Length ?? 0} props)")]
 internal class ConfigurationMetadata
 {
     /// <summary>
@@ -23,12 +29,12 @@ internal class ConfigurationMetadata
     /// <summary>
     /// Gets or sets the configuration type.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Type ConfigurationType { get; init; } = null!;
+    [NotNull]
+    public Type ConfigurationType { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the bindable properties of the configuration type.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.NotNull]
+    [NotNull]
     public PropertyMetadata[] BindableProperties { get; init; } = [];
 }

@@ -2,6 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Nalix.Framework.Time;
 
@@ -9,8 +13,8 @@ namespace Nalix.Framework.Time;
 /// Handles precise time for the system with high accuracy, supporting various time-related operations
 /// required for real-time communication and distributed systems.
 /// </summary>
-[System.Diagnostics.StackTraceHidden]
-[System.Diagnostics.DebuggerStepThrough]
+[StackTraceHidden]
+[DebuggerStepThrough]
 public static partial class Clock
 {
     #region Constants and Fields
@@ -19,7 +23,7 @@ public static partial class Clock
     private static readonly DateTime UtcBase;
     private static readonly long UtcBaseTicks;
     private static readonly double DriftSmoothing;
-    private static readonly System.Diagnostics.Stopwatch UtcStopwatch;
+    private static readonly Stopwatch UtcStopwatch;
 
     // Time synchronization variables
     private static long _timeOffset;
@@ -35,7 +39,7 @@ public static partial class Clock
     /// <summary>
     /// Gets the frequency of the high-resolution timer in ticks per second.
     /// </summary>
-    public static long TicksPerSecond => System.Diagnostics.Stopwatch.Frequency;
+    public static long TicksPerSecond => Stopwatch.Frequency;
 
     /// <summary>
     /// Gets a value indicating whether the clock has been synchronized with an external time source.
@@ -55,7 +59,7 @@ public static partial class Clock
     {
         _timeOffset = 0; // In ticks, adjusted from external time sources
         _driftCorrection = 1.0; // Multiplier to correct for system clock drift
-        _swToDateTimeTicks = (double)TimeSpan.TicksPerSecond / System.Diagnostics.Stopwatch.Frequency;
+        _swToDateTimeTicks = (double)TimeSpan.TicksPerSecond / Stopwatch.Frequency;
 
         // Static class, no instantiation allowed
         DriftSmoothing = 0.1;
@@ -64,7 +68,7 @@ public static partial class Clock
 
         UtcBaseTicks = UtcBase.Ticks;
         LastSyncTime = DateTime.MinValue;
-        UtcStopwatch = System.Diagnostics.Stopwatch.StartNew();
+        UtcStopwatch = Stopwatch.StartNew();
     }
 
     #endregion Constructors
@@ -77,12 +81,12 @@ public static partial class Clock
     /// <param name="externalTime">The accurate external UTC time.</param>
     /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied.</param>
     /// <returns>The adjustment made in milliseconds.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
     public static double SynchronizeTime(
-        [System.Diagnostics.CodeAnalysis.NotNull] DateTime externalTime,
-        [System.Diagnostics.CodeAnalysis.NotNull] double maxAllowedDriftMs = 1000.0)
+        [NotNull] DateTime externalTime,
+        [NotNull] double maxAllowedDriftMs = 1000.0)
     {
         if (externalTime.Kind != DateTimeKind.Utc)
         {
@@ -95,27 +99,27 @@ public static partial class Clock
             return 0;
         }
 
-        long nowMono = System.Diagnostics.Stopwatch.GetTimestamp();
+        long nowMono = Stopwatch.GetTimestamp();
 
         DateTime prevExt = _lastExternalTime;
 
         IsSynchronized = true;
         LastSyncTime = externalTime;
 
-        System.Threading.Volatile.Write(ref _timeOffset, (long)(diffMs * TimeSpan.TicksPerMillisecond));
+        Volatile.Write(ref _timeOffset, (long)(diffMs * TimeSpan.TicksPerMillisecond));
 
         if (prevExt != DateTime.MinValue)
         {
             double extElapsed = (externalTime - prevExt).TotalSeconds;
             long deltaMono = nowMono - _lastSyncMonoTicks;
 
-            double monoElapsed = deltaMono / (double)System.Diagnostics.Stopwatch.Frequency;
+            double monoElapsed = deltaMono / (double)Stopwatch.Frequency;
             if (monoElapsed > 60.0)
             {
                 double drift = extElapsed / monoElapsed;
                 double dc = _driftCorrection;
                 dc += (drift - dc) * DriftSmoothing;   // optimized smoothing
-                System.Threading.Volatile.Write(ref _driftCorrection, dc);
+                Volatile.Write(ref _driftCorrection, dc);
             }
         }
 
@@ -134,14 +138,14 @@ public static partial class Clock
     /// <param name="maxHardAdjustMs">Maximum hard adjustment in milliseconds. Must be positive.</param>
     /// <returns>The adjustment made in milliseconds, or 0 if inputs are invalid or adjustment exceeds limits.</returns>
     /// <exception cref="ArgumentException">Thrown when input parameters are invalid.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: NotNull]
     public static double SynchronizeUnixMilliseconds(
-        [System.Diagnostics.CodeAnalysis.NotNull] long serverUnixMs,
-        [System.Diagnostics.CodeAnalysis.NotNull] double rttMs = 0,
-        [System.Diagnostics.CodeAnalysis.NotNull] double maxAllowedDriftMs = 1_000.0,
-        [System.Diagnostics.CodeAnalysis.NotNull] double maxHardAdjustMs = 10_000.0)
+        [NotNull] long serverUnixMs,
+        [NotNull] double rttMs = 0,
+        [NotNull] double maxAllowedDriftMs = 1_000.0,
+        [NotNull] double maxHardAdjustMs = 10_000.0)
     {
         // Validate input parameters
         if (serverUnixMs < 0)
@@ -183,13 +187,13 @@ public static partial class Clock
     /// <summary>
     /// Resets time synchronization to use the local system time.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
     public static void ResetSynchronization()
     {
-        _ = System.Threading.Interlocked.Exchange(ref _timeOffset, 0);
-        _ = System.Threading.Interlocked.Exchange(ref _driftCorrection, 1.0);
+        _ = Interlocked.Exchange(ref _timeOffset, 0);
+        _ = Interlocked.Exchange(ref _driftCorrection, 1.0);
 
         IsSynchronized = false;
         LastSyncTime = DateTime.MinValue;
@@ -200,17 +204,17 @@ public static partial class Clock
     /// A value greater than 1.0 means the local clock is running slower than the reference clock.
     /// A value less than 1.0 means the local clock is running faster than the reference clock.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static double DriftRate() => System.Threading.Volatile.Read(ref _driftCorrection);
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
+    public static double DriftRate() => Volatile.Read(ref _driftCorrection);
 
     /// <summary>
     /// Gets the current error estimate between the synchronized time and system time in milliseconds.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static double CurrentErrorEstimateMs()
     {
         if (!IsSynchronized)

@@ -77,6 +77,8 @@ internal static unsafe class SpanOps
             case 3: p[0] = 255; p[1] = 255; p[2] = 255; p += 3; break;
             case 2: p[0] = 255; p[1] = 255; p += 2; break;
             case 1: p[0] = 255; p += 1; break; // 0
+            default:
+                break;
         }
 
         // Final remainder (<255)

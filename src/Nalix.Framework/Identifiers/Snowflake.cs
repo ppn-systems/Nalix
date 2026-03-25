@@ -1,6 +1,14 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading;
 using Nalix.Common.Identity;
 using Nalix.Common.Primitives;
 using Nalix.Framework.Configuration;
@@ -13,11 +21,11 @@ namespace Nalix.Framework.Identifiers;
 /// Represents a 56-bit unique identifier composed of a value, machine identifier, and type.
 /// Provides methods for creation, decomposition, and conversion to various formats.
 /// </summary>
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Runtime.InteropServices.StructLayout(
-    System.Runtime.InteropServices.LayoutKind.Sequential, Pack = 1)]
-[System.Diagnostics.DebuggerDisplay("0x{ToUInt56():X14} (T={Type}, M={MachineId})")]
+[SkipLocalsInit]
+[ExcludeFromCodeCoverage]
+[StructLayout(
+    LayoutKind.Sequential, Pack = 1)]
+[DebuggerDisplay("0x{ToUInt56():X14} (T={Type}, M={MachineId})")]
 public readonly partial struct Snowflake : ISnowflake
 {
     #region Const
@@ -33,7 +41,7 @@ public readonly partial struct Snowflake : ISnowflake
     private static int _sequence;
     private static long _lastTimestampMs;
     private const ushort MaxSequence = 0xFFFF; // 16-bit max = 65535
-    private static readonly System.Threading.Lock _generatorLock = new();
+    private static readonly Lock _generatorLock = new();
 
     #endregion Const
 
@@ -42,8 +50,8 @@ public readonly partial struct Snowflake : ISnowflake
     /// <inheritdoc/>
     public uint Value
     {
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         get
         {
             ulong raw = (ulong)__combined;
@@ -54,8 +62,8 @@ public readonly partial struct Snowflake : ISnowflake
     /// <inheritdoc/>
     public ushort MachineId
     {
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         get
         {
             ulong raw = (ulong)__combined;
@@ -66,8 +74,8 @@ public readonly partial struct Snowflake : ISnowflake
     /// <inheritdoc/>
     public SnowflakeType Type
     {
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         get
         {
             ulong raw = (ulong)__combined;
@@ -101,9 +109,9 @@ public readonly partial struct Snowflake : ISnowflake
     /// This constructor validates the type parameter to ensure it represents a valid <see cref="SnowflakeType"/>.
     /// The components are efficiently combined using bit operations to form the 56-bit identifier.
     /// </remarks>
-    [System.Diagnostics.DebuggerHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private Snowflake(uint value, ushort machineId, SnowflakeType type) => __combined = new UInt56((byte)type, machineId, value);
 
     /// <summary>
@@ -114,8 +122,8 @@ public readonly partial struct Snowflake : ISnowflake
     /// This constructor allows direct initialization from a pre-composed 56-bit value,
     /// which is useful for deserialization scenarios. No validation is performed on the input.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public Snowflake(UInt56 uInt56) => __combined = uInt56;
 
     #endregion Constructors
@@ -131,10 +139,10 @@ public readonly partial struct Snowflake : ISnowflake
     /// This method provides a fast way to construct a <see cref="Snowflake"/> from a pre-composed value.
     /// It is particularly useful when deserializing identifiers from storage or network protocols.
     /// </remarks>
-    [System.Diagnostics.DebuggerHidden]
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerHidden]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(UInt56 uInt56) => new(uInt56);
 
     /// <summary>
@@ -154,10 +162,10 @@ public readonly partial struct Snowflake : ISnowflake
     /// Console.WriteLine(id.ToString()); // Outputs hex representation
     /// </code>
     /// </example>
-    [System.Diagnostics.DebuggerHidden]
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerHidden]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(uint value, ushort machineId, SnowflakeType type) => new(value, machineId, type);
 
     /// <summary>
@@ -178,10 +186,10 @@ public readonly partial struct Snowflake : ISnowflake
     /// Console.WriteLine(id.ToString()); // Outputs hex representation
     /// </code>
     /// </example>
-    [System.Diagnostics.DebuggerHidden]
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerHidden]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(SnowflakeType type) => NewId(type, __machineId);
 
     /// <summary>
@@ -200,17 +208,17 @@ public readonly partial struct Snowflake : ISnowflake
     /// Console.WriteLine(id.ToString());
     /// </code>
     /// </example>
-    [System.Diagnostics.DebuggerHidden]
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerHidden]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(SnowflakeType type, ushort machineId = 1)
     {
         while (true)
         {
             long now = Clock.EpochMillisecondsNow();
 
-            long last = System.Threading.Volatile.Read(ref _lastTimestampMs);
+            long last = Volatile.Read(ref _lastTimestampMs);
 
             // Handle clock rollback
             if (now < last)
@@ -223,11 +231,11 @@ public readonly partial struct Snowflake : ISnowflake
             if (now == last)
             {
                 // same millisecond → increment sequence
-                seq = System.Threading.Interlocked.Increment(ref _sequence) & 0x0FFF;
+                seq = Interlocked.Increment(ref _sequence) & 0x0FFF;
 
                 if (seq == 0)
                 {
-                    System.Threading.SpinWait spin = new();
+                    SpinWait spin = new();
                     do
                     {
                         spin.SpinOnce();
@@ -242,11 +250,11 @@ public readonly partial struct Snowflake : ISnowflake
             {
                 // new millisecond → reset sequence
                 seq = 0;
-                _ = System.Threading.Interlocked.Exchange(ref _sequence, 0);
+                _ = Interlocked.Exchange(ref _sequence, 0);
             }
 
             // try publish timestamp (CAS)
-            if (System.Threading.Interlocked.CompareExchange(ref _lastTimestampMs, now, last) != last)
+            if (Interlocked.CompareExchange(ref _lastTimestampMs, now, last) != last)
             {
                 continue; // race → retry
             }
@@ -271,12 +279,12 @@ public readonly partial struct Snowflake : ISnowflake
     /// <returns>A 32-bit signed integer hash code.</returns>
     /// <remarks>
     /// The hash code is computed efficiently from the underlying 56-bit value
-    /// and is suitable for use in hash-based collections like <see cref="System.Collections.Generic.Dictionary{TKey,TValue}"/>.
+    /// and is suitable for use in hash-based collections like <see cref="Dictionary{TKey,TValue}"/>.
     /// This implementation ensures consistent hash values for equal identifiers.
     /// </remarks>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode() => __combined.GetHashCode();
 
     /// <summary>
@@ -291,9 +299,9 @@ public readonly partial struct Snowflake : ISnowflake
     /// This method performs type checking and delegates to the strongly-typed <see cref="Equals(Snowflake)"/> method
     /// for actual comparison. Returns <c>false</c> for null or non-<see cref="Snowflake"/> objects.
     /// </remarks>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj) => obj is Snowflake other && Equals(other);
 
     /// <summary>
@@ -304,15 +312,15 @@ public readonly partial struct Snowflake : ISnowflake
     /// This method efficiently serializes the identifier to a stack-allocated buffer before
     /// converting to hexadecimal format. The returned string is always uppercase and fixed-length.
     /// </remarks>
-    [System.Diagnostics.DebuggerHidden]
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerHidden]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public override string ToString()
     {
-        System.Span<byte> buffer = stackalloc byte[Size];
+        Span<byte> buffer = stackalloc byte[Size];
         _ = TryWriteBytes(buffer);
-        return System.Convert.ToHexString(buffer);
+        return Convert.ToHexString(buffer);
     }
 
     #endregion Override

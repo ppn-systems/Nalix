@@ -1,14 +1,21 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading;
 using Nalix.Common.Concurrency;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests.")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Random;
@@ -25,10 +32,10 @@ namespace Nalix.Framework.Random;
 /// DO NOT use for cryptographic purposes (keys, IVs, tokens).
 /// </para>
 /// </summary>
-[System.Diagnostics.StackTraceHidden]
-[System.Diagnostics.DebuggerStepThrough]
-[System.Diagnostics.DebuggerDisplay("OsRandom (NOT CSPRNG)")]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[StackTraceHidden]
+[DebuggerStepThrough]
+[DebuggerDisplay("OsRandom (NOT CSPRNG)")]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static class OsRandom
 {
     #region Fields
@@ -42,9 +49,9 @@ internal static class OsRandom
     private static volatile IRecurringHandle? s_reseedHandle; // IRecurringHandle 
 
     // Thread-local state
-    [System.ThreadStatic] private static int t_version;
-    [System.ThreadStatic] private static ulong t_counter;
-    [System.ThreadStatic] private static ulong[]? t_state;
+    [ThreadStatic] private static int t_version;
+    [ThreadStatic] private static ulong t_counter;
+    [ThreadStatic] private static ulong[]? t_state;
 
     #endregion Fields
 
@@ -57,24 +64,24 @@ internal static class OsRandom
 
         // Seed from monotonic/time/process/thread + GUID (no OS RNG).
         // This is not cryptographically strong, but good enough for non-crypto randomness.
-        System.Span<byte> seed = stackalloc byte[32];
+        Span<byte> seed = stackalloc byte[32];
 
-        long ticks = System.DateTime.UtcNow.Ticks;
-        long tc64 = System.Environment.TickCount64;
-        int pid = System.Environment.ProcessId;
-        int tid = System.Environment.CurrentManagedThreadId;
+        long ticks = DateTime.UtcNow.Ticks;
+        long tc64 = Environment.TickCount64;
+        int pid = Environment.ProcessId;
+        int tid = Environment.CurrentManagedThreadId;
 
-        System.Runtime.InteropServices.MemoryMarshal.Write(seed[0..8], in ticks);
-        System.Runtime.InteropServices.MemoryMarshal.Write(seed[8..16], in tc64);
-        System.Runtime.InteropServices.MemoryMarshal.Write(seed[16..20], in pid);
-        System.Runtime.InteropServices.MemoryMarshal.Write(seed[20..24], in tid);
+        MemoryMarshal.Write(seed[0..8], in ticks);
+        MemoryMarshal.Write(seed[8..16], in tc64);
+        MemoryMarshal.Write(seed[16..20], in pid);
+        MemoryMarshal.Write(seed[20..24], in tid);
 
         // Guid-based per-process tag to spread instances on the same host
-        byte[] g = System.Guid.NewGuid().ToByteArray();
-        System.MemoryExtensions.AsSpan(g, 0, 16).CopyTo(s_instanceTag);
+        byte[] g = Guid.NewGuid().ToByteArray();
+        MemoryExtensions.AsSpan(g, 0, 16).CopyTo(s_instanceTag);
 
-        s_tag0 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(System.MemoryExtensions.AsSpan(s_instanceTag, 0, 8));
-        s_tag1 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(System.MemoryExtensions.AsSpan(s_instanceTag, 8, 8));
+        s_tag0 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(MemoryExtensions.AsSpan(s_instanceTag, 0, 8));
+        s_tag1 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(MemoryExtensions.AsSpan(s_instanceTag, 8, 8));
 
         INITIALIZE_STATE(seed);
     }
@@ -92,18 +99,18 @@ internal static class OsRandom
     /// This improves randomness quality by periodically refreshing the internal state
     /// with fresh entropy from system sources. Thread-safe.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public static void Attach()
     {
         // Cancel previous schedule if exists
-        IRecurringHandle? old = System.Threading.Interlocked.Exchange(ref s_reseedHandle, null);
+        IRecurringHandle? old = Interlocked.Exchange(ref s_reseedHandle, null);
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().CancelRecurring(old?.Name);
 
         // Schedule new reseed (non-reentrant)
         s_reseedHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: "OsRandom.reseed",
-            interval: System.TimeSpan.FromSeconds(180),
+            interval: TimeSpan.FromSeconds(180),
             work: static _ =>
             {
                 RESEED_GLOBAL();
@@ -112,7 +119,7 @@ internal static class OsRandom
             options: new RecurringOptions
             {
                 NonReentrant = true,
-                Jitter = System.TimeSpan.FromSeconds(54),
+                Jitter = TimeSpan.FromSeconds(54),
                 Tag = "random"
             }
         );
@@ -125,11 +132,11 @@ internal static class OsRandom
     /// Safe to call even if Attach() was never called or has already been detached.
     /// Thread-safe.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     public static void Detach()
     {
-        IRecurringHandle? h = System.Threading.Interlocked.Exchange(ref s_reseedHandle, null);
+        IRecurringHandle? h = Interlocked.Exchange(ref s_reseedHandle, null);
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().CancelRecurring(h?.Name);
     }
 
@@ -142,10 +149,10 @@ internal static class OsRandom
     /// Automatically reseeds thread-local state when the global state is updated.
     /// WARNING: This is NOT cryptographically secure - use OsCsprng for security-sensitive operations.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dst)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public static void Fill([NotNull] Span<byte> dst)
     {
         if (dst.Length == 0)
         {
@@ -165,7 +172,7 @@ internal static class OsRandom
             return;
         }
 
-        System.Span<ulong> u64 = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, ulong>(dst);
+        Span<ulong> u64 = MemoryMarshal.Cast<byte, ulong>(dst);
         for (int i = 0; i < u64.Length; i++)
         {
             u64[i] = NEXT_U64(st);
@@ -187,9 +194,9 @@ internal static class OsRandom
 
     #region Privates
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    [return: NotNull]
     private static ulong[] THREAD_STATE()
     {
         ulong[]? st = t_state;
@@ -203,8 +210,8 @@ internal static class OsRandom
         ulong base2 = s_state[2];
         ulong base3 = s_state[3];
 
-        ulong tid = (ulong)System.Environment.CurrentManagedThreadId;
-        ulong now = (ulong)System.DateTime.UtcNow.Ticks;
+        ulong tid = (ulong)Environment.CurrentManagedThreadId;
+        ulong now = (ulong)DateTime.UtcNow.Ticks;
         ulong tagMix = SPLIT_MIX_64(s_tag0 ^ System.Numerics.BitOperations.RotateLeft(s_tag1, 11));
 
         ulong[] local = [base0 ^ tid, base1 ^ (tid * 0x9E3779B97F4A7C15UL), base2 ^ now, base3 ^ tagMix];
@@ -220,9 +227,9 @@ internal static class OsRandom
         return local;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private static ulong NEXT_U64(ulong[] st)
     {
         // xoshiro256++ core
@@ -236,9 +243,9 @@ internal static class OsRandom
         return r;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private static ulong XOSHIRO_NEXT(ulong[] s)
     {
         ulong result = System.Numerics.BitOperations.RotateLeft(s[0] + s[3], 23) + s[0];
@@ -255,9 +262,9 @@ internal static class OsRandom
         return result;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static void INITIALIZE_STATE(System.ReadOnlySpan<byte> seed)
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
+    private static void INITIALIZE_STATE(ReadOnlySpan<byte> seed)
     {
         // Expand 32 bytes into 4x64 via SPLIT_MIX_64 to avoid linearities
         ulong z0 = READ_U64(seed, 0);
@@ -284,26 +291,26 @@ internal static class OsRandom
         unchecked { s_version++; }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    [MethodImpl(
+        MethodImplOptions.NoInlining)]
     private static void RESEED_GLOBAL()
     {
-        System.Span<byte> seed = stackalloc byte[32];
+        Span<byte> seed = stackalloc byte[32];
 
-        long ticks = System.DateTime.UtcNow.Ticks;
-        long tc64 = System.Environment.TickCount64;
-        int pid = System.Environment.ProcessId;
+        long ticks = DateTime.UtcNow.Ticks;
+        long tc64 = Environment.TickCount64;
+        int pid = Environment.ProcessId;
 
-        System.Runtime.InteropServices.MemoryMarshal.Write(seed[0..8], in ticks);
-        System.Runtime.InteropServices.MemoryMarshal.Write(seed[8..16], in tc64);
-        System.Runtime.InteropServices.MemoryMarshal.Write(seed[16..20], in pid);
+        MemoryMarshal.Write(seed[0..8], in ticks);
+        MemoryMarshal.Write(seed[8..16], in tc64);
+        MemoryMarshal.Write(seed[16..20], in pid);
 
         // Fold in the process tag and a moving counter derived from WorkingSet and Stopwatch
         ulong tag0 = READ_U64(s_instanceTag, 0);
         ulong tag1 = READ_U64(s_instanceTag, 8);
-        ulong mono = (ulong)System.Diagnostics.Stopwatch.GetTimestamp();
+        ulong mono = (ulong)Stopwatch.GetTimestamp();
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(
-            seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ (ulong)System.Environment.WorkingSet);
+            seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ (ulong)Environment.WorkingSet);
 
         ulong a = SPLIT_MIX_64(READ_U64(seed, 0) ^ 0x9E3779B97F4A7C15UL);
         ulong b = SPLIT_MIX_64(READ_U64(seed, 8) ^ 0xBF58476D1CE4E5B9UL);
@@ -323,9 +330,9 @@ internal static class OsRandom
         unchecked { s_version++; }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     private static ulong SPLIT_MIX_64(ulong z)
     {
         z += 0x9E3779B97F4A7C15UL;
@@ -336,10 +343,10 @@ internal static class OsRandom
         return x;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static ulong READ_U64(System.ReadOnlySpan<byte> s, int offset)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private static ulong READ_U64(ReadOnlySpan<byte> s, int offset)
         => System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(s.Slice(offset, 8));
 
     #endregion Privates

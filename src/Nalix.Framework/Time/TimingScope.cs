@@ -1,6 +1,8 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
+
 namespace Nalix.Framework.Time;
 
 /// <summary>
@@ -42,8 +44,8 @@ public readonly struct TimingScope
     /// <param name="startTicks">
     /// The starting timestamp, expressed in monotonic clock ticks.
     /// </param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private TimingScope(long startTicks) => _t0 = startTicks;
 
     #endregion Private Constructors
@@ -71,8 +73,8 @@ public readonly struct TimingScope
     /// and should be called as close as possible to the beginning of the
     /// measured operation.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static TimingScope Start() => new(Clock.MonoTicksNow());
 
     /// <summary>
@@ -85,8 +87,8 @@ public readonly struct TimingScope
     /// This method does not modify the state of the instance and may be called
     /// multiple times to retrieve updated elapsed values.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public double GetElapsedMilliseconds() => Clock.MonoTicksToMilliseconds(Clock.MonoTicksNow() - _t0);
 
     #endregion APIs

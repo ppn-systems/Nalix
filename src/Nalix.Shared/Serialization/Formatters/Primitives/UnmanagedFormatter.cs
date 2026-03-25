@@ -33,7 +33,7 @@ internal sealed partial class UnmanagedFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T> where T : unmanaged
 {
-    private static System.String DebuggerDisplay => $"UnmanagedFormatter<{typeof(T).FullName}>";
+    private static string DebuggerDisplay => $"UnmanagedFormatter<{typeof(T).FullName}>";
 
     /// <summary>
     /// Writes an unmanaged value to the buffer without alignment requirements.
@@ -44,60 +44,60 @@ internal sealed partial class UnmanagedFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
     {
-        System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+        int size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
         writer.Expand(size);
 
-        if (size == sizeof(System.Byte))
+        if (size == sizeof(byte))
         {
-            System.Span<System.Byte> dst = writer.FreeBuffer[..sizeof(System.Byte)];
+            System.Span<byte> dst = writer.FreeBuffer[..sizeof(byte)];
             // Bit-preserving cast for byte/sbyte/bool
-            dst[0] = System.Runtime.CompilerServices.Unsafe.As<T, System.Byte>(ref value);
-            writer.Advance(sizeof(System.Byte));
+            dst[0] = System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref value);
+            writer.Advance(sizeof(byte));
             return;
         }
 
-        if (size == sizeof(System.UInt16))
+        if (size == sizeof(ushort))
         {
-            System.UInt16 v = System.Runtime.CompilerServices.Unsafe.As<T, System.UInt16>(ref value);
-            System.Span<System.Byte> dst = writer.FreeBuffer[..sizeof(System.UInt16)];
+            ushort v = System.Runtime.CompilerServices.Unsafe.As<T, ushort>(ref value);
+            System.Span<byte> dst = writer.FreeBuffer[..sizeof(ushort)];
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(dst, v);
-            writer.Advance(sizeof(System.UInt16));
+            writer.Advance(sizeof(ushort));
             return;
         }
 
-        if (size == sizeof(System.UInt32))
+        if (size == sizeof(uint))
         {
             // Works for int/uint/float via bit reinterpret
-            System.UInt32 v = System.Runtime.CompilerServices.Unsafe.As<T, System.UInt32>(ref value);
-            System.Span<System.Byte> dst = writer.FreeBuffer[..sizeof(System.UInt32)];
+            uint v = System.Runtime.CompilerServices.Unsafe.As<T, uint>(ref value);
+            System.Span<byte> dst = writer.FreeBuffer[..sizeof(uint)];
             System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(dst, v);
-            writer.Advance(sizeof(System.UInt32));
+            writer.Advance(sizeof(uint));
             return;
         }
 
-        if (size == sizeof(System.UInt64))
+        if (size == sizeof(ulong))
         {
             // Works for long/ulong/double via bit reinterpret
-            System.UInt64 v = System.Runtime.CompilerServices.Unsafe.As<T, System.UInt64>(ref value);
-            System.Span<System.Byte> dst = writer.FreeBuffer[..sizeof(System.UInt64)];
+            ulong v = System.Runtime.CompilerServices.Unsafe.As<T, ulong>(ref value);
+            System.Span<byte> dst = writer.FreeBuffer[..sizeof(ulong)];
             System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(dst, v);
-            writer.Advance(sizeof(System.UInt64));
+            writer.Advance(sizeof(ulong));
             return;
         }
 
-        if (size == sizeof(System.Decimal))
+        if (size == sizeof(decimal))
         {
-            if (typeof(T) == typeof(System.Decimal))
+            if (typeof(T) == typeof(decimal))
             {
-                System.Decimal dec = System.Runtime.CompilerServices.Unsafe.As<T, System.Decimal>(ref value);
-                System.Int32[] parts = System.Decimal.GetBits(dec); // length = 4
+                decimal dec = System.Runtime.CompilerServices.Unsafe.As<T, decimal>(ref value);
+                int[] parts = decimal.GetBits(dec); // length = 4
 
-                System.Span<System.Byte> dst = writer.FreeBuffer[..sizeof(System.Decimal)];
+                System.Span<byte> dst = writer.FreeBuffer[..sizeof(decimal)];
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(dst[..4], parts[0]);
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(dst.Slice(4, 4), parts[1]);
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(dst.Slice(8, 4), parts[2]);
                 System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(dst.Slice(12, 4), parts[3]);
-                writer.Advance(sizeof(System.Decimal));
+                writer.Advance(sizeof(decimal));
                 return;
             }
 
@@ -119,58 +119,58 @@ internal sealed partial class UnmanagedFormatter<
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public T Deserialize(ref DataReader reader)
     {
-        System.Int32 size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+        int size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
 
-        if (size == sizeof(System.Byte))
+        if (size == sizeof(byte))
         {
-            ref System.Byte start1 = ref reader.GetSpanReference(sizeof(System.Byte));
-            System.Byte b = start1;
-            reader.Advance(sizeof(System.Byte));
-            return System.Runtime.CompilerServices.Unsafe.As<System.Byte, T>(ref b);
+            ref byte start1 = ref reader.GetSpanReference(sizeof(byte));
+            byte b = start1;
+            reader.Advance(sizeof(byte));
+            return System.Runtime.CompilerServices.Unsafe.As<byte, T>(ref b);
         }
 
-        if (size == sizeof(System.UInt16))
+        if (size == sizeof(ushort))
         {
-            ref System.Byte start2 = ref reader.GetSpanReference(sizeof(System.UInt16));
-            System.Span<System.Byte> src2 = System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref start2, sizeof(System.UInt16));
-            System.UInt16 v2 = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(src2);
-            reader.Advance(sizeof(System.UInt16));
-            return System.Runtime.CompilerServices.Unsafe.As<System.UInt16, T>(ref v2);
+            ref byte start2 = ref reader.GetSpanReference(sizeof(ushort));
+            System.Span<byte> src2 = System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref start2, sizeof(ushort));
+            ushort v2 = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(src2);
+            reader.Advance(sizeof(ushort));
+            return System.Runtime.CompilerServices.Unsafe.As<ushort, T>(ref v2);
         }
 
-        if (size == sizeof(System.UInt32))
+        if (size == sizeof(uint))
         {
-            ref System.Byte start4 = ref reader.GetSpanReference(sizeof(System.UInt32));
-            System.Span<System.Byte> src4 = System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref start4, sizeof(System.UInt32));
-            System.UInt32 v4 = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(src4);
-            reader.Advance(sizeof(System.UInt32));
-            return System.Runtime.CompilerServices.Unsafe.As<System.UInt32, T>(ref v4);
+            ref byte start4 = ref reader.GetSpanReference(sizeof(uint));
+            System.Span<byte> src4 = System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref start4, sizeof(uint));
+            uint v4 = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(src4);
+            reader.Advance(sizeof(uint));
+            return System.Runtime.CompilerServices.Unsafe.As<uint, T>(ref v4);
         }
 
-        if (size == sizeof(System.UInt64))
+        if (size == sizeof(ulong))
         {
-            ref System.Byte start8 = ref reader.GetSpanReference(sizeof(System.UInt64));
-            System.Span<System.Byte> src8 = System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref start8, sizeof(System.UInt64));
-            System.UInt64 v8 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(src8);
-            reader.Advance(sizeof(System.UInt64));
-            return System.Runtime.CompilerServices.Unsafe.As<System.UInt64, T>(ref v8);
+            ref byte start8 = ref reader.GetSpanReference(sizeof(ulong));
+            System.Span<byte> src8 = System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref start8, sizeof(ulong));
+            ulong v8 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(src8);
+            reader.Advance(sizeof(ulong));
+            return System.Runtime.CompilerServices.Unsafe.As<ulong, T>(ref v8);
         }
 
-        if (size == sizeof(System.Decimal))
+        if (size == sizeof(decimal))
         {
-            if (typeof(T) == typeof(System.Decimal))
+            if (typeof(T) == typeof(decimal))
             {
-                ref System.Byte start16 = ref reader.GetSpanReference(sizeof(System.Decimal));
-                System.Span<System.Byte> src16 = System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref start16, sizeof(System.Decimal));
+                ref byte start16 = ref reader.GetSpanReference(sizeof(decimal));
+                System.Span<byte> src16 = System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref start16, sizeof(decimal));
 
-                System.Int32 lo = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(src16[..4]);
-                System.Int32 mid = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(src16.Slice(4, 4));
-                System.Int32 hi = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(src16.Slice(8, 4));
-                System.Int32 flags = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(src16.Slice(12, 4));
+                int lo = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(src16[..4]);
+                int mid = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(src16.Slice(4, 4));
+                int hi = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(src16.Slice(8, 4));
+                int flags = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(src16.Slice(12, 4));
 
-                System.Decimal dec = new([lo, mid, hi, flags]);
-                reader.Advance(sizeof(System.Decimal));
-                return System.Runtime.CompilerServices.Unsafe.As<System.Decimal, T>(ref dec);
+                decimal dec = new([lo, mid, hi, flags]);
+                reader.Advance(sizeof(decimal));
+                return System.Runtime.CompilerServices.Unsafe.As<decimal, T>(ref dec);
             }
 
             throw new System.NotSupportedException(

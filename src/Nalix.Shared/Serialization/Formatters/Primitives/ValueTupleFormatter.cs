@@ -15,7 +15,7 @@ namespace Nalix.Shared.Serialization.Formatters.Primitives;
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class ValueTupleFormatter<T1, T2> : IFormatter<(T1, T2)>
 {
-    private static System.String DebuggerDisplay =>
+    private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}>";
 
     private readonly IFormatter<T1> _f1 = FormatterProvider.Get<T1>();
@@ -55,7 +55,7 @@ internal sealed class ValueTupleFormatter<T1, T2> : IFormatter<(T1, T2)>
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class ValueTupleFormatter<T1, T2, T3> : IFormatter<(T1, T2, T3)>
 {
-    private static System.String DebuggerDisplay =>
+    private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}>";
 
     private readonly IFormatter<T1> _f1 = FormatterProvider.Get<T1>();
@@ -98,7 +98,7 @@ internal sealed class ValueTupleFormatter<T1, T2, T3> : IFormatter<(T1, T2, T3)>
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
 internal sealed class ValueTupleFormatter<T1, T2, T3, T4> : IFormatter<(T1, T2, T3, T4)>
 {
-    private static System.String DebuggerDisplay =>
+    private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, " +
         $"{typeof(T3).Name}, {typeof(T4).Name}>";
 
@@ -155,7 +155,7 @@ internal sealed class ValueTupleFormatter<T1, T2, T3, T4> : IFormatter<(T1, T2, 
 internal sealed class ValueTupleFormatter<T1, T2, T3, T4, T5>
     : IFormatter<(T1, T2, T3, T4, T5)>
 {
-    private static System.String DebuggerDisplay =>
+    private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}, " +
         $"{typeof(T4).Name}, {typeof(T5).Name}>";
 
