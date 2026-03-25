@@ -11,17 +11,17 @@ public interface IRecurringHandle : System.IDisposable
     /// <summary>
     /// Gets the name of the recurring job.
     /// </summary>
-    System.String Name { get; }
+    string Name { get; }
 
     /// <summary>
     /// Gets the total number of times the recurring job has run.
     /// </summary>
-    System.Int64 TotalRuns { get; }
+    long TotalRuns { get; }
 
     /// <summary>
     /// Gets a value indicating whether the recurring job is currently running.
     /// </summary>
-    System.Boolean IsRunning { get; }
+    bool IsRunning { get; }
 
     /// <summary>
     /// Gets the interval between each run of the recurring job.
@@ -36,7 +36,7 @@ public interface IRecurringHandle : System.IDisposable
     /// <summary>
     /// Gets the number of consecutive failures since the last successful run.
     /// </summary>
-    System.Int32 ConsecutiveFailures { get; }
+    int ConsecutiveFailures { get; }
 
     /// <summary>
     /// Gets the UTC timestamp of the last run of the job, if any.

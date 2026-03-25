@@ -11,12 +11,12 @@ public sealed class IniCommentAttribute : System.Attribute
     /// Gets the comment text. Supports multi-line via \n.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.NotNull]
-    public System.String Comment { get; }
+    public string Comment { get; }
 
     /// <summary>
     /// Ini comment attribute constructor.
     /// </summary>
-    public IniCommentAttribute([System.Diagnostics.CodeAnalysis.NotNull] System.String comment)
+    public IniCommentAttribute([System.Diagnostics.CodeAnalysis.NotNull] string comment)
     {
         System.ArgumentException.ThrowIfNullOrWhiteSpace(comment, nameof(comment));
         Comment = comment;

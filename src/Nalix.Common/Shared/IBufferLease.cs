@@ -11,19 +11,19 @@ namespace Nalix.Common.Shared;
 public interface IBufferLease : System.IDisposable
 {
     /// <summary>Gets the valid payload length within the buffer.</summary>
-    System.Int32 Length { get; }
+    int Length { get; }
 
     /// <summary>Gets the capacity of the underlying buffer.</summary>
-    System.Int32 Capacity { get; }
+    int Capacity { get; }
 
     /// <summary>Gets a writable span covering the valid payload.</summary>
-    System.Span<System.Byte> Span { get; }
+    System.Span<byte> Span { get; }
 
     /// <summary>Gets a writable span covering the entire capacity.</summary>
-    System.Span<System.Byte> SpanFull { get; }
+    System.Span<byte> SpanFull { get; }
 
     /// <summary>Gets a read-only view of the valid payload.</summary>
-    System.ReadOnlyMemory<System.Byte> Memory { get; }
+    System.ReadOnlyMemory<byte> Memory { get; }
 
     /// <summary>
     /// Increases the reference count so multiple consumers can hold this lease safely.
@@ -33,13 +33,13 @@ public interface IBufferLease : System.IDisposable
     /// <summary>
     /// Sets the valid payload length (must be between 0 and Capacity).
     /// </summary>
-    void CommitLength([System.Diagnostics.CodeAnalysis.NotNull] System.Int32 length);
+    void CommitLength([System.Diagnostics.CodeAnalysis.NotNull] int length);
 
     /// <summary>
     /// Attempts to detach the underlying array, transferring ownership to the caller.
     /// </summary>
-    System.Boolean ReleaseOwnership(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] out System.Byte[] buffer,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 start,
-        [System.Diagnostics.CodeAnalysis.NotNull] out System.Int32 length);
+    bool ReleaseOwnership(
+        [System.Diagnostics.CodeAnalysis.MaybeNull] out byte[] buffer,
+        [System.Diagnostics.CodeAnalysis.NotNull] out int start,
+        [System.Diagnostics.CodeAnalysis.NotNull] out int length);
 }

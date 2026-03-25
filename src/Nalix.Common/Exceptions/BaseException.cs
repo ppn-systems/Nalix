@@ -38,7 +38,7 @@ public abstract class BaseException : System.Exception
     /// <param name="message">
     /// The error message that explains the reason for the exception.
     /// </param>
-    protected BaseException(System.String message)
+    protected BaseException(string message)
         : base(message) { }
 
     /// <summary>
@@ -52,6 +52,6 @@ public abstract class BaseException : System.Exception
     /// <param name="innerException">
     /// The exception that caused the current exception.
     /// </param>
-    protected BaseException(System.String message, System.Exception innerException)
+    protected BaseException(string message, System.Exception innerException)
         : base(message, innerException) { }
 }

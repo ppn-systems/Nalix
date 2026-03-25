@@ -6,7 +6,7 @@ namespace Nalix.Common.Networking.Protocols;
 /// <summary>
 /// Represents the type of control message used in messaging operations.
 /// </summary>
-public enum ControlType : System.Byte
+public enum ControlType : byte
 {
     /// <summary>
     /// Represents a null or uninitialized control message.
@@ -86,12 +86,12 @@ public enum ControlType : System.Byte
     /// <summary>
     /// Client requests server time.
     /// </summary>
-    TIME_SYNC_REQUEST = 0x12,
+    TIMESYNCREQUEST = 0x12,
 
     /// <summary>
     /// Server responds with server timestamp.
     /// </summary>
-    TIME_SYNC_RESPONSE = 0x13,
+    TIMESYNCRESPONSE = 0x13,
 
     /// <summary>
     /// Reserved for future extension.

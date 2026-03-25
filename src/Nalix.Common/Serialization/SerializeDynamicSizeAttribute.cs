@@ -10,13 +10,13 @@ namespace Nalix.Common.Serialization;
 /// </summary>
 /// <param name="size">Expected average size for optimization.</param>
 [System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field, Inherited = true)]
-public sealed class SerializeDynamicSizeAttribute(System.Int32 size) : System.Attribute
+public sealed class SerializeDynamicSizeAttribute(int size) : System.Attribute
 {
     /// <summary>
     /// Expected average size in bytes for buffer pre-allocation.
     /// Helps optimize performance by reducing memory allocations.
     /// </summary>
-    public System.Int32 Size { get; init; } = size;
+    public int Size { get; init; } = size;
 
     /// <summary>
     /// Initializes a new instance with default settings.

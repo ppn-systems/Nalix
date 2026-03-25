@@ -28,7 +28,7 @@ public class CryptographyException : BaseException
     /// <param name="message">
     /// The error message that describes the reason for the exception.
     /// </param>
-    public CryptographyException(System.String message)
+    public CryptographyException(string message)
         : base(message)
     {
     }
@@ -44,7 +44,7 @@ public class CryptographyException : BaseException
     /// <param name="innerException">
     /// The exception that caused the current exception.
     /// </param>
-    public CryptographyException(System.String message, System.Exception innerException)
+    public CryptographyException(string message, System.Exception innerException)
         : base(message, innerException)
     {
     }

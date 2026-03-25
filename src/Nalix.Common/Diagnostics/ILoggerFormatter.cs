@@ -21,5 +21,5 @@ public interface ILoggerFormatter
     /// <returns>
     /// A string containing the formatted log message.
     /// </returns>
-    System.String Format(LogEntry message);
+    string Format(LogEntry message);
 }

@@ -24,19 +24,21 @@ public interface IPacketRegistry
     /// <summary>
     /// Gets the number of deserializers registered in this catalog.
     /// </summary>
-    System.Int32 DeserializerCount { get; }
+    int DeserializerCount { get; }
 
     /// <summary>
     /// Returns <see langword="true"/> if a deserializer is registered for
     /// <paramref name="magic"/>.
     /// </summary>
-    System.Boolean IsKnownMagic(System.UInt32 magic);
+    /// <param name="magic"></param>
+    bool IsKnownMagic(uint magic);
 
     /// <summary>
     /// Returns <see langword="true"/> if a deserializer is registered for the packet type
     /// <typeparamref name="TPacket"/>, resolved via its FNV-1a magic number.
     /// </summary>
-    System.Boolean IsRegistered<TPacket>() where TPacket : IPacket;
+    /// <typeparam name="TPacket"></typeparam>
+    bool IsRegistered<TPacket>() where TPacket : IPacket;
 
     /// <summary>
     /// Attempts to deserialize a packet by reading the magic number from the provided
@@ -54,7 +56,7 @@ public interface IPacketRegistry
     /// <see langword="true"/> on success; <see langword="false"/> when the buffer is
     /// too short or no deserializer is registered for the magic number found.
     /// </returns>
-    System.Boolean TryDeserialize(System.ReadOnlySpan<System.Byte> raw, out IPacket packet);
+    bool TryDeserialize(System.ReadOnlySpan<byte> raw, out IPacket packet);
 
     /// <summary>
     /// Attempts to get the <see cref="PacketDeserializer"/> associated with the specified magic number.
@@ -67,5 +69,5 @@ public interface IPacketRegistry
     /// <returns>
     /// <see langword="true"/> if a deserializer is registered; otherwise <see langword="false"/>.
     /// </returns>
-    System.Boolean TryGetDeserializer(System.UInt32 magic, out PacketDeserializer deserializer);
+    bool TryGetDeserializer(uint magic, out PacketDeserializer deserializer);
 }
