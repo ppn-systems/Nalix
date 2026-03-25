@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Common.Abstractions;
 
@@ -53,8 +52,5 @@ public interface IBufferLease : IDisposable
     /// <param name="length">
     /// On success, receives the length of the valid payload.
     /// </param>
-    bool ReleaseOwnership(
-        [MaybeNull] out byte[] buffer,
-        out int start,
-        out int length);
+    bool ReleaseOwnership(out byte[]? buffer, out int start, out int length);
 }

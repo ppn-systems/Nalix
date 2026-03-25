@@ -22,9 +22,7 @@ public interface IPacketSender<TPacket>
     /// <param name="ct">
     /// A cancellation token that can cancel the send operation.
     /// </param>
-    ValueTask<bool> SendAsync(
-        TPacket packet,
-        CancellationToken ct = default);
+    ValueTask<bool> SendAsync(TPacket packet, CancellationToken ct = default);
 
     /// <summary>
     /// Sends a packet, explicitly overriding the encryption flag.
@@ -38,8 +36,5 @@ public interface IPacketSender<TPacket>
     /// <param name="ct">
     /// A cancellation token that can cancel the send operation.
     /// </param>
-    ValueTask<bool> SendAsync(
-        TPacket packet,
-        bool forceEncrypt,
-        CancellationToken ct = default);
+    ValueTask<bool> SendAsync(TPacket packet, bool forceEncrypt, CancellationToken ct = default);
 }

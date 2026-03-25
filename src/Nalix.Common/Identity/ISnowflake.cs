@@ -100,7 +100,5 @@ public interface ISnowflake
     /// The method validates the destination buffer size before writing to prevent buffer overflows.
     /// This is the recommended serialization method for performance-critical scenarios.
     /// </remarks>
-    bool TryWriteBytes(
-        Span<byte> destination,
-        [NotNullWhen(true)] out int bytesWritten);
+    bool TryWriteBytes(Span<byte> destination, [NotNullWhen(true)] out int bytesWritten);
 }
