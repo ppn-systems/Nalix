@@ -22,20 +22,30 @@ namespace Nalix.Network.Middleware.Internal;
 [MiddlewareOrder(-50)]
 internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
 {
-    public async Task<IBufferLease> InvokeAsync(
+    public async Task<IBufferLease?> InvokeAsync(
         IBufferLease lease, IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease>> next,
+        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next,
         CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(lease);
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(next);
+
+        IConnection safeConnection = connection;
 
 #if DEBUG
-        string debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
+        string debugId = $"{safeConnection.NetworkEndpoint}/{safeConnection.ID.ToString()}/leasePtr=0x{lease.GetHashCode():X8}";
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[DECRYPT][{debugId}] Start - Flags={lease.Span.ReadFlagsLE()} LeaseLen={lease.Length}");
 #endif
 
         if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED))
         {
+            if (safeConnection.Secret is not { } secret)
+            {
+                return null;
+            }
+
             BufferLease dest;
             try
             {
@@ -55,7 +65,7 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
                 return null;
             }
 
-            if (!FrameTransformer.TryDecrypt(lease, dest, connection.Secret))
+            if (!FrameTransformer.TryDecrypt(lease, dest, secret))
             {
                 dest.Dispose();
 #if DEBUG
