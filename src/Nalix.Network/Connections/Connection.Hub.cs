@@ -86,12 +86,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
-    public event Action<IConnection> ConnectionUnregistered;
+    public event Action<IConnection>? ConnectionUnregistered;
 
     /// <summary>
     /// Raised when a limit is reached (e.g., max connections) and a connection is rejected.
     /// </summary>
-    public event EventHandler<ConnectionHubEventArgs> CapacityLimitReached;
+    public event EventHandler<ConnectionHubEventArgs>? CapacityLimitReached;
 
     /// <summary>
     /// Gets the current statistics snapshot for this connection hub.
@@ -230,9 +230,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         int shardIndex = GetShardIndex(connection.ID);
         System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
-        if (!shard.TryRemove(connection.ID, out IConnection existing))
+        if (!shard.TryRemove(connection.ID, out IConnection? existing))
         {
-            if (_usernames.TryRemove(connection.ID, out string orphanUser) && orphanUser is not null)
+            if (_usernames.TryRemove(connection.ID, out string? orphanUser) && orphanUser is not null)
             {
                 _ = _usernameToId.TryRemove(orphanUser, out _);
             }
@@ -242,18 +242,19 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return false;
         }
 
-        if (_usernames.TryRemove(connection.ID, out string username))
+        if (_usernames.TryRemove(connection.ID, out string? username) && username is not null)
         {
             _ = _usernameToId.TryRemove(username, out _);
         }
 
-        (existing ?? connection).OnCloseEvent -= OnClientDisconnected;
+        IConnection removedConnection = existing ?? connection;
+        removedConnection.OnCloseEvent -= OnClientDisconnected;
 
         _ = Interlocked.Decrement(ref _count);
 
         s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={connection.ID} total={_count}");
 
-        ConnectionUnregistered?.Invoke(existing ?? connection);
+        ConnectionUnregistered?.Invoke(removedConnection);
 
         if (_options.IsEnableLatency)
         {
@@ -301,7 +302,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         ISnowflake id = connection.ID;
 
         // Remove old association if exists
-        if (_usernames.TryGetValue(id, out string oldUsername) && oldUsername != username)
+        if (_usernames.TryGetValue(id, out string? oldUsername) && oldUsername is not null && oldUsername != username)
         {
             _ = _usernameToId.TryRemove(oldUsername, out _);
 
@@ -326,12 +327,10 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection(ISnowflake id)
+    public IConnection? GetConnection(ISnowflake id)
     {
-        IConnection connection;
         System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(id);
-
-        return shard.TryGetValue(id, out connection) ? connection : null;
+        return shard.TryGetValue(id, out IConnection? connection) ? connection : null;
     }
 
     /// <summary>
@@ -342,14 +341,11 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: MaybeNull]
     [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection(ReadOnlySpan<byte> id)
+    public IConnection? GetConnection(ReadOnlySpan<byte> id)
     {
         ISnowflake snowflake = Snowflake.FromBytes(id);
-
-        IConnection connection;
         System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(snowflake);
-
-        return shard.TryGetValue(snowflake, out connection) ? connection : null;
+        return shard.TryGetValue(snowflake, out IConnection? connection) ? connection : null;
     }
 
     /// <summary>
@@ -361,17 +357,14 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public IConnection GetConnection(string username)
+    public IConnection? GetConnection(string username)
     {
-        ISnowflake id;
         if (string.IsNullOrWhiteSpace(username))
         {
             return null;
         }
-        else
-        {
-            return _usernameToId.TryGetValue(username, out id) ? GetConnection(id) : null;
-        }
+
+        return _usernameToId.TryGetValue(username, out ISnowflake? id) ? GetConnection(id) : null;
     }
 
     /// <summary>
@@ -382,10 +375,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: MaybeNull]
     [SuppressMessage("Style", "IDE0018:Inline variable declaration", Justification = "<Pending>")]
-    public string GetUsername(ISnowflake id)
+    public string? GetUsername(ISnowflake id)
     {
-        string username;
-        return _usernames.TryGetValue(id, out username) ? username : null;
+        return _usernames.TryGetValue(id, out string? username) ? username : null;
     }
 
     /// <inheritdoc />
@@ -639,7 +631,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             foreach (IConnection conn in shard.Values)
             {
-                string connAddress = conn?.NetworkEndpoint?.Address ?? "null";
+                string connAddress = conn.NetworkEndpoint.Address;
 
                 if (connAddress != targetAddress)
                 {
@@ -653,7 +645,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                 }
                 catch (Exception ex)
                 {
-                    s_logger.Error($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn?.ID}", ex);
+                    s_logger.Error($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn.ID}", ex);
                 }
             }
         }
@@ -866,7 +858,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(
-        [AllowNull] object sender,
+        object sender,
         IConnectEventArgs args) => UnregisterConnection(args.Connection);
 
     [StackTraceHidden]
@@ -889,7 +881,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                     int shardIndex = GetShardIndex(oldestId);
                     System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
-                    if (shard.TryGetValue(oldestId, out IConnection oldestConn) && !_usernames.ContainsKey(oldestId))
+                    if (shard.TryGetValue(oldestId, out IConnection? oldestConn) && oldestConn is not null && !_usernames.ContainsKey(oldestId))
                     {
                         s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
                         NotifyCapacityLimit(newConnection, "evict-oldest");

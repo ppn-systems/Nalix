@@ -78,7 +78,7 @@ public sealed partial class Connection : IConnection
     {
         #region Fields
 
-        private EndPoint _endPoint;
+        private EndPoint? _endPoint;
         private Socket _socket;
 
         #endregion Fields
