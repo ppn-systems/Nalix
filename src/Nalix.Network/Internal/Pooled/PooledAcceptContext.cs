@@ -46,7 +46,6 @@ internal sealed class PooledAcceptContext : IPoolable
             : tcs.TrySetException(new SocketException((int)e.SocketError));
     };
 
-    [AllowNull]
     private SocketAsyncEventArgs _args;
 
     /// <summary>The SAEA currently bound to this context.</summary>

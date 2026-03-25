@@ -123,7 +123,6 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// <summary>
     /// Always access through BindArgs(...) to keep handler wiring correct.
     /// </summary>
-    [AllowNull]
     private SocketAsyncEventArgs _args;
 
     /// <summary>

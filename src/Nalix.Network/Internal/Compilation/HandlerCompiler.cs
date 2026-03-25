@@ -161,8 +161,13 @@ internal sealed class HandlerCompiler<
 
             foreach (MethodInfo method in methods)
             {
-                PacketOpcodeAttribute opcodeAttr = CustomAttributeExtensions
+                PacketOpcodeAttribute? opcodeAttr = CustomAttributeExtensions
                     .GetCustomAttribute<PacketOpcodeAttribute>(method);
+
+                if (opcodeAttr is null)
+                {
+                    continue;
+                }
 
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
@@ -215,15 +220,18 @@ internal sealed class HandlerCompiler<
             System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
 
         Type contextType = typeof(PacketContext<TPacket>);
+        PropertyInfo packetProperty = GetRequiredProperty(contextType, nameof(PacketContext<TPacket>.Packet));
+        PropertyInfo connectionProperty = GetRequiredProperty(contextType, nameof(PacketContext<TPacket>.Connection));
+        PropertyInfo cancellationTokenProperty = GetRequiredProperty(contextType, nameof(PacketContext<TPacket>.CancellationToken));
 
         System.Linq.Expressions.MemberExpression x02 =
-            System.Linq.Expressions.Expression.Property(x01, contextType.GetProperty(nameof(PacketContext<>.Packet)));
+            System.Linq.Expressions.Expression.Property(x01, packetProperty);
 
         System.Linq.Expressions.MemberExpression x03 =
-            System.Linq.Expressions.Expression.Property(x01, contextType.GetProperty(nameof(PacketContext<>.Connection)));
+            System.Linq.Expressions.Expression.Property(x01, connectionProperty);
 
         System.Linq.Expressions.MemberExpression x04 =
-            System.Linq.Expressions.Expression.Property(x01, contextType.GetProperty(nameof(PacketContext<>.CancellationToken)));
+            System.Linq.Expressions.Expression.Property(x01, cancellationTokenProperty);
 
         // -------------------------------------------------------------------
         // Detect which of the 4 supported signatures this method uses.
@@ -269,7 +277,8 @@ internal sealed class HandlerCompiler<
             System.Linq.Expressions.Expression x10 = x22.IsStatic
                 ? System.Linq.Expressions.Expression.Call(x22, x09)
                 : System.Linq.Expressions.Expression.Call(
-                    System.Linq.Expressions.Expression.Convert(x00, x22.DeclaringType), x22, x09);
+                    System.Linq.Expressions.Expression.Convert(x00, x22.DeclaringType
+                        ?? throw new InvalidOperationException($"Handler method '{x22.Name}' is missing a declaring type.")), x22, x09);
 
             System.Linq.Expressions.Expression x11 = x22.ReturnType == typeof(void)
                 ? System.Linq.Expressions.Expression.Block(x10, System.Linq.Expressions.Expression.Constant(null, typeof(object)))
@@ -516,8 +525,8 @@ internal sealed class HandlerCompiler<
                 : [context];
 
             return isStatic
-                ? method.Invoke(null, args)
-                : method.Invoke(instance, args);
+                ? method.Invoke(null, args)!
+                : method.Invoke(instance, args)!;
         };
     }
 
@@ -557,13 +566,13 @@ internal sealed class HandlerCompiler<
             // explicit (see BuildArgExpressions / IsPacketContextType).
             SignatureKind.ContextOnly =>
                 (instance, context) => method.IsStatic
-                    ? method.Invoke(null, [context])
-                    : method.Invoke(instance, [context]),
+                    ? method.Invoke(null, [context])!
+                    : method.Invoke(instance, [context])!,
 
             SignatureKind.ContextWithToken =>
                 (instance, context) => method.IsStatic
-                    ? method.Invoke(null, [context, context.CancellationToken])
-                    : method.Invoke(instance, [context, context.CancellationToken]),
+                    ? method.Invoke(null, [context, context.CancellationToken])!
+                    : method.Invoke(instance, [context, context.CancellationToken])!,
 
             SignatureKind.LegacyNoToken =>
                 (instance, context) =>
@@ -571,12 +580,12 @@ internal sealed class HandlerCompiler<
                     Type p0 = parms[0].ParameterType;
                     Type p1 = parms[1].ParameterType;
 
-                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null);
-                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null);
+                     object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
+                     object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
 
                     return method.IsStatic
-                        ? method.Invoke(null, [pkt, conn])
-                        : method.Invoke(instance, [pkt, conn]);
+                        ? method.Invoke(null, [pkt, conn])!
+                        : method.Invoke(instance, [pkt, conn])!;
                 }
             ,
 
@@ -586,12 +595,12 @@ internal sealed class HandlerCompiler<
                     Type p0 = parms[0].ParameterType;
                     Type p1 = parms[1].ParameterType;
 
-                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null);
-                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null);
+                     object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
+                     object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
 
                     return method.IsStatic
-                        ? method.Invoke(null, [pkt, conn, context.CancellationToken])
-                        : method.Invoke(instance, [pkt, conn, context.CancellationToken]);
+                        ? method.Invoke(null, [pkt, conn, context.CancellationToken])!
+                        : method.Invoke(instance, [pkt, conn, context.CancellationToken])!;
                 }
             ,
 
@@ -614,21 +623,21 @@ internal sealed class HandlerCompiler<
                 {
                     await t.ConfigureAwait(false);
                 }
-                return null;
+                return null!;
             };
         }
 
         if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(Task<>))
         {
             // Cache Result getter at compile-time for this x01
-            PropertyInfo x02 = x01.GetProperty("Result");
+            PropertyInfo x02 = GetRequiredProperty(x01, "Result");
             return async (instance, context) =>
             {
                 object r = x00(instance, context);
                 if (r is Task t)
                 {
                     await t.ConfigureAwait(false);
-                    return x02.GetValue(t);
+                    return x02.GetValue(t)!;
                 }
                 return r;
             };
@@ -637,11 +646,7 @@ internal sealed class HandlerCompiler<
         if (x01 == typeof(ValueTask))
         {
             // Call .GetAwaiter().GetResult() without allocations
-            MethodInfo getAwaiter = typeof(ValueTask)
-                .GetMethod("GetAwaiter", BindingFlags.Public | BindingFlags.Instance);
-
-            PropertyInfo x02 = getAwaiter.ReturnType.GetProperty("IsCompleted");
-            MethodInfo x03 = getAwaiter.ReturnType.GetMethod("GetResult");
+            MethodInfo getAwaiter = GetRequiredMethod(typeof(ValueTask), "GetAwaiter", BindingFlags.Public | BindingFlags.Instance);
 
             return async (instance, context) =>
             {
@@ -651,32 +656,31 @@ internal sealed class HandlerCompiler<
                     // prefer await: lets the compiler pick optimal path
                     await vt.ConfigureAwait(false);
                 }
-                return null;
+                return null!;
             };
         }
 
         if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
             // Build a converter: ValueTask<T> -> Task<T> once, then await Task<T> (no dynamic)
-            PropertyInfo x06 = x01.GetProperty("Result"); // exists but only valid if completed
-            MethodInfo x07 = x01.GetMethod("AsTask", Type.EmptyTypes); // ValueTask<T>.AsTask()
+            MethodInfo x07 = GetRequiredMethod(x01, "AsTask", Type.EmptyTypes); // ValueTask<T>.AsTask()
 
             return async (instance, context) =>
             {
                 object r = x00(instance, context);
                 if (r is null)
                 {
-                    return null;
+                    return null!;
                 }
 
                 // x10 AsTask() via reflection once per wrapper
-                object x03 = x07.Invoke(r, null); // Task<T>
+                object x03 = x07.Invoke(r, null)!; // Task<T>
                 Task x04 = (Task)x03;
                 await x04.ConfigureAwait(false);
 
                 // read Task<T>.Result once completed
-                PropertyInfo x05 = x03.GetType().GetProperty("Result");
-                return x05.GetValue(x03);
+                PropertyInfo x05 = GetRequiredProperty(x03.GetType(), "Result");
+                return x05.GetValue(x03)!;
             };
         }
 
@@ -714,7 +718,7 @@ internal sealed class HandlerCompiler<
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    private static string FormatHandlerInfo(string x00, ushort x01, MethodInfo x02 = null, Type x03 = null)
+    private static string FormatHandlerInfo(string x00, ushort x01, MethodInfo? x02 = null, Type? x03 = null)
     {
         string op = $"opcode=0x{x01:X4}";
         string ctrl = $"controller={x00}";
@@ -725,6 +729,24 @@ internal sealed class HandlerCompiler<
 
         return $"{op} {ctrl}{m}{sig}";
     }
+
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static PropertyInfo GetRequiredProperty(Type type, string name)
+        => type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
+        ?? throw new InvalidOperationException($"Required property '{type.FullName}.{name}' was not found.");
+
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static MethodInfo GetRequiredMethod(Type type, string name, BindingFlags bindingFlags)
+        => type.GetMethod(name, bindingFlags)
+        ?? throw new InvalidOperationException($"Required method '{type.FullName}.{name}' was not found.");
+
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static MethodInfo GetRequiredMethod(Type type, string name, Type[] parameterTypes)
+        => type.GetMethod(name, parameterTypes)
+        ?? throw new InvalidOperationException($"Required method '{type.FullName}.{name}' was not found.");
 
     #endregion Private Methods
 }

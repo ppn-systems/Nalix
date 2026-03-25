@@ -70,7 +70,6 @@ internal static class AsyncCallback
     private static long s_droppedCallbacks;
     private static long s_totalInvoked;
 
-    [AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
@@ -97,8 +96,8 @@ internal static class AsyncCallback
         // Decrement per-IP counter; remove key when it hits zero.
         if (w.Args.NetworkEndpoint is not null)
         {
-            _ = s_perIpPending.AddOrUpdate(w.Args.NetworkEndpoint, addValueFactory: static (_, __) => 0,
-                updateValueFactory: static (_, current, __) => current > 1 ? current - 1 : 0, factoryArgument: (object)null);
+            _ = s_perIpPending.AddOrUpdate(w.Args.NetworkEndpoint, addValueFactory: static (_, _) => 0,
+                updateValueFactory: static (_, current, _) => current > 1 ? current - 1 : 0, factoryArgument: 0);
 
             // Clean up zero-valued entries to prevent dictionary growth.
             if (s_perIpPending.TryGetValue(w.Args.NetworkEndpoint, out int v) && v == 0)
@@ -135,8 +134,8 @@ internal static class AsyncCallback
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Invoke(
-        [AllowNull] EventHandler<IConnectEventArgs> callback,
-        object sender,
+        EventHandler<IConnectEventArgs> callback,
+        object? sender,
         IConnectEventArgs args)
     {
         if (callback is null)
@@ -172,9 +171,9 @@ internal static class AsyncCallback
             // Reserve the per-IP slot atomically.
             s_perIpPending.AddOrUpdate(
                 args.NetworkEndpoint,
-                addValueFactory: static (_, __) => 1,
-                updateValueFactory: static (_, current, __) => current + 1,
-                factoryArgument: (object)null);
+                addValueFactory: static (_, _) => 1,
+                updateValueFactory: static (_, current, _) => current + 1,
+                factoryArgument: 0);
         }
 
         // ── Warn when approaching global limit ────────────────────────────────
@@ -204,8 +203,8 @@ internal static class AsyncCallback
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InvokeHighPriority(
-        [AllowNull] EventHandler<IConnectEventArgs> callback,
-        object sender,
+        EventHandler<IConnectEventArgs> callback,
+        object? sender,
         IConnectEventArgs args)
     {
         if (callback is null)
@@ -240,7 +239,7 @@ internal static class AsyncCallback
     private static bool QUEUE(
         Action<object> invoker,
         EventHandler<IConnectEventArgs> callback,
-        object sender,
+        object? sender,
         IConnectEventArgs args,
         bool isHigh)
     {
@@ -258,10 +257,10 @@ internal static class AsyncCallback
                 {
                     _ = s_perIpPending.AddOrUpdate(
                         args.NetworkEndpoint,
-                        addValueFactory: static (_, __) => 0,
-                        updateValueFactory: static (_, current, __) =>
+                        addValueFactory: static (_, _) => 0,
+                        updateValueFactory: static (_, current, _) =>
                             current > 1 ? current - 1 : 0,
-                        factoryArgument: (object)null);
+                        factoryArgument: 0);
                 }
             }
 
