@@ -49,11 +49,11 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     /// </summary>
     /// <param name="returnType"></param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     public static IReturnHandler<TPacket> ResolveHandler(
         Type returnType)
     {
-        if (_handlers.TryGetValue(returnType, out IReturnHandler<TPacket> handler))
+        if (_handlers.TryGetValue(returnType, out IReturnHandler<TPacket>? handler)
+            && handler is not null)
         {
             return handler;
         }
@@ -108,7 +108,8 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         Type resultType)
     {
         Type handlerType = typeof(TaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
-        return (IReturnHandler<TPacket>)Activator.CreateInstance(handlerType, innerHandler);
+        return (IReturnHandler<TPacket>)(Activator.CreateInstance(handlerType, innerHandler)
+            ?? throw new InvalidOperationException($"Failed to create return handler for '{handlerType.FullName}'."));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -117,6 +118,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         Type resultType)
     {
         Type handlerType = typeof(ValueTaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
-        return (IReturnHandler<TPacket>)Activator.CreateInstance(handlerType, innerHandler);
+        return (IReturnHandler<TPacket>)(Activator.CreateInstance(handlerType, innerHandler)
+            ?? throw new InvalidOperationException($"Failed to create return handler for '{handlerType.FullName}'."));
     }
 }
