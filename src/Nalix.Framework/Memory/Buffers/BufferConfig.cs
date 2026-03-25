@@ -7,8 +7,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Injection;
 

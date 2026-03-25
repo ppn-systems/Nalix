@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
@@ -19,7 +20,6 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
 {
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     private IBufferLease? _lease;
-    private IConnection? _connection;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionEventArgs"/> class with default values.
@@ -32,26 +32,27 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     /// <param name="connection">The connection associated with the event.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     public ConnectionEventArgs(IConnection connection)
-        => _connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when creating ConnectionEventArgs");
+        => Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when creating ConnectionEventArgs");
 
     /// <inheritdoc/>
     public IBufferLease Lease => _lease ?? throw new InvalidOperationException("Buffer lease is not available for this event.");
 
     /// <inheritdoc />
-    public IConnection Connection => _connection ?? throw new InvalidOperationException("Connection is not available for this event.");
+    [AllowNull]
+    public IConnection Connection { get => field ?? throw new InvalidOperationException("Connection is not available for this event."); private set; }
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint => Connection.NetworkEndpoint;
 
     /// <inheritdoc />
     public void Initialize(IConnection connection)
-        => _connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
+        => Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
 
     /// <inheritdoc />
     public void Initialize(IBufferLease lease, IConnection connection)
     {
         _lease = lease ?? throw new ArgumentNullException(nameof(lease), "Buffer lease cannot be null when initializing ConnectionEventArgs with a buffer");
-        _connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs with a buffer");
+        Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs with a buffer");
     }
 
     /// <inheritdoc />
@@ -60,7 +61,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
         _lease?.Dispose();
 
         _lease = null;
-        _connection = null;
+        Connection = null;
     }
 
     /// <inheritdoc />
