@@ -8,8 +8,8 @@ using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Environment;
-using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Logging.Exceptions;
 

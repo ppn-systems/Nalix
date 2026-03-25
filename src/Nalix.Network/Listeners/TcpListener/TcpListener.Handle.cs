@@ -252,12 +252,7 @@ public abstract partial class TcpListenerBase
                     }
 
                     // Create and process connection similar to async version
-                    PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context;
-                    if (context is null)
-                    {
-                        throw new InvalidOperationException("Accept context was not bound to pooled socket args.");
-                    }
-
+                    PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context ?? throw new InvalidOperationException("Accept context was not bound to pooled socket args.");
                     IConnection connection = InitializeConnection(socket, context);
 
                     // Process the connection

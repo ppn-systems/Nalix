@@ -25,10 +25,7 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static bool IsRunningInContainer
-    {
-        get => IsContainerLazy.Value;
-    }
+    public static bool IsRunningInContainer => IsContainerLazy.Value;
 
     /// <summary>
     /// Gets the resolved base directory for application assets.
@@ -47,10 +44,7 @@ public static partial class Directories
     /// <value>A fully qualified directory path.</value>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string BaseAssetsDirectory
-    {
-        get => BasePathLazy.Value;
-    }
+    public static string BaseAssetsDirectory => BasePathLazy.Value;
 
     /// <summary>
     /// Gets the directory used for application logs.
@@ -66,10 +60,7 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string LogsDirectory
-    {
-        get => LogsPathLazy.Value;
-    }
+    public static string LogsDirectory => LogsPathLazy.Value;
 
     /// <summary>
     /// Gets the directory used for application data.
@@ -84,10 +75,7 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string DataDirectory
-    {
-        get => DataPathLazy.Value;
-    }
+    public static string DataDirectory => DataPathLazy.Value;
 
     /// <summary>
     /// Gets the directory used for configuration files.
@@ -103,10 +91,7 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string ConfigurationDirectory
-    {
-        get => ConfigPathLazy.Value;
-    }
+    public static string ConfigurationDirectory => ConfigPathLazy.Value;
 
     /// <summary>
     /// Gets the directory used for temporary files.
@@ -124,10 +109,7 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string TemporaryDirectory
-    {
-        get => TempPathLazy.Value;
-    }
+    public static string TemporaryDirectory => TempPathLazy.Value;
 
     /// <summary>
     /// Gets the directory used for persistent storage.
@@ -143,10 +125,7 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string StorageDirectory
-    {
-        get => StoragePathLazy.Value;
-    }
+    public static string StorageDirectory => StoragePathLazy.Value;
 
     /// <summary>
     /// Gets the directory used for database files.
@@ -162,10 +141,7 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string DatabaseDirectory
-    {
-        get => DatabasePathLazy.Value;
-    }
+    public static string DatabaseDirectory => DatabasePathLazy.Value;
 
     /// <summary>
     /// Gets the directory used for cache files.
@@ -175,10 +151,7 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string CacheDirectory
-    {
-        get => CachesPathLazy.Value;
-    }
+    public static string CacheDirectory => CachesPathLazy.Value;
 
     /// <summary>
     /// Gets the directory used for uploaded files.
@@ -188,10 +161,7 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string UploadsDirectory
-    {
-        get => UploadsPathLazy.Value;
-    }
+    public static string UploadsDirectory => UploadsPathLazy.Value;
 
     /// <summary>
     /// Gets the directory used for backups.
@@ -201,8 +171,5 @@ public static partial class Directories
     /// </remarks>
     [DisallowNull]
     [EditorBrowsable(EditorBrowsableState.Always)]
-    public static string BackupsDirectory
-    {
-        get => BackupsPathLazy.Value;
-    }
+    public static string BackupsDirectory => BackupsPathLazy.Value;
 }

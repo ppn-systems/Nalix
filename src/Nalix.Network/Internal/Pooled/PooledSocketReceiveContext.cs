@@ -158,8 +158,6 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// <see cref="ObjectPoolManager"/> if necessary.
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
-    [SuppressMessage(
-        "Style", "IDE0270:Use coalesce expression", Justification = "<Pending>")]
     public void EnsureArgsBound()
     {
         if (_args != null)

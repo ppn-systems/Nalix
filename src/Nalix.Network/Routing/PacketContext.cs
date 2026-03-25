@@ -98,7 +98,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// based on the current handler's attributes.
     /// Use this instead of calling connection.TCP.SendAsync() directly.
     /// </summary>
-    public IPacketSender<TPacket> Sender { get; private set; } = default!;
+    public IPacketSender<TPacket>? Sender { get; private set; }
 
     #endregion Properties
 

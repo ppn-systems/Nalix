@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;

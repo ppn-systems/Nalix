@@ -220,9 +220,9 @@ internal sealed class HandlerCompiler<
             System.Linq.Expressions.Expression.Parameter(typeof(PacketContext<TPacket>), "context");
 
         Type contextType = typeof(PacketContext<TPacket>);
-        PropertyInfo packetProperty = GetRequiredProperty(contextType, nameof(PacketContext<TPacket>.Packet));
-        PropertyInfo connectionProperty = GetRequiredProperty(contextType, nameof(PacketContext<TPacket>.Connection));
-        PropertyInfo cancellationTokenProperty = GetRequiredProperty(contextType, nameof(PacketContext<TPacket>.CancellationToken));
+        PropertyInfo packetProperty = GetRequiredProperty(contextType, nameof(PacketContext<>.Packet));
+        PropertyInfo connectionProperty = GetRequiredProperty(contextType, nameof(PacketContext<>.Connection));
+        PropertyInfo cancellationTokenProperty = GetRequiredProperty(contextType, nameof(PacketContext<>.CancellationToken));
 
         System.Linq.Expressions.MemberExpression x02 =
             System.Linq.Expressions.Expression.Property(x01, packetProperty);
@@ -580,8 +580,8 @@ internal sealed class HandlerCompiler<
                     Type p0 = parms[0].ParameterType;
                     Type p1 = parms[1].ParameterType;
 
-                     object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
-                     object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
+                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
+                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
 
                     return method.IsStatic
                         ? method.Invoke(null, [pkt, conn])!
@@ -595,8 +595,8 @@ internal sealed class HandlerCompiler<
                     Type p0 = parms[0].ParameterType;
                     Type p1 = parms[1].ParameterType;
 
-                     object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
-                     object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
+                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
+                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
 
                     return method.IsStatic
                         ? method.Invoke(null, [pkt, conn, context.CancellationToken])!

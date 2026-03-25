@@ -6,8 +6,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
-using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Logging.Configuration;

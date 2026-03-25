@@ -1,6 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Abstractions;
+
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
@@ -13,41 +15,41 @@ public enum PacketHeaderOffset
     /// Represents the magic number field, which uniquely identifies the packet format or protocol.
     /// This field comes first in the serialized data.
     /// </summary>
-    [Shared.DataType(typeof(int))]
+    [DataType(typeof(int))]
     MagicNumber = 0,
 
     /// <summary>
     /// Represents the operation code (OpCode) field, specifying the command or type of the packet.
     /// This field comes second in the serialized data.
     /// </summary>
-    [Shared.DataType(typeof(ushort))]
+    [DataType(typeof(ushort))]
     OpCode = MagicNumber + sizeof(uint),
 
     /// <summary>
     /// Represents the flags field, which contains state or processing options for the packet.
     /// This field comes third in the serialized data.
     /// </summary>
-    [Shared.DataType(typeof(byte))]
+    [DataType(typeof(byte))]
     Flags = OpCode + sizeof(ushort),
 
     /// <summary>
     /// Represents the priority field, indicating the processing priority of the packet.
     /// This field comes fourth in the serialized data.
     /// </summary>
-    [Shared.DataType(typeof(byte))]
+    [DataType(typeof(byte))]
     Priority = Flags + sizeof(byte),
 
     /// <summary>
     /// Represents the transport protocol field, indicating the transport protocol (e.g., TCP or UDP) used.
     /// This field comes fifth in the serialized data.
     /// </summary>
-    [Shared.DataType(typeof(byte))]
+    [DataType(typeof(byte))]
     Transport = Priority + sizeof(byte),
 
     /// <summary>
     /// SequenceId field: Used for packet sequence correlation.
     /// </summary>
-    [Shared.DataType(typeof(uint))]
+    [DataType(typeof(uint))]
     SequenceId = Transport + sizeof(byte),
 
     /// <summary>
