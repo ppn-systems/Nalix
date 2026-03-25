@@ -17,6 +17,14 @@ using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
 #endif
 
+#if DEBUG
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+#endif
+
 namespace Nalix.Network.Middleware.Internal;
 
 [MiddlewareOrder(-50)]
