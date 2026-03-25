@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
@@ -14,7 +16,7 @@ public interface IPacketDeserializer<TPacket> where TPacket : IPacket
     /// </summary>
     /// <param name="buffer">A read-only span containing the serialized packet bytes.</param>
     /// <returns>A new <typeparamref name="TPacket"/> instance.</returns>
-    static abstract TPacket Deserialize(System.ReadOnlySpan<byte> buffer);
+    static abstract TPacket Deserialize(ReadOnlySpan<byte> buffer);
 
     // (Optional) If your design needs it, you can add the opposite direction:
     // static abstract void Serialize(in TPacket packet, SYSTEM.Span<byte> destination);

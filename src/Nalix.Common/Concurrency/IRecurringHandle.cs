@@ -1,12 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Concurrency;
 
 /// <summary>
 /// Provides control and status information for a scheduled recurring job.
 /// </summary>
-public interface IRecurringHandle : System.IDisposable
+public interface IRecurringHandle : IDisposable
 {
     /// <summary>
     /// Gets the name of the recurring job.
@@ -26,7 +28,7 @@ public interface IRecurringHandle : System.IDisposable
     /// <summary>
     /// Gets the interval between each run of the recurring job.
     /// </summary>
-    System.TimeSpan Interval { get; }
+    TimeSpan Interval { get; }
 
     /// <summary>
     /// Gets the options used to configure the recurring job.
@@ -41,10 +43,10 @@ public interface IRecurringHandle : System.IDisposable
     /// <summary>
     /// Gets the UTC timestamp of the last run of the job, if any.
     /// </summary>
-    System.DateTimeOffset? LastRunUtc { get; }
+    DateTimeOffset? LastRunUtc { get; }
 
     /// <summary>
     /// Gets the scheduled UTC timestamp for the next run of the job, if any.
     /// </summary>
-    System.DateTimeOffset? NextRunUtc { get; }
+    DateTimeOffset? NextRunUtc { get; }
 }

@@ -884,14 +884,14 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
 
         switch (_options.DropPolicy)
         {
-            case DropPolicy.DROP_NEWEST:
+            case DropPolicy.DropNewest:
                 NotifyCapacityLimit(newConnection, "drop-newest");
                 newConnection.Disconnect("connection limit reached");
                 _ = System.Threading.Interlocked.Increment(ref _rejectedConnections);
                 break;
 
 
-            case DropPolicy.DROP_OLDEST:
+            case DropPolicy.DropOldest:
                 while (_anonymousQueue.TryDequeue(out ISnowflake oldestId))
                 {
                     int shardIndex = GetShardIndex(oldestId);
@@ -915,9 +915,9 @@ public sealed class ConnectionHub : IConnectionHub, System.IDisposable, IReporta
                 break;
 
 
-            case DropPolicy.BLOCK:
+            case DropPolicy.Block:
                 break;
-            case DropPolicy.COALESCE:
+            case DropPolicy.Coalesce:
                 break;
             default:
                 break;

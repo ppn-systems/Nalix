@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
@@ -13,5 +16,5 @@ namespace Nalix.Common.Networking.Packets;
 /// <returns>
 /// An <see cref="IPacket"/> instance created from the provided buffer.
 /// </returns>
-[System.Diagnostics.DebuggerDisplay("PacketDeserializer Delegate")]
-public delegate IPacket PacketDeserializer(System.ReadOnlySpan<byte> raw);
+[DebuggerDisplay("PacketDeserializer Delegate")]
+public delegate IPacket PacketDeserializer(ReadOnlySpan<byte> raw);

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Exceptions;
 
 /// <summary>
@@ -54,7 +56,7 @@ public class InternalErrorException : BaseException
     /// <param name="innerException">
     /// The exception that caused the current exception, or <see langword="null"/> if none is specified.
     /// </param>
-    public InternalErrorException(string message, System.Exception innerException)
+    public InternalErrorException(string message, Exception innerException)
         : base(message, innerException)
     {
     }

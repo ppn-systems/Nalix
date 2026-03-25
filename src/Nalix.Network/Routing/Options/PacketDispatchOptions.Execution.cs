@@ -89,7 +89,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
                         sequenceId: context.Packet.SequenceId,
-                        flags: ControlFlags.IS_TRANSIENT,
+                        flags: ControlFlags.IsTransient,
                         arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
 
                     return;
@@ -227,7 +227,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // 1) Cancellation/Timeout => transient
         if (ex is System.OperationCanceledException or System.TimeoutException)
         {
-            return (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT);
+            return (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IsTransient);
         }
 
         // 2) Validation/Bad input
@@ -263,7 +263,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // 6) ObjectDisposed trong teardown: coi như transient nhẹ
         if (ex is System.ObjectDisposedException)
         {
-            return (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT);
+            return (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IsTransient);
         }
 
         // 7) Default: internal error
@@ -274,7 +274,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return se.SocketErrorCode switch
             {
                 System.Net.Sockets.SocketError.TimedOut
-                => (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                => (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IsTransient),
 
                 System.Net.Sockets.SocketError.ConnectionReset or
                 System.Net.Sockets.SocketError.ConnectionAborted or
@@ -282,11 +282,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 System.Net.Sockets.SocketError.HostUnreachable or
                 System.Net.Sockets.SocketError.NetworkDown or
                 System.Net.Sockets.SocketError.NetworkUnreachable
-                => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IsTransient),
 
                 System.Net.Sockets.SocketError.Interrupted or
                 System.Net.Sockets.SocketError.OperationAborted
-                => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IsTransient),
                 System.Net.Sockets.SocketError.SocketError => throw new System.NotImplementedException(),
                 System.Net.Sockets.SocketError.Success => throw new System.NotImplementedException(),
                 System.Net.Sockets.SocketError.IOPending => throw new System.NotImplementedException(),

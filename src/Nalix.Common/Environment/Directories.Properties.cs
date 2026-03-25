@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+
 namespace Nalix.Common.Environment;
 
 /// <summary>
@@ -20,12 +23,12 @@ public static partial class Directories
     /// <c>KUBERNETES_SERVICE_HOST</c>, presence of <c>/.dockerenv</c>, and <c>/proc/1/cgroup</c> markers).
     /// The value is computed once and cached.
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static bool IsRunningInContainer
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => IsContainerLazy.Value;
     }
 
@@ -44,12 +47,12 @@ public static partial class Directories
     /// The returned path is absolute.
     /// </remarks>
     /// <value>A fully qualified directory path.</value>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string BaseAssetsDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => BasePathLazy.Value;
     }
 
@@ -65,12 +68,12 @@ public static partial class Directories
     /// </list>
     /// On Unix-like systems, permissions are set to be world-readable.
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string LogsDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => LogsPathLazy.Value;
     }
 
@@ -85,12 +88,12 @@ public static partial class Directories
     ///   <item><see cref="BaseAssetsDirectory"/>/<c>data</c>.</item>
     /// </list>
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string DataDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => DataPathLazy.Value;
     }
 
@@ -106,12 +109,12 @@ public static partial class Directories
     /// </list>
     /// Directory permissions are hardened (Unix: 0700).
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string ConfigurationDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => ConfigPathLazy.Value;
     }
 
@@ -129,12 +132,12 @@ public static partial class Directories
     /// files older than a retention period are removed. The retention period defaults to
     /// 7 days and can be overridden via <c>NALIX_TEMP_RETENTION_DAYS</c> (positive integer).
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string TemporaryDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => TempPathLazy.Value;
     }
 
@@ -150,12 +153,12 @@ public static partial class Directories
     /// </list>
     /// Directory permissions are set for shared read/execute on Unix (0750).
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string StorageDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => StoragePathLazy.Value;
     }
 
@@ -171,12 +174,12 @@ public static partial class Directories
     /// </list>
     /// Directory permissions are restricted (Unix: 0700).
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string DatabaseDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => DatabasePathLazy.Value;
     }
 
@@ -186,12 +189,12 @@ public static partial class Directories
     /// <remarks>
     /// Default location: <see cref="DataDirectory"/>/<c>caches</c>. The directory is created on first access.
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string CacheDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => CachesPathLazy.Value;
     }
 
@@ -201,12 +204,12 @@ public static partial class Directories
     /// <remarks>
     /// Default location: <see cref="DataDirectory"/>/<c>uploads</c>. Directory permissions on Unix are set to 0750.
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string UploadsDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => UploadsPathLazy.Value;
     }
 
@@ -216,12 +219,12 @@ public static partial class Directories
     /// <remarks>
     /// Default location: <see cref="DataDirectory"/>/<c>backups</c>. Directory permissions on Unix are restricted (0700).
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    [System.Diagnostics.CodeAnalysis.DisallowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Always)]
+    [NotNull]
+    [DisallowNull]
+    [EditorBrowsable(EditorBrowsableState.Always)]
     public static string BackupsDirectory
     {
-        [return: System.Diagnostics.CodeAnalysis.NotNull]
+        [return: NotNull]
         get => BackupsPathLazy.Value;
     }
 }

@@ -8,6 +8,7 @@ namespace Nalix.Common.Networking.Protocols;
 /// Grouped by ranges to ease logging, analytics, and client decisioning.
 /// Inspired by WebSocket close codes, MQTT v5 reason codes, gRPC, HTTP, and QUIC.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "<Pending>")]
 public enum ProtocolReason : ushort
 {
     #region 0–49: General
@@ -164,7 +165,6 @@ public enum ProtocolReason : ushort
     /// Represents the error code for an unsupported operation.
     /// </summary>
     OPERATION_UNSUPPORTED = 160,
-
 
     /// <summary>
     /// Packet is malformed or does not conform to protocol framing.

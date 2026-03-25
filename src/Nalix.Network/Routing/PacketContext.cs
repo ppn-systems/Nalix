@@ -130,9 +130,9 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// Initializes a new instance of the <see cref="PacketContext{TPacket}"/> class for pooling.
     /// </summary>
     /// <remarks>
-    /// This constructor is used by the object pool to create instances in the <see cref="PacketContextState.POOLED"/> state.
+    /// This constructor is used by the object pool to create instances in the <see cref="PacketContextState.Pooled"/> state.
     /// </remarks>
-    public PacketContext() => _state = (int)PacketContextState.POOLED;
+    public PacketContext() => _state = (int)PacketContextState.Pooled;
 
     #endregion Constructor
 
@@ -146,7 +146,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// <param name="descriptor">The metadata describing the packet.</param>
     /// <param name="token">The cancellation token for the context.</param>
     /// <remarks>
-    /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.IN_USE"/> state.
+    /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.InUse"/> state.
     /// </remarks>
     /// <exception cref="System.InvalidOperationException"></exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -159,7 +159,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     {
         _ = System.Threading.Interlocked.Exchange(
             ref _state,
-            (int)PacketContextState.IN_USE);
+            (int)PacketContextState.InUse);
 
         Packet = packet;
         Connection = connection;
@@ -200,7 +200,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// Resets the context for reuse in the object pool.
     /// </summary>
     /// <remarks>
-    /// If the context is initialized, it is reset and transitioned to the <see cref="PacketContextState.POOLED"/> state.
+    /// If the context is initialized, it is reset and transitioned to the <see cref="PacketContextState.Pooled"/> state.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -211,21 +211,21 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
             Reset();
         }
 
-        _ = System.Threading.Interlocked.Exchange(ref _state, (int)PacketContextState.POOLED);
+        _ = System.Threading.Interlocked.Exchange(ref _state, (int)PacketContextState.Pooled);
     }
 
     /// <summary>
     /// Returns the context to the object pool.
     /// </summary>
     /// <remarks>
-    /// This method is thread-safe and ensures the context is only returned if it is in the <see cref="PacketContextState.IN_USE"/> state.
+    /// This method is thread-safe and ensures the context is only returned if it is in the <see cref="PacketContextState.InUse"/> state.
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void Return()
     {
         if (System.Threading.Interlocked.Exchange(
-        ref _state, (int)PacketContextState.RETURNED) != (int)PacketContextState.IN_USE)
+        ref _state, (int)PacketContextState.Returned) != (int)PacketContextState.InUse)
         {
             return;
         }

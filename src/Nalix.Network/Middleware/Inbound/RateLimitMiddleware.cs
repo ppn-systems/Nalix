@@ -90,7 +90,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                 reason: ProtocolReason.RATE_LIMITED,
                 action: ProtocolAdvice.RETRY,
                 sequenceId: sequenceId,
-                flags: ControlFlags.IS_TRANSIENT,
+                flags: ControlFlags.IsTransient,
                 arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
                 arg1: (uint)decision.RetryAfterMs,
                 arg2: decision.Credit

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Security;
 
 namespace Nalix.Common.Networking.Packets;
@@ -13,8 +15,8 @@ namespace Nalix.Common.Networking.Packets;
 /// with at least the specified authority level are allowed to execute the command.
 /// This check is typically performed by the packet dispatch or command handling system.
 /// </remarks>
-[System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public sealed class PacketPermissionAttribute : System.Attribute
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public sealed class PacketPermissionAttribute : Attribute
 {
     /// <summary>
     /// Gets the minimum authority level required to execute the command.
@@ -29,7 +31,7 @@ public sealed class PacketPermissionAttribute : System.Attribute
     /// The minimum authority level required to execute the command.
     /// Defaults to <see cref="PermissionLevel.USER"/>.
     /// </param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketPermissionAttribute(PermissionLevel level = PermissionLevel.USER) => Level = level;
 }

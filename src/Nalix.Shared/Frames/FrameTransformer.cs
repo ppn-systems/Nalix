@@ -28,7 +28,7 @@ public static class FrameTransformer
     /// <summary>
     /// Offset in bytes where the payload (DATA_REGION) starts in the packet.
     /// </summary>
-    public const int Offset = (int)PacketHeaderOffset.DATA_REGION;
+    public const int Offset = (int)PacketHeaderOffset.Region;
 
     /// <summary>
     /// Calculates the maximum ciphertext size required for encrypting a plaintext of the given size

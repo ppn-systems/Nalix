@@ -16,7 +16,7 @@ namespace Nalix.Shared.Frames.Text;
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("TEXT256 OP_CODE={OP_CODE}, Length={Length}, FLAGS={FLAGS}")]
+[System.Diagnostics.DebuggerDisplay("TEXT256 OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
 {
     /// <inheritdoc/>
@@ -31,7 +31,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
     /// Gets or sets the UTF-8 string content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION)]
+    [SerializeOrder(PacketHeaderOffset.Region)]
     public string Content { get; set; }
 
     /// <summary>Initializes a new <see cref="Text256"/> with empty content.</summary>
@@ -41,7 +41,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
         Protocol = ProtocolType.NONE;
         Content = string.Empty;
         Priority = PacketPriority.NONE;
-        OpCode = PacketConstants.OPCODE_DEFAULT;
+        OpCode = PacketConstants.OpcodeDefault;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -105,6 +105,6 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
 
     /// <inheritdoc/>
     public override string ToString()
-        => $"TEXT256(OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}, " +
-           $"PRIORITY={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
+        => $"TEXT256(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
+           $"Priority={Priority}, Protocol={Protocol}, Content={System.Text.Encoding.UTF8.GetByteCount(Content)} bytes)";
 }
