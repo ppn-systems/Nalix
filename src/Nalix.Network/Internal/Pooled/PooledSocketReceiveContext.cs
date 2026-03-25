@@ -90,7 +90,10 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     private static readonly EventHandler<SocketAsyncEventArgs>
         AsyncReceiveCompleted = static (_, e) =>
         {
-            ReceiveToken token = (ReceiveToken)e.UserToken;
+            if (e.UserToken is not ReceiveToken token)
+            {
+                return;
+            }
 
 #if DEBUG
             Debug.WriteLine(
@@ -167,12 +170,6 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
 
         PooledSocketAsyncEventArgs pooledArgs = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                                         .Get<PooledSocketAsyncEventArgs>();
-
-        if (pooledArgs == null)
-        {
-            throw new InvalidOperationException(
-                "Failed to acquire PooledSocketAsyncEventArgs from pool.");
-        }
 
 #if DEBUG
         Debug.WriteLine(

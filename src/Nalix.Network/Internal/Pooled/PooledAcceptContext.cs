@@ -34,11 +34,15 @@ internal sealed class PooledAcceptContext : IPoolable
 {
     private static readonly EventHandler<SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
     {
-        TaskCompletionSource<Socket> tcs =
-            (TaskCompletionSource<Socket>)e.UserToken;
+        if (e.UserToken is not TaskCompletionSource<Socket> tcs)
+        {
+            return;
+        }
 
         _ = e.SocketError == SocketError.Success
-            ? tcs.TrySetResult(e.AcceptSocket)
+            ? e.AcceptSocket is Socket acceptedSocket
+                ? tcs.TrySetResult(acceptedSocket)
+                : tcs.TrySetException(new InvalidOperationException("Accept completed successfully without a socket."))
             : tcs.TrySetException(new SocketException((int)e.SocketError));
     };
 
@@ -125,8 +129,12 @@ internal sealed class PooledAcceptContext : IPoolable
         {
             reg = cancellationToken.Register(static state =>
             {
-                (TaskCompletionSource<Socket> t, CancellationToken ct) = ((TaskCompletionSource<Socket>,
-                                CancellationToken))state;
+                if (state is not ValueTuple<TaskCompletionSource<Socket>, CancellationToken> tuple)
+                {
+                    return;
+                }
+
+                (TaskCompletionSource<Socket> t, CancellationToken ct) = tuple;
                 _ = t.TrySetCanceled(ct);
             }, (tcs, cancellationToken));
         }
@@ -147,16 +155,29 @@ internal sealed class PooledAcceptContext : IPoolable
             }
             else
             {
-                Socket s = args.AcceptSocket;
+                Socket? s = args.AcceptSocket;
                 args.AcceptSocket = null;
-                _ = tcs.TrySetResult(s);
+                if (s is null)
+                {
+                    _ = tcs.TrySetException(new InvalidOperationException("Accept completed successfully without a socket."));
+                }
+                else
+                {
+                    _ = tcs.TrySetResult(s);
+                }
             }
         }
         else
         {
             // Completed asynchronously — dispose registration when task finishes.
             _ = tcs.Task.ContinueWith(
-                static (_, state) => ((CancellationTokenRegistration)state).Dispose(),
+                static (_, state) =>
+                {
+                    if (state is CancellationTokenRegistration registration)
+                    {
+                        registration.Dispose();
+                    }
+                },
                 reg,
                 TaskContinuationOptions.ExecuteSynchronously);
         }
