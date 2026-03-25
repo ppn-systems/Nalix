@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+
 namespace Nalix.Common.Diagnostics;
 
 /// <summary>
@@ -11,7 +15,7 @@ namespace Nalix.Common.Diagnostics;
 /// </remarks>
 /// <param name="id">The numeric identifier for this event.</param>
 /// <param name="name">The name of this event.</param>
-public readonly struct EventId(int id, string name = null) : System.IEquatable<EventId>
+public readonly struct EventId(int id, string name = null) : IEquatable<EventId>
 {
     /// <summary>
     /// Represents an empty or uninitialized <see cref="EventId"/> with an ProtocolType of 0.
@@ -52,18 +56,18 @@ public readonly struct EventId(int id, string name = null) : System.IEquatable<E
     public string Name { get; } = name;
 
     /// <inheritdoc />
-    public override string ToString() => Name ?? Id.ToString();
+    public override string ToString() => Name ?? Id.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Compares the current instance to another object of the same type. Two events are equal if they have the same ProtocolType.
     /// </summary>
     /// <param name="other">An object to compare with this object.</param>
     /// <returns><see langword="true" /> if the current object is equal to <paramref name="other" />; otherwise, <see langword="false" />.</returns>
-    public bool Equals([System.Diagnostics.CodeAnalysis.NotNull] EventId other) => Id == other.Id;
+    public bool Equals([NotNull] EventId other) => Id == other.Id;
 
     /// <inheritdoc />
     public override bool Equals(
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] object obj)
+        [NotNullWhen(true)] object obj)
         => obj is not null && obj is EventId eventId && Equals(eventId);
 
     /// <inheritdoc />

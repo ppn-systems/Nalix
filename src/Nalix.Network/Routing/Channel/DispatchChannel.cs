@@ -244,11 +244,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         {
             switch (_options.DropPolicy)
             {
-                case DropPolicy.DROP_NEWEST:
+                case DropPolicy.DropNewest:
                     // Simply drop the incoming packet (do nothing).
                     return;
 
-                case DropPolicy.DROP_OLDEST:
+                case DropPolicy.DropOldest:
                     // Remove one oldest across priorities: scan from lowest → highest for fairness in eviction.
                     if (TRY_EVICT_OLDEST(cqs, cs, out _))
                     {
@@ -262,7 +262,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                     }
                     break;
 
-                case DropPolicy.BLOCK:
+                case DropPolicy.Block:
                     // Short spin (cheap backpressure). Avoid long blocks in high-throughput networking.
                     bool ok = WaitForQueueSpace(cs); // pass a CancellationToken or CancellationToken.None
                     if (!ok)
@@ -276,7 +276,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                     break;
 
-                case DropPolicy.COALESCE:
+                case DropPolicy.Coalesce:
                     // If you provide a key selector, you can coalesce here.
                     // With ConcurrentQueue it's non-trivial to update in-place; keep simple → evict oldest.
                     if (!TRY_EVICT_OLDEST(cqs, cs, out _))

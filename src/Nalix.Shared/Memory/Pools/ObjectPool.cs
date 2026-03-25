@@ -458,7 +458,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
 
         if (returnedCount > 0)
         {
-            TraceOccurred?.Invoke($"ReturnMultiple<{type.Name}>: RETURNED {returnedCount} objects to pool");
+            TraceOccurred?.Invoke($"ReturnMultiple<{type.Name}>: Returned {returnedCount} objects to pool");
         }
 
         return returnedCount;

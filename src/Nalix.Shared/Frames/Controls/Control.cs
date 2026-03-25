@@ -14,31 +14,31 @@ namespace Nalix.Shared.Frames.Controls;
 /// </summary>
 [PipelineManagedTransform]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("CONTROL OP_CODE={OpCode}, Length={Length}, FLAGS={Flags}")]
+[System.Diagnostics.DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned
 {
     /// <summary>
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 0)]
+    [SerializeOrder(PacketHeaderOffset.Region + 0)]
     public ProtocolReason Reason { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
+    [SerializeOrder(PacketHeaderOffset.Region + 1)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the timestamp associated with this packet.s
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 2)]
+    [SerializeOrder(PacketHeaderOffset.Region + 2)]
     public long Timestamp { get; set; }
 
     /// <summary>
     /// Gets or sets the monotonic timestamp (in ticks) for RTT measurement.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 3)]
+    [SerializeOrder(PacketHeaderOffset.Region + 3)]
     public long MonoTicks { get; set; }
 
     /// <summary>

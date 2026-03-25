@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Exceptions;
 
 /// <summary>
@@ -8,7 +10,7 @@ namespace Nalix.Common.Exceptions;
 /// </summary>
 /// <remarks>
 /// Inherit from this class when creating domain-specific or module-specific exceptions.
-/// It extends <see cref="System.Exception"/> and provides a consistent base for
+/// It extends <see cref="Exception"/> and provides a consistent base for
 /// exception handling, logging, and categorization throughout the application.
 /// </remarks>
 /// <example>
@@ -23,7 +25,7 @@ namespace Nalix.Common.Exceptions;
 /// }
 /// </code>
 /// </example>
-public abstract class BaseException : System.Exception
+public abstract class BaseException : Exception
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="BaseException"/> class.
@@ -52,6 +54,6 @@ public abstract class BaseException : System.Exception
     /// <param name="innerException">
     /// The exception that caused the current exception.
     /// </param>
-    protected BaseException(string message, System.Exception innerException)
+    protected BaseException(string message, Exception innerException)
         : base(message, innerException) { }
 }

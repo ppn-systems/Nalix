@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Serialization;
 
 /// <summary>
@@ -31,11 +33,11 @@ public static class SerializerBounds
     /// Special marker for a <c>null</c> array.
     /// Consists of four bytes with value 255: [255, 255, 255, 255].
     /// </summary>
-    public static System.ReadOnlySpan<byte> NullArrayMarker => [255, 255, 255, 255];
+    public static ReadOnlySpan<byte> NullArrayMarker => [255, 255, 255, 255];
 
     /// <summary>
     /// Special marker for an empty array.
     /// Consists of four zero bytes: [0, 0, 0, 0].
     /// </summary>
-    public static System.ReadOnlySpan<byte> EmptyArrayMarker => [0, 0, 0, 0];
+    public static ReadOnlySpan<byte> EmptyArrayMarker => [0, 0, 0, 0];
 }

@@ -29,7 +29,7 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static uint ReadMagicNumberLE(this System.ReadOnlySpan<byte> @this)
     {
-        const int offs = (int)PacketHeaderOffset.MAGIC_NUMBER;
+        const int offs = (int)PacketHeaderOffset.MagicNumber;
         CheckSize(@this, offs, sizeof(uint));
 
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(@this[..sizeof(uint)]);
@@ -47,7 +47,7 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static ushort ReadOpCodeLE(this System.ReadOnlySpan<byte> @this)
     {
-        const int offs = (int)PacketHeaderOffset.OP_CODE;
+        const int offs = (int)PacketHeaderOffset.OpCode;
         CheckSize(@this, offs, sizeof(ushort));
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(@this[offs..]);
     }
@@ -64,7 +64,7 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static PacketFlags ReadFlagsLE(this System.ReadOnlySpan<byte> @this)
     {
-        const int offs = (int)PacketHeaderOffset.FLAGS;
+        const int offs = (int)PacketHeaderOffset.Flags;
         CheckSize(@this, offs, sizeof(byte));
         return (PacketFlags)@this[offs];
     }
@@ -81,7 +81,7 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static void WriteFlagsLE(this System.Span<byte> @this, PacketFlags flags)
     {
-        const int offs = (int)PacketHeaderOffset.FLAGS;
+        const int offs = (int)PacketHeaderOffset.Flags;
         CheckSize(@this, offs, sizeof(byte));
         @this[offs] = (byte)flags;
     }
@@ -98,7 +98,7 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static PacketPriority ReadPriorityLE(this System.ReadOnlySpan<byte> @this)
     {
-        const int offs = (int)PacketHeaderOffset.PRIORITY;
+        const int offs = (int)PacketHeaderOffset.Priority;
         CheckSize(@this, offs, sizeof(byte));
         return (PacketPriority)@this[offs];
     }
@@ -115,7 +115,7 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static ProtocolType ReadTransportLE(this System.ReadOnlySpan<byte> @this)
     {
-        const int offs = (int)PacketHeaderOffset.TRANSPORT;
+        const int offs = (int)PacketHeaderOffset.Transport;
         CheckSize(@this, offs, sizeof(byte));
         return (ProtocolType)@this[offs];
     }
@@ -132,7 +132,7 @@ public static class HeaderExtensions
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static uint ReadSequenceIdLE(this System.ReadOnlySpan<byte> @this)
     {
-        const int offs = (int)PacketHeaderOffset.SEQUENCE_ID;
+        const int offs = (int)PacketHeaderOffset.SequenceId;
         CheckSize(@this, offs, sizeof(uint));
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(@this.Slice(offs, sizeof(uint)));
     }

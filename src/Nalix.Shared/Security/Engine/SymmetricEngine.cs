@@ -57,18 +57,18 @@ public static class SymmetricEngine
 
         switch (type)
         {
-            case CipherSuiteType.CHACHA20:
+            case CipherSuiteType.Chacha20:
                 ChaCha20 chacha = new(key, nonce, (uint)counter);
                 written = chacha.Encrypt(src, dst);
                 chacha.Clear();
                 return true;
 
-            case CipherSuiteType.SALSA20:
+            case CipherSuiteType.Salsa20:
                 written = Salsa20.Encrypt(key, nonce, counter, src, dst);
                 return true;
 
-            case CipherSuiteType.SALSA20_POLY1305:
-            case CipherSuiteType.CHACHA20_POLY1305:
+            case CipherSuiteType.Salsa20Poly1305:
+            case CipherSuiteType.Chacha20Poly1305:
                 return false;
 
             default:
@@ -99,7 +99,7 @@ public static class SymmetricEngine
     /// Sequence number written into the envelope header and used as the initial block counter.
     /// If <see langword="null"/>, a random 32-bit value is used.
     /// </param>
-    /// <param name="algorithm">Symmetric cipher to use (default: <see cref="CipherSuiteType.CHACHA20"/>).</param>
+    /// <param name="algorithm">Symmetric cipher to use (default: <see cref="CipherSuiteType.Chacha20"/>).</param>
     /// <param name="written">Total bytes written to <paramref name="ciphertext"/> on success.</param>
     /// <returns><see langword="true"/> on success; <see langword="false"/> if the output buffer is too small.</returns>
     [System.Runtime.CompilerServices.MethodImpl(

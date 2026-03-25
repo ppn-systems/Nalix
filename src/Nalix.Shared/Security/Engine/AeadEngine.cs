@@ -95,16 +95,16 @@ public static class AeadEngine
 
         switch (algorithm)
         {
-            case CipherSuiteType.CHACHA20_POLY1305:
+            case CipherSuiteType.Chacha20Poly1305:
                 _ = ChaCha20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
                 break;
 
-            case CipherSuiteType.SALSA20_POLY1305:
+            case CipherSuiteType.Salsa20Poly1305:
                 _ = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ctDestination, tagDestination);
                 break;
 
-            case CipherSuiteType.SALSA20:
-            case CipherSuiteType.CHACHA20:
+            case CipherSuiteType.Salsa20:
+            case CipherSuiteType.Chacha20:
 
             default:
                 return false;
@@ -165,16 +165,16 @@ public static class AeadEngine
 
         switch (env.AeadType)
         {
-            case CipherSuiteType.CHACHA20_POLY1305:
+            case CipherSuiteType.Chacha20Poly1305:
                 result = ChaCha20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, aad, env.Tag, ptSlice);
                 break;
 
-            case CipherSuiteType.SALSA20_POLY1305:
+            case CipherSuiteType.Salsa20Poly1305:
                 result = Salsa20Poly1305.Decrypt(key, env.Nonce, env.Ciphertext, aad, env.Tag, ptSlice);
                 break;
 
-            case CipherSuiteType.SALSA20:
-            case CipherSuiteType.CHACHA20:
+            case CipherSuiteType.Salsa20:
+            case CipherSuiteType.Chacha20:
                 return false;
 
             default:

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
 using Nalix.Common.Identity;
 
 namespace Nalix.Common.Networking;
@@ -23,7 +25,8 @@ public interface IConnectionHub
     /// </summary>
     /// <param name="id">The unique identifier of the connection to retrieve.</param>
     /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
-    IConnection GetConnection(System.ReadOnlySpan<byte> id);
+    IConnection GetConnection(ReadOnlySpan<byte> id);
+
     /// <summary>
     /// Registers a new client connection to the session manager.
     /// </summary>
@@ -58,5 +61,5 @@ public interface IConnectionHub
     /// Retrieves a read-only view of all active client connections.
     /// </summary>
     /// <returns>An enumerable collection of all active <see cref="IConnection"/> instances.</returns>
-    System.Collections.Generic.IReadOnlyCollection<IConnection> ListConnections();
+    IReadOnlyCollection<IConnection> ListConnections();
 }

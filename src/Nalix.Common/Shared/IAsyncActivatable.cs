@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Nalix.Common.Shared;
 
 /// <summary>
@@ -12,7 +16,7 @@ namespace Nalix.Common.Shared;
 /// process involves asynchronous operations such as IEndpointKey /O, networking,
 /// or long-running initialization/cleanup tasks.
 /// </remarks>
-public interface IAsyncActivatable : System.IAsyncDisposable
+public interface IAsyncActivatable : IAsyncDisposable
 {
     /// <summary>
     /// Asynchronously activates the component, transitioning it into an operational state.
@@ -23,7 +27,7 @@ public interface IAsyncActivatable : System.IAsyncDisposable
     /// <returns>
     /// A task that represents the asynchronous activation operation.
     /// </returns>
-    System.Threading.Tasks.Task ActivateAsync(System.Threading.CancellationToken cancellationToken = default);
+    Task ActivateAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Asynchronously deactivates the component, transitioning it into a non-operational state.
@@ -34,5 +38,5 @@ public interface IAsyncActivatable : System.IAsyncDisposable
     /// <returns>
     /// A task that represents the asynchronous deactivation operation.
     /// </returns>
-    System.Threading.Tasks.Task DeactivateAsync(System.Threading.CancellationToken cancellationToken = default);
+    Task DeactivateAsync(CancellationToken cancellationToken = default);
 }

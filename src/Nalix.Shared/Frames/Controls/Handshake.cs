@@ -14,7 +14,7 @@ namespace Nalix.Shared.Frames.Controls;
 [PipelineManagedTransform]
 [SerializePackable(SerializeLayout.Explicit)]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, FLAGS={Flags}")]
+[System.Diagnostics.DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Handshake : PacketBase<Handshake>
 {
     /// <summary>
@@ -26,7 +26,7 @@ public sealed class Handshake : PacketBase<Handshake>
     /// Gets or sets the binary content of the packet.
     /// </summary>
     [SerializeDynamicSize(DynamicSize)]
-    [SerializeOrder(PacketHeaderOffset.DATA_REGION + 1)]
+    [SerializeOrder(PacketHeaderOffset.Region + 1)]
     public byte[] Data { get; set; } = [];
 
     /// <summary>

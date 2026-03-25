@@ -1,6 +1,8 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Diagnostics;
 
 /// <summary>
@@ -26,7 +28,7 @@ namespace Nalix.Common.Diagnostics;
 public sealed class LogEventArgs(
     LogLevel level,
     string message,
-    System.Exception exception = null) : System.EventArgs
+        Exception exception = null) : EventArgs
 {
     /// <summary>
     /// Gets the severity level of the log entry.
@@ -45,5 +47,5 @@ public sealed class LogEventArgs(
     /// This property may be <see langword="null"/> when the log entry
     /// is not related to an exception.
     /// </remarks>
-    public System.Exception Exception { get; } = exception;
+    public Exception Exception { get; } = exception;
 }

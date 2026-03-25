@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 
@@ -27,31 +30,31 @@ public interface IPacket : IPacketSequenced
     /// <summary>
     /// Gets the magic number that uniquely identifies the packet format or protocol.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.MAGIC_NUMBER)]
+    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
     uint MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) that specifies the command or type of the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.OP_CODE)]
+    [SerializeOrder(PacketHeaderOffset.OpCode)]
     ushort OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with the packet, indicating its state or processing options.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.FLAGS)]
+    [SerializeOrder(PacketHeaderOffset.Flags)]
     PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the priority level of the packet for processing or transmission.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.PRIORITY)]
+    [SerializeOrder(PacketHeaderOffset.Priority)]
     PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (for example, TCP or UDP) used to transmit the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.TRANSPORT)]
+    [SerializeOrder(PacketHeaderOffset.Transport)]
     ProtocolType Protocol { get; set; }
 
     #endregion Metadata
@@ -64,9 +67,9 @@ public interface IPacket : IPacketSequenced
     /// <returns>
     /// A new byte array containing the serialized form of the packet.
     /// </returns>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     byte[] Serialize();
 
     /// <summary>
@@ -76,10 +79,10 @@ public interface IPacket : IPacketSequenced
     /// The destination buffer where the serialized packet will be written.
     /// The buffer must be large enough to hold the complete packet.
     /// </param>
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    int Serialize(System.Span<byte> buffer);
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    int Serialize(Span<byte> buffer);
 
     #endregion Packet Methods
 }

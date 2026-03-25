@@ -121,8 +121,8 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// <summary>
     /// Gets the encryption mode for the connection.
     /// </summary>
-    [IniComment("Cipher suite used for packet encryption (e.g., CHACHA20, SALSA20, CHACHA20_POLY1305, SALSA20_POLY1305)")]
-    public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.CHACHA20_POLY1305;
+    [IniComment("Cipher suite used for packet encryption (e.g., Chacha20, Salsa20, Chacha20Poly1305, Salsa20Poly1305)")]
+    public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.Chacha20Poly1305;
     CipherSuiteType ITransportOptions.Algorithm { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
 
     /// <summary>

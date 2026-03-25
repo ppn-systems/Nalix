@@ -1,6 +1,9 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Shared;
 
@@ -9,7 +12,7 @@ namespace Nalix.Common.Networking.Transport;
 /// <summary>
 /// Represents a reliable client connection to a server.
 /// </summary>
-public interface IClientConnection : System.IDisposable
+public interface IClientConnection : IDisposable
 {
     #region Properties
 
@@ -40,29 +43,29 @@ public interface IClientConnection : System.IDisposable
     #region Events
 
     /// <summary>Occurs when the client successfully connects to the remote endpoint.</summary>
-    event System.EventHandler OnConnected;
+    event EventHandler OnConnected;
 
     /// <summary>
     /// Occurs when the client disconnects.
     /// The argument is the exception that caused the disconnect, or <c>null</c> if it was requested.
     /// </summary>
-    event System.EventHandler<System.Exception> OnDisconnected;
+    event EventHandler<Exception> OnDisconnected;
 
     /// <summary>
     /// Synchronous message-received event.
     /// Each subscriber receives its own <see cref="IBufferLease"/> copy and is responsible
     /// for disposing it exactly once.
     /// </summary>
-    event System.EventHandler<IBufferLease> OnMessageReceived;
+    event EventHandler<IBufferLease> OnMessageReceived;
 
     /// <summary>Occurs when bytes are written to the socket. Argument = byte count sent.</summary>
-    event System.EventHandler<long> OnBytesSent;
+    event EventHandler<long> OnBytesSent;
 
     /// <summary>Occurs when bytes are received from the socket. Argument = byte count (header+payload).</summary>
-    event System.EventHandler<long> OnBytesReceived;
+    event EventHandler<long> OnBytesReceived;
 
     /// <summary>Occurs when an internal error happens — useful for logging and diagnostics.</summary>
-    event System.EventHandler<System.Exception> OnError;
+    event EventHandler<Exception> OnError;
 
     #endregion Events
 
@@ -72,25 +75,46 @@ public interface IClientConnection : System.IDisposable
     /// Connects to the specified host and port asynchronously.
     /// Stores host/port for automatic reconnects.
     /// </summary>
-    System.Threading.Tasks.Task ConnectAsync(
+    /// <param name="host">
+    /// The remote host name or address to connect to.
+    /// </param>
+    /// <param name="port">
+    /// The remote port to connect to.
+    /// </param>
+    /// <param name="ct">
+    /// A cancellation token that can cancel the connection attempt.
+    /// </param>
+    Task ConnectAsync(
         string host = null,
         ushort? port = null,
-        System.Threading.CancellationToken ct = default);
+        CancellationToken ct = default);
 
     /// <summary>Disconnects and cancels all background loops.</summary>
-    System.Threading.Tasks.Task DisconnectAsync();
+    Task DisconnectAsync();
 
     /// <summary>Serializes and sends <paramref name="packet"/> asynchronously.</summary>
+    /// <param name="packet">
+    /// The packet to serialize and send.
+    /// </param>
+    /// <param name="ct">
+    /// A cancellation token that can cancel the send operation.
+    /// </param>
     /// <returns><c>true</c> if sent successfully; <c>false</c> on socket error.</returns>
-    System.Threading.Tasks.Task<bool> SendAsync(
+    Task<bool> SendAsync(
         IPacket packet,
-        System.Threading.CancellationToken ct = default);
+        CancellationToken ct = default);
 
     /// <summary>Sends a raw payload (without framing header) asynchronously.</summary>
+    /// <param name="payload">
+    /// The raw payload bytes to send.
+    /// </param>
+    /// <param name="ct">
+    /// A cancellation token that can cancel the send operation.
+    /// </param>
     /// <returns><c>true</c> if sent successfully; <c>false</c> on socket error.</returns>
-    System.Threading.Tasks.Task<bool> SendAsync(
-        System.ReadOnlyMemory<byte> payload,
-        System.Threading.CancellationToken ct = default);
+    Task<bool> SendAsync(
+        ReadOnlyMemory<byte> payload,
+        CancellationToken ct = default);
 
     #endregion Methods
 }

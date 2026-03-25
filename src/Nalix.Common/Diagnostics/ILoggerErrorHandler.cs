@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Diagnostics;
 
 /// <summary>
@@ -18,10 +20,10 @@ public interface ILoggerErrorHandler
     /// Handles an error that occurred while processing a log entry.
     /// </summary>
     /// <param name="exception">
-    /// The <see cref="System.Exception"/> that was thrown during logging.
+    /// The <see cref="Exception"/> that was thrown during logging.
     /// </param>
     /// <param name="entry">
     /// The <see cref="LogEntry"/> that was being processed when the error occurred.
     /// </param>
-    void HandleError(System.Exception exception, LogEntry entry);
+    void HandleError(Exception exception, LogEntry entry);
 }

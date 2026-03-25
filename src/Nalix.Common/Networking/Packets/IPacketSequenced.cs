@@ -15,6 +15,6 @@ public interface IPacketSequenced
     /// Gets the sequence identifier of the packet.
     /// This is used to correlate requests with their responses.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.SEQUENCE_ID)]
+    [SerializeOrder(PacketHeaderOffset.SequenceId)]
     uint SequenceId { get; }
 }

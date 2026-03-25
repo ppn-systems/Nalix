@@ -1,15 +1,23 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
+using System.Threading;
+
 namespace Nalix.Common.Environment;
 
 /// <summary>
 /// Provides application-wide directories with environment-aware defaults,
 /// safe creation, and optional environment variable overrides.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Runtime.Versioning.UnsupportedOSPlatform("browser")]
+[DebuggerNonUserCode]
+[ExcludeFromCodeCoverage]
+[UnsupportedOSPlatform("browser")]
 public static partial class Directories
 {
     #region Private Properties
@@ -17,12 +25,12 @@ public static partial class Directories
     // ---------- Locks & Events ----------
 
     /// <summary>Global lock for thread-safe directory creation.</summary>
-    private static readonly System.Threading.ReaderWriterLockSlim DirectoryLock = new(System.Threading.LockRecursionPolicy.SupportsRecursion);
+    private static readonly ReaderWriterLockSlim DirectoryLock = new(LockRecursionPolicy.SupportsRecursion);
 
     /// <summary>
     /// Raised after a directory has been created. Handlers are isolated per-invocation.
     /// </summary>
-    private static event System.Action<string> DirectoryCreated;
+    private static event Action<string> DirectoryCreated;
 
     // ---------- Configuration ----------
 
@@ -34,10 +42,10 @@ public static partial class Directories
     /// </summary>
     /// <param name="name">Environment variable name.</param>
     /// <returns>Value or <c>null</c>.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.MaybeNull]
-    private static string GET_ENV([System.Diagnostics.CodeAnalysis.DisallowNull] string name)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    [return: MaybeNull]
+    private static string GET_ENV([DisallowNull] string name)
     {
         string value = System.Environment.GetEnvironmentVariable(name);
         return string.IsNullOrWhiteSpace(value) ? null : value;
@@ -46,12 +54,12 @@ public static partial class Directories
     // ---------- Environment/Platform Detection ----------
 
     /// <summary>Whether the process is running inside a container (Docker/Kubernetes).</summary>
-    private static readonly System.Lazy<bool> IsContainerLazy = new(() =>
+    private static readonly Lazy<bool> IsContainerLazy = new(() =>
     {
         try
         {
             string dotnetInContainer = System.Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER");
-            if (string.Equals(dotnetInContainer, "true", System.StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(dotnetInContainer, "true", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -62,16 +70,16 @@ public static partial class Directories
                 return true;
             }
 
-            if (System.IO.File.Exists("/.dockerenv"))
+            if (File.Exists("/.dockerenv"))
             {
                 return true;
             }
 
-            if (System.IO.File.Exists("/proc/1/cgroup"))
+            if (File.Exists("/proc/1/cgroup"))
             {
-                string cg = System.IO.File.ReadAllText("/proc/1/cgroup");
-                if (cg.Contains("docker", System.StringComparison.OrdinalIgnoreCase) ||
-                    cg.Contains("kubepods", System.StringComparison.OrdinalIgnoreCase))
+                string cg = File.ReadAllText("/proc/1/cgroup");
+                if (cg.Contains("docker", StringComparison.OrdinalIgnoreCase) ||
+                    cg.Contains("kubepods", StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
@@ -85,19 +93,19 @@ public static partial class Directories
     // ---------- Path Resolution ----------
 
     /// <summary>Base path resolution with ENV and platform-aware fallbacks.</summary>
-    private static readonly System.Lazy<string> BasePathLazy = new(() =>
+    private static readonly Lazy<string> BasePathLazy = new(() =>
     {
         // 1) Explicit test override
         if (!string.IsNullOrEmpty(_basePathOverride))
         {
-            return System.IO.Path.GetFullPath(_basePathOverride);
+            return Path.GetFullPath(_basePathOverride);
         }
 
         // 2) Environment override
         string env = GET_ENV("NALIX_BASE_PATH");
         if (!string.IsNullOrEmpty(env))
         {
-            return System.IO.Path.GetFullPath(env);
+            return Path.GetFullPath(env);
         }
 
         // 3) Container defaults
@@ -107,56 +115,63 @@ public static partial class Directories
         }
 
         // 4) Non-container, OS-aware
-        if (System.OperatingSystem.IsWindows())
+        if (OperatingSystem.IsWindows())
         {
             string root = System.Environment.GetFolderPath(System.Environment.SpecialFolder.CommonApplicationData);
-            return System.IO.Path.Join(root, "Nalix");
+            return Path.Join(root, "Nalix");
         }
         // XDG base dir or ~/.local/share
         string xdg = GET_ENV("XDG_DATA_HOME");
         string dataHome = !string.IsNullOrEmpty(xdg)
             ? xdg
-            : System.IO.Path.Join(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".local", "share");
+                : Path.Join(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".local", "share");
 
-        return System.IO.Path.Join(dataHome, "Nalix");
+        return Path.Join(dataHome, "Nalix");
     });
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static string RESOLVE_OR_ENV(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string envName,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string containerPath,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string relative)
+        [DisallowNull] string envName,
+        [DisallowNull] string containerPath,
+        [DisallowNull] string relative)
     {
         string env = GET_ENV(envName);
-        return !string.IsNullOrEmpty(env)
-            ? System.IO.Path.GetFullPath(env)
-            : IsContainerLazy.Value && System.IO.Directory.Exists(containerPath)
-            ? containerPath
-            : System.IO.Path.Join(BasePathLazy.Value, relative);
+        if (!string.IsNullOrEmpty(env))
+        {
+            return Path.GetFullPath(env);
+        }
+        else if (IsContainerLazy.Value && Directory.Exists(containerPath))
+        {
+            return containerPath;
+        }
+        else
+        {
+            return Path.Join(BasePathLazy.Value, relative);
+        }
     }
 
     // ---------- Lazies for each directory ----------
 
-    private static readonly System.Lazy<string> DataPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DATA_PATH", "/data", "data")));
+    private static readonly Lazy<string> DataPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DATA_PATH", "/data", "data")));
 
-    private static readonly System.Lazy<string> LogsPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_LOGS_PATH", "/logs", "logs"), UnixDirPerms.WorldReadable));
+    private static readonly Lazy<string> LogsPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_LOGS_PATH", "/logs", "logs"), UnixDirPerms.WorldReadable));
 
-    private static readonly System.Lazy<string> ConfigPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_CONFIG_PATH", "/config", "config"), UnixDirPerms.Private700));
+    private static readonly Lazy<string> ConfigPathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_CONFIG_PATH", "/config", "config"), UnixDirPerms.Private700));
 
-    private static readonly System.Lazy<string> StoragePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_STORAGE_PATH", "/storage", "storage"), UnixDirPerms.Shared750));
+    private static readonly Lazy<string> StoragePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_STORAGE_PATH", "/storage", "storage"), UnixDirPerms.Shared750));
 
-    private static readonly System.Lazy<string> DatabasePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DB_PATH", "/db", "db"), UnixDirPerms.Private700));
+    private static readonly Lazy<string> DatabasePathLazy = new(() => ENSURE_AND_HARDEN(RESOLVE_OR_ENV("NALIX_DB_PATH", "/db", "db"), UnixDirPerms.Private700));
 
-    private static readonly System.Lazy<string> CachesPathLazy = new(() => ENSURE_AND_HARDEN(System.IO.Path.Join(DataPathLazy.Value, "caches")));
+    private static readonly Lazy<string> CachesPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "caches")));
 
-    private static readonly System.Lazy<string> UploadsPathLazy = new(() => ENSURE_AND_HARDEN(System.IO.Path.Join(DataPathLazy.Value, "uploads"), UnixDirPerms.Shared750));
+    private static readonly Lazy<string> UploadsPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "uploads"), UnixDirPerms.Shared750));
 
-    private static readonly System.Lazy<string> BackupsPathLazy = new(() => ENSURE_AND_HARDEN(System.IO.Path.Join(DataPathLazy.Value, "backups"), UnixDirPerms.Private700));
+    private static readonly Lazy<string> BackupsPathLazy = new(() => ENSURE_AND_HARDEN(Path.Join(DataPathLazy.Value, "backups"), UnixDirPerms.Private700));
 
-    private static readonly System.Lazy<string> TempPathLazy = new(() =>
+    private static readonly Lazy<string> TempPathLazy = new(() =>
     {
-        string path = RESOLVE_OR_ENV("NALIX_TEMP_PATH", "/tmp", System.IO.Path.Join("data", "tmp"));
+        string path = RESOLVE_OR_ENV("NALIX_TEMP_PATH", "/tmp", Path.Join("data", "tmp"));
         _ = ENSURE_AND_HARDEN(path, UnixDirPerms.Private700);
 
         int days = 7;
@@ -166,7 +181,7 @@ public static partial class Directories
             days = envDaysParsed;
         }
 
-        _ = DeleteOldFiles(path, System.TimeSpan.FromDays(days));
+        _ = DeleteOldFiles(path, TimeSpan.FromDays(days));
         return path;
     });
 

@@ -67,7 +67,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
                     ProtocolReason.TIMEOUT,
                     ProtocolAdvice.RETRY,
                     sequenceId: sequenceId,
-                    flags: ControlFlags.IS_TRANSIENT,
+                    flags: ControlFlags.IsTransient,
                     arg0: (uint)(timeout / 100),
                     arg1: 0, arg2: 0
                 ).ConfigureAwait(false);

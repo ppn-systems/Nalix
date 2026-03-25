@@ -2,6 +2,22 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Packets;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.IO;
+using System.Net;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nalix.Common.Networking;
 
@@ -37,7 +53,7 @@ public partial interface IConnection
     /// Thrown if the underlying connection does not expose a valid
     /// <see cref="System.Net.IPEndPoint"/> required for UDP initialization.
     /// </exception>
-    IUdp GetOrCreateUDP(ref System.Net.IPEndPoint iPEndPoint);
+    IUdp GetOrCreateUDP(ref IPEndPoint iPEndPoint);
 
     /// <summary>
     /// Represents a transport interface for sending data packets.
@@ -54,7 +70,7 @@ public partial interface IConnection
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        bool Send(System.ReadOnlySpan<byte> message);
+        bool Send(ReadOnlySpan<byte> message);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -65,9 +81,9 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        System.Threading.Tasks.Task<bool> SendAsync(
+        Task<bool> SendAsync(
             IPacket packet,
-            System.Threading.CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -78,9 +94,9 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        System.Threading.Tasks.Task<bool> SendAsync(
-            System.ReadOnlyMemory<byte> message,
-            System.Threading.CancellationToken cancellationToken = default);
+        Task<bool> SendAsync(
+            ReadOnlyMemory<byte> message,
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -109,7 +125,7 @@ public partial interface IConnection
         /// <remarks>
         /// Call this method to initiate listening for incoming data on the connection.
         /// </remarks>
-        void BeginReceive(System.Threading.CancellationToken cancellationToken = default);
+        void BeginReceive(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends a message synchronously over the connection.
@@ -126,9 +142,9 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        System.Threading.Tasks.Task<bool> SendAsync(
+        Task<bool> SendAsync(
             string message,
-            System.Threading.CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>

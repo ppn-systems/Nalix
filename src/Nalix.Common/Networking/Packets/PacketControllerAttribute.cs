@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
@@ -29,7 +33,7 @@ namespace Nalix.Common.Networking.Packets;
 /// </item>
 /// <item>
 /// <description>
-/// The third parameter (if present) must be of type <see cref="System.Threading.CancellationToken"/>.
+/// The third parameter (if present) must be of type <see cref="CancellationToken"/>.
 /// This parameter is used for cooperative cancellation of the handler execution.
 /// </description>
 /// </item>
@@ -42,12 +46,12 @@ namespace Nalix.Common.Networking.Packets;
 /// The method may return one of the following:
 /// <list type="number">
 /// <item><description><see langword="void"/>.</description></item>
-/// <item><description><see cref="System.Threading.Tasks.Task"/> (for asynchronous methods).</description></item>
-/// <item><description><see cref="System.Threading.Tasks.ValueTask"/> (for lightweight asynchronous methods).</description></item>
+/// <item><description><see cref="Task"/> (for asynchronous methods).</description></item>
+/// <item><description><see cref="ValueTask"/> (for lightweight asynchronous methods).</description></item>
 /// <item>
 /// <description>
-/// A generic task (<see cref="System.Threading.Tasks.Task{TResult}"/> or
-/// <see cref="System.Threading.Tasks.ValueTask{TResult}"/>), where TResult is the return type.
+/// A generic task (<see cref="Task{TResult}"/> or
+/// <see cref="ValueTask{TResult}"/>), where TResult is the return type.
 /// </description>
 /// </item>
 /// </list>
@@ -70,7 +74,7 @@ namespace Nalix.Common.Networking.Packets;
 /// <list type="bullet">
 /// <item>
 /// <description>
-/// <see cref="System.InvalidOperationException"/>: Thrown if the parameter count, types, or return type are invalid.
+/// <see cref="InvalidOperationException"/>: Thrown if the parameter count, types, or return type are invalid.
 /// </description>
 /// </item>
 /// <item>
@@ -115,11 +119,11 @@ namespace Nalix.Common.Networking.Packets;
 /// The version identifier for the packet controller.
 /// Defaults to <c>"1.0"</c>.
 /// </param>
-[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public sealed class PacketControllerAttribute(
     string name = "NONE",
     bool isActive = true,
-    string version = "1.0") : System.Attribute
+    string version = "1.0") : Attribute
 {
     /// <summary>
     /// Gets the name of the packet controller.

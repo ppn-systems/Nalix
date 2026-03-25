@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Security;
 
 namespace Nalix.Common.Networking.Packets;
@@ -13,8 +15,8 @@ namespace Nalix.Common.Networking.Packets;
 /// encrypted before transmission and decrypted upon receipt.
 /// By default, encryption is disabled unless explicitly set.
 /// </remarks>
-[System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public sealed class PacketEncryptionAttribute : System.Attribute
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public sealed class PacketEncryptionAttribute : Attribute
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketEncryptionAttribute"/> class.
@@ -24,13 +26,13 @@ public sealed class PacketEncryptionAttribute : System.Attribute
     /// </param>
     /// <param name="algorithmType">
     /// The symmetric encryption algorithm to apply when <paramref name="isEncrypted"/> is <c>true</c>.
-    /// Defaults to <see cref="CipherSuiteType.CHACHA20_POLY1305"/>.
+    /// Defaults to <see cref="CipherSuiteType.Chacha20Poly1305"/>.
     /// </param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketEncryptionAttribute(
         bool isEncrypted = true,
-        CipherSuiteType algorithmType = CipherSuiteType.CHACHA20_POLY1305)
+        CipherSuiteType algorithmType = CipherSuiteType.Chacha20Poly1305)
     {
         IsEncrypted = isEncrypted;
         AlgorithmType = algorithmType;

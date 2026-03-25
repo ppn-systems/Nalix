@@ -32,7 +32,7 @@ public static class PacketConstants
     /// <summary>
     /// The default operation code value for packets.
     /// </summary>
-    public const byte OPCODE_DEFAULT = 0x00;
+    public const byte OpcodeDefault = 0x00;
 
     /// <summary>
     /// The threshold size, in bytes, above which memory is allocated from the heap instead of the stack.

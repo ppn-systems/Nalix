@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
@@ -14,8 +16,8 @@ namespace Nalix.Common.Networking.Packets;
 /// <param name="opcode">
 /// The unique operation code that identifies the packet type.
 /// </param>
-[System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
-public sealed class PacketOpcodeAttribute(ushort opcode) : System.Attribute
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+public sealed class PacketOpcodeAttribute(ushort opcode) : Attribute
 {
     /// <summary>
     /// Gets the operation code associated with the target method.

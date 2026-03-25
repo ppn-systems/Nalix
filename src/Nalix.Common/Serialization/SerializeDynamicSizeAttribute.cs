@@ -1,6 +1,8 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Common.Serialization;
 
 /// <summary>
@@ -9,8 +11,8 @@ namespace Nalix.Common.Serialization;
 /// Follows Domain-Driven Design principles for serialization metadata.
 /// </summary>
 /// <param name="size">Expected average size for optimization.</param>
-[System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field, Inherited = true)]
-public sealed class SerializeDynamicSizeAttribute(int size) : System.Attribute
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true)]
+public sealed class SerializeDynamicSizeAttribute(int size) : Attribute
 {
     /// <summary>
     /// Expected average size in bytes for buffer pre-allocation.

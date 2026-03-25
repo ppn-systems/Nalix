@@ -63,7 +63,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
                         sequenceId: sequenceId1,
-                        flags: ControlFlags.IS_TRANSIENT,
+                        flags: ControlFlags.IsTransient,
                         arg0: context.Packet.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
 
                     return;
@@ -83,7 +83,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                 reason: ProtocolReason.RATE_LIMITED,
                 action: ProtocolAdvice.RETRY,
                 sequenceId: sequenceId2,
-                flags: ControlFlags.IS_TRANSIENT,
+                flags: ControlFlags.IsTransient,
                 arg0: context.Packet.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
         }
         finally

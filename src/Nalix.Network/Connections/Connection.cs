@@ -95,7 +95,7 @@ public sealed partial class Connection : IConnection
     public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
 
     /// <inheritdoc />
-    public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.CHACHA20_POLY1305;
+    public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.Chacha20Poly1305;
 
     /// <inheritdoc />
     public byte[] Secret
