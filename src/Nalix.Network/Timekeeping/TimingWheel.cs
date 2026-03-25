@@ -71,8 +71,8 @@ public sealed class TimingWheel : IActivatable
 {
     #region Fields
 
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly TimingWheelOptions s_options = ConfigurationManager.Instance.Get<TimingWheelOptions>();
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly ObjectPoolManager s_poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly int _tickMs;
@@ -388,7 +388,7 @@ public sealed class TimingWheel : IActivatable
 
                 ConcurrentQueue<TimeoutTask> queue = _wheel[bucketIndex];
 
-                while (queue.TryDequeue(out TimeoutTask task))
+                while (queue.TryDequeue(out TimeoutTask? task))
                 {
                     // ── Defensive null-guard ──────────────────────────────────────────
                     // Should never happen under normal operation, but guards against any
@@ -503,7 +503,7 @@ public sealed class TimingWheel : IActivatable
         for (int i = 0; i < _wheel.Length; i++)
         {
             ConcurrentQueue<TimeoutTask> queue = _wheel[i];
-            while (queue.TryDequeue(out TimeoutTask task))
+            while (queue.TryDequeue(out TimeoutTask? task))
             {
                 // Guard: skip tasks that were already returned to pool by a concurrent path.
                 if (task.Conn is not null)
