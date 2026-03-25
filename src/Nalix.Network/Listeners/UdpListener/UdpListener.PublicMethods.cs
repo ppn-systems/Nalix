@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Globalization;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -29,7 +30,6 @@ public abstract partial class UdpListenerBase : IListener
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    [System.Obsolete]
     public void Activate(System.Threading.CancellationToken cancellationToken = default)
     {
         System.ObjectDisposedException.ThrowIf(System.Threading.Volatile.Read(ref _isDisposed) != 0, this);
@@ -219,26 +219,26 @@ public abstract partial class UdpListenerBase : IListener
         System.Text.StringBuilder sb = new(512);
 
         // IsListening wraps _isRunning:contentReference[oaicite:10]{index=10}
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] UdpListener Status:");
-        _ = sb.AppendLine($"Port: {_port}");
-        _ = sb.AppendLine($"IsListening: {IsListening}");
-        _ = sb.AppendLine($"IsDisposed: {_isDisposed}");
-        _ = sb.AppendLine($"Protocol: {EllipseLeft(_protocol?.GetType().FullName ?? _protocol?.GetType().Name ?? "<null>", 23)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] UdpListener Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Port: {_port}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsListening: {IsListening}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsDisposed: {_isDisposed}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Protocol: {EllipseLeft(_protocol?.GetType().FullName ?? _protocol?.GetType().Name ?? "<null>", 23)}");
         _ = sb.AppendLine();
 
         // Socket configuration (static Config):contentReference[oaicite:11]{index=11}
         _ = sb.AppendLine("Socket s_config:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine($"NoDelay: {Config.NoDelay}");
-        _ = sb.AppendLine($"ReuseAddress: {Config.ReuseAddress}");
-        _ = sb.AppendLine($"KeepAlive: {Config.KeepAlive}");
-        _ = sb.AppendLine($"BufferSize: {Config.BufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"NoDelay: {Config.NoDelay}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress: {Config.ReuseAddress}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"KeepAlive: {Config.KeepAlive}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize: {Config.BufferSize}");
         _ = sb.AppendLine();
 
         // Worker info: spawn/group + concurrency = 8 in ReceiveDatagramsAsync:contentReference[oaicite:12]{index=12}
         _ = sb.AppendLine("Worker:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine($"Group: udp.port.{_port}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Group: udp.port.{_port}");
         _ = sb.AppendLine("Configured GroupConcurrencyLimit: 8");
         _ = sb.AppendLine();
 
@@ -248,9 +248,9 @@ public abstract partial class UdpListenerBase : IListener
                                                         .IsTimeSyncEnabled;
         _ = sb.AppendLine("Time Sync:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine($"Enabled: {timeSyncEnabled}");
-        _ = sb.AppendLine($"LastSyncUnixMs: {_lastSyncUnixMs}");
-        _ = sb.AppendLine($"LastDriftMs(local-now - server): {_lastDriftMs}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enabled: {timeSyncEnabled}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LastSyncUnixMs: {_lastSyncUnixMs}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LastDriftMs(local-now - server): {_lastDriftMs}");
         _ = sb.AppendLine();
 
         // Traffic stats
@@ -262,9 +262,9 @@ public abstract partial class UdpListenerBase : IListener
 
         _ = sb.AppendLine("Traffic:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine($"ReceivedPackets: {rxPackets}");
-        _ = sb.AppendLine($"ReceivedBytes: {rxBytes}");
-        _ = sb.AppendLine($"Dropped: short={dropShort}, unauth={dropUnauth}, unknown={dropUnknown}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedPackets: {rxPackets}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedBytes: {rxBytes}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Dropped: short={dropShort}, unauth={dropUnauth}, unknown={dropUnknown}");
         _ = sb.AppendLine();
 
         // Errors summary (bind/recv/shutdown) from Activate/Receive handling:contentReference[oaicite:14]{index=14}:contentReference[oaicite:15]{index=15}
@@ -272,14 +272,14 @@ public abstract partial class UdpListenerBase : IListener
 
         _ = sb.AppendLine("Errors:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine($"ReceiveErrors: {recvErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceiveErrors: {recvErrors}");
         _ = sb.AppendLine();
 
         // Live objects
         _ = sb.AppendLine("Runtime:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine($"UdpClient: {(_udpClient is null ? "<null>" : "OK")}");
-        _ = sb.AppendLine($"CTS: {(_cts is null ? "<null>" : "OK")}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"UdpClient: {(_udpClient is null ? "<null>" : "OK")}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CTS: {(_cts is null ? "<null>" : "OK")}");
         _ = sb.AppendLine();
 
         return sb.ToString();

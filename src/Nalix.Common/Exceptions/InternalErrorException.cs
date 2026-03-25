@@ -23,7 +23,7 @@ public class InternalErrorException : BaseException
     /// This property may contain debugging details such as a stack trace,
     /// failure context, or other relevant internal state.
     /// </remarks>
-    public string Details { get; }
+    public string? Details { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InternalErrorException"/> class.

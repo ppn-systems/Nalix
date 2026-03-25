@@ -51,10 +51,11 @@ public interface INetworkBufferMiddleware
     /// </para>
     /// </remarks>
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
     System.Threading.Tasks.Task<IBufferLease> InvokeAsync(
         IBufferLease buffer,
         IConnection connection,
-        System.Threading.CancellationToken ct,
-        System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next
+        System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next,
+        System.Threading.CancellationToken ct
     );
 }

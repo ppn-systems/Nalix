@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Shared.Memory.Buffers;
@@ -48,8 +49,7 @@ public static class LiteSerializer
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public static byte[] Serialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] in T value)
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(in T value)
     {
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
@@ -57,7 +57,7 @@ public static class LiteSerializer
             System.Runtime.CompilerServices.Unsafe.WriteUnaligned(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array), value);
 
-            return System.Collections.Generic.EqualityComparer<T?>.Default.Equals(value, default(T?))
+            return EqualityComparer<T?>.Default.Equals(value, default)
                 ? throw new SerializationException(
                     $"Serialize of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
                 : array;
@@ -156,9 +156,7 @@ public static class LiteSerializer
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static int Serialize<
-        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] in T value,
-        [System.Diagnostics.CodeAnalysis.NotNull] byte[] buffer)
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(in T value, byte[] buffer)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
 
@@ -193,7 +191,7 @@ public static class LiteSerializer
             {
                 formatter.Serialize(ref writer, value);
 
-                return System.Collections.Generic.EqualityComparer<T?>.Default.Equals(value, default(T?))
+                return EqualityComparer<T?>.Default.Equals(value, default)
                     ? throw new SerializationException(
                         $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
                     : writer.WrittenCount;
@@ -227,9 +225,7 @@ public static class LiteSerializer
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static int Serialize<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(
-        [System.Diagnostics.CodeAnalysis.MaybeNull] in T value,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> buffer)
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(in T value, System.Span<byte> buffer)
     {
         // ── Case 1: Primitive / unmanaged struct ──────────────────────────────────
         // T is a plain value type with no references (e.g. int, float, custom struct).
@@ -382,8 +378,7 @@ public static class LiteSerializer
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static int Deserialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> buffer,
-        [System.Diagnostics.CodeAnalysis.NotNull] ref T value)
+        System.ReadOnlySpan<byte> buffer, ref T value)
     {
         if (buffer.IsEmpty)
         {
@@ -405,10 +400,15 @@ public static class LiteSerializer
             value = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(
                 ref System.Runtime.InteropServices.MemoryMarshal.GetReference(buffer));
 
-            return System.Collections.Generic.EqualityComparer<T?>.Default.Equals(value, default(T?))
-                ? throw new SerializationException(
-                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.")
-                : System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+            if (EqualityComparer<T?>.Default.Equals(value, default))
+            {
+                throw new SerializationException(
+                    $"Deserialization of non-nullable unmanaged type '{typeof(T)}' resulted in null value.");
+            }
+            else
+            {
+                return System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+            }
         }
 
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
@@ -466,7 +466,7 @@ public static class LiteSerializer
         IFormatter<T> formatter = FormatterProvider.Get<T>();
         DataReader reader = new(buffer);
         value = formatter.Deserialize(ref reader);
-        return System.Collections.Generic.EqualityComparer<T?>.Default.Equals(value, default(T?))
+        return EqualityComparer<T?>.Default.Equals(value, default)
             ? throw new SerializationException($"Deserialization of type '{typeof(T)}' resulted in null value.")
             : reader.BytesRead;
     }
@@ -490,8 +490,7 @@ public static class LiteSerializer
     [return: System.Diagnostics.CodeAnalysis.MaybeNull]
     public static T Deserialize<[
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T>(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> buffer,
-        [System.Diagnostics.CodeAnalysis.NotNull] out int value)
+        System.ReadOnlySpan<byte> buffer, out int value)
     {
         if (buffer.IsEmpty)
         {

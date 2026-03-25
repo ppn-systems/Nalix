@@ -209,7 +209,7 @@ public static partial class Directories
     private static void RAISE_DIRECTORY_CREATED(
         [DisallowNull] string path)
     {
-        Action<string> handlers = DirectoryCreated;
+        Action<string>? handlers = DirectoryCreated;
         if (handlers == null)
         {
             return;
@@ -273,7 +273,7 @@ public static partial class Directories
     {
         try
         {
-            MethodInfo m = typeof(Directory).GetMethod("SetUnixFileMode",
+            MethodInfo? m = typeof(Directory).GetMethod("SetUnixFileMode",
                 BindingFlags.Public | BindingFlags.Static,
                 null, [typeof(string), typeof(UnixFileMode)], null);
 

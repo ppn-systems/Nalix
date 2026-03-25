@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.Globalization;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
@@ -165,7 +166,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
 
         string initialDesc = _options.InitialTokens < 0
             ? "full"
-            : _options.InitialTokens.ToString();
+            : _options.InitialTokens.ToString(CultureInfo.InvariantCulture);
 
         s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] init " +
                        $"initial={initialDesc} " +
@@ -909,16 +910,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private long CALCULATE_DEFICIT(long microBalance)
     {
-        long clamped;
-        if (microBalance < 0)
-        {
-            clamped = 0;
-        }
-        else
-        {
-            clamped = microBalance > _capacityMicro ? _capacityMicro : microBalance;
-        }
-
+        long clamped = microBalance < 0 ? 0 : microBalance > _capacityMicro ? _capacityMicro : microBalance;
         return _capacityMicro - clamped;
     }
 
@@ -954,17 +946,17 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         int totalEndpoints,
         int hardBlockedCount)
     {
-        _ = sb.AppendLine($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TokenBucketLimiter Status:");
-        _ = sb.AppendLine($"CapacityTokens      :  {_options.CapacityTokens}");
-        _ = sb.AppendLine($"RefillPerSecond     : {_options.RefillTokensPerSecond}");
-        _ = sb.AppendLine($"TokenScale          : {_options.TokenScale}");
-        _ = sb.AppendLine($"Shards              : {_options.ShardCount}");
-        _ = sb.AppendLine($"HardLockoutSeconds  : {_options.HardLockoutSeconds}");
-        _ = sb.AppendLine($"StaleEntrySeconds   : {_options.StaleEntrySeconds}");
-        _ = sb.AppendLine($"CleanupIntervalSecs : {_options.CleanupIntervalSeconds}");
-        _ = sb.AppendLine($"MaxTrackedEndpoints : {_options.MaxTrackedEndpoints}");
-        _ = sb.AppendLine($"TrackedEndpoints    : {totalEndpoints}");
-        _ = sb.AppendLine($"HardBlockedCount    : {hardBlockedCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TokenBucketLimiter Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CapacityTokens      :  {_options.CapacityTokens}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"RefillPerSecond     : {_options.RefillTokensPerSecond}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TokenScale          : {_options.TokenScale}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Shards              : {_options.ShardCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"HardLockoutSeconds  : {_options.HardLockoutSeconds}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"StaleEntrySeconds   : {_options.StaleEntrySeconds}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CleanupIntervalSecs : {_options.CleanupIntervalSeconds}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MaxTrackedEndpoints : {_options.MaxTrackedEndpoints}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TrackedEndpoints    : {totalEndpoints}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"HardBlockedCount    : {hardBlockedCount}");
         _ = sb.AppendLine();
     }
 
@@ -1046,7 +1038,7 @@ public sealed class TokenBucketLimiter : System.IDisposable, System.IAsyncDispos
         string keyCol = FORMAT_ENDPOINT_KEY(key.Address);
         string blockedCol = isBlocked ? "yes" : " no ";
 
-        _ = sb.AppendLine($"{keyCol} | {blockedCol}   | {credit,6} | {micro,10}/{_capacityMicro,-10} | {retryMs,12}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{keyCol} | {blockedCol}   | {credit,6} | {micro,10}/{_capacityMicro,-10} | {retryMs,12}");
     }
 
     /// <summary>

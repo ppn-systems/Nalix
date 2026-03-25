@@ -56,7 +56,7 @@ public interface IPacketRegistry
     /// <see langword="true"/> on success; <see langword="false"/> when the buffer is
     /// too short or no deserializer is registered for the magic number found.
     /// </returns>
-    bool TryDeserialize(ReadOnlySpan<byte> raw, out IPacket packet);
+    bool TryDeserialize(ReadOnlySpan<byte> raw, out IPacket? packet);
 
     /// <summary>
     /// Attempts to get the <see cref="PacketDeserializer"/> associated with the specified magic number.
@@ -69,5 +69,5 @@ public interface IPacketRegistry
     /// <returns>
     /// <see langword="true"/> if a deserializer is registered; otherwise <see langword="false"/>.
     /// </returns>
-    bool TryGetDeserializer(uint magic, out PacketDeserializer deserializer);
+    bool TryGetDeserializer(uint magic, out PacketDeserializer? deserializer);
 }

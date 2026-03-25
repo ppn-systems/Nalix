@@ -14,7 +14,7 @@ namespace Nalix.Shared.Memory.Buffers;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 [System.Diagnostics.DebuggerDisplay("Len={Length}, Written={WrittenCount}, Rent={_rent}, OWNER={( _owner != null )}")]
-public struct DataWriter
+public ref struct DataWriter
 {
     #region Fields
 

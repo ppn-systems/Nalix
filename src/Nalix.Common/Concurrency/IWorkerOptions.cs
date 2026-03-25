@@ -20,7 +20,7 @@ public interface IWorkerOptions
     [Required]
     [MinLength(1)]
     [MaxLength(32)]
-    string Tag { get; init; }
+    string? Tag { get; init; }
 
     /// <summary>
     /// Gets the optional machine identifier for the worker instance.
@@ -35,12 +35,12 @@ public interface IWorkerOptions
     /// <summary>
     /// Gets the action to invoke when the worker has completed successfully.
     /// </summary>
-    Action<IWorkerHandle> OnCompleted { get; }
+    Action<IWorkerHandle>? OnCompleted { get; }
 
     /// <summary>
     /// Gets the action to invoke when the worker has failed.
     /// </summary>
-    Action<IWorkerHandle, Exception> OnFailed { get; }
+    Action<IWorkerHandle, Exception>? OnFailed { get; }
 
     /// <summary>
     /// Gets the optional execution timeout for the worker.

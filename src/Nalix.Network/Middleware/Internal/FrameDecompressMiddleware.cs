@@ -1,6 +1,9 @@
 ﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
@@ -20,9 +23,10 @@ namespace Nalix.Network.Middleware.Internal;
 internal class FrameDecompressMiddleware : INetworkBufferMiddleware
 {
     /// <inheritdoc />
-    public async System.Threading.Tasks.Task<IBufferLease> InvokeAsync(
-        IBufferLease lease, IConnection connection, System.Threading.CancellationToken ct,
-        System.Func<IBufferLease, System.Threading.CancellationToken, System.Threading.Tasks.Task<IBufferLease>> next)
+    public async Task<IBufferLease> InvokeAsync(
+        IBufferLease lease, IConnection connection,
+        Func<IBufferLease, CancellationToken, Task<IBufferLease>> next,
+        CancellationToken ct)
     {
 #if DEBUG
         string debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
@@ -57,8 +61,8 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[DECOMPRESS][{debugId}] Decompression success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
 
-            int sampleLen = System.Math.Min(16, dest.Length);
-            string hexSample = System.BitConverter.ToString(dest.Span[..sampleLen].ToArray());
+            int sampleLen = Math.Min(16, dest.Length);
+            string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[DECOMPRESS][{debugId}] Decompressed buffer sample: {hexSample}");
 #endif
