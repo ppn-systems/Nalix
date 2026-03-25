@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -152,7 +152,6 @@ public sealed partial class TaskManager : ITaskManager
     public IWorkerHandle ScheduleWorker(
         [NotNull] string name,
         [NotNull] string group,
-        [NotNull]
         Func<IWorkerContext, CancellationToken, ValueTask> work,
         [MaybeNull] IWorkerOptions? options = null)
     {
@@ -337,7 +336,6 @@ public sealed partial class TaskManager : ITaskManager
         [StringSyntax("identifier")]
         [NotNull] string name,
         [NotNull] TimeSpan interval,
-        [NotNull]
         Func<CancellationToken, ValueTask> work,
         [MaybeNull] IRecurringOptions? options = null)
     {
@@ -387,7 +385,6 @@ public sealed partial class TaskManager : ITaskManager
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public async ValueTask RunOnceAsync(
         [NotNull] string name,
-        [NotNull]
         Func<CancellationToken, ValueTask> work,
         [NotNull] CancellationToken ct = default)
     {

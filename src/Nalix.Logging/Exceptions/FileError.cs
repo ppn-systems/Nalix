@@ -1,4 +1,4 @@
-// Copyright (c) 2025 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -25,13 +25,11 @@ public sealed class FileError(Exception ex, string filePath)
     /// <summary>
     /// Gets or sets the new log file name to use when recovering from errors.
     /// </summary>
-    [NotNull]
     public string NewLogFileName { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets the original log file path where the error occurred.
     /// </summary>
-    [NotNull]
     public string OriginalFilePath { get; } = filePath ?? string.Empty;
 
     /// <summary>
