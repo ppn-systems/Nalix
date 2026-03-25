@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Generic;
+
 namespace Nalix.Network.Routing;
 
 /// <summary>
@@ -9,7 +11,7 @@ namespace Nalix.Network.Routing;
 /// </summary>
 public static class PacketMetadataProviders
 {
-    private static readonly System.Collections.Generic.List<IPacketMetadataProvider> _providers = [];
+    private static readonly List<IPacketMetadataProvider> _providers = [];
 
     /// <summary>
     /// Registers a new <see cref="IPacketMetadataProvider"/> instance.
@@ -20,5 +22,5 @@ public static class PacketMetadataProviders
     /// <summary>
     /// Gets the registered metadata providers.
     /// </summary>
-    internal static System.Collections.Generic.IReadOnlyList<IPacketMetadataProvider> Providers => _providers;
+    internal static IReadOnlyList<IPacketMetadataProvider> Providers => _providers;
 }

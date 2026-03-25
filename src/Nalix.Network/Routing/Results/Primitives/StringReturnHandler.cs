@@ -1,6 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
@@ -19,17 +26,17 @@ namespace Nalix.Network.Routing.Results.Primitives;
 /// - Splits on Unicode rune boundaries (no broken multi-byte characters).
 /// - Works with any registered packet types (e.g., TEXT256, TEXT512, TEXT1024).
 /// </remarks>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
-    public async System.Threading.Tasks.ValueTask HandleAsync(
-        [System.Diagnostics.CodeAnalysis.AllowNull] object result,
-        [System.Diagnostics.CodeAnalysis.NotNull] PacketContext<TPacket> context)
+    public async ValueTask HandleAsync(
+        [AllowNull] object result,
+        [NotNull] PacketContext<TPacket> context)
     {
         if (result is string data)
         {
-            int byteCount = System.Text.Encoding.UTF8.GetByteCount(data);
+            int byteCount = Encoding.UTF8.GetByteCount(data);
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[{nameof(StringReturnHandler<>)}] " +
@@ -62,7 +69,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                                                         .Warn($"[{nameof(StringReturnHandler<>)}] send-failed");
                             }
                         }
-                        catch (System.Exception ex)
+                        catch (Exception ex)
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Error($"[{nameof(StringReturnHandler<>)}] error-serializing", ex);
@@ -103,7 +110,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                                                     .Warn($"[{nameof(StringReturnHandler<>)}] send-failed msg=chunk");
                         }
                     }
-                    catch (System.Exception ex)
+                    catch (Exception ex)
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Error($"[{nameof(StringReturnHandler<>)}] error-serializing msg=chunk", ex);
@@ -129,10 +136,10 @@ internal sealed class Candidate
 {
     public required string Name;
     public required int MaxBytes;
-    public required System.Func<object> Rent;
-    public required System.Action<object> Return;
-    public required System.Func<object, byte[]> Serialize;
-    public required System.Action<object, string> Initialize;
+    public required Func<object> Rent;
+    public required Action<object> Return;
+    public required Func<object, byte[]> Serialize;
+    public required Action<object, string> Initialize;
 }
 
 internal static class UTF8_STRING
@@ -175,11 +182,11 @@ internal static class UTF8_STRING
     /// <param name="s">The input string.</param>
     /// <param name="byteLimit">Maximum bytes per segment (UTF-8).</param>
     /// <returns>An enumerable of segments.</returns>
-    internal static System.Collections.Generic.IEnumerable<string> Split(
-        [System.Diagnostics.CodeAnalysis.DisallowNull] string s,
-        [System.Diagnostics.CodeAnalysis.DisallowNull] int byteLimit)
+    internal static IEnumerable<string> Split(
+        [DisallowNull] string s,
+        [DisallowNull] int byteLimit)
     {
-        System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteLimit);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteLimit);
 
         if (s.Length == 0)
         {
@@ -187,7 +194,7 @@ internal static class UTF8_STRING
             yield break;
         }
 
-        System.Text.Encoder encoder = System.Text.Encoding.UTF8.GetEncoder();
+        Encoder encoder = Encoding.UTF8.GetEncoder();
         int i = 0;
         while (i < s.Length)
         {
@@ -201,7 +208,7 @@ internal static class UTF8_STRING
                 if (!char.IsSurrogatePair(s, i))
                 {
                     // Single char rune
-                    System.Span<char> ch = [s[i]];
+                    Span<char> ch = [s[i]];
                     if (!Measure(ch, ref bytesUsed, byteLimit, encoder))
                     {
                         break;
@@ -212,7 +219,7 @@ internal static class UTF8_STRING
                 else
                 {
                     // Surrogate pair rune
-                    System.Span<char> ch2 = [s[i], s[i + 1]];
+                    Span<char> ch2 = [s[i], s[i + 1]];
                     if (!Measure(ch2, ref bytesUsed, byteLimit, encoder))
                     {
                         break;
@@ -228,13 +235,13 @@ internal static class UTF8_STRING
 
 
         // Local: simulate encoding to check size incrementally without allocating strings.
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(
+            MethodImplOptions.AggressiveInlining)]
         static bool Measure(
-            [System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<char> chars,
-            [System.Diagnostics.CodeAnalysis.DisallowNull] ref int used,
-            [System.Diagnostics.CodeAnalysis.DisallowNull] int limit,
-            [System.Diagnostics.CodeAnalysis.DisallowNull] System.Text.Encoder enc)
+            [DisallowNull] ReadOnlySpan<char> chars,
+            [DisallowNull] ref int used,
+            [DisallowNull] int limit,
+            [DisallowNull] Encoder enc)
         {
             enc.Convert(chars, [], flush: false,
                         out int charsUsed, out int bytesUsed, out bool completed);
@@ -245,7 +252,7 @@ internal static class UTF8_STRING
                 return false;
             }
 
-            System.Span<byte> tmp = stackalloc byte[System.Math.Min(remaining, 8)]; // small probe
+            Span<byte> tmp = stackalloc byte[Math.Min(remaining, 8)]; // small probe
             enc.Convert(chars, tmp, flush: false,
                         out _, out int b2, out _);
 

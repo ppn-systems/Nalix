@@ -1,6 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Protocols;
@@ -34,16 +37,16 @@ public static class ConnectionExtensions
     /// <param name="arg1">Optional argument 1 for the directive (default is 0).</param>
     /// <param name="arg2">Optional argument 2 for the directive (default is 0).</param>
     /// <returns>A task representing the asynchronous send operation.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static async System.Threading.Tasks.Task SendAsync(
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public static async Task SendAsync(
         this IConnection connection,
         ControlType controlType, ProtocolReason reason, ProtocolAdvice action,
         uint sequenceId = 0, ControlFlags flags = ControlFlags.NONE,
         uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
-        System.ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(connection);
 
         Directive directive = s_pool.Get<Directive>();
 
@@ -64,7 +67,7 @@ public static class ConnectionExtensions
                     _ = await connection.TCP.SendAsync(lease.Memory)
                                             .ConfigureAwait(false);
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     s_logger?.Error($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed type={controlType} " +
                                     $"reason={reason} action={action} seq={sequenceId} msg={ex.Message}");
@@ -83,7 +86,7 @@ public static class ConnectionExtensions
                                        $"type={controlType} reason={reason} action={action} seq={sequenceId}");
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     s_logger?.Error($"[NW.{nameof(ConnectionExtensions)}:{nameof(SendAsync)}] directive-send-failed (small-path) " +
                                     $"type={controlType} reason={reason} action={action} seq={sequenceId} msg={ex.Message}");

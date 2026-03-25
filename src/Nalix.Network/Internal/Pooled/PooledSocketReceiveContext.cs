@@ -1,6 +1,14 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Shared;
 using Nalix.Framework.Injection;
 using Nalix.Shared.Memory.Objects;
@@ -10,7 +18,7 @@ namespace Nalix.Network.Internal.Pooled;
 /// <summary>
 /// Represents a pooled context for receiving TCP data asynchronously via SAEA.
 /// Mirrors the pattern of <see cref="PooledAcceptContext"/>:
-/// wraps a reusable <see cref="System.Net.Sockets.SocketAsyncEventArgs"/> with
+/// wraps a reusable <see cref="SocketAsyncEventArgs"/> with
 /// built-in pooling and TCS-bridge logic.
 /// </summary>
 /// <remarks>
@@ -33,23 +41,23 @@ namespace Nalix.Network.Internal.Pooled;
 /// <list type="bullet">
 ///   <item>
 ///     Static <c>AsyncReceiveCompleted</c> now carries the <see cref="PooledSocketReceiveContext"/>
-///     reference via a dedicated wrapper object stored in <see cref="System.Net.Sockets.SocketAsyncEventArgs.UserToken"/>,
+///     reference via a dedicated wrapper object stored in <see cref="SocketAsyncEventArgs.UserToken"/>,
 ///     so <c>EndOperation()</c> is correctly called on every async completion path.
 ///   </item>
 ///   <item>
 ///     <see cref="ReceiveAsync"/> is no longer <c>async</c>: it returns
-///     <see cref="System.Threading.Tasks.ValueTask{T}"/> directly, preserving the
+///     <see cref="ValueTask{T}"/> directly, preserving the
 ///     synchronous fast-path and <c>AggressiveInlining</c>.
 ///   </item>
 /// </list>
 /// </para>
 /// </remarks>
-[System.Diagnostics.DebuggerStepThrough]
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}")]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
+[DebuggerStepThrough]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}")]
+[EditorBrowsable(EditorBrowsableState.Never)]
+internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
 {
     // -------------------------------------------------------------------------
     // Token wrapper — stored in SAEA.UserToken so the static handler can reach
@@ -65,10 +73,10 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     /// <param name="tcs"></param>
     /// <param name="owner"></param>
     private sealed class ReceiveToken(
-        System.Threading.Tasks.TaskCompletionSource<int> tcs,
+        TaskCompletionSource<int> tcs,
         PooledSocketReceiveContext owner)
     {
-        public readonly System.Threading.Tasks.TaskCompletionSource<int> Tcs = tcs;
+        public readonly TaskCompletionSource<int> Tcs = tcs;
         public readonly PooledSocketReceiveContext Owner = owner;
     }
 
@@ -79,24 +87,24 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     /// Resolves the TCS AND decrements the active-op counter (EndOperation).
     /// -------------------------------------------------------------------------
     /// </summary>
-    private static readonly System.EventHandler<System.Net.Sockets.SocketAsyncEventArgs>
+    private static readonly EventHandler<SocketAsyncEventArgs>
         AsyncReceiveCompleted = static (_, e) =>
         {
             ReceiveToken token = (ReceiveToken)e.UserToken;
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 "[PooledSocketReceiveContext] async-complete " +
                 $"err={e.SocketError} bytes={e.BytesTransferred} " +
-                $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(token.Owner)}");
+                $"ctx={RuntimeHelpers.GetHashCode(token.Owner)}");
 #endif
 
             try
             {
-                _ = e.SocketError == System.Net.Sockets.SocketError.Success
+                _ = e.SocketError == SocketError.Success
                     ? token.Tcs.TrySetResult(e.BytesTransferred)
                     : token.Tcs.TrySetException(
-                        new System.Net.Sockets.SocketException((int)e.SocketError));
+                        new SocketException((int)e.SocketError));
             }
             finally
             {
@@ -112,8 +120,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     /// <summary>
     /// Always access through BindArgs(...) to keep handler wiring correct.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.AllowNull]
-    private System.Net.Sockets.SocketAsyncEventArgs _args;
+    [AllowNull]
+    private SocketAsyncEventArgs _args;
 
     /// <summary>
     /// Active operations counter.
@@ -127,7 +135,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     /// Signaled when _activeOps == 0. ResetForPool() waits on this before cleanup.
     /// Initialized to signaled (no ops outstanding).
     /// </summary>
-    private readonly System.Threading.ManualResetEventSlim _idle =
+    private readonly ManualResetEventSlim _idle =
         new(initialState: true);
 
     // -------------------------------------------------------------------------
@@ -137,18 +145,18 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     /// <summary>
     /// The SAEA currently bound to this context.
     /// </summary>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown when <see cref="EnsureArgsBound"/> has not been called yet.
     /// </exception>
-    public System.Net.Sockets.SocketAsyncEventArgs Args
-        => _args ?? throw new System.InvalidOperationException("Args not bound.");
+    public SocketAsyncEventArgs Args
+        => _args ?? throw new InvalidOperationException("Args not bound.");
 
     /// <summary>
     /// Ensures this context has a bound SAEA, acquiring one from
     /// <see cref="ObjectPoolManager"/> if necessary.
     /// </summary>
-    /// <exception cref="System.InvalidOperationException"></exception>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    /// <exception cref="InvalidOperationException"></exception>
+    [SuppressMessage(
         "Style", "IDE0270:Use coalesce expression", Justification = "<Pending>")]
     public void EnsureArgsBound()
     {
@@ -162,14 +170,14 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
 
         if (pooledArgs == null)
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 "Failed to acquire PooledSocketAsyncEventArgs from pool.");
         }
 
 #if DEBUG
-        System.Diagnostics.Debug.WriteLine(
+        Debug.WriteLine(
             "[PooledSocketReceiveContext] EnsureArgsBound acquired saea " +
-            $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
+            $"ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
         BindArgs(pooledArgs);
@@ -181,21 +189,21 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     /// attaches it to the new one.
     /// </summary>
     /// <param name="newArgs"></param>
-    /// <exception cref="System.ArgumentNullException"></exception>
-    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_args))]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void BindArgs(System.Net.Sockets.SocketAsyncEventArgs newArgs)
+    /// <exception cref="ArgumentNullException"></exception>
+    [MemberNotNull(nameof(_args))]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public void BindArgs(SocketAsyncEventArgs newArgs)
     {
         _args?.Completed -= AsyncReceiveCompleted;
 
-        _args = newArgs ?? throw new System.ArgumentNullException(nameof(newArgs));
+        _args = newArgs ?? throw new ArgumentNullException(nameof(newArgs));
         _args.Completed += AsyncReceiveCompleted;
 
 #if DEBUG
-        System.Diagnostics.Debug.WriteLine(
+        Debug.WriteLine(
             "[PooledSocketReceiveContext] BindArgs " +
-            $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
+            $"ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
     }
 
@@ -203,9 +211,9 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     /// Issues a single receive of up to <paramref name="count"/> bytes into
     /// <paramref name="buffer"/> at <paramref name="offset"/>.
     /// <para>
-    /// <b>Sync fast-path:</b> when <see cref="System.Net.Sockets.Socket.ReceiveAsync(System.Net.Sockets.SocketAsyncEventArgs)"/>
+    /// <b>Sync fast-path:</b> when <see cref="Socket.ReceiveAsync(SocketAsyncEventArgs)"/>
     /// returns <see langword="false"/>, the result is returned via
-    /// <see cref="System.Threading.Tasks.ValueTask{T}"/> — no Task allocation,
+    /// <see cref="ValueTask{T}"/> — no Task allocation,
     /// no TCS await. Common on LAN/loopback.
     /// </para>
     /// </summary>
@@ -214,18 +222,18 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     /// <param name="offset">Start offset inside <paramref name="buffer"/>.</param>
     /// <param name="count">Maximum bytes to receive.</param>
     /// <returns>
-    /// A <see cref="System.Threading.Tasks.ValueTask{T}"/> resolving to the number of bytes
+    /// A <see cref="ValueTask{T}"/> resolving to the number of bytes
     /// received. Returns 0 when the peer has closed the connection.
     /// </returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public System.Threading.Tasks.ValueTask<int> ReceiveAsync(
-        System.Net.Sockets.Socket socket,
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public ValueTask<int> ReceiveAsync(
+        Socket socket,
         byte[] buffer,
         int offset,
         int count)
     {
-        System.Net.Sockets.SocketAsyncEventArgs args = Args; // throws if not bound
+        SocketAsyncEventArgs args = Args; // throws if not bound
 
         // Point the SAEA window at the requested slice.
         args.SetBuffer(buffer, offset, count);
@@ -233,8 +241,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
         // Fresh TCS per receive.
         // RunContinuationsAsynchronously → continuations post to thread-pool,
         // preventing stack-dives when the OS fires many completions synchronously.
-        System.Threading.Tasks.TaskCompletionSource<int> tcs = new(
-            System.Threading.Tasks.TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<int> tcs = new(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Store BOTH the TCS and this context in UserToken so the static handler
         // can call EndOperation() without a closure capture.
@@ -260,34 +268,34 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
             // ── Sync fast-path: OS already has data ──────────────────────
             // Capture result before calling EndOperation (no re-entrancy risk here
             // because the static handler is NOT called on the sync path).
-            System.Net.Sockets.SocketError err = args.SocketError;
+            SocketError err = args.SocketError;
             int bytes = args.BytesTransferred;
 
             EndOperation(); // Decrement here — static handler won't fire.
 
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 "[PooledSocketReceiveContext] recv-sync " +
                 $"err={err} bytes={bytes} offset={offset} count={count} " +
-                $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
+                $"ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
-            return err != System.Net.Sockets.SocketError.Success
-                ? System.Threading.Tasks.ValueTask.FromException<int>(
-                    new System.Net.Sockets.SocketException((int)err))
-                : System.Threading.Tasks.ValueTask.FromResult(bytes);
+            return err != SocketError.Success
+                ? ValueTask.FromException<int>(
+                    new SocketException((int)err))
+                : ValueTask.FromResult(bytes);
         }
 
 #if DEBUG
-        System.Diagnostics.Debug.WriteLine(
+        Debug.WriteLine(
             "[PooledSocketReceiveContext] recv-async-pending " +
             $"offset={offset} count={count} " +
-            $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
+            $"ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
         // ── Async path: static handler fires when OS completes ───────────
         // EndOperation() is called inside AsyncReceiveCompleted via the token.
-        return new System.Threading.Tasks.ValueTask<int>(tcs.Task);
+        return new ValueTask<int>(tcs.Task);
     }
 
     /// <summary>
@@ -298,20 +306,20 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     public void ResetForPool()
     {
 #if DEBUG
-        System.Diagnostics.Debug.WriteLine(
+        Debug.WriteLine(
             $"[PooledSocketReceiveContext] ResetForPool begin activeOps={_activeOps} " +
-            $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
+            $"ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
         // Wait for in-flight op. 5 s is generous; a real connection teardown
         // should cancel the socket first (which causes the OS to abort the op).
-        if (!_idle.Wait(System.TimeSpan.FromSeconds(5)))
+        if (!_idle.Wait(TimeSpan.FromSeconds(5)))
         {
 #if DEBUG
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 "[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for idle " +
                 $"activeOps={_activeOps} " +
-                $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
+                $"ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
             // Still proceed — better to risk a brief race than to leak the context.
         }
@@ -333,13 +341,13 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
         }
 
         // Re-arm for next use: reset counter and event to idle state.
-        System.Threading.Volatile.Write(ref _activeOps, 0);
+        Volatile.Write(ref _activeOps, 0);
         _idle.Set();
 
 #if DEBUG
-        System.Diagnostics.Debug.WriteLine(
+        Debug.WriteLine(
             "[PooledSocketReceiveContext] ResetForPool done " +
-            $"ctx={System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(this)}");
+            $"ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
     }
 
@@ -347,27 +355,27 @@ internal sealed class PooledSocketReceiveContext : IPoolable, System.IDisposable
     // Private: active-op counter helpers
     // -------------------------------------------------------------------------
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void BeginOperation()
     {
         // First in-flight op → reset the idle event.
-        if (System.Threading.Interlocked.Increment(ref _activeOps) == 1)
+        if (Interlocked.Increment(ref _activeOps) == 1)
         {
             _idle.Reset();
         }
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private void EndOperation()
     {
         // Last completing op → signal idle.
-        if (System.Threading.Interlocked.Decrement(ref _activeOps) == 0)
+        if (Interlocked.Decrement(ref _activeOps) == 0)
         {
             _idle.Set();
         }
     }
 
-    public void Dispose() => throw new System.NotImplementedException();
+    public void Dispose() => throw new NotImplementedException();
 }

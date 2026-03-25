@@ -1,6 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
@@ -10,8 +17,8 @@ using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooled;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
 namespace Nalix.Network.Internal.Transport;
@@ -39,9 +46,9 @@ namespace Nalix.Network.Internal.Transport;
 /// individually — regardless of how much global headroom remains. This prevents one
 /// attacker IP from monopolising the global callback quota and starving other IPs.</para>
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[ExcludeFromCodeCoverage]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal static class AsyncCallback
 {
     #region Options
@@ -63,7 +70,7 @@ internal static class AsyncCallback
     private static long s_droppedCallbacks;
     private static long s_totalInvoked;
 
-    [System.Diagnostics.CodeAnalysis.AllowNull]
+    [AllowNull]
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
@@ -77,7 +84,7 @@ internal static class AsyncCallback
     /// <summary>
     /// ── Static delegates — no closures, no per-invocation allocations ──────────
     /// </summary>
-    private static readonly System.Action<object> s_invokeNormal = static stateObj =>
+    private static readonly Action<object> s_invokeNormal = static stateObj =>
     {
         if (stateObj is not PooledConnectEventContext w)
         {
@@ -85,7 +92,7 @@ internal static class AsyncCallback
         }
 
         // Decrement global counter first.
-        _ = System.Threading.Interlocked.Decrement(ref s_pendingNormal);
+        _ = Interlocked.Decrement(ref s_pendingNormal);
 
         // Decrement per-IP counter; remove key when it hits zero.
         if (w.Args.NetworkEndpoint is not null)
@@ -96,14 +103,14 @@ internal static class AsyncCallback
             // Clean up zero-valued entries to prevent dictionary growth.
             if (s_perIpPending.TryGetValue(w.Args.NetworkEndpoint, out int v) && v == 0)
             {
-                _ = s_perIpPending.TryRemove(new System.Collections.Generic.KeyValuePair<INetworkEndpoint, int>(w.Args.NetworkEndpoint, 0));
+                _ = s_perIpPending.TryRemove(new KeyValuePair<INetworkEndpoint, int>(w.Args.NetworkEndpoint, 0));
             }
         }
 
         EXECUTE_AND_RETURN(w);
     };
 
-    private static readonly System.Action<object> s_invokeHigh = static stateObj =>
+    private static readonly Action<object> s_invokeHigh = static stateObj =>
     {
         if (stateObj is not PooledConnectEventContext w)
         {
@@ -125,13 +132,13 @@ internal static class AsyncCallback
     /// <param name="sender">The sender object (typically an <see cref="IConnection"/>).</param>
     /// <param name="args">The event arguments.</param>
     /// <returns><see langword="true"/> if the callback was queued; <see langword="false"/> if dropped.</returns>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static bool Invoke(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> callback,
-        [System.Diagnostics.CodeAnalysis.NotNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
+        [AllowNull] EventHandler<IConnectEventArgs> callback,
+        [NotNull] object sender,
+        [NotNull] IConnectEventArgs args)
     {
         if (callback is null)
         {
@@ -142,11 +149,11 @@ internal static class AsyncCallback
         }
 
         // ── Global backpressure check ──────────────────────────────────────────
-        int globalPending = System.Threading.Volatile.Read(ref s_pendingNormal);
+        int globalPending = Volatile.Read(ref s_pendingNormal);
 
         if (globalPending >= s_opts.MaxPendingNormalCallbacks)
         {
-            System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
+            Interlocked.Increment(ref s_droppedCallbacks);
             s_logger?.Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={args.NetworkEndpoint}");
             return false;
         }
@@ -158,7 +165,7 @@ internal static class AsyncCallback
 
             if (ipPending >= s_opts.MaxPendingPerIp)
             {
-                System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
+                Interlocked.Increment(ref s_droppedCallbacks);
                 s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={args.NetworkEndpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
                 return false;
             }
@@ -178,8 +185,8 @@ internal static class AsyncCallback
             s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
         }
 
-        System.Threading.Interlocked.Increment(ref s_pendingNormal);
-        System.Threading.Interlocked.Increment(ref s_totalInvoked);
+        Interlocked.Increment(ref s_pendingNormal);
+        Interlocked.Increment(ref s_totalInvoked);
 
         return QUEUE(s_invokeNormal, callback, sender, args, isHigh: false);
     }
@@ -195,35 +202,35 @@ internal static class AsyncCallback
     /// <param name="callback"></param>
     /// <param name="sender"></param>
     /// <param name="args"></param>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static bool InvokeHighPriority(
-        [System.Diagnostics.CodeAnalysis.AllowNull] System.EventHandler<IConnectEventArgs> callback,
-        [System.Diagnostics.CodeAnalysis.NotNull] object sender,
-        [System.Diagnostics.CodeAnalysis.NotNull] IConnectEventArgs args)
+        [AllowNull] EventHandler<IConnectEventArgs> callback,
+        [NotNull] object sender,
+        [NotNull] IConnectEventArgs args)
     {
         if (callback is null)
         {
             return false;
         }
 
-        _ = System.Threading.Interlocked.Increment(ref s_totalInvoked);
+        _ = Interlocked.Increment(ref s_totalInvoked);
 
         return QUEUE(s_invokeHigh, callback, sender, args, isHigh: true);
     }
 
     /// <summary>Gets diagnostic statistics about callback processing.</summary>
     public static (int PendingNormal, long Dropped, long Total) GetStatistics()
-        => (System.Threading.Volatile.Read(ref s_pendingNormal),
-            System.Threading.Volatile.Read(ref s_droppedCallbacks),
-            System.Threading.Volatile.Read(ref s_totalInvoked));
+        => (Volatile.Read(ref s_pendingNormal),
+            Volatile.Read(ref s_droppedCallbacks),
+            Volatile.Read(ref s_totalInvoked));
 
     /// <summary>Resets dropped/total counters. Used for testing or periodic reporting.</summary>
     internal static void ResetStatistics()
     {
-        _ = System.Threading.Interlocked.Exchange(ref s_droppedCallbacks, 0);
-        _ = System.Threading.Interlocked.Exchange(ref s_totalInvoked, 0);
+        _ = Interlocked.Exchange(ref s_droppedCallbacks, 0);
+        _ = Interlocked.Exchange(ref s_totalInvoked, 0);
         // Do NOT reset s_pendingNormal — it tracks live work.
     }
 
@@ -231,11 +238,11 @@ internal static class AsyncCallback
 
     #region Private Helpers
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static bool QUEUE(
-        System.Action<object> invoker,
-        System.EventHandler<IConnectEventArgs> callback,
+        Action<object> invoker,
+        EventHandler<IConnectEventArgs> callback,
         object sender,
         IConnectEventArgs args,
         bool isHigh)
@@ -243,12 +250,12 @@ internal static class AsyncCallback
         PooledConnectEventContext wrapper = PooledConnectEventContext.Get();
         wrapper.Initialize(callback, sender, args);
 
-        if (!System.Threading.ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false))
+        if (!ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false))
         {
             // Queue failure — extremely rare. Undo the increments we already applied.
             if (!isHigh)
             {
-                _ = System.Threading.Interlocked.Decrement(ref s_pendingNormal);
+                _ = Interlocked.Decrement(ref s_pendingNormal);
 
                 if (args.NetworkEndpoint is not null)
                 {
@@ -261,7 +268,7 @@ internal static class AsyncCallback
                 }
             }
 
-            _ = System.Threading.Interlocked.Increment(ref s_droppedCallbacks);
+            _ = Interlocked.Increment(ref s_droppedCallbacks);
             s_logger?.Error($"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={args.NetworkEndpoint}");
 
             wrapper.Dispose();
@@ -272,15 +279,15 @@ internal static class AsyncCallback
         return true;
     }
 
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static void EXECUTE_AND_RETURN(PooledConnectEventContext w)
     {
         try
         {
             w.Callback?.Invoke(w.Sender, w.Args);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             s_logger?.Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
         }

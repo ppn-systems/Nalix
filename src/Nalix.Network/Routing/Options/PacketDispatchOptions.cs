@@ -1,6 +1,13 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Middleware;
@@ -14,36 +21,36 @@ namespace Nalix.Network.Routing.Options;
 /// error handling, and logging.
 /// </summary>
 /// <typeparam name="TPacket">The type of packet being dispatched.</typeparam>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
 public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket
 {
     #region Fields
 
     private readonly MiddlewarePipeline<TPacket> _pipeline;
-    private readonly System.Collections.Generic.Dictionary<ushort, PacketHandler<TPacket>> _handlerCache;
+    private readonly Dictionary<ushort, PacketHandler<TPacket>> _handlerCache;
 
     /// <summary>
     /// Maps each registered opCode to the concrete packet type expected by its handler method.
-    /// Populated automatically by <see cref="WithHandler{TController}(System.Func{TController})"/>.
+    /// Populated automatically by <see cref="WithHandler{TController}(Func{TController})"/>.
     /// Used at dispatch time to validate that the deserialized packet's runtime type matches
     /// what the handler was compiled against — catching mismatches early with a clear error
-    /// instead of a silent <see cref="System.InvalidCastException"/> inside the expression tree.
+    /// instead of a silent <see cref="InvalidCastException"/> inside the expression tree.
     /// </summary>
     /// <remarks>
     /// Key   = opCode (UInt16)<br/>
-    /// Value = concrete <see cref="System.Type"/> that implements <typeparamref name="TPacket"/>,
+    /// Value = concrete <see cref="Type"/> that implements <typeparamref name="TPacket"/>,
     ///         e.g. <c>typeof(LoginPacket)</c>. The value is the first parameter type of the
-    ///         handler method as reflected by <see cref="System.Reflection.ParameterInfo"/>.
+    ///         handler method as reflected by <see cref="ParameterInfo"/>.
     ///         For context-style handlers (<c>PacketContext&lt;TPacket&gt;</c>) the entry is
     ///         <see langword="null"/> — no concrete-type check is needed there.
     /// </remarks>
-    private readonly System.Collections.Generic.Dictionary<ushort, System.Type> _packetTypeMap;
+    private readonly Dictionary<ushort, Type> _packetTypeMap;
 
     /// <summary>
     /// Network buffer middleware pipeline for processing raw byte buffers before packet transformation.
     /// </summary>
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public readonly NetworkBufferMiddlewarePipeline NetworkPipeline;
 
     /// <summary>
@@ -52,8 +59,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <remarks>
     /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
     /// </remarks>
-    [System.Diagnostics.CodeAnalysis.AllowNull]
-    private System.Action<System.Exception, ushort> _errorHandler;
+    [AllowNull]
+    private Action<Exception, ushort> _errorHandler;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatchOptions{TPacket}"/> class.
@@ -78,8 +85,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// <summary>
     /// Gets the logger instance used for logging within the packet dispatch options.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.AllowNull]
-    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [AllowNull]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public ILogger Logging { get; private set; }
 
     /// <summary>
