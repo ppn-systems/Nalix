@@ -58,9 +58,8 @@ public abstract partial class Protocol
         // Check if accepting connections is enabled
         if (!IsAccepting)
         {
-            s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
-
-            connection?.Close();
+            s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
+            connection.Close();
             return;
         }
 
@@ -74,24 +73,24 @@ public abstract partial class Protocol
         {
             if (ValidateConnection(connection))
             {
-                s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
+                s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
 
                 connection.TCP.BeginReceive(cancellationToken);
                 return;
             }
 
-            s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=validation-failed");
+            s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=validation-failed");
 
             // Connections failed validation, close immediately
             connection.Close();
         }
         catch (OperationCanceledException)
         {
-            s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-canceled id={connection.ID}");
+            s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-canceled id={connection.ID}");
         }
         catch (ObjectDisposedException)
         {
-            s_logger.Warn($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-disposed id={connection.ID}");
+            s_logger?.Warn($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-disposed id={connection.ID}");
         }
         catch (Exception ex)
         {
@@ -99,7 +98,7 @@ public abstract partial class Protocol
             OnConnectionError(connection, ex);
             connection.Disconnect();
 
-            s_logger.Debug($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-error id={connection.ID} ex={ex.Message}");
+            s_logger?.Debug($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-error id={connection.ID} ex={ex.Message}");
         }
     }
 

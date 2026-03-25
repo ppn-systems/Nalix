@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using Nalix.Common.Shared;
 
@@ -27,9 +26,7 @@ public interface IProtocol : IDisposable, IReportable
     /// <param name="sender">The source of the event triggering the message processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
-    void ProcessMessage(
-        object? sender,
-        IConnectEventArgs args);
+    void ProcessMessage(object? sender, IConnectEventArgs args);
 
     /// <summary>
     /// Executes after a message from the connection has been processed.
@@ -38,9 +35,7 @@ public interface IProtocol : IDisposable, IReportable
     /// <param name="sender">The source of the event triggering the post-processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
-    void PostProcessMessage(
-        object? sender,
-        IConnectEventArgs args);
+    void PostProcessMessage(object? sender, IConnectEventArgs args);
 
     /// <summary>
     /// Handles a new connection when it is accepted.
@@ -49,7 +44,5 @@ public interface IProtocol : IDisposable, IReportable
     /// <param name="connection">The connection to handle.</param>
     /// <param name="cancellationToken">Identifier for cancellation</param>
     /// <exception cref="ArgumentNullException">Thrown when connection is null.</exception>
-    void OnAccept(
-        IConnection connection,
-        CancellationToken cancellationToken = default);
+    void OnAccept(IConnection connection, CancellationToken cancellationToken = default);
 }

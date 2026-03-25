@@ -50,14 +50,14 @@ public abstract partial class Protocol : IProtocol
             {
                 args.Connection.Disconnect();
 
-                s_logger.Trace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
+                s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
             }
         }
         catch (Exception ex)
         {
             _ = Interlocked.Increment(ref _totalErrors);
 
-            s_logger.Error($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
+            s_logger?.Error($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
             // Notify protocol-level error handler
             OnConnectionError(args.Connection, ex);
@@ -76,6 +76,6 @@ public abstract partial class Protocol : IProtocol
     {
         _ = Interlocked.Exchange(ref _accepting, isEnabled ? 1 : 0);
 
-        s_logger.Info($"[NW.{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
+        s_logger?.Info($"[NW.{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
     }
 }

@@ -24,10 +24,10 @@ public interface IConnectEventArgs : IDisposable
     /// <summary>
     /// The buffer lease associated with the connection event, if applicable. This may be null if the event does not involve a buffer.
     /// </summary>
-    IBufferLease Lease { get; }
+    IBufferLease? Lease { get; }
 
     /// <summary>
     /// Endpoint information related to the connection event, if applicable. This may be null if the event does not involve an endpoint.
     /// </summary>
-    INetworkEndpoint NetworkEndpoint { get; }
+    INetworkEndpoint? NetworkEndpoint { get; }
 }
