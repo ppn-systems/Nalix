@@ -1,9 +1,16 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests.")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Configuration.Internal;
@@ -11,10 +18,10 @@ namespace Nalix.Framework.Configuration.Internal;
 /// <summary>
 /// Stores metadata about a configuration property.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Runtime.CompilerServices.SkipLocalsInit]
-[System.Diagnostics.DebuggerDisplay("{Naming,nq} ({PropertyType.Naming})")]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerNonUserCode]
+[SkipLocalsInit]
+[DebuggerDisplay("{Naming,nq} ({PropertyType.Naming})")]
+[EditorBrowsable(EditorBrowsableState.Never)]
 internal class PropertyMetadata
 {
     #region Properties
@@ -27,25 +34,25 @@ internal class PropertyMetadata
     /// <summary>
     /// Gets or sets the type code of the property.
     /// </summary>
-    public System.TypeCode TypeCode { get; init; }
+    public TypeCode TypeCode { get; init; }
 
     /// <summary>
     /// Gets or sets the name of the property.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.NotNull]
+    [NotNull]
     public string Name { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the type of the property.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Type PropertyType { get; init; } = null!;
+    [NotNull]
+    public Type PropertyType { get; init; } = null!;
 
     /// <summary>
     /// Gets or sets the property information.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.NotNull]
-    public System.Reflection.PropertyInfo PropertyInfo { get; init; } = null!;
+    [NotNull]
+    public PropertyInfo PropertyInfo { get; init; } = null!;
 
     #endregion Properties
 
@@ -56,14 +63,14 @@ internal class PropertyMetadata
     /// </summary>
     /// <param name="target">The target object.</param>
     /// <param name="value">The value to set.</param>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [StackTraceHidden]
+    [DebuggerStepThrough]
+    [MethodImpl(
+        MethodImplOptions.NoInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public void SetValue(
-        [System.Diagnostics.CodeAnalysis.NotNull] object target,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] object? value)
+        [NotNull] object target,
+        [MaybeNull] object? value)
     {
         // Only set if the types are compatible
         if (value == null || PropertyType.IsInstanceOfType(value))
@@ -72,7 +79,7 @@ internal class PropertyMetadata
         }
         else
         {
-            throw new System.InvalidOperationException(
+            throw new InvalidOperationException(
                 $"Type mismatch for property {Name}: " +
                 $"Expected {PropertyType}, but got {value.GetType()}");
         }

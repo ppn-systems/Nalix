@@ -1,6 +1,10 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Random.Core;
@@ -11,17 +15,17 @@ namespace Nalix.Framework.Random;
 /// High-performance cryptographically strong random number generator
 /// based on the Xoshiro256++ algorithm with additional entropy sources.
 /// </summary>
-[System.Diagnostics.StackTraceHidden]
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.DebuggerStepThrough]
-[System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
+[StackTraceHidden]
+[DebuggerNonUserCode]
+[DebuggerStepThrough]
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
 public static class Csprng
 {
     #region Fields
 
     private static string DebuggerDisplay => "Csprng(primary=OS)";
 
-    private static readonly System.Action<System.Span<byte>> _f;
+    private static readonly Action<Span<byte>> _f;
 
     #endregion Fields
 
@@ -29,8 +33,8 @@ public static class Csprng
 
     static Csprng()
     {
-        System.Action<System.Span<byte>> f = OsCsprng.Fill;
-        System.Span<byte> probe = stackalloc byte[16];
+        Action<Span<byte>> f = OsCsprng.Fill;
+        Span<byte> probe = stackalloc byte[16];
 
         try
         {
@@ -60,11 +64,11 @@ public static class Csprng
     /// Falls back to high-quality pseudo-random generator if OS CSPRNG is unavailable.
     /// Suitable for cryptographic purposes including key generation, nonces, and IVs.
     /// </remarks>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static void Fill([System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> data)
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public static void Fill([NotNull] Span<byte> data)
     {
         if (data.Length == 0)
         {
@@ -79,17 +83,17 @@ public static class Csprng
     /// </summary>
     /// <param name="length">The length of the nonce in bytes. Default is 12 bytes (96 bits).</param>
     /// <returns>A cryptographically secure nonce.</returns>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when length is less than or equal to zero.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when length is less than or equal to zero.</exception>
     /// <remarks>
     /// 96-bit (12-byte) nonces are recommended for most AEAD schemes like AES-GCM and ChaCha20-Poly1305.
     /// Never reuse a nonce with the same key in authenticated encryption.
     /// </remarks>
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static byte[] CreateNonce([System.Diagnostics.CodeAnalysis.NotNull] int length = 12)
+    [return: NotNull]
+    public static byte[] CreateNonce([NotNull] int length = 12)
     {
         if (length <= 0)
         {
-            throw new System.ArgumentOutOfRangeException(
+            throw new ArgumentOutOfRangeException(
                 nameof(length), length, "Nonce length must be a positive integer.");
         }
 
@@ -105,20 +109,20 @@ public static class Csprng
     /// </summary>
     /// <param name="length">The number of random bytes to generate.</param>
     /// <returns>A byte array filled with cryptographically secure random data.</returns>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when length is negative.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when length is negative.</exception>
     /// <remarks>
     /// Thread-safe. Returns an empty array if length is 0.
     /// Use this for generating cryptographic keys, tokens, and other security-sensitive data.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static byte[] GetBytes([System.Diagnostics.CodeAnalysis.NotNull] int length)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
+    public static byte[] GetBytes([NotNull] int length)
     {
         if (length < 0)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(length), length, "Length cannot be negative.");
+            throw new ArgumentOutOfRangeException(nameof(length), length, "Length cannot be negative.");
         }
 
         if (length == 0)
@@ -137,21 +141,21 @@ public static class Csprng
     /// <param name="min">The inclusive lower bound.</param>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A cryptographically secure random integer in the specified range.</returns>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when min is greater than or equal to max.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when min is greater than or equal to max.</exception>
     /// <remarks>
     /// Uses rejection sampling to ensure unbiased distribution across the entire range.
     /// Thread-safe. Suitable for security-sensitive applications requiring unpredictable integers.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static int GetInt32(
-        [System.Diagnostics.CodeAnalysis.NotNull] int min,
-        [System.Diagnostics.CodeAnalysis.NotNull] int max)
+        [NotNull] int min,
+        [NotNull] int max)
     {
         if (min >= max)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(max), max, "Max must be greater than min.");
+            throw new ArgumentOutOfRangeException(nameof(max), max, "Max must be greater than min.");
         }
 
         ulong range = (ulong)((long)max - min);
@@ -174,16 +178,16 @@ public static class Csprng
     /// </summary>
     /// <param name="max">The exclusive upper bound.</param>
     /// <returns>A cryptographically secure random integer in the specified range.</returns>
-    /// <exception cref="System.ArgumentOutOfRangeException">Thrown when max is less than or equal to 0.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when max is less than or equal to 0.</exception>
     /// <remarks>
     /// Thread-safe. Uses unbiased rejection sampling for uniform distribution.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static int GetInt32(
-        [System.Diagnostics.CodeAnalysis.NotNull] int max) => GetInt32(0, max);
+        [NotNull] int max) => GetInt32(0, max);
 
     #endregion Get
 
@@ -193,18 +197,18 @@ public static class Csprng
     /// Fills the given byte array with cryptographically strong random values.
     /// </summary>
     /// <param name="buffer">The buffer to fill with random bytes.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when buffer is null.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when buffer is null.</exception>
     /// <remarks>
     /// Thread-safe. Equivalent to Fill(buffer.AsSpan()).
     /// </remarks>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] byte[] buffer)
+        [NotNull] byte[] buffer)
     {
-        System.ArgumentNullException.ThrowIfNull(buffer);
+        ArgumentNullException.ThrowIfNull(buffer);
         _f(buffer);
     }
 
@@ -215,12 +219,12 @@ public static class Csprng
     /// <remarks>
     /// Thread-safe. Preferred over the array overload for performance-critical code.
     /// </remarks>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> buffer) => Fill(buffer);
+        [NotNull] Span<byte> buffer) => Fill(buffer);
 
     /// <summary>
     /// Generates a cryptographically strong 32-bit random integer.
@@ -229,14 +233,14 @@ public static class Csprng
     /// <remarks>
     /// Thread-safe. Suitable for generating unpredictable identifiers and tokens.
     /// </remarks>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static uint NextUInt32()
     {
-        System.Span<byte> b = stackalloc byte[4];
+        Span<byte> b = stackalloc byte[4];
         _f(b);
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(b);
     }
@@ -248,14 +252,14 @@ public static class Csprng
     /// <remarks>
     /// Thread-safe. Useful for generating high-entropy identifiers and session tokens.
     /// </remarks>
-    [System.Diagnostics.StackTraceHidden]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [StackTraceHidden]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static ulong NextUInt64()
     {
-        System.Span<byte> b = stackalloc byte[8];
+        Span<byte> b = stackalloc byte[8];
         _f(b);
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(b);
     }
@@ -268,10 +272,10 @@ public static class Csprng
     /// Thread-safe. Uses 53 bits of precision (full mantissa of double).
     /// Suitable for Monte Carlo simulations and statistical sampling.
     /// </remarks>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [return: NotNull]
     public static double NextDouble() => (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
 
     #endregion Next

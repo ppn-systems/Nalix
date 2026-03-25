@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Concurrency;
 
 namespace Nalix.Framework.Options;
@@ -23,12 +24,12 @@ public sealed class RecurringOptions : IRecurringOptions
     /// <summary>
     /// Gets an optional jitter to randomize the start time of the recurring task.
     /// </summary>
-    public System.TimeSpan? Jitter { get; init; } = System.TimeSpan.FromMilliseconds(250);
+    public TimeSpan? Jitter { get; init; } = TimeSpan.FromMilliseconds(250);
 
     /// <summary>
     /// Gets an optional timeout for a single run, after which the run is cancelled.
     /// </summary>
-    public System.TimeSpan? ExecutionTimeout { get; init; }
+    public TimeSpan? ExecutionTimeout { get; init; }
 
     /// <summary>
     /// Gets the number of consecutive failures before backoff is applied.
@@ -38,5 +39,5 @@ public sealed class RecurringOptions : IRecurringOptions
     /// <summary>
     /// Gets the maximum backoff duration after consecutive failures.
     /// </summary>
-    public System.TimeSpan BackoffCap { get; init; } = System.TimeSpan.FromSeconds(15);
+    public TimeSpan BackoffCap { get; init; } = TimeSpan.FromSeconds(15);
 }
