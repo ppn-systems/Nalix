@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;

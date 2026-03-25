@@ -237,7 +237,7 @@ public sealed partial class Connection : IConnection
         }
 
         // Close events bypas backpressure — cleanup must never be delayed
-        _ = AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
+        _ = Internal.Transport.AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
     }
 
     [MethodImpl(
@@ -252,7 +252,7 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        _ = AsyncCallback.Invoke(self._onProcessEvent, self, e);
+        _ = Internal.Transport.AsyncCallback.Invoke(self._onProcessEvent, self, e);
     }
 
     [MethodImpl(
@@ -267,7 +267,7 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        _ = AsyncCallback.Invoke(self._onPostProcessEvent, self, e);
+        _ = Internal.Transport.AsyncCallback.Invoke(self._onPostProcessEvent, self, e);
     }
 
     #endregion Event Bridges
