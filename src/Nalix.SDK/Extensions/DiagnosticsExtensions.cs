@@ -1,6 +1,9 @@
 ﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Transport;
 using Nalix.SDK.Transport;
 
@@ -19,7 +22,7 @@ public static class DiagnosticsExtensions
     /// <returns>
     /// A <see cref="TcpSessionDiagnostics"/> with all metrics captured at this instant.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="client"/> is <c>null</c>.
     /// </exception>
     /// <example>
@@ -32,11 +35,11 @@ public static class DiagnosticsExtensions
     ///     logger.Warn($"High RTT: {snap.HeartbeatRttMs:F1} ms");
     /// </code>
     /// </example>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static TcpSessionDiagnostics GetDiagnostics(this TcpSession client)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(client);
 
         return new TcpSessionDiagnostics
         {
@@ -46,7 +49,7 @@ public static class DiagnosticsExtensions
             TotalBytesReceived = client.BytesReceived,
             SendBytesPerSecond = client.SendBytesPerSecond,
             ReceiveBytesPerSecond = client.ReceiveBytesPerSecond,
-            CapturedAt = System.DateTime.UtcNow,
+            CapturedAt = DateTime.UtcNow,
         };
     }
 
@@ -56,11 +59,11 @@ public static class DiagnosticsExtensions
     /// other implementations receive a partial snapshot (RTT = 0, BPS = 0).
     /// </summary>
     /// <param name="client"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static TcpSessionDiagnostics GetDiagnostics(this IClientConnection client)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(client);
 
         // Fast path: full metrics available.
         if (client is TcpSession rc)
@@ -73,7 +76,7 @@ public static class DiagnosticsExtensions
         {
             IsConnected = client.IsConnected,
             Endpoint = $"{client.Options.Address}:{client.Options.Port}",
-            CapturedAt = System.DateTime.UtcNow,
+            CapturedAt = DateTime.UtcNow,
         };
     }
 }
@@ -83,7 +86,7 @@ public static class DiagnosticsExtensions
 /// All values are captured atomically from the client at the moment
 /// <see cref="DiagnosticsExtensions.GetDiagnostics(TcpSession)"/> is called.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay(
+[DebuggerDisplay(
     "Connected={IsConnected}, RTT={HeartbeatRttMs:F1} ms, " +
     "Tx={SendBytesPerSecond} B/s, Rx={ReceiveBytesPerSecond} B/s")]
 public readonly struct TcpSessionDiagnostics
@@ -121,7 +124,7 @@ public readonly struct TcpSessionDiagnostics
     /// <summary>
     /// UTC time when the snapshot was taken.
     /// </summary>
-    public System.DateTime CapturedAt { get; init; }
+    public DateTime CapturedAt { get; init; }
 
     /// <summary>
     /// Returns a human-readable summary of the snapshot suitable for logging.

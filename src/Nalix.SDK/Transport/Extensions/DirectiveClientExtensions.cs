@@ -1,6 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
@@ -20,7 +24,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// <seealso cref="Directive"/>
 /// <seealso cref="Clock"/>
 /// <seealso cref="TcpSession"/>
-[System.Runtime.CompilerServices.SkipLocalsInit]
+[SkipLocalsInit]
 public static class DirectiveClientExtensions
 {
     /// <summary>
@@ -31,24 +35,24 @@ public static class DirectiveClientExtensions
         /// <summary>
         /// Callback invoked when a <see cref="ControlType.NOTICE"/> directive is received.
         /// </summary>
-        public required System.Action<Directive> OnNotice { get; init; }
+        public required Action<Directive> OnNotice { get; init; }
 
         /// <summary>
         /// Callback invoked when a <see cref="ControlType.NACK"/> directive is received.
         /// </summary>
-        public required System.Action<Directive> OnNack { get; init; }
+        public required Action<Directive> OnNack { get; init; }
 
         /// <summary>
         /// Callback invoked when a <see cref="ControlType.THROTTLE"/> directive is received.
         /// </summary>
-        public required System.Action<Directive, System.TimeSpan> OnThrottle { get; init; }
+        public required Action<Directive, TimeSpan> OnThrottle { get; init; }
 
         /// <summary>
         /// Callback invoked when a <see cref="ControlType.REDIRECT"/> directive is received.
         /// Returns <c>true</c> if the redirect was fully handled (skips default reconnect).
         /// </summary>
-        public required System.Func<Directive, System.Threading.CancellationToken,
-            System.Threading.Tasks.Task<bool>> OnRedirectAsync
+        public required Func<Directive, CancellationToken,
+            Task<bool>> OnRedirectAsync
         { get; init; }
     }
 
@@ -70,7 +74,7 @@ public static class DirectiveClientExtensions
         public long ThrottleUntilMonoTicks;
     }
 
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<IClientConnection, ClientState> _states = [];
+    private static readonly ConditionalWeakTable<IClientConnection, ClientState> _states = [];
 
     /// <summary>
     /// Attempts to handle a <see cref="Directive"/> packet and apply the relevant behavior.
@@ -84,21 +88,21 @@ public static class DirectiveClientExtensions
     /// <c>true</c> if <paramref name="packet"/> was a <see cref="Directive"/> and was handled;
     /// otherwise <c>false</c>.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="client"/> or <paramref name="packet"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="System.OperationCanceledException">
+    /// <exception cref="OperationCanceledException">
     /// Thrown if <paramref name="ct"/> is canceled during redirect/reconnect.
     /// </exception>
-    public static async System.Threading.Tasks.Task<bool> TryHandleDirectiveAsync(
+    public static async Task<bool> TryHandleDirectiveAsync(
         this IClientConnection client,
         IPacket packet,
         DirectiveCallbacks? callbacks = null,
         RedirectResolver? resolveRedirect = null,
-        System.Threading.CancellationToken ct = default)
+        CancellationToken ct = default)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(packet);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(packet);
 
         if (packet is not Directive d)
         {
@@ -109,16 +113,16 @@ public static class DirectiveClientExtensions
         {
             case ControlType.THROTTLE:
                 // Arg0 = RetryAfterSteps (100 ms units); clamp to prevent unreasonable delays.
-                long delayMs = System.Math.Min(d.Arg0 * 100L, 3_600_000L); // max 1 hour
+                long delayMs = Math.Min(d.Arg0 * 100L, 3_600_000L); // max 1 hour
 
                 long nowTicks = Clock.MonoTicksNow();
                 // Compute delay in ticks: delayMs * freq / 1000, using long arithmetic to prevent overflow.
                 long delayTicks = delayMs * Clock.TicksPerSecond / 1000L;
 
                 ClientState state = _states.GetOrCreateValue(client);
-                _ = System.Threading.Interlocked.Exchange(ref state.ThrottleUntilMonoTicks, nowTicks + delayTicks);
+                _ = Interlocked.Exchange(ref state.ThrottleUntilMonoTicks, nowTicks + delayTicks);
 
-                callbacks?.OnThrottle?.Invoke(d, System.TimeSpan.FromMilliseconds(delayMs));
+                callbacks?.OnThrottle?.Invoke(d, TimeSpan.FromMilliseconds(delayMs));
                 TcpSessionBase.Logging?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (SEQ={d.SequenceId})");
                 return true;
 
@@ -199,23 +203,23 @@ public static class DirectiveClientExtensions
     /// <param name="client">The reliable client.</param>
     /// <param name="remaining">
     /// When this method returns <c>true</c>, contains the remaining throttle duration;
-    /// otherwise <see cref="System.TimeSpan.Zero"/>.
+    /// otherwise <see cref="TimeSpan.Zero"/>.
     /// </param>
     /// <returns><c>true</c> if a throttle window is active; otherwise <c>false</c>.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static bool IsThrottled(this IClientConnection client, out System.TimeSpan remaining)
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static bool IsThrottled(this IClientConnection client, out TimeSpan remaining)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        remaining = System.TimeSpan.Zero;
+        ArgumentNullException.ThrowIfNull(client);
+        remaining = TimeSpan.Zero;
 
         if (!_states.TryGetValue(client, out ClientState? s))
         {
             return false;
         }
 
-        long until = System.Threading.Volatile.Read(ref s.ThrottleUntilMonoTicks);
+        long until = Volatile.Read(ref s.ThrottleUntilMonoTicks);
         if (until == 0)
         {
             return false;
@@ -227,7 +231,7 @@ public static class DirectiveClientExtensions
             return false;
         }
 
-        remaining = System.TimeSpan.FromSeconds((double)left / Clock.TicksPerSecond);
+        remaining = TimeSpan.FromSeconds((double)left / Clock.TicksPerSecond);
         return true;
     }
 
@@ -238,24 +242,24 @@ public static class DirectiveClientExtensions
     /// <param name="packet">The packet to send.</param>
     /// <param name="ct">A token to cancel the wait or send operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="client"/> or <paramref name="packet"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="System.OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static async System.Threading.Tasks.Task SendWithThrottleAsync(
+    /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static async Task SendWithThrottleAsync(
         this IClientConnection client,
         IPacket packet,
-        System.Threading.CancellationToken ct = default)
+        CancellationToken ct = default)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
-        System.ArgumentNullException.ThrowIfNull(packet);
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(packet);
 
-        if (client.IsThrottled(out System.TimeSpan wait) && wait > System.TimeSpan.Zero)
+        if (client.IsThrottled(out TimeSpan wait) && wait > TimeSpan.Zero)
         {
             TcpSessionBase.Logging?.Debug($"SendWithThrottle: waiting {(int)wait.TotalMilliseconds} ms");
-            await System.Threading.Tasks.Task.Delay(wait, ct).ConfigureAwait(false);
+            await Task.Delay(wait, ct).ConfigureAwait(false);
         }
 
         _ = await client.SendAsync(packet, ct).ConfigureAwait(false);
@@ -265,16 +269,16 @@ public static class DirectiveClientExtensions
     /// Clears any active throttle state for the specified client.
     /// </summary>
     /// <param name="client">The reliable client.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     public static void ClearThrottle(this IClientConnection client)
     {
-        System.ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(client);
 
         if (_states.TryGetValue(client, out ClientState? s))
         {
-            _ = System.Threading.Interlocked.Exchange(ref s.ThrottleUntilMonoTicks, 0L);
+            _ = Interlocked.Exchange(ref s.ThrottleUntilMonoTicks, 0L);
         }
     }
 }

@@ -1,8 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -27,9 +31,9 @@ namespace Nalix.SDK.Transport;
 /// This class extends <see cref="TcpSessionBase"/> and delegates
 /// framing, sending, and receiving logic to internal helpers.
 /// </remarks>
-[System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicMethods |
-    System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+[DynamicallyAccessedMembers(
+    DynamicallyAccessedMemberTypes.NonPublicMethods |
+    DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 public sealed class TcpSession : TcpSessionBase
 {
     #region Constants
@@ -120,7 +124,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpSession"/> class.
     /// </summary>
-    /// <exception cref="System.InvalidOperationException">
+    /// <exception cref="InvalidOperationException">
     /// Thrown when required configuration or dependencies cannot be loaded.
     /// </exception>
     public TcpSession()
@@ -128,22 +132,22 @@ public sealed class TcpSession : TcpSessionBase
         try
         {
             Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-                ?? throw new System.InvalidOperationException("IPacketRegistry instance not found.");
+                ?? throw new InvalidOperationException("IPacketRegistry instance not found.");
 
             Options = ConfigurationManager.Instance.Get<TransportOptions>();
             Options.Validate();
             Logging?.Info($"[SDK.{GetType().Name}] TransportOptions loaded and validated");
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Logging?.Error($"[SDK.{GetType().Name}] Failed to load TransportOptions: {ex.Message}", ex);
-            throw new System.InvalidOperationException("Failed to load TransportOptions", ex);
+            throw new InvalidOperationException("Failed to load TransportOptions", ex);
         }
 
         if (Catalog is null)
         {
             Logging?.Error($"[SDK.{GetType().Name}] Missing IPacketRegistry");
-            throw new System.InvalidOperationException("Missing IPacketRegistry");
+            throw new InvalidOperationException("Missing IPacketRegistry");
         }
     }
 
@@ -156,7 +160,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <param name="registry">
     /// The packet registry responsible for managing and resolving packet handlers.
     /// </param>
-    /// <exception cref="System.ArgumentNullException">
+    /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.
     /// </exception>
     public TcpSession(TransportOptions options, IPacketRegistry registry)
@@ -164,8 +168,8 @@ public sealed class TcpSession : TcpSessionBase
         Options = options;
         Catalog = registry;
 
-        System.ArgumentNullException.ThrowIfNull(Options);
-        System.ArgumentNullException.ThrowIfNull(Catalog);
+        ArgumentNullException.ThrowIfNull(Options);
+        ArgumentNullException.ThrowIfNull(Catalog);
     }
 
     #endregion Constructors
@@ -179,22 +183,22 @@ public sealed class TcpSession : TcpSessionBase
     /// <param name="port">Target port number.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="System.ArgumentException">Thrown when host is invalid.</exception>
-    /// <exception cref="System.Net.Sockets.SocketException">Thrown when connection fails.</exception>
-    public override async System.Threading.Tasks.Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
+    /// <exception cref="ArgumentException">Thrown when host is invalid.</exception>
+    /// <exception cref="SocketException">Thrown when connection fails.</exception>
+    public override async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
     {
-        System.ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
 
         string? effectiveHost = string.IsNullOrWhiteSpace(host) ? Options.Address : host;
         ushort effectivePort = port ?? Options.Port;
 
         if (string.IsNullOrWhiteSpace(effectiveHost))
         {
-            throw new System.ArgumentException("Host required");
+            throw new ArgumentException("Host required");
         }
 
         if (IsConnected &&
-            string.Equals(_host, effectiveHost, System.StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(_host, effectiveHost, StringComparison.OrdinalIgnoreCase) &&
             _port == effectivePort)
         {
             Logging?.Debug($"[SDK.{GetType().Name}] Already connected to {effectiveHost}:{effectivePort}.");
@@ -224,13 +228,13 @@ public sealed class TcpSession : TcpSessionBase
             connectCts.CancelAfter(Options.ConnectTimeoutMillis);
         }
 
-        System.Exception? lastEx = null;
+        Exception? lastEx = null;
 
         IPAddress[] addrs = await Dns.GetHostAddressesAsync(effectiveHost, connectCts.Token);
 
         foreach (IPAddress addr in addrs)
         {
-            System.Net.Sockets.Socket s = new(addr.AddressFamily, System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+            Socket s = new(addr.AddressFamily, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
 
             try
             {
@@ -270,7 +274,7 @@ public sealed class TcpSession : TcpSessionBase
 
                 return;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 lastEx = ex;
                 Logging?.Warn($"[SDK.{GetType().Name}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
@@ -280,7 +284,7 @@ public sealed class TcpSession : TcpSessionBase
 
         SetState(TcpSessionState.Disconnected);
         Logging?.Error($"[SDK.{GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx!);
-        throw lastEx ?? new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.HostNotFound);
+        throw lastEx ?? new SocketException((int)SocketError.HostNotFound);
     }
 
     #endregion APIs
@@ -323,10 +327,10 @@ public sealed class TcpSession : TcpSessionBase
                 options: new WorkerOptions { CancellationToken = loopToken }
             );
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Logging?.Warn($"[SDK.{GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run", ex);
-            _ = System.Threading.Tasks.Task.Run(() => i_receiver.ReceiveLoopAsync(loopToken), loopToken);
+            _ = Task.Run(() => i_receiver.ReceiveLoopAsync(loopToken), loopToken);
         }
 
         // Start monitor (rate sampler + heartbeat) after receive worker is up.
@@ -350,7 +354,7 @@ public sealed class TcpSession : TcpSessionBase
     }
 
     /// <inheritdoc/>
-    protected override void HandleSendError(System.Exception ex)
+    protected override void HandleSendError(Exception ex)
     {
         Logging?.Warn($"[SDK.{GetType().Name}] Send error: {ex.Message}", ex);
         RaiseError(ex);
@@ -358,14 +362,14 @@ public sealed class TcpSession : TcpSessionBase
     }
 
     /// <inheritdoc/>
-    protected override void HandleReceiveError(System.Exception ex)
+    protected override void HandleReceiveError(Exception ex)
     {
         Logging?.Warn($"[SDK.{GetType().Name}] Receive error: {ex.Message}", ex);
         RaiseError(ex);
         TriggerReconnect(ex);
     }
 
-    private void TriggerReconnect(System.Exception ex)
+    private void TriggerReconnect(Exception ex)
     {
         if (Interlocked.CompareExchange(ref _reconnecting, 1, 0) == 0)
         {
@@ -406,7 +410,7 @@ public sealed class TcpSession : TcpSessionBase
             _monitor?.Stop();
             _monitor = null;
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             Logging?.Warn($"[SDK.{GetType().Name}] Exception during TearDownConnection: {ex.Message}", ex);
         }
@@ -414,7 +418,7 @@ public sealed class TcpSession : TcpSessionBase
         if (wasConnected)
         {
             Logging?.Info($"[SDK.{GetType().Name}] Disconnected");
-            RaiseDisconnected(new System.Exception("Disconnected"));
+            RaiseDisconnected(new Exception("Disconnected"));
         }
     }
 
@@ -422,7 +426,7 @@ public sealed class TcpSession : TcpSessionBase
 
     #region Private 
 
-    private async System.Threading.Tasks.Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(System.Exception cause)
+    private async Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(Exception cause)
     {
         Logging?.Debug($"[SDK.{GetType().Name}] ReconnectAsync triggered after: {cause.Message}");
         TearDownConnection();
@@ -442,8 +446,8 @@ public sealed class TcpSession : TcpSessionBase
         SetState(TcpSessionState.Reconnecting);
 
         int attempt = 0;
-        long max = System.Math.Max(1, Options.ReconnectMaxDelayMillis);
-        long delay = System.Math.Max(1, Options.ReconnectBaseDelayMillis);
+        long max = Math.Max(1, Options.ReconnectMaxDelayMillis);
+        long delay = Math.Max(1, Options.ReconnectBaseDelayMillis);
 
         // Use a dedicated CTS so Dispose() can cancel the delay immediately.
         using CancellationTokenSource reconnectCts = new();
@@ -457,11 +461,11 @@ public sealed class TcpSession : TcpSessionBase
 
             try
             {
-                await System.Threading.Tasks.Task.Delay(
-                    (int)System.Math.Min(delay + jitter, int.MaxValue),
+                await Task.Delay(
+                    (int)Math.Min(delay + jitter, int.MaxValue),
                     reconnectCts.Token).ConfigureAwait(false);
             }
-            catch (System.OperationCanceledException)
+            catch (OperationCanceledException)
             {
                 break; // Disposed during delay — exit immediately.
             }
@@ -473,14 +477,14 @@ public sealed class TcpSession : TcpSessionBase
                 RaiseReconnected(attempt);
                 return;
             }
-            catch (System.OperationCanceledException)
+            catch (OperationCanceledException)
             {
                 break;
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Logging?.Warn($"[SDK.{GetType().Name}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
-                delay = System.Math.Min(max, delay * 2);
+                delay = Math.Min(max, delay * 2);
             }
         }
 
@@ -544,7 +548,7 @@ public sealed class TcpSession : TcpSessionBase
 
         private static IWorkerHandle? ScheduleOrFallback(
             TaskManager taskManager, string name,
-            System.Func<IWorkerContext, CancellationToken, System.Threading.Tasks.ValueTask> work, CancellationToken token)
+            Func<IWorkerContext, CancellationToken, ValueTask> work, CancellationToken token)
         {
             try
             {
@@ -554,10 +558,10 @@ public sealed class TcpSession : TcpSessionBase
                     work: work,
                     options: new WorkerOptions { CancellationToken = token });
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Logging?.Warn($"[SDK.SessionMonitor] Failed to schedule '{name}' via TaskManager, falling back to Task.Run: {ex.Message}");
-                _ = System.Threading.Tasks.Task.Run(() => work(null!, token), token);
+                _ = Task.Run(() => work(null!, token), token);
                 return null;
             }
         }
@@ -580,23 +584,23 @@ public sealed class TcpSession : TcpSessionBase
         /// Samples byte counters at each interval and updates the last BPS readings.
         /// </summary>
         /// <param name="ct"></param>
-        private async System.Threading.Tasks.ValueTask RateSamplerLoopAsync(CancellationToken ct)
+        private async ValueTask RateSamplerLoopAsync(CancellationToken ct)
         {
             // Use half the keep-alive interval, minimum 1 s, as sample cadence.
-            int intervalMs = System.Math.Max(1_000, _session.Options.KeepAliveIntervalMillis / 2);
+            int intervalMs = Math.Max(1_000, _session.Options.KeepAliveIntervalMillis / 2);
 
             while (!ct.IsCancellationRequested)
             {
                 try
                 {
-                    await System.Threading.Tasks.Task.Delay(intervalMs, ct).ConfigureAwait(false);
+                    await Task.Delay(intervalMs, ct).ConfigureAwait(false);
                     SampleOnce();
                 }
-                catch (System.OperationCanceledException)
+                catch (OperationCanceledException)
                 {
                     break;
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Logging?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(RateSamplerLoopAsync)}] sampler-error: {ex.Message}");
                 }
@@ -630,7 +634,7 @@ public sealed class TcpSession : TcpSessionBase
         /// Sends a PING control frame at the configured keep-alive interval until cancellation.
         /// </summary>
         /// <param name="ct"></param>
-        private async System.Threading.Tasks.ValueTask HeartbeatLoopAsync(CancellationToken ct)
+        private async ValueTask HeartbeatLoopAsync(CancellationToken ct)
         {
             int intervalMs = _session.Options.KeepAliveIntervalMillis;
 
@@ -645,7 +649,7 @@ public sealed class TcpSession : TcpSessionBase
             {
                 try
                 {
-                    await System.Threading.Tasks.Task.Delay(intervalMs, ct).ConfigureAwait(false);
+                    await Task.Delay(intervalMs, ct).ConfigureAwait(false);
 
                     await _session.SendControlAsync(
                         opCode: 0,
@@ -660,11 +664,11 @@ public sealed class TcpSession : TcpSessionBase
                         ct: ct
                     ).ConfigureAwait(false);
                 }
-                catch (System.OperationCanceledException)
+                catch (OperationCanceledException)
                 {
                     break;
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     Logging?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] heartbeat-error: {ex.Message}");
                     _ = _session.HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
