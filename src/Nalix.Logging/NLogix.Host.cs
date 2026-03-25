@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging;
@@ -21,7 +22,7 @@ public sealed partial class NLogix
         /// The lazy-loaded singleton instance of the <see cref="NLogix"/> logger.
         /// The logger is configured during initialization with default targets.
         /// </summary>
-        private static readonly System.Lazy<NLogix> _instance = new(static () =>
+        private static readonly Lazy<NLogix> _instance = new(static () =>
             new NLogix(cfg =>
             {
                 // Configure default logging outputs

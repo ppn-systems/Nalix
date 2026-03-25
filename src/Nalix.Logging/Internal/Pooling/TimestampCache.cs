@@ -1,14 +1,20 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+
 namespace Nalix.Logging.Internal.Pooling;
 
 /// <summary>
 /// High-performance timestamp cache that reuses formatted timestamps within the same millisecond.
 /// Significantly reduces string allocation overhead for high-frequency logging scenarios.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[DebuggerNonUserCode]
+[ExcludeFromCodeCoverage]
 internal static class TimestampCache
 {
     #region Fields
@@ -16,13 +22,13 @@ internal static class TimestampCache
     /// <summary>
     /// Thread-local cache to avoid synchronization overhead
     /// </summary>
-    [System.ThreadStatic]
+    [ThreadStatic]
     private static long t_lastTicks;
 
-    [System.ThreadStatic]
+    [ThreadStatic]
     private static string? t_cachedFormat;
 
-    [System.ThreadStatic]
+    [ThreadStatic]
     private static string? t_cachedTimestamp;
 
     #endregion Fields
@@ -35,12 +41,12 @@ internal static class TimestampCache
     /// <param name="timestamp">The DateTime to format.</param>
     /// <param name="format">The format string to use.</param>
     /// <returns>A formatted timestamp string.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static string GetFormattedTimestamp(System.DateTime timestamp, string format)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static string GetFormattedTimestamp(DateTime timestamp, string format)
     {
         // Truncate to millisecond precision for caching
-        long currentTicks = timestamp.Ticks / System.TimeSpan.TicksPerMillisecond;
+        long currentTicks = timestamp.Ticks / TimeSpan.TicksPerMillisecond;
 
         // Fast path: same millisecond and format
         if (currentTicks == t_lastTicks && format == t_cachedFormat && t_cachedTimestamp != null)
@@ -49,7 +55,7 @@ internal static class TimestampCache
         }
 
         // Format the timestamp
-        string formatted = timestamp.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
+        string formatted = timestamp.ToString(format, CultureInfo.InvariantCulture);
 
         // Update cache
         t_cachedFormat = format;

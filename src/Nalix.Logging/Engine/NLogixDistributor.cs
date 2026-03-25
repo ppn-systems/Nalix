@@ -1,6 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 
 namespace Nalix.Logging.Engine;
@@ -8,9 +16,9 @@ namespace Nalix.Logging.Engine;
 /// <summary>
 /// High-performance publisher that dispatches log entries to registered logging targets.
 /// </summary>
-[System.Diagnostics.DebuggerDisplay("{ToString(),nq}")]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[DebuggerDisplay("{ToString(),nq}")]
+[ExcludeFromCodeCoverage]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class NLogixDistributor : ILogDistributor
 {
     #region Fields
@@ -43,19 +51,19 @@ public sealed class NLogixDistributor : ILogDistributor
     /// Gets the ProtocolType of errors that occurred during publish operations.
     /// </summary>
     public long TotalPublishErrors
-        => System.Threading.Interlocked.Read(ref _totalPublishErrors);
+        => Interlocked.Read(ref _totalPublishErrors);
 
     /// <summary>
     /// Gets the total ProtocolType of log entries that have been published.
     /// </summary>
     public long TotalEntriesPublished
-        => System.Threading.Interlocked.Read(ref _totalEntriesPublished);
+        => Interlocked.Read(ref _totalEntriesPublished);
 
     /// <summary>
     /// Gets the total ProtocolType of target publish operations performed.
     /// </summary>
     public long TotalTargetInvocations
-        => System.Threading.Interlocked.Read(ref _totalTargetInvocations);
+        => Interlocked.Read(ref _totalTargetInvocations);
 
     #endregion Properties
 
@@ -65,20 +73,20 @@ public sealed class NLogixDistributor : ILogDistributor
     /// Publishes a log entry to all registered logging targets.
     /// </summary>
     /// <param name="entry">The log entry to be published.</param>
-    /// <exception cref="System.ArgumentNullException">Thrown if entry is null.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    /// <exception cref="ArgumentNullException">Thrown if entry is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public void Publish(LogEntry? entry)
     {
         if (entry == null)
         {
-            throw new System.ArgumentNullException(nameof(entry));
+            throw new ArgumentNullException(nameof(entry));
         }
 
         // Quick check for disposed state
-        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
+        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
         ILoggerTarget[] targets = _targetsCache ??= [.. _targets.Keys];
 
@@ -88,18 +96,18 @@ public sealed class NLogixDistributor : ILogDistributor
         }
 
         // Increment the published entries counter
-        _ = System.Threading.Interlocked.Increment(ref _totalEntriesPublished);
+        _ = Interlocked.Increment(ref _totalEntriesPublished);
 
         for (int i = 0; i < targets.Length; i++)
         {
             try
             {
                 targets[i].Publish(entry.Value);
-                _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
+                _ = Interlocked.Increment(ref _totalTargetInvocations);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
+                _ = Interlocked.Increment(ref _totalPublishErrors);
                 HandleTargetError(targets[i], ex, entry.Value);
             }
         }
@@ -110,23 +118,23 @@ public sealed class NLogixDistributor : ILogDistributor
     /// </summary>
     /// <param name="entry">The log entry to be published.</param>
     /// <returns>A task representing the asynchronous publish operation.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if entry is null.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public System.Threading.Tasks.ValueTask PublishAsync(LogEntry? entry)
+    /// <exception cref="ArgumentNullException">Thrown if entry is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    public ValueTask PublishAsync(LogEntry? entry)
     {
         if (entry == null)
         {
-            throw new System.ArgumentNullException(nameof(entry));
+            throw new ArgumentNullException(nameof(entry));
         }
 
         // Quick check for disposed state
-        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
+        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
         ILoggerTarget[] targets = _targetsCache ??= [.. _targets.Keys];
 
         if (targets.Length == 0)
         {
-            return System.Threading.Tasks.ValueTask.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
         for (int i = 0; i < targets.Length; i++)
@@ -134,16 +142,16 @@ public sealed class NLogixDistributor : ILogDistributor
             try
             {
                 targets[i].Publish(entry.Value);
-                _ = System.Threading.Interlocked.Increment(ref _totalTargetInvocations);
+                _ = Interlocked.Increment(ref _totalTargetInvocations);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _ = System.Threading.Interlocked.Increment(ref _totalPublishErrors);
+                _ = Interlocked.Increment(ref _totalPublishErrors);
                 HandleTargetError(targets[i], ex, entry.Value);
             }
         }
 
-        return System.Threading.Tasks.ValueTask.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
     /// <summary>
@@ -151,15 +159,15 @@ public sealed class NLogixDistributor : ILogDistributor
     /// </summary>
     /// <param name="loggerHandler">The logging target to add.</param>
     /// <returns>The current instance of <see cref="ILogDistributor"/>, allowing method chaining.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if target is null.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public ILogDistributor RegisterTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget loggerHandler)
+    /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public ILogDistributor RegisterTarget([NotNull] ILoggerTarget loggerHandler)
     {
-        System.ArgumentNullException.ThrowIfNull(loggerHandler);
-        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
+        ArgumentNullException.ThrowIfNull(loggerHandler);
+        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
         _ = _targets.TryAdd(loggerHandler, DummyValue);
         _targetsCache = null;  // invalidate
@@ -171,15 +179,15 @@ public sealed class NLogixDistributor : ILogDistributor
     /// </summary>
     /// <param name="loggerHandler">The logging target to remove.</param>
     /// <returns><c>true</c> if the target was successfully removed; otherwise, <c>false</c>.</returns>
-    /// <exception cref="System.ArgumentNullException">Thrown if target is null.</exception>
-    /// <exception cref="System.ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public bool UnregisterTarget([System.Diagnostics.CodeAnalysis.NotNull] ILoggerTarget loggerHandler)
+    /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public bool UnregisterTarget([NotNull] ILoggerTarget loggerHandler)
     {
-        System.ArgumentNullException.ThrowIfNull(loggerHandler);
-        System.ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
+        ArgumentNullException.ThrowIfNull(loggerHandler);
+        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
         return _targets.TryRemove(loggerHandler, out _);
     }
@@ -190,16 +198,16 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <param name="target">The target that caused the error.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="entry">The log entry being published.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void HandleTargetError(ILoggerTarget target, System.Exception exception, LogEntry entry)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    private static void HandleTargetError(ILoggerTarget target, Exception exception, LogEntry entry)
     {
         try
         {
             // Log to debug output at minimum
-            System.Diagnostics.Debug.WriteLine(
-                $"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR publishing to " +
+            Debug.WriteLine(
+                $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR publishing to " +
                 $"{target.GetType().Name}: {exception.Message}");
 
             // Check if target implements error handling
@@ -217,13 +225,13 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <summary>
     /// Disposes of the logging publisher and its targets if applicable.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
         // Thread-safe disposal check
-        if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
         {
             return;
         }
@@ -231,27 +239,27 @@ public sealed class NLogixDistributor : ILogDistributor
         try
         {
             // Dispose each target if it implements IDisposable
-            foreach (System.IDisposable target in
-                System.Linq.Enumerable.OfType<System.IDisposable>(_targets.Keys))
+            foreach (IDisposable target in
+                Enumerable.OfType<IDisposable>(_targets.Keys))
             {
                 try
                 {
                     target.Dispose();
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     // Log disposal errors to debug output
-                    System.Diagnostics.Debug.WriteLine(
+                    Debug.WriteLine(
                         $"ERROR disposing logging target: {ex.Message}");
                 }
             }
 
             _targets.Clear();
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
             // Log final disposal errors to debug output
-            System.Diagnostics.Debug.WriteLine(
+            Debug.WriteLine(
                 $"ERROR during NLogixDistributor disposal: {ex.Message}");
         }
     }
@@ -261,13 +269,13 @@ public sealed class NLogixDistributor : ILogDistributor
     /// </summary>
     /// <returns>A string containing diagnostic information.</returns>
     public override string ToString()
-        => $"[NLogixDistributor Stats - {System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + System.Environment.NewLine +
-           $"- USER: {System.Environment.UserName}" + System.Environment.NewLine +
-           $"- Active Targets: {_targets.Count}" + System.Environment.NewLine +
-           $"- Entries Published: {TotalEntriesPublished:N0}" + System.Environment.NewLine +
-           $"- Target Operations: {TotalTargetInvocations:N0}" + System.Environment.NewLine +
-           $"- Errors: {TotalPublishErrors:N0}" + System.Environment.NewLine +
-           $"- Disposed: {_isDisposed != 0}" + System.Environment.NewLine;
+        => $"[NLogixDistributor Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
+           $"- USER: {Environment.UserName}" + Environment.NewLine +
+           $"- Active Targets: {_targets.Count}" + Environment.NewLine +
+           $"- Entries Published: {TotalEntriesPublished:N0}" + Environment.NewLine +
+           $"- Target Operations: {TotalTargetInvocations:N0}" + Environment.NewLine +
+           $"- Errors: {TotalPublishErrors:N0}" + Environment.NewLine +
+           $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;
 
     #endregion Public Methods
 }

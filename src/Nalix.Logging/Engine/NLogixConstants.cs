@@ -1,12 +1,14 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel;
+
 namespace Nalix.Logging.Engine;
 
 /// <summary>
 /// Contains constant values used for logging.
 /// </summary>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class NLogixConstants
 {
     /// <summary>

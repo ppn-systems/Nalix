@@ -1,6 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+
 namespace Nalix.Logging.Exceptions;
 
 /// <summary>
@@ -12,25 +17,25 @@ namespace Nalix.Logging.Exceptions;
 /// </remarks>
 /// <param name="ex">The exception that caused the error.</param>
 /// <param name="filePath">The file path where the error occurred.</param>
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("{Exception.Message,nq} ({OriginalFilePath})")]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public sealed class FileError(System.Exception ex, string filePath)
+[ExcludeFromCodeCoverage]
+[DebuggerDisplay("{Exception.Message,nq} ({OriginalFilePath})")]
+[EditorBrowsable(EditorBrowsableState.Never)]
+public sealed class FileError(Exception ex, string filePath)
 {
     /// <summary>
     /// Gets or sets the new log file name to use when recovering from errors.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.NotNull]
+    [NotNull]
     public string NewLogFileName { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets the original log file path where the error occurred.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.NotNull]
+    [NotNull]
     public string OriginalFilePath { get; } = filePath ?? string.Empty;
 
     /// <summary>
     /// Gets the exception that caused the file error.
     /// </summary>
-    public System.Exception Exception { get; } = ex ?? throw new System.ArgumentNullException(nameof(ex));
+    public Exception Exception { get; } = ex ?? throw new ArgumentNullException(nameof(ex));
 }

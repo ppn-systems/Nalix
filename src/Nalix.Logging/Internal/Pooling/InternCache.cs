@@ -1,14 +1,18 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+
 namespace Nalix.Logging.Internal.Pooling;
 
 /// <summary>
 /// String interning cache for frequently used logging strings.
 /// Reduces memory pressure by reusing immutable string instances.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[DebuggerNonUserCode]
+[ExcludeFromCodeCoverage]
 internal static class InternCache
 {
     /// <summary>
@@ -39,5 +43,5 @@ internal static class InternCache
     /// <summary>
     /// Gets the pre-interned newline string.
     /// </summary>
-    public static string NewLine { get; } = System.Environment.NewLine;
+    public static string NewLine { get; } = Environment.NewLine;
 }

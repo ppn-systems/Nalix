@@ -1,6 +1,11 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
@@ -10,10 +15,10 @@ namespace Nalix.Logging.Configuration;
 /// <summary>
 /// Provides configuration options for the logging system with a fluent interface.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("Min={MinLevel}, Utc={UseUtcTimestamp}")]
+[ExcludeFromCodeCoverage]
+[DebuggerDisplay("Min={MinLevel}, Utc={UseUtcTimestamp}")]
 [IniComment("Logging system configuration — controls log level, timestamp format, and entry metadata")]
-public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
+public sealed class NLogixOptions : ConfigurationLoader, IDisposable
 {
     #region Fields
 
@@ -107,8 +112,8 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
     /// </summary>
     public NLogixOptions SetPublisher(ILogDistributor publisher)
     {
-        System.ArgumentNullException.ThrowIfNull(publisher);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ArgumentNullException.ThrowIfNull(publisher);
+        ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
         Publisher = publisher;
         return this;
@@ -117,25 +122,25 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
     /// <summary>
     /// Applies default configuration settings to the logging configuration.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions ConfigureDefaults(System.Func<NLogixOptions, NLogixOptions> configure)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public NLogixOptions ConfigureDefaults(Func<NLogixOptions, NLogixOptions> configure)
     {
-        System.ArgumentNullException.ThrowIfNull(configure);
+        ArgumentNullException.ThrowIfNull(configure);
         return configure(this);
     }
 
     /// <summary>
     /// Sets the configuration options for file logging.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions ConfigureFileOptions(System.Action<FileLogOptions> configure)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    public NLogixOptions ConfigureFileOptions(Action<FileLogOptions> configure)
     {
-        System.ArgumentNullException.ThrowIfNull(configure);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ArgumentNullException.ThrowIfNull(configure);
+        ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
         configure(FileOptions);
         return this;
@@ -144,13 +149,13 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
     /// <summary>
     /// Adds a logging target to receive log entries.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions RegisterTarget(ILoggerTarget target)
     {
-        System.ArgumentNullException.ThrowIfNull(target);
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ArgumentNullException.ThrowIfNull(target);
+        ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
         _ = Publisher?.RegisterTarget(target);
         return this;
@@ -159,12 +164,12 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
     /// <summary>
     /// Sets the minimum logging level for filtering log entries.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions SetMinimumLevel(LogLevel level)
     {
-        System.ObjectDisposedException.ThrowIf(System.Threading.Interlocked
+        ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
         MinLevel = level;
         return this;
@@ -173,14 +178,14 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
     /// <summary>
     /// Releases resources used by this instance.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1063:Implement IDisposable Correctly", Justification = "Pattern is intentional")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly", Justification = "Pattern is intentional")]
+    [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
-        if (System.Threading.Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
@@ -189,12 +194,12 @@ public sealed class NLogixOptions : ConfigurationLoader, System.IDisposable
         {
             Publisher?.Dispose();
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ERROR disposing NLogixOptions: {ex.Message}");
+            Debug.WriteLine($"ERROR disposing NLogixOptions: {ex.Message}");
         }
 
-        System.GC.SuppressFinalize(this);
+        GC.SuppressFinalize(this);
     }
 
     #endregion APIs

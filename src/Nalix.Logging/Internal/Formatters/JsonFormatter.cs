@@ -1,9 +1,14 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Text;
+
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Logging.Benchmarks")]
 #endif
 
 namespace Nalix.Logging.Internal.Formatters;
@@ -24,7 +29,7 @@ internal static class JsonFormatter
             return string.Empty;
         }
 
-        System.Text.StringBuilder sb = new(value.Length + 16);
+        StringBuilder sb = new(value.Length + 16);
         foreach (char c in value)
         {
             switch (c)
@@ -40,7 +45,7 @@ internal static class JsonFormatter
                     if (c is < (char)32 or (>= (char)0x7f and <= (char)0x9f))
                     {
                         _ = sb.Append("\\u");
-                        _ = sb.Append(((int)c).ToString("x4", System.Globalization.CultureInfo.InvariantCulture));
+                        _ = sb.Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
                     }
                     else
                     {
@@ -60,5 +65,5 @@ internal static class JsonFormatter
     /// <summary>
     /// Formats a DateTime as ISO 8601 (round-trip 'o' format).
     /// </summary>
-    public static string FormatDateTime(System.DateTime value) => value.ToString("o", System.Globalization.CultureInfo.InvariantCulture);
+    public static string FormatDateTime(DateTime value) => value.ToString("o", CultureInfo.InvariantCulture);
 }

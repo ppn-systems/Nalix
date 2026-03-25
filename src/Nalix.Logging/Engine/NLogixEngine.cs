@@ -2,7 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration;
 using Nalix.Logging.Configuration;
@@ -13,9 +20,9 @@ namespace Nalix.Logging.Engine;
 /// <summary>
 /// Abstract class that provides a high-performance logging engine to process log entries.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-[System.Diagnostics.DebuggerDisplay("{GetType().Name,nq}")]
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+[ExcludeFromCodeCoverage]
+[DebuggerDisplay("{GetType().Name,nq}")]
+[EditorBrowsable(EditorBrowsableState.Never)]
 public abstract class NLogixEngine : IDisposable
 {
     #region Fields
@@ -79,15 +86,15 @@ public abstract class NLogixEngine : IDisposable
     /// An action that allows configuring the logging options.
     /// This action is used to set up logging options such as the minimum logging level and file options.
     /// </param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     protected void ConfigureOptions(Action<NLogixOptions> configureOptions)
     {
         configureOptions?.Invoke(_logOptions);
 
         LogLevel newLevel = _logOptions.MinLevel;
-        _ = System.Threading.Interlocked.Exchange(ref System.Runtime.CompilerServices.Unsafe
+        _ = Interlocked.Exchange(ref Unsafe
                                     .As<LogLevel, int>(ref _minLevel), (int)newLevel);
     }
 
@@ -96,9 +103,9 @@ public abstract class NLogixEngine : IDisposable
     /// </summary>
     /// <param name="level">The log level to check.</param>
     /// <returns><c>true</c> if the log level is enabled for logging.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     public bool IsLevelEnabled(LogLevel level) => level >= _minLevel;
 
     /// <summary>
@@ -108,18 +115,18 @@ public abstract class NLogixEngine : IDisposable
     /// <param name="eventId">The event identifier associated with the log entry.</param>
     /// <param name="message">The log message.</param>
     /// <param name="error">Optional exception information.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
+    [SuppressMessage(
         "Reliability", "CA2012:Use ValueTasks correctly", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+    [SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     protected void Publish(
-        [System.Diagnostics.CodeAnalysis.NotNull] LogLevel level,
-        [System.Diagnostics.CodeAnalysis.NotNull] EventId eventId,
-        [System.Diagnostics.CodeAnalysis.NotNull] string message,
-        [System.Diagnostics.CodeAnalysis.MaybeNull] Exception? error = null)
+        [NotNull] LogLevel level,
+        [NotNull] EventId eventId,
+        [NotNull] string message,
+        [MaybeNull] Exception? error = null)
     {
         if (_isDisposed != 0 || !IsLevelEnabled(level))
         {
@@ -137,9 +144,9 @@ public abstract class NLogixEngine : IDisposable
     /// <param name="eventId">The event identifier associated with the log entry.</param>
     /// <param name="format">The message format string with placeholders.</param>
     /// <param name="args">The argument values for the format string.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining |
+        MethodImplOptions.AggressiveOptimization)]
     protected void Publish(LogLevel level, EventId eventId, string format, params object[] args)
     {
         // Skip expensive string formatting if the log level is disabled
@@ -159,7 +166,7 @@ public abstract class NLogixEngine : IDisposable
     public virtual void Dispose(bool disposing)
     {
         // Thread-safe disposal check using Interlocked
-        if (System.Threading.Interlocked.Exchange(ref _isDisposed, 1) != 0)
+        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
         {
             return;
         }
@@ -187,9 +194,9 @@ public abstract class NLogixEngine : IDisposable
 
     #region Private Methods
 
-    [System.Diagnostics.Contracts.Pure]
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static string FormatMessage(string format, object[]? args)
     {
         if (string.IsNullOrEmpty(format) || args == null || args.Length == 0)
@@ -207,7 +214,7 @@ public abstract class NLogixEngine : IDisposable
             {
                 // Heuristic max length. If not enough, grow on-demand.
                 Span<char> initial = stackalloc char[64];
-                System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.CurrentCulture;
+                CultureInfo provider = CultureInfo.CurrentCulture;
 
                 if (spanFormattable.TryFormat(initial, out int written, innerFormat, provider))
                 {
@@ -238,7 +245,7 @@ public abstract class NLogixEngine : IDisposable
             // IFormattable fallback (boxed types or custom formattables)
             if (arg is IFormattable formattable)
             {
-                return formattable.ToString(innerFormat.ToString(), System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty;
+                return formattable.ToString(innerFormat.ToString(), CultureInfo.CurrentCulture) ?? string.Empty;
             }
 
             // Generic fallback
@@ -247,7 +254,7 @@ public abstract class NLogixEngine : IDisposable
 
         // General path: cached CompositeFormat to avoid reparsing the format string
         CompositeFormat composite = s_formatCache.GetOrAdd(format, static f => CompositeFormat.Parse(f));
-        return string.Format(System.Globalization.CultureInfo.CurrentCulture, composite, args);
+        return string.Format(CultureInfo.CurrentCulture, composite, args);
     }
 
     /// <summary>
@@ -255,8 +262,8 @@ public abstract class NLogixEngine : IDisposable
     /// and extracts the inner format (after ':') if present.
     /// Returns true when pattern matches.
     /// </summary>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
     private static bool TryParseSimplePlaceholder(string format, out ReadOnlySpan<char> innerFormat)
     {
         innerFormat = default;

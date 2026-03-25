@@ -1,14 +1,20 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Text;
+
 namespace Nalix.Logging.Internal.Pooling;
 
 /// <summary>
 /// High-performance StringBuilder pool optimized for logging operations.
 /// Provides thread-safe pooling with minimal contention and efficient capacity management.
 /// </summary>
-[System.Diagnostics.DebuggerNonUserCode]
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[DebuggerNonUserCode]
+[ExcludeFromCodeCoverage]
 internal static class StringBuilderPool
 {
     #region Constants
@@ -21,10 +27,10 @@ internal static class StringBuilderPool
 
     #region Fields
 
-    [System.ThreadStatic]
-    private static System.Text.StringBuilder? t_cachedInstance;
+    [ThreadStatic]
+    private static StringBuilder? t_cachedInstance;
 
-    private static readonly System.Collections.Concurrent.ConcurrentBag<System.Text.StringBuilder> s_pool = [];
+    private static readonly System.Collections.Concurrent.ConcurrentBag<StringBuilder> s_pool = [];
 
     #endregion Fields
 
@@ -35,12 +41,12 @@ internal static class StringBuilderPool
     /// </summary>
     /// <param name="capacity">The initial capacity of the StringBuilder.</param>
     /// <returns>A StringBuilder instance from the pool or a new instance.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static System.Text.StringBuilder Rent(int capacity = DefaultCapacity)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static StringBuilder Rent(int capacity = DefaultCapacity)
     {
         // Fast path: thread-local cache
-        System.Text.StringBuilder? sb = t_cachedInstance;
+        StringBuilder? sb = t_cachedInstance;
         if (sb != null)
         {
             t_cachedInstance = null;
@@ -68,16 +74,16 @@ internal static class StringBuilderPool
         }
 
         // Create new instance
-        return new System.Text.StringBuilder(capacity);
+        return new StringBuilder(capacity);
     }
 
     /// <summary>
     /// Returns a StringBuilder to the pool for reuse.
     /// </summary>
     /// <param name="builder">The StringBuilder to return to the pool.</param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Return(System.Text.StringBuilder? builder)
+    [MethodImpl(
+        MethodImplOptions.AggressiveInlining)]
+    public static void Return(StringBuilder? builder)
     {
         if (builder == null)
         {

@@ -1,6 +1,7 @@
 // Copyright (c) 2025 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Shared;
 using Nalix.Framework.Configuration.Binding;
 
@@ -53,5 +54,5 @@ public sealed class ConsoleLogOptions : ConfigurationLoader
     /// Gets or sets the delay between batch flushes.
     /// </summary>
     [IniComment("Delay between batch flushes (e.g. 00:00:00.0700000 = 70 ms)")]
-    public System.TimeSpan BatchDelay { get; set; } = System.TimeSpan.FromMilliseconds(70);
+    public TimeSpan BatchDelay { get; set; } = TimeSpan.FromMilliseconds(70);
 }
