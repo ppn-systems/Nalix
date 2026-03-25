@@ -20,7 +20,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
 {
     /// <inheritdoc/>
     [SerializeIgnore]
-    public static int Size => PacketConstants.HeaderSize
+    public static int Size { get; } = PacketConstants.HeaderSize
         + sizeof(ProtocolReason)
         + sizeof(ControlType)
         + sizeof(long)

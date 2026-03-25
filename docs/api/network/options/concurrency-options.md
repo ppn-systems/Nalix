@@ -1,13 +1,13 @@
 # Concurrency Options
 
 `ConcurrencyOptions` configures the global `ConcurrencyGate` used by
-`Nalix.Network.Pipeline` to enforce per-opcode packet concurrency, optional FIFO
+`Nalix.Runtime` to enforce per-opcode packet concurrency, optional FIFO
 queuing, idle-entry cleanup, and circuit-breaker behavior.
 
 ## Source Mapping
 
-- `src/Nalix.Network.Pipeline/Options/ConcurrencyOptions.cs`
-- `src/Nalix.Network.Pipeline/Throttling/ConcurrencyGate.cs`
+- `src/Nalix.Runtime/Options/ConcurrencyOptions.cs`
+- `src/Nalix.Runtime/Throttling/ConcurrencyGate.cs`
 - `src/Nalix.Network.Hosting/Bootstrap.cs`
 - `src/Nalix.Common/Networking/Packets/PacketConcurrencyLimitAttribute.cs`
 

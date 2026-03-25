@@ -16,6 +16,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -221,11 +222,12 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        // Industrial-grade reference management: we must retain the lease before
-        // handoff to the asynchronous dispatch channel. If we don't, the caller
-        // (the transport layer) will dispose its reference immediately after this
-        // call returns, potentially returning the buffer to the pool while we
-        // are still processing it.
+        /*
+         * [Asynchronous Handoff & Reference Management]
+         * The transport layer owns the buffer until this call returns. 
+         * To safely process the packet asynchronously in a worker thread, 
+         * we MUST take an additional reference (Retain).
+         */
         packet.Retain();
 
         if (!_dispatch.PushCore(connection, packet, noBlock: true))
@@ -370,6 +372,12 @@ public sealed class PacketDispatchChannel
                 int processed = 0;
 
 #pragma warning disable CA2000
+                /*
+                 * [The Hot Loop: Draining the Channel]
+                 * We drain up to _maxDrainPerWake packets in a single pass.
+                 * Draining is asynchronous but optimized: synchronous completions 
+                 * (common) are essentially free.
+                 */
                 while (processed < _maxDrainPerWake &&
                        _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
                 {
@@ -403,6 +411,12 @@ public sealed class PacketDispatchChannel
 
                 try
                 {
+                    /*
+                     * [Wait Strategy: Coalesced Wake-up]
+                     * If the channel is empty, we enter an asynchronous wait.
+                     * We use a SemaphoreSlim to wake up just enough workers 
+                     * based on the incoming load.
+                     */
                     int spins = 0;
                     while (_dispatch.TotalPackets == 0 && spins < 16)
                     {
@@ -456,14 +470,22 @@ public sealed class PacketDispatchChannel
         // If TryDeserialize fails, the packet is already handled.
         if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
         {
+            Console.WriteLine($"[TEST] Dispatch.ExecutePacketAsync: Deserialize FAILED. Magic={lease.Span.ReadMagicNumberLE()}");
             connection.IncrementErrorCount();
             lease.Dispose();
             return ValueTask.CompletedTask;
         }
 
+        Console.WriteLine($"[TEST] Dispatch.ExecutePacketAsync: Deserialize SUCCESS. OpCode={packet.OpCode}, Magic={packet.MagicNumber}");
+
         try
         {
-            // 2. Execute packet handler
+            /*
+             * [Packet Handler Execution]
+             * 1. Attempt to execute the handler.
+             * 2. If it completes synchronously, we can dispose resources immediately.
+             * 3. If it's asynchronous, we hand off to AwaitPacketHandlerCompletionAsync.
+             */
             ValueTask pending = this.ExecutePacketHandlerAsync(packet, connection, ct);
 
             // 3. Fast-path: handler completed synchronously

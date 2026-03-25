@@ -44,7 +44,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
 {
     /// <inheritdoc/>
     [SerializeIgnore]
-    public static int Size => PacketConstants.HeaderSize
+    public static int Size { get; } = PacketConstants.HeaderSize
         + sizeof(SessionResumeStage)
         + Snowflake.Size
         + sizeof(ProtocolReason)

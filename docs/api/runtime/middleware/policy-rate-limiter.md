@@ -9,11 +9,11 @@ global endpoint limiter instead.
 
 | Source | Responsibility |
 | --- | --- |
-| `src/Nalix.Network.Pipeline/Throttling/PolicyRateLimiter.cs` | Policy quantization, shared limiter lifecycle, diagnostics, cleanup, and disposal. |
-| `src/Nalix.Network.Pipeline/Inbound/RateLimitMiddleware.cs` | Chooses policy limiter vs. global token bucket and sends denial directives. |
+| `src/Nalix.Runtime/Throttling/PolicyRateLimiter.cs` | Policy quantization, shared limiter lifecycle, diagnostics, cleanup, and disposal. |
+| `src/Nalix.Runtime/Middleware/Standard/RateLimitMiddleware.cs` | Chooses policy limiter vs. global token bucket and sends denial directives. |
 | `src/Nalix.Common/Networking/Packets/PacketRateLimitAttribute.cs` | Method-level rate-limit metadata. |
-| `src/Nalix.Network.Pipeline/Throttling/TokenBucketLimiter.cs` | Per-subject token-bucket implementation used by each policy entry. |
-| `src/Nalix.Network.Pipeline/Options/TokenBucketOptions.cs` | Defaults copied into each policy-specific token bucket. |
+| `src/Nalix.Runtime/Throttling/TokenBucketLimiter.cs` | Per-subject token-bucket implementation used by each policy entry. |
+| `src/Nalix.Runtime/Options/TokenBucketOptions.cs` | Defaults copied into each policy-specific token bucket. |
 
 ## Attribute Shape
 

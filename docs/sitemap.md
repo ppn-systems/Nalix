@@ -85,7 +85,6 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Nalix.Network**](./packages/nalix-network.md) — Transport & Listeners.
 - [**Nalix.Runtime**](./packages/nalix-runtime.md) — Dispatch & Middleware.
 - [**Nalix.Network.Hosting**](./packages/nalix-network-hosting.md) — Host Composition.
-- [**Nalix.Network.Pipeline**](./packages/nalix-network-pipeline.md) — Throttling components.
 - [**Nalix.SDK**](./packages/nalix-sdk.md) — Client sessions.
 
 ---

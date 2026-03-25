@@ -20,7 +20,6 @@ The hosted server model provides a fluent builder and managed lifecycle. This is
 
 ```bash
 dotnet add package Nalix.Network.Hosting
-dotnet add package Nalix.Network.Pipeline
 dotnet add package Nalix.Logging
 ```
 
@@ -59,7 +58,7 @@ dotnet add package Nalix.Framework
 
 | Scenario | Packages |
 |---|---|
-| Hosted server | `Nalix.Network.Hosting`, `Nalix.Network.Pipeline`, `Nalix.Logging` |
+| Hosted server | `Nalix.Network.Hosting`, `Nalix.Logging` |
 | Manual server | `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Common`, `Nalix.Logging` |
 | Client | `Nalix.SDK` |
 | Shared contracts | `Nalix.Common`, `Nalix.Framework` |
@@ -121,7 +120,6 @@ graph TD
     Framework --> Common
     SDK["Nalix.SDK"] --> Framework
     SDK --> Common
-    Pipeline["Nalix.Network.Pipeline"] --> Network
     Logging["Nalix.Logging"] --> Common
 ```
 

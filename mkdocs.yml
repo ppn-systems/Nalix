@@ -175,6 +175,10 @@ nav:
           - Production Server Example: guides/deployment/production-example.md
           - Production Checklist: guides/deployment/production-checklist.md
           - Troubleshooting Guide: guides/deployment/troubleshooting.md
+      - Low-Level:
+          - End to end: guides/low-level/end-to-end.md
+          - Session APIs: guides/low-level/low-level-session-apis.md
+          - Zero-allocation: guides/low-level/zero-allocation-hot-path.md
       - Tools:
         - Overview: guides/tools/index.md
         - SDK Tools: guides/tools/sdk-tools.md
@@ -188,7 +192,6 @@ nav:
       - Nalix.Network: packages/nalix-network.md
       - Nalix.Runtime: packages/nalix-runtime.md
       - Nalix.Network.Hosting: packages/nalix-network-hosting.md
-      - Nalix.Network.Pipeline: packages/nalix-network-pipeline.md
       - Nalix.SDK: packages/nalix-sdk.md
   - API:
       - Overview: api/index.md

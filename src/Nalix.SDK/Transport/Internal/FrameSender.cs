@@ -59,7 +59,7 @@ internal sealed class FrameSender : IDisposable
     /// <returns><see langword="true"/> when the frame is sent successfully; otherwise, <see langword="false"/>.</returns>
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
     {
-        using IBufferLease lease = BufferLease.CopyFrom(payload.Span);
+        IBufferLease lease = BufferLease.CopyFrom(payload.Span);
         return await this.SendAsync(lease, encrypt, ct).ConfigureAwait(false);
     }
 
@@ -115,10 +115,7 @@ internal sealed class FrameSender : IDisposable
         }
         finally
         {
-            if (!ReferenceEquals(current, lease))
-            {
-                current.Dispose();
-            }
+            current.Dispose();
         }
     }
 

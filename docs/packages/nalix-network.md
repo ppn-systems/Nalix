@@ -100,7 +100,6 @@ All option types support `Validate()` for startup-time verification.
 
 - [Nalix.Runtime](./nalix-runtime.md) — Dispatch pipeline and middleware
 - [Nalix.Network.Hosting](./nalix-network-hosting.md) — Fluent bootstrap
-- [Nalix.Network.Pipeline](./nalix-network-pipeline.md) — Built-in middleware
 - [Nalix.Common](./nalix-common.md) — Shared contracts and primitives
 
 ## Key API Pages

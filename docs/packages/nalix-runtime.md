@@ -49,13 +49,26 @@ dispatch.Activate();
 
 ### Middleware Pipeline
 
-The runtime supports specialized middleware that executes before high-level handler invocation:
+The runtime supports specialized middleware that executes before high-level handler invocation. `Nalix.Runtime` includes several built-in protection and utility middleware:
 
-| Layer | Interface | Access | Use case |
-| :--- | :--- | :--- | :--- |
-| Packet middleware | `IPacketMiddleware<TPacket>` | `PacketContext<TPacket>` | Permissions, rate limiting, timeouts, auditing |
+| Middleware | Order | Stage | Behavior |
+|---|---:|---|---|
+| `PermissionMiddleware` | `-50` | `Inbound` | Fail-closed: the packet proceeds only when `[PacketPermission]` exists and its required level is met. |
+| `ConcurrencyMiddleware` | `50` | `Inbound` | Enforces `[PacketConcurrencyLimit]` per opcode with optional queuing. |
+| `RateLimitMiddleware` | `50` | `Inbound` | Enforces `[PacketRateLimit]` or falls back to global token-bucket throttling. |
+| `TimeoutMiddleware` | `75` | `Inbound` | Enforces `[PacketTimeout]` on handler execution. |
 
-Middleware is registered during dispatch construction and executes in registration order.
+!!! warning "Permission default is deny"
+    `PermissionMiddleware` intentionally rejects handlers without permission metadata. Do not add it globally unless packet handlers are annotated with the required permission attributes.
+
+### Protection Primitives
+
+The runtime includes advanced throttling and protection primitives used by the middleware:
+
+- **TokenBucketLimiter**: Tracks per-endpoint token state for traffic shaping.
+- **PolicyRateLimiter**: Evaluates handler-specific policy from `[PacketRateLimit]` metadata.
+- **ConcurrencyGate**: Manages per-opcode execution slots and circuit breaking.
+- **DirectiveGuard**: Protects against response directive spamming for failed requests.
 
 ### Handler Compilation
 
@@ -92,6 +105,10 @@ public sealed class AccountHandlers
 }
 ```
 
+### Time Synchronization
+
+`TimeSynchronizer` is an optional service that emits `TimeSynchronized` events at a default period of 16 ms, useful for periodic game logic or world updates.
+
 ## Handler Return Types
 
 The dispatch pipeline supports multiple return shapes. The internal return handler converts each into the appropriate outbound behavior:
@@ -111,13 +128,12 @@ Call `dispatch.GenerateReport()` to inspect runtime state:
 - Number of active workers
 - Queue depth
 - Registered handler count
-- Middleware chain
+- Middleware chain and limiter statistics
 
 ## Related Packages
 
 - [Nalix.Network](./nalix-network.md) — Transport and listeners
 - [Nalix.Network.Hosting](./nalix-network-hosting.md) — Fluent bootstrap
-- [Nalix.Network.Pipeline](./nalix-network-pipeline.md) — Built-in middleware
 - [Nalix.Framework](./nalix-framework.md) — Packet registry and serialization
 - [Nalix.Common](./nalix-common.md) — Shared contracts and primitives
 
@@ -126,6 +142,11 @@ Call `dispatch.GenerateReport()` to inspect runtime state:
 - [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
 - [Packet Dispatch Options](../api/runtime/routing/packet-dispatch-options.md)
 - [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
+- [Concurrency Gate](../api/runtime/middleware/concurrency-gate.md)
+- [Policy Rate Limiter](../api/runtime/middleware/policy-rate-limiter.md)
+- [Token Bucket Limiter](../api/runtime/middleware/token-bucket-limiter.md)
+- [Permission Middleware](../api/runtime/middleware/permission-middleware.md)
+- [Timeout Middleware](../api/runtime/middleware/timeout-middleware.md)
 - [Packet Attributes](../api/runtime/routing/packet-attributes.md)
 - [Handler Return Types](../api/runtime/routing/handler-results.md)
 - [Dispatch Options](../api/runtime/options/dispatch-options.md)

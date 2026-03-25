@@ -4,7 +4,7 @@
 
 ## Source Mapping
 
-- `src/Nalix.Network.Pipeline/Timekeeping/TimeSynchronizer.cs`
+- `src/Nalix.Runtime/Timekeeping/TimeSynchronizer.cs`
 
 ## Why This Type Exists
 

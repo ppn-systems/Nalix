@@ -93,6 +93,11 @@ public sealed class HandshakeHandlers
     [PacketOpcode((ushort)ProtocolOpCode.HANDSHAKE)]
     public static async ValueTask HandleAsync(IPacketContext<Handshake> context)
     {
+        /*
+         * [Handshake Entry Point]
+         * We route the handshake packet based on its Stage. 
+         * The server only expects CLIENT_HELLO and CLIENT_FINISH.
+         */
         ArgumentNullException.ThrowIfNull(context);
 
         Handshake packet = context.Packet;
@@ -205,6 +210,15 @@ public sealed class HandshakeHandlers
 
     private static async ValueTask HandleClientHelloAsync(IConnection connection, Handshake packet)
     {
+        /*
+         * [Stage 1: Client Hello]
+         * 1. Acquire a handshake slot to prevent race conditions.
+         * 2. Generate a fresh ephemeral X25519 key pair for the server.
+         * 3. Perform two key agreements: 
+         *    - EE (Ephemeral-Ephemeral): For forward secrecy.
+         *    - SE (Static-Ephemeral): For server authentication.
+         * 4. Compute transcript hash and derive the temporary session key.
+         */
         // BUG-75: Atomically reserve handshake state to prevent re-entry races.
         if (!TryAcquireHandshakeSlot(connection, out object claimToken))
         {

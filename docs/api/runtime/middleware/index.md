@@ -9,8 +9,8 @@ post-processing.
 
 - `src/Nalix.Runtime/Middleware/MiddlewarePipeline.cs`
 - `src/Nalix.Common/Middleware/IPacketMiddleware.cs`
-- `src/Nalix.Network.Pipeline/Inbound/*Middleware.cs`
-- `src/Nalix.Network.Pipeline/Throttling/*`
+- `src/Nalix.Runtime/Middleware/Standard/*Middleware.cs`
+- `src/Nalix.Runtime/Throttling/*`
 
 ## Execution lifecycle
 

@@ -263,7 +263,7 @@ public class UdpSession : TransportSession
         IBufferLease src = BufferLease.Rent(packetLength);
         try
         {
-            int written = packet.Serialize(src.Span);
+            int written = packet.Serialize(src.SpanFull);
             src.CommitLength(written);
 
             // Step 2: Transform outbound frame through the shared packet helpers (Compress -> Encrypt).
@@ -280,6 +280,12 @@ public class UdpSession : TransportSession
                 throw new NetworkException($"UDP packet too large after transformation: {src.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
             }
 
+            /*
+             * [UDP Datagram Envelope]
+             * To support stateless/sharded UDP on the server, we prepend a 7-byte 
+             * session token (Snowflake) to every datagram.
+             * Layout: [Token (7 bytes)][Payload (N bytes)]
+             */
             // Step 4: Final Envelope [Token + Packet]
             using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + src.Length);
             _ = _sessionToken.Value.TryWriteBytes(finalLease.SpanFull[..Snowflake.Size]);
@@ -427,6 +433,13 @@ public class UdpSession : TransportSession
                     Func<ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageAsync;
                     EventHandler<IBufferLease>? syncHandler = this.OnMessageReceived;
 
+                    /*
+                     * [Asynchronous Dispatch Queue]
+                     * To prevent high-latency user handlers from blocking the 
+                     * UDP receive loop, we offload processing to a bounded channel.
+                     * This ensures we can continue receiving datagrams while 
+                     * previous messages are being handled.
+                     */
                     System.Threading.Channels.ChannelWriter<Func<Task>>? writer = _asyncQueue?.Writer;
                     if (asyncHandler is not null && writer is not null && syncHandler is not null)
                     {

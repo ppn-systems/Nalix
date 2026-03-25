@@ -1,17 +1,17 @@
 # Directive Guard Options
 
 `DirectiveGuardOptions` configures the connection-scoped cooldown used by
-`Nalix.Network.Pipeline` middleware before sending repeated inbound directive
+`Nalix.Runtime` middleware before sending repeated inbound directive
 responses such as `UNAUTHORIZED`, `RATE_LIMITED`, and `TIMEOUT`.
 
 ## Source Mapping
 
-- `src/Nalix.Network.Pipeline/Options/DirectiveGuardOptions.cs`
-- `src/Nalix.Network.Pipeline/Internal/DirectiveGuard.cs`
-- `src/Nalix.Network.Pipeline/Inbound/PermissionMiddleware.cs`
-- `src/Nalix.Network.Pipeline/Inbound/RateLimitMiddleware.cs`
-- `src/Nalix.Network.Pipeline/Inbound/ConcurrencyMiddleware.cs`
-- `src/Nalix.Network.Pipeline/Inbound/TimeoutMiddleware.cs`
+- `src/Nalix.Runtime/Options/DirectiveGuardOptions.cs`
+- `src/Nalix.Runtime/Internal/RateLimiting/DirectiveGuard.cs`
+- `src/Nalix.Runtime/Middleware/Standard/PermissionMiddleware.cs`
+- `src/Nalix.Runtime/Middleware/Standard/RateLimitMiddleware.cs`
+- `src/Nalix.Runtime/Middleware/Standard/ConcurrencyMiddleware.cs`
+- `src/Nalix.Runtime/Middleware/Standard/TimeoutMiddleware.cs`
 
 ## Defaults and Validation
 

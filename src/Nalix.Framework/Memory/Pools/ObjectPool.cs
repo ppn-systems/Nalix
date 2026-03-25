@@ -134,6 +134,11 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public T Get<T>() where T : IPoolable, new()
     {
+        /*
+         * [Type-Sharded Retrieval]
+         * We resolve the bucket for this specific type. Each type has its 
+         * own lock-free stack of available instances.
+         */
         Type type = typeof(T);
 
         // Resolve the bucket for this type once per rent call.
@@ -165,6 +170,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Return<T>(T obj) where T : IPoolable
     {
+        /*
+         * [Reset Lifecycle]
+         * Before returning an object to the pool, we MUST call ResetForPool().
+         * This ensures that the next consumer doesn't see stale state from 
+         * the previous owner.
+         */
         if (EqualityComparer<T>.Default.Equals(obj, default))
         {
             throw new ArgumentNullException(nameof(obj));

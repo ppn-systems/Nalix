@@ -58,7 +58,7 @@
     <text x="1050" y="154" fill="#9ED0DC" font-size="12">Application Logic</text>
 
     <text x="600" y="284" fill="#E9FCFF" font-size="14" font-weight="700">Shared Foundation: Packet Registry, Serialization, Buffer Pools, Security, Rate Limiting</text>
-    <text x="600" y="310" fill="#9ED0DC" font-size="12">Nalix.Framework + Nalix.Common + Nalix.Network.Pipeline</text>
+    <text x="600" y="310" fill="#9ED0DC" font-size="12">Nalix.Framework + Nalix.Common + Nalix.Runtime</text>
   </g>
 
   <g stroke="url(#cyan)" stroke-width="3" stroke-linecap="round" fill="none">

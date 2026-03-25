@@ -84,7 +84,7 @@ Use:
 - `TimingScope` when you need cheap elapsed-time measurement
 - `Snowflake` when you need compact sortable IDs
 
-`TimeSynchronizer` is part of `Nalix.Network.Pipeline`, not `Nalix.Framework`.
+`TimeSynchronizer` is part of `Nalix.Runtime`, not `Nalix.Framework`.
 
 ## When to add this package
 

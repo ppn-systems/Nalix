@@ -3,7 +3,7 @@
 Thư mục `tests/` chứa toàn bộ automated tests của Nalix và được tổ chức theo từng nhóm trách nhiệm:
 
 - `Nalix.Framework.Tests`: unit tests cho `Nalix.Common`, `Nalix.Framework`, và các hành vi runtime nền tảng.
-- `Nalix.Network.Test`: smoke tests và behavioral tests cho `Nalix.Network` và `Nalix.Network.Pipeline`.
+- `Nalix.Runtime.Pipeline.Tests`: tests cho `Nalix.Runtime.Pipeline`.
 - `Nalix.Analyzers.Tests`: kiểm thử analyzer/code fix.
 
 ## Chạy test

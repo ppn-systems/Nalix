@@ -98,7 +98,7 @@ public sealed class DataHandlers
 using Nalix.Network.Hosting;
 using Nalix.Logging;
 using Nalix.Network.Options;
-using Nalix.Network.Pipeline.Inbound;
+using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Dispatching;
 
 var logger = NLogix.Host.Instance;

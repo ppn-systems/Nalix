@@ -8,11 +8,11 @@ packets fail-closed when permission metadata is missing or insufficient.
 
 | Source | Responsibility |
 | --- | --- |
-| `src/Nalix.Network.Pipeline/Inbound/PermissionMiddleware.cs` | Runtime permission enforcement and unauthorized directive emission. |
+| `src/Nalix.Runtime/Middleware/Standard/PermissionMiddleware.cs` | Runtime permission enforcement and unauthorized directive emission. |
 | `src/Nalix.Common/Middleware/MiddlewareOrderAttribute.cs` | Declares middleware order metadata. |
 | `src/Nalix.Common/Middleware/MiddlewareStageAttribute.cs` | Declares middleware stage metadata. |
 | `src/Nalix.Common/Networking/ConnectionAttributes.cs` | Stores per-connection directive throttle timestamps. |
-| `src/Nalix.Network.Pipeline/Internal/DirectiveGuard.cs` | Rate-gates repeated directive responses. |
+| `src/Nalix.Runtime/Internal/RateLimiting/DirectiveGuard.cs` | Rate-gates repeated directive responses. |
 | `src/Nalix.Framework/DataFrames/SignalFrames/Directive.cs` | Rejection signal frame sent to the client. |
 
 ## Runtime Metadata

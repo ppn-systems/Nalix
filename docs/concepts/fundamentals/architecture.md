@@ -33,7 +33,7 @@ graph TD
     Framework --> Common
     SDK["Nalix.SDK"] --> Framework
     SDK --> Common
-    Pipeline["Nalix.Network.Pipeline"] --> Network
+    Pipeline["Nalix.Runtime"] --> Network
     Logging["Nalix.Logging"] --> Common
 ```
 
@@ -42,7 +42,7 @@ graph TD
 | Hosting | `Nalix.Network.Hosting` | Fluent builder, application lifecycle, automatic discovery |
 | Transport | `Nalix.Network` | TCP/UDP listeners, connection lifecycle, protocol bridge, session store |
 | Dispatch | `Nalix.Runtime` | Packet dispatch, middleware, handler compilation, session resume |
-| Pipeline | `Nalix.Network.Pipeline` | Rate limiting, concurrency gating, time synchronization |
+| Pipeline | `Nalix.Runtime` | Rate limiting, concurrency gating, time synchronization |
 | Infrastructure | `Nalix.Framework` | Configuration, DI, serialization, packet registry, pooling, compression, identifiers |
 | Contracts | `Nalix.Common` | Shared abstractions, packet attributes, middleware primitives |
 | Client | `Nalix.SDK` | Transport sessions, request/response correlation, handshake and resume flows |
