@@ -205,7 +205,6 @@ public abstract partial class UdpListenerBase : IListener
     /// <param name="result"></param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: NotNull]
     protected abstract bool IsAuthenticated(
         IConnection connection, in UdpReceiveResult result);
 
@@ -214,7 +213,6 @@ public abstract partial class UdpListenerBase : IListener
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [return: NotNull]
     public string GenerateReport()
     {
         StringBuilder sb = new(512);
