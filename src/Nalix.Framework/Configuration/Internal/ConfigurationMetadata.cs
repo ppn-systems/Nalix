@@ -18,7 +18,7 @@ internal class ConfigurationMetadata
     /// <summary>
     /// Gets or sets the optional comment written above the section header.
     /// </summary>
-    public System.String? SectionComment { get; init; }
+    public string? SectionComment { get; init; }
 
     /// <summary>
     /// Gets or sets the configuration type.

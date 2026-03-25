@@ -11,20 +11,19 @@ public partial class TaskManager
     [System.Diagnostics.DebuggerDisplay("Worker {Name} (Running={IsRunning}, Runs={TotalRuns})")]
     private sealed class WorkerState(
         [System.Diagnostics.CodeAnalysis.NotNull] ISnowflake id,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String group,
+        [System.Diagnostics.CodeAnalysis.NotNull] string name,
+        [System.Diagnostics.CodeAnalysis.NotNull] string group,
         [System.Diagnostics.CodeAnalysis.NotNull] IWorkerOptions opt,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationTokenSource cts) : IWorkerHandle
     {
         #region Backing fields (thread-safe)
 
-        private System.Int64 _progress;
-        private System.Int32 _isRunning;                  // 0/1
-        private System.Int64 _totalRuns;                  // count
-        private System.Int64 _startedUtcTicks;            // DateTimeOffset.UtcNow.Ticks
-        private System.Int64 _lastHeartbeatUtcTicks;      // 0 == null
-        private System.Int64 _completedUtcTicks;          // 0 == null
-        private System.String? _lastNote;                 // Volatile read/write
+        private long _progress;
+        private int _isRunning;                  // 0/1
+        private long _totalRuns;                  // count
+        private long _startedUtcTicks;            // DateTimeOffset.UtcNow.Ticks
+        private long _lastHeartbeatUtcTicks;      // 0 == null
+        private long _completedUtcTicks;          // 0 == null
 
         #endregion
 
@@ -34,27 +33,27 @@ public partial class TaskManager
 
         public ISnowflake Id { get; } = id;
 
-        public System.String Name { get; } = name;
+        public string Name { get; } = name;
 
-        public System.String Group { get; } = group;
+        public string Group { get; } = group;
 
         public IWorkerOptions Options { get; } = opt;
 
         public System.Threading.CancellationTokenSource Cts { get; } = cts;
 
-        public System.String? LastNote
+        public string? LastNote
         {
-            get => System.Threading.Volatile.Read(ref _lastNote);
-            private set => System.Threading.Volatile.Write(ref _lastNote, value);
+            get => System.Threading.Volatile.Read(ref field);
+            private set => System.Threading.Volatile.Write(ref field, value);
         }
 
-        public System.Boolean IsRunning
+        public bool IsRunning
         {
             get => System.Threading.Volatile.Read(ref _isRunning) != 0;
             private set => System.Threading.Volatile.Write(ref _isRunning, value ? 1 : 0);
         }
 
-        public System.Int64 TotalRuns
+        public long TotalRuns
         {
             get => System.Threading.Interlocked.Read(ref _totalRuns);
             private set => System.Threading.Interlocked.Exchange(ref _totalRuns, value);
@@ -67,12 +66,12 @@ public partial class TaskManager
         {
             get
             {
-                var t = System.Threading.Interlocked.Read(ref _lastHeartbeatUtcTicks);
+                long t = System.Threading.Interlocked.Read(ref _lastHeartbeatUtcTicks);
                 return t == 0 ? null : new System.DateTimeOffset(t, System.TimeSpan.Zero);
             }
             private set
             {
-                var t = value?.UtcDateTime.Ticks ?? 0L;
+                long t = value?.UtcDateTime.Ticks ?? 0L;
                 _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, t);
             }
         }
@@ -82,12 +81,12 @@ public partial class TaskManager
         {
             get
             {
-                var t = System.Threading.Interlocked.Read(ref _completedUtcTicks);
+                long t = System.Threading.Interlocked.Read(ref _completedUtcTicks);
                 return t == 0 ? null : new System.DateTimeOffset(t, System.TimeSpan.Zero);
             }
             private set
             {
-                var t = value?.UtcDateTime.Ticks ?? 0L;
+                long t = value?.UtcDateTime.Ticks ?? 0L;
                 _ = System.Threading.Interlocked.Exchange(ref _completedUtcTicks, t);
             }
         }
@@ -101,7 +100,7 @@ public partial class TaskManager
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
         {
-            var nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            long nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
             _ = System.Threading.Interlocked.Exchange(ref _startedUtcTicks, nowTicks);
             _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
             _ = System.Threading.Interlocked.Exchange(ref _completedUtcTicks, 0);
@@ -115,7 +114,7 @@ public partial class TaskManager
         {
             IsRunning = false;
             _ = System.Threading.Interlocked.Increment(ref _totalRuns);
-            var nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            long nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
             _ = System.Threading.Interlocked.Exchange(ref _completedUtcTicks, nowTicks);
             _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
@@ -126,7 +125,7 @@ public partial class TaskManager
         public void MarkError(System.Exception __)
         {
             IsRunning = false;
-            System.Int64 ticks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            long ticks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
 
             _ = System.Threading.Interlocked.Increment(ref _totalRuns);
             _ = System.Threading.Interlocked.Exchange(ref _completedUtcTicks, ticks);
@@ -138,15 +137,15 @@ public partial class TaskManager
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void Beat()
         {
-            System.Int64 ticks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            long ticks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
             _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, ticks);
         }
 
-        public System.Int64 Progress => System.Threading.Interlocked.Read(ref _progress);
+        public long Progress => System.Threading.Interlocked.Read(ref _progress);
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public void Add(System.Int64 delta, System.String? note)
+        public void Add(long delta, string? note)
         {
             if (delta != 0)
             {
@@ -158,7 +157,7 @@ public partial class TaskManager
                 LastNote = note;
             }
 
-            var nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            long nowTicks = System.DateTimeOffset.UtcNow.UtcDateTime.Ticks;
             _ = System.Threading.Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
 
@@ -176,23 +175,23 @@ public partial class TaskManager
 
         ISnowflake IWorkerHandle.Id => Id;
 
-        System.String IWorkerHandle.Name => Name;
+        string IWorkerHandle.Name => Name;
 
-        System.String IWorkerHandle.Group => Group;
+        string IWorkerHandle.Group => Group;
 
-        System.Boolean IWorkerHandle.IsRunning => IsRunning;
+        bool IWorkerHandle.IsRunning => IsRunning;
 
-        System.Int64 IWorkerHandle.TotalRuns => TotalRuns;
+        long IWorkerHandle.TotalRuns => TotalRuns;
 
         System.DateTimeOffset IWorkerHandle.StartedUtc => StartedUtc;
 
         [System.Diagnostics.CodeAnalysis.MaybeNull]
         System.DateTimeOffset? IWorkerHandle.LastHeartbeatUtc => LastHeartbeatUtc;
 
-        System.Int64 IWorkerHandle.Progress => Progress;
+        long IWorkerHandle.Progress => Progress;
 
         [System.Diagnostics.CodeAnalysis.MaybeNull]
-        System.String? IWorkerHandle.LastNote => LastNote;
+        string? IWorkerHandle.LastNote => LastNote;
 
         IWorkerOptions IWorkerHandle.Options => Options;
 
@@ -201,7 +200,7 @@ public partial class TaskManager
 
     [System.Diagnostics.DebuggerDisplay("Recurring {Name} (Every={Interval}, Runs={TotalRuns}, Failures={ConsecutiveFailures})")]
     private sealed class RecurringState(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.String name,
+        [System.Diagnostics.CodeAnalysis.NotNull] string name,
         [System.Diagnostics.CodeAnalysis.NotNull] System.TimeSpan iv,
         [System.Diagnostics.CodeAnalysis.NotNull] IRecurringOptions opt,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Threading.CancellationTokenSource cts) : IRecurringHandle
@@ -212,7 +211,7 @@ public partial class TaskManager
 
         public System.Threading.Tasks.Task? Task;
 
-        public System.String Name { get; } = name;
+        public string Name { get; } = name;
 
         public System.TimeSpan Interval { get; } = iv;
 
@@ -220,31 +219,31 @@ public partial class TaskManager
 
         public System.Threading.CancellationTokenSource CancellationTokenSource { get; } = cts;
 
-        public System.Int64 IntervalTicks { get; } = (System.Int64)(iv.TotalSeconds * System.Diagnostics.Stopwatch.Frequency) switch
+        public long IntervalTicks { get; } = (long)(iv.TotalSeconds * System.Diagnostics.Stopwatch.Frequency) switch
         {
             <= 0 => 1,
             var x => x
         };
 
         // backing fields
-        private System.Int64 _totalRuns;
-        private System.Int32 _consecutiveFailures;
-        private System.Int32 _isRunning;          // 0/1
-        private System.Int64 _lastRunUtcTicks;    // 0 == null
+        private long _totalRuns;
+        private int _consecutiveFailures;
+        private int _isRunning;          // 0/1
+        private long _lastRunUtcTicks;    // 0 == null
 
-        public System.Int64 TotalRuns
+        public long TotalRuns
         {
             get => System.Threading.Interlocked.Read(ref _totalRuns);
             private set => System.Threading.Interlocked.Exchange(ref _totalRuns, value);
         }
 
-        public System.Int32 ConsecutiveFailures
+        public int ConsecutiveFailures
         {
             get => System.Threading.Volatile.Read(ref _consecutiveFailures);
             private set => System.Threading.Volatile.Write(ref _consecutiveFailures, value);
         }
 
-        public System.Boolean IsRunning
+        public bool IsRunning
         {
             get => System.Threading.Volatile.Read(ref _isRunning) != 0;
             private set => System.Threading.Volatile.Write(ref _isRunning, value ? 1 : 0);
@@ -254,12 +253,12 @@ public partial class TaskManager
         {
             get
             {
-                var t = System.Threading.Interlocked.Read(ref _lastRunUtcTicks);
+                long t = System.Threading.Interlocked.Read(ref _lastRunUtcTicks);
                 return t == 0 ? null : new System.DateTimeOffset(t, System.TimeSpan.Zero);
             }
             private set
             {
-                var t = value?.UtcDateTime.Ticks ?? 0L;
+                long t = value?.UtcDateTime.Ticks ?? 0L;
                 _ = System.Threading.Interlocked.Exchange(ref _lastRunUtcTicks, t);
             }
         }
@@ -311,13 +310,13 @@ public partial class TaskManager
 
         #region IRecurringHandle
 
-        System.String IRecurringHandle.Name => Name;
+        string IRecurringHandle.Name => Name;
 
-        System.Boolean IRecurringHandle.IsRunning => IsRunning;
+        bool IRecurringHandle.IsRunning => IsRunning;
 
-        System.Int64 IRecurringHandle.TotalRuns => TotalRuns;
+        long IRecurringHandle.TotalRuns => TotalRuns;
 
-        System.Int32 IRecurringHandle.ConsecutiveFailures => ConsecutiveFailures;
+        int IRecurringHandle.ConsecutiveFailures => ConsecutiveFailures;
 
         [System.Diagnostics.CodeAnalysis.MaybeNull]
         System.DateTimeOffset? IRecurringHandle.LastRunUtc => LastRunUtc;
@@ -343,8 +342,8 @@ public partial class TaskManager
         private readonly TaskManager _owner = owner;
 
         public ISnowflake Id => _st.Id;
-        public System.String Name => _st.Name;
-        public System.String Group => _st.Group;
+        public string Name => _st.Name;
+        public string Group => _st.Group;
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
@@ -353,8 +352,8 @@ public partial class TaskManager
 
         [System.Runtime.CompilerServices.MethodImpl(
             System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        public void Advance(System.Int64 delta, System.String? note = null) => _st.Add(delta, note);
+        public void Advance(long delta, string? note = null) => _st.Add(delta, note);
 
-        public System.Boolean IsCancellationRequested => _st.Cts.IsCancellationRequested;
+        public bool IsCancellationRequested => _st.Cts.IsCancellationRequested;
     }
 }

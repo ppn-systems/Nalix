@@ -15,5 +15,5 @@ public class SnowflakeOptions : ConfigurationLoader
     /// Machine ID (1-1023) used in distributed ID generation.
     /// </summary>
     [IniComment("Machine ID (1-1023) used in distributed ID generation.")]
-    public System.UInt16 MachineId { get; set; } = 1;
+    public ushort MachineId { get; set; } = 1;
 }
