@@ -139,14 +139,12 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
                 System.String str when str.Length > 0
                     => (System.UInt16)(System.Text.Encoding.UTF8.GetByteCount(str) + sizeof(System.UInt16)),
 
-                System.String _       // empty string: only the 2-byte prefix
-                    => sizeof(System.UInt16),
+                System.String => sizeof(System.UInt16),
 
                 System.Byte[] { Length: > 0 } bytes
                     => (System.UInt16)(bytes.Length + sizeof(System.Int32)),
 
-                System.Byte[] _       // empty array: only the 4-byte prefix
-                    => sizeof(System.Int32),
+                System.Byte[] => sizeof(System.Int32),
 
                 _ => 0
             };
@@ -162,7 +160,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public override System.Byte[] Serialize() => LiteSerializer.Serialize<TSelf>((TSelf)this);
+    public override System.Byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
 
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -175,7 +173,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
                 $"Buffer too small for {typeof(TSelf).Name}. " +
                 $"Required: {required}, Actual: {buffer.Length}.",
                 nameof(buffer))
-            : LiteSerializer.Serialize<TSelf>((TSelf)this, buffer);
+            : LiteSerializer.Serialize((TSelf)this, buffer);
     }
 
     /// <summary>
@@ -249,11 +247,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     public System.String GenerateReport()
     {
         System.Text.StringBuilder sb = new(128);
-        sb.AppendLine($"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={s_cachedFixedSize.Value?.ToString() ?? "dynamic"} Properties={s_metadata.Value.Length}");
+        _ = sb.AppendLine($"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={s_cachedFixedSize.Value?.ToString() ?? "dynamic"} Properties={s_metadata.Value.Length}");
 
         foreach (PropertyMetadata meta in s_metadata.Value)
         {
-            sb.AppendLine($"  {meta}");
+            _ = sb.AppendLine($"  {meta}");
         }
 
         return sb.ToString();

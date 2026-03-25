@@ -29,7 +29,7 @@ public static partial class LiteSerializer
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(
-        [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter) => FormatterProvider.Register<T>(formatter);
+        [System.Diagnostics.CodeAnalysis.NotNull] IFormatter<T> formatter) => FormatterProvider.Register(formatter);
 
     /// <summary>
     /// Serializes an object into a byte array.
