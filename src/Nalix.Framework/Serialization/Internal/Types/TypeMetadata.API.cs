@@ -10,14 +10,13 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Nalix.Framework.Serialization.Internal.Types;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Serialization.Internal.Types;
+namespace Nalix.Framework.Serialization.Internal.Types;
 
 /// <summary>
 /// Provides metadata operations for serialization types.

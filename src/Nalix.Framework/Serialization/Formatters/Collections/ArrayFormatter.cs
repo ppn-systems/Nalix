@@ -4,7 +4,7 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Shared.Serialization.Internal.Types;
+using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 

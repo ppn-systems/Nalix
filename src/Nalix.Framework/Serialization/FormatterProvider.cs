@@ -18,7 +18,7 @@ using Nalix.Framework.Serialization.Formatters.Automatic;
 using Nalix.Framework.Serialization.Formatters.Cache;
 using Nalix.Framework.Serialization.Formatters.Collections;
 using Nalix.Framework.Serialization.Formatters.Primitives;
-using Nalix.Shared.Serialization.Internal.Types;
+using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization;
 

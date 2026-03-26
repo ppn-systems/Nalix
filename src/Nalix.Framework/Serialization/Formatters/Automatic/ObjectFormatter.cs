@@ -7,7 +7,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Internal.Accessors;
 using Nalix.Framework.Serialization.Internal.Reflection;
-using Nalix.Shared.Serialization.Internal.Reflection;
 
 namespace Nalix.Framework.Serialization.Formatters.Automatic;
 

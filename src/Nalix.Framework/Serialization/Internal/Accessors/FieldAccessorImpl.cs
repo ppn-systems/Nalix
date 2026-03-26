@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Shared.Serialization.Internal.Reflection;
+using Nalix.Framework.Serialization.Internal.Reflection;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Shared.Tests")]

@@ -12,7 +12,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Internal.Types;
-using Nalix.Shared.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization;
 

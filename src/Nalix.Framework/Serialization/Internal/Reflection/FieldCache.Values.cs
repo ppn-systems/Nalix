@@ -6,14 +6,13 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Nalix.Framework.Serialization.Internal.Reflection;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
-namespace Nalix.Shared.Serialization.Internal.Reflection;
+namespace Nalix.Framework.Serialization.Internal.Reflection;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static partial class FieldCache<T>
