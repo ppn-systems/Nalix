@@ -34,8 +34,8 @@ public sealed class PacketEncryptionAttribute : Attribute
         bool isEncrypted = true,
         CipherSuiteType algorithmType = CipherSuiteType.Chacha20Poly1305)
     {
-        IsEncrypted = isEncrypted;
-        AlgorithmType = algorithmType;
+        this.IsEncrypted = isEncrypted;
+        this.AlgorithmType = algorithmType;
     }
 
     /// <summary>

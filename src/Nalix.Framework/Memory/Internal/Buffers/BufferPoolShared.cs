@@ -73,7 +73,7 @@ internal sealed class BufferPoolShared : IDisposable
 
         _freeBuffers = new BufferRing(ringCapacity);
 
-        PreallocateBuffers(initialCapacity);
+        this.PreallocateBuffers(initialCapacity);
     }
 
     #endregion Constructor
@@ -126,7 +126,7 @@ internal sealed class BufferPoolShared : IDisposable
 
         if (_secureClear)
         {
-            ClearBuffer(buffer);
+            this.ClearBuffer(buffer);
         }
 
         if (!_freeBuffers.TryEnqueue(buffer))
@@ -150,18 +150,18 @@ internal sealed class BufferPoolShared : IDisposable
             throw new ArgumentException("The additional quantity must be greater than zero.");
         }
 
-        if (!TryBeginOptimize())
+        if (!this.TryBeginOptimize())
         {
             return;
         }
 
         try
         {
-            RentAndEnqueueBuffers(additionalCapacity);
+            this.RentAndEnqueueBuffers(additionalCapacity);
         }
         finally
         {
-            EndOptimize();
+            this.EndOptimize();
         }
     }
 
@@ -178,7 +178,7 @@ internal sealed class BufferPoolShared : IDisposable
             return;
         }
 
-        if (!TryBeginOptimize())
+        if (!this.TryBeginOptimize())
         {
             return;
         }
@@ -205,7 +205,7 @@ internal sealed class BufferPoolShared : IDisposable
 
             if (buffersToReturn.Count > 0)
             {
-                ReturnBuffersToArrayPool(buffersToReturn);
+                this.ReturnBuffersToArrayPool(buffersToReturn);
             }
 
             if (removed > 0)
@@ -215,7 +215,7 @@ internal sealed class BufferPoolShared : IDisposable
         }
         finally
         {
-            EndOptimize();
+            this.EndOptimize();
         }
     }
 
@@ -224,7 +224,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public BufferPoolState GetPoolInfo() => CreatePoolStateSnapshot();
+    public BufferPoolState GetPoolInfo() => this.CreatePoolStateSnapshot();
 
     /// <summary>
     /// Gets information about the buffer pool by reference for better performance.
@@ -233,7 +233,7 @@ internal sealed class BufferPoolShared : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref readonly BufferPoolState GetPoolInfoRef()
     {
-        _poolInfo = CreatePoolStateSnapshot();
+        _poolInfo = this.CreatePoolStateSnapshot();
         return ref _poolInfo;
     }
 
@@ -245,7 +245,7 @@ internal sealed class BufferPoolShared : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Dispose()
     {
-        Dispose(true);
+        this.Dispose(true);
         GC.SuppressFinalize(this);
     }
 
@@ -254,7 +254,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     ~BufferPoolShared()
     {
-        Dispose(false);
+        this.Dispose(false);
     }
 
     #endregion IDisposable
@@ -284,7 +284,7 @@ internal sealed class BufferPoolShared : IDisposable
         }
 
         _freeBuffers.EnsureCapacity(capacity);
-        RentAndEnqueueBuffers(capacity);
+        this.RentAndEnqueueBuffers(capacity);
     }
 
     /// <summary>
@@ -327,7 +327,7 @@ internal sealed class BufferPoolShared : IDisposable
             byte[] buf = buffers[i];
             if (_secureClear)
             {
-                ClearBuffer(buf);
+                this.ClearBuffer(buf);
             }
 
             _arrayPool.Return(buf);
@@ -347,7 +347,7 @@ internal sealed class BufferPoolShared : IDisposable
             byte[] buf = buffers[i];
             if (_secureClear)
             {
-                ClearBuffer(buf);
+                this.ClearBuffer(buf);
             }
 
             _arrayPool.Return(buf);
@@ -380,7 +380,7 @@ internal sealed class BufferPoolShared : IDisposable
                 byte[][] buffers = _freeBuffers.DrainAll();
                 if (buffers.Length > 0)
                 {
-                    ReturnBuffersToArrayPool(buffers);
+                    this.ReturnBuffersToArrayPool(buffers);
                 }
 
                 _ = Pools.TryRemove(_bufferSize, out _);

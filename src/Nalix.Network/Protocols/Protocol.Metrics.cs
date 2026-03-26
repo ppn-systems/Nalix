@@ -48,10 +48,10 @@ public abstract partial class Protocol : IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Protocol Status:");
         _ = sb.AppendLine("--------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Is Disposed             : {_isDisposed}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Messages          : {TotalMessages}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors            : {TotalErrors}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Is Accepting            : {IsAccepting}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Keep Connections Open   : {KeepConnectionOpen}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Messages          : {this.TotalMessages}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors            : {this.TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Is Accepting            : {this.IsAccepting}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Keep Connections Open   : {this.KeepConnectionOpen}");
         _ = sb.AppendLine("--------------------------------------------");
         _ = sb.AppendLine();
 
@@ -68,10 +68,10 @@ public abstract partial class Protocol : IReportable
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["IsDisposed"] = _isDisposed,
-            ["TotalMessages"] = TotalMessages,
-            ["TotalErrors"] = TotalErrors,
-            ["IsAccepting"] = IsAccepting,
-            ["KeepConnectionOpen"] = KeepConnectionOpen
+            ["TotalMessages"] = this.TotalMessages,
+            ["TotalErrors"] = this.TotalErrors,
+            ["IsAccepting"] = this.IsAccepting,
+            ["KeepConnectionOpen"] = this.KeepConnectionOpen
         };
     }
 

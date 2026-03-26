@@ -92,7 +92,7 @@ public abstract class SingletonBase<T> : IDisposable where T : class
             return;
         }
 
-        DisposeManaged();
+        this.DisposeManaged();
         GC.SuppressFinalize(this);
     }
 

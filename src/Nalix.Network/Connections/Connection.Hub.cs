@@ -145,7 +145,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         if (_options.MaxConnections > 0 && _count >= _options.MaxConnections)
         {
-            HandleConnectionLimit(connection);
+            this.HandleConnectionLimit(connection);
             return false;
         }
 
@@ -156,12 +156,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             scope = TimingScope.Start();
         }
 
-        int shardIndex = GetShardIndex(connection.ID);
+        int shardIndex = this.GetShardIndex(connection.ID);
         ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
         if (shard.TryAdd(connection.ID, connection))
         {
-            connection.OnCloseEvent += OnClientDisconnected;
+            connection.OnCloseEvent += this.OnClientDisconnected;
             _ = Interlocked.Increment(ref _count);
             _anonymousQueue.Enqueue(connection.ID);
 
@@ -209,7 +209,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             scope = TimingScope.Start();
         }
 
-        int shardIndex = GetShardIndex(connection.ID);
+        int shardIndex = this.GetShardIndex(connection.ID);
         ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
         if (!shard.TryRemove(connection.ID, out IConnection? existing))
@@ -220,7 +220,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
 
         IConnection removedConnection = existing ?? connection;
-        removedConnection.OnCloseEvent -= OnClientDisconnected;
+        removedConnection.OnCloseEvent -= this.OnClientDisconnected;
 
         _ = Interlocked.Decrement(ref _count);
 
@@ -246,7 +246,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [return: MaybeNull]
     public IConnection? GetConnection(ISnowflake id)
     {
-        ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(id);
+        ConcurrentDictionary<ISnowflake, IConnection> shard = this.GetShard(id);
         return shard.TryGetValue(id, out IConnection? connection) ? connection : null;
     }
 
@@ -260,7 +260,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     public IConnection? GetConnection(ReadOnlySpan<byte> id)
     {
         ISnowflake snowflake = Snowflake.FromBytes(id);
-        ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(snowflake);
+        ConcurrentDictionary<ISnowflake, IConnection> shard = this.GetShard(snowflake);
         return shard.TryGetValue(snowflake, out IConnection? connection) ? connection : null;
     }
 
@@ -349,7 +349,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        IReadOnlyCollection<IConnection> connections = ListConnections();
+        IReadOnlyCollection<IConnection> connections = this.ListConnections();
         if (connections is null || connections.Count == 0)
         {
             s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
@@ -360,7 +360,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         // Use batching if configured
         if (_options.BroadcastBatchSize > 0)
         {
-            await BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
+            await this.BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
                       .ConfigureAwait(false);
 
             return;
@@ -554,7 +554,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        IReadOnlyCollection<IConnection> connections = ListConnections();
+        IReadOnlyCollection<IConnection> connections = this.ListConnections();
 
         ParallelOptions parallelOptions = new()
         {
@@ -594,7 +594,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
 
         StringBuilder sb = new();
-        ConnectionHubStatistics stats = Statistics;
+        ConnectionHubStatistics stats = this.Statistics;
         Dictionary<string, int> algoCounts = new(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, int> statusCounts = new(StringComparer.OrdinalIgnoreCase);
 
@@ -714,7 +714,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// </summary>
     public IDictionary<string, object> GenerateReportData()
     {
-        ConnectionHubStatistics stats = Statistics;
+        ConnectionHubStatistics stats = this.Statistics;
         Dictionary<string, object> report = new()
         {
             ["UtcNow"] = DateTime.UtcNow,
@@ -803,7 +803,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
 
         _disposed = true;
-        CloseAllConnections("disposed");
+        this.CloseAllConnections("disposed");
 
         s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
     }
@@ -818,7 +818,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ConcurrentDictionary<ISnowflake, IConnection> GetShard(ISnowflake id)
     {
-        int index = GetShardIndex(id);
+        int index = this.GetShardIndex(id);
         return _shards[index];
     }
 
@@ -826,7 +826,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(
         object? sender,
-        IConnectEventArgs args) => UnregisterConnection(args.Connection);
+        IConnectEventArgs args) => this.UnregisterConnection(args.Connection);
 
     [StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)
@@ -836,7 +836,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         switch (_options.DropPolicy)
         {
             case DropPolicy.DropNewest:
-                NotifyCapacityLimit(newConnection, "drop-newest");
+                this.NotifyCapacityLimit(newConnection, "drop-newest");
                 newConnection.Disconnect("connection limit reached");
                 _ = Interlocked.Increment(ref _rejectedConnections);
                 break;
@@ -850,13 +850,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                         continue;
                     }
 
-                    int shardIndex = GetShardIndex(oldestId);
+                    int shardIndex = this.GetShardIndex(oldestId);
                     ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
                     if (shard.TryGetValue(oldestId, out IConnection? oldestConn) && oldestConn is not null)
                     {
                         s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
-                        NotifyCapacityLimit(newConnection, "evict-oldest");
+                        this.NotifyCapacityLimit(newConnection, "evict-oldest");
 
                         oldestConn.Disconnect("evicted to make room for new connection");
                         return;
@@ -864,7 +864,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                 }
 
                 s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
-                NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
+                this.NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
 
                 newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
                 _ = Interlocked.Increment(ref _evictedConnections);
@@ -928,7 +928,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             maxConnections: _options.MaxConnections,
             triggeredConnectionId: newConnection?.ID,
             reason: reason ?? string.Empty,
-            snapshot: Statistics);
+            snapshot: this.Statistics);
 
         CapacityLimitReached?.Invoke(this, args);
     }
