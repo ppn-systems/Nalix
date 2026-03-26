@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -13,6 +14,8 @@ using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Configuration;
+using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
@@ -71,8 +74,11 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
     #region Fields
 
+    private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
+
     private readonly Socket _socket = socket;
     private readonly CancellationTokenSource _cts = new();
+    private readonly FragmentAssembler _fragmentAssembler = new();
 
     /// <summary>
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
@@ -323,11 +329,10 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
             while (!token.IsCancellationRequested)
             {
                 // ── Step 1: read 2-byte little-endian length header ───────
-                await SAEA_RECEIVE_EXACTLY_ASYNC(0, HeaderSize, token)
-                    .ConfigureAwait(false);
+                await SAEA_RECEIVE_EXACTLY_ASYNC(0, HeaderSize, token).ConfigureAwait(false);
 
-                ushort size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(MemoryExtensions
-                                                                           .AsSpan(_buffer, 0, HeaderSize));
+                ushort size = BinaryPrimitives.ReadUInt16LittleEndian(MemoryExtensions
+                                              .AsSpan(_buffer, 0, HeaderSize));
 
 #if DEBUG
                 s_logger?.Trace(
@@ -359,8 +364,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
                     // Preserve the already-read header bytes in the new buffer.
                     MemoryExtensions.AsSpan(oldBuf, 0, HeaderSize)
-                                           .CopyTo(MemoryExtensions
-                                           .AsSpan(newBuf));
+                                    .CopyTo(MemoryExtensions
+                                    .AsSpan(newBuf));
 
                     byte[] swapped = Interlocked.Exchange(ref _buffer, newBuf);
 
@@ -372,8 +377,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
                 // ── Step 3: read payload bytes ────────────────────────────
                 int payload = size - HeaderSize;
-                await SAEA_RECEIVE_EXACTLY_ASYNC(HeaderSize, payload, token)
-                          .ConfigureAwait(false);
+                await SAEA_RECEIVE_EXACTLY_ASYNC(HeaderSize, payload, token).ConfigureAwait(false);
 
 #if DEBUG
                 s_logger?.Debug(
@@ -415,33 +419,67 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                 if (currentBuf is not null)
                 {
                     LastPingTime = Clock.UnixMillisecondsNow();
-
                     BufferLease lease = BufferLease.TakeOwnership(currentBuf, HeaderSize, payload);
-                    lease.Retain(); // Retain for the callback; released in Connection.cs after processing.
-
                     ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-                    args.Initialize(lease, _cachedArgs.Connection);
+                    ReadOnlySpan<byte> payloadSpan = lease.Span;
+
+                    bool isFragmented = payloadSpan.Length >= 1 && payloadSpan[0] == FragmentHeader.Magic;
+
+                    if (isFragmented)
+                    {
+                        try
+                        {
+                            lease.Dispose();
+
+                            FragmentHeader header = FragmentHeader.ReadFrom(payloadSpan);
+                            ReadOnlySpan<byte> chunkBody = payloadSpan[FragmentHeader.WireSize..];
 
 #if DEBUG
-                    bool queued = AsyncCallback.Invoke(_callbackProcess, _sender, args);
-                    s_logger?.Debug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address} " +
-                        $"callback-queued={queued}");
-#else
-                    AsyncCallback.Invoke(_callbackProcess, _sender, args);
+                            s_logger?.Debug(
+                                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                                $"recv-fragment stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
+                                $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_sender?.NetworkEndpoint.Address}");
 #endif
 
+                            if (_fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled) && assembled != null)
+                            {
+                                args.Initialize(assembled, _cachedArgs.Connection);
+                                AsyncCallback.Invoke(_callbackProcess, _sender, args);
+                                assembled.Dispose();
 #if DEBUG
-                    s_logger?.Debug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address}");
+                                s_logger?.Debug(
+                                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                                    $"fragment-assembled stream={header.StreamId} totalLen={assembled.Length} " +
+                                    $"ep={_sender?.NetworkEndpoint.Address}");
 #endif
+                            }
+                            else
+                            {
+                                args.Dispose();
+                            }
+                        }
+                        catch
+                        {
+                            lease.Retain(); // Retain for the callback; released in Connection.cs after processing.
+                            args.Initialize(lease, _cachedArgs.Connection);
+                            AsyncCallback.Invoke(_callbackProcess, _sender, args);
+                        }
+                    }
+                    else
+                    {
+                        lease.Retain();
+                        args.Initialize(lease, _cachedArgs.Connection);
+                        bool queued = AsyncCallback.Invoke(_callbackProcess, _sender, args);
+#if DEBUG
+                        s_logger?.Debug(
+                            $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                            $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address} callback-queued={queued}");
+#endif
+                    }
                 }
                 else
                 {
                     // Buffer was swapped out by Dispose racing with the loop.
-                    // The increment must be undone since no callback will fire.
                     Interlocked.Decrement(ref _pendingProcessCallbacks);
                 }
 
@@ -543,7 +581,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         ushort totalLength,
         ReadOnlySpan<byte> payload)
     {
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(buffer, totalLength);
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer, totalLength);
         payload.CopyTo(buffer[HeaderSize..]);
     }
 
