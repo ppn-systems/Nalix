@@ -48,8 +48,7 @@ public static class LZ4BlockEncoder
     /// The length of the compressed data, or -1 if the output buffer is too small.
     /// </returns>
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public static unsafe int EncodeBlock(ReadOnlySpan<byte> input, Span<byte> output, int* hashTable)
     {
         if (input.IsEmpty || output.IsEmpty)
@@ -84,12 +83,8 @@ public static class LZ4BlockEncoder
     /// </returns>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
-    private static unsafe int EncodeInternal(
-        byte* inputBase, int inputLength,
-        byte* outputBase, int outputLength,
-        int* hashTable)
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private static unsafe int EncodeInternal(byte* inputBase, int inputLength, byte* outputBase, int outputLength, int* hashTable)
     {
 #if DEBUG
         Debug.Assert(hashTable is not null, "Hash table cannot be null");
@@ -205,10 +200,7 @@ public static class LZ4BlockEncoder
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe bool WriteSequence(
-        ref byte* outputPtr,
-        byte* outputEnd, byte* literalStartPtr,
-        int literalLength, int matchLength, int offset)
+    private static unsafe bool WriteSequence(ref byte* outputPtr, byte* outputEnd, byte* literalStartPtr, int literalLength, int matchLength, int offset)
     {
         const int tokenLen = 1;
         const int matchThreshold = LZ4CompressionConstants.MinMatchLength
@@ -265,8 +257,7 @@ public static class LZ4BlockEncoder
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe bool WriteFinalLiterals(
-        ref byte* outputPtr, byte* outputEnd, byte* literalStartPtr, int literalLength)
+    private static unsafe bool WriteFinalLiterals(ref byte* outputPtr, byte* outputEnd, byte* literalStartPtr, int literalLength)
     {
         const int tokenLen = 1;
 

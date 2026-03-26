@@ -7,7 +7,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 
-namespace Nalix.Framework.Frames;
+namespace Nalix.Framework.DataFrames;
 
 /// <summary>
 /// Represents the base class for all packet frames in the messaging system.

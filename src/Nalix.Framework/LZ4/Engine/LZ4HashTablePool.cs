@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.ComponentModel;
 using Nalix.Framework.Memory.Internal;
 
@@ -17,6 +18,7 @@ internal static class LZ4HashTablePool
 
     [ThreadStatic]
     private static int[]? t_hashTable;
+    private static readonly ArrayPool<int> s_pool = ArrayPool<int>.Shared;
 
     #endregion Fields
 
@@ -29,32 +31,65 @@ internal static class LZ4HashTablePool
     /// <returns>A cleared hash table ready for use.</returns>
     public static int[] Rent()
     {
+        int size = MatchFinder.HashTableSize;
+
         int[]? hashTable = t_hashTable;
 
-        if (hashTable is null || hashTable.Length != MatchFinder.HashTableSize)
+        if (hashTable is not null && hashTable.Length == size)
         {
-            hashTable = new int[MatchFinder.HashTableSize];
-            t_hashTable = hashTable;
+            new Span<int>(hashTable).Clear();
+            t_hashTable = null;
+            return hashTable;
+        }
+
+        hashTable = s_pool.Rent(size);
+
+        if (hashTable.Length != size)
+        {
+            int[] resized = new int[size];
+            s_pool.Return(hashTable);
+            hashTable = resized;
         }
 
         new Span<int>(hashTable).Clear();
-
         return hashTable;
     }
 
     /// <summary>
     /// Returns a hash table to the pool (no-op for thread-static storage).
     /// </summary>
-    /// <param name="_"></param>
-    public static void Return(int[] _)
+    /// <param name="hashTable"></param>
+    public static void Return(int[] hashTable)
     {
-        // No-op for thread-static, but included for API consistency
+        if (hashTable is null)
+        {
+            return;
+        }
+
+        int size = MatchFinder.HashTableSize;
+
+        // Ưu tiên giữ lại cho thread hiện tại
+        if (hashTable.Length == size && t_hashTable is null)
+        {
+            t_hashTable = hashTable;
+            return;
+        }
+
+        // Trả về pool nếu không dùng thread-local
+        s_pool.Return(hashTable);
     }
 
     /// <summary>
     /// Clears the thread-local hash table cache (useful for testing or memory cleanup).
     /// </summary>
-    public static void Clear() => t_hashTable = null;
+    public static void Clear()
+    {
+        if (t_hashTable is not null)
+        {
+            s_pool.Return(t_hashTable);
+            t_hashTable = null;
+        }
+    }
 
     #endregion APIs
 }

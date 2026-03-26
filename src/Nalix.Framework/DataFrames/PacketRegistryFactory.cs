@@ -9,11 +9,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Frames.Controls;
-using Nalix.Framework.Frames.Text;
+using Nalix.Framework.DataFrames.Controls;
+using Nalix.Framework.DataFrames.Text;
 using Nalix.Framework.Injection;
 
-namespace Nalix.Framework.Frames;
+namespace Nalix.Framework.DataFrames;
 
 /// <summary>
 /// Builds an immutable <see cref="PacketRegistry"/> by scanning packet types and

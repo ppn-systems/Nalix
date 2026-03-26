@@ -27,11 +27,9 @@ public partial class ConfigurationLoader
     /// </summary>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
-    private static object? GetConfigValue(
-        IniConfig configFile, string section, PropertyMetadata property)
+    private static object? GetConfigValue(IniConfig configFile, string section, PropertyMetadata property)
     {
         // Handle Enums of any underlying type with cached reflection
         if (property.PropertyType.IsEnum)
@@ -85,10 +83,8 @@ public partial class ConfigurationLoader
     /// consistent with <see cref="IniConfig.WriteValue"/> behavior.
     /// </summary>
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
-    private void HandleEmptyValue(
-        IniConfig configFile, string section, PropertyMetadata property)
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private void HandleEmptyValue(IniConfig configFile, string section, PropertyMetadata property)
     {
         object? currentValue = property.PropertyInfo.GetValue(this);
 
@@ -114,8 +110,7 @@ public partial class ConfigurationLoader
     /// </summary>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static string GetDefaultValueString(PropertyMetadata propertyType)
     {
         switch (propertyType.TypeCode)

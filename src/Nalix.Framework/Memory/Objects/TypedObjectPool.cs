@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Memory.Pools;
 
-
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]

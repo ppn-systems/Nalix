@@ -32,9 +32,7 @@ internal static class LZ4Decoder
     /// or -1 if decompression fails.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Decode(
-        ReadOnlySpan<byte> input,
-        Span<byte> output) => !DecodeInternal(input, output, out int written) ? -1 : written;
+    public static int Decode(ReadOnlySpan<byte> input, Span<byte> output) => !DecodeInternal(input, output, out int written) ? -1 : written;
 
     /// <summary>
     /// Decompresses the provided compressed data into a newly allocated output buffer.
@@ -45,10 +43,7 @@ internal static class LZ4Decoder
     /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool Decode(
-        ReadOnlySpan<byte> input,
-        [NotNullWhen(true)] out byte[]? output,
-        out int bytesWritten)
+    public static bool Decode(ReadOnlySpan<byte> input, [NotNullWhen(true)] out byte[]? output, out int bytesWritten)
     {
         output = null;
         bytesWritten = 0;
@@ -88,10 +83,7 @@ internal static class LZ4Decoder
     /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool Decode(
-        ReadOnlySpan<byte> input,
-        out BufferLease? lease,
-        out int bytesWritten)
+    public static bool Decode(ReadOnlySpan<byte> input, out BufferLease? lease, out int bytesWritten)
     {
         lease = null;
         bytesWritten = 0;
@@ -131,9 +123,7 @@ internal static class LZ4Decoder
     /// <param name="input"></param>
     /// <param name="header"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TryReadAndValidateHeader(
-        ReadOnlySpan<byte> input,
-        out LZ4BlockHeader header)
+    private static bool TryReadAndValidateHeader(ReadOnlySpan<byte> input, out LZ4BlockHeader header)
     {
         header = default;
 
@@ -151,12 +141,8 @@ internal static class LZ4Decoder
     }
 
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
-    internal static unsafe bool DecodeInternal(
-        ReadOnlySpan<byte> input,
-        Span<byte> output,
-        out int bytesWritten)
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private static unsafe bool DecodeInternal(ReadOnlySpan<byte> input, Span<byte> output, out int bytesWritten)
     {
         bytesWritten = 0;
 
