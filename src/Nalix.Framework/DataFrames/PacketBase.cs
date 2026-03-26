@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -266,6 +267,22 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Returns a debug-friendly key-value summary of this packet's metadata (for diagnostics, not for production use).
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public IDictionary<string, object> GenerateReportData()
+    {
+        return new Dictionary<string, object>
+        {
+            ["TypeName"] = typeof(TSelf).Name,
+            ["AutoMagic"] = $"0x{s_autoMagic:X8}",
+            ["FixedSize"] = s_cachedFixedSize.Value?.ToString(CultureInfo.InvariantCulture) ?? "dynamic",
+            ["PropertiesCount"] = s_metadata.Value.Length,
+            ["Properties"] = Array.ConvertAll(s_metadata.Value, meta => meta.ToString())
+        };
     }
 
     /// <inheritdoc/>

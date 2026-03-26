@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Globalization;
@@ -231,6 +232,8 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    #region IReportable Implementation
+
     /// <summary>
     /// Generates a diagnostic report of the TCP listener state and metrics.
     /// </summary>
@@ -291,4 +294,59 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine("--------------------------------------------");
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Generates diagnostic data as key-value pairs describing the current TCP listener state and metrics.
+    /// </summary>
+    /// <returns>A dictionary containing the report data.</returns>
+    public virtual IDictionary<string, object> GenerateReportData()
+    {
+        ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
+
+        Dictionary<string, object> data = new(StringComparer.Ordinal)
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["Port"] = _port,
+            ["State"] = State,
+            ["Disposed"] = _isDisposed,
+            ["Configuration"] = new Dictionary<string, object>
+            {
+                ["EnableTimeout"] = s_config.EnableTimeout,
+                ["MaxParallelAccepts"] = s_config.MaxParallel,
+                ["BufferSize"] = s_config.BufferSize,
+                ["KeepAlive"] = s_config.KeepAlive,
+                ["ReuseAddress"] = s_config.ReuseAddress,
+                ["EnableIPv6"] = s_config.EnableIPv6,
+                ["Backlog"] = s_config.Backlog
+            },
+            ["Metrics"] = new Dictionary<string, object>
+            {
+                ["TotalAccepted"] = Metrics.TotalAccepted,
+                ["TotalRejected"] = Metrics.TotalRejected,
+                ["TotalErrors"] = Metrics.TotalErrors
+            },
+            ["Protocol"] = new Dictionary<string, object>
+            {
+                ["BoundProtocol"] = _protocol?.ToString() ?? "-"
+            },
+            ["Connections"] = new Dictionary<string, object>
+            {
+                ["ActiveConnections"] = InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.Count ?? 0,
+                ["LimiterEnabled"] = true
+            },
+            ["Threading"] = new Dictionary<string, object>
+            {
+                ["ThreadPoolMinWorker"] = minWorker,
+                ["ThreadPoolMinIOCP"] = minIocp
+            },
+            ["TimeSync"] = new Dictionary<string, object>
+            {
+                ["IsTimeSyncEnabled"] = IsTimeSyncEnabled
+            }
+        };
+
+        return data;
+    }
+
+    #endregion IReportable Implementation
 }

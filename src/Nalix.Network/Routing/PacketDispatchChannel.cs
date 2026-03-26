@@ -52,7 +52,7 @@ namespace Nalix.Network.Routing;
 [SkipLocalsInit]
 [DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
 public sealed class PacketDispatchChannel
-    : PacketDispatcherBase<IPacket>, IPacketDispatch, IDisposable, IActivatable, IReportable
+    : PacketDispatcherBase<IPacket>, IPacketDispatch, IDisposable, IActivatable
 {
     #region Fields
 
@@ -313,6 +313,47 @@ public sealed class PacketDispatchChannel
         _ = sb.AppendLine();
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Generates a key-value diagnostic summary of the dispatcher state and per-channel statistics.
+    /// </summary>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        Dictionary<string, object> report = new()
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["Running"] = Volatile.Read(ref _running) == 1,
+            ["DispatchLoops"] = _dispatchLoops,
+            ["TotalPackets"] = _dispatch.TotalPackets,
+            ["TotalConnections"] = _dispatch.TotalConnections,
+            ["ReadyConnections"] = _dispatch.ReadyConnections,
+            ["Semaphore.CurrentCount"] = _semaphore.CurrentCount,
+            ["CTS.Cancelled"] = _cts?.IsCancellationRequested ?? false,
+            ["PacketRegistryType"] = _catalog.GetType().Name
+        };
+
+        // Pending by priority
+        int[] priorities = _dispatch.PendingPerPriority;
+        Dictionary<string, int> pendingPerPriority = new(priorities.Length);
+        for (int p = priorities.Length - 1; p >= 0; p--)
+        {
+            pendingPerPriority[GetPriorityName(p)] = priorities[p];
+        }
+        report["PendingPerPriority"] = pendingPerPriority;
+
+        // Top connections by pending packets
+        report["PendingByConnection"] = _dispatch.PendingPerConnection
+            .OrderByDescending(x => x.Value)
+            .Take(10)
+            .Select(kv => new Dictionary<string, object>
+            {
+                ["EndPoint"] = kv.Key.NetworkEndpoint.Address,
+                ["Pending"] = kv.Value
+            })
+            .ToList();
+
+        return report;
     }
 
     private static string GetPriorityName(int index)
