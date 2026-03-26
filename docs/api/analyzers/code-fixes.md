@@ -102,4 +102,4 @@ The available fixes currently cover these common workflows:
 - [Analyzers Overview](./index.md)
 - [Serialization Attributes](../common/serialization-attributes.md)
 - [Packet Registry](../framework/packets/packet-registry.md)
-- [Middleware](../../concepts/middleware.md)
+- [Middleware Pipeline](../../concepts/runtime/middleware-pipeline.md)

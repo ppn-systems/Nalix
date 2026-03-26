@@ -11,7 +11,9 @@ using System.Reflection;
 using System.Runtime.Loader;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
+using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames;
+using Nalix.Framework.Identifiers;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Extensions;
 using Nalix.SDK.Tools.Models;
@@ -344,7 +346,7 @@ public sealed class PacketCatalogService : IPacketCatalogService
             return EditorKind.Text;
         }
 
-        if (effectiveType == typeof(byte[]))
+        if (effectiveType == typeof(byte[]) || effectiveType == typeof(Bytes32) || effectiveType == typeof(Snowflake))
         {
             return EditorKind.ByteArray;
         }
@@ -383,7 +385,9 @@ public sealed class PacketCatalogService : IPacketCatalogService
             && effectiveType != typeof(DateTime)
             && effectiveType != typeof(DateTimeOffset)
             && effectiveType != typeof(TimeSpan)
-            && effectiveType != typeof(Guid);
+            && effectiveType != typeof(Guid)
+            && effectiveType != typeof(Bytes32)
+            && effectiveType != typeof(Snowflake);
     }
 
     private bool IsNumericType(Type type)

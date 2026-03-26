@@ -81,27 +81,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Adds a network-buffer middleware component to the pre-dispatch pipeline.
-    /// </summary>
-    /// <param name="middleware">
-    /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked during packet processing.
-    /// </param>
-    /// <returns>
-    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public PacketDispatchOptions<TPacket> WithBufferMiddleware(INetworkBufferMiddleware middleware)
-    {
-        ArgumentNullException.ThrowIfNull(middleware);
-
-        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
-
-        this.NetworkPipeline.Use(middleware);
-
-        return this;
-    }
-
-    /// <summary>
     /// Overrides the number of worker loops used by the packet dispatcher.
     /// </summary>
     /// <param name="loopCount">

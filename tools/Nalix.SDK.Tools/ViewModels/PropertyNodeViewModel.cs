@@ -8,6 +8,9 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using Nalix.Common.Networking.Packets;
+using Nalix.Common.Primitives;
+using Nalix.Framework.Identifiers;
 using Nalix.SDK.Tools.Models;
 using Nalix.SDK.Tools.Services;
 
@@ -129,8 +132,43 @@ public sealed class PropertyNodeViewModel : ViewModelBase
 
     public byte[] ByteArrayValue
     {
-        get => this.GetValue() as byte[] ?? Array.Empty<byte>();
-        set => this.SetValue(value ?? Array.Empty<byte>());
+        get
+        {
+            object? value = this.GetValue();
+            if (value is byte[] bytes)
+            {
+                return bytes;
+            }
+
+            if (value is Bytes32 b32)
+            {
+                return b32.ToByteArray();
+            }
+
+            if (value is Snowflake sf)
+            {
+                byte[] buf = new byte[7];
+                _ = sf.TryWriteBytes(buf);
+                return buf;
+            }
+
+            return Array.Empty<byte>();
+        }
+        set
+        {
+            if (this.PropertyType == typeof(byte[]))
+            {
+                this.SetValue(value ?? Array.Empty<byte>());
+            }
+            else if (this.PropertyType == typeof(Bytes32))
+            {
+                this.SetValue(value is { Length: >= 32 } ? new Bytes32(value) : Bytes32.Zero);
+            }
+            else if (this.PropertyType == typeof(Snowflake))
+            {
+                this.SetValue(value is { Length: >= 7 } ? Snowflake.FromBytes(value) : Snowflake.Empty);
+            }
+        }
     }
 
     public static ObservableCollection<PropertyNodeViewModel> CreateNodes(

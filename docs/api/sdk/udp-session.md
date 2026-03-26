@@ -17,7 +17,7 @@ graph TD
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/UdpSession.cs`
-- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
+- `src/Nalix.Framework/DataFrames/Transforms/FramePipeline.cs`
 - `src/Nalix.Framework/DataFrames/Transforms/PacketCipher.cs`
 - `src/Nalix.Framework/DataFrames/Transforms/PacketCompression.cs`
 
@@ -27,7 +27,7 @@ Unlike TCP, `UdpSession` is connectionless at the socket level but "session-awar
 
 - **Zero-Allocation Receive**: Uses pooled `BufferLease` memory and direct `ReceiveAsync` to eliminate per-datagram allocations.
 - **MTU Enforcement**: Automatically prevents sending datagrams larger than `MaxUdpDatagramSize` (default: 1400 bytes) to avoid IP fragmentation.
-- **AEAD Integrated**: Automatically applies encryption if configured, utilizing the shared `PacketFrameTransforms` pipeline.
+- **AEAD Integrated**: Automatically applies encryption if configured, utilizing the shared `FramePipeline` (Framework layer).
 - **Fail-Safe Cleanup**: Socket or receive-loop errors force a disconnect so the session never stays half-open.
 
 ## Public API

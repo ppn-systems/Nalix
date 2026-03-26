@@ -200,20 +200,31 @@ public sealed class PacketDispatchChannel
     {
         if (packet is null || connection is null)
         {
-            packet?.Dispose();
             return;
         }
 
         if (packet.Length <= 0)
         {
+            return;
+        }
+
+        // Industrial-grade reference management: we must retain the lease before
+        // handoff to the asynchronous dispatch channel. If we don't, the caller
+        // (the transport layer) will dispose its reference immediately after this
+        // call returns, potentially returning the buffer to the pool while we
+        // are still processing it.
+        packet.Retain();
+
+        if (!_dispatch.PushCore(connection, packet, noBlock: true))
+        {
+            // If the channel is full or the connection is inactive, we must
+            // release the reference we just took to avoid a memory leak.
             packet.Dispose();
             return;
         }
 
-        if (_dispatch.PushCore(connection, packet, noBlock: true))
-        {
-            this.RequestWake();
-        }
+        // Signal a worker to wake up and process the newly queued packet.
+        this.RequestWake();
     }
 
     /// <inheritdoc />
@@ -369,7 +380,7 @@ public sealed class PacketDispatchChannel
                 while (processed < _maxDrainPerWake &&
                        _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
                 {
-                    ValueTask pending = this.ProcessOneAsync(connection, lease, ct);
+                    ValueTask pending = this.DispatchLeaseAsync(connection, lease, ct);
                     if (pending.IsCompletedSuccessfully)
                     {
                         pending.GetAwaiter().GetResult();
@@ -409,78 +420,9 @@ public sealed class PacketDispatchChannel
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private ValueTask ProcessOneAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
-    {
-        ValueTask<IBufferLease?> pipelinePending = this.Options.NetworkPipeline.ExecuteAsync(lease, connection, ct);
-        if (pipelinePending.IsCompletedSuccessfully)
-        {
-            IBufferLease? effectiveLease;
-            try
-            {
-                effectiveLease = pipelinePending.Result;
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                return ValueTask.CompletedTask;
-            }
-            catch (SerializationFailureException)
-            {
-                connection.IncrementErrorCount();
-                return ValueTask.CompletedTask;
-            }
-            catch (Exception ex)
-            {
-                connection.IncrementErrorCount();
-                this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] pipeline-error ep={connection.NetworkEndpoint}", ex);
-                return ValueTask.CompletedTask;
-            }
-
-            if (effectiveLease is null)
-            {
-                return ValueTask.CompletedTask;
-            }
-
-            return this.ProcessResolvedLease(connection, effectiveLease, ct);
-        }
-
-        return AwaitPipelineAsync(this, connection, ct, pipelinePending);
-
-        static async ValueTask AwaitPipelineAsync(
-            PacketDispatchChannel owner,
-            IConnection connection,
-            CancellationToken ct,
-            ValueTask<IBufferLease?> pending)
-        {
-            IBufferLease? effectiveLease = null;
-            try
-            {
-                effectiveLease = await pending.ConfigureAwait(false);
-                if (effectiveLease is null)
-                {
-                    return;
-                }
-
-                await owner.ProcessResolvedLease(connection, effectiveLease, ct).ConfigureAwait(false);
-                effectiveLease = null;
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-            }
-            catch (Exception ex)
-            {
-                connection.IncrementErrorCount();
-                owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] pipeline-error ep={connection.NetworkEndpoint}", ex);
-            }
-            finally
-            {
-                effectiveLease?.Dispose();
-            }
-        }
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private ValueTask ProcessResolvedLease(IConnection connection, IBufferLease lease, CancellationToken ct)
+    private ValueTask DispatchLeaseAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
         try
         {
@@ -504,7 +446,7 @@ public sealed class PacketDispatchChannel
                 catch (Exception ex)
                 {
                     connection.IncrementErrorCount();
-                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
                 }
                 finally
                 {
@@ -524,7 +466,7 @@ public sealed class PacketDispatchChannel
         catch (Exception ex)
         {
             connection.IncrementErrorCount();
-            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
             lease.Dispose();
             return ValueTask.CompletedTask;
         }
@@ -546,7 +488,7 @@ public sealed class PacketDispatchChannel
             catch (Exception ex)
             {
                 connection.IncrementErrorCount();
-                owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+                owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
             }
             finally
             {

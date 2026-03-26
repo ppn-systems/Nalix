@@ -55,7 +55,7 @@ public sealed class SessionHandlers
 
         SessionResume packet = context.Packet;
 
-        if (!packet.Validate(packet, out string? reason))
+        if (!packet.Validate(out string? reason))
         {
             Debug.WriteLine($"[NW.Session] Rejecting SESSION_RESUME. Reason: {reason}");
             await HandleFailureAsync(context.Connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);

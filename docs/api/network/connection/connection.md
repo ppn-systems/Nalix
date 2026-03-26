@@ -83,4 +83,4 @@ Every connection instance maintains a `SlidingWindow` (UdpReplayWindow) to track
 - [Socket Connection](../socket-connection.md)
 - [Snowflake Identifiers](../../framework/runtime/snowflake.md)
 - [Session Store](../session-store.md)
-- [Security Model](../../../concepts/security-model.md)
+- [Security Architecture](../../../concepts/security/security-architecture.md)

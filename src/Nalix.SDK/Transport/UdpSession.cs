@@ -9,10 +9,10 @@ using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Options;
-using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport;
 
@@ -237,7 +237,12 @@ public class UdpSession : TransportSession
             src.CommitLength(written);
 
             // Step 2: Transform outbound frame through the shared packet helpers (Compress -> Encrypt).
-            this.TransformOutbound(ref src);
+            FramePipeline.ProcessOutbound(
+                ref src,
+                this.Options.CompressionEnabled,
+                this.Options.CompressionThreshold,
+                this.Options.EncryptionEnabled,
+                this.Options.Secret.AsSpan(), this.Options.Algorithm);
 
             // Step 3: Check MTU (Token + Packet)
             if (src.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
@@ -277,7 +282,12 @@ public class UdpSession : TransportSession
             src.CommitLength(payload.Length);
 
             // Step 2: Transform
-            this.TransformOutbound(ref src);
+            FramePipeline.ProcessOutbound(
+                ref src,
+                this.Options.CompressionEnabled,
+                this.Options.CompressionThreshold,
+                this.Options.EncryptionEnabled,
+                this.Options.Secret.AsSpan(), this.Options.Algorithm);
 
             if (src.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
             {
@@ -371,7 +381,7 @@ public class UdpSession : TransportSession
                 try
                 {
                     // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
-                    this.TransformInbound(ref datagram);
+                    FramePipeline.ProcessInbound(ref datagram, this.Options.Secret.AsSpan(), this.Options.Algorithm);
 
                     Func<ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageAsync;
                     EventHandler<IBufferLease>? syncHandler = this.OnMessageReceived;
@@ -425,16 +435,6 @@ public class UdpSession : TransportSession
     }
 
     #endregion Internal
-
-    #region Transformation
-
-    private void TransformOutbound(ref IBufferLease src)
-        => PacketFrameTransforms.TransformOutbound(ref src, this.Options);
-
-    private void TransformInbound(ref IBufferLease lease)
-        => PacketFrameTransforms.TransformInbound(ref lease, this.Options);
-
-    #endregion Transformation
 
     #region Dispose
 

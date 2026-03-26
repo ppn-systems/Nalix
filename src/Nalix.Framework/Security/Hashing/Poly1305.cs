@@ -626,10 +626,10 @@ public struct Poly1305
         System.Diagnostics.Debug.Assert(rBytes.Length >= 16);
         System.Diagnostics.Debug.Assert(r.Length >= WordCount);
 
-        r[0] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes[..4]) & 0x0FFF_FFFC;
-        r[1] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(4, 4)) & 0x0FFF_FFFC;
-        r[2] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(8, 4)) & 0x0FFF_FFFC;
-        r[3] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(12, 4)) & 0x0FFF_FFFF;
+        r[0] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes[..4]) & 0x0FFFFFFF;
+        r[1] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(4, 4)) & 0x0FFFFFFC;
+        r[2] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(8, 4)) & 0x0FFFFFFC;
+        r[3] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(rBytes.Slice(12, 4)) & 0x0FFFFFFC;
         r[4] = 0;
     }
 
@@ -839,7 +839,7 @@ public struct Poly1305
 
     /// <summary>
     /// Reduces a 260-bit product modulo p = 2¹³⁰ − 5.
-    /// Since 2¹³⁰ ≡ 5 (mod p), the high 130 bits are multiplied by 5 and added to the low 130 bits.
+    /// Since 2¹³⁰ ≡ 5 (mod p), the high 130 bits are shifted down and multiplied by 5.
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
@@ -847,30 +847,53 @@ public struct Poly1305
         System.Span<uint> result,
         System.ReadOnlySpan<uint> product)
     {
-        // Copy low 130 bits (words 0–4)
-        product[..WordCount].CopyTo(result);
+        // P = L + H * 2^130
+        // L = product[0..3] , product[4] & 3
+        // H = product >> 130
+        uint h0 = (product[4] >> 2) | (product[5] << 30);
+        uint h1 = (product[5] >> 2) | (product[6] << 30);
+        uint h2 = (product[6] >> 2) | (product[7] << 30);
+        uint h3 = (product[7] >> 2) | (product[8] << 30);
+        uint h4 = (product[8] >> 2) | (product[9] << 30);
+        uint h5 = (product[9] >> 2);
 
-        // High words [5..9] × 5, added to result
-        ulong t = ((ulong)product[5] * 5) + result[0];
-        result[0] = (uint)t;
-        uint carry = (uint)(t >> 32);
+        result[0] = product[0];
+        result[1] = product[1];
+        result[2] = product[2];
+        result[3] = product[3];
+        result[4] = product[4] & 3;
 
-        t = ((ulong)product[6] * 5) + result[1] + carry;
-        result[1] = (uint)t;
-        carry = (uint)(t >> 32);
+        // result += H * 5
+        ulong c = (ulong)h0 * 5 + result[0];
+        result[0] = (uint)c;
+        c >>= 32;
+        c += (ulong)h1 * 5 + result[1];
+        result[1] = (uint)c;
+        c >>= 32;
+        c += (ulong)h2 * 5 + result[2];
+        result[2] = (uint)c;
+        c >>= 32;
+        c += (ulong)h3 * 5 + result[3];
+        result[3] = (uint)c;
+        c >>= 32;
+        c += (ulong)h4 * 5 + result[4];
+        result[4] = (uint)c;
+        c >>= 32;
+        c += (ulong)h5 * 5;
 
-        t = ((ulong)product[7] * 5) + result[2] + carry;
-        result[2] = (uint)t;
-        carry = (uint)(t >> 32);
+        // One more pass to handle the 130-bit overflow from the addition
+        uint h_extra = result[4] >> 2;
+        result[4] &= 3;
+        c += (ulong)h_extra * 5;
 
-        t = ((ulong)product[8] * 5) + result[3] + carry;
-        result[3] = (uint)t;
-        carry = (uint)(t >> 32);
+        for (int i = 0; i < 5 && c > 0; i++)
+        {
+            c += result[i];
+            result[i] = (uint)c;
+            c >>= 32;
+        }
 
-        t = ((ulong)product[9] * 5) + result[4] + carry;
-        result[4] = (uint)t;
-
-        // One final conditional reduction
+        // Final conditional reduction
         Modulo(result);
     }
 

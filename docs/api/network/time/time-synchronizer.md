@@ -78,7 +78,7 @@ This is a critical diagnostic for identifying identifying bottlenecks in the rea
 
 ## Related Information Paths
 
-- [Real-time Engine Concepts](../../../concepts/real-time.md)
+- [Real-time Engine Concept](../../../concepts/runtime/real-time-engine.md)
 - [Clock Infrastructure](../../framework/runtime/clock.md)
 - [Task Manager](../../framework/runtime/task-manager.md)
 - [Worker Options](../../framework/options/worker-options.md)

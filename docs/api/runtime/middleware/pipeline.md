@@ -1,36 +1,11 @@
 # Middleware Pipeline
 
-Nalix.Network has two middleware layers:
-
-- buffer middleware before deserialization
-- packet middleware around handler execution
+The Nalix runtime supports high-performance packet middleware that executes around handler execution, allowing for cross-cutting concerns like security, throttling, and observability.
 
 ## Source mapping
 
-- `src/Nalix.Runtime/Middleware/NetworkBufferMiddlewarePipeline.cs`
-- `src/Nalix.Common/Middleware/INetworkBufferMiddleware.cs`
 - `src/Nalix.Runtime/Middleware/MiddlewarePipeline.cs`
 - `src/Nalix.Common/Middleware/IPacketMiddleware.cs`
-
-## Buffer middleware
-
-Buffer middleware works on raw `IBufferLease` data before a packet exists.
-
-Use it for:
-
-- decryption
-- decompression
-- low-level validation
-- early frame rejection
-
-Contract:
-
-```csharp
-ValueTask<IBufferLease?> InvokeAsync(
-    IBufferLease buffer,
-    IConnection connection,
-    CancellationToken ct)
-```
 
 ## Packet middleware
 
@@ -137,7 +112,7 @@ public sealed class AuditMiddleware : IPacketMiddleware<IPacket>
 
 ```text
 socket buffer
-  -> buffer middleware
+  -> translate IBufferLease
   -> deserialize packet
   -> packet middleware
   -> handler
@@ -150,13 +125,11 @@ socket buffer
 using Nalix.Runtime.Dispatching;
 using Nalix.Network.Hosting;
 
-options.WithBufferMiddleware(new SampleAuditBufferMiddleware());
 options.WithMiddleware(new SampleAuditMiddleware());
 ```
 
 ## Related APIs
 
-- [Network Buffer Pipeline](./network-buffer-pipeline.md)
 - [Connection Limiter](../../network/connection/connection-limiter.md)
 - [Concurrency Gate](./concurrency-gate.md)
 - [Policy Rate Limiter](./policy-rate-limiter.md)

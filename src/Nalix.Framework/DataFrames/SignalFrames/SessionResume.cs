@@ -40,7 +40,7 @@ public enum SessionResumeStage : byte
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Sequential)]
 [DebuggerDisplay("SESSION_SIGNAL Stage={Stage}, Token={SessionToken}, Reason={Reason}")]
-public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSerializable, IPacketValidatable<SessionResume>
+public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSerializable, IPacketValidatable
 {
     /// <inheritdoc/>
     [SerializeIgnore]
@@ -107,27 +107,27 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     }
 
     /// <inheritdoc/>
-    public bool Validate(SessionResume packet, [NotNullWhen(false)] out string? failureReason)
+    public bool Validate([NotNullWhen(false)] out string? failureReason)
     {
-        if (packet == null)
+        if (this == null)
         {
             failureReason = "SessionResume packet is null.";
             return false;
         }
 
-        bool isValid = packet.Stage switch
+        bool isValid = this.Stage switch
         {
             SessionResumeStage.REQUEST =>
-                !packet.SessionToken.IsEmpty && !packet.Proof.IsZero,
+                !this.SessionToken.IsEmpty && !this.Proof.IsZero,
 
             SessionResumeStage.RESPONSE =>
-                packet.Reason != ProtocolReason.NONE || (!packet.SessionToken.IsEmpty && !packet.Proof.IsZero),
+                this.Reason != ProtocolReason.NONE || (!this.SessionToken.IsEmpty && !this.Proof.IsZero),
             SessionResumeStage.NONE or _ => false
         };
 
         if (!isValid)
         {
-            failureReason = $"Invalid fields provided for session resume stage {packet.Stage}.";
+            failureReason = $"Invalid fields provided for session resume stage {this.Stage}.";
             return false;
         }
 

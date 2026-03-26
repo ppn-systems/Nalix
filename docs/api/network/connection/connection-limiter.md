@@ -72,4 +72,4 @@ Settings are controlled via `ConnectionLimitOptions`:
 
 - [TCP Listener](../tcp-listener.md)
 - [Connection Hub](../connection/connection-hub.md)
-- [Security Model](../../../concepts/security-model.md)
+- [Security Architecture](../../../concepts/security/security-architecture.md)

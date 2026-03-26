@@ -64,4 +64,4 @@ int shard = Csprng.GetInt32(0, 8);
 - [Hashing and MAC](./hashing-and-mac.md)
 - [AEAD and Envelope](./aead-and-envelope.md)
 - [Handshake Extensions](../sdk/handshake-extensions.md)
-- [UDP Auth Flow](../../guides/udp-auth-flow.md)
+- [UDP Security Guide](../../guides/networking/udp-security.md)
