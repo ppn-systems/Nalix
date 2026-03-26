@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -34,16 +35,15 @@ public sealed class ConcurrencyGate : IReportable
     private const int CircuitBreakerMinSamples = 1000;
     private const int CircuitBreakerResetAfterSeconds = 60;
 
-    private readonly TimeSpan MinIdleAge = TimeSpan.FromMinutes(10);
-    private readonly TimeSpan CleanupInterval = TimeSpan.FromMinutes(1);
+    private readonly TimeSpan _minIdleAge = TimeSpan.FromMinutes(10);
+    private readonly TimeSpan _cleanupInterval = TimeSpan.FromMinutes(1);
 
     #endregion Constants
 
     #region Fields
 
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, Entry> s_table = new();
-
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, Entry> s_table = new();
 
     private long _totalAcquired;
     private long _totalRejected;
@@ -71,7 +71,7 @@ public sealed class ConcurrencyGate : IReportable
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: "concurrency.gate.cleanup",
-                interval: CleanupInterval,
+                interval: _cleanupInterval,
                 work: _ =>
                 {
                     CLEANUP_IDLE_ENTRIES();
@@ -85,7 +85,7 @@ public sealed class ConcurrencyGate : IReportable
                     ExecutionTimeout = TimeSpan.FromSeconds(5)
                 });
 
-            s_logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] initialized with cleanup interval={CleanupInterval.TotalMinutes:F1}min");
+            s_logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] initialized with cleanup interval={_cleanupInterval.TotalMinutes:F1}min");
         }
         catch (Exception ex)
         {
@@ -621,16 +621,74 @@ public sealed class ConcurrencyGate : IReportable
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Generates a key-value diagnostic summary of the concurrency gate and per-opcode state.
+    /// </summary>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        List<KeyValuePair<ushort, Entry>> entries = [.. s_table];
+        entries.Sort((a, b) =>
+        {
+            int aBusy = a.Value.Capacity - a.Value.Sem.CurrentCount;
+            int bBusy = b.Value.Capacity - b.Value.Sem.CurrentCount;
+            int cmp = bBusy.CompareTo(aBusy);
+            return cmp != 0 ? cmp : b.Value.QueueCount.CompareTo(a.Value.QueueCount);
+        });
+
+        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) = GetStatistics();
+        long totalAttempts = TotalAcquired + TotalRejected;
+        double rejectionRate = totalAttempts > 0 ? (TotalRejected * 100.0 / totalAttempts) : 0.0;
+
+        Dictionary<string, object> report = new()
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["CleanupIntervalMinutes"] = _cleanupInterval.TotalMinutes,
+            ["MinIdleAgeMinutes"] = _minIdleAge.TotalMinutes,
+            ["TrackedOpcodes"] = TrackedOpcodes,
+            ["TotalAcquired"] = TotalAcquired,
+            ["TotalRejected"] = TotalRejected,
+            ["TotalQueued"] = TotalQueued,
+            ["TotalCleaned"] = TotalCleaned,
+            ["RejectionRate"] = rejectionRate,
+            ["CircuitBreaker"] = new Dictionary<string, object>
+            {
+                ["IsOpen"] = CircuitBreakerOpen,
+                ["Trips"] = CircuitBreakerTrips
+            }
+        };
+
+        report["Opcodes"] = entries.Take(50).Select(kvp =>
+        {
+            ushort opcode = kvp.Key;
+            Entry entry = kvp.Value;
+            int available = entry.Sem.CurrentCount;
+            int inUse = entry.Capacity - available;
+            string queueMaxStr = entry.QueueMax == int.MaxValue ? "∞" : entry.QueueMax.ToString(CultureInfo.InvariantCulture);
+
+            return new Dictionary<string, object>
+            {
+                ["Opcode"] = $"0x{opcode:X4}",
+                ["Capacity"] = entry.Capacity,
+                ["InUse"] = inUse,
+                ["Available"] = available,
+                ["Queuing"] = entry.Queue,
+                ["QueueCount"] = entry.QueueCount,
+                ["QueueMax"] = queueMaxStr,
+                ["IsIdle"] = entry.IsIdle,
+                ["LastUsedUtc"] = entry.LastUsedUtc
+            };
+        }).ToList();
+
+        return report;
+    }
+
     private void APPEND_REPORT_HEADER(
         StringBuilder sb,
-        (long TotalAcquired, long TotalRejected, long TotalQueued,
-         long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen,
-         int TrackedOpcodes) stats,
-        double rejectionRate)
+        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) stats, double rejectionRate)
     {
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConcurrencyGate Status:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CleanupInterval    : {CleanupInterval.TotalMinutes:F1} min");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MinIdleAge         : {MinIdleAge.TotalMinutes:F1} min");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CleanupInterval    : {_cleanupInterval.TotalMinutes:F1} min");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MinIdleAge         : {_minIdleAge.TotalMinutes:F1} min");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TrackedOpcodes     : {stats.TrackedOpcodes}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalAcquired      : {stats.TotalAcquired:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalRejected      : {stats.TotalRejected:N0}");
@@ -641,9 +699,7 @@ public sealed class ConcurrencyGate : IReportable
         _ = sb.AppendLine();
     }
 
-    private static void APPEND_OPCODE_DETAILS(
-        StringBuilder sb,
-        List<KeyValuePair<ushort, Entry>> snapshot)
+    private static void APPEND_OPCODE_DETAILS(StringBuilder sb, List<KeyValuePair<ushort, Entry>> snapshot)
     {
         _ = sb.AppendLine("Top Opcodes by Load:");
         _ = sb.AppendLine("---------------------------------------------------------------------------------");
@@ -662,10 +718,7 @@ public sealed class ConcurrencyGate : IReportable
         _ = sb.AppendLine("---------------------------------------------------------------------------------");
     }
 
-    private static void APPEND_TOP_OPCODES(
-        StringBuilder sb,
-        List<KeyValuePair<ushort, Entry>> snapshot,
-        int maxRows)
+    private static void APPEND_TOP_OPCODES(StringBuilder sb, List<KeyValuePair<ushort, Entry>> snapshot, int maxRows)
     {
         int rows = 0;
 
@@ -777,7 +830,7 @@ public sealed class ConcurrencyGate : IReportable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Entry GET_OR_CREATE_ENTRY(
+    private static Entry GET_OR_CREATE_ENTRY(
         ushort opcode,
         PacketConcurrencyLimitAttribute attr)
     {
@@ -840,7 +893,7 @@ public sealed class ConcurrencyGate : IReportable
                 }
 
                 TimeSpan age = now - entry.LastUsedUtc;
-                if (age < MinIdleAge)
+                if (age < _minIdleAge)
                 {
                     continue;
                 }

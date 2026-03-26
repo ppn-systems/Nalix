@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -123,7 +124,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private readonly int _cleanupIntervalSec;
     private readonly long _initialBalanceMicro;
 
-    private readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private int _totalEndpointCount;
     private volatile bool _disposed;
@@ -241,6 +242,66 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         try
         {
             return BUILD_REPORT_STRING(snapshot, totalEndpoints, hardBlockedCount, now);
+        }
+        finally
+        {
+            RETURN_SNAPSHOT_TO_POOL(snapshot);
+        }
+    }
+
+    /// <summary>
+    /// Generates a key-value diagnostic summary of the token bucket limiter, tracked endpoints, and state.
+    /// </summary>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        long now = Stopwatch.GetTimestamp();
+
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot = COLLECT_STATE_SNAPSHOT(now, out int totalEndpoints, out int hardBlockedCount);
+        try
+        {
+            Dictionary<string, object> data = new()
+            {
+                ["UtcNow"] = DateTime.UtcNow,
+                ["CapacityTokens"] = _options.CapacityTokens,
+                ["RefillPerSecond"] = _options.RefillTokensPerSecond,
+                ["TokenScale"] = _options.TokenScale,
+                ["Shards"] = _options.ShardCount,
+                ["HardLockoutSeconds"] = _options.HardLockoutSeconds,
+                ["StaleEntrySeconds"] = _options.StaleEntrySeconds,
+                ["CleanupIntervalSecs"] = _options.CleanupIntervalSeconds,
+                ["MaxTrackedEndpoints"] = _options.MaxTrackedEndpoints,
+                ["TrackedEndpoints"] = totalEndpoints,
+                ["HardBlockedCount"] = hardBlockedCount
+            };
+
+            List<Dictionary<string, object>> topEndpoints = [.. snapshot.Take(20).Select(kv =>
+            {
+                EndpointState state = kv.Value;
+                long micro, blockedUntil;
+                lock (state.Gate)
+                {
+                    micro = state.MicroBalance;
+                    blockedUntil = state.HardBlockedUntilSw;
+                }
+
+                bool isBlocked = blockedUntil > now;
+                ushort credit = CALCULATE_REMAINING_CREDIT(micro, _options.TokenScale);
+
+                return new Dictionary<string, object>
+                {
+                    ["Endpoint"] = kv.Key.Address,
+                    ["Blocked"] = isBlocked,
+                    ["Credit"] = credit,
+                    ["MicroBalance"] = micro,
+                    ["RetryAfterMs"] = isBlocked
+                        ? CALCULATE_DELAY_MS(now, blockedUntil)
+                        : (micro >= _options.TokenScale ? 0 : CALCULATE_RETRY_DELAY_MS(_options.TokenScale - micro))
+                };
+            })];
+
+            data["Endpoints"] = topEndpoints;
+
+            return data;
         }
         finally
         {

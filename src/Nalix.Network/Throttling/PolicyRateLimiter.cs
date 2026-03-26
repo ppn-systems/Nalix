@@ -270,8 +270,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     /// </para>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public TokenBucketLimiter.RateLimitDecision Check(ushort opCode,
-        PacketContext<IPacket> context)
+    public TokenBucketLimiter.RateLimitDecision Check(ushort opCode, PacketContext<IPacket> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
@@ -334,6 +333,42 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         _ = sb.AppendLine("------------------------------------------------------------");
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Generates a key-value diagnostic summary of the policy rate limiter and all active policies.
+    /// </summary>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        Dictionary<string, object> data = new()
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["ActivePolicies"] = _limiters.Count,
+            ["MaxPolicies"] = MaxPolicies,
+            ["CheckCounter"] = Volatile.Read(ref _checkCounter)
+        };
+
+        List<Dictionary<string, object>> active = [.. _limiters
+            .OrderByDescending(x => x.Key.Rps)
+            .ThenByDescending(x => x.Key.Burst)
+            .Take(32)
+            .Select(kv =>
+            {
+                Policy policy = kv.Key;
+                Entry entry = kv.Value;
+                DateTime lastUsed = new(entry.LastUsedUtcTicks, DateTimeKind.Utc);
+
+                return new Dictionary<string, object>
+                {
+                    ["RPS"] = policy.Rps,
+                    ["Burst"] = policy.Burst,
+                    ["LastUsedUtc"] = lastUsed
+                };
+            })];
+
+        data["Policies"] = active;
+
+        return data;
     }
 
     /// <summary>

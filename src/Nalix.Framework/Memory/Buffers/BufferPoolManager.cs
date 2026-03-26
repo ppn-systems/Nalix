@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -374,6 +375,70 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         APPEND_REPORT_METRICS(sb);
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Generates a key-value diagnostic report of the buffer pool manager and all buffer pools.
+    /// </summary>
+    /// <returns>A dictionary describing the state of the BufferPoolManager.</returns>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        Dictionary<string, object> data = new(StringComparer.Ordinal)
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["Initialized"] = _isInitialized,
+            ["TotalBuffersConfigured"] = _config.TotalBuffers,
+            ["PoolCount"] = _bufferAllocations.Length,
+            ["MinBufferSize"] = MinBufferSize,
+            ["MaxBufferSize"] = MaxBufferSize,
+            ["EnableTrimming"] = _config.EnableMemoryTrimming,
+            ["EnableAnalytics"] = _config.EnableAnalytics,
+            ["EnableSecureClear"] = _config.SecureClear,
+            ["FallbackToArrayPool"] = _config.FallbackToArrayPool,
+            ["TrimIntervalMinutes"] = _config.TrimIntervalMinutes,
+            ["DeepTrimIntervalMinutes"] = _config.DeepTrimIntervalMinutes,
+            ["TrimCycleCount"] = _trimCycleCount,
+            ["ShrinkSafetyPolicy"] = new Dictionary<string, object>
+            {
+                ["MinimumRetentionPercent"] = _shrinkPolicy.MinimumRetentionPercent,
+                ["MaxSingleShrinkStep"] = _shrinkPolicy.MaxSingleShrinkStep,
+                ["MaxShrinkPercentPerCycle"] = _shrinkPolicy.MaxShrinkPercentPerCycle,
+                ["AbsoluteMinimum"] = _shrinkPolicy.AbsoluteMinimum
+            }
+        };
+
+        // Pool detail
+        List<Dictionary<string, object>> poolDetails = [.. _poolManager.GetAllPools()
+            .OrderBy(p => p.GetPoolInfoRef().BufferSize)
+            .Select(pool =>
+            {
+                ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+                int inUse = info.TotalBuffers - info.FreeBuffers;
+                double usage = info.GetUsageRatio() * 100.0;
+                double miss = info.GetMissRate() * 100.0;
+                _ = _metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics);
+
+                string bytesReturned = metrics.TotalBytesReturned > 1_000_000
+                    ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
+                    : $"{metrics.TotalBytesReturned / 1024}KB";
+
+                return new Dictionary<string, object>
+                {
+                    ["BufferSize"] = info.BufferSize,
+                    ["Total"] = info.TotalBuffers,
+                    ["Free"] = info.FreeBuffers,
+                    ["InUse"] = inUse,
+                    ["UsageRatio"] = usage,
+                    ["MissRate"] = miss,
+                    ["ShrinkAttempted"] = metrics.ShrinkAttempted,
+                    ["ShrinkSkipped"] = metrics.ShrinkSkipped,
+                    ["ExpandAttempted"] = metrics.ExpandAttempted,
+                    ["BytesReturned"] = bytesReturned
+                };
+            })];
+
+        data["Pools"] = poolDetails;
+        return data;
     }
 
     #endregion Public API

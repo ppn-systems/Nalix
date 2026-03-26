@@ -632,53 +632,79 @@ public sealed class ObjectPoolManager : IReportable
     }
 
     /// <summary>
-    /// Gets detailed statistics for all pools including cache performance metrics.
+    /// Generates a key-value diagnostic report of the object pool manager and all pools.
     /// </summary>
-    /// <returns>A dictionary containing comprehensive statistics.</returns>
-    public Dictionary<string, object> GetDetailedStatistics()
+    /// <returns>A dictionary describing the state of the ObjectPoolManager.</returns>
+    public IDictionary<string, object> GenerateReportData()
     {
-        Dictionary<string, object> stats = new()
+        Dictionary<string, object> data = new(StringComparer.Ordinal)
         {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["UptimeSeconds"] = Uptime.TotalSeconds,
             ["PoolCount"] = PoolCount,
             ["PeakPoolCount"] = PeakPoolCount,
+            ["UnhealthyPoolCount"] = UnhealthyPoolCount,
+            ["DefaultMaxPoolSize"] = DefaultMaxPoolSize,
+            ["StartTime"] = _startTime,
+            ["LastHealthCheckTicks"] = _lastHealthCheckUtc,
             ["TotalGetOperations"] = TotalGetOperations,
             ["TotalReturnOperations"] = TotalReturnOperations,
             ["TotalCacheHits"] = TotalCacheHits,
             ["TotalCacheMisses"] = TotalCacheMisses,
             ["CacheHitRate"] = CacheHitRate,
-            ["UnhealthyPoolCount"] = UnhealthyPoolCount,
-            ["UptimeSeconds"] = Uptime.TotalSeconds,
-            ["StartTime"] = _startTime,
-            ["DefaultMaxPoolSize"] = DefaultMaxPoolSize
+            ["NetObjects"] = TotalGetOperations - TotalReturnOperations,
         };
 
-        Dictionary<string, Dictionary<string, object>> poolStats = [];
+        List<Dictionary<string, object>> pools = [];
 
-        foreach (KeyValuePair<Type, ObjectPool> kvp in _poolDict)
+        List<KeyValuePair<Type, ObjectPool>> sortedPools = [.. _poolDict];
+        sortedPools.Sort((a, b) => string.CompareOrdinal(a.Key.Name, b.Key.Name));
+
+        foreach (KeyValuePair<Type, ObjectPool> kvp in sortedPools)
         {
-            string typeName = kvp.Key.Name;
-            Dictionary<string, object> baseStats = kvp.Value.GetStatistics();
+            Dictionary<string, object> poolInfo = kvp.Value.GetStatistics();
+            Dictionary<string, object> poolDict = new()
+            {
+                ["Type"] = kvp.Key.FullName ?? kvp.Key.Name,
+                ["Available"] = poolInfo.TryGetValue("AvailableCount", out object? available) ? available : 0,
+                ["MaxCapacity"] = poolInfo.TryGetValue("MaxCapacity", out object? maxcap) ? maxcap : DefaultMaxPoolSize,
+                ["IsActive"] = poolInfo.TryGetValue("IsActive", out object? active) ? active : true,
+            };
 
-            // Add metrics if available
             if (_metricsDict.TryGetValue(kvp.Key, out PoolMetrics? metrics))
             {
-                baseStats["CacheHits"] = metrics.CacheHits;
-                baseStats["CacheMisses"] = metrics.CacheMisses;
-                baseStats["CacheHitRate"] = metrics.TotalGets > 0
-                    ? (metrics.CacheHits / (double)metrics.TotalGets * 100.0)
-                    : 0.0;
-                baseStats["LastAccessUtc"] = metrics.LastAccessUtc;
-                baseStats["LastAccessType"] = metrics.LastAccessType ?? "None";
-                baseStats["ConsecutiveFailures"] = metrics.ConsecutiveFailures;
-                baseStats["Outstanding"] = metrics.Outstanding;
-            }
+                long gets = metrics.TotalGets, hits = metrics.CacheHits, misses = metrics.CacheMisses;
+                double hitPercent = gets > 0 ? (hits / (double)gets * 100.0) : 0.0;
 
-            poolStats[typeName] = baseStats;
+                poolDict["Gets"] = gets;
+                poolDict["Hits"] = hits;
+                poolDict["Misses"] = misses;
+                poolDict["HitRate"] = hitPercent;
+                poolDict["LastAccessUtc"] = metrics.LastAccessUtc;
+                poolDict["LastAccessType"] = metrics.LastAccessType ?? "None";
+                poolDict["Outstanding"] = metrics.Outstanding;
+                poolDict["ConsecutiveFailures"] = metrics.ConsecutiveFailures;
+                poolDict["Status"] = metrics.ConsecutiveFailures > 0 ? "Unhealthy" : "OK";
+            }
+            pools.Add(poolDict);
+        }
+        data["Pools"] = pools;
+
+        if (UnhealthyPoolCount > 0)
+        {
+            List<Dictionary<string, object>> unhealthy = [.. _metricsDict
+                .Where(x => x.Value.ConsecutiveFailures > 0)
+                .Select(x => new Dictionary<string, object>
+                {
+                    ["Type"] = x.Key.FullName ?? x.Key.Name,
+                    ["ConsecutiveFailures"] = x.Value.ConsecutiveFailures,
+                    ["LastAccessUtc"] = x.Value.LastAccessUtc,
+                    ["Outstanding"] = x.Value.Outstanding
+                })];
+            data["UnhealthyPools"] = unhealthy;
         }
 
-        stats["Pools"] = poolStats;
-
-        return stats;
+        return data;
     }
 
     /// <summary>

@@ -776,6 +776,131 @@ public sealed partial class TaskManager : ITaskManager
         }
     }
 
+    /// <summary>
+    /// Generates report data as key-value pairs describing the current state.
+    /// </summary>
+    /// <returns>A dictionary containing the report data.</returns>
+    public IDictionary<string, object> GenerateReportData()
+    {
+        Dictionary<string, object> data = new(StringComparer.Ordinal)
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["RecurringCount"] = _recurring.Count,
+            ["WorkersTotal"] = _workers.Count,
+            ["WorkersRunning"] = _workers.Values.Count(w => w.IsRunning),
+
+            // CPU/Concurrency section
+            ["DynamicAdjustmentEnabled"] = _options.DynamicAdjustmentEnabled,
+            ["CurrentConcurrencyLimit"] = _currentConcurrencyLimit,
+            ["MaxWorkers"] = _options.MaxWorkers,
+            ["HighCpuThreshold"] = _options.ThresholdHighCpu,
+            ["LowCpuThreshold"] = _options.ThresholdLowCpu,
+            ["ObservingIntervalSeconds"] = _options.ObservingInterval.TotalSeconds
+        };
+
+        // Memory usage (best effort)
+        try
+        {
+            Process proc = Process.GetCurrentProcess();
+            proc.Refresh();
+            data["Memory"] = new Dictionary<string, long>
+            {
+                ["WorkingSetMB"] = proc.WorkingSet64 / (1024 * 1024),
+                ["PrivateMB"] = proc.PrivateMemorySize64 / (1024 * 1024),
+                ["VirtualMB"] = proc.VirtualMemorySize64 / (1024 * 1024)
+            };
+
+            data["Process"] = new Dictionary<string, object>
+            {
+                ["Threads"] = proc.Threads.Count,
+                ["ThreadsRunning"] = proc.Threads.Cast<ProcessThread>().Count(t => t.ThreadState == System.Diagnostics.ThreadState.Running),
+                ["Handles"] = proc.HandleCount,
+                ["GCGen0"] = GC.CollectionCount(0),
+                ["GCGen1"] = GC.CollectionCount(1),
+                ["GCGen2"] = GC.CollectionCount(2),
+                ["ManagedHeapMB"] = GC.GetTotalMemory(false) / 1048576,
+                ["UptimeDays"] = (DateTimeOffset.UtcNow - proc.StartTime.ToUniversalTime()).TotalDays,
+                ["StartTimeUtc"] = proc.StartTime.ToUniversalTime()
+            };
+        }
+        catch
+        {
+            // Ignore diagnostics failure
+        }
+
+        // Stats
+        data["WorkerExecutionCount"] = _workerExecutionCount;
+        data["AverageWorkerExecutionTimeMs"] = AverageWorkerExecutionTime;
+        data["WorkerErrorCount"] = WorkerErrorCount;
+        data["RecurringExecutionCount"] = _recurringExecutionCount;
+        data["AverageRecurringExecutionTimeMs"] = AverageRecurringExecutionTime;
+        data["RecurringErrorCount"] = RecurringErrorCount;
+
+        // Recurring summary
+        data["Recurring"] = _recurring.Values.Select(s => new Dictionary<string, object>
+        {
+            ["Name"] = s.Name,
+            ["TotalRuns"] = s.TotalRuns,
+            ["ConsecutiveFailures"] = s.ConsecutiveFailures,
+            ["IsRunning"] = s.IsRunning,
+            ["LastRunUtc"] = s.LastRunUtc ?? DateTimeOffset.MinValue,
+            ["NextRunUtc"] = s.NextRunUtc ?? DateTimeOffset.MinValue,
+            ["IntervalMs"] = s.Interval.TotalMilliseconds,
+            ["Tag"] = s.Options.Tag ?? "N/A"
+        }).ToList();
+
+        // Top 5 Recurring by failures
+        data["TopRecurringByFailures"] = _recurring.Values
+            .OrderByDescending(r => r.ConsecutiveFailures)
+            .Take(5)
+            .Select(r => new Dictionary<string, object>
+            {
+                ["Name"] = r.Name,
+                ["ConsecutiveFailures"] = r.ConsecutiveFailures,
+                ["LastRunUtc"] = r.LastRunUtc ?? DateTimeOffset.MinValue,
+                ["Tag"] = r.Options.Tag ?? "N/A"
+            }).ToList();
+
+        // Workers by group
+        Dictionary<string, object> perGroup = new(StringComparer.Ordinal);
+        foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
+        {
+            WorkerState st = kv.Value;
+            if (!perGroup.TryGetValue(st.Group, out object? v))
+            {
+                perGroup[st.Group] = new { Running = 0, Total = 0, Concurrency = "" };
+                v = perGroup[st.Group];
+            }
+            dynamic rec = v;
+            perGroup[st.Group] = new
+            {
+                Running = rec.Running + (st.IsRunning ? 1 : 0),
+                Total = rec.Total + 1,
+                Concurrency = _groupGates.TryGetValue(st.Group, out Gate? gate)
+                    ? $"{gate.Capacity - gate.SemaphoreSlim.CurrentCount}/{gate.Capacity}"
+                    : "-"
+            };
+        }
+        data["WorkersByGroup"] = perGroup;
+
+        // Top running workers (by age, max 50)
+        data["TopRunningWorkers"] = _workers.Values
+            .Where(w => w.IsRunning)
+            .OrderBy(w => w.StartedUtc)
+            .Take(50)
+            .Select(w => new Dictionary<string, object>
+            {
+                ["Id"] = w.Id.ToString() ?? "N/A",
+                ["Name"] = w.Name,
+                ["Group"] = w.Group,
+                ["StartedUtc"] = w.StartedUtc,
+                ["Progress"] = w.Progress,
+                ["LastHeartbeatUtc"] = w.LastHeartbeatUtc ?? DateTimeOffset.MinValue,
+            }).ToList();
+
+        return data;
+    }
+
     #endregion IReportable
 
     #region IDisposable

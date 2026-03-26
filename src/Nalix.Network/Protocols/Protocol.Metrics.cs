@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -55,6 +56,23 @@ public abstract partial class Protocol : IReportable
         _ = sb.AppendLine();
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Generates protocol report data as key-value pairs describing the current protocol state and metrics.
+    /// </summary>
+    /// <returns>A dictionary containing the protocol report data.</returns>
+    public virtual IDictionary<string, object> GenerateReportData()
+    {
+        return new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            ["UtcNow"] = DateTime.UtcNow,
+            ["IsDisposed"] = _isDisposed,
+            ["TotalMessages"] = TotalMessages,
+            ["TotalErrors"] = TotalErrors,
+            ["IsAccepting"] = IsAccepting,
+            ["KeepConnectionOpen"] = KeepConnectionOpen
+        };
     }
 
     #endregion Public Methods
