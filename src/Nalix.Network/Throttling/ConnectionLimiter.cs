@@ -55,7 +55,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     private readonly TimeSpan _inactivityThreshold;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
 
-    private readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private int _disposed;
 

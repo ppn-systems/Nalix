@@ -35,8 +35,7 @@ public abstract partial class TcpListenerBase
     /// connection is closed immediately — the listener loop continues uninterrupted.
     /// </remarks>
     [DebuggerStepThrough]
-    protected void ProcessConnection(
-        IConnection connection)
+    protected void ProcessConnection(IConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
 

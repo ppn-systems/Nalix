@@ -17,7 +17,7 @@ using Nalix.Network.Internal.Compilation;
 using Nalix.Network.Middleware;
 using Nalix.Network.Routing.Metadata;
 
-namespace Nalix.Network.Routing.Options;
+namespace Nalix.Network.Routing;
 
 public sealed partial class PacketDispatchOptions<TPacket>
 {

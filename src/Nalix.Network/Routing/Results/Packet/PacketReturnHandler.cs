@@ -12,35 +12,32 @@ namespace Nalix.Network.Routing.Results.Packet;
 
 /// <inheritdoc/>
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket>
-    where TPacket : IPacket
+internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
-    public async ValueTask HandleAsync(
-        object? result,
-        PacketContext<TPacket> context)
+    public async ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
     {
         if (result is not TPacket packet)
         {
             return;
         }
 
-        if (context?.Connection?.TCP == null)
+
+        if (context.Sender == null)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(PacketReturnHandler<>)}:{nameof(HandleAsync)}] send-failed transport=null");
+                                    .Trace($"[NW.{nameof(PacketReturnHandler<>)}:{nameof(HandleAsync)}] send-failed transport=null");
             return;
         }
 
         try
         {
-            ReadOnlyMemory<byte> bytes = packet.Serialize();
-            bool sent = await context.Connection.TCP.SendAsync(bytes).ConfigureAwait(false);
+            bool sent = await context.Sender.SendAsync(packet);
 
             if (!sent)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[NW.{nameof(PacketReturnHandler<>)}:{nameof(HandleAsync)}] send-failed");
+                                        .Trace($"[NW.{nameof(PacketReturnHandler<>)}:{nameof(HandleAsync)}] send-failed");
             }
         }
         catch (Exception ex)
