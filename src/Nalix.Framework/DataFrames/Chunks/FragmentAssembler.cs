@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Framework.Memory.Buffers;
@@ -236,7 +237,43 @@ public sealed class FragmentAssembler : IDisposable
     /// <summary>
     /// Quick check to determine if the payload is a fragmented chunk using the magic byte.
     /// </summary>
-    public static bool IsFragmentedFrame(ReadOnlySpan<byte> payload) => payload.Length >= FragmentHeader.WireSize && payload[0] == FragmentHeader.Magic;
+    public static bool IsFragmentedFrame(ReadOnlySpan<byte> payload, [NotNullWhen(true)] out FragmentHeader header)
+    {
+        header = default;
+        if (payload.Length < FragmentHeader.WireSize)
+        {
+            return false;
+        }
+
+        if (payload[0] != FragmentHeader.Magic)
+        {
+            return false;
+        }
+
+        // Second validation: try to read header and check logical consistency
+        try
+        {
+            header = FragmentHeader.ReadFrom(payload);
+
+            // Additional safety checks
+            if (header.StreamId == 0)
+            {
+                return false;
+            }
+
+            if (header.TotalChunks == 0 || header.ChunkIndex >= header.TotalChunks)
+            {
+                return false;
+            }
+
+            return true;
+        }
+        catch
+        {
+            // If parsing fails → treat as normal packet
+            return false;
+        }
+    }
 
     #endregion APIs
 

@@ -423,44 +423,34 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                     ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
                     ReadOnlySpan<byte> payloadSpan = lease.Span;
 
-                    if (FragmentAssembler.IsFragmentedFrame(payloadSpan))
+                    if (FragmentAssembler.IsFragmentedFrame(payloadSpan, out FragmentHeader header))
                     {
-                        try
+                        lease.Dispose();
+
+                        ReadOnlySpan<byte> chunkBody = payloadSpan[FragmentHeader.WireSize..];
+
+#if DEBUG
+                        s_logger?.Debug(
+                            $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                            $"recv-fragment stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
+                            $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_sender?.NetworkEndpoint.Address}");
+#endif
+
+                        if (_fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled) && assembled != null)
                         {
-                            lease.Dispose();
-
-                            FragmentHeader header = FragmentHeader.ReadFrom(payloadSpan);
-                            ReadOnlySpan<byte> chunkBody = payloadSpan[FragmentHeader.WireSize..];
-
+                            args.Initialize(assembled, _cachedArgs.Connection);
+                            AsyncCallback.Invoke(_callbackProcess, _sender, args);
+                            assembled.Dispose();
 #if DEBUG
                             s_logger?.Debug(
                                 $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                                $"recv-fragment stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
-                                $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_sender?.NetworkEndpoint.Address}");
+                                $"fragment-assembled stream={header.StreamId} totalLen={assembled.Length} " +
+                                $"ep={_sender?.NetworkEndpoint.Address}");
 #endif
-
-                            if (_fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled) && assembled != null)
-                            {
-                                args.Initialize(assembled, _cachedArgs.Connection);
-                                AsyncCallback.Invoke(_callbackProcess, _sender, args);
-                                assembled.Dispose();
-#if DEBUG
-                                s_logger?.Debug(
-                                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                                    $"fragment-assembled stream={header.StreamId} totalLen={assembled.Length} " +
-                                    $"ep={_sender?.NetworkEndpoint.Address}");
-#endif
-                            }
-                            else
-                            {
-                                args.Dispose();
-                            }
                         }
-                        catch
+                        else
                         {
-                            lease.Retain(); // Retain for the callback; released in Connection.cs after processing.
-                            args.Initialize(lease, _cachedArgs.Connection);
-                            AsyncCallback.Invoke(_callbackProcess, _sender, args);
+                            args.Dispose();
                         }
                     }
                     else
@@ -563,6 +553,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
             // 7. Dispose remaining resources.
             _cts.Dispose();
             _socket.Dispose();
+            _fragmentAssembler.Dispose();
         }
 
 #if DEBUG
