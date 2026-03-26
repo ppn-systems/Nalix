@@ -35,7 +35,7 @@ namespace Nalix.Network.Internal.Transport;
 ///   <item><b>Normal priority</b> — process/post-process packet events. Subject to the
 ///         global <see cref="NetworkCallbackOptions.MaxPendingNormalCallbacks"/> cap. When the cap is reached, new normal
 ///         callbacks are dropped and a warning is logged. Callers (e.g.
-///         <see cref="FramedSocketConnection"/>) enforce per-connection limits (Layer 1)
+///         <see cref="SocketConnection"/>) enforce per-connection limits (Layer 1)
 ///         so legitimate connections are not affected by a single flooding IP.</item>
 /// </list>
 /// </para>
