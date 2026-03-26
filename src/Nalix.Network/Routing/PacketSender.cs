@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
-using Nalix.Framework.Frames;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Configurations;
 

@@ -13,10 +13,10 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Frames.Internal;
+using Nalix.Framework.DataFrames.Internal;
 using Nalix.Framework.Serialization;
 
-namespace Nalix.Framework.Frames;
+namespace Nalix.Framework.DataFrames;
 
 /// <summary>
 /// Base class for all packets with automatic serialization and pooling.

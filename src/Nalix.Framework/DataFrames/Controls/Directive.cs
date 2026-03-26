@@ -6,7 +6,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 
-namespace Nalix.Framework.Frames.Controls;
+namespace Nalix.Framework.DataFrames.Controls;
 
 /// <summary>
 /// A compact, generic server-to-client directive frame for common control scenarios.

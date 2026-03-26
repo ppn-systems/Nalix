@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Nalix.Framework.LZ4.Encoders;
 
-
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]

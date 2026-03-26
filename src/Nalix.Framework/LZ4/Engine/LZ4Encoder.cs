@@ -53,8 +53,6 @@ internal static class LZ4Encoder
         }
 #endif
 
-        // LZ4HashTablePool dùng [ThreadStatic] — không có lock/CAS overhead như ArrayPool.Shared,
-        // và tự Clear() bên trong Rent() nên không cần clear thủ công sau khi lấy ra.
         int[] table = LZ4HashTablePool.Rent();
 
         try
@@ -94,8 +92,6 @@ internal static class LZ4Encoder
         }
         finally
         {
-            // No-op cho thread-static pool, nhưng giữ để API consistent
-            // và dễ swap sang implementation khác sau này
             LZ4HashTablePool.Return(table);
         }
     }
