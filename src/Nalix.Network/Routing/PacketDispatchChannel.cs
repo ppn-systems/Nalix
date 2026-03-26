@@ -84,7 +84,7 @@ public sealed class PacketDispatchChannel
                        $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager. Make sure to build and register IPacketRegistry before starting dispatcher.");
 
         // Push any additional initialization here if needed
-        Logging?.Debug($"[{nameof(PacketDispatchChannel)}] init");
+        this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}] init");
     }
 
     #endregion Constructors
@@ -103,7 +103,7 @@ public sealed class PacketDispatchChannel
     {
         if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
-            Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{Activate}] already-running");
+            this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{this.Activate}] already-running");
             return;
         }
 
@@ -129,7 +129,7 @@ public sealed class PacketDispatchChannel
 
         // Decide how many parallel dispatch loops to start.
         // Rule of thumb: cores/2, clamped to [1..12]
-        _dispatchLoops = Options.DispatchLoopCount ?? Math.Clamp(Environment.ProcessorCount / 2, 1, 12);
+        _dispatchLoops = this.Options.DispatchLoopCount ?? Math.Clamp(Environment.ProcessorCount / 2, 1, 12);
         _workerHandle = new IWorkerHandle[_dispatchLoops];
 
         for (int i = 0; i < _dispatchLoops; i++)
@@ -139,7 +139,7 @@ public sealed class PacketDispatchChannel
             _workerHandle[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"{TaskNaming.Tags.Dispatch}.{TaskNaming.Tags.Process}.{i}",
                 group: $"{NetTaskNames.Net}/{TaskNaming.Tags.Dispatch}",
-                work: async (ctx, ct) => await RunLoop(ctx, ct).ConfigureAwait(false),
+                work: async (ctx, ct) => await this.RunLoop(ctx, ct).ConfigureAwait(false),
                 options: new WorkerOptions
                 {
                     IdType = SnowflakeType.System,
@@ -150,7 +150,7 @@ public sealed class PacketDispatchChannel
             );
         }
 
-        Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{Activate}] start");
+        this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{this.Activate}] start");
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public sealed class PacketDispatchChannel
             if (localCts is { IsCancellationRequested: false })
             {
                 localCts.Cancel();
-                Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop");
+                this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{this.Deactivate}] stop");
             }
 
             try
@@ -200,11 +200,11 @@ public sealed class PacketDispatchChannel
         }
         catch (ObjectDisposedException)
         {
-            Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-on-disposed-cts");
+            this.Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{this.Deactivate}] stop-on-disposed-cts");
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[{nameof(PacketDispatchChannel)}:{Deactivate}] stop-error", ex);
+            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{this.Deactivate}] stop-error", ex);
         }
         finally
         {
@@ -220,7 +220,7 @@ public sealed class PacketDispatchChannel
     {
         if (packet is null || packet.Length <= 0)
         {
-            Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.NetworkEndpoint}");
+            this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.NetworkEndpoint}");
             packet?.Dispose();
 
             return;
@@ -239,7 +239,7 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void HandlePacket(
         IPacket packet,
-        IConnection connection) => ExecutePacketHandlerAsync(packet, connection).Await();
+        IConnection connection) => this.ExecutePacketHandlerAsync(packet, connection).Await();
 
     #endregion Public Methods
 
@@ -404,7 +404,7 @@ public sealed class PacketDispatchChannel
                         continue;
                     }
 
-                    Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
+                    this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
                     lease?.Dispose();
                     lease = null;
                     continue;
@@ -412,11 +412,11 @@ public sealed class PacketDispatchChannel
 
                 try
                 {
-                    IBufferLease? afterMw = await Options.NetworkPipeline.ExecuteAsync(lease, connection, ct).ConfigureAwait(false);
+                    IBufferLease? afterMw = await this.Options.NetworkPipeline.ExecuteAsync(lease, connection, ct).ConfigureAwait(false);
 
                     if (afterMw is null)
                     {
-                        Logging?.Debug($"[PacketDispatchChannel:RunLoop] middleware-reject ep={connection.NetworkEndpoint}");
+                        this.Logging?.Debug($"[PacketDispatchChannel:RunLoop] middleware-reject ep={connection.NetworkEndpoint}");
                         lease.Dispose();
                         lease = null;
                         continue;
@@ -431,7 +431,7 @@ public sealed class PacketDispatchChannel
                 catch (Exception ex)
                 {
                     connection.IncrementErrorCount();
-                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection.NetworkEndpoint} leaseLen={lease?.Length}", ex);
+                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection.NetworkEndpoint} leaseLen={lease?.Length}", ex);
 
                     lease?.Dispose();
                     lease = null;
@@ -445,19 +445,19 @@ public sealed class PacketDispatchChannel
                     {
                         int len = lease.Length;
                         string head = Convert.ToHexString(lease.Span[..Math.Min(16, len)]);
-                        Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
+                        this.Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
 
                         lease.Dispose();
                         lease = null;
                         continue;
                     }
 
-                    await ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
+                    await this.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     connection.IncrementErrorCount();
-                    Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.NetworkEndpoint}", ex);
+                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.NetworkEndpoint}", ex);
                 }
                 finally
                 {
@@ -474,7 +474,7 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] loop-error", ex);
+            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] loop-error", ex);
         }
         finally
         {
@@ -495,7 +495,7 @@ public sealed class PacketDispatchChannel
     [DebuggerNonUserCode]
     public void Dispose()
     {
-        Deactivate();
+        this.Deactivate();
 
         _linkedCts?.Dispose();
         _cts?.Dispose();

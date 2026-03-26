@@ -62,27 +62,27 @@ public class FragmentOptions : ConfigurationLoader
     public void Validate()
     {
         // ChunkBodySize + 2B (frame header) + 7B (ChunkHeader) ≤ PacketSizeLimit
-        int minPacketSize = ChunkBodySize
+        int minPacketSize = this.ChunkBodySize
                           + sizeof(ushort)                // FramedSocket frame header
                           + FragmentHeader.WireSize;      // ChunkedFrameHeader
 
         if (minPacketSize > PacketConstants.PacketSizeLimit)
         {
             throw new InvalidOperationException(
-                $"ChunkBodySize={ChunkBodySize} + overhead={sizeof(ushort) + FragmentHeader.WireSize} " +
+                $"ChunkBodySize={this.ChunkBodySize} + overhead={sizeof(ushort) + FragmentHeader.WireSize} " +
                 $"= {minPacketSize} over MaxPacketSize={PacketConstants.PacketSizeLimit}. " +
                 $"Decrease ChunkBodySize or increase PacketSizeLimit.");
         }
 
-        if (ChunkThreshold <= 0)
+        if (this.ChunkThreshold <= 0)
         {
             throw new InvalidOperationException("ChunkThreshold must be > 0.");
         }
 
-        if (MaxPayloadSize < ChunkThreshold)
+        if (this.MaxPayloadSize < this.ChunkThreshold)
         {
             throw new InvalidOperationException(
-                $"MaxPayloadSize={MaxPayloadSize} must be >= ChunkThreshold={ChunkThreshold}.");
+                $"MaxPayloadSize={this.MaxPayloadSize} must be >= ChunkThreshold={this.ChunkThreshold}.");
         }
     }
 }

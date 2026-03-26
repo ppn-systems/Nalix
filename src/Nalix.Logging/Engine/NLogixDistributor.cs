@@ -267,9 +267,9 @@ public sealed class NLogixDistributor : ILogDistributor
         => $"[NLogixDistributor Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
            $"- USER: {Environment.UserName}" + Environment.NewLine +
            $"- Active Targets: {_targets.Count}" + Environment.NewLine +
-           $"- Entries Published: {TotalEntriesPublished:N0}" + Environment.NewLine +
-           $"- Target Operations: {TotalTargetInvocations:N0}" + Environment.NewLine +
-           $"- Errors: {TotalPublishErrors:N0}" + Environment.NewLine +
+           $"- Entries Published: {this.TotalEntriesPublished:N0}" + Environment.NewLine +
+           $"- Target Operations: {this.TotalTargetInvocations:N0}" + Environment.NewLine +
+           $"- Errors: {this.TotalPublishErrors:N0}" + Environment.NewLine +
            $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;
 
     #endregion Public Methods

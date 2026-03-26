@@ -142,7 +142,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         System.Collections.Generic.List<T> newList = new(capacity);
 
         _ = System.Threading.Interlocked.Increment(ref _created);
-        TraceOccurred?.Invoke($"Rent(): Created new List<{typeof(T).Name}> instance (Capacity={capacity}, TotalCreated={CreatedCount})");
+        TraceOccurred?.Invoke($"Rent(): Created new List<{typeof(T).Name}> instance (Capacity={capacity}, TotalCreated={this.CreatedCount})");
 
         return newList;
     }
@@ -175,7 +175,7 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         {
             // The list will be garbage collected since we're not storing it
             _ = System.Threading.Interlocked.Increment(ref _trimmed);
-            TraceOccurred?.Invoke($"Return(): Pools size limit reached, discarding list (MaxSize={_maxPoolSize}, Trimmed={TrimmedCount})");
+            TraceOccurred?.Invoke($"Return(): Pools size limit reached, discarding list (MaxSize={_maxPoolSize}, Trimmed={this.TrimmedCount})");
         }
     }
 
@@ -261,13 +261,13 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
         {
             ["MaxPoolSize"] = _maxPoolSize,
             ["InitialCapacity"] = _initialCapacity,
-            ["AvailableCount"] = AvailableCount,
-            ["CreatedCount"] = CreatedCount,
-            ["RentedCount"] = RentedCount,
-            ["TotalRentOperations"] = TotalRentOperations,
-            ["TotalReturnOperations"] = TotalReturnOperations,
-            ["TrimmedCount"] = TrimmedCount,
-            ["UptimeMs"] = UptimeMs
+            ["AvailableCount"] = this.AvailableCount,
+            ["CreatedCount"] = this.CreatedCount,
+            ["RentedCount"] = this.RentedCount,
+            ["TotalRentOperations"] = this.TotalRentOperations,
+            ["TotalReturnOperations"] = this.TotalReturnOperations,
+            ["TrimmedCount"] = this.TrimmedCount,
+            ["UptimeMs"] = this.UptimeMs
         };
     }
 

@@ -528,7 +528,7 @@ public readonly struct UInt56 :
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override bool Equals(object? obj) => obj is UInt56 other && Equals(other);
+    public override bool Equals(object? obj) => obj is UInt56 other && this.Equals(other);
 
     /// <inheritdoc />
     /// <remarks>
@@ -539,7 +539,7 @@ public readonly struct UInt56 :
     public override int GetHashCode() => HashCode.Combine(_lo, _mid, _hi);
 
     /// <inheritdoc />
-    public int CompareTo(UInt56 other) => ToUInt64().CompareTo(other.ToUInt64());
+    public int CompareTo(UInt56 other) => this.ToUInt64().CompareTo(other.ToUInt64());
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -549,7 +549,7 @@ public readonly struct UInt56 :
         {
             if (obj is UInt56 other)
             {
-                return CompareTo(other);
+                return this.CompareTo(other);
             }
 
             throw new ArgumentException("Object must be of type UInt56.", nameof(obj));
@@ -611,7 +611,7 @@ public readonly struct UInt56 :
     /// The string representation of the value of this instance, formatted using the current culture.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override string ToString() => ToUInt64().ToString(CultureInfo.InvariantCulture);
+    public override string ToString() => this.ToUInt64().ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Converts the numeric value of this instance to its equivalent string representation
@@ -623,7 +623,7 @@ public readonly struct UInt56 :
     /// <returns>
     /// The string representation of the value of this instance, as specified by <paramref name="provider"/>.
     /// </returns>
-    public string ToString(IFormatProvider provider) => ToUInt64().ToString(provider);
+    public string ToString(IFormatProvider provider) => this.ToUInt64().ToString(provider);
 
     /// <summary>
     /// Converts the numeric value of this instance to its equivalent string representation
@@ -635,7 +635,7 @@ public readonly struct UInt56 :
     /// The string representation of the value of this instance, as specified by <paramref name="format"/>
     /// and <paramref name="formatProvider"/>.
     /// </returns>
-    public string ToString(string format, IFormatProvider formatProvider) => ToUInt64().ToString(format, formatProvider);
+    public string ToString(string format, IFormatProvider formatProvider) => this.ToUInt64().ToString(format, formatProvider);
 
     /// <summary>
     /// Converts the string representation of a number to its <see cref="UInt56"/> equivalent.
@@ -754,7 +754,7 @@ public readonly struct UInt56 :
     }
 
     /// <inheritdoc />
-    string IFormattable.ToString(string? format, IFormatProvider? formatProvider) => ToUInt64().ToString(format, formatProvider);
+    string IFormattable.ToString(string? format, IFormatProvider? formatProvider) => this.ToUInt64().ToString(format, formatProvider);
 
     #endregion Parsing
 
@@ -1384,7 +1384,7 @@ public readonly struct UInt56 :
         out int charsWritten,
         ReadOnlySpan<char> format,
         IFormatProvider? provider)
-        => ToUInt64().TryFormat(destination, out charsWritten, format, provider);
+        => this.ToUInt64().TryFormat(destination, out charsWritten, format, provider);
 
     #endregion ISpanFormattable Implementation
 
@@ -1446,7 +1446,7 @@ public readonly struct UInt56 :
         out int bytesWritten,
         ReadOnlySpan<char> format,
         IFormatProvider? provider)
-        => ToUInt64().TryFormat(utf8Destination, out bytesWritten, format, provider);
+        => this.ToUInt64().TryFormat(utf8Destination, out bytesWritten, format, provider);
 
     #endregion IUtf8SpanFormattable Implementation
 

@@ -32,7 +32,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     /// <param name="connection">The connection associated with the event.</param>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     public ConnectionEventArgs(IConnection connection)
-        => Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when creating ConnectionEventArgs");
+        => this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when creating ConnectionEventArgs");
 
     /// <inheritdoc/>
     public IBufferLease Lease => _lease ?? throw new InvalidOperationException("Buffer lease is not available for this event.");
@@ -42,17 +42,17 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     public IConnection Connection { get => field ?? throw new InvalidOperationException("Connection is not available for this event."); private set; }
 
     /// <inheritdoc />
-    public INetworkEndpoint NetworkEndpoint => Connection.NetworkEndpoint;
+    public INetworkEndpoint NetworkEndpoint => this.Connection.NetworkEndpoint;
 
     /// <inheritdoc />
     public void Initialize(IConnection connection)
-        => Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
+        => this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
 
     /// <inheritdoc />
     public void Initialize(IBufferLease lease, IConnection connection)
     {
         _lease = lease ?? throw new ArgumentNullException(nameof(lease), "Buffer lease cannot be null when initializing ConnectionEventArgs with a buffer");
-        Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs with a buffer");
+        this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs with a buffer");
     }
 
     /// <inheritdoc />
@@ -61,7 +61,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
         _lease?.Dispose();
 
         _lease = null;
-        Connection = null;
+        this.Connection = null;
     }
 
     /// <inheritdoc />

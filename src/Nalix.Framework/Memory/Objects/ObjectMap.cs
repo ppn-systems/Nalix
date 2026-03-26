@@ -156,7 +156,7 @@ public sealed class ObjectMap<TKey, TValue> : IObjectMap<TKey, TValue>
     /// </remarks>
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _dict.GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
     /// <summary>
     /// Resets the internal state before returning the instance to the pool.

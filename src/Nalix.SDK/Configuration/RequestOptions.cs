@@ -69,10 +69,10 @@ public sealed record RequestOptions
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public void Validate()
     {
-        if (RetryCount < 0)
+        if (this.RetryCount < 0)
         {
             throw new ArgumentOutOfRangeException(
-                nameof(RetryCount), RetryCount, $"{nameof(RetryCount)} must be >= 0.");
+                nameof(this.RetryCount), this.RetryCount, $"{nameof(this.RetryCount)} must be >= 0.");
         }
     }
 

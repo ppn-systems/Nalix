@@ -139,7 +139,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
                && Arity == other.Arity;
 
         public override bool Equals(object? obj)
-            => obj is ActivatorKey k && Equals(k);
+            => obj is ActivatorKey k && this.Equals(k);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
@@ -376,7 +376,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
     public void RegisterForClassOnly<T>(
-        T instance) where T : class => Register(instance, registerInterfaces: false);
+        T instance) where T : class => this.Register(instance, registerInterfaces: false);
 
     /// <summary>
     /// Gets or creates an instance of the specified type with high performance.
@@ -411,14 +411,14 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             }
 
             _ = Interlocked.Increment(ref _instanceCreationCount);
-            T created = Unsafe.As<T>(GET_OR_CREATE_INSTANCE_SLOW(typeof(T), args));
+            T created = Unsafe.As<T>(this.GET_OR_CREATE_INSTANCE_SLOW(typeof(T), args));
 
             // Publish to slot after creation
             Volatile.Write(ref GenericSlot<T>.Value, created);
             return created;
         }
         // Use signature cache for generic type when args provided.
-        object obj = GetOrCreateInstance(typeof(T), args);
+        object obj = this.GetOrCreateInstance(typeof(T), args);
 
         return Unsafe.As<T>(obj);
     }
@@ -454,7 +454,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
                 return existing;
             }
 
-            object created = GET_OR_CREATE_INSTANCE_SLOW(type, args);
+            object created = this.GET_OR_CREATE_INSTANCE_SLOW(type, args);
             TRY_PUBLISH_SLOT_BY_TYPE(type, created);
             return created;
         }
@@ -470,7 +470,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
 
         // Create then insert into signature cache (avoid losing created instance or double-dispose)
-        return CREATE_OR_GET_SIGNATURE_INSTANCE(type, args, sigKey);
+        return this.CREATE_OR_GET_SIGNATURE_INSTANCE(type, args, sigKey);
     }
 
     /// <summary>
@@ -488,7 +488,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         ObjectDisposedException.ThrowIf(Interlocked
                                       .CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
-        return CREATE_VIA_ACTIVATOR(type, args);
+        return this.CREATE_VIA_ACTIVATOR(type, args);
     }
 
     /// <summary>
@@ -690,7 +690,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         StringBuilder sb = new(1024);
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CachedInstanceCount: {CachedInstanceCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CachedInstanceCount: {this.CachedInstanceCount}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"InstanceCreationCount: {Volatile.Read(ref _instanceCreationCount)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"InstanceCacheHitCount: {Volatile.Read(ref _instanceCacheHitCount)}");
         _ = sb.AppendLine();
@@ -741,7 +741,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         Dictionary<string, object> result = new()
         {
             ["UtcNow"] = DateTime.UtcNow,
-            ["CachedInstanceCount"] = CachedInstanceCount,
+            ["CachedInstanceCount"] = this.CachedInstanceCount,
             ["InstanceCreationCount"] = Volatile.Read(ref _instanceCreationCount),
             ["InstanceCacheHitCount"] = Volatile.Read(ref _instanceCacheHitCount),
         };
@@ -822,7 +822,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         }
 
         // Clear caches without disposing again.
-        Clear(dispose: false);
+        this.Clear(dispose: false);
 
         if (s_processMutexOwner && s_processMutex != null)
         {
@@ -851,7 +851,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     private object CREATE_OR_GET_SIGNATURE_INSTANCE(Type type, object?[] args, ActivatorKey sigKey)
     {
         // Create instance
-        object created = CREATE_VIA_ACTIVATOR(type, args);
+        object created = this.CREATE_VIA_ACTIVATOR(type, args);
 
         // Try to add; if another thread inserted meanwhile, GetOrAdd returns existing one.
         object stored = _signatureInstanceCache.GetOrAdd(sigKey, created);
@@ -980,7 +980,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
                 return existing;
             }
 
-            object instance = CREATE_VIA_ACTIVATOR(type, args);
+            object instance = this.CREATE_VIA_ACTIVATOR(type, args);
 
             if (instance is IDisposable d)
             {

@@ -125,7 +125,7 @@ public abstract partial class UdpListenerBase
         _lock = new SemaphoreSlim(1, 1);
 
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                       .TimeSynchronized += SynchronizeTime;
+                       .TimeSynchronized += this.SynchronizeTime;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
@@ -150,7 +150,7 @@ public abstract partial class UdpListenerBase
     [DebuggerStepThrough]
     public void Dispose()
     {
-        Dispose(true);
+        this.Dispose(true);
         GC.SuppressFinalize(this);
     }
 
@@ -177,7 +177,7 @@ public abstract partial class UdpListenerBase
                 _udpClient = null;
 
                 InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                               .TimeSynchronized -= SynchronizeTime;
+                               .TimeSynchronized -= this.SynchronizeTime;
             }
             catch { }
 

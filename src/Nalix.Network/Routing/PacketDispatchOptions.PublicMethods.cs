@@ -31,8 +31,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
-        Logging = logger;
-        Logging.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
+        this.Logging = logger;
+        this.Logging.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
 
         return this;
     }
@@ -51,7 +51,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         Action<Exception, ushort> errorHandler)
     {
-        Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
+        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
         _errorHandler = errorHandler;
 
         return this;
@@ -71,7 +71,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         ArgumentNullException.ThrowIfNull(middleware);
 
-        Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
+        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
 
         _pipeline.Use(middleware);
 
@@ -92,9 +92,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         ArgumentNullException.ThrowIfNull(middleware);
 
-        Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
+        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
 
-        NetworkPipeline.Use(middleware);
+        this.NetworkPipeline.Use(middleware);
 
         return this;
     }
@@ -118,8 +118,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 "Dispatch loop count must be between 1 and 64.");
         }
 
-        DispatchLoopCount = loopCount;
-        Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto")}");
+        this.DispatchLoopCount = loopCount;
+        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto")}");
         return this;
     }
 
@@ -169,7 +169,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods |
             DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>()
-        where TController : class, new() => WithHandler(() => new TController());
+        where TController : class, new() => this.WithHandler(() => new TController());
 
     /// <summary>
     /// Registers a handler using an existing instance of the specified controller type.
@@ -185,7 +185,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             DynamicallyAccessedMemberTypes.PublicMethods |
             DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>(
         TController instance)
-        where TController : class => WithHandler(() => ThrowIfNull(instance, nameof(instance)));
+        where TController : class => this.WithHandler(() => ThrowIfNull(instance, nameof(instance)));
 
     /// <summary>
     /// Registers a handler by creating an instance of the specified controller type
@@ -255,13 +255,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
             if (concretePacketType is not null && concretePacketType != typeof(TPacket))
             {
-                Logging?.Debug(
+                this.Logging?.Debug(
                     $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
                     $"type-map opcode=0x{descriptor.OpCode:X4} → {concretePacketType.Name}");
             }
         }
 
-        Logging?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
+        this.Logging?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
                            $"reg-handlers count={handlerDescriptors.Length} controller={controllerType.Name}");
 
         return this;
@@ -284,7 +284,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         ushort opCode,
         [NotNullWhen(true)] out Func<TPacket, IConnection, Task> handler)
     {
-        if (TryResolveHandlerDescriptor(opCode, out PacketHandler<TPacket> descriptor))
+        if (this.TryResolveHandlerDescriptor(opCode, out PacketHandler<TPacket> descriptor))
         {
             handler = async (packet, connection) =>
             {
@@ -293,7 +293,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 try
                 {
                     context.Initialize(packet, connection, descriptor.Metadata);
-                    await ExecuteHandlerAsync(descriptor, context)
+                    await this.ExecuteHandlerAsync(descriptor, context)
                               .ConfigureAwait(false);
                 }
                 finally
@@ -330,7 +330,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return true;
         }
 
-        Logging?.Warn($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(TryResolveHandlerDescriptor)}] handler-not-found opcode={opCode}");
+        this.Logging?.Warn($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(TryResolveHandlerDescriptor)}] handler-not-found opcode={opCode}");
         return false;
     }
 }

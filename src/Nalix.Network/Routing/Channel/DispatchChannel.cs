@@ -160,7 +160,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
         // Subscribe to hub lifecycle to ensure timely cleanup.
         InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
-                       .ConnectionUnregistered += OnUnregistered;
+                       .ConnectionUnregistered += this.OnUnregistered;
     }
 
     #endregion Constructors
@@ -209,7 +209,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                 }
 
                 // Adjust counters
-                ConnectionState cs = GET_STATE(connection);
+                ConnectionState cs = this.GET_STATE(connection);
 
                 _ = Interlocked.Decrement(ref _packetCount);
                 _ = Interlocked.Decrement(ref cs.ApproxTotal);
@@ -238,7 +238,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         IConnection connection,
         IBufferLease raw)
     {
-        ConnectionState cs = GET_STATE(connection);
+        ConnectionState cs = this.GET_STATE(connection);
         ConnectionQueues cqs = _queues.GetOrAdd(connection, static _ => new ConnectionQueues());
 
         // Classify priority directly from header (zero-alloc)
@@ -269,7 +269,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                 case DropPolicy.Block:
                     // Short spin (cheap backpressure). Avoid long blocks in high-throughput networking.
-                    bool ok = WaitForQueueSpace(cs); // pass a CancellationToken or CancellationToken.None
+                    bool ok = this.WaitForQueueSpace(cs); // pass a CancellationToken or CancellationToken.None
                     if (!ok)
                     {
                         // Handle timeout: options include
@@ -455,7 +455,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    private void OnUnregistered(IConnection connection) => RemoveConnection(connection);
+    private void OnUnregistered(IConnection connection) => this.RemoveConnection(connection);
 
     /// <summary>
     /// Removes a connection, draining all per-priority queues and adjusting counters.

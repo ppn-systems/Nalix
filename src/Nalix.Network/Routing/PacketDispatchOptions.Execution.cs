@@ -51,13 +51,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
         //   call is also ~1ns for sealed/concrete types. Total overhead on the
         //   happy path (type matches) is negligible compared to async machinery.
         // ------------------------------------------------------------------
-        if (TryGetExpectedPacketType(descriptor.OpCode, out Type expectedType)
+        if (this.TryGetExpectedPacketType(descriptor.OpCode, out Type expectedType)
             && !expectedType.IsInstanceOfType(context.Packet))
         {
             Type? actualType = context.Packet?.GetType();
             IPacket packet = context.Packet ?? throw new InvalidOperationException("Packet context contains a null packet.");
 
-            Logging?.Warn(
+            this.Logging?.Warn(
                 $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
                 $"type-mismatch opcode=0x{descriptor.OpCode:X4} " +
                 $"expected={expectedType.Name} actual={actualType?.Name ?? "null"} — skipping handler");
@@ -125,7 +125,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             }
             catch (Exception ex)
             {
-                await HandleDispatchExceptionAsync(descriptor, context, ex)
+                await this.HandleDispatchExceptionAsync(descriptor, context, ex)
                           .ConfigureAwait(false);
             }
         }
@@ -137,7 +137,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context, Exception exception)
     {
-        Logging?.Error($"[{nameof(PacketDispatchOptions<>)}:{HandleDispatchExceptionAsync}] " +
+        this.Logging?.Error($"[{nameof(PacketDispatchOptions<>)}:{this.HandleDispatchExceptionAsync}] " +
                             $"handler-failed opcode={descriptor.OpCode}", exception);
 
         _errorHandler?.Invoke(exception, descriptor.OpCode);

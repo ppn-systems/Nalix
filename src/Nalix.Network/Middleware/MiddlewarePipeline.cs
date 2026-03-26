@@ -132,7 +132,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
         lock (_lock)
         {
-            ENSURE_SORTED_UNSAFE();
+            this.ENSURE_SORTED_UNSAFE();
             inboundSnapshot = [.. _inbound];
             outboundSnapshot = [.. _outbound];
             outboundAlwaysSnapshot = [.. _outboundAlways];

@@ -108,8 +108,8 @@ public sealed partial class Connection
             _lo = lo;
             _port = port;
 
-            IsIPv6 = isV6;
-            HasPort = hasPort;
+            this.IsIPv6 = isV6;
+            this.HasPort = hasPort;
         }
 
         #endregion Constructor
@@ -124,7 +124,7 @@ public sealed partial class Connection
                 MethodImplOptions.AggressiveOptimization)]
             get
             {
-                if (!IsIPv6)
+                if (!this.IsIPv6)
                 {
                     // IPv4 stored in low 32 bits
                     uint v4 = (uint)_lo;
@@ -145,7 +145,7 @@ public sealed partial class Connection
         {
             [Pure]
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => HasPort ? _port : 0;
+            get => this.HasPort ? _port : 0;
         }
 
         /// <inheritdoc />
@@ -175,9 +175,9 @@ public sealed partial class Connection
         {
             return _hi == other._hi &&
                    _lo == other._lo &&
-                   IsIPv6 == other.IsIPv6 &&
-                   HasPort == other.HasPort &&
-                   (!HasPort || _port == other._port);
+                   this.IsIPv6 == other.IsIPv6 &&
+                   this.HasPort == other.HasPort &&
+                   (!this.HasPort || _port == other._port);
         }
 
         /// <inheritdoc />
@@ -192,9 +192,9 @@ public sealed partial class Connection
 
             // Fast path for same concrete type
             return other is Endpoint concrete
-                ? Equals(concrete)
+                ? this.Equals(concrete)
                 : string.Equals(
-                Address,
+                this.Address,
                 other.Address,
                 StringComparison.Ordinal);
         }
@@ -203,15 +203,15 @@ public sealed partial class Connection
         [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override bool Equals(object? obj) =>
-            obj is Endpoint k && Equals(k);
+            obj is Endpoint k && this.Equals(k);
 
         /// <inheritdoc />
         [Pure]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override int GetHashCode()
         {
-            int port = HasPort ? _port : 0;
-            return HashCode.Combine(_hi, _lo, IsIPv6, HasPort, port);
+            int port = this.HasPort ? _port : 0;
+            return HashCode.Combine(_hi, _lo, this.IsIPv6, this.HasPort, port);
         }
 
         /// <inheritdoc />
@@ -231,14 +231,14 @@ public sealed partial class Connection
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override string ToString()
         {
-            string addr = Address;
-            if (!HasPort)
+            string addr = this.Address;
+            if (!this.HasPort)
             {
                 return addr;
             }
 
             // Standard URI-style endpoint formatting.
-            return !IsIPv6
+            return !this.IsIPv6
                 ? $"{addr}:{_port}"
                 : $"[{addr}]:{_port}";
         }

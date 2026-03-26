@@ -55,7 +55,7 @@ public abstract partial class Protocol
         CancellationToken cancellationToken = default)
     {
         // Check if accepting connections is enabled
-        if (!IsAccepting)
+        if (!this.IsAccepting)
         {
             s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
             connection.Close();
@@ -70,7 +70,7 @@ public abstract partial class Protocol
 
         try
         {
-            if (ValidateConnection(connection))
+            if (this.ValidateConnection(connection))
             {
                 s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
 
@@ -94,7 +94,7 @@ public abstract partial class Protocol
         catch (Exception ex)
         {
             // Log exception if a logger is available
-            OnConnectionError(connection, ex);
+            this.OnConnectionError(connection, ex);
             connection.Disconnect();
 
             s_logger?.Debug($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-error id={connection.ID} ex={ex.Message}");

@@ -110,19 +110,19 @@ public sealed class TokenBucketOptions : ConfigurationLoader
         System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
 
-        if (ShardCount <= 0)
+        if (this.ShardCount <= 0)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException(
                 "ShardCount must be positive and power-of-two.");
         }
 
         static bool IsPowerOfTwo(int x) => (x & (x - 1)) == 0;
-        if (!IsPowerOfTwo(ShardCount))
+        if (!IsPowerOfTwo(this.ShardCount))
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("ShardCount must be a power of two (e.g., 16, 32, 64) to ensure correct shard distribution.");
         }
 
-        if (CapacityTokens * (long)TokenScale > long.MaxValue)
+        if (this.CapacityTokens * (long)this.TokenScale > long.MaxValue)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("CapacityTokens * TokenScale is too large and may overflow Int64. Reduce values.");
         }

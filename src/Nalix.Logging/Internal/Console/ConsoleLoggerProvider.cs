@@ -102,7 +102,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
             work: async (ctx, ct) =>
             {
                 CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
-                await CONSUME_LOOP_ASYNC(ctx, linkedCts.Token);
+                await this.CONSUME_LOOP_ASYNC(ctx, linkedCts.Token);
             },
             options: new WorkerOptions
             {
@@ -212,7 +212,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
                     }
                 }
 
-                WRITE_BATCH(batch);
+                this.WRITE_BATCH(batch);
                 int writtenInBatch = batch.Count;
 
                 // **Update progress & heartbeat**
@@ -243,7 +243,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
                 batch.Add(log);
                 if (batch.Count >= _batchSize)
                 {
-                    WRITE_BATCH(batch);
+                    this.WRITE_BATCH(batch);
                     ctx.Advance(batch.Count, "Logs written (shutdown)");
                     ctx.Beat();
                     batch.Clear();
@@ -251,7 +251,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
             }
             if (batch.Count > 0)
             {
-                WRITE_BATCH(batch);
+                this.WRITE_BATCH(batch);
                 ctx.Advance(batch.Count, "Logs written (shutdown)");
                 ctx.Beat();
             }

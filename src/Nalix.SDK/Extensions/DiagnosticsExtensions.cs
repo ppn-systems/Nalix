@@ -128,8 +128,8 @@ public readonly struct TcpSessionDiagnostics
     /// Returns a human-readable summary of the snapshot suitable for logging.
     /// </summary>
     public override string ToString()
-        => $"[Diagnostics @ {CapturedAt:HH:mm:ss.fff}] " +
-           $"Connected={IsConnected} Endpoint={Endpoint} " +
-           $"Sent={TotalBytesSent:N0} B Recv={TotalBytesReceived:N0} B " +
-           $"TxBps={SendBytesPerSecond:N0} RxBps={ReceiveBytesPerSecond:N0} ";
+        => $"[Diagnostics @ {this.CapturedAt:HH:mm:ss.fff}] " +
+           $"Connected={this.IsConnected} Endpoint={this.Endpoint} " +
+           $"Sent={this.TotalBytesSent:N0} B Recv={this.TotalBytesReceived:N0} B " +
+           $"TxBps={this.SendBytesPerSecond:N0} RxBps={this.ReceiveBytesPerSecond:N0} ";
 }

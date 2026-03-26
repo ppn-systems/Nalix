@@ -80,10 +80,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         public Entry(TokenBucketLimiter limiter)
         {
-            Limiter = limiter ?? throw new ArgumentNullException(nameof(limiter));
+            this.Limiter = limiter ?? throw new ArgumentNullException(nameof(limiter));
             _activeUsers = 0;
             _disposed = 0;
-            Touch();
+            this.Touch();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -169,7 +169,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
             try
             {
-                Limiter.Dispose();
+                this.Limiter.Dispose();
             }
             catch (Exception ex)
             {
@@ -205,7 +205,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
                     (_inner?.Equals(other._inner) ?? (other._inner is null)));
         }
 
-        public override bool Equals(object? obj) => obj is RateLimitSubject other && Equals(other);
+        public override bool Equals(object? obj) => obj is RateLimitSubject other && this.Equals(other);
 
         public static bool operator ==(RateLimitSubject left, RateLimitSubject right)
             => left.Equals(right);
@@ -213,7 +213,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         public static bool operator !=(RateLimitSubject left, RateLimitSubject right)
             => !left.Equals(right);
 
-        public override string ToString() => Address;
+        public override string ToString() => this.Address;
     }
 
     private readonly struct CheckResult
@@ -283,9 +283,9 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         Policy policy = EXTRACT_AND_QUANTIZE_POLICY(context.Attributes.RateLimit!);
 
-        CheckResult checkResult = PERFORM_RATE_LIMIT_CHECK(opCode, context, policy);
+        CheckResult checkResult = this.PERFORM_RATE_LIMIT_CHECK(opCode, context, policy);
 
-        TRY_SCHEDULE_SWEEP();
+        this.TRY_SCHEDULE_SWEEP();
 
         return checkResult.Decision;
     }
@@ -548,7 +548,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             };
         }
 
-        Entry entry = GET_OR_CREATE_LIMITER_ENTRY(policy);
+        Entry entry = this.GET_OR_CREATE_LIMITER_ENTRY(policy);
 
         if (!entry.TryAcquire())
         {
@@ -585,16 +585,16 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             return existingEntry;
         }
 
-        if (IS_AT_POLICY_CAPACITY())
+        if (this.IS_AT_POLICY_CAPACITY())
         {
-            Entry? reusedEntry = TRY_REUSE_CLOSEST_POLICY(policy);
+            Entry? reusedEntry = this.TRY_REUSE_CLOSEST_POLICY(policy);
             if (reusedEntry is not null)
             {
                 return reusedEntry;
             }
         }
 
-        return CREATE_NEW_LIMITER_ENTRY(policy);
+        return this.CREATE_NEW_LIMITER_ENTRY(policy);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -608,7 +608,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             return null;
         }
 
-        Policy closest = FIND_CLOSEST_POLICY(wanted);
+        Policy closest = this.FIND_CLOSEST_POLICY(wanted);
 
         if (closest.Equals(default))
         {
@@ -726,7 +726,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         if ((count & (SweepEveryNChecks - 1)) == 0)
         {
-            _ = Task.Run(EVICT_STALE_POLICIES);
+            _ = Task.Run(this.EVICT_STALE_POLICIES);
         }
     }
 

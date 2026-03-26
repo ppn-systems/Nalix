@@ -54,7 +54,7 @@ public abstract partial class UdpListenerBase
                     group: $"{NetTaskNames.Net}/{NetTaskNames.Udp}/{_port}",
                     work: (_, __) =>
                     {
-                        ProcessDatagram(result); return new ValueTask();
+                        this.ProcessDatagram(result); return new ValueTask();
                     },
                     options: new WorkerOptions
                     {
@@ -128,7 +128,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        if (!IsAuthenticated(connection, result))
+        if (!this.IsAuthenticated(connection, result))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?

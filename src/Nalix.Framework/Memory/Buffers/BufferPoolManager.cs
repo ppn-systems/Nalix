@@ -150,23 +150,23 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         _bufferAllocations = BufferConfig.ParseBufferAllocations(config.BufferAllocations);
 
-        MinBufferSize = Enumerable.Min(_bufferAllocations, alloc => alloc.BufferSize);
-        MaxBufferSize = Enumerable.Max(_bufferAllocations, alloc => alloc.BufferSize);
+        this.MinBufferSize = Enumerable.Min(_bufferAllocations, alloc => alloc.BufferSize);
+        this.MaxBufferSize = Enumerable.Max(_bufferAllocations, alloc => alloc.BufferSize);
 
         _poolManager = new BufferPoolCollection(bufferConfig: config);
-        _poolManager.EventShrink += SHRINK_BUFFER_POOL_SIZE;
-        _poolManager.EventIncrease += INCREASE_BUFFER_POOL_SIZE;
+        _poolManager.EventShrink += this.SHRINK_BUFFER_POOL_SIZE;
+        _poolManager.EventIncrease += this.INCREASE_BUFFER_POOL_SIZE;
 
-        ALLOCATE_BUFFERS();
+        this.ALLOCATE_BUFFERS();
 
         if (_config.EnableMemoryTrimming)
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-                name: TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode()),
+                name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
                 interval: TimeSpan.FromMinutes(Math.Max(1, _config.TrimIntervalMinutes)),
                 work: _ =>
                 {
-                    TRIM_EXCESS_BUFFERS(null);
+                    this.TRIM_EXCESS_BUFFERS(null);
                     return ValueTask.CompletedTask;
                 },
                 options: new RecurringOptions
@@ -205,11 +205,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         try
         {
-            return RENT_FROM_POOLS_WITH_CACHING(minimumLength);
+            return this.RENT_FROM_POOLS_WITH_CACHING(minimumLength);
         }
         catch (ArgumentException ex)
         {
-            return HANDLE_RENT_FAILURE(minimumLength, ex);
+            return this.HANDLE_RENT_FAILURE(minimumLength, ex);
         }
     }
 
@@ -230,11 +230,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         try
         {
-            RETURN_TO_MANAGED_POOLS(array);
+            this.RETURN_TO_MANAGED_POOLS(array);
         }
         catch (ArgumentException ex)
         {
-            HANDLE_RETURN_FAILURE(array, ex);
+            this.HANDLE_RETURN_FAILURE(array, ex);
         }
     }
 
@@ -255,7 +255,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ArraySegment<byte> RentSegment(int size = 256)
     {
-        byte[] buffer = Rent(size);
+        byte[] buffer = this.Rent(size);
         return new ArraySegment<byte>(buffer, 0, size);
     }
 
@@ -267,7 +267,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="segment">The segment whose backing array will be returned.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return(ArraySegment<byte> segment) => Return(segment.Array);
+    public void Return(ArraySegment<byte> segment) => this.Return(segment.Array);
 
     /// <summary>
     /// Rents a buffer from the pool and assigns it to the given
@@ -288,7 +288,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
         ArgumentNullException.ThrowIfNull(saea);
 
-        byte[] buffer = Rent(size);
+        byte[] buffer = this.Rent(size);
         saea.SetBuffer(buffer, 0, size);
     }
 
@@ -312,7 +312,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         // Detach buffer from SAEA to avoid accidental reuse after return
         saea.SetBuffer(null, 0, 0);
 
-        Return(buffer);
+        this.Return(buffer);
     }
 
     /// <summary>
@@ -323,12 +323,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public double GetAllocationForSize(int size)
     {
-        if (size > MaxBufferSize)
+        if (size > this.MaxBufferSize)
         {
             return Enumerable.Last(_bufferAllocations).Allocation;
         }
 
-        if (size <= MinBufferSize)
+        if (size <= this.MinBufferSize)
         {
             return Enumerable.First(_bufferAllocations).Allocation;
         }
@@ -370,9 +370,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
         StringBuilder sb = new();
 
-        APPEND_REPORT_HEADER(sb);
-        APPEND_REPORT_POOL_DETAILS(sb);
-        APPEND_REPORT_METRICS(sb);
+        this.APPEND_REPORT_HEADER(sb);
+        this.APPEND_REPORT_POOL_DETAILS(sb);
+        this.APPEND_REPORT_METRICS(sb);
 
         return sb.ToString();
     }
@@ -389,8 +389,8 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             ["Initialized"] = _isInitialized,
             ["TotalBuffersConfigured"] = _config.TotalBuffers,
             ["PoolCount"] = _bufferAllocations.Length,
-            ["MinBufferSize"] = MinBufferSize,
-            ["MaxBufferSize"] = MaxBufferSize,
+            ["MinBufferSize"] = this.MinBufferSize,
+            ["MaxBufferSize"] = this.MaxBufferSize,
             ["EnableTrimming"] = _config.EnableMemoryTrimming,
             ["EnableAnalytics"] = _config.EnableAnalytics,
             ["EnableSecureClear"] = _config.SecureClear,
@@ -464,7 +464,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                                     .Trace($"[{nameof(BufferPoolManager)}:Internal] rent-fast minimumLength={size}");
         }
 
-        CACHE_SUITABLE_POOL_SIZE(size, buffer.Length);
+        this.CACHE_SUITABLE_POOL_SIZE(size, buffer.Length);
 
         return buffer;
     }
@@ -577,7 +577,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _isInitialized = true;
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Info($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                      $"init-ok total={_config.TotalBuffers} pools={_bufferAllocations.Length} min={MinBufferSize} max={MaxBufferSize}");
+                                      $"init-ok total={_config.TotalBuffers} pools={_bufferAllocations.Length} min={this.MinBufferSize} max={this.MaxBufferSize}");
     }
 
     [StackTraceHidden]
@@ -586,13 +586,13 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private void TRIM_EXCESS_BUFFERS(object? _)
     {
         int cycle = Interlocked.Increment(ref _trimCycleCount);
-        bool deepTrim = SHOULD_RUN_DEEP_TRIM(cycle);
+        bool deepTrim = this.SHOULD_RUN_DEEP_TRIM(cycle);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-run deep={deepTrim}");
 
         // Compute memory budget once per cycle (cache it)
-        (long targetBudget, long currentUsage, bool overBudget) = COMPUTE_MEMORY_BUDGET();
+        (long targetBudget, long currentUsage, bool overBudget) = this.COMPUTE_MEMORY_BUDGET();
 
         foreach (BufferPoolShared pool in _poolManager.GetAllPools())
         {
@@ -604,13 +604,13 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                 continue;
             }
 
-            int shrinkStep = CALCULATE_SAFE_SHRINK_STEP(in info, cycle);
+            int shrinkStep = this.CALCULATE_SAFE_SHRINK_STEP(in info, cycle);
             if (shrinkStep <= 0)
             {
                 continue;
             }
 
-            TRIM_SINGLE_POOL(pool, in info, shrinkStep);
+            this.TRIM_SINGLE_POOL(pool, in info, shrinkStep);
         }
     }
 
@@ -693,7 +693,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
         // 1. Calculate target based on allocation ratio
-        double targetAllocation = GetAllocationForSize(info.BufferSize);
+        double targetAllocation = this.GetAllocationForSize(info.BufferSize);
         int targetBuffers = (int)Math.Max(
             _shrinkPolicy.AbsoluteMinimum,
             targetAllocation * _config.TotalBuffers
@@ -760,7 +760,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IS_OVER_MEMORY_BUDGET()
     {
-        (long _, long _, bool overBudget) = COMPUTE_MEMORY_BUDGET();
+        (long _, long _, bool overBudget) = this.COMPUTE_MEMORY_BUDGET();
         return overBudget;
     }
 
@@ -770,7 +770,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
         ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
 
-        int buffersToShrink = CALCULATE_AUTO_SHRINK_AMOUNT(in poolInfo);
+        int buffersToShrink = this.CALCULATE_AUTO_SHRINK_AMOUNT(in poolInfo);
         if (buffersToShrink <= 0)
         {
             return;
@@ -810,7 +810,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             return 0;
         }
 
-        double targetAllocation = GetAllocationForSize(poolInfo.BufferSize);
+        double targetAllocation = this.GetAllocationForSize(poolInfo.BufferSize);
         int targetBuffers = (int)(targetAllocation * _config.TotalBuffers);
 
         int minimumRetain = (int)Math.Ceiling(
@@ -837,13 +837,13 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         double usage = poolInfo.GetUsageRatio();
         double missRatio = poolInfo.GetMissRate();
 
-        int increaseStep = CALCULATE_INCREASE_STEP(in poolInfo, usage, missRatio);
+        int increaseStep = this.CALCULATE_INCREASE_STEP(in poolInfo, usage, missRatio);
         if (increaseStep <= 0)
         {
             return;
         }
 
-        if (IS_OVER_MEMORY_BUDGET())
+        if (this.IS_OVER_MEMORY_BUDGET())
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] skip-increase minimumLength={poolInfo.BufferSize} over budget");
@@ -906,8 +906,8 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Initialized: {_isInitialized}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Buffers (Configured): {_config.TotalBuffers}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Pools: {_bufferAllocations.Length}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Min Buffer SIZE: {MinBufferSize}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Buffer SIZE: {MaxBufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Min Buffer SIZE: {this.MinBufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Buffer SIZE: {this.MaxBufferSize}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable Trimming: {_config.EnableMemoryTrimming}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable Analytics: {_config.EnableAnalytics}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable SecureClear: {_config.SecureClear}");
@@ -994,7 +994,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelRecurring(TaskNaming.Recurring
-                                    .CleanupJobId(RecurringName, GetHashCode()));
+                                    .CleanupJobId(RecurringName, this.GetHashCode()));
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?

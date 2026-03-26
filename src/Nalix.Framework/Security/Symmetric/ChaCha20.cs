@@ -90,8 +90,8 @@ public struct ChaCha20
         System.ArgumentNullException.ThrowIfNull(key);
         System.ArgumentNullException.ThrowIfNull(nonce);
 
-        InitializeKey(new System.ReadOnlySpan<byte>(key));
-        InitializeNonce(new System.ReadOnlySpan<byte>(nonce), counter);
+        this.InitializeKey(new System.ReadOnlySpan<byte>(key));
+        this.InitializeNonce(new System.ReadOnlySpan<byte>(nonce), counter);
     }
 
     /// <summary>
@@ -106,8 +106,8 @@ public struct ChaCha20
         System.ReadOnlySpan<byte> nonce,
         uint counter)
     {
-        InitializeKey(key);
-        InitializeNonce(nonce, counter);
+        this.InitializeKey(key);
+        this.InitializeNonce(nonce, counter);
     }
 
     #endregion Constructors
@@ -123,7 +123,7 @@ public struct ChaCha20
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public void GenerateKeyBlock(scoped System.Span<byte> dst)
     {
-        ThrowIfCleared();
+        this.ThrowIfCleared();
 
         System.Span<uint> stateSpan = _state;
         System.Span<uint> workingSpan = _working;
@@ -151,14 +151,14 @@ public struct ChaCha20
         System.ReadOnlySpan<byte> src,
         System.Span<byte> dst)
     {
-        ThrowIfCleared();
+        this.ThrowIfCleared();
 
         if (dst.Length < src.Length)
         {
             ThrowHelper.ThrowOutputLengthMismatchException();
         }
 
-        EncryptSpanInternal(src, dst, src.Length);
+        this.EncryptSpanInternal(src, dst, src.Length);
         return dst.Length;
     }
 
@@ -174,7 +174,7 @@ public struct ChaCha20
     /// <param name="dst"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public int Decrypt(System.ReadOnlySpan<byte> src, System.Span<byte> dst) => Encrypt(src, dst);
+    public int Decrypt(System.ReadOnlySpan<byte> src, System.Span<byte> dst) => this.Encrypt(src, dst);
 
     #endregion Decryption Methods
 

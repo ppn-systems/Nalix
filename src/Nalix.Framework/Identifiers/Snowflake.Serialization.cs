@@ -103,7 +103,7 @@ public readonly partial struct Snowflake
     public byte[] ToByteArray()
     {
         byte[] result = new byte[Size];
-        _ = TryWriteBytes(result);
+        _ = this.TryWriteBytes(result);
         return result;
     }
 
@@ -119,9 +119,9 @@ public readonly partial struct Snowflake
         }
 
         // Optimized serialization using direct property access and BinaryPrimitives
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), MachineId);
-        destination[6] = (byte)Type;
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, this.Value);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), this.MachineId);
+        destination[6] = (byte)this.Type;
 
         bytesWritten = Size;
         return true;
@@ -138,9 +138,9 @@ public readonly partial struct Snowflake
         }
 
         // Optimized serialization using direct property access and BinaryPrimitives
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, Value);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), MachineId);
-        destination[6] = (byte)Type;
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, this.Value);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), this.MachineId);
+        destination[6] = (byte)this.Type;
 
         return true;
     }

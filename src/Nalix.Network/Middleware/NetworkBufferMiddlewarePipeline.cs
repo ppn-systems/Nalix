@@ -136,7 +136,7 @@ public class NetworkBufferMiddlewarePipeline
 
         lock (_lock)
         {
-            ENSURE_SORTED();
+            this.ENSURE_SORTED();
             snapshot = [.. _middlewares];
         }
 

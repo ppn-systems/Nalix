@@ -56,18 +56,18 @@ public readonly struct EventId(int id, string? name = null) : IEquatable<EventId
     public string Name { get; } = name ?? string.Empty;
 
     /// <inheritdoc />
-    public override string ToString() => Name ?? Id.ToString(CultureInfo.InvariantCulture);
+    public override string ToString() => this.Name ?? this.Id.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Compares the current instance to another object of the same type. Two events are equal if they have the same ProtocolType.
     /// </summary>
     /// <param name="other">An object to compare with this object.</param>
     /// <returns><see langword="true" /> if the current object is equal to <paramref name="other" />; otherwise, <see langword="false" />.</returns>
-    public bool Equals(EventId other) => Id == other.Id;
+    public bool Equals(EventId other) => this.Id == other.Id;
 
     /// <inheritdoc />
-    public override bool Equals([NotNullWhen(true)] object? obj) => obj is not null && obj is EventId eventId && Equals(eventId);
+    public override bool Equals([NotNullWhen(true)] object? obj) => obj is not null && obj is EventId eventId && this.Equals(eventId);
 
     /// <inheritdoc />
-    public override int GetHashCode() => Id;
+    public override int GetHashCode() => this.Id;
 }

@@ -291,7 +291,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override bool Equals(object? obj) => obj is Snowflake other && Equals(other);
+    public override bool Equals(object? obj) => obj is Snowflake other && this.Equals(other);
 
     /// <summary>
     /// Returns the hexadecimal string representation of this identifier.
@@ -307,7 +307,7 @@ public readonly partial struct Snowflake : ISnowflake
     public override string ToString()
     {
         Span<byte> buffer = stackalloc byte[Size];
-        _ = TryWriteBytes(buffer);
+        _ = this.TryWriteBytes(buffer);
         return Convert.ToHexString(buffer);
     }
 

@@ -67,7 +67,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     public IPacketRegistry Catalog { get; protected set; }
 
     /// <inheritdoc/>
-    ITransportOptions IClientConnection.Options => Options;
+    ITransportOptions IClientConnection.Options => this.Options;
 
     /// <summary>
     /// Gets the current lifecycle state of the session.
@@ -117,8 +117,8 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// </summary>
     protected TcpSessionBase()
     {
-        Options = null!;
-        Catalog = null!;
+        this.Options = null!;
+        this.Catalog = null!;
     }
 
     #endregion Construction
@@ -148,9 +148,9 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 
         ushort port = uri.Port > 0
             ? (ushort)uri.Port
-            : Options.Port;
+            : this.Options.Port;
 
-        return ConnectAsync(uri.Host, port, ct);
+        return this.ConnectAsync(uri.Host, port, ct);
     }
 
     /// <inheritdoc/>
@@ -226,7 +226,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         int written = packet.Serialize(rawLease.SpanFull);
         rawLease.CommitLength(written);
 
-        bool enableCompress = Options.EnableCompression && written >= Options.MinSizeToCompress;
+        bool enableCompress = this.Options.EnableCompression && written >= this.Options.MinSizeToCompress;
 
         try
         {
@@ -235,8 +235,8 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             // ----------------------------------------------------------------
             if (!enableCompress && !encrypt)
             {
-                Logging?.Trace($"[SDK.{GetType().Name}] SendAsync: Send plain payload, size={written}");
-                return await SendAsync(rawLease.Memory, cancellationToken).ConfigureAwait(false);
+                Logging?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Send plain payload, size={written}");
+                return await this.SendAsync(rawLease.Memory, cancellationToken).ConfigureAwait(false);
             }
 
             // ----------------------------------------------------------------
@@ -250,15 +250,15 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                 {
                     if (!FrameTransformer.TryCompress(rawLease, compressedLease))
                     {
-                        Logging?.Warn($"[SDK.{GetType().Name}] SendAsync: Compression failed, packet={packet.GetType().Name}, size={written}");
+                        Logging?.Warn($"[SDK.{this.GetType().Name}] SendAsync: Compression failed, packet={packet.GetType().Name}, size={written}");
                         return false;
                     }
 
-                    Logging?.Trace($"[SDK.{GetType().Name}] SendAsync: Compressed and sent, original={written}, compressed={compressedLease.Length}");
+                    Logging?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compressed and sent, original={written}, compressed={compressedLease.Length}");
                     compressedLease.Span.WriteFlagsLE(
                         compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
 
-                    return await SendAsync(compressedLease.Memory, cancellationToken).ConfigureAwait(false);
+                    return await this.SendAsync(compressedLease.Memory, cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -271,21 +271,21 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             // ----------------------------------------------------------------
             if (!enableCompress && encrypt)
             {
-                int maxCipherSize = FrameTransformer.GetMaxCiphertextSize(Options.Algorithm, rawLease.Length);
+                int maxCipherSize = FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, rawLease.Length);
                 BufferLease encryptedLease = BufferLease.Rent(maxCipherSize + FrameTransformer.Offset);
                 try
                 {
-                    if (!FrameTransformer.TryEncrypt(rawLease, encryptedLease, Options.Secret, Options.Algorithm))
+                    if (!FrameTransformer.TryEncrypt(rawLease, encryptedLease, this.Options.Secret, this.Options.Algorithm))
                     {
-                        Logging?.Error($"[SDK.{GetType().Name}:{nameof(SendAsync)}] encrypt-failed");
+                        Logging?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] encrypt-failed");
                         return false;
                     }
 
                     encryptedLease.Span.WriteFlagsLE(
                         encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
-                    Logging?.Trace($"[SDK.{GetType().Name}] SendAsync: Encrypted and sent, len={encryptedLease.Length}");
-                    return await SendAsync(encryptedLease.Memory, cancellationToken).ConfigureAwait(false);
+                    Logging?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Encrypted and sent, len={encryptedLease.Length}");
+                    return await this.SendAsync(encryptedLease.Memory, cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -302,28 +302,28 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             {
                 if (!FrameTransformer.TryCompress(rawLease, compressLease))
                 {
-                    Logging?.Warn($"[SDK.{GetType().Name}] SendAsync: Compress-then-encrypt compression failed, len={written}");
+                    Logging?.Warn($"[SDK.{this.GetType().Name}] SendAsync: Compress-then-encrypt compression failed, len={written}");
                     return false;
                 }
 
                 compressLease.Span.WriteFlagsLE(
                     compressLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
 
-                int maxCipher = FrameTransformer.GetMaxCiphertextSize(Options.Algorithm, compressLease.Length);
+                int maxCipher = FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, compressLease.Length);
                 BufferLease encryptLease = BufferLease.Rent(maxCipher + FrameTransformer.Offset);
                 try
                 {
-                    if (!FrameTransformer.TryEncrypt(compressLease, encryptLease, Options.Secret, Options.Algorithm))
+                    if (!FrameTransformer.TryEncrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm))
                     {
-                        Logging?.Error($"[SDK.{GetType().Name}:{nameof(SendAsync)}] encrypt-after-compress-failed");
+                        Logging?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] encrypt-after-compress-failed");
                         return false;
                     }
 
                     encryptLease.Span.WriteFlagsLE(
                         encryptLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
-                    Logging?.Trace($"[SDK.{GetType().Name}] SendAsync: Compress+Encrypt, final-size={encryptLease.Length}");
-                    return await SendAsync(encryptLease.Memory, cancellationToken).ConfigureAwait(false);
+                    Logging?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compress+Encrypt, final-size={encryptLease.Length}");
+                    return await this.SendAsync(encryptLease.Memory, cancellationToken).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -337,12 +337,12 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            Logging?.Info($"[SDK.{GetType().Name}] SendAsync: Operation canceled");
+            Logging?.Info($"[SDK.{this.GetType().Name}] SendAsync: Operation canceled");
             throw;
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{GetType().Name}:{nameof(SendAsync)}] send-failed", ex);
+            Logging?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] send-failed", ex);
             return false;
         }
         finally
@@ -356,13 +356,13 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     {
         if (Volatile.Read(ref _disposed) == 1)
         {
-            Logging?.Info($"[SDK.{GetType().Name}] Disconnect called, but already disposed.");
+            Logging?.Info($"[SDK.{this.GetType().Name}] Disconnect called, but already disposed.");
             return Task.CompletedTask;
         }
 
-        TearDownConnection();
-        Logging?.Info($"[SDK.{GetType().Name}] Disconnected (requested).");
-        try { OnDisconnected?.Invoke(this, null!); } catch (Exception ex) { Logging?.Error($"[SDK.{GetType().Name}] OnDisconnected handler threw: {ex.Message}", ex); }
+        this.TearDownConnection();
+        Logging?.Info($"[SDK.{this.GetType().Name}] Disconnected (requested).");
+        try { OnDisconnected?.Invoke(this, null!); } catch (Exception ex) { Logging?.Error($"[SDK.{this.GetType().Name}] OnDisconnected handler threw: {ex.Message}", ex); }
 
         return Task.CompletedTask;
     }
@@ -372,13 +372,13 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
         {
-            Logging?.Info($"[SDK.{GetType().Name}] Dispose called but was already disposed.");
+            Logging?.Info($"[SDK.{this.GetType().Name}] Dispose called but was already disposed.");
             return;
         }
 
-        SetState(TcpSessionState.Disposed);
-        TearDownConnection();
-        Logging?.Info($"[SDK.{GetType().Name}] Disposed.");
+        this.SetState(TcpSessionState.Disposed);
+        this.TearDownConnection();
+        Logging?.Info($"[SDK.{this.GetType().Name}] Disposed.");
         GC.SuppressFinalize(this);
     }
 
@@ -393,9 +393,9 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             return;
         }
 
-        SetState(TcpSessionState.Disposed);
-        await DisconnectAsync().ConfigureAwait(false);
-        Logging?.Info($"[SDK.{GetType().Name}] DisposeAsync completed.");
+        this.SetState(TcpSessionState.Disposed);
+        await this.DisconnectAsync().ConfigureAwait(false);
+        Logging?.Info($"[SDK.{this.GetType().Name}] DisposeAsync completed.");
         GC.SuppressFinalize(this);
     }
 
@@ -406,72 +406,72 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     protected void RaiseConnected()
     {
-        SetState(TcpSessionState.Connected);
-        Logging?.Info($"[SDK.{GetType().Name}] Connected.");
+        this.SetState(TcpSessionState.Connected);
+        Logging?.Info($"[SDK.{this.GetType().Name}] Connected.");
         try
         {
             OnConnected?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{GetType().Name}] OnConnected handler threw: {ex.Message}", ex);
+            Logging?.Error($"[SDK.{this.GetType().Name}] OnConnected handler threw: {ex.Message}", ex);
         }
     }
 
     /// <inheritdoc/>
     protected void RaiseDisconnected(Exception? ex)
     {
-        SetState(TcpSessionState.Disconnected);
-        Logging?.Info($"[SDK.{GetType().Name}] Disconnected.");
+        this.SetState(TcpSessionState.Disconnected);
+        Logging?.Info($"[SDK.{this.GetType().Name}] Disconnected.");
         try
         {
             OnDisconnected?.Invoke(this, ex!);
         }
         catch (Exception handlerEx)
         {
-            Logging?.Error($"[SDK.{GetType().Name}] OnDisconnected handler threw: {handlerEx.Message}", handlerEx);
+            Logging?.Error($"[SDK.{this.GetType().Name}] OnDisconnected handler threw: {handlerEx.Message}", handlerEx);
         }
     }
 
     /// <inheritdoc/>
     protected void RaiseError(Exception ex)
     {
-        Logging?.Info($"[SDK.{GetType().Name}] RaiseError event fired: {ex.Message}");
+        Logging?.Info($"[SDK.{this.GetType().Name}] RaiseError event fired: {ex.Message}");
         try
         {
             OnError?.Invoke(this, ex);
         }
         catch (Exception handlerEx)
         {
-            Logging?.Error($"[SDK.{GetType().Name}] RaiseError handler threw: {handlerEx.Message}", handlerEx);
+            Logging?.Error($"[SDK.{this.GetType().Name}] RaiseError handler threw: {handlerEx.Message}", handlerEx);
         }
     }
 
     /// <inheritdoc/>
     protected void RaiseBytesSent(long bytes)
     {
-        Logging?.Trace($"[SDK.{GetType().Name}] BytesSent={bytes}");
+        Logging?.Trace($"[SDK.{this.GetType().Name}] BytesSent={bytes}");
         try
         {
             OnBytesSent?.Invoke(this, bytes);
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{GetType().Name}] BytesSent handler threw: {ex.Message}", ex);
+            Logging?.Error($"[SDK.{this.GetType().Name}] BytesSent handler threw: {ex.Message}", ex);
         }
     }
 
     /// <inheritdoc/>
     protected void RaiseBytesReceived(long bytes)
     {
-        Logging?.Trace($"[SDK.{GetType().Name}] BytesReceived={bytes}");
+        Logging?.Trace($"[SDK.{this.GetType().Name}] BytesReceived={bytes}");
         try
         {
             OnBytesReceived?.Invoke(this, bytes);
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{GetType().Name}] BytesReceived handler threw: {ex.Message}", ex);
+            Logging?.Error($"[SDK.{this.GetType().Name}] BytesReceived handler threw: {ex.Message}", ex);
         }
     }
 
@@ -495,14 +495,14 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// </summary>
     protected virtual void TearDownConnection()
     {
-        SetState(TcpSessionState.Disconnected);
+        this.SetState(TcpSessionState.Disconnected);
         lock (i_sync)
         {
             if (i_loopCts is not null)
             {
                 CancelAndDispose(ref i_loopCts);
 
-                Logging?.Debug($"[SDK.{GetType().Name}] TearDownConnection: Loop token cancelled and disposed");
+                Logging?.Debug($"[SDK.{this.GetType().Name}] TearDownConnection: Loop token cancelled and disposed");
             }
 
             try
@@ -512,13 +512,13 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                Logging?.Warn($"[SDK.{GetType().Name}] TearDownConnection: Sender cleanup threw: {ex.Message}", ex);
+                Logging?.Warn($"[SDK.{this.GetType().Name}] TearDownConnection: Sender cleanup threw: {ex.Message}", ex);
             }
 
             try { i_socket?.Shutdown(SocketShutdown.Both); } catch { }
             try { i_socket?.Close(); i_socket?.Dispose(); } catch { }
 
-            Logging?.Debug($"[SDK.{GetType().Name}] TearDownConnection: Socket closed and disposed.");
+            Logging?.Debug($"[SDK.{this.GetType().Name}] TearDownConnection: Socket closed and disposed.");
 
             i_socket = null;
             i_receiver = null;
@@ -582,7 +582,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     {
         ReadOnlyMemory<byte> asyncData = default;
         Delegate[]? handlers = OnMessageReceived?.GetInvocationList();
-        Func<TcpSessionBase, ReadOnlyMemory<byte>, Task>? asyncHandler = OnMessageReceivedAsync;
+        Func<TcpSessionBase, ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageReceivedAsync;
 
         if (asyncHandler is not null)
         {
@@ -627,7 +627,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             Dispatcher.Post(() =>
             {
                 Logging?.Debug($"[SDK.{nameof(TcpSessionBase)}] Dispatch async handler, length={asyncData.Length}");
-                _ = InvokeAsyncHandler(asyncHandler, asyncData);
+                _ = this.InvokeAsyncHandler(asyncHandler, asyncData);
             });
         }
     }
@@ -640,7 +640,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     protected virtual void HandleSendError(Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
-        TearDownConnection();
+        this.TearDownConnection();
     }
 
     /// <summary>
@@ -651,7 +651,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     protected virtual void HandleReceiveError(Exception ex)
     {
         try { OnError?.Invoke(this, ex); } catch { }
-        TearDownConnection();
+        this.TearDownConnection();
     }
 
     /// <summary>
@@ -666,7 +666,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 
         if (prev != next)
         {
-            Logging?.Debug($"[SDK.{GetType().Name}] State: {prev} → {next}");
+            Logging?.Debug($"[SDK.{this.GetType().Name}] State: {prev} → {next}");
         }
     }
 
@@ -676,14 +676,14 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// <param name="attempt"></param>
     protected void RaiseReconnected(int attempt)
     {
-        Logging?.Info($"[SDK.{GetType().Name}] Reconnected (attempt {attempt}).");
+        Logging?.Info($"[SDK.{this.GetType().Name}] Reconnected (attempt {attempt}).");
         try
         {
             OnReconnected?.Invoke(this, attempt);
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{GetType().Name}] OnReconnected handler threw: {ex.Message}", ex);
+            Logging?.Error($"[SDK.{this.GetType().Name}] OnReconnected handler threw: {ex.Message}", ex);
         }
     }
 

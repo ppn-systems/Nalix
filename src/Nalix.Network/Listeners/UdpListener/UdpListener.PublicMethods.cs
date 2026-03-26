@@ -51,7 +51,7 @@ public abstract partial class UdpListenerBase : IListener
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] init port={_port}");
-            Initialize();
+            this.Initialize();
         }
 
         bool started = false;
@@ -77,7 +77,7 @@ public abstract partial class UdpListenerBase : IListener
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
                     name: $"{NetTaskNames.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
                     group: $"{NetTaskNames.Net}/{NetTaskNames.Udp}/{_port}",            // "net/udp/port"
-                    work: async (_, ct) => await ReceiveDatagramsAsync(ct).ConfigureAwait(false),
+                    work: async (_, ct) => await this.ReceiveDatagramsAsync(ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
                         Tag = NetTaskNames.Udp,
@@ -181,7 +181,7 @@ public abstract partial class UdpListenerBase : IListener
         _lastDriftMs = now - milliseconds;
 
         // Hook for derived listeners (optional override)
-        OnTimeSynchronized(milliseconds, now, _lastDriftMs);
+        this.OnTimeSynchronized(milliseconds, now, _lastDriftMs);
     }
 
     /// <summary>
@@ -221,7 +221,7 @@ public abstract partial class UdpListenerBase : IListener
         // IsListening wraps _isRunning:contentReference[oaicite:10]{index=10}
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] UdpListener Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Port: {_port}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsListening: {IsListening}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsListening: {this.IsListening}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsDisposed: {_isDisposed}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Protocol: {EllipseLeft(_protocol?.GetType().FullName ?? _protocol?.GetType().Name ?? "<null>", 23)}");
         _ = sb.AppendLine();
@@ -295,7 +295,7 @@ public abstract partial class UdpListenerBase : IListener
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["Port"] = _port,
-            ["IsListening"] = IsListening,
+            ["IsListening"] = this.IsListening,
             ["IsDisposed"] = _isDisposed,
             ["ProtocolType"] = _protocol?.GetType().FullName ?? _protocol?.GetType().Name ?? "<null>",
 

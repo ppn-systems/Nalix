@@ -29,5 +29,5 @@ public sealed class DataTypeAttribute : Attribute
     [SuppressMessage(
         "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public DataTypeAttribute(Type dataType)
-        => DataType = dataType ?? throw new ArgumentNullException(nameof(dataType));
+        => this.DataType = dataType ?? throw new ArgumentNullException(nameof(dataType));
 }

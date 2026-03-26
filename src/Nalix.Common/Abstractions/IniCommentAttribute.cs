@@ -25,6 +25,6 @@ public sealed class IniCommentAttribute : Attribute
     public IniCommentAttribute(string comment)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(comment, nameof(comment));
-        Comment = comment;
+        this.Comment = comment;
     }
 }

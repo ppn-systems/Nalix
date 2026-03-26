@@ -33,10 +33,10 @@ internal sealed class PooledSocketAsyncEventArgs : SocketAsyncEventArgs, IPoolab
     public void ResetForPool()
     {
         // Unsubscribe event handlers if needed here (e.g. this.Completed -= SomeHandler)
-        Context = null;
-        UserToken = null;
-        AcceptSocket = null;
-        RemoteEndPoint = null;
-        SetBuffer(null, 0, 0);
+        this.Context = null;
+        this.UserToken = null;
+        this.AcceptSocket = null;
+        this.RemoteEndPoint = null;
+        this.SetBuffer(null, 0, 0);
     }
 }

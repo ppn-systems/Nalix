@@ -131,9 +131,9 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     public PacketContext()
     {
         _state = (int)PacketContextState.Pooled;
-        Packet = default!;
-        Connection = default!;
-        Attributes = default!;
+        this.Packet = default!;
+        this.Connection = default!;
+        this.Attributes = default!;
     }
 
     #endregion Constructor
@@ -162,15 +162,15 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
             ref _state,
             (int)PacketContextState.InUse);
 
-        Packet = packet ?? throw new ArgumentNullException(nameof(packet));
-        Connection = connection ?? throw new ArgumentNullException(nameof(connection));
-        Attributes = descriptor;
-        CancellationToken = token;
+        this.Packet = packet ?? throw new ArgumentNullException(nameof(packet));
+        this.Connection = connection ?? throw new ArgumentNullException(nameof(connection));
+        this.Attributes = descriptor;
+        this.CancellationToken = token;
         PacketSender<TPacket> sender =
             s_object.Get<PacketSender<TPacket>>()
             ?? throw new InvalidOperationException($"[{nameof(PacketContext<>)}] object pool returned null {nameof(PacketSender<>)}");
         sender.Initialize(this);
-        Sender = sender;
+        this.Sender = sender;
         _isInitialized = true;
     }
 
@@ -183,15 +183,15 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Reset()
     {
-        if (Sender is PacketSender<TPacket> concreteSender)
+        if (this.Sender is PacketSender<TPacket> concreteSender)
         {
             s_object.Return(concreteSender);
         }
 
-        Sender = default!;
-        Packet = default!;
-        Attributes = default!;
-        Connection = default!;
+        this.Sender = default!;
+        this.Packet = default!;
+        this.Attributes = default!;
+        this.Connection = default!;
 
         _isInitialized = false;
     }
@@ -211,7 +211,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     {
         if (_isInitialized)
         {
-            Reset();
+            this.Reset();
         }
 
         _ = Interlocked.Exchange(ref _state, (int)PacketContextState.Pooled);

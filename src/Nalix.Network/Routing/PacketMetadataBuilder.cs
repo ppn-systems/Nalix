@@ -82,15 +82,15 @@ public sealed class PacketMetadataBuilder
     /// </exception>
     public PacketMetadata Build()
     {
-        return Opcode is null
+        return this.Opcode is null
             ? throw new InvalidOperationException("PacketMetadata requires a non-null Opcode. Ensure that a PacketOpcodeAttribute is present.")
             : new PacketMetadata(
-                Opcode,
-                Timeout,
-                Permission,
-                Encryption,
-                RateLimit,
-                ConcurrencyLimit,
+                this.Opcode,
+                this.Timeout,
+                this.Permission,
+                this.Encryption,
+                this.RateLimit,
+                this.ConcurrencyLimit,
                 new Dictionary<Type, Attribute>(_custom));
     }
 }

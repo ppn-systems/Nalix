@@ -43,10 +43,10 @@ public abstract partial class Protocol : IProtocol
 
         try
         {
-            OnPostProcess(args);
+            this.OnPostProcess(args);
             _ = Interlocked.Increment(ref _totalMessages);
 
-            if (!KeepConnectionOpen)
+            if (!this.KeepConnectionOpen)
             {
                 args.Connection.Disconnect();
 
@@ -60,7 +60,7 @@ public abstract partial class Protocol : IProtocol
             s_logger?.Error($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
             // Notify protocol-level error handler
-            OnConnectionError(args.Connection, ex);
+            this.OnConnectionError(args.Connection, ex);
             args.Connection.Disconnect();
         }
     }

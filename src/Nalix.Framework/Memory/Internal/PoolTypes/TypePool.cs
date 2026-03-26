@@ -65,7 +65,7 @@ internal class TypePool(int maxCapacity)
         // If the new capacity is less than the old one, trim the pool
         if (maxCapacity < oldCapacity)
         {
-            _ = Trim(100); // Trim to exactly the max capacity
+            _ = this.Trim(100); // Trim to exactly the max capacity
         }
     }
 
@@ -137,11 +137,11 @@ internal class TypePool(int maxCapacity)
         if (percentage <= 0)
         {
             // Dispose everything
-            return Clear();
+            return this.Clear();
         }
 
         // Calculate the target size
-        int targetSize = MaxCapacity * percentage / 100;
+        int targetSize = this.MaxCapacity * percentage / 100;
         int currentCount = _objects.Count;
 
         if (currentCount <= targetSize)

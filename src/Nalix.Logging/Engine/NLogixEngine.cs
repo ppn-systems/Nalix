@@ -125,7 +125,7 @@ public abstract class NLogixEngine : IDisposable
         string message,
         [MaybeNull] Exception? error = null)
     {
-        if (_isDisposed != 0 || !IsLevelEnabled(level))
+        if (_isDisposed != 0 || !this.IsLevelEnabled(level))
         {
             return;
         }
@@ -146,13 +146,13 @@ public abstract class NLogixEngine : IDisposable
     protected void Publish(LogLevel level, EventId eventId, string format, params object[] args)
     {
         // Skip expensive string formatting if the log level is disabled
-        if (_isDisposed != 0 || !IsLevelEnabled(level))
+        if (_isDisposed != 0 || !this.IsLevelEnabled(level))
         {
             return;
         }
 
         // Format the message only if we're going to use it
-        Publish(level, eventId, FormatMessage(format, args));
+        this.Publish(level, eventId, FormatMessage(format, args));
     }
 
     /// <summary>
@@ -182,7 +182,7 @@ public abstract class NLogixEngine : IDisposable
     /// </summary>
     public void Dispose()
     {
-        Dispose(true);
+        this.Dispose(true);
         GC.SuppressFinalize(this);
     }
 

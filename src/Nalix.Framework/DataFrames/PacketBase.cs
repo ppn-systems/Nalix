@@ -107,7 +107,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Assigns the automatically derived <see cref="FrameBase.MagicNumber"/>
     /// so that every packet is self-identifying on the wire without any attribute.
     /// </summary>
-    protected PacketBase() => MagicNumber = s_autoMagic;
+    protected PacketBase() => this.MagicNumber = s_autoMagic;
 
     #endregion Constructor
 
@@ -122,7 +122,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         {
             // Fast path: all properties are fixed-size → return cached value directly.
             ushort? fixedSize = s_cachedFixedSize.Value;
-            return fixedSize ?? COMPUTE_DYNAMIC_LENGTH();
+            return fixedSize ?? this.COMPUTE_DYNAMIC_LENGTH();
         }
     }
 
@@ -179,7 +179,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
     {
-        ushort required = Length;
+        ushort required = this.Length;
         return buffer.Length < required
             ? throw new ArgumentException(
                 $"Buffer too small for {typeof(TSelf).Name}. " +
@@ -238,13 +238,13 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         // Explicitly reset all FrameBase header fields to well-known defaults.
         // These are declared in the base class so _metadata may or may not include them
         // depending on whether SerializeOrder is defined — reset them unconditionally.
-        OpCode = 0;
-        Flags = PacketFlags.NONE;
-        Protocol = ProtocolType.NONE;
-        Priority = PacketPriority.NONE;
+        this.OpCode = 0;
+        this.Flags = PacketFlags.NONE;
+        this.Protocol = ProtocolType.NONE;
+        this.Priority = PacketPriority.NONE;
 
         // Restore type identity — never reset to 0.
-        MagicNumber = s_autoMagic;
+        this.MagicNumber = s_autoMagic;
     }
 
     #endregion APIs
@@ -286,7 +286,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     }
 
     /// <inheritdoc/>
-    public override string ToString() => $"{typeof(TSelf).Name}(Magic=0x{MagicNumber:X8}, OpCode={OpCode}, Flags={Flags}, Priority={Priority}, Protocol={Protocol})";
+    public override string ToString() => $"{typeof(TSelf).Name}(Magic=0x{this.MagicNumber:X8}, OpCode={this.OpCode}, Flags={this.Flags}, Priority={this.Priority}, Protocol={this.Protocol})";
 
     #endregion Diagnostics
 }

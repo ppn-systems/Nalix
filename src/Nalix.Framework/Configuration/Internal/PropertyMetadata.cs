@@ -69,15 +69,15 @@ internal class PropertyMetadata
         [MaybeNull] object? value)
     {
         // Only set if the types are compatible
-        if (value == null || PropertyType.IsInstanceOfType(value))
+        if (value == null || this.PropertyType.IsInstanceOfType(value))
         {
-            PropertyInfo.SetValue(target, value);
+            this.PropertyInfo.SetValue(target, value);
         }
         else
         {
             throw new InvalidOperationException(
-                $"Type mismatch for property {Name}: " +
-                $"Expected {PropertyType}, but got {value.GetType()}");
+                $"Type mismatch for property {this.Name}: " +
+                $"Expected {this.PropertyType}, but got {value.GetType()}");
         }
     }
 

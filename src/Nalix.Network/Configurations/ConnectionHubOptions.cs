@@ -79,12 +79,12 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
         System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
 
-        if (ParallelDisconnectDegree == 0)
+        if (this.ParallelDisconnectDegree == 0)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("ParallelDisconnectDegree cannot be zero. Use -1 for default or a positive value.");
         }
 
-        if (MaxConnections == 0)
+        if (this.MaxConnections == 0)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("MaxConnections cannot be zero (0 means no connections are allowed). Use -1 for unlimited or a positive value.");
         }

@@ -76,11 +76,11 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
         {
             if (value)
             {
-                Activate();
+                this.Activate();
             }
             else
             {
-                Deactivate();
+                this.Deactivate();
             }
         }
     }
@@ -104,7 +104,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
             field = value;
             // If running, restart to apply new period
-            if (IsRunning) { Restart(); }
+            if (this.IsRunning) { this.Restart(); }
         }
     } = DefaultPeriod;
 
@@ -144,7 +144,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
             return;
         }
 
-        INITIALIZE_SYNC_LOOP();
+        this.INITIALIZE_SYNC_LOOP();
     }
 
     /// <summary>
@@ -159,7 +159,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
             return;
         }
 
-        TERMINATE_SYNC_LOOP();
+        this.TERMINATE_SYNC_LOOP();
     }
 
     /// <summary>
@@ -168,16 +168,16 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Restart()
     {
-        if (!IsTimeSyncEnabled)
+        if (!this.IsTimeSyncEnabled)
         {
             return;
         }
 
-        TERMINATE_SYNC_LOOP();
+        this.TERMINATE_SYNC_LOOP();
 
         Thread.Sleep(50);
 
-        INITIALIZE_SYNC_LOOP();
+        this.INITIALIZE_SYNC_LOOP();
     }
 
     #endregion APIs
@@ -192,7 +192,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
             return;
         }
 
-        Deactivate();
+        this.Deactivate();
 
         TimeSynchronized = null;
 
@@ -233,9 +233,9 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
             {
                 try
                 {
-                    using PeriodicTimer timer = new(Period);
+                    using PeriodicTimer timer = new(this.Period);
 
-                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] started period={Period.TotalMilliseconds:0.#}ms");
+                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] started period={this.Period.TotalMilliseconds:0.#}ms");
 
                     while (!ct.IsCancellationRequested)
                     {
@@ -244,7 +244,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                             break;
                         }
 
-                        if (!IsTimeSyncEnabled)
+                        if (!this.IsTimeSyncEnabled)
                         {
                             continue;
                         }
@@ -283,11 +283,11 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                         }
 
                         long elapsed = Clock.UnixMillisecondsNow() - timestamp;
-                        if (elapsed > Period.TotalMilliseconds * 1.5)
+                        if (elapsed > this.Period.TotalMilliseconds * 1.5)
                         {
                             s_logger?.Warn(
                                 $"[NW.{nameof(TimeSynchronizer)}] tick overrun " +
-                                $"elapsed={elapsed}ms period={Period.TotalMilliseconds:0.#}ms");
+                                $"elapsed={elapsed}ms period={this.Period.TotalMilliseconds:0.#}ms");
                         }
 
                         ctx?.Beat();

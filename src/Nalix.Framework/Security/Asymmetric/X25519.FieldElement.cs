@@ -395,11 +395,11 @@ internal struct FieldElement
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public readonly FieldElement Invert()
     {
-        FieldElement t0 = Square();
+        FieldElement t0 = this.Square();
 
         FieldElement t1 = t0.Square();
         t1 = t1.Square();
-        t1 = Multiply(t1);
+        t1 = this.Multiply(t1);
         t0 = t0.Multiply(t1);
 
         FieldElement t2 = t0.Square();

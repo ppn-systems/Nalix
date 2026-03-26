@@ -100,7 +100,7 @@ public abstract partial class ConfigurationLoader
     public T Clone<T>() where T : ConfigurationLoader, new()
     {
         T clone = new();
-        Type type = GetType();
+        Type type = this.GetType();
 
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
 
@@ -111,7 +111,7 @@ public abstract partial class ConfigurationLoader
         }
 
         _ = Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
-        clone.LastInitializationTime = LastInitializationTime;
+        clone.LastInitializationTime = this.LastInitializationTime;
 
         return clone;
     }
@@ -133,7 +133,7 @@ public abstract partial class ConfigurationLoader
     {
         ArgumentNullException.ThrowIfNull(configFile, nameof(configFile));
 
-        Type type = GetType();
+        Type type = this.GetType();
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
         string section = GetSectionName(type);
 
@@ -158,7 +158,7 @@ public abstract partial class ConfigurationLoader
                                             .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
 
                     // HandleEmptyValue writes the comment + default value for new keys
-                    HandleEmptyValue(configFile, section, propertyInfo);
+                    this.HandleEmptyValue(configFile, section, propertyInfo);
                     continue;
                 }
 
@@ -182,7 +182,7 @@ public abstract partial class ConfigurationLoader
         }
 
         _ = Interlocked.Exchange(ref _isInitialized, 1);
-        LastInitializationTime = DateTime.UtcNow;
+        this.LastInitializationTime = DateTime.UtcNow;
     }
 
     #endregion Private Methods

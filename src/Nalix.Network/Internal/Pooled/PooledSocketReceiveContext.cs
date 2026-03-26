@@ -168,7 +168,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
             $"[PooledSocketReceiveContext] EnsureArgsBound acquired saea ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
-        BindArgs(pooledArgs);
+        this.BindArgs(pooledArgs);
     }
 
     /// <summary>
@@ -213,7 +213,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<int> ReceiveAsync(Socket socket, byte[] buffer, int offset, int count)
     {
-        SocketAsyncEventArgs args = Args; // throws if not bound
+        SocketAsyncEventArgs args = this.Args; // throws if not bound
 
         // Point the SAEA window at the requested slice.
         args.SetBuffer(buffer, offset, count);
@@ -229,7 +229,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         args.UserToken = new ReceiveToken(tcs, this);
 
         // Mark that a kernel operation is now in-flight.
-        BeginOperation();
+        this.BeginOperation();
 
         bool pending;
         try
@@ -239,7 +239,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         catch
         {
             // socket.ReceiveAsync threw synchronously (e.g. disposed socket).
-            EndOperation();
+            this.EndOperation();
             throw;
         }
 
@@ -251,7 +251,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
             SocketError err = args.SocketError;
             int bytes = args.BytesTransferred;
 
-            EndOperation(); // Decrement here — static handler won't fire.
+            this.EndOperation(); // Decrement here — static handler won't fire.
 
 #if DEBUG
             Debug.WriteLine(
@@ -345,5 +345,5 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         }
     }
 
-    public void Dispose() => ResetForPool();
+    public void Dispose() => this.ResetForPool();
 }

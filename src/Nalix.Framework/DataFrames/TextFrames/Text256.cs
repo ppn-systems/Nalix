@@ -29,7 +29,7 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
     /// <summary>Gets the total serialized length in bytes, including header and content.</summary>
     [SerializeIgnore]
     public override ushort Length =>
-        (ushort)(PacketConstants.HeaderSize + Encoding.UTF8.GetByteCount(Content ?? string.Empty));
+        (ushort)(PacketConstants.HeaderSize + Encoding.UTF8.GetByteCount(this.Content ?? string.Empty));
 
     /// <summary>
     /// Gets or sets the UTF-8 string content of the packet.
@@ -41,11 +41,11 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
     /// <summary>Initializes a new <see cref="Text256"/> with empty content.</summary>
     public Text256()
     {
-        Flags = PacketFlags.NONE;
-        Protocol = ProtocolType.NONE;
-        Content = string.Empty;
-        Priority = PacketPriority.NONE;
-        OpCode = PacketConstants.OpcodeDefault;
+        this.Flags = PacketFlags.NONE;
+        this.Protocol = ProtocolType.NONE;
+        this.Content = string.Empty;
+        this.Priority = PacketPriority.NONE;
+        this.OpCode = PacketConstants.OpcodeDefault;
     }
 
     /// <summary>Initializes the packet with content and transport protocol.</summary>
@@ -61,8 +61,8 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
             throw new ArgumentOutOfRangeException(nameof(content), $"Text supports at most {DynamicSize} bytes.");
         }
 
-        Protocol = transport;
-        Content = content ?? string.Empty;
+        this.Protocol = transport;
+        this.Content = content ?? string.Empty;
     }
 
     /// <summary>
@@ -101,14 +101,14 @@ public class Text256 : FrameBase, IPoolable, IPacketDeserializer<Text256>
     /// </summary>
     public override void ResetForPool()
     {
-        Flags = PacketFlags.NONE;
-        Protocol = ProtocolType.NONE;
-        Content = string.Empty;
-        Priority = PacketPriority.NONE;
+        this.Flags = PacketFlags.NONE;
+        this.Protocol = ProtocolType.NONE;
+        this.Content = string.Empty;
+        this.Priority = PacketPriority.NONE;
     }
 
     /// <inheritdoc/>
     public override string ToString()
-        => $"TEXT256(OpCode={OpCode}, Length={Length}, Flags={Flags}, " +
-           $"Priority={Priority}, Protocol={Protocol}, Content={Encoding.UTF8.GetByteCount(Content)} bytes)";
+        => $"TEXT256(OpCode={this.OpCode}, Length={this.Length}, Flags={this.Flags}, " +
+           $"Priority={this.Priority}, Protocol={this.Protocol}, Content={Encoding.UTF8.GetByteCount(this.Content)} bytes)";
 }

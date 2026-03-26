@@ -54,21 +54,21 @@ public sealed partial class Connection : IConnection
     public Connection(Socket socket)
     {
         _lock = new Lock();
-        Secret = [];
+        this.Secret = [];
         _disposed = false;
 
-        ID = Snowflake.NewId(SnowflakeType.Session);
-        NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint ?? throw new InvalidOperationException("Socket does not expose a remote endpoint."));
+        this.ID = Snowflake.NewId(SnowflakeType.Session);
+        this.NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint ?? throw new InvalidOperationException("Socket does not expose a remote endpoint."));
 
         _evtArgs = new ConnectionEventArgs(this);
         _socket = new SocketConnection(socket);
 
-        _socket.SetCallback(this, _evtArgs, OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
+        _socket.SetCallback(this, _evtArgs, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 
-        TCP = new TcpTransport(this);
-        Attributes = ObjectMap<string, object>.Rent();
+        this.TCP = new TcpTransport(this);
+        this.Attributes = ObjectMap<string, object>.Rent();
 
-        s_logger.Debug($"[NW.{nameof(Connection)}] created remote={NetworkEndpoint} id={ID}");
+        s_logger.Debug($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
     }
 
     #endregion Constructor
@@ -163,17 +163,17 @@ public sealed partial class Connection : IConnection
             return;
         }
 
-        OnCloseEventBridge(this, new ConnectionEventArgs(this));
+        this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
 #if DEBUG
-        s_logger.Debug($"[NW.{nameof(Connection)}:{Close}] close request id={ID} remote={NetworkEndpoint}");
+        s_logger.Debug($"[NW.{nameof(Connection)}:{this.Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
 #endif
     }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining |
         MethodImplOptions.AggressiveOptimization)]
-    public void Disconnect(string? reason = null) => Close(force: true);
+    public void Disconnect(string? reason = null) => this.Close(force: true);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
@@ -198,9 +198,9 @@ public sealed partial class Connection : IConnection
 
         try
         {
-            Attributes.Return();
+            this.Attributes.Return();
 
-            Disconnect();
+            this.Disconnect();
 
             _socket.Dispose();
 
@@ -212,7 +212,7 @@ public sealed partial class Connection : IConnection
         }
         catch (Exception ex)
         {
-            s_logger.Error($"[NW.{nameof(Connection)}:{Dispose}] dispose-error msg={ex.Message}");
+            s_logger.Error($"[NW.{nameof(Connection)}:{this.Dispose}] dispose-error msg={ex.Message}");
         }
 
         GC.SuppressFinalize(this);

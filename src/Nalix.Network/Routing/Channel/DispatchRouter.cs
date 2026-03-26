@@ -66,7 +66,7 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
     public void Push(
         IConnection connection,
         IBufferLease raw)
-        => GET_SHARD(connection).Push(connection, raw);
+        => this.GET_SHARD(connection).Push(connection, raw);
 
     /// <inheritdoc/>
     public bool Pull(

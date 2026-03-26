@@ -161,14 +161,14 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         _capacityMicro = (long)_options.CapacityTokens * _options.TokenScale;
         _refillPerSecMicro = (long)Math.Round(_options.RefillTokensPerSecond * _options.TokenScale);
 
-        _initialBalanceMicro = CalculateInitialBalance();
+        _initialBalanceMicro = this.CalculateInitialBalance();
 
         for (int i = 0; i < _shards.Length; i++)
         {
             _shards[i] = new Shard();
         }
 
-        SCHEDULE_CLEANUP_JOB();
+        this.SCHEDULE_CLEANUP_JOB();
 
         string initialDesc = _options.InitialTokens < 0
             ? "full"
@@ -220,12 +220,12 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         VALIDATE_ENDPOINT(key);
 
         long now = Stopwatch.GetTimestamp();
-        Shard shard = SELECT_SHARD(key);
+        Shard shard = this.SELECT_SHARD(key);
 
-        EndpointStateResult result = GET_OR_CREATE_ENDPOINT_STATE(key, shard, now);
+        EndpointStateResult result = this.GET_OR_CREATE_ENDPOINT_STATE(key, shard, now);
 
         // Early exit if limit reached during creation
-        return result.EarlyDecision ?? EVALUATE_RATE_LIMIT(key, result.State, now);
+        return result.EarlyDecision ?? this.EVALUATE_RATE_LIMIT(key, result.State, now);
     }
 
     /// <summary>
@@ -237,11 +237,11 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         long now = Stopwatch.GetTimestamp();
 
-        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot = COLLECT_STATE_SNAPSHOT(now, out int totalEndpoints, out int hardBlockedCount);
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot = this.COLLECT_STATE_SNAPSHOT(now, out int totalEndpoints, out int hardBlockedCount);
 
         try
         {
-            return BUILD_REPORT_STRING(snapshot, totalEndpoints, hardBlockedCount, now);
+            return this.BUILD_REPORT_STRING(snapshot, totalEndpoints, hardBlockedCount, now);
         }
         finally
         {
@@ -256,7 +256,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         long now = Stopwatch.GetTimestamp();
 
-        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot = COLLECT_STATE_SNAPSHOT(now, out int totalEndpoints, out int hardBlockedCount);
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot = this.COLLECT_STATE_SNAPSHOT(now, out int totalEndpoints, out int hardBlockedCount);
         try
         {
             Dictionary<string, object> data = new()
@@ -294,8 +294,8 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
                     ["Credit"] = credit,
                     ["MicroBalance"] = micro,
                     ["RetryAfterMs"] = isBlocked
-                        ? CALCULATE_DELAY_MS(now, blockedUntil)
-                        : (micro >= _options.TokenScale ? 0 : CALCULATE_RETRY_DELAY_MS(_options.TokenScale - micro))
+                        ? this.CALCULATE_DELAY_MS(now, blockedUntil)
+                        : (micro >= _options.TokenScale ? 0 : this.CALCULATE_RETRY_DELAY_MS(_options.TokenScale - micro))
                 };
             })];
 
@@ -349,7 +349,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         }
 
         // Slow-path: create new state with limit check
-        return CREATE_NEW_ENDPOINT_STATE(key, shard, now);
+        return this.CREATE_NEW_ENDPOINT_STATE(key, shard, now);
     }
 
     /// <summary>
@@ -364,17 +364,17 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         long now)
     {
         // Pre-check limit before allocation
-        if (IS_ENDPOINT_LIMIT_REACHED())
+        if (this.IS_ENDPOINT_LIMIT_REACHED())
         {
             s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}");
 
             return new EndpointStateResult
             {
-                EarlyDecision = CREATE_LIMIT_REACHED_DECISION()
+                EarlyDecision = this.CREATE_LIMIT_REACHED_DECISION()
             };
         }
 
-        EndpointState newState = CREATE_INITIAL_ENDPOINT_STATE(now);
+        EndpointState newState = this.CREATE_INITIAL_ENDPOINT_STATE(now);
         int newCount = Interlocked.Increment(ref _totalEndpointCount);
 
         if (!shard.Map.TryAdd(key, newState))
@@ -390,12 +390,12 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         }
 
         // Successfully added - double-check limit
-        if (SHOULD_REJECT_DUE_TO_LIMIT(newCount))
+        if (this.SHOULD_REJECT_DUE_TO_LIMIT(newCount))
         {
-            REMOVE_NEWLY_ADDED_ENDPOINT(key, shard);
+            this.REMOVE_NEWLY_ADDED_ENDPOINT(key, shard);
             return new EndpointStateResult
             {
-                EarlyDecision = CREATE_LIMIT_REACHED_DECISION()
+                EarlyDecision = this.CREATE_LIMIT_REACHED_DECISION()
             };
         }
 
@@ -491,22 +491,22 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             state.LastSeenSw = now;
 
             // Check hard lockout first
-            if (IS_HARD_BLOCKED(state, now, out RateLimitDecision blockedDecision))
+            if (this.IS_HARD_BLOCKED(state, now, out RateLimitDecision blockedDecision))
             {
                 return blockedDecision;
             }
 
             // Refill tokens based on elapsed time
-            REFILL_TOKENS(now, state);
+            this.REFILL_TOKENS(now, state);
 
             // Try to consume 1 token
-            if (CAN_CONSUME_TOKEN(state))
+            if (this.CAN_CONSUME_TOKEN(state))
             {
-                return CONSUME_TOKEN_AN_DCREATE_DECISION(state);
+                return this.CONSUME_TOKEN_AN_DCREATE_DECISION(state);
             }
 
             // Not enough tokens - handle violation
-            return HANDLE_INSUFFICIENT_TOKENS(key, state, now);
+            return this.HANDLE_INSUFFICIENT_TOKENS(key, state, now);
         }
     }
 
@@ -521,7 +521,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         if (state.HardBlockedUntilSw > now)
         {
-            int retryMs = CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
+            int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
             s_logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
 
             decision = new RateLimitDecision
@@ -580,13 +580,13 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private RateLimitDecision HANDLE_INSUFFICIENT_TOKENS(INetworkEndpoint key, EndpointState state, long now)
     {
         long needed = _options.TokenScale - state.MicroBalance;
-        int retryMs = CALCULATE_RETRY_DELAY_MS(needed);
+        int retryMs = this.CALCULATE_RETRY_DELAY_MS(needed);
 
-        RECORD_VIOLATION(state, now);
+        this.RECORD_VIOLATION(state, now);
 
         // Check if should escalate to hard lock
-        return SHOULD_ESCALATE_TO_HARD_LOCK(state)
-            ? ESCALATE_TO_HARD_LOCK(key, state, now)
+        return this.SHOULD_ESCALATE_TO_HARD_LOCK(state)
+            ? this.ESCALATE_TO_HARD_LOCK(key, state, now)
             : new RateLimitDecision
             {
                 Allowed = false,
@@ -604,7 +604,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void RECORD_VIOLATION(EndpointState state, long now)
     {
-        long windowTicks = TO_TICKS(_options.SoftViolationWindowSeconds);
+        long windowTicks = this.TO_TICKS(_options.SoftViolationWindowSeconds);
 
         if (now - state.LastViolationSw <= windowTicks)
         {
@@ -636,10 +636,10 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         EndpointState state,
         long now)
     {
-        state.HardBlockedUntilSw = now + TO_TICKS(_options.HardLockoutSeconds);
+        state.HardBlockedUntilSw = now + this.TO_TICKS(_options.HardLockoutSeconds);
         state.SoftViolations = 0;
 
-        int retryMs = CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
+        int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
         s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] escalate-to-hard-lock " +
                      $"endpoint={key.Address} retry_ms={retryMs}");
 
@@ -893,7 +893,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             }
         }
 
-        SORT_SNAPSHOT_BY_PRESSURE(snapshot, now);
+        this.SORT_SNAPSHOT_BY_PRESSURE(snapshot, now);
 
         return snapshot;
     }
@@ -932,8 +932,8 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             }
 
             // Then by deficit (bigger deficit = higher pressure)
-            long aDef = CALCULATE_DEFICIT(aMicro);
-            long bDef = CALCULATE_DEFICIT(bMicro);
+            long aDef = this.CALCULATE_DEFICIT(aMicro);
+            long bDef = this.CALCULATE_DEFICIT(bMicro);
 
             int cmpDef = bDef.CompareTo(aDef);
             if (cmpDef != 0)
@@ -972,8 +972,8 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         StringBuilder sb = new();
 
-        APPEND_REPORT_HEADER(sb, totalEndpoints, hardBlockedCount);
-        APPEND_ENDPOINT_DETAILS(sb, snapshot, now);
+        this.APPEND_REPORT_HEADER(sb, totalEndpoints, hardBlockedCount);
+        this.APPEND_ENDPOINT_DETAILS(sb, snapshot, now);
 
         return sb.ToString();
     }
@@ -1025,7 +1025,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         }
         else
         {
-            APPEND_TOP_ENDPOINTS(sb, snapshot, now, maxCount: 20);
+            this.APPEND_TOP_ENDPOINTS(sb, snapshot, now, maxCount: 20);
         }
 
         _ = sb.AppendLine("-------------------------------------------------------------------------------");
@@ -1053,7 +1053,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
                 break;
             }
 
-            APPEND_ENDPOINT_ROW(sb, kv.Key, kv.Value, now);
+            this.APPEND_ENDPOINT_ROW(sb, kv.Key, kv.Value, now);
         }
     }
 
@@ -1076,7 +1076,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
         bool isBlocked = blockedUntil > now;
         ushort credit = CALCULATE_REMAINING_CREDIT(micro, _options.TokenScale);
-        int retryMs = CALCULATE_RETRY_FOR_REPORT(micro, isBlocked, blockedUntil, now);
+        int retryMs = this.CALCULATE_RETRY_FOR_REPORT(micro, isBlocked, blockedUntil, now);
 
         string keyCol = FORMAT_ENDPOINT_KEY(key.Address);
         string blockedCol = isBlocked ? "yes" : " no ";
@@ -1096,11 +1096,11 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         if (isBlocked)
         {
-            return CALCULATE_DELAY_MS(now, blockedUntil);
+            return this.CALCULATE_DELAY_MS(now, blockedUntil);
         }
 
         long needed = (micro >= _options.TokenScale) ? 0 : (_options.TokenScale - micro);
-        return needed > 0 ? CALCULATE_RETRY_DELAY_MS(needed) : 0;
+        return needed > 0 ? this.CALCULATE_RETRY_DELAY_MS(needed) : 0;
     }
 
     /// <summary>
@@ -1149,9 +1149,9 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         try
         {
             long now = Stopwatch.GetTimestamp();
-            int removed = PERFORM_STALE_CLEANUP(now, token);
+            int removed = this.PERFORM_STALE_CLEANUP(now, token);
 
-            removed += ENFORCE_LIMIT_IF_NEEDED(token);
+            removed += this.ENFORCE_LIMIT_IF_NEEDED(token);
 
             if (removed > 0)
             {
@@ -1180,7 +1180,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         int removed = 0;
         int visited = 0;
-        long staleTicks = TO_TICKS(_options.StaleEntrySeconds);
+        long staleTicks = this.TO_TICKS(_options.StaleEntrySeconds);
 
         foreach (Shard shard in _shards)
         {
@@ -1195,7 +1195,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
                     token.ThrowIfCancellationRequested();
                 }
 
-                if (TRY_REMOVE_STALE_ENDPOINT(kv, now, staleTicks, shard))
+                if (this.TRY_REMOVE_STALE_ENDPOINT(kv, now, staleTicks, shard))
                 {
                     removed++;
                 }
@@ -1264,7 +1264,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         }
 
         int toRemove = currentCount - _options.MaxTrackedEndpoints;
-        int removed = REMOVEO_LDEST_ENDPOINTS(toRemove, token);
+        int removed = this.REMOVEO_LDEST_ENDPOINTS(toRemove, token);
 
         if (removed > 0)
         {
@@ -1290,12 +1290,12 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             return 0;
         }
 
-        List<(INetworkEndpoint Key, long LastSeen)> candidates = COLLECT_EVICTION_CANDIDATES(cancellationToken);
+        List<(INetworkEndpoint Key, long LastSeen)> candidates = this.COLLECT_EVICTION_CANDIDATES(cancellationToken);
 
         try
         {
             candidates.Sort((a, b) => a.LastSeen.CompareTo(b.LastSeen));
-            return EVICT_OLD_ESTCANDIDATES(candidates, count, cancellationToken);
+            return this.EVICT_OLD_ESTCANDIDATES(candidates, count, cancellationToken);
         }
         finally
         {
@@ -1356,7 +1356,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             }
 
             INetworkEndpoint endpoint = candidates[i].Key;
-            Shard shard = SELECT_SHARD(endpoint);
+            Shard shard = this.SELECT_SHARD(endpoint);
 
             if (shard.Map.TryRemove(endpoint, out _))
             {
@@ -1389,11 +1389,11 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private void SCHEDULE_CLEANUP_JOB()
     {
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: TaskNaming.Recurring.CleanupJobId(RecurringName, GetHashCode()),
+            name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
             interval: TimeSpan.FromSeconds(_cleanupIntervalSec),
             work: _ =>
             {
-                CLEANUP_STALE_ENDPOINTS();
+                this.CLEANUP_STALE_ENDPOINTS();
                 return ValueTask.CompletedTask;
             },
             options: new RecurringOptions
@@ -1451,7 +1451,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         _ = (InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
                                 .CancelRecurring(TaskNaming.Recurring
                                 .CleanupJobId(RecurringName,
-                                GetHashCode())));
+                                this.GetHashCode())));
 
         s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
     }
@@ -1462,7 +1462,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     /// </summary>
     public ValueTask DisposeAsync()
     {
-        Dispose();
+        this.Dispose();
         return ValueTask.CompletedTask;
     }
 
