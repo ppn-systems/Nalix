@@ -17,8 +17,11 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
-using Nalix.Network.Internal.Transport;
 using Nalix.Network.Routing.Results.Primitives;
+
+#if DEBUG
+using Nalix.Network.Internal.Transport;
+#endif
 
 namespace Nalix.Network.Connections;
 

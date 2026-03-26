@@ -276,3 +276,5 @@ dotnet_naming_symbols.private_static_field.required_modifiers = static
 
 dotnet_naming_style.static_field_style.required_prefix = s_
 dotnet_naming_style.static_field_style.capitalization = camel_case
+
+dotnet_diagnostic.CA1852.severity = none

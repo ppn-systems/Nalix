@@ -28,8 +28,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
         Logging = logger;
@@ -48,8 +47,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         Action<Exception, ushort> errorHandler)
     {
@@ -68,8 +66,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithMiddleware(IPacketMiddleware<TPacket> middleware)
     {
         ArgumentNullException.ThrowIfNull(middleware);
@@ -77,6 +74,27 @@ public sealed partial class PacketDispatchOptions<TPacket>
         Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
 
         _pipeline.Use(middleware);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a middleware component to the packet processing pipeline.
+    /// </summary>
+    /// <param name="middleware">
+    /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked during packet processing.
+    /// </param>
+    /// <returns>
+    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public PacketDispatchOptions<TPacket> WithBufferMiddleware(INetworkBufferMiddleware middleware)
+    {
+        ArgumentNullException.ThrowIfNull(middleware);
+
+        Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
+
+        NetworkPipeline.Use(middleware);
 
         return this;
     }
@@ -90,8 +108,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </param>
     /// <returns>The current options instance.</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int? loopCount)
     {
         if (loopCount.HasValue && (loopCount.Value < 1 || loopCount.Value > 64))
@@ -130,8 +147,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <exception cref="ArgumentNullException">
     /// Thrown if required dependencies within the pipeline are not initialized.
     /// </exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithErrorHandlingMiddleware(
         bool continueOnError,
         Action<Exception, Type>? errorHandler = null)
@@ -148,8 +164,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// The type of the controller to register. Must have a parameterless constructor.
     /// </typeparam>
     /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithHandler<[
         DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods |
@@ -164,8 +179,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithHandler<[
         DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods |
@@ -201,8 +215,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </remarks>
     /// <exception cref="InvalidOperationException"></exception>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithHandler<
         [DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods)] TController>(
@@ -266,8 +279,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <see langword="true"/> if a handler delegate was found for the specified opcode; otherwise, <see langword="false"/>.
     /// </returns>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool TryResolveHandler(
         ushort opCode,
         [NotNullWhen(true)] out Func<TPacket, IConnection, Task> handler)
@@ -308,8 +320,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <returns>
     /// <see langword="true"/> if a handler descriptor was found; otherwise, <see langword="false"/>.
     /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool TryResolveHandlerDescriptor(
         ushort opCode,
         [NotNullWhen(true)] out PacketHandler<TPacket> descriptor)
