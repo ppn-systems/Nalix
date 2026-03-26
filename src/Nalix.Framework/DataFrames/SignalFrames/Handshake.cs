@@ -34,7 +34,7 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with empty content.
     /// </summary>
-    public Handshake() => ResetForPool();
+    public Handshake() => this.ResetForPool();
 
     /// <summary>
     /// Initializes a new instance with the specified operation code, binary data, and protocol.
@@ -44,9 +44,9 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <param name="transport"></param>
     public Handshake(ushort opCode, byte[] data, ProtocolType transport = ProtocolType.TCP) : this()
     {
-        Data = data ?? [];
-        OpCode = opCode;
-        Protocol = transport;
+        this.Data = data ?? [];
+        this.OpCode = opCode;
+        this.Protocol = transport;
     }
 
     /// <summary>
@@ -56,14 +56,14 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <param name="transport"></param>
     public void Initialize(byte[] data, ProtocolType transport = ProtocolType.TCP)
     {
-        Data = data ?? [];
-        Protocol = transport;
+        this.Data = data ?? [];
+        this.Protocol = transport;
     }
 
     /// <summary>
     /// Returns a string representation including all relevant fields.
     /// </summary>
-    public override string ToString() => $"HANDSHAKE(OpCode={OpCode}, Length={Length}, Flags={Flags}, Priority={Priority}, Protocol={Protocol}, Data={Data?.Length ?? 0} bytes)";
+    public override string ToString() => $"HANDSHAKE(OpCode={this.OpCode}, Length={this.Length}, Flags={this.Flags}, Priority={this.Priority}, Protocol={this.Protocol}, Data={this.Data?.Length ?? 0} bytes)";
 
     /// <summary>
     /// Resets this instance to its default state for pooling reuse.
@@ -72,6 +72,6 @@ public sealed class Handshake : PacketBase<Handshake>
     {
         base.ResetForPool(); // always call for consistency!
 
-        Data = [];
+        this.Data = [];
     }
 }

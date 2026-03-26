@@ -40,23 +40,23 @@ public readonly record struct BufferPoolState : IEquatable<BufferPoolState>
     /// <summary>
     /// Gets a value indicating whether the pool can be shrunk (free &gt;= 50%).
     /// </summary>
-    public bool CanShrink => FreeBuffers > (TotalBuffers * 0.5);
+    public bool CanShrink => this.FreeBuffers > (this.TotalBuffers * 0.5);
 
     /// <summary>
     /// Gets a value indicating whether the pool likely needs expansion (free &lt;= 25%).
     /// </summary>
-    public bool NeedsExpansion => FreeBuffers < (TotalBuffers * 0.25);
+    public bool NeedsExpansion => this.FreeBuffers < (this.TotalBuffers * 0.25);
 
     /// <summary>
     /// Gets the usage ratio of the buffer pool.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double GetUsageRatio()
-        => TotalBuffers <= 0 ? 0.0 : Math.Max(0.0, Math.Min(1.0, 1.0 - (FreeBuffers / (double)TotalBuffers)));
+        => this.TotalBuffers <= 0 ? 0.0 : Math.Max(0.0, Math.Min(1.0, 1.0 - (this.FreeBuffers / (double)this.TotalBuffers)));
 
     /// <summary>
     /// Gets the miss rate as a ratio of total buffers.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double GetMissRate() => TotalBuffers <= 0 ? 0.0 : Math.Min(1.0, Misses / (double)TotalBuffers);
+    public double GetMissRate() => this.TotalBuffers <= 0 ? 0.0 : Math.Min(1.0, this.Misses / (double)this.TotalBuffers);
 }

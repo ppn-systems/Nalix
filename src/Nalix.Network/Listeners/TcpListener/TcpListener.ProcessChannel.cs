@@ -44,7 +44,7 @@ public abstract partial class TcpListenerBase
                 AllowSynchronousContinuations = false,
             });
 
-        _processThread = new Thread(() => PROCESS_CHANNEL_LOOP(cancellationToken))
+        _processThread = new Thread(() => this.PROCESS_CHANNEL_LOOP(cancellationToken))
         {
             IsBackground = true,
             Name = $"NW.AcceptDispatch.{_port}",
@@ -98,7 +98,7 @@ public abstract partial class TcpListenerBase
 
         // Channel full → DDoS backpressure: drop the new connection immediately.
         // Existing legitimate connections already in the channel are unaffected.
-        Metrics.RECORD_REJECTED();
+        this.Metrics.RECORD_REJECTED();
         s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] channel-full remote={connection?.NetworkEndpoint} port={_port} — dropped");
 
         ArgumentNullException.ThrowIfNull(connection);
@@ -133,7 +133,7 @@ public abstract partial class TcpListenerBase
                     continue;
                 }
 
-                INVOKE_PROCESS(connection);
+                this.INVOKE_PROCESS(connection);
             }
 
             // ── Slow path: wait for next item ─────────────────────────────────
@@ -171,7 +171,7 @@ public abstract partial class TcpListenerBase
                 continue;
             }
 
-            INVOKE_PROCESS(connection);
+            this.INVOKE_PROCESS(connection);
         }
 
         s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] thread-exited port={_port}");
@@ -189,7 +189,7 @@ public abstract partial class TcpListenerBase
         {
             // ProcessConnection → OnAccept → BeginReceive (returns in microseconds).
             // The receive loop itself runs as a separate async task on the ThreadPool.
-            ProcessConnection(connection);
+            this.ProcessConnection(connection);
         }
         catch (Exception ex)
         {

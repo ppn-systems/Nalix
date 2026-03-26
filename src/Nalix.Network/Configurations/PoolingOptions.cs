@@ -186,28 +186,28 @@ public sealed class PoolingOptions : ConfigurationLoader
             this, ctx, validateAllProperties: true);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(AcceptContextPreallocate), AcceptContextPreallocate,
-            nameof(AcceptContextCapacity), AcceptContextCapacity);
+            nameof(this.AcceptContextPreallocate), this.AcceptContextPreallocate,
+            nameof(this.AcceptContextCapacity), this.AcceptContextCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(SocketArgsPreallocate), SocketArgsPreallocate,
-            nameof(SocketArgsCapacity), SocketArgsCapacity);
+            nameof(this.SocketArgsPreallocate), this.SocketArgsPreallocate,
+            nameof(this.SocketArgsCapacity), this.SocketArgsCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(ReceiveContextPreallocate), ReceiveContextPreallocate,
-            nameof(ReceiveContextCapacity), ReceiveContextCapacity);
+            nameof(this.ReceiveContextPreallocate), this.ReceiveContextPreallocate,
+            nameof(this.ReceiveContextCapacity), this.ReceiveContextCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(TimeoutTaskPreallocate), TimeoutTaskPreallocate,
-            nameof(TimeoutTaskCapacity), TimeoutTaskCapacity);
+            nameof(this.TimeoutTaskPreallocate), this.TimeoutTaskPreallocate,
+            nameof(this.TimeoutTaskCapacity), this.TimeoutTaskCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(PacketContextPreallocate), PacketContextPreallocate,
-            nameof(PacketContextCapacity), PacketContextCapacity);
+            nameof(this.PacketContextPreallocate), this.PacketContextPreallocate,
+            nameof(this.PacketContextCapacity), this.PacketContextCapacity);
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
-            nameof(ListenerContextPreallocate), ListenerContextPreallocate,
-            nameof(ListenerContextCapacity), ListenerContextCapacity);
+            nameof(this.ListenerContextPreallocate), this.ListenerContextPreallocate,
+            nameof(this.ListenerContextCapacity), this.ListenerContextCapacity);
     }
 
     private static void ASSERT_PREALLOCATE_LE_CAPACITY(

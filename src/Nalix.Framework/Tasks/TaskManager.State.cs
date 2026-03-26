@@ -131,14 +131,14 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _startedUtcTicks, nowTicks);
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
             _ = Interlocked.Exchange(ref _completedUtcTicks, 0);
-            IsRunning = true;
+            this.IsRunning = true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void MarkStop()
         {
-            IsRunning = false;
+            this.IsRunning = false;
             _ = Interlocked.Increment(ref _totalRuns);
             long nowTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
             _ = Interlocked.Exchange(ref _completedUtcTicks, nowTicks);
@@ -149,7 +149,7 @@ public partial class TaskManager
             MethodImplOptions.AggressiveOptimization)]
         public void MarkError(Exception __)
         {
-            IsRunning = false;
+            this.IsRunning = false;
             long ticks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
 
             _ = Interlocked.Increment(ref _totalRuns);
@@ -177,7 +177,7 @@ public partial class TaskManager
 
             if (note is not null)
             {
-                LastNote = note;
+                this.LastNote = note;
             }
 
             long nowTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
@@ -185,36 +185,36 @@ public partial class TaskManager
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public void Cancel() => Cts.Cancel();
+        public void Cancel() => this.Cts.Cancel();
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        void IDisposable.Dispose() => Cancel();
+        void IDisposable.Dispose() => this.Cancel();
 
         #endregion Computed Methods
 
         #region IWorkerHandle
 
-        ISnowflake IWorkerHandle.Id => Id;
+        ISnowflake IWorkerHandle.Id => this.Id;
 
-        string IWorkerHandle.Name => Name;
+        string IWorkerHandle.Name => this.Name;
 
-        string IWorkerHandle.Group => Group;
+        string IWorkerHandle.Group => this.Group;
 
-        bool IWorkerHandle.IsRunning => IsRunning;
+        bool IWorkerHandle.IsRunning => this.IsRunning;
 
-        long IWorkerHandle.TotalRuns => TotalRuns;
+        long IWorkerHandle.TotalRuns => this.TotalRuns;
 
-        DateTimeOffset IWorkerHandle.StartedUtc => StartedUtc;
-
-        [MaybeNull]
-        DateTimeOffset? IWorkerHandle.LastHeartbeatUtc => LastHeartbeatUtc;
-
-        long IWorkerHandle.Progress => Progress;
+        DateTimeOffset IWorkerHandle.StartedUtc => this.StartedUtc;
 
         [MaybeNull]
-        string? IWorkerHandle.LastNote => LastNote;
+        DateTimeOffset? IWorkerHandle.LastHeartbeatUtc => this.LastHeartbeatUtc;
 
-        IWorkerOptions IWorkerHandle.Options => Options;
+        long IWorkerHandle.Progress => this.Progress;
+
+        [MaybeNull]
+        string? IWorkerHandle.LastNote => this.LastNote;
+
+        IWorkerOptions IWorkerHandle.Options => this.Options;
 
         #endregion IWorkerHandle
     }
@@ -295,7 +295,7 @@ public partial class TaskManager
             }
         }
 
-        public DateTimeOffset? NextRunUtc => LastRunUtc?.Add(Interval);
+        public DateTimeOffset? NextRunUtc => this.LastRunUtc?.Add(this.Interval);
 
         #endregion Properties / fields
 
@@ -305,16 +305,16 @@ public partial class TaskManager
             MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
         {
-            IsRunning = true;
-            LastRunUtc = DateTimeOffset.UtcNow;
+            this.IsRunning = true;
+            this.LastRunUtc = DateTimeOffset.UtcNow;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining |
             MethodImplOptions.AggressiveOptimization)]
         public void MarkSuccess()
         {
-            IsRunning = false;
-            ConsecutiveFailures = 0;
+            this.IsRunning = false;
+            this.ConsecutiveFailures = 0;
             _ = Interlocked.Increment(ref _totalRuns);
         }
 
@@ -322,38 +322,38 @@ public partial class TaskManager
             MethodImplOptions.AggressiveOptimization)]
         public void MarkFailure()
         {
-            IsRunning = false;
+            this.IsRunning = false;
             _ = Interlocked.Increment(ref _consecutiveFailures);
             _ = Interlocked.Increment(ref _totalRuns);
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public void Cancel() => CancellationTokenSource.Cancel();
+        public void Cancel() => this.CancellationTokenSource.Cancel();
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        void IDisposable.Dispose() => Cancel();
+        void IDisposable.Dispose() => this.Cancel();
 
         #endregion Computed Methods
 
         #region IRecurringHandle
 
-        string IRecurringHandle.Name => Name;
+        string IRecurringHandle.Name => this.Name;
 
-        bool IRecurringHandle.IsRunning => IsRunning;
+        bool IRecurringHandle.IsRunning => this.IsRunning;
 
-        long IRecurringHandle.TotalRuns => TotalRuns;
+        long IRecurringHandle.TotalRuns => this.TotalRuns;
 
-        int IRecurringHandle.ConsecutiveFailures => ConsecutiveFailures;
-
-        [MaybeNull]
-        DateTimeOffset? IRecurringHandle.LastRunUtc => LastRunUtc;
+        int IRecurringHandle.ConsecutiveFailures => this.ConsecutiveFailures;
 
         [MaybeNull]
-        DateTimeOffset? IRecurringHandle.NextRunUtc => NextRunUtc;
+        DateTimeOffset? IRecurringHandle.LastRunUtc => this.LastRunUtc;
 
-        TimeSpan IRecurringHandle.Interval => Interval;
+        [MaybeNull]
+        DateTimeOffset? IRecurringHandle.NextRunUtc => this.NextRunUtc;
 
-        IRecurringOptions IRecurringHandle.Options => Options;
+        TimeSpan IRecurringHandle.Interval => this.Interval;
+
+        IRecurringOptions IRecurringHandle.Options => this.Options;
 
         #endregion IRecurringHandle
     }

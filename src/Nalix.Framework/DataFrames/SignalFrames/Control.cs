@@ -46,7 +46,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// <summary>
     /// Initializes a new instance of the Control class with default metadata values.
     /// </summary>
-    public Control() => ResetForPool();
+    public Control() => this.ResetForPool();
 
     /// <summary>
     /// Initializes the control packet with full metadata.
@@ -59,12 +59,12 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
         ControlType type, uint sequenceId = 0,
         ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
     {
-        Type = type;
-        Reason = reasonCode;
-        Protocol = transport;
-        SequenceId = sequenceId;
-        MonoTicks = Clock.MonoTicksNow();
-        Timestamp = Clock.UnixMillisecondsNow();
+        this.Type = type;
+        this.Reason = reasonCode;
+        this.Protocol = transport;
+        this.SequenceId = sequenceId;
+        this.MonoTicks = Clock.MonoTicksNow();
+        this.Timestamp = Clock.UnixMillisecondsNow();
     }
 
     /// <summary>
@@ -79,24 +79,24 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
         ushort opCode, ControlType type, uint sequenceId = 0,
         ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
     {
-        OpCode = opCode;
-        Initialize(type, sequenceId, reasonCode, transport);
+        this.OpCode = opCode;
+        this.Initialize(type, sequenceId, reasonCode, transport);
     }
 
     /// <inheritdoc/>
     public override void ResetForPool()
     {
         base.ResetForPool();
-        Reason = 0;
-        Timestamp = 0;
-        MonoTicks = 0;
-        SequenceId = 0;
-        Type = ControlType.NONE;
-        Priority = PacketPriority.URGENT;
+        this.Reason = 0;
+        this.Timestamp = 0;
+        this.MonoTicks = 0;
+        this.SequenceId = 0;
+        this.Type = ControlType.NONE;
+        this.Priority = PacketPriority.URGENT;
     }
 
     /// <inheritdoc/>
     public override string ToString() =>
-        $"Control(Op={OpCode}, Len={Length}, Flg={Flags}, Pri={Priority}, " +
-        $"Tr={Protocol}, SEQ={SequenceId}, Rsn={Reason}, Typ={Type}, Ts={Timestamp}, Mono={MonoTicks})";
+        $"Control(Op={this.OpCode}, Len={this.Length}, Flg={this.Flags}, Pri={this.Priority}, " +
+        $"Tr={this.Protocol}, SEQ={this.SequenceId}, Rsn={this.Reason}, Typ={this.Type}, Ts={this.Timestamp}, Mono={this.MonoTicks})";
 }

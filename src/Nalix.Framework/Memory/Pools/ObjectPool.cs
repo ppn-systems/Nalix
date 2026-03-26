@@ -154,7 +154,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         _ = System.Threading.Interlocked.Increment(ref _totalCreated);
         _ = System.Threading.Interlocked.Increment(ref _totalRented);
 
-        TraceOccurred?.Invoke($"Get<{type.Name}>: Created new instance (TotalCreated={TotalCreatedCount})");
+        TraceOccurred?.Invoke($"Get<{type.Name}>: Created new instance (TotalCreated={this.TotalCreatedCount})");
 
         return newObj;
     }
@@ -303,13 +303,13 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     {
         return new Dictionary<string, object>
         {
-            ["TotalCreatedCount"] = TotalCreatedCount,
-            ["TotalAvailableCount"] = TotalAvailableCount,
-            ["TypeCount"] = TypeCount,
-            ["TotalRentedCount"] = TotalRentedCount,
-            ["TotalReturnedCount"] = TotalReturnedCount,
-            ["ActiveRentals"] = TotalRentedCount - TotalReturnedCount,
-            ["UptimeMs"] = UptimeMs,
+            ["TotalCreatedCount"] = this.TotalCreatedCount,
+            ["TotalAvailableCount"] = this.TotalAvailableCount,
+            ["TypeCount"] = this.TypeCount,
+            ["TotalRentedCount"] = this.TotalRentedCount,
+            ["TotalReturnedCount"] = this.TotalReturnedCount,
+            ["ActiveRentals"] = this.TotalRentedCount - this.TotalReturnedCount,
+            ["UptimeMs"] = this.UptimeMs,
             ["DefaultMaxItemsPerType"] = _defaultMaxItemsPerType
         };
     }
@@ -483,7 +483,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
 
         for (int i = 0; i < count; i++)
         {
-            result.Add(Get<T>());
+            result.Add(this.Get<T>());
         }
 
         TraceOccurred?.Invoke($"GetMultiple<{type.Name}>: Got {count} objects from pool");

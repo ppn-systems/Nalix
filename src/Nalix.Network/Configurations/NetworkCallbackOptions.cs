@@ -117,19 +117,19 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, ctx, validateAllProperties: true);
 
         // Cross-field guard: warning threshold should be below global cap
-        if (CallbackWarningThreshold > 0 && CallbackWarningThreshold >= MaxPendingNormalCallbacks)
+        if (this.CallbackWarningThreshold > 0 && this.CallbackWarningThreshold >= this.MaxPendingNormalCallbacks)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException(
-                $"{nameof(CallbackWarningThreshold)} ({CallbackWarningThreshold}) " +
-                $"must be less than {nameof(MaxPendingNormalCallbacks)} ({MaxPendingNormalCallbacks}).");
+                $"{nameof(this.CallbackWarningThreshold)} ({this.CallbackWarningThreshold}) " +
+                $"must be less than {nameof(this.MaxPendingNormalCallbacks)} ({this.MaxPendingNormalCallbacks}).");
         }
 
         // Cross-field guard: per-IP cap should not exceed global cap
-        if (MaxPendingPerIp > MaxPendingNormalCallbacks)
+        if (this.MaxPendingPerIp > this.MaxPendingNormalCallbacks)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException(
-                $"{nameof(MaxPendingPerIp)} ({MaxPendingPerIp}) " +
-                $"must not exceed {nameof(MaxPendingNormalCallbacks)} ({MaxPendingNormalCallbacks}).");
+                $"{nameof(this.MaxPendingPerIp)} ({this.MaxPendingPerIp}) " +
+                $"must not exceed {nameof(this.MaxPendingNormalCallbacks)} ({this.MaxPendingNormalCallbacks}).");
         }
     }
 }

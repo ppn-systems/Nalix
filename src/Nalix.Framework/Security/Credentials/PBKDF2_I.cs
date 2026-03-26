@@ -83,7 +83,7 @@ internal sealed class PBKDF2_I : System.IDisposable
     {
         System.ArgumentNullException.ThrowIfNull(password);
         byte[] pw = System.Text.Encoding.UTF8.GetBytes(password);
-        try { return GenerateKey(pw); }
+        try { return this.GenerateKey(pw); }
         finally { System.Array.Clear(pw, 0, pw.Length); }
     }
 
@@ -97,7 +97,7 @@ internal sealed class PBKDF2_I : System.IDisposable
     public byte[] GenerateKey([System.Diagnostics.CodeAnalysis.DisallowNull] System.ReadOnlySpan<byte> password)
     {
         byte[] dk = System.GC.AllocateUninitializedArray<byte>(_keyLength);
-        GenerateKey(password, dk);
+        this.GenerateKey(password, dk);
         return dk;
     }
 
@@ -177,7 +177,7 @@ internal sealed class PBKDF2_I : System.IDisposable
             bytesWritten = 0;
             return false;
         }
-        GenerateKey(password, output);
+        this.GenerateKey(password, output);
         bytesWritten = _keyLength;
         return true;
     }

@@ -215,7 +215,7 @@ public sealed class TimingWheel : IActivatable
         _worker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: $"{NetTaskNames.Time}.{NetTaskNames.Wheel}",
             group: NetTaskNames.Time,
-            work: async (ctx, ct) => await RUN_LOOP(ctx, ct).ConfigureAwait(false),
+            work: async (ctx, ct) => await this.RUN_LOOP(ctx, ct).ConfigureAwait(false),
             options: new WorkerOptions
             {
                 Tag = NetTaskNames.Wheel,
@@ -253,8 +253,8 @@ public sealed class TimingWheel : IActivatable
         try { cts.Dispose(); } catch { }
         try { _worker?.Dispose(); } catch { }
 
-        DRAIN_AND_RELEASE_ALL_BUCKETS();
-        CLEAR_ACTIVE_REGISTRATIONS();
+        this.DRAIN_AND_RELEASE_ALL_BUCKETS();
+        this.CLEAR_ACTIVE_REGISTRATIONS();
 
         s_logger?.Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
     }
@@ -306,7 +306,7 @@ public sealed class TimingWheel : IActivatable
         // loser returns its freshly allocated task to the pool.
         if (_active.TryAdd(connection, 0))
         {
-            connection.OnCloseEvent += OnConnectionClosed;
+            connection.OnCloseEvent += this.OnConnectionClosed;
             _wheel[bucket].Enqueue(task);
         }
         else
@@ -344,7 +344,7 @@ public sealed class TimingWheel : IActivatable
         // RUN_LOOP will Return it once it dequeues it and finds no matching _active entry.
         if (_active.TryRemove(connection, out _))
         {
-            connection.OnCloseEvent -= OnConnectionClosed;
+            connection.OnCloseEvent -= this.OnConnectionClosed;
         }
     }
 
@@ -358,7 +358,7 @@ public sealed class TimingWheel : IActivatable
             return;
         }
 
-        Deactivate();
+        this.Deactivate();
         _active.Clear();
     }
 
@@ -489,7 +489,7 @@ public sealed class TimingWheel : IActivatable
     {
         if (args?.Connection is not null)
         {
-            Unregister(args.Connection);
+            this.Unregister(args.Connection);
         }
     }
 
@@ -520,7 +520,7 @@ public sealed class TimingWheel : IActivatable
         {
             try
             {
-                connection.OnCloseEvent -= OnConnectionClosed;
+                connection.OnCloseEvent -= this.OnConnectionClosed;
             }
             catch
             {

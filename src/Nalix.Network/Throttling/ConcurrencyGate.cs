@@ -74,7 +74,7 @@ public sealed class ConcurrencyGate : IReportable
                 interval: _cleanupInterval,
                 work: _ =>
                 {
-                    CLEANUP_IDLE_ENTRIES();
+                    this.CLEANUP_IDLE_ENTRIES();
                     return ValueTask.CompletedTask;
                 },
                 options: new RecurringOptions
@@ -149,16 +149,16 @@ public sealed class ConcurrencyGate : IReportable
                 throw new ArgumentOutOfRangeException(nameof(max), "Capacity must be positive");
             }
 
-            Queue = queue;
-            Capacity = max;
-            QueueMax = queueMax < 0 ? int.MaxValue : queueMax;
-            Sem = new SemaphoreSlim(Capacity, Capacity);
+            this.Queue = queue;
+            this.Capacity = max;
+            this.QueueMax = queueMax < 0 ? int.MaxValue : queueMax;
+            this.Sem = new SemaphoreSlim(this.Capacity, this.Capacity);
 
             _activeUsers = 0;
             _queueCount = 0;
             _disposed = 0;
 
-            Touch();
+            this.Touch();
         }
 
         /// <summary>
@@ -204,9 +204,9 @@ public sealed class ConcurrencyGate : IReportable
                 int queueCount = Volatile.Read(ref _queueCount);
 
                 // FIX #3: Use SpinLock for atomic read of semaphore state
-                int available = Sem.CurrentCount;
+                int available = this.Sem.CurrentCount;
 
-                return activeUsers == 0 && available == Capacity && queueCount == 0;
+                return activeUsers == 0 && available == this.Capacity && queueCount == 0;
             }
         }
 
@@ -264,7 +264,7 @@ public sealed class ConcurrencyGate : IReportable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryIncrementQueue()
         {
-            if (QueueMax == int.MaxValue)
+            if (this.QueueMax == int.MaxValue)
             {
                 _ = Interlocked.Increment(ref _queueCount);
                 return true;
@@ -275,7 +275,7 @@ public sealed class ConcurrencyGate : IReportable
             {
                 int current = Volatile.Read(ref _queueCount);
 
-                if (current >= QueueMax)
+                if (current >= this.QueueMax)
                 {
                     return false;
                 }
@@ -349,7 +349,7 @@ public sealed class ConcurrencyGate : IReportable
                 // Dispose semaphore
                 try
                 {
-                    Sem.Dispose();
+                    this.Sem.Dispose();
                 }
                 catch (ObjectDisposedException)
                 {
@@ -425,7 +425,7 @@ public sealed class ConcurrencyGate : IReportable
         out Lease lease)
     {
         // FIX #12: Check and reset circuit breaker
-        if (IS_CIRCUIT_OPEN())
+        if (this.IS_CIRCUIT_OPEN())
         {
             _ = Interlocked.Increment(ref _circuitBreakerTrips);
             lease = default;
@@ -527,7 +527,7 @@ public sealed class ConcurrencyGate : IReportable
             }
 
             // Queue enabled
-            return await ENTER_WITH_QUEUE_ASYNC(entry, opcode, linkedCts.Token).ConfigureAwait(false);
+            return await this.ENTER_WITH_QUEUE_ASYNC(entry, opcode, linkedCts.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
         {
@@ -604,7 +604,7 @@ public sealed class ConcurrencyGate : IReportable
         });
 
         // Calculate metrics
-        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) stats = GetStatistics();
+        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) stats = this.GetStatistics();
         double rejectionRate = 0.0;
         long totalAttempts = stats.TotalAcquired + stats.TotalRejected;
         if (totalAttempts > 0)
@@ -615,7 +615,7 @@ public sealed class ConcurrencyGate : IReportable
         // Build report
         StringBuilder sb = new();
 
-        APPEND_REPORT_HEADER(sb, stats, rejectionRate);
+        this.APPEND_REPORT_HEADER(sb, stats, rejectionRate);
         APPEND_OPCODE_DETAILS(sb, snapshot);
 
         return sb.ToString();
@@ -635,7 +635,7 @@ public sealed class ConcurrencyGate : IReportable
             return cmp != 0 ? cmp : b.Value.QueueCount.CompareTo(a.Value.QueueCount);
         });
 
-        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) = GetStatistics();
+        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) = this.GetStatistics();
         long totalAttempts = TotalAcquired + TotalRejected;
         double rejectionRate = totalAttempts > 0 ? (TotalRejected * 100.0 / totalAttempts) : 0.0;
 
