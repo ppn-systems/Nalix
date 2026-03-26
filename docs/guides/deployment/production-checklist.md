@@ -38,7 +38,7 @@ Before launch, check:
 - `GenerateReport()` works
 - `IsTimeSyncEnabled` is set intentionally
 - listen port and backlog are correct
-- `EnableTimeout` matches your real idle behavior expectations
+- `EnableTimeout` and `TimingWheelOptions.IdleTimeoutMs` match your real idle behavior expectations
 
 ## 4. Dispatch safety
 

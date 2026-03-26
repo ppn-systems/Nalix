@@ -20,7 +20,6 @@ using Nalix.Network.Hosting.Internal;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Handlers;
-// Remove Nalix.Runtime.Sessions as it is no longer used.
 
 namespace Nalix.Network.Hosting;
 

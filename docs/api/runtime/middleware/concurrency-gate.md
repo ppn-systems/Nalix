@@ -173,6 +173,10 @@ The gate also has a rejection-pressure circuit breaker:
 - idle state and last-used timestamp
 - the top 50 opcodes sorted by current pressure
 
+## Dynamic Adjustment
+
+While `ConcurrencyGate` typically uses static attributes, the underlying `SemaphoreSlim` can be adjusted at runtime using the **Advance & Retreat** pattern. For details on how to implement this in a custom transport policy, see the [Dynamic Concurrency Adjustment](../../../guides/advanced/dynamic-concurrency-adjustment.md) guide.
+
 ## Related APIs
 
 - [Pipeline](./pipeline.md)
