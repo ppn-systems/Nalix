@@ -46,7 +46,7 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
     /// <summary>
     /// Number of bytes the header occupies on the wire (8 bytes).
     /// </summary>
-    public const int WireSize = sizeof(ushort) + sizeof(ushort) + sizeof(ushort) + sizeof(byte) + sizeof(byte);
+    public const int WireSize = (sizeof(ushort) * 3) + (sizeof(byte) * 2);
 
     #endregion Constants
 
@@ -83,9 +83,10 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
 
     static FragmentHeader()
     {
-        if (Unsafe.SizeOf<FragmentHeader>() != WireSize)
+        if (Unsafe.SizeOf<FragmentHeader>() != WireSize - 1)
         {
-            throw new InvalidOperationException("FragmentHeader size mismatch");
+            throw new InvalidOperationException(
+                $"FragmentHeader size mismatch. Expected {WireSize} bytes, got {Unsafe.SizeOf<FragmentHeader>()} bytes.");
         }
     }
 

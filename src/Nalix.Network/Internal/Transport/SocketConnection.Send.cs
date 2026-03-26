@@ -106,8 +106,7 @@ internal sealed partial class SocketConnection
             s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                             $"pooled len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
-            BinaryPrimitives
-                .WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), totalLength);
+            BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), totalLength);
             data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
 
 #if DEBUG
@@ -204,8 +203,8 @@ internal sealed partial class SocketConnection
             while (sent < totalLength)
             {
                 int n = await _socket.SendAsync(MemoryExtensions
-                                              .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken)
-                                              .ConfigureAwait(false);
+                                     .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken)
+                                     .ConfigureAwait(false);
 
                 if (n == 0)
                 {
@@ -355,7 +354,7 @@ internal sealed partial class SocketConnection
         int chunkBodySize = s_fragmentOptions.ChunkBodySize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
 
-        Span<byte> headerSpan = stackalloc byte[FragmentHeader.WireSize];
+        byte[] headerSpan = new byte[FragmentHeader.WireSize];
 
         for (int i = 0; i < totalChunks; i++)
         {

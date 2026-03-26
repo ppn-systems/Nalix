@@ -425,8 +425,6 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
                     if (FragmentAssembler.IsFragmentedFrame(payloadSpan, out FragmentHeader header))
                     {
-                        lease.Dispose();
-
                         ReadOnlySpan<byte> chunkBody = payloadSpan[FragmentHeader.WireSize..];
 
 #if DEBUG
@@ -438,9 +436,9 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
                         if (_fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled) && assembled != null)
                         {
+                            assembled.Retain();
                             args.Initialize(assembled, _cachedArgs.Connection);
                             AsyncCallback.Invoke(_callbackProcess, _sender, args);
-                            assembled.Dispose();
 #if DEBUG
                             s_logger?.Debug(
                                 $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
@@ -451,7 +449,15 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                         else
                         {
                             args.Dispose();
+                            Interlocked.Decrement(ref _pendingProcessCallbacks);
                         }
+
+                        lease.Dispose();
+#if DEBUG
+                        s_logger?.Debug(
+                            $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                            $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address}");
+#endif
                     }
                     else
                     {
