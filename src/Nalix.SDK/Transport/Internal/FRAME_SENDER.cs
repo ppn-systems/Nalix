@@ -227,8 +227,7 @@ internal sealed class FRAME_SENDER : IDisposable
             {
                 while (reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
                 {
-                    await SEND_FRAME_ASYNC(item.frame, item.frameLen, item.tcs, token)
-                        .ConfigureAwait(false);
+                    await SEND_FRAME_ASYNC(item.frame, item.frameLen, item.tcs, token).ConfigureAwait(false);
                 }
             }
         }
@@ -239,7 +238,7 @@ internal sealed class FRAME_SENDER : IDisposable
         catch (Exception ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Error($"[SDK.{nameof(FRAME_SENDER)}] drain-loop-faulted: {ex.Message}", ex);
+                                    .Error($"[SDK.{nameof(FRAME_SENDER)}] drain-loop-faulted: {ex.Message}", ex);
 
             _onError(ex);
         }
