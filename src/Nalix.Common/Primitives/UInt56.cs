@@ -130,9 +130,9 @@ public readonly struct UInt56 :
     static UInt56 INumberBase<UInt56>.Zero => Zero;
 
     #endregion Constants and static fields
-    
+
     #region Properties
-    
+
     /// <summary>
     /// Gets a value indicating whether the current value is zero.
     /// </summary>
@@ -145,7 +145,7 @@ public readonly struct UInt56 :
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _lo == 0u && _mid == 0 && _hi == 0;
     }
-    
+
     #endregion Properties
 
     #region IMinMaxValue<T> Implementation
@@ -570,13 +570,10 @@ public readonly struct UInt56 :
     /// <c>HashCode.Combine</c> while maintaining excellent distribution
     /// for identity-like values (e.g., Snowflake IDs).
     /// </remarks>
+    // XOR the lower 32 bits with the upper 24 bits (re-aligned) to ensure 
+    // high entropy from all parts of the 56-bit value with minimal CPU cycles.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode()
-    {
-        // XOR the lower 32 bits with the upper 24 bits (re-aligned) to ensure 
-        // high entropy from all parts of the 56-bit value with minimal CPU cycles.
-        return (int)_lo ^ (_mid | (_hi << 16));
-    }
+    public override int GetHashCode() => (int)_lo ^ (_mid | (_hi << 16));
 
     /// <inheritdoc />
     public int CompareTo(UInt56 other) => this.ToUInt64().CompareTo(other.ToUInt64());

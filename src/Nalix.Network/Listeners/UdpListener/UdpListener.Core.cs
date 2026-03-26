@@ -5,7 +5,6 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
@@ -36,10 +35,10 @@ public abstract partial class UdpListenerBase
 
     #region Fields
 
-    private static readonly NetworkSocketOptions s_options;
-    private static readonly ConnectionLimitOptions s_connectionLimitOptions;
-    private static readonly DatagramGuardOptions s_datagramGuardOptions;
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly NetworkSocketOptions _options;
+    private readonly ConnectionLimitOptions _connectionLimitOptions;
+    private readonly DatagramGuardOptions _datagramGuardOptions;
+    private readonly ILogger? _logger;
 
     private readonly ushort _port;
     private readonly IProtocol _protocol;
@@ -82,16 +81,6 @@ public abstract partial class UdpListenerBase
 
     #region Constructors
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static UdpListenerBase()
-    {
-        s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        s_connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
-        s_datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
-        s_connectionLimitOptions.Validate();
-        s_datagramGuardOptions.Validate();
-    }
-
     /// <summary>
     /// Initializes a new instance of the <see cref="UdpListenerBase"/> class with the specified port and protocol.
     /// </summary>
@@ -105,24 +94,32 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
 
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+        _datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
+        _connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+
+        _datagramGuardOptions.Validate();
+        _connectionLimitOptions.Validate();
+
         _hub = hub;
         _port = port;
         _protocol = protocol;
         _lock = new SemaphoreSlim(1, 1);
         _state = (int)ListenerState.STOPPED;
         _rateLimiter = new(
-            s_connectionLimitOptions.MaxPacketPerSecond,
-            s_datagramGuardOptions.IPv4Windows,
-            s_datagramGuardOptions.IPv6Windows,
-            s_datagramGuardOptions.CleanupInterval,
-            s_datagramGuardOptions.IdleTimeout,
-            s_datagramGuardOptions.IPv4Capacity,
-            s_datagramGuardOptions.IPv6Capacity);
+            _connectionLimitOptions.MaxPacketPerSecond,
+            _datagramGuardOptions.IPv4Windows,
+            _datagramGuardOptions.IPv6Windows,
+            _datagramGuardOptions.CleanupInterval,
+            _datagramGuardOptions.IdleTimeout,
+            _datagramGuardOptions.IPv4Capacity,
+            _datagramGuardOptions.IPv6Capacity);
 
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
-        s_logger?.Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
+        _logger?.Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
     }
 
     /// <summary>
@@ -131,7 +128,7 @@ public abstract partial class UdpListenerBase
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
     [DebuggerStepThrough]
-    protected UdpListenerBase(IProtocol protocol, IConnectionHub hub) : this(s_options.Port, protocol, hub)
+    protected UdpListenerBase(IProtocol protocol, IConnectionHub hub) : this(ConfigurationManager.Instance.Get<NetworkSocketOptions>().Port, protocol, hub)
     {
     }
 
@@ -168,13 +165,13 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                     $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                     $"cts-dispose-failed port={_port}", ex);
             }
@@ -189,13 +186,13 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                     $"socket-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                     $"socket-dispose-failed port={_port}", ex);
             }
@@ -206,7 +203,7 @@ public abstract partial class UdpListenerBase
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
 
-        s_logger?.Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed port={_port}");
+        _logger?.Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed port={_port}");
     }
 
     #endregion IDisposable

@@ -101,7 +101,6 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// This method attempts to resolve a packet handler using the packet's OpCode via <see cref="PacketDispatchOptions{TPacket}.TryResolveHandler"/>.
     /// If a handler is found, it is invoked asynchronously. Exceptions are caught and logged.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.NoInlining)]
     protected ValueTask ExecutePacketHandlerAsync(TPacket packet, IConnection connection, CancellationToken token = default)
     {
         if (this.Options.TryResolveHandler(packet.OpCode, out PacketHandler<TPacket> handler))
@@ -112,6 +111,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
             }
 
             ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, token);
+            
             if (pending.IsCompletedSuccessfully)
             {
                 try

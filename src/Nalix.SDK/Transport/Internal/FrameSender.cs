@@ -115,7 +115,12 @@ internal sealed class FrameSender : IDisposable
         }
         finally
         {
-            current.Dispose();
+            if (!ReferenceEquals(current, lease))
+            {
+                current.Dispose();
+            }
+
+            lease.Dispose();
         }
     }
 
@@ -123,6 +128,7 @@ internal sealed class FrameSender : IDisposable
 
     private async Task<bool> SEND_RAW_ASYNC(byte[] frame, int frameLen, CancellationToken ct)
     {
+        Console.WriteLine($"[CLIENT] FrameSender.SEND_RAW_ASYNC: Sending {frameLen} bytes. Data={BitConverter.ToString(frame, 0, Math.Min(frameLen, 32))}...");
         await _sendLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {

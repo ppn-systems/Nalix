@@ -527,10 +527,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         Justification = "On successful registration InstanceManager owns the ConnectionHub lifetime; registration failure disposes the local instance.")]
     private void EnsureConnectionHubRegistered()
     {
-        if (InstanceManager.Instance.GetExistingInstance<IConnectionHub>() is not null)
-        {
-            return;
-        }
+        // Always register a new hub to ensure isolation between application instances.
+        // If a user wants to share a hub, they should use ConfigureConnectionHub.
 
         ConnectionHub hub = new(logger: _state.Logger);
         try
@@ -548,14 +546,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         Justification = "On successful registration InstanceManager and BufferLease.ByteArrayPool own the manager lifetime; failure disposes the local instance.")]
     private void EnsureBufferPoolManagerRegistered()
     {
-        BufferPoolManager? manager = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
-        if (manager is not null)
-        {
-            BufferLease.ByteArrayPool.Configure(manager);
-            return;
-        }
+        // Always register a new manager to ensure isolation.
 
-        manager = new BufferPoolManager(_state.Logger);
+        BufferPoolManager manager = new BufferPoolManager(_state.Logger);
         try
         {
             InstanceManager.Instance.Register<BufferPoolManager>(manager);

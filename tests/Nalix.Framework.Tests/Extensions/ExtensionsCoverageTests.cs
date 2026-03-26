@@ -145,9 +145,9 @@ public sealed class ExtensionsCoverageTests
     [Fact]
     public async Task WithTimeoutWhenValueTypeTaskDoesNotCompleteReturnsDefaultValue()
     {
-        Task<int> task = Task.Delay(200).ContinueWith(_ => 7, TaskScheduler.Default);
+        Task<int> task = Task.Delay(1000).ContinueWith(_ => 7, TaskScheduler.Default);
 
-        int? result = await task.WithTimeout(10);
+        int? result = await task.WithTimeout(50);
 
         Assert.Equal(0, result);
     }
@@ -155,9 +155,9 @@ public sealed class ExtensionsCoverageTests
     [Fact]
     public async Task WithTimeoutWhenReferenceTypeTaskDoesNotCompleteReturnsNull()
     {
-        Task<string> task = Task.Delay(200).ContinueWith(_ => "done", TaskScheduler.Default);
+        Task<string> task = Task.Delay(1000).ContinueWith(_ => "done", TaskScheduler.Default);
 
-        string? result = await task.WithTimeout(10);
+        string? result = await task.WithTimeout(50);
 
         Assert.Null(result);
     }

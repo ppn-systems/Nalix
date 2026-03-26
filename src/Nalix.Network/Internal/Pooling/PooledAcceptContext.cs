@@ -183,9 +183,7 @@ internal sealed class PooledAcceptContext : IPoolable
                 {
                     if (state is CancellationTokenRegistration registration)
                     {
-#pragma warning disable CA1849 // Continuation is intentionally synchronous to release the cancellation registration when the accept task settles.
                         registration.Dispose();
-#pragma warning restore CA1849
                     }
                 },
                 reg,

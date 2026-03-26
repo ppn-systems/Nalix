@@ -74,12 +74,15 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
     /// One context per connection; returned to the pool on Dispose.
     /// </summary>
+
 #pragma warning disable CA2213 // Borrowed self-reference from Connection; SocketConnection must not dispose the owning IConnection.
     private IConnection _sender = null!;
 #pragma warning restore CA2213
+
 #pragma warning disable CA2213 // Borrowed cached event args owned by the connection dispatch pipeline.
     private IConnectEventArgs _cachedArgs = null!;
 #pragma warning restore CA2213
+
     private PooledSocketReceiveContext _recvCtx = null!;
     private EventHandler<IConnectEventArgs>? _callbackPost;
     private EventHandler<IConnectEventArgs>? _callbackClose;
