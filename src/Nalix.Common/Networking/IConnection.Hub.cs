@@ -48,16 +48,6 @@ public interface IConnectionHub
     void CloseAllConnections(string? reason = null);
 
     /// <summary>
-    /// Associates a username with an existing client connection.
-    /// </summary>
-    /// <param name="connection">The client connection.</param>
-    /// <param name="username">The username to associate.</param>
-    /// <remarks>
-    /// This method should be called after the connection is successfully registered.
-    /// </remarks>
-    void AssociateUsername(IConnection connection, string username);
-
-    /// <summary>
     /// Retrieves a read-only view of all active client connections.
     /// </summary>
     /// <returns>An enumerable collection of all active <see cref="IConnection"/> instances.</returns>

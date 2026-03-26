@@ -14,22 +14,6 @@ namespace Nalix.Network.Configurations;
 [IniComment("Connection hub configuration — controls capacity, limits, concurrency, and disposal behavior")]
 public sealed class ConnectionHubOptions : ConfigurationLoader
 {
-    // Dictionary sizing
-
-    /// <summary>
-    /// Gets or sets the initial capacity for the connection dictionary.
-    /// </summary>
-    [IniComment("Initial dictionary capacity for connections (pre-allocates memory, minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "InitialConnectionCapacity must be positive.")]
-    public int InitialConnectionCapacity { get; init; } = 1024;
-
-    /// <summary>
-    /// Gets or sets the initial capacity for the username dictionary.
-    /// </summary>
-    [IniComment("Initial dictionary capacity for usernames (pre-allocates memory, minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "InitialUsernameCapacity must be positive.")]
-    public int InitialUsernameCapacity { get; init; } = 1024;
-
     // Limits & backpressure
 
     /// <summary>
@@ -45,21 +29,6 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     [IniComment("Rejection strategy when the connection limit is reached (e.g. DropNewest, DropOldest)")]
     [System.ComponentModel.DataAnnotations.EnumDataType(typeof(DropPolicy), ErrorMessage = "Invalid drop policy.")]
     public DropPolicy DropPolicy { get; init; } = DropPolicy.DropNewest;
-
-    // Username policy
-
-    /// <summary>
-    /// Gets or sets the maximum allowed length for usernames.
-    /// </summary>
-    [IniComment("Maximum character length for usernames (1–1024)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxUsernameLength must be between 1 and 1024.")]
-    public int MaxUsernameLength { get; init; } = 64;
-
-    /// <summary>
-    /// Gets or sets whether to automatically trim whitespace from usernames.
-    /// </summary>
-    [IniComment("Automatically strip leading and trailing whitespace from usernames")]
-    public bool TrimUsernames { get; init; } = true;
 
     // Concurrency
 

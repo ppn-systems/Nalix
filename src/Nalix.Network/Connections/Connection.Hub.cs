@@ -2,13 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
@@ -41,20 +41,10 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Queue tracking order of anonymous connections for O(1)-amortized eviction
     /// </summary>
-    private readonly System.Collections.Concurrent.ConcurrentQueue<ISnowflake> _anonymousQueue;
-
-    /// <summary>
-    /// Separate dictionaries for better cache locality and reduced contention
-    /// </summary>
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, string> _usernames;
-
-    /// <summary>
-    /// Username-to-ID reverse lookup for fast user-based operations
-    /// </summary>
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ISnowflake> _usernameToId;
+    private readonly ConcurrentQueue<ISnowflake> _anonymousQueue;
 
     private readonly int _shardCount;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection>> _shards;
+    private readonly ConcurrentDictionary<int, ConcurrentDictionary<ISnowflake, IConnection>> _shards;
 
     private readonly ConnectionHubOptions _options;
 
@@ -123,18 +113,16 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _options.Validate();
 
         _shardCount = Math.Max(1, _options.ShardCount);
-        int concurrencyLevel = Environment.ProcessorCount * 2;
+        _ = Environment.ProcessorCount * 2;
 
         _shards = new();
 
         for (int i = 0; i < _shardCount; i++)
         {
-            _shards[i] = new System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection>();
+            _shards[i] = new ConcurrentDictionary<ISnowflake, IConnection>();
         }
 
-        _usernames = new(concurrencyLevel, _options.InitialUsernameCapacity);
-        _anonymousQueue = new System.Collections.Concurrent.ConcurrentQueue<ISnowflake>();
-        _usernameToId = new(concurrencyLevel, _options.InitialUsernameCapacity, StringComparer.OrdinalIgnoreCase);
+        _anonymousQueue = new ConcurrentQueue<ISnowflake>();
     }
 
     #endregion Constructor
@@ -170,7 +158,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
 
         int shardIndex = GetShardIndex(connection.ID);
-        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+        ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
         if (shard.TryAdd(connection.ID, connection))
         {
@@ -223,23 +211,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
 
         int shardIndex = GetShardIndex(connection.ID);
-        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+        ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
         if (!shard.TryRemove(connection.ID, out IConnection? existing))
         {
-            if (_usernames.TryRemove(connection.ID, out string? orphanUser) && orphanUser is not null)
-            {
-                _ = _usernameToId.TryRemove(orphanUser, out _);
-            }
-
             s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
 
             return false;
-        }
-
-        if (_usernames.TryRemove(connection.ID, out string? username) && username is not null)
-        {
-            _ = _usernameToId.TryRemove(username, out _);
         }
 
         IConnection removedConnection = existing ?? connection;
@@ -261,60 +239,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
     /// <inheritdoc />
     /// <summary>
-    /// Associates a username with a connection.
-    /// </summary>
-    /// <param name="connection">The connection to associate with the username.</param>
-    /// <param name="username">The username to associate.</param>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown if <paramref name="connection"/> or <paramref name="username"/> is null or empty.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [SuppressMessage("Performance", "SYSLIB1045:Convert to 'GeneratedRegexAttribute'.", Justification = "<Pending>")]
-    public void AssociateUsername(
-        IConnection connection,
-        string username)
-    {
-        if (connection is null || string.IsNullOrWhiteSpace(username) || _disposed)
-        {
-            return;
-        }
-
-        if (!Regex.IsMatch(username, "^[a-zA-Z0-9_]+$"))
-        {
-            throw new ArgumentException("Username contains invalid characters.", nameof(username));
-        }
-
-        // Apply username policies
-        if (_options.TrimUsernames)
-        {
-            username = username.Trim();
-        }
-
-        if (username.Length > _options.MaxUsernameLength)
-        {
-            username = username[.._options.MaxUsernameLength];
-        }
-
-        ISnowflake id = connection.ID;
-
-        // Remove old association if exists
-        if (_usernames.TryGetValue(id, out string? oldUsername) && oldUsername is not null && oldUsername != username)
-        {
-            _ = _usernameToId.TryRemove(oldUsername, out _);
-
-
-            s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map-rebind id={id} old={oldUsername} new={username}");
-
-        }
-
-        // Push new associations
-        _usernames[id] = username;
-        _usernameToId[username] = id;
-
-        s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(AssociateUsername)}] map user=\"{username}\" id={id}");
-    }
-
-    /// <inheritdoc />
-    /// <summary>
     /// Retrieves a connection by its identifier.
     /// </summary>
     /// <param name="id">The identifier of the connection to retrieve.</param>
@@ -323,7 +247,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [return: MaybeNull]
     public IConnection? GetConnection(ISnowflake id)
     {
-        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(id);
+        ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(id);
         return shard.TryGetValue(id, out IConnection? connection) ? connection : null;
     }
 
@@ -337,36 +261,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     public IConnection? GetConnection(ReadOnlySpan<byte> id)
     {
         ISnowflake snowflake = Snowflake.FromBytes(id);
-        System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(snowflake);
+        ConcurrentDictionary<ISnowflake, IConnection> shard = GetShard(snowflake);
         return shard.TryGetValue(snowflake, out IConnection? connection) ? connection : null;
     }
-
-    /// <summary>
-    /// Retrieves a connection by its associated username.
-    /// </summary>
-    /// <param name="username">The username associated with the connection.</param>
-    /// <returns>The connection associated with the username, or <c>null</c> if not found.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="username"/> is null or empty.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    [return: MaybeNull]
-    public IConnection? GetConnection(string username)
-    {
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            return null;
-        }
-
-        return _usernameToId.TryGetValue(username, out ISnowflake? id) ? GetConnection(id) : null;
-    }
-
-    /// <summary>
-    /// Retrieves the username associated with a connection identifier.
-    /// </summary>
-    /// <param name="id">The identifier of the connection.</param>
-    /// <returns>The username associated with the connection, or <c>null</c> if not found.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: MaybeNull]
-    public string? GetUsername(ISnowflake id) => _usernames.TryGetValue(id, out string? username) ? username : null;
 
     /// <inheritdoc />
     /// <summary>
@@ -387,7 +284,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             List<IConnection> connections = [];
 
-            foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+            foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
             {
                 connections.AddRange(shard.Values);
             }
@@ -402,7 +299,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             int index = 0;
 
-            foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+            foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
             {
                 foreach (IConnection connection in shard.Values)
                 {
@@ -477,8 +374,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             scope = TimingScope.Start();
         }
 
-        System.Collections.Concurrent.OrderablePartitioner<IConnection> partitioner = System.Collections.Concurrent.Partitioner.Create(
-            connections, System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering);
+        OrderablePartitioner<IConnection> partitioner = Partitioner.Create(
+            connections, EnumerablePartitionerOptions.NoBuffering);
 
         List<Task> tasks = [];
         foreach (IEnumerator<IConnection> partition in partitioner.GetPartitions(_shardCount))
@@ -546,7 +443,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         List<IConnection> filteredConnections = [];
 
-        foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shared in _shards.Values)
+        foreach (ConcurrentDictionary<ISnowflake, IConnection> shared in _shards.Values)
         {
             foreach (IConnection connection in shared.Values)
             {
@@ -614,7 +511,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         int closedCount = 0;
         string targetAddress = networkEndpoint.Address;
 
-        foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+        foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
         {
             foreach (IConnection conn in shard.Values)
             {
@@ -679,8 +576,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         // Dispose all dictionaries
         _shards.Clear();
-        _usernames.Clear();
-        _usernameToId.Clear();
         _anonymousQueue.Clear();
         _ = Interlocked.Exchange(ref _count, 0);
 
@@ -706,8 +601,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {_count}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Users      : {_count - _usernames.Count}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Authenticated Users  : {_usernames.Count}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Evicted Connections  : {_evictedConnections}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Rejected Connections : {_rejectedConnections}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Shard Count          : {stats.ShardCount}");
@@ -715,7 +608,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connections      : {(stats.MaxConnections < 0 ? "Unlimited" : stats.MaxConnections.ToString(CultureInfo.InvariantCulture))}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {stats.DropPolicy}");
 
-        foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+        foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
         {
             foreach (IConnection conn in shard.Values)
             {
@@ -782,12 +675,21 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _ = sb.AppendLine("ID             | Username");
         _ = sb.AppendLine("------------------------------------------------------------");
 
-        foreach (System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+        foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
         {
             foreach (KeyValuePair<ISnowflake, IConnection> kvp in shard)
             {
                 ISnowflake id = kvp.Key;
-                string username = GetUsername(id) ?? "(anonymous)";
+                string username;
+
+                if (kvp.Value.Attributes.TryGetValue("username", out object? name) && name is string s)
+                {
+                    username = s;
+                }
+                else
+                {
+                    username = "N/A";
+                }
 
                 _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{id,-14} | {username}");
 
@@ -835,7 +737,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     private int GetShardIndex(ISnowflake id) => (id.GetHashCode() & 0x7FFFFFFF) % _shardCount;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> GetShard(ISnowflake id)
+    private ConcurrentDictionary<ISnowflake, IConnection> GetShard(ISnowflake id)
     {
         int index = GetShardIndex(id);
         return _shards[index];
@@ -870,9 +772,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                     }
 
                     int shardIndex = GetShardIndex(oldestId);
-                    System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+                    ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
 
-                    if (shard.TryGetValue(oldestId, out IConnection? oldestConn) && oldestConn is not null && !_usernames.ContainsKey(oldestId))
+                    if (shard.TryGetValue(oldestId, out IConnection? oldestConn) && oldestConn is not null)
                     {
                         s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
                         NotifyCapacityLimit(newConnection, "evict-oldest");
