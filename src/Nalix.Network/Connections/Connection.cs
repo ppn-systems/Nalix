@@ -5,6 +5,7 @@ using System;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -65,6 +66,7 @@ public sealed partial class Connection : IConnection
         _cstream.SetCallback(this, _evtArgs, OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 
         TCP = new TcpTransport(this);
+        Attributes = ObjectMap<string, object>.Rent();
 
         s_logger.Debug($"[NW.{nameof(Connection)}] created remote={NetworkEndpoint} id={ID}");
     }
@@ -84,6 +86,9 @@ public sealed partial class Connection : IConnection
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint { get; }
+
+    /// <inheritdoc />
+    public IObjectMap<string, object> Attributes { get; }
 
     /// <inheritdoc />
     public int ErrorCount => _errorCount;
@@ -193,6 +198,8 @@ public sealed partial class Connection : IConnection
 
         try
         {
+            Attributes.Return();
+
             Disconnect();
 
             _cstream.Dispose();
@@ -200,7 +207,7 @@ public sealed partial class Connection : IConnection
             if (_udp != null)
             {
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Return(_udp);
+                                        .Return(_udp);
             }
         }
         catch (Exception ex)
