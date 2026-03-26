@@ -69,9 +69,7 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        Task<bool> SendAsync(
-            IPacket packet,
-            CancellationToken cancellationToken = default);
+        Task<bool> SendAsync(IPacket packet, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -82,9 +80,7 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        Task<bool> SendAsync(
-            ReadOnlyMemory<byte> message,
-            CancellationToken cancellationToken = default);
+        Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -130,9 +126,7 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        Task<bool> SendAsync(
-            string message,
-            CancellationToken cancellationToken = default);
+        Task<bool> SendAsync(string message, CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -155,7 +149,7 @@ public partial interface IConnection
         /// <summary>
         /// Initializes the UDP transport with the specified outer <see cref="IConnection"/>.
         /// </summary>
-        /// <param name="outer">The outer <see cref="IConnection"/> instance to associate with this UDP transport.</param>
-        void Initialize(IConnection outer);
+        /// <param name="iPEndPoint">The outer <see cref="IConnection"/> instance to associate with this UDP transport.</param>
+        void Initialize(ref IPEndPoint iPEndPoint);
     }
 }

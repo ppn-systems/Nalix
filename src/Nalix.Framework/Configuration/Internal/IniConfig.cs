@@ -46,13 +46,12 @@ internal sealed class IniConfig : IDisposable
 
     #region Fields
 
-    private static readonly string SectionSeparator = "; " + new string('-', 78);
+    private static readonly string s_sectionSeparator = "; " + new string('-', 78);
 
     // Thread synchronization for file operations
     private readonly ReaderWriterLockSlim _fileLock;
     private readonly string _path;
-    private readonly Dictionary<string,
-                     Dictionary<string, string>> _iniData;
+    private readonly Dictionary<string, Dictionary<string, string>> _iniData;
 
     // Caches for frequently accessed values
     private readonly Dictionary<string, object> _valueCache;
@@ -1342,7 +1341,7 @@ internal sealed class IniConfig : IDisposable
                             bool hasAnyComment = hasSectionComment || hasAnyKeyComment;
 
                             // ── Opening separator ────────────────────────────────────
-                            writer.WriteLine(SectionSeparator);
+                            writer.WriteLine(s_sectionSeparator);
 
                             // ── Section-level comment lines ──────────────────────────
                             if (hasSectionComment)
@@ -1360,7 +1359,7 @@ internal sealed class IniConfig : IDisposable
                             // ── Closing separator (only when there were comment lines) ─
                             if (hasAnyComment)
                             {
-                                writer.WriteLine(SectionSeparator);
+                                writer.WriteLine(s_sectionSeparator);
                             }
 
                             // ── [Section] header ─────────────────────────────────────
@@ -1442,7 +1441,7 @@ internal sealed class IniConfig : IDisposable
         }
     }
 
-    public void Dispose() => throw new NotImplementedException();
+    public void Dispose() => _fileLock.Dispose();
 
     #endregion Private Methods
 }
