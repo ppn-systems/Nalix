@@ -230,22 +230,21 @@ internal sealed class PropertyMetadata
             TypeCode.UInt64 => 8,
             TypeCode.Double => 8,
             TypeCode.Decimal => 16,
+            TypeCode.DateTime => 8,
 
             // DateTime / DateTimeOffset / TimeSpan / Guid have no TypeCode entry —
             // check by type identity before falling back to enum recursion.
             TypeCode.Object when type == typeof(Guid) => 16,
-            TypeCode.Object when type == typeof(DateTime) => 8,
-            TypeCode.Object when type == typeof(DateTimeOffset) => 10,
             TypeCode.Object when type == typeof(TimeSpan) => 8,
             TypeCode.Object when type == typeof(TimeOnly) => 8,
             TypeCode.Object when type == typeof(DateOnly) => 4,
+            TypeCode.Object when type == typeof(DateTimeOffset) => 10,
 
             // Recursively resolve enum underlying type.
             _ when type.IsEnum => ComputeFixedSize(Enum.GetUnderlyingType(type)),
-            TypeCode.Empty => throw new NotImplementedException(),
-            TypeCode.DBNull => throw new NotImplementedException(),
-            TypeCode.DateTime => throw new NotImplementedException(),
-            TypeCode.String => throw new NotImplementedException(),
+            TypeCode.Empty => 0,
+            TypeCode.DBNull => 0,
+            TypeCode.String => 0,
 
             // Unknown / reference / dynamic — caller must handle as IsDynamic.
             _ => 0

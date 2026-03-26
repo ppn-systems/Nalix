@@ -19,8 +19,7 @@ public partial class ConfigurationLoader
     /// <summary>
     /// Cache for enum getter methods to avoid repeated reflection calls.
     /// </summary>
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        Type, MethodInfo> _enumGetterCache = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo> s_enumGetterCache = new();
 
     /// <summary>
     /// Gets the configuration value for a property using the appropriate method.
@@ -34,7 +33,7 @@ public partial class ConfigurationLoader
         // Handle Enums of any underlying type with cached reflection
         if (property.PropertyType.IsEnum)
         {
-            MethodInfo method = _enumGetterCache.GetOrAdd(
+            MethodInfo method = s_enumGetterCache.GetOrAdd(
                 property.PropertyType,
                 enumType =>
                 {
@@ -71,8 +70,8 @@ public partial class ConfigurationLoader
                 => configFile.GetGuid(section, property.Name),
             TypeCode.Object when property.PropertyType == typeof(TimeSpan)
                 => configFile.GetTimeSpan(section, property.Name),
-            TypeCode.Empty => throw new NotImplementedException(),
-            TypeCode.DBNull => throw new NotImplementedException(),
+            TypeCode.Empty => ThrowUnsupported(property),
+            TypeCode.DBNull => ThrowUnsupported(property),
             _ => ThrowUnsupported(property),
         };
     }

@@ -124,7 +124,6 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     /// </summary>
     [IniComment("Cipher suite used for packet encryption (e.g., Chacha20, Salsa20, Chacha20Poly1305, Salsa20Poly1305)")]
     public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.Chacha20Poly1305;
-    CipherSuiteType ITransportOptions.Algorithm { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.

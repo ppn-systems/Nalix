@@ -20,10 +20,10 @@ public sealed class EnumFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T>
 {
-    private static readonly SerializeDelegate _serialize;
-    private static readonly DeserializeDelegate _deserialize;
+    private static readonly SerializeDelegate s_serialize;
+    private static readonly DeserializeDelegate s_deserialize;
+    private static readonly System.TypeCode s_underlyingTypeCode;
 
-    private static readonly System.TypeCode UnderlyingTypeCode;
     private static string DebuggerDisplay => $"EnumFormatter<{typeof(T).FullName}>";
 
     static EnumFormatter()
@@ -33,10 +33,10 @@ public sealed class EnumFormatter<
             throw new System.InvalidOperationException($"TYPE {typeof(T)} is not an enum.");
         }
 
-        UnderlyingTypeCode = System.Type.GetTypeCode(System.Enum
+        s_underlyingTypeCode = System.Type.GetTypeCode(System.Enum
                                         .GetUnderlyingType(typeof(T)));
 
-        (_serialize, _deserialize) = CreateEnumFormatterDelegates();
+        (s_serialize, s_deserialize) = CreateEnumFormatterDelegates();
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public sealed class EnumFormatter<
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, T value) => _serialize(ref writer, value);
+    public void Serialize(ref DataWriter writer, T value) => s_serialize(ref writer, value);
 
     /// <summary>
     /// Deserializes an enum value from the provided reader using its underlying type.
@@ -61,7 +61,7 @@ public sealed class EnumFormatter<
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public T Deserialize(ref DataReader reader) => _deserialize(ref reader);
+    public T Deserialize(ref DataReader reader) => s_deserialize(ref reader);
 
     #region Delegates for Enum Formatter
 
@@ -75,7 +75,7 @@ public sealed class EnumFormatter<
         "Style", "IDE0350:Use implicitly typed lambda", Justification = "<Pending>")]
     private static (SerializeDelegate serialize, DeserializeDelegate deserialize) CreateEnumFormatterDelegates()
     {
-        return UnderlyingTypeCode switch
+        return s_underlyingTypeCode switch
         {
             System.TypeCode.Byte => (
                 (ref DataWriter writer, T value) =>
@@ -181,17 +181,18 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<ulong, T>(ref v);
                 }
             ),
-            System.TypeCode.Empty => throw new System.NotImplementedException(),
-            System.TypeCode.Object => throw new System.NotImplementedException(),
-            System.TypeCode.DBNull => throw new System.NotImplementedException(),
-            System.TypeCode.Boolean => throw new System.NotImplementedException(),
-            System.TypeCode.Char => throw new System.NotImplementedException(),
-            System.TypeCode.Single => throw new System.NotImplementedException(),
-            System.TypeCode.Double => throw new System.NotImplementedException(),
-            System.TypeCode.Decimal => throw new System.NotImplementedException(),
-            System.TypeCode.DateTime => throw new System.NotImplementedException(),
-            System.TypeCode.String => throw new System.NotImplementedException(),
-            _ => throw new System.NotSupportedException($"Enum underlying type '{UnderlyingTypeCode}' is not supported."),
+
+            System.TypeCode.Empty => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            System.TypeCode.Object => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            System.TypeCode.DBNull => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            System.TypeCode.Boolean => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            System.TypeCode.Char => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            System.TypeCode.Single => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            System.TypeCode.Double => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            System.TypeCode.Decimal => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            System.TypeCode.DateTime => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            System.TypeCode.String => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            _ => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
         };
     }
 

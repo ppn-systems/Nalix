@@ -180,15 +180,15 @@ public static partial class Directories
                         UnixFileMode.GroupExecute |
                         UnixFileMode.OtherRead |
                         UnixFileMode.OtherExecute,
-                    UnixDirPerms.Default755 => throw new NotImplementedException(),
-                    _ =>
-                                            UnixFileMode.UserRead |
-                                            UnixFileMode.UserWrite |
-                                            UnixFileMode.UserExecute |
-                                            UnixFileMode.GroupRead |
-                                            UnixFileMode.GroupExecute |
-                                            UnixFileMode.OtherRead |
-                                            UnixFileMode.OtherExecute,
+                    UnixDirPerms.Default755 =>
+                        UnixFileMode.UserRead |
+                        UnixFileMode.UserWrite |
+                        UnixFileMode.UserExecute |
+                        UnixFileMode.GroupRead |
+                        UnixFileMode.GroupExecute |
+                        UnixFileMode.OtherRead |
+                        UnixFileMode.OtherExecute,
+                    _ => throw new ArgumentOutOfRangeException(nameof(perms), perms, "Unknown UnixDirPerms value")
                 };
 
                 _ = SET_UNIX_FILE_MODE_COMPAT(path, mode);

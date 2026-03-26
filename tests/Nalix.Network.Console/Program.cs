@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
@@ -85,27 +84,5 @@ internal static class Program
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().GenerateReport();
 
         logger.Info(objectPoolReport);
-
-        PrintPoolOutstanding(InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>());
-
-        static void PrintPoolOutstanding(ObjectPoolManager poolManager)
-        {
-            Dictionary<string, object> stats = poolManager.GetDetailedStatistics();
-            if (stats.TryGetValue("Pools", out object poolsObj) &&
-                poolsObj is Dictionary<string, Dictionary<string, object>> pools)
-            {
-                Console.WriteLine("Type                      | Outstanding | CacheHits | CacheMisses");
-                Console.WriteLine("---------------------------------------------------------------");
-                foreach (KeyValuePair<string, Dictionary<string, object>> kv in pools)
-                {
-                    string name = kv.Key.PadRight(24);
-                    Dictionary<string, object> p = kv.Value;
-                    object outst = p.TryGetValue("Outstanding", out object value) ? value : 0;
-                    object hits = p.TryGetValue("CacheHits", out _) ? value : 0;
-                    object misses = p.TryGetValue("CacheMisses", out _) ? value : 0;
-                    Console.WriteLine($"{name} | {outst,10} | {hits,8} | {misses,10}");
-                }
-            }
-        }
     }
 }

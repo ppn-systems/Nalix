@@ -54,7 +54,6 @@ public abstract class FrameBase : IPacket
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.SequenceId)] public uint SequenceId { get; set; }
-    ProtocolType IPacket.Protocol { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
     /// <inheritdoc/>
     public abstract void ResetForPool();

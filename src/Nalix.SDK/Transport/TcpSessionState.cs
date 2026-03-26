@@ -8,18 +8,28 @@ namespace Nalix.SDK.Transport;
 /// </summary>
 public enum TcpSessionState : byte
 {
-    /// <summary>Not connected. Initial state and state after a clean disconnect.</summary>
+    /// <summary>
+    /// Not connected. Initial state and state after a clean disconnect.
+    /// </summary>
     Disconnected = 0,
 
-    /// <summary>A connect attempt is in progress.</summary>
+    /// <summary>
+    /// A connect attempt is in progress.
+    /// </summary>
     Connecting = 1,
 
-    /// <summary>Socket is open and operational.</summary>
+    /// <summary>
+    /// Socket is open and operational.
+    /// </summary>
     Connected = 2,
 
-    /// <summary>Connection was lost; an automatic reconnect attempt is in progress.</summary>
+    /// <summary>
+    /// Connection was lost; an automatic reconnect attempt is in progress.
+    /// </summary>
     Reconnecting = 3,
 
-    /// <summary>The session has been disposed and cannot be reused.</summary>
+    /// <summary>
+    /// The session has been disposed and cannot be reused.
+    /// </summary>
     Disposed = 4
 }

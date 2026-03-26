@@ -244,16 +244,13 @@ public sealed partial class Connection : IConnection
         {
             _endPoint = null;
             _socket.Dispose();
-            _socket = new Socket(
-                AddressFamily.InterNetwork,
-                SocketType.Dgram, ProtocolType.Udp);
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         }
 
-        /// <inheritdoc/>
-        public void Initialize(IConnection outer) => throw new NotImplementedException();
-
-        /// <inheritdoc/>
-        public void Dispose() => throw new NotImplementedException();
+        /// <inheritdoc />
+        public void Dispose()
+        {
+        }
 
         #endregion Asynchronous Methods
     }
