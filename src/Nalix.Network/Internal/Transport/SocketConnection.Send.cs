@@ -27,7 +27,7 @@ internal sealed partial class SocketConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool Send(ReadOnlySpan<byte> data)
     {
-        THROW_IF_NOT_CONFIGURED();
+        this.THROW_IF_NOT_CONFIGURED();
 
         if (Volatile.Read(ref _disposed) != 0)
         {
@@ -41,7 +41,7 @@ internal sealed partial class SocketConnection
 
         if (data.Length >= s_fragmentOptions.ChunkThreshold)
         {
-            return SEND_FRAGMENTED(data);
+            return this.SEND_FRAGMENTED(data);
         }
 
         ushort totalLength = (ushort)(data.Length + HeaderSize);
@@ -77,8 +77,8 @@ internal sealed partial class SocketConnection
                         s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                         $"stackalloc peer-closed ep={_socket.RemoteEndPoint}");
 #endif
-                        CANCEL_RECEIVE_ONCE();
-                        INVOKE_CLOSE_ONCE();
+                        this.CANCEL_RECEIVE_ONCE();
+                        this.INVOKE_CLOSE_ONCE();
                         return false;
                     }
                     sent += n;
@@ -131,17 +131,14 @@ internal sealed partial class SocketConnection
                     s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                     $"pooled peer-closed ep={_socket.RemoteEndPoint}");
 #endif
-                    CANCEL_RECEIVE_ONCE();
-                    INVOKE_CLOSE_ONCE();
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
                     return false;
                 }
                 sent += n;
             }
 
-            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-            args.Initialize(_cachedArgs.Connection);
-
-            AsyncCallback.Invoke(_callbackPost, _sender, args);
+            this.InvokePostCallback();
             return true;
         }
         catch (Exception ex)
@@ -165,7 +162,7 @@ internal sealed partial class SocketConnection
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
-        THROW_IF_NOT_CONFIGURED();
+        this.THROW_IF_NOT_CONFIGURED();
 
         if (Volatile.Read(ref _disposed) != 0)
         {
@@ -179,7 +176,7 @@ internal sealed partial class SocketConnection
 
         if (data.Length >= s_fragmentOptions.ChunkThreshold)
         {
-            SEND_FRAGMENTED(data.Span);
+            this.SEND_FRAGMENTED(data.Span);
         }
 
         ushort totalLength = (ushort)(data.Length + HeaderSize);
@@ -216,17 +213,14 @@ internal sealed partial class SocketConnection
                     s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
                                     $"peer-closed ep={_socket.RemoteEndPoint}");
 #endif
-                    CANCEL_RECEIVE_ONCE();
-                    INVOKE_CLOSE_ONCE();
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
                     return false;
                 }
                 sent += n;
             }
 
-            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-            args.Initialize(_cachedArgs.Connection);
-
-            AsyncCallback.Invoke(_callbackPost, _sender, args);
+            this.InvokePostCallback();
             return true;
         }
         catch (Exception ex)
@@ -327,11 +321,7 @@ internal sealed partial class SocketConnection
             }
         }
 
-        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-        args.Initialize(_cachedArgs.Connection);
-
-        _ = AsyncCallback.Invoke(_callbackPost, _sender, args);
-
+        this.InvokePostCallback();
         return true;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -343,8 +333,8 @@ internal sealed partial class SocketConnection
                 int n = _socket.Send(frame[sent..]);
                 if (n == 0)
                 {
-                    CANCEL_RECEIVE_ONCE();
-                    INVOKE_CLOSE_ONCE();
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
                     return false;
                 }
                 sent += n;
@@ -396,10 +386,7 @@ internal sealed partial class SocketConnection
             }
         }
 
-        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-        args.Initialize(_cachedArgs.Connection);
-        _ = AsyncCallback.Invoke(_callbackPost, _sender, args);
-
+        this.InvokePostCallback();
         return true;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -425,14 +412,22 @@ internal sealed partial class SocketConnection
 
                 if (n == 0)
                 {
-                    CANCEL_RECEIVE_ONCE();
-                    INVOKE_CLOSE_ONCE();
+                    this.CANCEL_RECEIVE_ONCE();
+                    this.INVOKE_CLOSE_ONCE();
                     return false;
                 }
                 sent += n;
             }
             return true;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void InvokePostCallback()
+    {
+        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        args.Initialize(_cachedArgs.Connection);
+        _ = AsyncCallback.Invoke(_callbackPost, _sender, args);
     }
 
     #endregion

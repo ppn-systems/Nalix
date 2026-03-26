@@ -195,7 +195,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
     public void BeginReceive(CancellationToken cancellationToken = default)
     {
-        THROW_IF_NOT_CONFIGURED();
+        this.THROW_IF_NOT_CONFIGURED();
 
         if (Volatile.Read(ref _disposed) != 0)
         {
@@ -229,7 +229,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         CancellationTokenSource linked =
             CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
 
-        _ = SAEA_RECEIVE_LOOP_ASYNC(linked.Token).ContinueWith(static (t, state) =>
+        _ = this.SAEA_RECEIVE_LOOP_ASYNC(linked.Token).ContinueWith(static (t, state) =>
         {
             (ILogger l, CancellationTokenSource link) =
                 ((ILogger, CancellationTokenSource))state!;
@@ -250,7 +250,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     /// <summary>Disposes the resources used by this instance.</summary>
     public void Dispose()
     {
-        DISPOSE(true);
+        this.DISPOSE(true);
         GC.SuppressFinalize(this);
     }
 
@@ -258,8 +258,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     public override string ToString()
         => $"FramedSocketConnection (Client={_socket.RemoteEndPoint}, " +
            $"Disposed={Volatile.Read(ref _disposed) != 0}, " +
-           $"UpTime={Uptime}ms, LastPing={LastPingTime}ms, " +
-           $"PendingPackets={PendingPackets}.";
+           $"UpTime={this.Uptime}ms, LastPing={this.LastPingTime}ms, " +
+           $"PendingPackets={this.PendingPackets}.";
 
     #endregion Dispose Pattern
 
@@ -329,7 +329,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
             while (!token.IsCancellationRequested)
             {
                 // ── Step 1: read 2-byte little-endian length header ───────
-                await SAEA_RECEIVE_EXACTLY_ASYNC(0, HeaderSize, token).ConfigureAwait(false);
+                await this.SAEA_RECEIVE_EXACTLY_ASYNC(0, HeaderSize, token).ConfigureAwait(false);
 
                 ushort size = BinaryPrimitives.ReadUInt16LittleEndian(MemoryExtensions
                                               .AsSpan(_buffer, 0, HeaderSize));
@@ -377,7 +377,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
                 // ── Step 3: read payload bytes ────────────────────────────
                 int payload = size - HeaderSize;
-                await SAEA_RECEIVE_EXACTLY_ASYNC(HeaderSize, payload, token).ConfigureAwait(false);
+                await this.SAEA_RECEIVE_EXACTLY_ASYNC(HeaderSize, payload, token).ConfigureAwait(false);
 
 #if DEBUG
                 s_logger?.Debug(
@@ -418,14 +418,12 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
                 if (currentBuf is not null)
                 {
-                    LastPingTime = Clock.UnixMillisecondsNow();
+                    this.LastPingTime = Clock.UnixMillisecondsNow();
                     BufferLease lease = BufferLease.TakeOwnership(currentBuf, HeaderSize, payload);
                     ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
                     ReadOnlySpan<byte> payloadSpan = lease.Span;
 
-                    bool isFragmented = payloadSpan.Length >= 1 && payloadSpan[0] == FragmentHeader.Magic;
-
-                    if (isFragmented)
+                    if (FragmentAssembler.IsFragmentedFrame(payloadSpan))
                     {
                         try
                         {
@@ -508,8 +506,8 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         }
         finally
         {
-            CANCEL_RECEIVE_ONCE();
-            INVOKE_CLOSE_ONCE();
+            this.CANCEL_RECEIVE_ONCE();
+            this.INVOKE_CLOSE_ONCE();
         }
     }
 
@@ -528,7 +526,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         if (disposing)
         {
             // 1. Signal cancellation so the receive loop exits cleanly.
-            CANCEL_RECEIVE_ONCE();
+            this.CANCEL_RECEIVE_ONCE();
 
             // 2. Shutdown and close the socket (causes in-flight SAEA to abort,
             //    which lets PooledReceiveContext._idle become signaled).
@@ -560,7 +558,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
             }
 
             // 6. Fire the close callback.
-            INVOKE_CLOSE_ONCE();
+            this.INVOKE_CLOSE_ONCE();
 
             // 7. Dispose remaining resources.
             _cts.Dispose();

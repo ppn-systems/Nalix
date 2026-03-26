@@ -134,13 +134,13 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
         && TotalChunks == other.TotalChunks && Flags == other.Flags;
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is FragmentHeader h && Equals(h);
+    public override bool Equals(object? obj) => obj is FragmentHeader h && this.Equals(h);
 
     /// <inheritdoc/>
     public override int GetHashCode() => HashCode.Combine(StreamId, ChunkIndex, TotalChunks, Flags);
 
     /// <inheritdoc/>
-    public override string ToString() => $"Chunk(stream={StreamId}, {ChunkIndex}/{TotalChunks - 1}, last={IsLast})";
+    public override string ToString() => $"Chunk(stream={StreamId}, {ChunkIndex}/{TotalChunks - 1}, last={this.IsLast})";
 
     /// <inheritdoc/>
     public static bool operator ==(FragmentHeader left, FragmentHeader right) => left.Equals(right);
