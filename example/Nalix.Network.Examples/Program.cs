@@ -3,21 +3,27 @@
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.DataFrames;
 using Nalix.Framework.Injection;
 using Nalix.Logging;
+using Nalix.Logging.Configuration;
+using Nalix.Logging.Sinks;
 using Nalix.Network.Configurations;
 using Nalix.Network.Examples.Custom;
 using Nalix.Network.Examples.Handlers;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Middleware.Inbound;
 using Nalix.Network.Routing;
-using Nalix.Shared.Frames;
 
 internal class Program
 {
     private static void Main(string[] args)
     {
-        InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
+        ConfigurationManager.Instance.Get<NLogixOptions>()
+                            .MinLevel = LogLevel.Debug;
+
+        ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
+        InstanceManager.Instance.Register(logger);
         IPacketRegistry packetRegistry = new PacketRegistryFactory().CreateCatalog();
         InstanceManager.Instance.Register(packetRegistry);
 
@@ -46,7 +52,7 @@ internal class Program
 
             // Logging
             // DONT REGISTER LOGGER HERE, IT YOU DONT REGISTER LOGGER BEFOREHAND, IT WILL CAUSE ERROR.
-            _ = dispatchOptions.WithLogging(InstanceManager.Instance.GetExistingInstance<ILogger>());
+            _ = dispatchOptions.WithLogging(logger);
 
             _ = dispatchOptions.WithErrorHandling((exception, command)
                 => InstanceManager.Instance.GetExistingInstance<ILogger>()?
