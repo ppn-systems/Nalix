@@ -100,7 +100,6 @@ Nalix is a real-time server solution designed for efficient communication and da
 |--------------------|-------------------------------------------------------------------------------------------------------------------|
 | **Nalix.SDK**      | Client-side SDK offering controllers, time sync, and localization utilities for connecting to Nalix.Network.      |
 | **Nalix.Common**   | Core abstractions, enums, and shared contracts for the Nalix ecosystem.                                           |
-| **Nalix.Shared**   | Shared low-level utilities and primitives such as memory pooling, LZ4 compression, and lightweight serialization. |
 | **Nalix.Logging**  | Asynchronous and high-performance logging subsystem with batching and multiple sinks.                             |
 | **Nalix.Network**  | Core networking runtime providing TCP/UDP connections, protocol pipelines, and throttling.                        |
 | **Nalix.Framework**| High-level framework providing identity, injection, randomization, and task orchestration.                        |
@@ -112,7 +111,6 @@ You can install Nalix packages individually via NuGet:
 ```bash
 dotnet add package Nalix.SDK
 dotnet add package Nalix.Common
-dotnet add package Nalix.Shared
 dotnet add package Nalix.Logging
 dotnet add package Nalix.Network
 dotnet add package Nalix.Framework

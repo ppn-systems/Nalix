@@ -12,7 +12,6 @@ Welcome to the complete documentation for the Nalix ecosystem.
 | **Nalix.Framework** | High-level framework providing cryptography, identity, injection, randomization, and task orchestration. | [Read →](./docs/Nalix.Framework/) |
 | **Nalix.Network** | Core networking runtime (TCP/UDP, protocols, throttling, timing). | [Read →](./docs/Nalix.Network/) |
 | **Nalix.Logging** | Asynchronous and high-performance logging system with batching and multiple sinks. | [Read →](./docs/Nalix.Logging/) |
-| **Nalix.Shared** | Shared utilities for memory pooling, LZ4 compression, and lightweight serialization. | [Read →](./docs/Nalix.Shared/) |
 | **Nalix.SDK** | Client transport: `TcpSessionBase`/`TcpSession`/`IoTTcpSession`, `UnreliableClient`, plus extensions for subscriptions and directives. | [Read →](./docs/Nalix.SDK/) |
 
 ---

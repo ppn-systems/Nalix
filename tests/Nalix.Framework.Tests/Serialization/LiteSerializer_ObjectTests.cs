@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 using System;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.Frames.Controls;
+using Nalix.Framework.DataFrames.Controls;
 using Nalix.Framework.Serialization;
 using Xunit;
 
