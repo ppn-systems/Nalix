@@ -14,6 +14,12 @@ namespace Nalix.Network.Routing;
 /// </summary>
 public sealed class PacketMetadataBuilder
 {
+    #region Fields
+
+    private readonly Dictionary<Type, Attribute> _custom = [];
+
+    #endregion Fields
+
     /// <summary>
     /// Gets or sets the opcode attribute associated with the handler.
     /// </summary>
@@ -43,8 +49,6 @@ public sealed class PacketMetadataBuilder
     /// Gets or sets the concurrency limit attribute associated with the handler.
     /// </summary>
     public PacketConcurrencyLimitAttribute? ConcurrencyLimit { get; set; }
-
-    private readonly Dictionary<Type, Attribute> _custom = [];
 
     /// <summary>
     /// Adds or replaces a custom attribute in the metadata builder.

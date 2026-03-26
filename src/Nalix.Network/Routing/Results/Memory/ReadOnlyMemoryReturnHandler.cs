@@ -15,9 +15,7 @@ namespace Nalix.Network.Routing.Results.Memory;
 internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
-    public async ValueTask HandleAsync(
-        object? result,
-        PacketContext<TPacket> context)
+    public async ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
     {
         if (result is not ReadOnlyMemory<byte> memory)
         {

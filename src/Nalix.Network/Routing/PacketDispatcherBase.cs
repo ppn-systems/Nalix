@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing.Options;
 
 namespace Nalix.Network.Routing;
 

@@ -18,13 +18,12 @@ using Nalix.Network.Connections;
 using Nalix.Network.Routing.Metadata;
 using Nalix.Network.Routing.Results;
 
-namespace Nalix.Network.Routing.Options;
+namespace Nalix.Network.Routing;
 
 public sealed partial class PacketDispatchOptions<TPacket>
 {
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private async ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
     {
         // ------------------------------------------------------------------
@@ -99,7 +98,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
                         sequenceId: context.Packet.SequenceId,
-                        flags: ControlFlags.IsTransient,
+                        flags: ControlFlags.IS_TRANSIENT,
                         arg0: descriptor.OpCode, arg1: 0, arg2: 0).ConfigureAwait(false);
 
                     return;
@@ -133,8 +132,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private async ValueTask HandleDispatchExceptionAsync(
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context, Exception exception)
@@ -156,8 +154,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static bool HasNoOutboundResult(Type returnType)
         => returnType == typeof(void)
         || returnType == typeof(Task)
@@ -178,8 +175,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// <remarks>
     /// Hot path — called once per dispatch. The dictionary lookup is O(1) with a small constant.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private bool TryGetExpectedPacketType(
         ushort opCode,
         [NotNullWhen(true)] out Type expectedType)
@@ -241,7 +237,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // 1) Cancellation/Timeout => transient
         if (ex is OperationCanceledException or TimeoutException)
         {
-            return (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IsTransient);
+            return (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
         // 2) Validation/Bad input
@@ -277,7 +273,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // 6) ObjectDisposed trong teardown: coi như transient nhẹ
         if (ex is ObjectDisposedException)
         {
-            return (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IsTransient);
+            return (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT);
         }
 
         // 7) Default: internal error
@@ -287,58 +283,76 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             return se.SocketErrorCode switch
             {
-                SocketError.TimedOut
-                => (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IsTransient),
+                // Timeout
+                SocketError.TimedOut => (ProtocolReason.TIMEOUT, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
 
-                SocketError.ConnectionReset or
-                SocketError.ConnectionAborted or
-                SocketError.HostDown or
-                SocketError.HostUnreachable or
+                // Connection lifecycle
+                SocketError.ConnectionReset => (ProtocolReason.CONNECTION_RESET, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.ConnectionRefused => (ProtocolReason.CONNECTION_REFUSED, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.ConnectionAborted => (ProtocolReason.REMOTE_CLOSED, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.Shutdown => (ProtocolReason.LOCAL_CLOSED, ProtocolAdvice.NONE, ControlFlags.NONE),
+                SocketError.NotConnected => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+
+                // Network
                 SocketError.NetworkDown or
-                SocketError.NetworkUnreachable
-                => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IsTransient),
+                SocketError.NetworkUnreachable or
+                SocketError.HostDown or
+                SocketError.HostUnreachable => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.NetworkReset => (ProtocolReason.CONNECTION_RESET, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
 
-                SocketError.Interrupted or
-                SocketError.OperationAborted
-                => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IsTransient),
-                SocketError.SocketError => throw new NotImplementedException(),
-                SocketError.Success => throw new NotImplementedException(),
-                SocketError.IOPending => throw new NotImplementedException(),
-                SocketError.AccessDenied => throw new NotImplementedException(),
-                SocketError.Fault => throw new NotImplementedException(),
-                SocketError.InvalidArgument => throw new NotImplementedException(),
-                SocketError.TooManyOpenSockets => throw new NotImplementedException(),
-                SocketError.WouldBlock => throw new NotImplementedException(),
-                SocketError.InProgress => throw new NotImplementedException(),
-                SocketError.AlreadyInProgress => throw new NotImplementedException(),
-                SocketError.NotSocket => throw new NotImplementedException(),
-                SocketError.DestinationAddressRequired => throw new NotImplementedException(),
-                SocketError.MessageSize => throw new NotImplementedException(),
-                SocketError.ProtocolType => throw new NotImplementedException(),
-                SocketError.ProtocolOption => throw new NotImplementedException(),
-                SocketError.ProtocolNotSupported => throw new NotImplementedException(),
-                SocketError.SocketNotSupported => throw new NotImplementedException(),
-                SocketError.OperationNotSupported => throw new NotImplementedException(),
-                SocketError.ProtocolFamilyNotSupported => throw new NotImplementedException(),
-                SocketError.AddressFamilyNotSupported => throw new NotImplementedException(),
-                SocketError.AddressAlreadyInUse => throw new NotImplementedException(),
-                SocketError.AddressNotAvailable => throw new NotImplementedException(),
-                SocketError.NetworkReset => throw new NotImplementedException(),
-                SocketError.NoBufferSpaceAvailable => throw new NotImplementedException(),
-                SocketError.IsConnected => throw new NotImplementedException(),
-                SocketError.NotConnected => throw new NotImplementedException(),
-                SocketError.Shutdown => throw new NotImplementedException(),
-                SocketError.ConnectionRefused => throw new NotImplementedException(),
-                SocketError.ProcessLimit => throw new NotImplementedException(),
-                SocketError.SystemNotReady => throw new NotImplementedException(),
-                SocketError.VersionNotSupported => throw new NotImplementedException(),
-                SocketError.NotInitialized => throw new NotImplementedException(),
-                SocketError.Disconnecting => throw new NotImplementedException(),
-                SocketError.TypeNotFound => throw new NotImplementedException(),
-                SocketError.HostNotFound => throw new NotImplementedException(),
-                SocketError.TryAgain => throw new NotImplementedException(),
-                SocketError.NoRecovery => throw new NotImplementedException(),
-                SocketError.NoData => throw new NotImplementedException(),
+                // DNS
+                SocketError.HostNotFound or
+                SocketError.TryAgain or
+                SocketError.NoRecovery or
+                SocketError.NoData => (ProtocolReason.DNS_FAILURE, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+
+                //  Flow / buffer
+                SocketError.NoBufferSpaceAvailable => (ProtocolReason.RESOURCE_LIMIT, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.WouldBlock or
+                SocketError.IOPending or
+                SocketError.InProgress or
+                SocketError.AlreadyInProgress => (ProtocolReason.TEMPORARY_FAILURE, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+
+                // Size / framing
+                SocketError.MessageSize => (ProtocolReason.MESSAGE_TOO_LARGE, ProtocolAdvice.FIX_AND_RETRY, ControlFlags.NONE),
+
+                // Permission
+                SocketError.AccessDenied => (ProtocolReason.FORBIDDEN, ProtocolAdvice.NONE, ControlFlags.NONE),
+
+                // Address
+                SocketError.AddressAlreadyInUse => (ProtocolReason.CONNECTION_LIMIT, ProtocolAdvice.RETRY, ControlFlags.NONE),
+                SocketError.AddressNotAvailable => (ProtocolReason.REQUEST_INVALID, ProtocolAdvice.FIX_AND_RETRY, ControlFlags.NONE),
+
+                // Programming / misuse
+                SocketError.InvalidArgument or
+                SocketError.NotSocket or
+                SocketError.OperationNotSupported => (ProtocolReason.REQUEST_INVALID, ProtocolAdvice.FIX_AND_RETRY, ControlFlags.NONE),
+
+                // System
+                SocketError.SystemNotReady or
+                SocketError.NotInitialized => (ProtocolReason.SERVICE_UNAVAILABLE, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.VersionNotSupported => (ProtocolReason.VERSION_UNSUPPORTED, ProtocolAdvice.NONE, ControlFlags.NONE),
+                SocketError.SocketError => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+
+                SocketError.Success => (ProtocolReason.UNKNOWN, ProtocolAdvice.NONE, ControlFlags.NONE),
+
+                SocketError.OperationAborted => (ProtocolReason.CANCELLED, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.Interrupted => (ProtocolReason.CANCELLED, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.Fault => (ProtocolReason.INTERNAL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE),
+                SocketError.TooManyOpenSockets => (ProtocolReason.FD_LIMIT, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.DestinationAddressRequired => (ProtocolReason.MISSING_REQUIRED_FIELD, ProtocolAdvice.FIX_AND_RETRY, ControlFlags.NONE),
+                SocketError.ProtocolType => (ProtocolReason.PROTOCOL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE),
+                SocketError.ProtocolOption => (ProtocolReason.PROTOCOL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE),
+                SocketError.ProtocolNotSupported => (ProtocolReason.PROTOCOL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE),
+                SocketError.SocketNotSupported => (ProtocolReason.OPERATION_UNSUPPORTED, ProtocolAdvice.NONE, ControlFlags.NONE),
+                SocketError.ProtocolFamilyNotSupported => (ProtocolReason.PROTOCOL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE),
+                SocketError.AddressFamilyNotSupported => (ProtocolReason.PROTOCOL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE),
+                SocketError.IsConnected => (ProtocolReason.STATE_VIOLATION, ProtocolAdvice.FIX_AND_RETRY, ControlFlags.NONE),
+                SocketError.ProcessLimit => (ProtocolReason.RESOURCE_LIMIT, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.Disconnecting => (ProtocolReason.LOCAL_CLOSED, ProtocolAdvice.RETRY, ControlFlags.IS_TRANSIENT),
+                SocketError.TypeNotFound => (ProtocolReason.PROTOCOL_ERROR, ProtocolAdvice.NONE, ControlFlags.NONE),
+
+                // fallback
                 _ => (ProtocolReason.NETWORK_ERROR, ProtocolAdvice.RETRY, ControlFlags.NONE),
             };
         }

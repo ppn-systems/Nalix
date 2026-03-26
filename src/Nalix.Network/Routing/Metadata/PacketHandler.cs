@@ -22,9 +22,8 @@ namespace Nalix.Network.Routing.Metadata;
 /// <param name="returnType"></param>
 /// <param name="compiledInvoker"></param>
 [StructLayout(LayoutKind.Sequential)]
-[method: MethodImpl(
-    MethodImplOptions.AggressiveInlining)]
 [EditorBrowsable(EditorBrowsableState.Never)]
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 public readonly struct PacketHandler<TPacket>(
     ushort opCode, PacketMetadata metadata,
     object controllerInstance, MethodInfo method, Type returnType,

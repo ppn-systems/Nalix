@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -28,9 +27,7 @@ public interface IPacketDispatch : IActivatable, IReportable
     /// <param name="connection">
     /// The connection from which the packet was received.
     /// </param>
-    void HandlePacket(
-        [MaybeNull] IBufferLease packet,
-        IConnection connection);
+    void HandlePacket(IBufferLease packet, IConnection connection);
 
     /// <summary>
     /// Handles a fully deserialized packet instance.
@@ -41,7 +38,5 @@ public interface IPacketDispatch : IActivatable, IReportable
     /// <param name="connection">
     /// The connection from which the packet was received.
     /// </param>
-    void HandlePacket(
-        IPacket packet,
-        IConnection connection);
+    void HandlePacket(IPacket packet, IConnection connection);
 }

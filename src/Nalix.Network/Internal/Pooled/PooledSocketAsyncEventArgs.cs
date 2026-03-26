@@ -7,7 +7,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
 
-
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
@@ -34,7 +33,7 @@ internal sealed class PooledSocketAsyncEventArgs : SocketAsyncEventArgs, IPoolab
     public void ResetForPool()
     {
         // Unsubscribe event handlers if needed here (e.g. this.Completed -= SomeHandler)
-        Context = null; // 🧽 Very important
+        Context = null;
         UserToken = null;
         AcceptSocket = null;
         RemoteEndPoint = null;

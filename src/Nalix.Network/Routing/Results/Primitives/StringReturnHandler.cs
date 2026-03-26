@@ -30,9 +30,7 @@ namespace Nalix.Network.Routing.Results.Primitives;
 internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
-    public async ValueTask HandleAsync(
-        object? result,
-        PacketContext<TPacket> context)
+    public async ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
     {
         if (result is string data)
         {

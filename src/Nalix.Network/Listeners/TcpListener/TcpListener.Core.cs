@@ -35,10 +35,10 @@ public abstract partial class TcpListenerBase : IListener
     #region Fields
 
     private readonly ushort _port;
-    private readonly IProtocol? _protocol;
-    private readonly ConnectionLimiter? _limiter;
-    private readonly SemaphoreSlim? _lock;
-    private readonly List<ISnowflake>? _acceptWorkerIds;
+    private readonly IProtocol _protocol;
+    private readonly ConnectionLimiter _limiter;
+    private readonly SemaphoreSlim _lock;
+    private readonly List<ISnowflake> _acceptWorkerIds;
 
     private int _state;
     private int _isDisposed;
@@ -48,7 +48,7 @@ public abstract partial class TcpListenerBase : IListener
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
 
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly NetworkSocketOptions s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
@@ -104,23 +104,6 @@ public abstract partial class TcpListenerBase : IListener
 
     static TcpListenerBase() => s_config.Validate();
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TcpListenerBase()
-    {
-        if (OperatingSystem.IsWindows() && s_config.TuneThreadPool)
-        {
-            int parallelism = Math.Max(Environment.ProcessorCount * MinWorkerThreads, 16);
-            // Thread pool optimization for IOCP
-            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-            _ = ThreadPool.SetMinThreads(Math.Max(workerThreads, parallelism), Math.Max(completionPortThreads, parallelism));
-
-            ThreadPool.GetMinThreads(out int afterWorker, out int afterIOCP);
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(TcpListenerBase)}] set-min-threads worker={afterWorker} iocp={afterIOCP}");
-        }
-    }
-
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpListenerBase"/> class using the port defined in the configuration,
     /// and the specified protocol, buffer pool, and logger.
@@ -128,7 +111,7 @@ public abstract partial class TcpListenerBase : IListener
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     [DebuggerStepThrough]
-    protected TcpListenerBase(ushort port, IProtocol protocol) : this()
+    protected TcpListenerBase(ushort port, IProtocol protocol)
     {
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 
@@ -164,6 +147,19 @@ public abstract partial class TcpListenerBase : IListener
                                     .Prealloc<PooledListenerProcessContext>(options.ListenerContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
+
+        if (OperatingSystem.IsWindows() && s_config.TuneThreadPool)
+        {
+            int parallelism = Math.Max(Environment.ProcessorCount * MinWorkerThreads, 16);
+            // Thread pool optimization for IOCP
+            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
+            _ = ThreadPool.SetMinThreads(Math.Max(workerThreads, parallelism), Math.Max(completionPortThreads, parallelism));
+
+            ThreadPool.GetMinThreads(out int afterWorker, out int afterIOCP);
+
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Info($"[NW.{nameof(TcpListenerBase)}] set-min-threads worker={afterWorker} iocp={afterIOCP}");
+        }
     }
 
     /// <summary>

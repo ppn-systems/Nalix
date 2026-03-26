@@ -12,9 +12,7 @@ namespace Nalix.Network.Routing.Results.Task;
 internal sealed class TaskVoidReturnHandler<TPacket> : IReturnHandler<TPacket> where TPacket : IPacket
 {
     /// <inheritdoc/>
-    public async ValueTask HandleAsync(
-        object? result,
-        PacketContext<TPacket> context)
+    public async ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
     {
         if (result is not System.Threading.Tasks.Task task)
         {

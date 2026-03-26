@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -22,7 +21,6 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal;
 using Nalix.Network.Routing.Channel;
-using Nalix.Network.Routing.Options;
 
 namespace Nalix.Network.Routing;
 
@@ -218,9 +216,7 @@ public sealed class PacketDispatchChannel
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining |
        MethodImplOptions.AggressiveOptimization)]
-    public void HandlePacket(
-        [MaybeNull] IBufferLease packet,
-        IConnection connection)
+    public void HandlePacket(IBufferLease packet, IConnection connection)
     {
         if (packet is null || packet.Length <= 0)
         {
