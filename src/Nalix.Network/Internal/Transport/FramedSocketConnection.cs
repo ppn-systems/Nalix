@@ -108,7 +108,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// Receive buffer — owned by this connection during its lifetime.
     /// Swapped atomically when a larger packet arrives (rare).
     /// </summary>
-    private byte[] buffer = BufferLease.ByteArrayPool.Rent();
+    private byte[] _buffer = BufferLease.ByteArrayPool.Rent();
 
     #endregion Fields
 
@@ -123,8 +123,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// that have not yet been processed by the protocol handler.
     /// Used by diagnostics and the per-connection throttle check.
     /// </summary>
-    public int PendingPackets
-        => Volatile.Read(ref _pendingProcessCallbacks);
+    public int PendingPackets => Volatile.Read(ref _pendingProcessCallbacks);
 
     #endregion Properties
 
@@ -376,9 +375,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     /// <param name="cancellationToken"></param>
     /// <returns><see langword="true"/> if the data was sent successfully.</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public async Task<bool> SendAsync(
-        ReadOnlyMemory<byte> data,
-        CancellationToken cancellationToken)
+    public async Task<bool> SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
         THROW_IF_NOT_CONFIGURED();
 
@@ -456,25 +453,6 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
         }
     }
 
-    /// <summary>Sends data synchronously from an <see cref="ArraySegment{T}"/>.</summary>
-    /// <param name="segment"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Send(ArraySegment<byte> segment)
-        => segment.Array is not null && Send(new ReadOnlySpan<byte>(
-            segment.Array, segment.Offset, segment.Count));
-
-    /// <summary>Sends data asynchronously from an <see cref="ArraySegment{T}"/>.</summary>
-    /// <param name="segment"></param>
-    /// <param name="cancellationToken"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Task<bool> SendAsync(
-        ArraySegment<byte> segment,
-        CancellationToken cancellationToken)
-        => segment.Array is null
-            ? Task.FromResult(false)
-            : SendAsync(new ReadOnlyMemory<byte>(
-                segment.Array, segment.Offset, segment.Count), cancellationToken);
-
     #endregion Public Methods
 
     #region Dispose Pattern
@@ -516,7 +494,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
         {
             token.ThrowIfCancellationRequested();
 
-            int n = await _recvCtx.ReceiveAsync(_socket, buffer, offset + read, count - read)
+            int n = await _recvCtx.ReceiveAsync(_socket, _buffer, offset + read, count - read)
                                            .ConfigureAwait(false);
 
             if (n == 0)
@@ -565,7 +543,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
                     .ConfigureAwait(false);
 
                 ushort size = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(MemoryExtensions
-                                                                           .AsSpan(buffer, 0, HeaderSize));
+                                                                           .AsSpan(_buffer, 0, HeaderSize));
 
 #if DEBUG
                 s_logger?.Trace(
@@ -585,14 +563,14 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
                 }
 
                 // ── Step 2: grow buffer only when packet exceeds capacity ──
-                if (size > buffer.Length)
+                if (size > _buffer.Length)
                 {
 #if DEBUG
                     s_logger?.Debug(
                         $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"grow-buffer old={buffer.Length} new={size} ep={_sender?.NetworkEndpoint.Address}");
+                        $"grow-buffer old={_buffer.Length} new={size} ep={_sender?.NetworkEndpoint.Address}");
 #endif
-                    byte[] oldBuf = buffer;
+                    byte[] oldBuf = _buffer;
                     byte[] newBuf = BufferLease.ByteArrayPool.Rent(size);
 
                     // Preserve the already-read header bytes in the new buffer.
@@ -600,7 +578,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
                                            .CopyTo(MemoryExtensions
                                            .AsSpan(newBuf));
 
-                    byte[] swapped = Interlocked.Exchange(ref buffer, newBuf);
+                    byte[] swapped = Interlocked.Exchange(ref _buffer, newBuf);
 
                     if (swapped is not null && swapped != newBuf)
                     {
@@ -636,19 +614,19 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
                         $"ep={_sender?.NetworkEndpoint.Address} — packet dropped");
 
                     // Return buffer to pool — rent a fresh one for next receive.
-                    byte[]? dropped = Interlocked.Exchange(ref buffer, null!);
+                    byte[]? dropped = Interlocked.Exchange(ref _buffer, null!);
                     if (dropped is not null)
                     {
                         BufferLease.ByteArrayPool.Return(dropped);
                     }
 
-                    buffer = BufferLease.ByteArrayPool.Rent();
+                    _buffer = BufferLease.ByteArrayPool.Rent();
                     continue;
                 }
 
                 // ── Step 5: zero-copy handoff to session cache ────────────
                 // Interlocked.Exchange(null) prevents Dispose from double-returning.
-                byte[]? currentBuf = Interlocked.Exchange(ref buffer, null!);
+                byte[]? currentBuf = Interlocked.Exchange(ref _buffer, null!);
 
                 if (currentBuf is not null)
                 {
@@ -684,7 +662,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
                 }
 
                 // Rent a fresh buffer for the next receive.
-                buffer = BufferLease.ByteArrayPool.Rent();
+                _buffer = BufferLease.ByteArrayPool.Rent();
             }
         }
         catch (Exception ex) when (IS_BENIGN_DISCONNECT(ex))
@@ -753,7 +731,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
             // 4. Return the receive buffer (Interlocked prevents double-return).
             byte[]? bufToReturn =
-                Interlocked.Exchange(ref buffer, null!);
+                Interlocked.Exchange(ref _buffer, null!);
             if (bufToReturn is not null)
             {
                 BufferLease.ByteArrayPool.Return(bufToReturn);
