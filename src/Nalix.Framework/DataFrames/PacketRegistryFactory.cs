@@ -9,8 +9,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames.Controls;
-using Nalix.Framework.DataFrames.Text;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.DataFrames.TextFrames;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Framework.DataFrames;

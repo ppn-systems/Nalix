@@ -6,10 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Tasks;
-using Nalix.Logging;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Tasks;
+using Nalix.Logging;
 
 internal static class Program
 {

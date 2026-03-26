@@ -151,15 +151,15 @@ public class InstanceManagerTests : IDisposable
     public void GetOrCreateInstanceWithArgsUsesCorrectCtor()
     {
         // request ctor with string argument
-        CtorClass obj = (CtorClass)_mgr.GetOrCreateInstance(typeof(CtorClass), "hello");
+        CtorClass obj = _mgr.GetOrCreateInstance<CtorClass>();
         Assert.Equal("string:hello", obj.SelectedCtor);
 
         // request ctor with int argument (different signature) -> new cached instance for that key
-        CtorClass objInt = (CtorClass)_mgr.GetOrCreateInstance(typeof(CtorClass), 42);
+        CtorClass objInt = _mgr.GetOrCreateInstance<CtorClass>();
         Assert.Equal("int:42", objInt.SelectedCtor);
 
         // Ensure caching works per exact signature: request again with "hello"
-        CtorClass obj2 = (CtorClass)_mgr.GetOrCreateInstance(typeof(CtorClass), "hello");
+        CtorClass obj2 = _mgr.GetOrCreateInstance<CtorClass>();
         Assert.Same(obj, obj2);
 
         _mgr.Clear(dispose: true);

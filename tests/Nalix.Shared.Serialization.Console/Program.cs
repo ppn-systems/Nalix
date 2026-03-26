@@ -4,7 +4,7 @@ using System;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.Controls;
+using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Memory.Buffers;
 
 internal static class Program
