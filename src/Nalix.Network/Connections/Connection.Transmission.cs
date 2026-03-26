@@ -51,7 +51,7 @@ public sealed partial class Connection : IConnection
         MethodImplOptions.AggressiveOptimization)]
     internal void InjectIncoming(IBufferLease lease)
     {
-        _cstream.Cache.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
+        _socket.LastPingTime = (long)Clock.UnixTime().TotalMilliseconds;
         lease.Retain(); // Retain for the callback; released in Connection.cs after processing.
 
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
@@ -60,13 +60,13 @@ public sealed partial class Connection : IConnection
         bool queued = Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args);
 
 #if DEBUG
-        s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{InjectIncoming}] inject-bytes len={lease.Length}");
+        s_logger.Debug($"[NW.{nameof(SocketConnection)}:{InjectIncoming}] inject-bytes len={lease.Length}");
 #endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    internal void ReleasePendingPacket() => _cstream.OnPacketProcessed();
+    internal void ReleasePendingPacket() => _socket.OnPacketProcessed();
 
     #endregion APIs
 
@@ -277,7 +277,7 @@ public sealed partial class Connection : IConnection
         public void BeginReceive(CancellationToken cancellationToken = default)
         {
             ObjectDisposedException.ThrowIf(_outer._disposed, nameof(Connection));
-            _outer._cstream.BeginReceive(cancellationToken);
+            _outer._socket.BeginReceive(cancellationToken);
         }
 
         #region Synchronous Methods
@@ -324,7 +324,7 @@ public sealed partial class Connection : IConnection
         /// </remarks>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public bool Send(ReadOnlySpan<byte> message) => _outer._cstream.Send(message);
+        public bool Send(ReadOnlySpan<byte> message) => _outer._socket.Send(message);
 
         /// <inheritdoc/>
         [StackTraceHidden]
@@ -433,7 +433,7 @@ public sealed partial class Connection : IConnection
         public async Task<bool> SendAsync(
             ReadOnlyMemory<byte> message,
             CancellationToken cancellationToken = default)
-            => await _outer._cstream.SendAsync(message, cancellationToken).ConfigureAwait(false);
+            => await _outer._socket.SendAsync(message, cancellationToken).ConfigureAwait(false);
 
         /// <inheritdoc/>
         [StackTraceHidden]

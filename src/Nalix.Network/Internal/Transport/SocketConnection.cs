@@ -49,7 +49,7 @@ namespace Nalix.Network.Internal.Transport;
 [DebuggerDisplay("{ToString()}")]
 [ExcludeFromCodeCoverage]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class FramedSocketConnection(Socket socket) : IDisposable
+internal sealed partial class SocketConnection(Socket socket) : IDisposable
 {
     #region Const
 
@@ -114,9 +114,20 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
     #region Properties
 
-    /// <summary>Caches incoming packets.</summary>
-    [DisallowNull]
-    public FramedSocketCache Cache { get; } = new();
+    /// <summary>
+    /// Gets the connection uptime in milliseconds (how long the connection has been active).
+    /// </summary>
+    public long Uptime { get => (long)Clock.UnixTime().TotalMilliseconds - field; } = (long)Clock.UnixTime().TotalMilliseconds;
+
+    /// <summary>
+    /// Gets or sets the timestamp (in milliseconds) of the last received ping.
+    /// Thread-safe via Interlocked operations.
+    /// </summary>
+    public long LastPingTime
+    {
+        get => Interlocked.Read(ref field);
+        set => Interlocked.Exchange(ref field, value);
+    }
 
     /// <summary>
     /// Returns the number of packets dispatched to <see cref="AsyncCallback"/>
@@ -154,7 +165,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
         _cachedArgs = args ?? throw new ArgumentNullException(nameof(args));
 
 #if DEBUG
-        s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(SetCallback)}] " +
+        s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SetCallback)}] " +
                         $"configured ep={_socket.RemoteEndPoint}");
 #endif
     }
@@ -183,7 +194,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
         if (Volatile.Read(ref _disposed) != 0)
         {
 #if DEBUG
-            s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(BeginReceive)}] " +
+            s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] " +
                             $"skip — already disposed ep={_socket.RemoteEndPoint}");
 #endif
             return;
@@ -193,7 +204,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
         if (Interlocked.CompareExchange(ref _receiveStarted, 1, 0) != 0)
         {
 #if DEBUG
-            s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(BeginReceive)}] " +
+            s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] " +
                             $"skip — already started ep={_socket.RemoteEndPoint}");
 #endif
             return;
@@ -205,7 +216,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
         _recvCtx.EnsureArgsBound();
 
 #if DEBUG
-        s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(BeginReceive)}] " +
+        s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] " +
                         $"saea-receive-loop started ep={_socket.RemoteEndPoint}");
 #endif
 
@@ -219,238 +230,11 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
             if (t.IsFaulted)
             {
-                l?.Error($"[NW.{nameof(FramedSocketConnection)}:{nameof(BeginReceive)}] saea-receive-loop faulted", t.Exception!);
+                l?.Error($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] saea-receive-loop faulted", t.Exception!);
             }
 
             link.Dispose();
         }, (s_logger, linked), TaskScheduler.Default);
-    }
-
-    /// <summary>
-    /// Sends data synchronously.
-    /// Small packets (≤ <see cref="PacketConstants.StackAllocLimit"/>) are framed on the
-    /// stack; larger ones use a pooled heap buffer.
-    /// </summary>
-    /// <param name="data"></param>
-    /// <returns><see langword="true"/> if the data was sent successfully.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
-    public bool Send(ReadOnlySpan<byte> data)
-    {
-        THROW_IF_NOT_CONFIGURED();
-
-        if (Volatile.Read(ref _disposed) != 0)
-        {
-            return false;
-        }
-
-        if (data.IsEmpty)
-        {
-            return false;
-        }
-
-        if (data.Length > PacketConstants.PacketSizeLimit - HeaderSize)
-        {
-            throw new ArgumentOutOfRangeException(nameof(data),
-                $"Packet size {data.Length} exceeds limit {PacketConstants.PacketSizeLimit - HeaderSize}");
-        }
-
-        ushort totalLength = (ushort)(data.Length + HeaderSize);
-
-        // ── Fast path: stack-allocate frame for small packets ─────────────
-        if (data.Length <= PacketConstants.StackAllocLimit)
-        {
-            try
-            {
-#if DEBUG
-                s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
-                                $"stackalloc len={data.Length} ep={_socket.RemoteEndPoint}");
-#endif
-                Span<byte> frameS = stackalloc byte[totalLength];
-                WRITE_FRAME_HEADER(frameS, totalLength, data);
-
-#if DEBUG
-                if (s_logger is not null)
-                {
-                    Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
-                    s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
-                                   $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} ep={_socket.RemoteEndPoint}");
-                }
-#endif
-
-                int sent = 0;
-                while (sent < frameS.Length)
-                {
-                    int n = _socket.Send(frameS[sent..]);
-                    if (n == 0)
-                    {
-#if DEBUG
-                        s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
-                                        $"stackalloc peer-closed ep={_socket.RemoteEndPoint}");
-#endif
-                        CANCEL_RECEIVE_ONCE();
-                        INVOKE_CLOSE_ONCE();
-                        return false;
-                    }
-                    sent += n;
-                }
-
-                ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-                args.Initialize(_cachedArgs.Connection);
-
-                AsyncCallback.Invoke(_callbackPost, _sender, args);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                s_logger?.Error($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
-                                $"stackalloc-error ep={_socket.RemoteEndPoint}", ex);
-                return false;
-            }
-        }
-
-        // ── Slow path: pooled heap buffer ──────────────────────────────────
-        byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
-        try
-        {
-#if DEBUG
-            s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
-                            $"pooled len={data.Length} ep={_socket.RemoteEndPoint}");
-#endif
-            System.Buffers.Binary.BinaryPrimitives
-                .WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), totalLength);
-            data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
-
-#if DEBUG
-            if (s_logger is not null)
-            {
-                Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
-                s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
-                               $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
-                               $"ep={_socket.RemoteEndPoint}");
-            }
-#endif
-
-            int sent = 0;
-            while (sent < totalLength)
-            {
-                int n = _socket.Send(heapBuf, sent, totalLength - sent,
-                                              SocketFlags.None);
-                if (n == 0)
-                {
-#if DEBUG
-                    s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
-                                    $"pooled peer-closed ep={_socket.RemoteEndPoint}");
-#endif
-                    CANCEL_RECEIVE_ONCE();
-                    INVOKE_CLOSE_ONCE();
-                    return false;
-                }
-                sent += n;
-            }
-
-            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-            args.Initialize(_cachedArgs.Connection);
-
-            AsyncCallback.Invoke(_callbackPost, _sender, args);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            s_logger?.Error($"[NW.{nameof(FramedSocketConnection)}:{nameof(Send)}] " +
-                            $"pooled-error ep={_socket.RemoteEndPoint}", ex);
-            return false;
-        }
-        finally
-        {
-            BufferLease.ByteArrayPool.Return(heapBuf);
-        }
-    }
-
-    /// <summary>
-    /// Sends data asynchronously. Uses a pooled heap buffer for framing.
-    /// </summary>
-    /// <param name="data"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns><see langword="true"/> if the data was sent successfully.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public async Task<bool> SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
-    {
-        THROW_IF_NOT_CONFIGURED();
-
-        if (Volatile.Read(ref _disposed) != 0)
-        {
-            return false;
-        }
-
-        if (data.IsEmpty)
-        {
-            return false;
-        }
-
-        if (data.Length > PacketConstants.PacketSizeLimit - HeaderSize)
-        {
-            throw new ArgumentOutOfRangeException(nameof(data), "Packet too large");
-        }
-
-        ushort totalLength = (ushort)(data.Length + HeaderSize);
-        byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
-
-        try
-        {
-#if DEBUG
-            s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(SendAsync)}] " +
-                            $"len={data.Length} ep={_socket.RemoteEndPoint}");
-#endif
-            WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), totalLength, data.Span);
-
-#if DEBUG
-            if (s_logger is not null)
-            {
-                ReadOnlySpan<byte> payloadSpan = data.Span;
-                s_logger.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(SendAsync)}] " +
-                               $"sending async frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
-                               $"ep={_socket.RemoteEndPoint}");
-            }
-#endif
-
-            int sent = 0;
-            while (sent < totalLength)
-            {
-                int n = await _socket.SendAsync(MemoryExtensions
-                                              .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken)
-                                              .ConfigureAwait(false);
-
-                if (n == 0)
-                {
-#if DEBUG
-                    s_logger?.Debug($"[NW.{nameof(FramedSocketConnection)}:{nameof(SendAsync)}] " +
-                                    $"peer-closed ep={_socket.RemoteEndPoint}");
-#endif
-                    CANCEL_RECEIVE_ONCE();
-                    INVOKE_CLOSE_ONCE();
-                    return false;
-                }
-                sent += n;
-            }
-
-            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-            args.Initialize(_cachedArgs.Connection);
-
-            AsyncCallback.Invoke(_callbackPost, _sender, args);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            s_logger?.Error($"[NW.{nameof(FramedSocketConnection)}:{nameof(SendAsync)}] " +
-                            $"error ep={_socket.RemoteEndPoint}", ex);
-            return false;
-        }
-        finally
-        {
-            BufferLease.ByteArrayPool.Return(heapBuf);
-        }
     }
 
     #endregion Public Methods
@@ -468,7 +252,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
     public override string ToString()
         => $"FramedSocketConnection (Client={_socket.RemoteEndPoint}, " +
            $"Disposed={Volatile.Read(ref _disposed) != 0}, " +
-           $"UpTime={Cache.Uptime}ms, LastPing={Cache.LastPingTime}ms, " +
+           $"UpTime={Uptime}ms, LastPing={LastPingTime}ms, " +
            $"PendingPackets={PendingPackets}.";
 
     #endregion Dispose Pattern
@@ -508,7 +292,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
             if (read == 0 && n < count)
             {
                 s_logger?.Debug(
-                    $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_EXACTLY_ASYNC)}] " +
+                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_EXACTLY_ASYNC)}] " +
                     $"partial recv got={n} need={count} offset={offset} ep={_socket.RemoteEndPoint}");
             }
 #endif
@@ -547,7 +331,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
 #if DEBUG
                 s_logger?.Trace(
-                    $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                     $"recv-header size(le)={size} ep={_sender?.NetworkEndpoint.Address}");
 #endif
 
@@ -555,7 +339,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
                 {
 #if DEBUG
                     s_logger?.Debug(
-                        $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                         $"invalid-size={size} ep={_sender?.NetworkEndpoint.Address}");
 #endif
                     throw new SocketException(
@@ -567,7 +351,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
                 {
 #if DEBUG
                     s_logger?.Debug(
-                        $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                         $"grow-buffer old={_buffer.Length} new={size} ep={_sender?.NetworkEndpoint.Address}");
 #endif
                     byte[] oldBuf = _buffer;
@@ -593,7 +377,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
 #if DEBUG
                 s_logger?.Debug(
-                    $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                     $"recv-frame size={size} payload={payload} ep={_sender?.NetworkEndpoint.Address}");
 #endif
 
@@ -609,7 +393,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
                     Interlocked.Decrement(ref _pendingProcessCallbacks);
 
                     s_logger?.Warn(
-                        $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                         $"per-conn-throttle pending={pending} max={MaxPerConnectionPendingPackets} " +
                         $"ep={_sender?.NetworkEndpoint.Address} — packet dropped");
 
@@ -630,7 +414,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
                 if (currentBuf is not null)
                 {
-                    Cache.LastPingTime = Clock.UnixMillisecondsNow();
+                    LastPingTime = Clock.UnixMillisecondsNow();
 
                     BufferLease lease = BufferLease.TakeOwnership(currentBuf, HeaderSize, payload);
                     lease.Retain(); // Retain for the callback; released in Connection.cs after processing.
@@ -641,7 +425,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 #if DEBUG
                     bool queued = AsyncCallback.Invoke(_callbackProcess, _sender, args);
                     s_logger?.Debug(
-                        $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                         $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address} " +
                         $"callback-queued={queued}");
 #else
@@ -650,7 +434,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
 #if DEBUG
                     s_logger?.Debug(
-                        $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                         $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address}");
 #endif
                 }
@@ -668,20 +452,20 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
         catch (Exception ex) when (IS_BENIGN_DISCONNECT(ex))
         {
             s_logger?.Trace(
-                $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                 $"ended (peer closed/shutdown) ep={_sender?.NetworkEndpoint.Address}");
         }
         catch (OperationCanceledException)
         {
             s_logger?.Trace(
-                $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                 $"cancelled ep={_sender?.NetworkEndpoint.Address}");
         }
         catch (Exception ex)
         {
             Exception e = (ex as AggregateException)?.Flatten() ?? ex;
             s_logger?.Error(
-                $"[NW.{nameof(FramedSocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                 $"faulted ep={_sender?.NetworkEndpoint.Address}", e);
         }
         finally
@@ -747,7 +531,7 @@ internal sealed class FramedSocketConnection(Socket socket) : IDisposable
 
 #if DEBUG
         s_logger?.Trace(
-            $"[NW.{nameof(FramedSocketConnection)}:{nameof(Dispose)}] " +
+            $"[NW.{nameof(SocketConnection)}:{nameof(Dispose)}] " +
             $"disposed ep={FORMAT_ENDPOINT(_socket)}");
 #endif
     }

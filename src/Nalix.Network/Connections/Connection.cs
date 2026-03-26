@@ -29,7 +29,7 @@ public sealed partial class Connection : IConnection
 
     private readonly Lock _lock;
     private readonly ConnectionEventArgs _evtArgs;
-    private readonly FramedSocketConnection _cstream;
+    private readonly SocketConnection _socket;
 
     private UdpTransport? _udp;
     private int _errorCount;
@@ -61,9 +61,9 @@ public sealed partial class Connection : IConnection
         NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint ?? throw new InvalidOperationException("Socket does not expose a remote endpoint."));
 
         _evtArgs = new ConnectionEventArgs(this);
-        _cstream = new FramedSocketConnection(socket);
+        _socket = new SocketConnection(socket);
 
-        _cstream.SetCallback(this, _evtArgs, OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
+        _socket.SetCallback(this, _evtArgs, OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 
         TCP = new TcpTransport(this);
         Attributes = ObjectMap<string, object>.Rent();
@@ -94,10 +94,10 @@ public sealed partial class Connection : IConnection
     public int ErrorCount => _errorCount;
 
     /// <inheritdoc />
-    public long UpTime => _cstream.Cache.Uptime;
+    public long UpTime => _socket.Uptime;
 
     /// <inheritdoc />
-    public long LastPingTime => _cstream.Cache.LastPingTime;
+    public long LastPingTime => _socket.LastPingTime;
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
@@ -202,7 +202,7 @@ public sealed partial class Connection : IConnection
 
             Disconnect();
 
-            _cstream.Dispose();
+            _socket.Dispose();
 
             if (_udp != null)
             {
