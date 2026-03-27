@@ -95,11 +95,11 @@ public static class TaskExtensions
         int msTimeout)
     {
         Task timeout = Task.Delay(msTimeout);
-        Task completed = await Task.WhenAny(@this, timeout);
+        Task completed = await Task.WhenAny(@this, timeout).ConfigureAwait(false);
 
         if (completed == @this)
         {
-            return await @this;
+            return await @this.ConfigureAwait(false);
         }
 
         return default; // or throw TimeoutException

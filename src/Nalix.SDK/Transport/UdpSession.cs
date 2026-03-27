@@ -351,7 +351,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
                 lock (_sync)
                 {
                     _socket = socket;
-                    RemoteEndPoint = remote;
+                    this.RemoteEndPoint = remote;
                     _host = effectiveHost;
                     _port = effectivePort;
                     _loopCts = new CancellationTokenSource();
@@ -818,7 +818,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             return payload.ToArray();
         }
 
-        IPEndPoint remote = (IPEndPoint)(RemoteEndPoint ?? throw new InvalidOperationException("Remote endpoint not available."));
+        IPEndPoint remote = (IPEndPoint)(this.RemoteEndPoint ?? throw new InvalidOperationException("Remote endpoint not available."));
         ISnowflake sessionId = this.SessionId ?? throw new InvalidOperationException("SessionId is required for authenticated UDP datagrams.");
         byte[] secret = this.Options.Secret;
 
@@ -867,7 +867,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         => this.UseAuthenticationMetadata
         && this.SessionId is not null
         && this.Options.Secret is { Length: >= Poly1305.KeySize }
-        && RemoteEndPoint is IPEndPoint;
+        && this.RemoteEndPoint is IPEndPoint;
 
     #endregion Datagram Construction
 
@@ -885,7 +885,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             try { _socket?.Dispose(); } catch { }
 
             _socket = null;
-            RemoteEndPoint = null;
+            this.RemoteEndPoint = null;
         }
 
         _receiveTask = null;
