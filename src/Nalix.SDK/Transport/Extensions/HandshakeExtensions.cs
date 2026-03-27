@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Transport;
@@ -14,7 +15,6 @@ using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Hashing;
-using Nalix.Common.Diagnostics;
 
 namespace Nalix.SDK.Transport.Extensions;
 

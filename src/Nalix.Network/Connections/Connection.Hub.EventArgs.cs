@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Identity;
 using Nalix.Common.Security;
-using System;
 
 namespace Nalix.Network.Connections;
 

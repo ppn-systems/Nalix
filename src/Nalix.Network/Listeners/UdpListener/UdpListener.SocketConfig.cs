@@ -30,7 +30,7 @@ public abstract partial class UdpListenerBase
             Client = { ExclusiveAddressUse = !Config.ReuseAddress }
         };
 
-        ConfigureHighPerformanceSocket(_udpClient.Client);
+        this.ConfigureHighPerformanceSocket(_udpClient.Client);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] init-ok port={_port} reuse={Config.ReuseAddress} buf={Config.BufferSize}");
