@@ -669,7 +669,7 @@ namespace Nalix.Framework.Tests.DataFrames
             FragmentHeader first = new(15, 0, 2, false);
             FragmentHeader second = new(15, 1, 2, true);
             _ = assembler.TryAdd(first, [1], out _, out _);
-            Thread.Sleep(10);
+            Thread.Sleep(100);
 
             // Act
             bool completed = assembler.TryAdd(second, [2], out BufferLease? assembled, out bool streamEvicted);

@@ -38,7 +38,7 @@ jobs:
         run: |
           echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
 
-      # Build src/
+      # Build application code for CodeQL extraction.
       - name: Restore src/
         run: dotnet restore src/Nalix.sln
 
@@ -49,7 +49,7 @@ jobs:
             --no-restore \
             /p:UseSharedCompilation=false
 
-      # Build tests/
+      # Build tests as well so CodeQL can see the full compilation graph.
       - name: Restore tests/
         run: dotnet restore tests/Nalix.Tests.sln
 
@@ -60,7 +60,7 @@ jobs:
             --no-restore \
             /p:UseSharedCompilation=false
 
-      # - name: Perform CodeQL Analysis
-      #   uses: github/codeql-action/analyze@v3
-      #   with:
-      #     category: "/language:csharp"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:csharp"

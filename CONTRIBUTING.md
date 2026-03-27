@@ -4,15 +4,16 @@ First of all, thank you for considering contributing to Nalix! It's people like 
 
 ## 📑 Table of Contents
 
-- [Code of Conduct](https://github.com/phcnguyen/Nalix/blob/master/CODE_OF_CONDUCT.md)
-- [Coding Standards](https://github.com/phcnguyen/Nalix/blob/master/.editorconfig)
-- [Pull Request Process](https://github.com/phcnguyen/Nalix/pulls)
-- [Issue Reporting Guidelines](https://github.com/phcnguyen/Nalix/issues)
+- [Code of Conduct](https://github.com/ppn-systems/Nalix/blob/master/CODE_OF_CONDUCT.md)
+- [Coding Standards](https://github.com/ppn-systems/Nalix/blob/master/.editorconfig)
+- [Commit Convention](#-commit-convention)
+- [Pull Request Process](https://github.com/ppn-systems/Nalix/pulls)
+- [Issue Reporting Guidelines](https://github.com/ppn-systems/Nalix/issues)
 - [DDD Architecture](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice)
 
 ## 📜 Code of Conduct
 
-This project and everyone participating in it is governed by the [Nalix Code of Conduct](https://github.com/phcnguyen/Nalix/blob/master/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [email@domain.com].
+This project and everyone participating in it is governed by the [Nalix Code of Conduct](https://github.com/ppn-systems/Nalix/blob/master/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [ppn.system@gmail.com](mailto:ppn.system@gmail.com).
 
 ## 💻 Development Environment Setup
 
@@ -52,7 +53,7 @@ This project and everyone participating in it is governed by the [Nalix Code of 
 1. Make sure you have the latest changes:
 
     ```bash
-        git pull upstream main
+        git pull upstream master
     ```
 
 2. Create a new branch for your work
@@ -70,6 +71,51 @@ This project and everyone participating in it is governed by the [Nalix Code of 
 - Improving documentation
 - Improving code quality and test coverage
 - Reporting issues
+
+## 📌 Commit Convention
+
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification to keep commit history consistent and make automated versioning and changelog generation easier.
+
+### 🧱 Format
+
+```text
+<type>(optional-scope): <short description>
+
+[optional body]
+
+[optional footer]
+```
+
+### 🔥 Commit Types
+
+- `feat`: A new feature
+- `fix`: A bug fix
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `perf`: A performance improvement
+- `docs`: Documentation-only changes
+- `test`: Adding or updating tests
+- `build`: Changes affecting the build system or dependencies
+- `ci`: Changes to CI/CD pipelines or workflows
+- `chore`: Maintenance tasks with no production code change
+- `style`: Code style changes such as formatting or other non-functional cleanup
+- `revert`: Reverts a previous commit
+
+### ✅ Recommendations
+
+- Keep the subject line short, imperative, and lowercase
+- Avoid ending the subject with a period
+- Use an optional scope when it helps identify the affected package or area
+- Prefer one logical change per commit when possible
+
+### Examples
+
+```text
+feat(network): add UDP replay guard for authenticated sessions
+fix(logging): handle null formatter options in file target
+docs(readme): update package overview for Nalix.SDK
+test(framework): add coverage for Snowflake overflow handling
+build(ci): align release-please changelog types
+```
 
 ## 📏 Coding Standards
 
@@ -137,8 +183,8 @@ Nalix follows Domain-Driven Design principles. When contributing, please respect
 
 Join our community channels to discuss development, ask questions, or just hang out:
 
-- [Discord](https://discord.gg/nalix) (Replace with actual link)
-- [Discussions on GitHub](https://github.com/phcnguyen/Nalix/discussions)
+- [GitHub Discussions](https://github.com/ppn-systems/Nalix/discussions)
+- [GitHub Issues](https://github.com/ppn-systems/Nalix/issues)
 
 ---
 
