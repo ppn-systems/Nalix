@@ -17,10 +17,11 @@ The framework layer is designed to be transport-agnostic and provides the follow
 - [**Object Pooling**](./memory/object-pooling.md): Reusable object stores to minimize GC pressure.
 - [**Object Map**](./memory/object-map.md): High-performance pooled concurrent dictionaries.
 - [**Typed Object Pools**](./memory/typed-object-pools.md): Performance-optimized typed facades for pooling.
-- [**Snowflake**](./runtime/snowflake.md): 56-bit compact, sortable IDs for tasks and packets.
+- [**Snowflake**](./runtime/snowflake.md): 64-bit compact, sortable IDs for tasks and packets.
 
 ## Related Packages
 
 - [Nalix.Common](../common/index.md)
 - [Nalix.Network](../network/index.md)
 - [Nalix.Runtime](../runtime/index.md)
+

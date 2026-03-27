@@ -46,10 +46,10 @@ then derives immutable runtime fields from the options:
 - `_shardMask` and `_isPowerOfTwoShardCount` optimize shard lookup for powers of two.
 - `_trackEvictionQueue` is enabled only when `MaxConnections > 0` and
   `DropPolicy == DropOldest`.
-- Each shard is a `ConcurrentDictionary<UInt56, IConnection>` sized from the global
+- Each shard is a `ConcurrentDictionary<ulong, IConnection>` sized from the global
   capacity when a positive limit is configured.
 
-Shard selection hashes the `UInt56` connection id. Power-of-two shard counts use a
+Shard selection hashes the `ulong` connection id. Power-of-two shard counts use a
 bit mask; other counts use modulo.
 
 ## Registration and Capacity Flow
@@ -184,3 +184,4 @@ enabled.
 - [Connection Limiter](../connection/connection-limiter.md)
 - [Connection Limit Options](./connection-limit-options.md)
 - [Session Store Options](./session-store-options.md)
+

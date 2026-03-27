@@ -49,7 +49,7 @@ sequenceDiagram
 
 ### 1. Atomic Consumption (SEC-33)
 
-The most critical method in the store is `ConsumeAsync(UInt56 sessionToken)`.
+The most critical method in the store is `ConsumeAsync(ulong sessionToken)`.
 
 - It retrieves the session entry and **immediately removes it** from the store in a single atomic operation.
 - This prevents "Resumption Replay" where a stolen token could be used by two different clients to gain access simultaneously. Only the first caller succeeds.
@@ -91,6 +91,7 @@ Control the session lifecycle via `SessionStoreOptions`:
 
 - [Handshake Protocol](../security/handshake.md)
 - [Session Resumption](../security/session-resume.md)
-- [Snowflake Identifiers (UInt56)](../framework/runtime/snowflake.md)
+- [Snowflake Identifiers (ulong)](../framework/runtime/snowflake.md)
 - [Object Pooling](../framework/memory/object-pooling.md)
 - [Object Map](../framework/memory/object-map.md)
+

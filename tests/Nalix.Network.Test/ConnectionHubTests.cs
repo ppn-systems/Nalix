@@ -137,19 +137,19 @@ public sealed class ConnectionHubTests
             throw new InvalidOperationException("Simulated session-store failure.");
         }
 
-        public override ValueTask RemoveAsync(UInt56 sessionToken, CancellationToken cancellationToken = default)
+        public override ValueTask RemoveAsync(ulong sessionToken, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.CompletedTask;
         }
 
-        public override ValueTask<SessionEntry?> RetrieveAsync(UInt56 sessionToken, CancellationToken cancellationToken = default)
+        public override ValueTask<SessionEntry?> RetrieveAsync(ulong sessionToken, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult<SessionEntry?>(null);
         }
 
-        public override ValueTask<SessionEntry?> ConsumeAsync(UInt56 sessionToken, CancellationToken cancellationToken = default)
+        public override ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult<SessionEntry?>(null);
@@ -160,3 +160,4 @@ public sealed class ConnectionHubTests
         }
     }
 }
+

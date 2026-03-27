@@ -8,7 +8,7 @@
 
 ## What it is
 
-`Snowflake` is a 56-bit identifier that combines:
+`Snowflake` is a 64-bit identifier that combines:
 
 - a value portion
 - a machine ID
@@ -65,3 +65,4 @@ Snowflake parsed = Snowflake.FromBytes(buffer); // Read from bytes
 - [Task Manager](./task-manager.md)
 - [Connection Contracts](../../common/connection-contracts.md)
 - [Serialization Basics](../serialization/serialization-basics.md)
+

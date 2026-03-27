@@ -91,7 +91,7 @@ public static class ReflectionTypeMapper
             "Decimal" => TypeKind.Decimal,
             "DateTime" => TypeKind.DateTime,
             "Guid" => TypeKind.Guid,
-            "Snowflake" or "UInt56" => TypeKind.Snowflake,
+            "Snowflake" or "UInt64" => TypeKind.Snowflake,
             "Bytes32" => TypeKind.Bytes32,
             _ => TypeKind.Unknown
         };
@@ -103,3 +103,4 @@ public static class ReflectionTypeMapper
         return type.Name;
     }
 }
+

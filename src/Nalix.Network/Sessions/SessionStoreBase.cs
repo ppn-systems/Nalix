@@ -40,7 +40,7 @@ public abstract class SessionStoreBase : ISessionStore
 
         SessionSnapshot snapshot = new()
         {
-            SessionToken = connection.ID.ToUInt56(),
+            SessionToken = connection.ID.ToUInt64(),
             CreatedAtUnixMilliseconds = now,
             ExpiresAtUnixMilliseconds = now + (long)_options.SessionTtl.TotalMilliseconds,
             Secret = connection.Secret,
@@ -49,20 +49,21 @@ public abstract class SessionStoreBase : ISessionStore
             Attributes = attributes
         };
 
-        SessionEntry entry = new(snapshot, connection.ID.ToUInt56());
+        SessionEntry entry = new(snapshot, connection.ID.ToUInt64());
 
         return entry;
     }
 
     /// <inheritdoc/>
-    public abstract ValueTask RemoveAsync(UInt56 sessionToken, CancellationToken cancellationToken = default);
+    public abstract ValueTask RemoveAsync(ulong sessionToken, CancellationToken cancellationToken = default);
 
     /// <inheritdoc/>
-    public abstract ValueTask<SessionEntry?> RetrieveAsync(UInt56 sessionToken, CancellationToken cancellationToken = default);
+    public abstract ValueTask<SessionEntry?> RetrieveAsync(ulong sessionToken, CancellationToken cancellationToken = default);
 
     /// <inheritdoc/>
-    public abstract ValueTask<SessionEntry?> ConsumeAsync(UInt56 sessionToken, CancellationToken cancellationToken = default);
+    public abstract ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default);
 
     /// <inheritdoc/>
     public abstract ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default);
 }
+

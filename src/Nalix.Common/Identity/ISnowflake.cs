@@ -3,13 +3,12 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Common.Primitives;
 
 namespace Nalix.Common.Identity;
 
 /// <summary>
 /// Describes the common shape of a Nalix snowflake identifier.
-/// A snowflake combines a value, machine id, and type tag into a compact 56-bit form.
+/// A snowflake combines a value, machine id, and type tag into a compact 64-bit form.
 /// </summary>
 public interface ISnowflake
 {
@@ -45,25 +44,25 @@ public interface ISnowflake
     ushort MachineId { get; }
 
     /// <summary>
-    /// Converts this <see cref="ISnowflake"/> to its compact 56-bit representation.
+    /// Converts this <see cref="ISnowflake"/> to its compact 64-bit representation.
     /// </summary>
     /// <remarks>
     /// This is the smallest wire representation for the identifier and is useful when
     /// storing or transmitting IDs in binary form.
     /// </remarks>
     /// <returns>
-    /// A <see cref="UInt56"/> value representing the identifier as a 56-bit unsigned integer.
+    /// A <see cref="ulong"/> value representing the identifier as a 64-bit unsigned integer.
     /// </returns>
-    UInt56 ToUInt56();
+    ulong ToUInt64();
 
     /// <summary>
-    /// Converts this <see cref="ISnowflake"/> to a 7-byte array.
+    /// Converts this <see cref="ISnowflake"/> to an 8-byte array.
     /// </summary>
     /// <remarks>
-    /// The layout is little-endian: [0-3]=Value, [4-5]=MachineId, [6]=Type.
+    /// The layout is little-endian: [0-3]=Value, [4-5]=MachineId, [6]=Type, [7]=0.
     /// Use <see cref="TryWriteBytes(Span{byte})"/> when you already have a buffer.
     /// </remarks>
-    /// <returns>A new 7-byte array containing the serialized identifier.</returns>
+    /// <returns>A new 8-byte array containing the serialized identifier.</returns>
     byte[] ToByteArray();
 
     /// <summary>
@@ -85,7 +84,7 @@ public interface ISnowflake
     /// <param name="destination">The span to write the serialized bytes to.</param>
     /// <param name="bytesWritten">
     /// When this method returns, contains the number of bytes written to <paramref name="destination"/>.
-    /// This is always 7 on success, or 0 on failure.
+    /// This is always 8 on success, or 0 on failure.
     /// </param>
     /// <returns>
     /// <c>true</c> if the identifier was written successfully; otherwise, <c>false</c>.
