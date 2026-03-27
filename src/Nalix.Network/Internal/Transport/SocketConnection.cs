@@ -74,8 +74,6 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
     #region Fields
 
-    private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
-
     private readonly Socket _socket = socket;
     private readonly CancellationTokenSource _cts = new();
     private readonly FragmentAssembler _fragmentAssembler = new();
@@ -109,6 +107,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
 
     /// <summary>
     /// Receive buffer — owned by this connection during its lifetime.
