@@ -32,7 +32,7 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
         try
         {
-            bool sent = await context.Sender.SendAsync(packet);
+            bool sent = await context.Sender.SendAsync(packet).ConfigureAwait(false);
 
             if (!sent)
             {

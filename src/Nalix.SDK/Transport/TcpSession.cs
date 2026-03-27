@@ -260,7 +260,7 @@ public sealed class TcpSession : TcpSessionBase
 
         Exception? lastEx = null;
 
-        IPAddress[] addrs = await Dns.GetHostAddressesAsync(effectiveHost, connectCts.Token);
+        IPAddress[] addrs = await Dns.GetHostAddressesAsync(effectiveHost, connectCts.Token).ConfigureAwait(false);
 
         foreach (IPAddress addr in addrs)
         {
@@ -272,7 +272,7 @@ public sealed class TcpSession : TcpSessionBase
                 s.SendBufferSize = this.Options.BufferSize;
                 s.ReceiveBufferSize = this.Options.BufferSize;
 
-                await s.ConnectAsync(new IPEndPoint(addr, effectivePort), connectCts.Token);
+                await s.ConnectAsync(new IPEndPoint(addr, effectivePort), connectCts.Token).ConfigureAwait(false);
 
                 CancellationToken loopToken;
 
@@ -309,6 +309,10 @@ public sealed class TcpSession : TcpSessionBase
                 lastEx = ex;
                 this.Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
                 try { s.Dispose(); } catch { }
+            }
+            finally
+            {
+                s = null!;
             }
         }
 

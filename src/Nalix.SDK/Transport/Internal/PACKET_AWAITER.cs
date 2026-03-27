@@ -65,7 +65,7 @@ internal static class PACKET_AWAITER
         }
 
         // Register cancellation -> cancel the TCS. Use 'using' for the registration (not 'await using').
-        await using CancellationTokenRegistration reg = lcts.Token.Register(() =>
+        using CancellationTokenRegistration reg = lcts.Token.Register(() =>
         {
             try { _ = tcs.TrySetCanceled(lcts.Token); } catch { /* swallow */ }
         });

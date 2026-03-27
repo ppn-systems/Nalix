@@ -403,7 +403,7 @@ public partial class TaskManager
                 ctx.Beat();
                 ctx.Advance(1);
 
-                await Task.Delay(options.ObservingInterval, ct);
+                await Task.Delay(options.ObservingInterval, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
             catch (Exception ex)

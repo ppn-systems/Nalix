@@ -292,3 +292,45 @@ dotnet_diagnostic.CA1852.severity = none
 
 # CA1707: Identifiers should not contain underscores
 dotnet_diagnostic.CA1707.severity = none
+
+# Nullable reference types
+dotnet_analyzer_diagnostic.category-NullableAnalysis.severity = warning
+build_property.Nullable = enable
+
+# Public API design rules
+dotnet_analyzer_diagnostic.category-Design.severity = warning
+
+# Naming consistency & usability
+dotnet_diagnostic.CA1720.severity = warning   # Identifier contains type name
+dotnet_diagnostic.CA1716.severity = warning   # Reserved keywords
+dotnet_diagnostic.CA1711.severity = warning   # Incorrect suffix
+
+dotnet_analyzer_diagnostic.category-Performance.severity = warning
+
+dotnet_diagnostic.CA1822.severity = warning  # Mark members static
+dotnet_diagnostic.CA1835.severity = warning  # Memory-based overloads
+dotnet_diagnostic.CA1848.severity = warning  # Use LoggerMessage
+
+dotnet_analyzer_diagnostic.category-Reliability.severity = warning
+
+dotnet_diagnostic.CA2000.severity = warning  # Dispose objects
+dotnet_diagnostic.CA2012.severity = warning  # ValueTask usage
+dotnet_diagnostic.CA2208.severity = warning  # Argument exceptions
+
+dotnet_analyzer_diagnostic.category-Security.severity = warning
+
+dotnet_diagnostic.CS1591.severity = warning
+
+dotnet_diagnostic.CA2007.severity = warning  # ConfigureAwait
+dotnet_diagnostic.CA2016.severity = warning  # Forward CancellationToken
+
+dotnet_code_quality.api_surface = public
+
+dotnet_analyzer_diagnostic.severity = warning
+warn_as_error = true
+
+dotnet_diagnostic.CA1040.severity = warning  # Avoid empty interfaces
+dotnet_diagnostic.CA1031.severity = warning  # Catch general exception
+
+charset = utf-8
+max_line_length = 150

@@ -120,7 +120,7 @@ public sealed partial class TaskManager : ITaskManager
             _ = this.ScheduleWorker(
                 "task.monitor",
                 "task",
-                async (ctx, ct) => await this.MONITOR_CONCURRENCY_ASYNC(ctx, ct), // Pass CancellationToken
+                async (ctx, ct) => await this.MONITOR_CONCURRENCY_ASYNC(ctx, ct).ConfigureAwait(false), // Pass CancellationToken
                 new WorkerOptions
                 {
                     RetainFor = TimeSpan.FromMinutes(10) // Cho phép giữ Monitor lâu hơn sau khi chạy xong

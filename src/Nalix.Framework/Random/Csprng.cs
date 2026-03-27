@@ -24,7 +24,7 @@ public static class Csprng
 
     private static string DebuggerDisplay => "Csprng(primary=OS)";
 
-    private static readonly Action<Span<byte>> _f;
+    private static readonly Action<Span<byte>> s_f;
 
     #endregion Fields
 
@@ -38,16 +38,16 @@ public static class Csprng
         try
         {
             f(probe);
-            _f = f;
+            s_f = f;
         }
         catch
         {
             OsRandom.Attach();
-            _f = OsRandom.Fill;
+            s_f = OsRandom.Fill;
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.Csprng] init using {(_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
+                                .Info($"[FW.Csprng] init using {(s_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
     }
 
     #endregion Constructor
@@ -73,7 +73,7 @@ public static class Csprng
             return;
         }
 
-        _f(data);
+        s_f(data);
     }
 
     /// <summary>
@@ -95,7 +95,7 @@ public static class Csprng
         }
 
         byte[] nonce = new byte[length];
-        _f(nonce);
+        s_f(nonce);
         return nonce;
     }
 
@@ -126,7 +126,7 @@ public static class Csprng
         }
 
         byte[] bytes = new byte[length];
-        _f(bytes);
+        s_f(bytes);
         return bytes;
     }
 
@@ -199,7 +199,7 @@ public static class Csprng
         byte[] buffer)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        _f(buffer);
+        s_f(buffer);
     }
 
     /// <summary>
@@ -228,7 +228,7 @@ public static class Csprng
     public static uint NextUInt32()
     {
         Span<byte> b = stackalloc byte[4];
-        _f(b);
+        s_f(b);
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(b);
     }
 
@@ -245,7 +245,7 @@ public static class Csprng
     public static ulong NextUInt64()
     {
         Span<byte> b = stackalloc byte[8];
-        _f(b);
+        s_f(b);
         return System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(b);
     }
 

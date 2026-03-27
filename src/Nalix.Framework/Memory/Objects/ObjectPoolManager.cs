@@ -491,7 +491,7 @@ public sealed class ObjectPoolManager : IReportable
             {
                 try
                 {
-                    await Task.Delay(interval, cancellationToken);
+                    await Task.Delay(interval, cancellationToken).ConfigureAwait(false);
                     _ = this.TrimAllPools(percentage);
                     _ = this.PerformHealthCheck();
                 }

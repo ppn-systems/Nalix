@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
@@ -209,8 +210,7 @@ public sealed class BufferConfig : ConfigurationLoader
 
     #region Parsing
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<
-        string, (int, double)[]> _allocationPatternCache = new();
+    private static readonly ConcurrentDictionary<string, (int, double)[]> s_allocationPatternCache = new();
 
     /// <summary>
     /// Parses the buffer allocation settings with caching for repeated configurations.
@@ -222,7 +222,7 @@ public sealed class BufferConfig : ConfigurationLoader
         return string.IsNullOrWhiteSpace(bufferAllocationsString)
             ? throw new ArgumentException(
                 $"[{nameof(BufferConfig)}] The input string must not be blank.", nameof(bufferAllocationsString))
-            : _allocationPatternCache.GetOrAdd(bufferAllocationsString, key =>
+            : s_allocationPatternCache.GetOrAdd(bufferAllocationsString, key =>
             {
                 try
                 {
@@ -248,8 +248,7 @@ public sealed class BufferConfig : ConfigurationLoader
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static (int allocationSize, double ratio)[] PARSE_ALLOCATIONS(
-        string key, string bufferAllocationsString)
+    private static (int allocationSize, double ratio)[] PARSE_ALLOCATIONS(string key, string bufferAllocationsString)
     {
         string[] pairs = key.Split(';', StringSplitOptions.RemoveEmptyEntries);
         List<(int, double)> list = [];
