@@ -28,8 +28,8 @@ public sealed partial class Connection : IConnection
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly Lock _lock;
-    private readonly ConnectionEventArgs _evtArgs;
     private readonly SocketConnection _socket;
+    private readonly ConnectionEventArgs _args;
 
     private UdpTransport? _udp;
     private int _errorCount;
@@ -60,10 +60,10 @@ public sealed partial class Connection : IConnection
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint ?? throw new InvalidOperationException("Socket does not expose a remote endpoint."));
 
-        _evtArgs = new ConnectionEventArgs(this);
+        _args = new ConnectionEventArgs(this);
         _socket = new SocketConnection(socket);
 
-        _socket.SetCallback(this, _evtArgs, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
+        _socket.SetCallback(this, _args, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 
         this.TCP = new TcpTransport(this);
         this.Attributes = ObjectMap<string, object>.Rent();

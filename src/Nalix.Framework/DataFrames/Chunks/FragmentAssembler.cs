@@ -64,27 +64,33 @@ public sealed class FragmentAssembler : IDisposable
 
     #region Fields
 
+    private bool _disposed;
+
     // Use regular Dictionary since this is for a single-threaded per-connection receive loop.
     // Avoid ConcurrentDictionary overhead, which is unnecessary here.
     private readonly Dictionary<ushort, StreamState> _streams = [];
-
-    private bool _disposed;
+    private List<ushort>? _toEvict;
 
     #endregion Fields
 
     #region Configuration properties
 
     /// <summary>
-    /// The maximum size (in bytes) of a stream being reassembled.
-    /// Streams exceeding this threshold are immediately discarded. Default: 16 MB.
+    /// Streams currently being reassembled, indexed by StreamId.
     /// </summary>
-    public int MaxStreamBytes { get; init; } = 16 * 1024 * 1024;
+    public int OpenStreamCount => _streams.Count;
 
     /// <summary>
     /// The maximum time (ms) a stream can exist without receiving a new chunk before being evicted.
     /// Default: 30,000 ms (30 seconds).
     /// </summary>
     public long StreamTimeoutMs { get; init; } = 30_000;
+
+    /// <summary>
+    /// The maximum size (in bytes) of a stream being reassembled.
+    /// Streams exceeding this threshold are immediately discarded. Default: 16 MB.
+    /// </summary>
+    public int MaxStreamBytes { get; init; } = 16 * 1024 * 1024;
 
     #endregion Configuration properties
 
@@ -110,10 +116,12 @@ public sealed class FragmentAssembler : IDisposable
     /// <param name="assembled">
     /// [out] Complete buffer lease when stream is done. <b>Caller must Dispose.</b>
     /// </param>
+    /// <param name="streamEvicted"></param>
     /// <returns><see langword="true"/> if the stream is complete.</returns>
-    public bool TryAdd(in FragmentHeader header, ReadOnlySpan<byte> chunkBody, out BufferLease? assembled)
+    public bool TryAdd(in FragmentHeader header, ReadOnlySpan<byte> chunkBody, out BufferLease? assembled, out bool streamEvicted)
     {
         assembled = null;
+        streamEvicted = false;
 
         if (_disposed)
         {
@@ -133,6 +141,11 @@ public sealed class FragmentAssembler : IDisposable
         // ── Retrieve or create StreamState ────────────────────────────────
         if (!_streams.TryGetValue(header.StreamId, out StreamState? state))
         {
+            if (header.ChunkIndex != 0)
+            {
+                return false;
+            }
+
             // Estimate buffer size: firstChunk * totalChunks, capped at MaxStreamBytes
             int estimate = (int)Math.Min((long)chunkBody.Length * header.TotalChunks, this.MaxStreamBytes);
 
@@ -143,6 +156,7 @@ public sealed class FragmentAssembler : IDisposable
         // ── Check timeout ────────────────────────────────────────────────
         if (now - state.LastActivityMs > this.StreamTimeoutMs)
         {
+            streamEvicted = true;
             this.EVICT(header.StreamId, state);
             return false;
         }
@@ -153,6 +167,7 @@ public sealed class FragmentAssembler : IDisposable
         // Prevent forgery: TotalChunks must be the same across all chunks of a stream
         if (state.TotalChunks != header.TotalChunks)
         {
+            streamEvicted = true;
             this.EVICT(header.StreamId, state);
             return false;
         }
@@ -165,6 +180,7 @@ public sealed class FragmentAssembler : IDisposable
 
         if (state.WrittenBytes + chunkBody.Length > this.MaxStreamBytes)
         {
+            streamEvicted = true;
             this.EVICT(header.StreamId, state);
             return false;
         }
@@ -206,6 +222,46 @@ public sealed class FragmentAssembler : IDisposable
 
         assembled = BufferLease.FromRented(finalBuf, finalLen);
         return true;
+    }
+
+    /// <summary>
+    /// Evicts all streams that have not received a chunk within <see cref="StreamTimeoutMs"/>.
+    /// Call periodically from the receive loop (e.g. every N packets).
+    /// </summary>
+    /// <returns>Number of streams evicted.</returns>
+    public int EvictExpired()
+    {
+        if (_streams.Count == 0)
+        {
+            return 0;
+        }
+
+        long now = Environment.TickCount64;
+        int evicted = 0;
+
+        foreach ((ushort streamId, StreamState? state) in _streams)
+        {
+            if (now - state.LastActivityMs > this.StreamTimeoutMs)
+            {
+                _toEvict ??= [];
+                _toEvict.Add(streamId);
+            }
+        }
+
+        if (_toEvict is { Count: > 0 })
+        {
+            foreach (ushort id in _toEvict)
+            {
+                if (_streams.Remove(id, out StreamState? state))
+                {
+                    state.Dispose();
+                    evicted++;
+                }
+            }
+            _toEvict.Clear();
+        }
+
+        return evicted;
     }
 
     /// <summary>
