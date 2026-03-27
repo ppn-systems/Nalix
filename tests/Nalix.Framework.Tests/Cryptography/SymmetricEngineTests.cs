@@ -166,16 +166,12 @@ public sealed class SymmetricEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextMultiBlock.Length)];
         byte[] plaintext = new byte[s_plaintextMultiBlock.Length];
 
-        bool encOk = SymmetricEngine.Encrypt(
+        SymmetricEngine.Encrypt(
             s_key32, s_plaintextMultiBlock, envelope, nonce,
             seq: 99u, algorithm, out int encWritten);
-
-        Assert.True(encOk);
         Assert.Equal(EnvelopeSize(nLen, s_plaintextMultiBlock.Length), encWritten);
 
-        bool decOk = SymmetricEngine.Decrypt(s_key32, envelope, plaintext, out int decWritten);
-
-        Assert.True(decOk);
+        SymmetricEngine.Decrypt(s_key32, envelope, plaintext, out int decWritten);
         Assert.Equal(s_plaintextMultiBlock.Length, decWritten);
         Assert.Equal(s_plaintextMultiBlock, plaintext);
     }
@@ -188,12 +184,9 @@ public sealed class SymmetricEngineTests
         byte[] nonce = NonceFor(algorithm);
         byte[] tinyBuffer = new byte[1]; // far too small
 
-        bool ok = SymmetricEngine.Encrypt(
+        Assert.Throws<ArgumentException>(() => SymmetricEngine.Encrypt(
             s_key32, s_plaintextShort, tinyBuffer, nonce,
-            seq: 0u, algorithm, out int written);
-
-        Assert.False(ok);
-        Assert.Equal(0, written);
+            seq: 0u, algorithm, out _));
     }
 
     [Fact]
@@ -203,27 +196,21 @@ public sealed class SymmetricEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] ptBuf = new byte[s_plaintextShort.Length];
 
-        _ = SymmetricEngine.Encrypt(
+        SymmetricEngine.Encrypt(
             s_key32, s_plaintextShort, envelope, s_nonce12,
             seq: 1u, CipherSuiteType.Chacha20, out _);
 
         // Corrupt the first byte of MAGIC "NALX"
         envelope[0] ^= 0xFF;
 
-        bool decOk = SymmetricEngine.Decrypt(s_key32, envelope, ptBuf, out int decWritten);
-
-        Assert.False(decOk);
-        Assert.Equal(0, decWritten);
+        Assert.Throws<ArgumentException>(() => SymmetricEngine.Decrypt(s_key32, envelope, ptBuf, out _));
     }
 
     [Fact]
     public void SymmetricEngineEnvelopeEmptyEnvelopeDecryptReturnsFalse()
     {
         byte[] ptBuf = new byte[10];
-        bool ok = SymmetricEngine.Decrypt(s_key32, [], ptBuf, out int written);
-
-        Assert.False(ok);
-        Assert.Equal(0, written);
+        Assert.Throws<ArgumentException>(() => SymmetricEngine.Decrypt(s_key32, [], ptBuf, out _));
     }
 
     [Fact]
@@ -233,17 +220,14 @@ public sealed class SymmetricEngineTests
         byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
         byte[] ptBuf = new byte[s_plaintextShort.Length];
 
-        _ = SymmetricEngine.Encrypt(
+        SymmetricEngine.Encrypt(
             s_key32, s_plaintextShort, envelope, s_nonce12,
             seq: 5u, CipherSuiteType.Chacha20, out _);
 
         // Truncate to just the header (missing nonce + ciphertext)
         byte[] truncated = envelope[..HeaderSize];
 
-        bool ok = SymmetricEngine.Decrypt(s_key32, truncated, ptBuf, out int written);
-
-        Assert.False(ok);
-        Assert.Equal(0, written);
+        Assert.Throws<ArgumentException>(() => SymmetricEngine.Decrypt(s_key32, truncated, ptBuf, out _));
     }
 
     // =========================================================================
