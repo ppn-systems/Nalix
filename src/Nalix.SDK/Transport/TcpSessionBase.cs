@@ -1,13 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
@@ -18,6 +11,13 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
+using System;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nalix.SDK.Transport;
 
@@ -36,29 +36,31 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 {
     #region Fields
 
-    internal readonly Lock i_sync = new();
+    private protected readonly Lock Sync = new();
 
-    internal FRAME_SENDER? i_sender;
-    internal FRAME_READER? i_receiver;
+    private protected FRAME_SENDER? Sender;
+    private protected FRAME_READER? Receiver;
 
-    internal Socket? i_socket;
-    internal Task? i_receiveTask;
-    internal CancellationTokenSource? i_loopCts;
+    private protected Socket? Socket;
+    private protected CancellationTokenSource? LoopCts;
 
-    internal int _disposed;
-
+    private protected int _disposed;
 
     private int _connectionState = (int)TcpSessionState.Disconnected;
-
-    /// <inheritdoc/>
-    internal static readonly ILogger? Logging;
-
-    /// <inheritdoc/>
-    internal static readonly IThreadDispatcher Dispatcher = InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
 
     #endregion Fields
 
     #region Properties
+
+    /// <summary>
+    /// Gets the logger associated with this session instance.
+    /// </summary>
+    protected internal ILogger? Logger { get; }
+
+    /// <summary>
+    /// Gets the dispatcher used to marshal callbacks for this session instance.
+    /// </summary>
+    protected internal IThreadDispatcher Dispatcher { get; }
 
     /// <inheritdoc/>
     public TransportOptions Options { get; protected set; }
@@ -109,14 +111,15 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 
     #region Construction
 
-    static TcpSessionBase() => Logging = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
     /// <summary>
     /// Constructs base session and loads TransportOptions from configuration.
     /// Derived classes are responsible for buffer configuration if needed.
     /// </summary>
-    protected TcpSessionBase()
+    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
+    protected TcpSessionBase(ILogger? logger = null, IThreadDispatcher? dispatcher = null)
     {
+        Logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
+        Dispatcher = dispatcher ?? InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
         this.Options = null!;
         this.Catalog = null!;
     }
@@ -154,13 +157,13 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public virtual bool IsConnected => i_socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
+    public virtual bool IsConnected => Socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
 
     /// <inheritdoc/>
     public virtual Task<bool> SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
-        FRAME_SENDER? sender = Volatile.Read(ref i_sender);
+        FRAME_SENDER? sender = Volatile.Read(ref Sender);
         return sender is null ? throw new InvalidOperationException("Client not connected.") : sender.SendAsync(payload, ct);
     }
 
@@ -169,7 +172,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
-        FRAME_SENDER? sender = Volatile.Read(ref i_sender);
+        FRAME_SENDER? sender = Volatile.Read(ref Sender);
         return sender is null ? throw new InvalidOperationException("Client not connected.") : sender.SendAsync(packet, ct);
     }
 
@@ -235,7 +238,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             // ----------------------------------------------------------------
             if (!enableCompress && !encrypt)
             {
-                Logging?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Send plain payload, size={written}");
+                Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Send plain payload, size={written}");
                 return await this.SendAsync(rawLease.Memory, cancellationToken).ConfigureAwait(false);
             }
 
@@ -250,11 +253,11 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                 {
                     if (!FrameTransformer.TryCompress(rawLease, compressedLease))
                     {
-                        Logging?.Warn($"[SDK.{this.GetType().Name}] SendAsync: Compression failed, packet={packet.GetType().Name}, size={written}");
+                        Logger?.Warn($"[SDK.{this.GetType().Name}] SendAsync: Compression failed, packet={packet.GetType().Name}, size={written}");
                         return false;
                     }
 
-                    Logging?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compressed and sent, original={written}, compressed={compressedLease.Length}");
+                    Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compressed and sent, original={written}, compressed={compressedLease.Length}");
                     compressedLease.Span.WriteFlagsLE(
                         compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
 
@@ -277,14 +280,14 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                 {
                     if (!FrameTransformer.TryEncrypt(rawLease, encryptedLease, this.Options.Secret, this.Options.Algorithm))
                     {
-                        Logging?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] encrypt-failed");
+                        Logger?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] encrypt-failed");
                         return false;
                     }
 
                     encryptedLease.Span.WriteFlagsLE(
                         encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
-                    Logging?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Encrypted and sent, len={encryptedLease.Length}");
+                    Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Encrypted and sent, len={encryptedLease.Length}");
                     return await this.SendAsync(encryptedLease.Memory, cancellationToken).ConfigureAwait(false);
                 }
                 finally
@@ -302,7 +305,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             {
                 if (!FrameTransformer.TryCompress(rawLease, compressLease))
                 {
-                    Logging?.Warn($"[SDK.{this.GetType().Name}] SendAsync: Compress-then-encrypt compression failed, len={written}");
+                    Logger?.Warn($"[SDK.{this.GetType().Name}] SendAsync: Compress-then-encrypt compression failed, len={written}");
                     return false;
                 }
 
@@ -315,14 +318,14 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                 {
                     if (!FrameTransformer.TryEncrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm))
                     {
-                        Logging?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] encrypt-after-compress-failed");
+                        Logger?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] encrypt-after-compress-failed");
                         return false;
                     }
 
                     encryptLease.Span.WriteFlagsLE(
                         encryptLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
-                    Logging?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compress+Encrypt, final-size={encryptLease.Length}");
+                    Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compress+Encrypt, final-size={encryptLease.Length}");
                     return await this.SendAsync(encryptLease.Memory, cancellationToken).ConfigureAwait(false);
                 }
                 finally
@@ -337,12 +340,12 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            Logging?.Info($"[SDK.{this.GetType().Name}] SendAsync: Operation canceled");
+            Logger?.Info($"[SDK.{this.GetType().Name}] SendAsync: Operation canceled");
             throw;
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] send-failed", ex);
+            Logger?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] send-failed", ex);
             return false;
         }
         finally
@@ -356,13 +359,13 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     {
         if (Volatile.Read(ref _disposed) == 1)
         {
-            Logging?.Info($"[SDK.{this.GetType().Name}] Disconnect called, but already disposed.");
+            Logger?.Info($"[SDK.{this.GetType().Name}] Disconnect called, but already disposed.");
             return Task.CompletedTask;
         }
 
         this.TearDownConnection();
-        Logging?.Info($"[SDK.{this.GetType().Name}] Disconnected (requested).");
-        try { OnDisconnected?.Invoke(this, null!); } catch (Exception ex) { Logging?.Error($"[SDK.{this.GetType().Name}] OnDisconnected handler threw: {ex.Message}", ex); }
+        Logger?.Info($"[SDK.{this.GetType().Name}] Disconnected (requested).");
+        try { OnDisconnected?.Invoke(this, null!); } catch (Exception ex) { Logger?.Error($"[SDK.{this.GetType().Name}] OnDisconnected handler threw: {ex.Message}", ex); }
 
         return Task.CompletedTask;
     }
@@ -372,13 +375,13 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
         {
-            Logging?.Info($"[SDK.{this.GetType().Name}] Dispose called but was already disposed.");
+            Logger?.Info($"[SDK.{this.GetType().Name}] Dispose called but was already disposed.");
             return;
         }
 
         this.SetState(TcpSessionState.Disposed);
         this.TearDownConnection();
-        Logging?.Info($"[SDK.{this.GetType().Name}] Disposed.");
+        Logger?.Info($"[SDK.{this.GetType().Name}] Disposed.");
         GC.SuppressFinalize(this);
     }
 
@@ -395,7 +398,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 
         this.SetState(TcpSessionState.Disposed);
         await this.DisconnectAsync().ConfigureAwait(false);
-        Logging?.Info($"[SDK.{this.GetType().Name}] DisposeAsync completed.");
+        Logger?.Info($"[SDK.{this.GetType().Name}] DisposeAsync completed.");
         GC.SuppressFinalize(this);
     }
 
@@ -407,14 +410,14 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     protected void RaiseConnected()
     {
         this.SetState(TcpSessionState.Connected);
-        Logging?.Info($"[SDK.{this.GetType().Name}] Connected.");
+        Logger?.Info($"[SDK.{this.GetType().Name}] Connected.");
         try
         {
             OnConnected?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{this.GetType().Name}] OnConnected handler threw: {ex.Message}", ex);
+            Logger?.Error($"[SDK.{this.GetType().Name}] OnConnected handler threw: {ex.Message}", ex);
         }
     }
 
@@ -422,56 +425,56 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     protected void RaiseDisconnected(Exception? ex)
     {
         this.SetState(TcpSessionState.Disconnected);
-        Logging?.Info($"[SDK.{this.GetType().Name}] Disconnected.");
+        Logger?.Info($"[SDK.{this.GetType().Name}] Disconnected.");
         try
         {
             OnDisconnected?.Invoke(this, ex!);
         }
         catch (Exception handlerEx)
         {
-            Logging?.Error($"[SDK.{this.GetType().Name}] OnDisconnected handler threw: {handlerEx.Message}", handlerEx);
+            Logger?.Error($"[SDK.{this.GetType().Name}] OnDisconnected handler threw: {handlerEx.Message}", handlerEx);
         }
     }
 
     /// <inheritdoc/>
     protected void RaiseError(Exception ex)
     {
-        Logging?.Info($"[SDK.{this.GetType().Name}] RaiseError event fired: {ex.Message}");
+        Logger?.Info($"[SDK.{this.GetType().Name}] RaiseError event fired: {ex.Message}");
         try
         {
             OnError?.Invoke(this, ex);
         }
         catch (Exception handlerEx)
         {
-            Logging?.Error($"[SDK.{this.GetType().Name}] RaiseError handler threw: {handlerEx.Message}", handlerEx);
+            Logger?.Error($"[SDK.{this.GetType().Name}] RaiseError handler threw: {handlerEx.Message}", handlerEx);
         }
     }
 
     /// <inheritdoc/>
     protected void RaiseBytesSent(long bytes)
     {
-        Logging?.Trace($"[SDK.{this.GetType().Name}] BytesSent={bytes}");
+        Logger?.Trace($"[SDK.{this.GetType().Name}] BytesSent={bytes}");
         try
         {
             OnBytesSent?.Invoke(this, bytes);
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{this.GetType().Name}] BytesSent handler threw: {ex.Message}", ex);
+            Logger?.Error($"[SDK.{this.GetType().Name}] BytesSent handler threw: {ex.Message}", ex);
         }
     }
 
     /// <inheritdoc/>
     protected void RaiseBytesReceived(long bytes)
     {
-        Logging?.Trace($"[SDK.{this.GetType().Name}] BytesReceived={bytes}");
+        Logger?.Trace($"[SDK.{this.GetType().Name}] BytesReceived={bytes}");
         try
         {
             OnBytesReceived?.Invoke(this, bytes);
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{this.GetType().Name}] BytesReceived handler threw: {ex.Message}", ex);
+            Logger?.Error($"[SDK.{this.GetType().Name}] BytesReceived handler threw: {ex.Message}", ex);
         }
     }
 
@@ -480,7 +483,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// Protected helper for subclasses to set up frame helpers (_sender/_receiver).
     /// Subclasses should instantiate _sender/_receiver and bind desired error/byte-report callbacks.
     /// </summary>
-    [MemberNotNull(nameof(i_sender), nameof(i_receiver))]
+    [MemberNotNull(nameof(Sender), nameof(Receiver))]
     protected abstract void InitializeFrame();
 
     /// <summary>
@@ -496,35 +499,34 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     protected virtual void TearDownConnection()
     {
         this.SetState(TcpSessionState.Disconnected);
-        lock (i_sync)
+        lock (Sync)
         {
-            if (i_loopCts is not null)
+            if (LoopCts is not null)
             {
-                CancelAndDispose(ref i_loopCts);
+                CancelAndDispose(ref LoopCts);
 
-                Logging?.Debug($"[SDK.{this.GetType().Name}] TearDownConnection: Loop token cancelled and disposed");
+                Logger?.Debug($"[SDK.{this.GetType().Name}] TearDownConnection: Loop token cancelled and disposed");
             }
 
             try
             {
-                FRAME_SENDER? prevSender = Interlocked.Exchange(ref i_sender, null);
+                FRAME_SENDER? prevSender = Interlocked.Exchange(ref Sender, null);
                 prevSender?.Dispose();
             }
             catch (Exception ex)
             {
-                Logging?.Warn($"[SDK.{this.GetType().Name}] TearDownConnection: Sender cleanup threw: {ex.Message}", ex);
+                Logger?.Warn($"[SDK.{this.GetType().Name}] TearDownConnection: Sender cleanup threw: {ex.Message}", ex);
             }
 
-            try { i_socket?.Shutdown(SocketShutdown.Both); } catch { }
-            try { i_socket?.Close(); i_socket?.Dispose(); } catch { }
+            try { Socket?.Shutdown(SocketShutdown.Both); } catch { }
+            try { Socket?.Close(); Socket?.Dispose(); } catch { }
 
-            Logging?.Debug($"[SDK.{this.GetType().Name}] TearDownConnection: Socket closed and disposed.");
+            Logger?.Debug($"[SDK.{this.GetType().Name}] TearDownConnection: Socket closed and disposed.");
 
-            i_socket = null;
-            i_receiver = null;
+            Socket = null;
+            Receiver = null;
         }
 
-        i_receiveTask = null;
     }
 
     /// <summary>
@@ -549,7 +551,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// <exception cref="InvalidOperationException"></exception>
     protected Socket RequireConnectedSocket()
     {
-        Socket? s = i_socket;
+        Socket? s = Socket;
         return s?.Connected == true
             ? s
             : throw new InvalidOperationException("Client not connected.");
@@ -602,12 +604,12 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                     {
                         try
                         {
-                            Logging?.Debug($"[SDK.{nameof(TcpSessionBase)}] Dispatch sync handler, length={copy.Length}");
+                            Logger?.Debug($"[SDK.{nameof(TcpSessionBase)}] Dispatch sync handler, length={copy.Length}");
                             handler.Invoke(this, copy);
                         }
                         catch (Exception ex)
                         {
-                            Logging?.Error($"[SDK.{nameof(TcpSessionBase)}] sync handler faulted: {ex.Message}", ex);
+                            Logger?.Error($"[SDK.{nameof(TcpSessionBase)}] sync handler faulted: {ex.Message}", ex);
                         }
                         finally
                         {
@@ -626,7 +628,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         {
             Dispatcher.Post(() =>
             {
-                Logging?.Debug($"[SDK.{nameof(TcpSessionBase)}] Dispatch async handler, length={asyncData.Length}");
+                Logger?.Debug($"[SDK.{nameof(TcpSessionBase)}] Dispatch async handler, length={asyncData.Length}");
                 _ = this.InvokeAsyncHandler(asyncHandler, asyncData);
             });
         }
@@ -666,7 +668,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 
         if (prev != next)
         {
-            Logging?.Debug($"[SDK.{this.GetType().Name}] State: {prev} → {next}");
+            Logger?.Debug($"[SDK.{this.GetType().Name}] State: {prev} → {next}");
         }
     }
 
@@ -676,14 +678,14 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// <param name="attempt"></param>
     protected void RaiseReconnected(int attempt)
     {
-        Logging?.Info($"[SDK.{this.GetType().Name}] Reconnected (attempt {attempt}).");
+        Logger?.Info($"[SDK.{this.GetType().Name}] Reconnected (attempt {attempt}).");
         try
         {
             OnReconnected?.Invoke(this, attempt);
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{this.GetType().Name}] OnReconnected handler threw: {ex.Message}", ex);
+            Logger?.Error($"[SDK.{this.GetType().Name}] OnReconnected handler threw: {ex.Message}", ex);
         }
     }
 
@@ -701,7 +703,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{nameof(TcpSessionBase)}] async handler faulted: {ex.Message}", ex);
+            Logger?.Error($"[SDK.{nameof(TcpSessionBase)}] async handler faulted: {ex.Message}", ex);
         }
     }
 

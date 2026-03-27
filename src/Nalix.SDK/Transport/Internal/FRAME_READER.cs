@@ -9,10 +9,12 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Extensions;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Configuration;
 
@@ -31,7 +33,8 @@ internal sealed class FRAME_READER(
     TransportOptions options,
     Action<BufferLease> onMessage,
     Action<Exception> onError,
-    Action<int> reportBytesReceived) : IDisposable
+    Action<int> reportBytesReceived,
+    ILogger? logger = null) : IDisposable
 {
     #region Fields
 
@@ -39,6 +42,7 @@ internal sealed class FRAME_READER(
 
     private readonly TransportOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly Func<Socket> _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
+    private readonly ILogger? _logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
     private readonly Action<Exception> _onError = onError ?? throw new ArgumentNullException(nameof(onError));
     private readonly Action<BufferLease> _onMessage = onMessage ?? throw new ArgumentNullException(nameof(onMessage));
     private readonly Action<int> _reportBytesReceived = reportBytesReceived ?? throw new ArgumentNullException(nameof(reportBytesReceived));
@@ -66,11 +70,11 @@ internal sealed class FRAME_READER(
         try
         {
             s = _getSocket();
-            TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
+            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (Exception ex)
         {
-            TcpSessionBase.Logging?.Error($"[SDK.{nameof(FRAME_READER)}] receive-start-error", ex);
+            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] receive-start-error", ex);
             _onError(ex);
             return;
         }
@@ -90,7 +94,7 @@ internal sealed class FRAME_READER(
 
                     if (totalLen < TcpSession.HeaderSize || totalLen > _options.MaxPacketSize)
                     {
-                        TcpSessionBase.Logging?.Warn(
+                        _logger?.Warn(
                             $"[SDK.{nameof(FRAME_READER)}] invalid-packet-size totalLen={totalLen} " +
                             $"max={_options.MaxPacketSize} endpoint={FORMAT_ENDPOINT(s)}");
 
@@ -143,15 +147,15 @@ internal sealed class FRAME_READER(
                 }
             }
 
-            TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally");
+            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally");
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
-            TcpSessionBase.Logging?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop cancelled");
+            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop cancelled");
         }
         catch (Exception ex)
         {
-            TcpSessionBase.Logging?.Error($"[SDK.{nameof(FRAME_READER)}] receive-loop faulted", ex);
+            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] receive-loop faulted", ex);
             try { _onError(ex); } catch { }
         }
         finally
@@ -183,7 +187,7 @@ internal sealed class FRAME_READER(
 
             if (streamEvicted)
             {
-                TcpSessionBase.Logging?.Warn(
+                _logger?.Warn(
                     $"[SDK.{nameof(FRAME_READER)}] Fragment stream evicted " +
                     $"stream={header.StreamId} — timeout or overflow");
             }
@@ -195,7 +199,7 @@ internal sealed class FRAME_READER(
         }
         catch (Exception ex)
         {
-            TcpSessionBase.Logging?.Warn($"[SDK.{nameof(FRAME_READER)}] Failed to process fragmented chunk", ex);
+            _logger?.Warn($"[SDK.{nameof(FRAME_READER)}] Failed to process fragmented chunk", ex);
             chunkLease.Dispose();
         }
     }
@@ -207,7 +211,7 @@ internal sealed class FRAME_READER(
     private void PROCESS_NORMAL_FRAME(BufferLease lease)
     {
 
-        TcpSessionBase.Logging?.Debug($"[SDK.{nameof(FRAME_READER)}] header-read length={lease.Length}");
+        _logger?.Debug($"[SDK.{nameof(FRAME_READER)}] header-read length={lease.Length}");
         try
         {
             PacketFlags flags = lease.Span.ReadFlagsLE();
@@ -252,7 +256,7 @@ internal sealed class FRAME_READER(
         }
         catch (Exception ex)
         {
-            TcpSessionBase.Logging?.Error($"[SDK.{nameof(FRAME_READER)}] Failed to process normal frame", ex);
+            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] Failed to process normal frame", ex);
             lease.Dispose();
         }
     }

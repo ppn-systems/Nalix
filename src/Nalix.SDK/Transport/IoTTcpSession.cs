@@ -1,18 +1,19 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Random;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nalix.SDK.Transport;
 
@@ -68,6 +69,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// or <see cref="TransportOptions"/> fails validation.
     /// </exception>
     public IoTTcpSession()
+        : base()
     {
         this.Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
             ?? throw new InvalidOperationException(
@@ -76,7 +78,28 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Options.Validate();
 
-        Logging?.Info($"[SDK.{nameof(IoTTcpSession)}] Created, options validated.");
+        Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Created, options validated.");
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="IoTTcpSession"/> with an explicit packet registry
+    /// and optional common services.
+    /// </summary>
+    /// <param name="registry">Packet registry. Must not be <see langword="null"/>.</param>
+    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
+    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="registry"/> is null.</exception>
+    public IoTTcpSession(
+        IPacketRegistry registry,
+        ILogger? logger = null,
+        IThreadDispatcher? dispatcher = null)
+        : base(logger, dispatcher)
+    {
+        this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
+        this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
+        this.Options.Validate();
+
+        Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Created, options validated.");
     }
 
     /// <summary>
@@ -85,6 +108,25 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// <param name="options">Transport configuration. Must not be <see langword="null"/>.</param>
     /// <param name="registry">Packet registry. Must not be <see langword="null"/>.</param>
     public IoTTcpSession(TransportOptions options, IPacketRegistry registry)
+        : this(options, registry, logger: null, dispatcher: null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="IoTTcpSession"/> with explicit transport options,
+    /// packet registry, and optional common services.
+    /// </summary>
+    /// <param name="options">Transport configuration. Must not be <see langword="null"/>.</param>
+    /// <param name="registry">Packet registry. Must not be <see langword="null"/>.</param>
+    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
+    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.</exception>
+    public IoTTcpSession(
+        TransportOptions options,
+        IPacketRegistry registry,
+        ILogger? logger = null,
+        IThreadDispatcher? dispatcher = null)
+        : base(logger, dispatcher)
     {
         this.Options = options;
         this.Catalog = registry;
@@ -100,16 +142,16 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// <inheritdoc/>
     protected override void InitializeFrame()
     {
-        i_sender = new FRAME_SENDER(this.RequireConnectedSocket, this.Options, this.ReportBytesSent, this.HandleSendError);
-        i_receiver = new FRAME_READER(this.RequireConnectedSocket, this.Options, this.HandleReceiveMessage, this.HandleReceiveError, this.ReportBytesReceived);
+        Sender = new FRAME_SENDER(this.RequireConnectedSocket, this.Options, this.ReportBytesSent, this.HandleSendError, this.Logger);
+        Receiver = new FRAME_READER(this.RequireConnectedSocket, this.Options, this.HandleReceiveMessage, this.HandleReceiveError, this.ReportBytesReceived, this.Logger);
 
-        Logging?.Debug($"[SDK.{nameof(IoTTcpSession)}] Frame helpers created.");
+        Logger?.Debug($"[SDK.{nameof(IoTTcpSession)}] Frame helpers created.");
     }
 
     /// <inheritdoc/>
     protected override void StartReceiveWorker(CancellationToken loopToken)
     {
-        if (i_receiver is null)
+        if (Receiver is null)
         {
             return;
         }
@@ -120,8 +162,8 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
         {
             try
             {
-                Logging?.Info($"[SDK.{nameof(IoTTcpSession)}] Receive worker started.");
-                await i_receiver.ReceiveLoopAsync(loopToken).ConfigureAwait(false);
+                Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Receive worker started.");
+                await Receiver.ReceiveLoopAsync(loopToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -129,7 +171,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
             }
             catch (Exception ex)
             {
-                Logging?.Error($"[SDK.{nameof(IoTTcpSession)}] Receive worker crashed: {ex.Message}", ex);
+                Logger?.Error($"[SDK.{nameof(IoTTcpSession)}] Receive worker crashed: {ex.Message}", ex);
                 this.HandleReceiveError(ex);
             }
         }, CancellationToken.None);
@@ -161,21 +203,21 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
                 string.Equals(_host, effectiveHost, StringComparison.OrdinalIgnoreCase) &&
                 _port == effectivePort)
             {
-                Logging?.Debug($"[SDK.{nameof(IoTTcpSession)}] Already connected to {effectiveHost}:{effectivePort}.");
+                Logger?.Debug($"[SDK.{nameof(IoTTcpSession)}] Already connected to {effectiveHost}:{effectivePort}.");
                 return;
             }
 
             if (this.IsConnected)
             {
-                Logging?.Debug($"[SDK.{nameof(IoTTcpSession)}] Cleaning up existing connection.");
+                Logger?.Debug($"[SDK.{nameof(IoTTcpSession)}] Cleaning up existing connection.");
                 this.TearDownConnection();
             }
 
-            lock (i_sync)
+            lock (Sync)
             {
-                if (i_loopCts is not null)
+                if (LoopCts is not null)
                 {
-                    CancelAndDispose(ref i_loopCts);
+                    CancelAndDispose(ref LoopCts);
                 }
             }
 
@@ -217,11 +259,11 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
 
                     CancellationToken loopToken;
 
-                    lock (i_sync)
+                    lock (Sync)
                     {
-                        i_socket = s;
-                        i_loopCts = new CancellationTokenSource();
-                        loopToken = i_loopCts.Token;
+                        Socket = s;
+                        LoopCts = new CancellationTokenSource();
+                        loopToken = LoopCts.Token;
                         _host = effectiveHost;
                         _port = effectivePort;
                     }
@@ -238,7 +280,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
                     }
                     else
                     {
-                        Logging?.Info($"[SDK.{nameof(IoTTcpSession)}] Connected to {effectiveHost}:{effectivePort}.");
+                        Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Connected to {effectiveHost}:{effectivePort}.");
                         this.RaiseConnected();
                     }
 
@@ -250,18 +292,18 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
                 catch (OperationCanceledException)
                 {
                     try { s.Dispose(); } catch { }
-                    Logging?.Info($"[SDK.{nameof(IoTTcpSession)}] ConnectAsync cancelled for {addr}:{effectivePort}.");
+                    Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] ConnectAsync cancelled for {addr}:{effectivePort}.");
                     throw;
                 }
                 catch (Exception ex)
                 {
                     lastEx = ex;
                     try { s.Dispose(); } catch { }
-                    Logging?.Warn($"[SDK.{nameof(IoTTcpSession)}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
+                    Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
                 }
             }
 
-            Logging?.Error($"[SDK.{nameof(IoTTcpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}");
+            Logger?.Error($"[SDK.{nameof(IoTTcpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}");
             this.SetState(TcpSessionState.Disconnected);
             throw lastEx
                 ?? new SocketException(
@@ -290,7 +332,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// <inheritdoc/>
     protected override void HandleSendError(Exception ex)
     {
-        Logging?.Warn($"[SDK.{nameof(IoTTcpSession)}] Send error: {ex.Message}", ex);
+        Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Send error: {ex.Message}", ex);
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
@@ -298,7 +340,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// <inheritdoc/>
     protected override void HandleReceiveError(Exception ex)
     {
-        Logging?.Warn($"[SDK.{nameof(IoTTcpSession)}] Receive error: {ex.Message}", ex);
+        Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Receive error: {ex.Message}", ex);
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
@@ -312,7 +354,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
 
         if (wasConnected)
         {
-            Logging?.Info($"[SDK.{nameof(IoTTcpSession)}] Disconnected.");
+            Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Disconnected.");
             this.RaiseDisconnected(new Exception("Disconnected"));
         }
     }
@@ -347,11 +389,11 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
         // CAS ensures only one reconnect loop runs at a time.
         if (Interlocked.CompareExchange(ref _reconnecting, 1, 0) != 0)
         {
-            Logging?.Trace($"[SDK.{nameof(IoTTcpSession)}] Reconnect already in progress, skipping.");
+            Logger?.Trace($"[SDK.{nameof(IoTTcpSession)}] Reconnect already in progress, skipping.");
             return;
         }
 
-        Logging?.Info($"[SDK.{nameof(IoTTcpSession)}] Triggering auto-reconnect after: {cause.Message}");
+        Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Triggering auto-reconnect after: {cause.Message}");
         _ = this.ReconnectLoopAsync(cause);
     }
 
@@ -395,7 +437,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
             try
             {
                 await this.ConnectAsync(_host, _port, reconnectCts.Token).ConfigureAwait(false);
-                Logging?.Info($"[SDK.{nameof(IoTTcpSession)}] Reconnected after {attempt} attempt(s).");
+                Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Reconnected after {attempt} attempt(s).");
                 this.RaiseReconnected(attempt);
                 return;
             }
@@ -405,12 +447,12 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
             }
             catch (Exception ex)
             {
-                Logging?.Warn($"[SDK.{nameof(IoTTcpSession)}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
+                Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
                 delay = Math.Min(max, delay * 2);
             }
         }
 
-        Logging?.Error($"[SDK.{nameof(IoTTcpSession)}] Reconnect exhausted after {attempt} attempt(s).");
+        Logger?.Error($"[SDK.{nameof(IoTTcpSession)}] Reconnect exhausted after {attempt} attempt(s).");
         _ = Interlocked.Exchange(ref _reconnecting, 0);
         this.SetState(TcpSessionState.Disconnected);
     }
