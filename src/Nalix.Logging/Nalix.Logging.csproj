@@ -8,11 +8,11 @@
 		<Deterministic>true</Deterministic>
 
 		<!-- Versions -->
-		<Version>11.8.0</Version>
-		<FileVersion>11.8.0.0</FileVersion>
-		<PackageVersion>11.8.0</PackageVersion>
-		<InformationalVersion>11.8.0+$(SourceRevisionId)</InformationalVersion>
-
+		<Version>12.0.0</Version>
+		<FileVersion>12.0.0.0</FileVersion>
+		<PackageVersion>12.0.0</PackageVersion>
+		<InformationalVersion>12.0.0+$(SourceRevisionId)</InformationalVersion>
+		
 		<Description><![CDATA[
 Nalix.Logging is a high-performance, asynchronous logging subsystem designed for large-scale and low-latency applications in the Nalix ecosystem.
 

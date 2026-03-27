@@ -17,10 +17,10 @@ Nalix is a real-time server solution designed for efficient communication and da
 
 ## 🛠️ Latest Builds
 
-| Enviroment | Status |
+| Environment | Status |
 |------------|--------|
-|![linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/Linux.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/Linux.yml)|
-|![win](https://badgen.net/badge/icon/Windows,.NET%2010?icon=windows&label&list=1)|[![Nalix](https://github.com/phcnguyen/Nalix/actions/workflows/Windows.yml/badge.svg?event=push)](https://github.com/phcnguyen/Nalix/actions/workflows/Windows.yml)|
+|![linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange)|[![Nalix](https://github.com/ppn-systems/Nalix/actions/workflows/Linux.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/Linux.yml)|
+|![win](https://badgen.net/badge/icon/Windows,.NET%2010?icon=windows&label&list=1)|[![Nalix](https://github.com/ppn-systems/Nalix/actions/workflows/Windows.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/Windows.yml)|
 
 ## ✨ Features
 
@@ -119,7 +119,7 @@ All Nalix packages target .NET 10 with full support for C# 14 features.
 
 ## 🛠️ Contributing
 
-When contributing, please follow our [Code of Conduct](CODE_OF_CONDUCT.md) and submit PRs with proper documentation and tests.
+When contributing, please read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, commit convention, and pull request guidelines. Please also follow our [Code of Conduct](CODE_OF_CONDUCT.md) and submit PRs with proper documentation and tests.
 
 ## 🛡️ Security
 
@@ -131,6 +131,6 @@ _Nalix is copyright &copy; PhcNguyen - Provided under the [Apache License, Versi
 
 ## 📬 Contact
 
-For questions, suggestions, or support, open an issue on [GitHub](https://github.com/phcnguyen/Nalix/issues) or contact the maintainers.
+For questions, suggestions, or support, open an issue on [GitHub](https://github.com/ppn-systems/Nalix/issues) or contact the maintainers at [ppn.system@gmail.com](mailto:ppn.system@gmail.com).
 
 Give a ⭐️ if this project helped you!
