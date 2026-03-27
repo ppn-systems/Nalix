@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Common.Abstractions;
@@ -98,7 +97,13 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// based on the current handler's attributes.
     /// Use this instead of calling connection.TCP.SendAsync() directly.
     /// </summary>
-    public IPacketSender<TPacket>? Sender { get; private set; }
+    public IPacketSender<TPacket> Sender
+    {
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        internal set;
+    }
 
     #endregion Properties
 
@@ -131,6 +136,8 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     public PacketContext()
     {
         _state = (int)PacketContextState.Pooled;
+
+        this.Sender = default!;
         this.Packet = default!;
         this.Connection = default!;
         this.Attributes = default!;
@@ -152,48 +159,20 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// </remarks>
     /// <exception cref="InvalidOperationException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void Initialize(
-        [MaybeNull] TPacket packet,
-        [MaybeNull] IConnection connection,
-        [MaybeNull] PacketMetadata descriptor,
-        [MaybeNull] CancellationToken token = default)
+    internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor, CancellationToken token = default)
     {
-        _ = Interlocked.Exchange(
-            ref _state,
-            (int)PacketContextState.InUse);
+        _ = Interlocked.Exchange(ref _state, (int)PacketContextState.InUse);
 
         this.Packet = packet ?? throw new ArgumentNullException(nameof(packet));
         this.Connection = connection ?? throw new ArgumentNullException(nameof(connection));
         this.Attributes = descriptor;
         this.CancellationToken = token;
-        PacketSender<TPacket> sender =
-            s_object.Get<PacketSender<TPacket>>()
-            ?? throw new InvalidOperationException($"[{nameof(PacketContext<>)}] object pool returned null {nameof(PacketSender<>)}");
+
+        PacketSender<TPacket> sender = s_object.Get<PacketSender<TPacket>>();
         sender.Initialize(this);
         this.Sender = sender;
+
         _isInitialized = true;
-    }
-
-    /// <summary>
-    /// Resets the context to its initial state for reuse.
-    /// </summary>
-    /// <remarks>
-    /// Clears all properties and resets fields to their default values, preparing the context for return to the pool.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void Reset()
-    {
-        if (this.Sender is PacketSender<TPacket> concreteSender)
-        {
-            s_object.Return(concreteSender);
-        }
-
-        this.Sender = default!;
-        this.Packet = default!;
-        this.Attributes = default!;
-        this.Connection = default!;
-
-        _isInitialized = false;
     }
 
     #endregion Methods
@@ -211,7 +190,17 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
     {
         if (_isInitialized)
         {
-            this.Reset();
+            if (this.Sender is PacketSender<TPacket> concreteSender)
+            {
+                s_object.Return(concreteSender);
+            }
+
+            this.Sender = default!;
+            this.Packet = default!;
+            this.Attributes = default!;
+            this.Connection = default!;
+
+            _isInitialized = false;
         }
 
         _ = Interlocked.Exchange(ref _state, (int)PacketContextState.Pooled);

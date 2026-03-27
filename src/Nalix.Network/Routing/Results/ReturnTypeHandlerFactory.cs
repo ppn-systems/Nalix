@@ -30,7 +30,7 @@ namespace Nalix.Network.Routing.Results;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 {
-    private static readonly System.Collections.Frozen.FrozenDictionary<Type, IReturnHandler<TPacket>> _handlers;
+    private static readonly System.Collections.Frozen.FrozenDictionary<Type, IReturnHandler<TPacket>> s_handlers;
 
     static ReturnTypeHandlerFactory()
     {
@@ -40,7 +40,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
             throw new ArgumentException($"TPacket must implement {nameof(IPacket)}.");
         }
 
-        _handlers = CreateReturnTypeHandlerMap();
+        s_handlers = CreateReturnTypeHandlerMap();
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static IReturnHandler<TPacket> ResolveHandler(Type returnType)
     {
-        if (_handlers.TryGetValue(returnType, out IReturnHandler<TPacket>? handler)
+        if (s_handlers.TryGetValue(returnType, out IReturnHandler<TPacket>? handler)
             && handler is not null)
         {
             return handler;
