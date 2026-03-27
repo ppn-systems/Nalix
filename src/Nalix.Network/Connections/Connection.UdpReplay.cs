@@ -10,11 +10,19 @@ namespace Nalix.Network.Connections;
 
 public sealed partial class Connection
 {
-    private const long UdpReplayCleanupIntervalMs = 5_000;
-    private const int UdpReplaySoftLimit = 4_096;
+    #region Constants
 
-    private readonly ConcurrentDictionary<ulong, long> _udpReplayNonces = new();
+    private const int UdpReplaySoftLimit = 4_096;
+    private const long UdpReplayCleanupIntervalMs = 5_000;
+
+    #endregion Constants
+
+    #region Fields
+
     private long _udpReplayLastCleanupMs;
+    private readonly ConcurrentDictionary<ulong, long> _udpReplayNonces = new();
+
+    #endregion Fields
 
     internal bool TryAcceptUdpNonce(ulong nonce, long timestamp, long maxReplayWindowMs)
     {
@@ -29,24 +37,24 @@ public sealed partial class Connection
         if (_udpReplayNonces.Count >= UdpReplaySoftLimit ||
             now - Interlocked.Read(ref _udpReplayLastCleanupMs) >= UdpReplayCleanupIntervalMs)
         {
-            this.CleanupUdpReplayNonces(expiryCutoff, now);
+            CLEANUP_UDP_REPLAY_NONCES(expiryCutoff, now);
         }
 
         return true;
-    }
 
-    private void CleanupUdpReplayNonces(long expiryCutoff, long now)
-    {
-        if (Interlocked.Exchange(ref _udpReplayLastCleanupMs, now) > now - UdpReplayCleanupIntervalMs)
+        void CLEANUP_UDP_REPLAY_NONCES(long expiryCutoff, long now)
         {
-            return;
-        }
-
-        foreach (KeyValuePair<ulong, long> entry in _udpReplayNonces)
-        {
-            if (entry.Value < expiryCutoff)
+            if (Interlocked.Exchange(ref _udpReplayLastCleanupMs, now) > now - UdpReplayCleanupIntervalMs)
             {
-                _ = _udpReplayNonces.TryRemove(entry.Key, out _);
+                return;
+            }
+
+            foreach (KeyValuePair<ulong, long> entry in _udpReplayNonces)
+            {
+                if (entry.Value < expiryCutoff)
+                {
+                    _ = _udpReplayNonces.TryRemove(entry.Key, out _);
+                }
             }
         }
     }
