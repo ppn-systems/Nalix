@@ -21,12 +21,12 @@ public sealed class PingHandlers
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     [PacketOpcode(0)]
-    [PacketEncryption(true)]
+    [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.GUEST)]
-    public static async Task Ping(PacketContext<IPacket> p) => _ = await p.Connection.TCP.SendAsync(p.Packet).ConfigureAwait(false); // or PacketContext<Control>
+    public static async Task Ping(PacketContext<IPacket> p) => _ = await p.Sender.SendAsync(p.Packet).ConfigureAwait(false);
 
     [PacketOpcode(1)]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.GUEST)]
-    public static async Task Pong(PacketContext<IPacket> p) => _ = await p.Connection.TCP.SendAsync(p.Packet).ConfigureAwait(false); // or PacketContext<Control>
+    public static async Task Pong(PacketContext<IPacket> p) => _ = await p.Sender.SendAsync(p.Packet).ConfigureAwait(false);
 }

@@ -30,7 +30,7 @@ internal class Program
 
         //TcpSession client = InstanceManager.Instance.GetOrCreateInstance<TcpSession>();
 
-        Handshake handshake = new(0, Csprng.GetBytes(3200));
+        Handshake handshake = new(0, Csprng.GetBytes(3000002));
 
         TcpSession client = new();
         await client.ConnectAsync("127.0.0.1", 12345);
