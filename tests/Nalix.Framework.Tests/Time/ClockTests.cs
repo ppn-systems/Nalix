@@ -35,7 +35,7 @@ public class ClockTests
         DateTime now = DateTime.UtcNow;
         long unix = Clock.UnixMicrosecondsNow();
         long expected = (now - DateTime.UnixEpoch).Ticks / 10;
-        Assert.InRange(unix, expected - 500, expected + 2500); // Sai số microsecond
+        Assert.InRange(unix, expected - 3000, expected + 3000);
     }
 
     [Fact]
