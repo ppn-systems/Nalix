@@ -45,13 +45,23 @@ namespace Nalix.SDK.Transport;
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 public sealed class UdpSession : IClientConnection, IAsyncDisposable
 {
+    #region Constants
+
     private const int TimestampSize = sizeof(long);
     private const int NonceSize = sizeof(ulong);
     private const int AuthenticationTagSize = Poly1305.TagSize;
     private const int AuthenticationMetadataSize = Snowflake.Size + TimestampSize + NonceSize + AuthenticationTagSize;
 
+    #endregion Constants
+
+    #region Static Fields
+
     private static readonly ILogger? Logging = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly IThreadDispatcher Dispatcher = InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
+
+    #endregion Static Fields
+
+    #region Fields
 
     private readonly Lock _sync = new();
 
@@ -71,9 +81,17 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     private long _bytesSent;
     private long _bytesReceived;
 
+    #endregion Fields
+
+    #region Constructors
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="UdpSession"/> class.
+    /// Initializes a new instance of the <see cref="UdpSession"/> class using
+    /// services resolved from <see cref="ConfigurationManager"/> and <see cref="InstanceManager"/>.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when an <see cref="IPacketRegistry"/> instance is not available.
+    /// </exception>
     public UdpSession()
     {
         this.Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
@@ -84,13 +102,19 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UdpSession"/> class.
+    /// Initializes a new instance of the <see cref="UdpSession"/> class with explicit dependencies.
     /// </summary>
+    /// <param name="options">The transport options used by this session.</param>
+    /// <param name="registry">The packet registry used for packet serialization and deserialization.</param>
     public UdpSession(TransportOptions options, IPacketRegistry registry)
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
         this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
     }
+
+    #endregion Constructors
+
+    #region Properties
 
     /// <inheritdoc/>
     public TransportOptions Options { get; }
@@ -131,12 +155,61 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     public bool IsConnected => Volatile.Read(ref _connected) == 1 && Volatile.Read(ref _disposed) == 0;
 
     /// <summary>
+    /// Gets or sets an asynchronous message handler invoked after synchronous event subscribers.
+    /// </summary>
+    /// <remarks>
+    /// The callback receives a copied payload so it can safely outlive the internal receive lease.
+    /// </remarks>
+    public Func<UdpSession, ReadOnlyMemory<byte>, Task>? OnMessageReceivedAsync { get; set; }
+
+    #endregion Properties
+
+    #region Events
+
+    /// <inheritdoc/>
+    public event EventHandler? OnConnected;
+
+    /// <inheritdoc/>
+    public event EventHandler<Exception>? OnDisconnected;
+
+    /// <inheritdoc/>
+    public event EventHandler<IBufferLease>? OnMessageReceived;
+
+    /// <inheritdoc/>
+    public event EventHandler<long>? OnBytesSent;
+
+    /// <inheritdoc/>
+    public event EventHandler<long>? OnBytesReceived;
+
+    /// <inheritdoc/>
+    public event EventHandler<Exception>? OnError;
+
+    /// <summary>
+    /// Occurs when the session reconnects after an error.
+    /// </summary>
+    public event EventHandler<int>? OnReconnected;
+
+    #endregion Events
+
+    #region Public Methods
+
+    /// <summary>
     /// Copies the authenticated session context from an existing client connection.
     /// </summary>
-    /// <param name="source">The source connection, typically a TCP session that already completed handshake/auth.</param>
+    /// <param name="source">
+    /// The source connection, typically a TCP session that has already completed authentication or key exchange.
+    /// </param>
     /// <param name="sessionId">The server-side connection identifier used by UDP authentication.</param>
-    /// <exception cref="ArgumentNullException"></exception>
-    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="source"/> or <paramref name="sessionId"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="sessionId"/> is empty or the source secret is too short for UDP authentication.
+    /// </exception>
+    /// <remarks>
+    /// The source secret is copied into a new array so later changes to the source connection do not
+    /// implicitly alter the UDP authentication state.
+    /// </remarks>
     public void BindFrom(IClientConnection source, ISnowflake sessionId)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -176,35 +249,10 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             $"to {this.Options.Address}:{this.Options.Port} with session={sessionId}.");
     }
 
-    /// <summary>
-    /// Gets or sets an asynchronous message handler invoked after synchronous event subscribers.
-    /// </summary>
-    public Func<UdpSession, ReadOnlyMemory<byte>, Task>? OnMessageReceivedAsync { get; set; }
-
     /// <inheritdoc/>
-    public event EventHandler? OnConnected;
-
-    /// <inheritdoc/>
-    public event EventHandler<Exception>? OnDisconnected;
-
-    /// <inheritdoc/>
-    public event EventHandler<IBufferLease>? OnMessageReceived;
-
-    /// <inheritdoc/>
-    public event EventHandler<long>? OnBytesSent;
-
-    /// <inheritdoc/>
-    public event EventHandler<long>? OnBytesReceived;
-
-    /// <inheritdoc/>
-    public event EventHandler<Exception>? OnError;
-
-    /// <summary>
-    /// Occurs when the session reconnects after an error.
-    /// </summary>
-    public event EventHandler<int>? OnReconnected;
-
-    /// <inheritdoc/>
+    /// <exception cref="ObjectDisposedException">The session has already been disposed.</exception>
+    /// <exception cref="ArgumentException">The resolved host is null, empty, or whitespace.</exception>
+    /// <exception cref="SocketException">No endpoint could be connected successfully.</exception>
     public async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
@@ -307,6 +355,11 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// <summary>
     /// Connects to a <c>udp://host:port</c> endpoint.
     /// </summary>
+    /// <param name="uri">The UDP endpoint URI.</param>
+    /// <param name="ct">The cancellation token used to cancel the connect operation.</param>
+    /// <returns>A task representing the asynchronous connect operation.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="uri"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Thrown when the URI scheme is not <c>udp</c>.</exception>
     public Task ConnectAsync(Uri uri, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(uri);
@@ -327,6 +380,18 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// <summary>
     /// Serializes and sends a packet as a UDP datagram.
     /// </summary>
+    /// <param name="packet">The packet to serialize and send.</param>
+    /// <param name="encrypt">
+    /// <see langword="true"/> to encrypt the outgoing packet payload before sending; otherwise, <see langword="false"/>.
+    /// </param>
+    /// <param name="ct">The cancellation token used to cancel the send operation.</param>
+    /// <returns>
+    /// <see langword="true"/> if the packet was sent successfully; otherwise, <see langword="false"/>.
+    /// </returns>
+    /// <remarks>
+    /// Compression and encryption follow the same packet-transform rules used by TCP sessions, but the final output
+    /// is emitted as a single UDP datagram.
+    /// </remarks>
     public async Task<bool> SendAsync(IPacket packet, bool encrypt, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
@@ -446,6 +511,10 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// When UDP authentication metadata is enabled and fully configured, the sent datagram format is
+    /// <c>[payload][session-id][timestamp][nonce][poly1305-tag]</c>.
+    /// </remarks>
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
@@ -519,6 +588,10 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         await this.DisconnectAsync().ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
+
+    #endregion Public Methods
+
+    #region Receive Pipeline
 
     private void StartReceiveWorker(CancellationToken loopToken) => _receiveTask = Task.Run(() => this.ReceiveLoopAsync(loopToken), CancellationToken.None);
 
@@ -692,6 +765,17 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         }
     }
 
+    #endregion Receive Pipeline
+
+    #region Datagram Construction
+
+    /// <summary>
+    /// Builds the final UDP datagram to send on the wire.
+    /// </summary>
+    /// <param name="payload">The payload bytes to send.</param>
+    /// <returns>
+    /// A byte array containing either the raw payload or the payload plus authenticated UDP metadata.
+    /// </returns>
     private byte[] BuildDatagram(ReadOnlySpan<byte> payload)
     {
         if (!this.ShouldAppendAuthenticationMetadata())
@@ -741,11 +825,18 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         return datagram;
     }
 
+    /// <summary>
+    /// Determines whether the current session state is sufficient to append authenticated UDP metadata.
+    /// </summary>
     private bool ShouldAppendAuthenticationMetadata()
         => this.UseAuthenticationMetadata
         && SessionId is not null
         && this.Options.Secret is { Length: >= Poly1305.KeySize }
         && _remoteEndPoint is IPEndPoint;
+
+    #endregion Datagram Construction
+
+    #region Connection Lifecycle
 
     private void TearDownConnection()
     {
@@ -834,6 +925,10 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         this.RaiseDisconnected(cause);
     }
 
+    #endregion Connection Lifecycle
+
+    #region Event Helpers
+
     private void ReportBytesSent(int count)
     {
         _ = Interlocked.Add(ref _bytesSent, count);
@@ -866,6 +961,13 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         try { OnReconnected?.Invoke(this, attempt); } catch { }
     }
 
+    #endregion Event Helpers
+
+    #region Static Helpers
+
+    /// <summary>
+    /// Cancels and disposes a cancellation token source, then clears the reference.
+    /// </summary>
     private static void CancelAndDispose(ref CancellationTokenSource? cts)
     {
         if (cts is null)
@@ -878,6 +980,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         cts = null;
     }
 
+    // Encodes a remote endpoint into the compact metadata form used by UDP authentication.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int EncodeRemoteEndpoint(IPEndPoint endpoint, Span<byte> destination)
     {
@@ -890,4 +993,6 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
         return 1 + addressBytes.Length + sizeof(ushort);
     }
+
+    #endregion Static Helpers
 }
