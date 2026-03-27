@@ -1,13 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
+using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Configuration;
@@ -20,6 +15,12 @@ using Nalix.Framework.Time;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Extensions;
 using Nalix.SDK.Transport.Internal;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nalix.SDK.Transport;
 
@@ -87,12 +88,6 @@ public sealed class TcpSession : TcpSessionBase
 
     #endregion Properties
 
-    #region Events
-
-    // OnReconnected được kế thừa từ BaseTcpSession.
-
-    #endregion Events
-
     #region Constructors
 
     /// <summary>
@@ -127,7 +122,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <exception cref="InvalidOperationException">
     /// Thrown when required configuration or dependencies cannot be loaded.
     /// </exception>
-    public TcpSession()
+    public TcpSession() : base()
     {
         try
         {
@@ -136,19 +131,35 @@ public sealed class TcpSession : TcpSessionBase
 
             this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
             this.Options.Validate();
-            Logging?.Info($"[SDK.{this.GetType().Name}] TransportOptions loaded and validated");
+            Logger?.Info($"[SDK.{this.GetType().Name}] TransportOptions loaded and validated");
         }
         catch (Exception ex)
         {
-            Logging?.Error($"[SDK.{this.GetType().Name}] Failed to load TransportOptions: {ex.Message}", ex);
+            Logger?.Error($"[SDK.{this.GetType().Name}] Failed to load TransportOptions: {ex.Message}", ex);
             throw new InvalidOperationException("Failed to load TransportOptions", ex);
         }
 
         if (this.Catalog is null)
         {
-            Logging?.Error($"[SDK.{this.GetType().Name}] Missing IPacketRegistry");
+            Logger?.Error($"[SDK.{this.GetType().Name}] Missing IPacketRegistry");
             throw new InvalidOperationException("Missing IPacketRegistry");
         }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TcpSession"/> class with an explicit packet registry
+    /// and optional common services.
+    /// </summary>
+    /// <param name="registry">The packet registry used for packet serialization and deserialization.</param>
+    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
+    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="registry"/> is null.</exception>
+    public TcpSession(IPacketRegistry registry, ILogger? logger = null, IThreadDispatcher? dispatcher = null) : base(logger, dispatcher)
+    {
+        this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
+        this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
+        this.Options.Validate();
+        Logger?.Info($"[SDK.{this.GetType().Name}] TransportOptions loaded and validated");
     }
 
     /// <summary>
@@ -164,6 +175,25 @@ public sealed class TcpSession : TcpSessionBase
     /// Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.
     /// </exception>
     public TcpSession(TransportOptions options, IPacketRegistry registry)
+        : this(options, registry, logger: null, dispatcher: null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TcpSession"/> class with explicit transport options,
+    /// packet registry, and optional common services.
+    /// </summary>
+    /// <param name="options">The transport configuration options used to initialize the TCP session.</param>
+    /// <param name="registry">The packet registry responsible for managing and resolving packet handlers.</param>
+    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
+    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.</exception>
+    public TcpSession(
+        TransportOptions options,
+        IPacketRegistry registry,
+        ILogger? logger = null,
+        IThreadDispatcher? dispatcher = null)
+        : base(logger, dispatcher)
     {
         this.Options = options;
         this.Catalog = registry;
@@ -201,21 +231,21 @@ public sealed class TcpSession : TcpSessionBase
             string.Equals(_host, effectiveHost, StringComparison.OrdinalIgnoreCase) &&
             _port == effectivePort)
         {
-            Logging?.Debug($"[SDK.{this.GetType().Name}] Already connected to {effectiveHost}:{effectivePort}.");
+            Logger?.Debug($"[SDK.{this.GetType().Name}] Already connected to {effectiveHost}:{effectivePort}.");
             return;
         }
 
         if (this.IsConnected)
         {
-            Logging?.Debug($"[SDK.{this.GetType().Name}] Cleaning up existing connection.");
+            Logger?.Debug($"[SDK.{this.GetType().Name}] Cleaning up existing connection.");
             this.TearDownConnection();
         }
 
-        lock (i_sync)
+        lock (Sync)
         {
-            if (i_loopCts is not null)
+            if (LoopCts is not null)
             {
-                CancelAndDispose(ref i_loopCts);
+                CancelAndDispose(ref LoopCts);
             }
         }
 
@@ -246,11 +276,11 @@ public sealed class TcpSession : TcpSessionBase
 
                 CancellationToken loopToken;
 
-                lock (i_sync)
+                lock (Sync)
                 {
-                    i_socket = s;
-                    i_loopCts = new CancellationTokenSource();
-                    loopToken = i_loopCts.Token;
+                    Socket = s;
+                    LoopCts = new CancellationTokenSource();
+                    loopToken = LoopCts.Token;
                     _host = effectiveHost;
                     _port = effectivePort;
                 }
@@ -265,7 +295,7 @@ public sealed class TcpSession : TcpSessionBase
                 }
                 else
                 {
-                    Logging?.Info($"[SDK.{this.GetType().Name}] Connected to {effectiveHost}:{effectivePort}.");
+                    Logger?.Info($"[SDK.{this.GetType().Name}] Connected to {effectiveHost}:{effectivePort}.");
                     this.RaiseConnected();
                 }
 
@@ -277,13 +307,13 @@ public sealed class TcpSession : TcpSessionBase
             catch (Exception ex)
             {
                 lastEx = ex;
-                Logging?.Warn($"[SDK.{this.GetType().Name}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
+                Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
                 try { s.Dispose(); } catch { }
             }
         }
 
         this.SetState(TcpSessionState.Disconnected);
-        Logging?.Error($"[SDK.{this.GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx!);
+        Logger?.Error($"[SDK.{this.GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx!);
         throw lastEx ?? new SocketException((int)SocketError.HostNotFound);
     }
 
@@ -296,10 +326,10 @@ public sealed class TcpSession : TcpSessionBase
     /// </summary>
     protected override void InitializeFrame()
     {
-        i_sender = new FRAME_SENDER(this.RequireConnectedSocket, this.Options, this.ReportBytesSent, this.HandleSendError);
-        i_receiver = new FRAME_READER(this.RequireConnectedSocket, this.Options, this.HandleReceiveMessage, this.HandleReceiveError, this.ReportBytesReceived);
+        Sender = new FRAME_SENDER(this.RequireConnectedSocket, this.Options, this.ReportBytesSent, this.HandleSendError, this.Logger);
+        Receiver = new FRAME_READER(this.RequireConnectedSocket, this.Options, this.HandleReceiveMessage, this.HandleReceiveError, this.ReportBytesReceived, this.Logger);
 
-        Logging?.Debug($"[SDK.{this.GetType().Name}] Frame helpers created");
+        Logger?.Debug($"[SDK.{this.GetType().Name}] Frame helpers created");
     }
 
     /// <summary>
@@ -308,7 +338,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <param name="loopToken">Cancellation token controlling the receive loop.</param>
     protected override void StartReceiveWorker(CancellationToken loopToken)
     {
-        if (i_receiver is null)
+        if (Receiver is null)
         {
             return;
         }
@@ -321,16 +351,16 @@ public sealed class TcpSession : TcpSessionBase
                 work: async (_, workerCt) =>
                 {
                     CancellationToken effective = workerCt.CanBeCanceled ? workerCt : loopToken;
-                    Logging?.Info($"[SDK.{this.GetType().Name}] Receive worker started");
-                    await i_receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
+                    Logger?.Info($"[SDK.{this.GetType().Name}] Receive worker started");
+                    await Receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
                 },
                 options: new WorkerOptions { CancellationToken = loopToken }
             );
         }
         catch (Exception ex)
         {
-            Logging?.Warn($"[SDK.{this.GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run", ex);
-            _ = Task.Run(() => i_receiver.ReceiveLoopAsync(loopToken), loopToken);
+            Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run", ex);
+            _ = Task.Run(() => Receiver.ReceiveLoopAsync(loopToken), loopToken);
         }
 
         // Start monitor (rate sampler + heartbeat) after receive worker is up.
@@ -356,7 +386,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <inheritdoc/>
     protected override void HandleSendError(Exception ex)
     {
-        Logging?.Warn($"[SDK.{this.GetType().Name}] Send error: {ex.Message}", ex);
+        Logger?.Warn($"[SDK.{this.GetType().Name}] Send error: {ex.Message}", ex);
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
@@ -364,7 +394,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <inheritdoc/>
     protected override void HandleReceiveError(Exception ex)
     {
-        Logging?.Warn($"[SDK.{this.GetType().Name}] Receive error: {ex.Message}", ex);
+        Logger?.Warn($"[SDK.{this.GetType().Name}] Receive error: {ex.Message}", ex);
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
@@ -373,12 +403,12 @@ public sealed class TcpSession : TcpSessionBase
     {
         if (Interlocked.CompareExchange(ref _reconnecting, 1, 0) == 0)
         {
-            Logging?.Info($"[SDK.{this.GetType().Name}] Triggering auto-reconnect after error: {ex.Message}");
+            Logger?.Info($"[SDK.{this.GetType().Name}] Triggering auto-reconnect after error: {ex.Message}");
             _ = this.HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
         }
         else
         {
-            Logging?.Trace($"[SDK.{this.GetType().Name}] Reconnect already in progress, skipping.");
+            Logger?.Trace($"[SDK.{this.GetType().Name}] Reconnect already in progress, skipping.");
         }
     }
 
@@ -398,11 +428,11 @@ public sealed class TcpSession : TcpSessionBase
                                             .CancelWorker(_receiveHandle.Id);
 
                     _receiveHandle = null;
-                    Logging?.Debug($"[SDK.{this.GetType().Name}] Receive worker cancelled");
+                    Logger?.Debug($"[SDK.{this.GetType().Name}] Receive worker cancelled");
                 }
                 catch
                 {
-                    Logging?.Warn($"[SDK.{this.GetType().Name}] Failed to cancel receive worker for {_host}:{_port}");
+                    Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to cancel receive worker for {_host}:{_port}");
                 }
             }
 
@@ -412,12 +442,12 @@ public sealed class TcpSession : TcpSessionBase
         }
         catch (Exception ex)
         {
-            Logging?.Warn($"[SDK.{this.GetType().Name}] Exception during TearDownConnection: {ex.Message}", ex);
+            Logger?.Warn($"[SDK.{this.GetType().Name}] Exception during TearDownConnection: {ex.Message}", ex);
         }
 
         if (wasConnected)
         {
-            Logging?.Info($"[SDK.{this.GetType().Name}] Disconnected");
+            Logger?.Info($"[SDK.{this.GetType().Name}] Disconnected");
             this.RaiseDisconnected(new SocketException((int)SocketError.NotConnected));
         }
     }
@@ -428,7 +458,7 @@ public sealed class TcpSession : TcpSessionBase
 
     private async Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(Exception cause)
     {
-        Logging?.Debug($"[SDK.{this.GetType().Name}] ReconnectAsync triggered after: {cause.Message}");
+        Logger?.Debug($"[SDK.{this.GetType().Name}] ReconnectAsync triggered after: {cause.Message}");
         this.TearDownConnection();
 
         if (!this.Options.ReconnectEnabled || Volatile.Read(ref _disposed) == 1)
@@ -473,7 +503,7 @@ public sealed class TcpSession : TcpSessionBase
             try
             {
                 await this.ConnectAsync(_host, _port, reconnectCts.Token).ConfigureAwait(false);
-                Logging?.Info($"[SDK.{this.GetType().Name}] Reconnected to {_host}:{_port} after {attempt} attempt(s).");
+                Logger?.Info($"[SDK.{this.GetType().Name}] Reconnected to {_host}:{_port} after {attempt} attempt(s).");
                 this.RaiseReconnected(attempt);
                 return;
             }
@@ -483,12 +513,12 @@ public sealed class TcpSession : TcpSessionBase
             }
             catch (Exception ex)
             {
-                Logging?.Warn($"[SDK.{this.GetType().Name}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
+                Logger?.Warn($"[SDK.{this.GetType().Name}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
                 delay = Math.Min(max, delay * 2);
             }
         }
 
-        Logging?.Error($"[SDK.{this.GetType().Name}] Reconnect exhausted after {attempt} attempt(s).");
+        Logger?.Error($"[SDK.{this.GetType().Name}] Reconnect exhausted after {attempt} attempt(s).");
         _ = Interlocked.Exchange(ref _reconnecting, 0);
         this.SetState(TcpSessionState.Disconnected);
     }
@@ -546,7 +576,7 @@ public sealed class TcpSession : TcpSessionBase
             _cts.Dispose();
         }
 
-        private static IWorkerHandle? ScheduleOrFallback(
+        private IWorkerHandle? ScheduleOrFallback(
             TaskManager taskManager, string name,
             Func<IWorkerContext, CancellationToken, ValueTask> work, CancellationToken token)
         {
@@ -560,7 +590,7 @@ public sealed class TcpSession : TcpSessionBase
             }
             catch (Exception ex)
             {
-                Logging?.Warn($"[SDK.SessionMonitor] Failed to schedule '{name}' via TaskManager, falling back to Task.Run: {ex.Message}");
+                _session.Logger?.Warn($"[SDK.SessionMonitor] Failed to schedule '{name}' via TaskManager, falling back to Task.Run: {ex.Message}");
                 _ = Task.Run(() => work(null!, token), token);
                 return null;
             }
@@ -602,7 +632,7 @@ public sealed class TcpSession : TcpSessionBase
                 }
                 catch (Exception ex)
                 {
-                    Logging?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(RateSamplerLoopAsync)}] sampler-error: {ex.Message}");
+                    _session.Logger?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(RateSamplerLoopAsync)}] sampler-error: {ex.Message}");
                 }
             }
         }
@@ -641,7 +671,7 @@ public sealed class TcpSession : TcpSessionBase
             // KeepAliveIntervalMillis = 0 nghĩa là heartbeat bị disabled.
             if (intervalMs <= 0)
             {
-                Logging?.Debug($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] Heartbeat disabled (KeepAliveIntervalMillis=0).");
+                _session.Logger?.Debug($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] Heartbeat disabled (KeepAliveIntervalMillis=0).");
                 return;
             }
 
@@ -670,7 +700,7 @@ public sealed class TcpSession : TcpSessionBase
                 }
                 catch (Exception ex)
                 {
-                    Logging?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] heartbeat-error: {ex.Message}");
+                    _session.Logger?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] heartbeat-error: {ex.Message}");
                     _ = _session.HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
                     break;
                 }
