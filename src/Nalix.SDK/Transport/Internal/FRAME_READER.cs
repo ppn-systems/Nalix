@@ -88,8 +88,6 @@ internal sealed class FRAME_READER(
 
                     ushort totalLen = BinaryPrimitives.ReadUInt16LittleEndian(headerMemory.Span);
 
-                    TcpSessionBase.Logging?.Debug($"[SDK.{nameof(FRAME_READER)}] header-read totalLen={totalLen} endpoint={FORMAT_ENDPOINT(s)}");
-
                     if (totalLen < TcpSession.HeaderSize || totalLen > _options.MaxPacketSize)
                     {
                         TcpSessionBase.Logging?.Warn(
@@ -106,15 +104,13 @@ internal sealed class FRAME_READER(
                     try
                     {
                         // Write length header back into the buffer
-                        BinaryPrimitives.WriteUInt16LittleEndian(
-                            MemoryExtensions.AsSpan(rented, 0, TcpSession.HeaderSize), totalLen);
+                        BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions
+                                        .AsSpan(rented, 0, TcpSession.HeaderSize), totalLen);
 
                         if (payloadLen > 0)
                         {
-                            await RECEIVE_EXACTLY_ASYNC(
-                                s,
-                                MemoryExtensions.AsMemory(rented, TcpSession.HeaderSize, payloadLen),
-                                token).ConfigureAwait(false);
+                            await RECEIVE_EXACTLY_ASYNC(s, MemoryExtensions.AsMemory(rented, TcpSession.HeaderSize, payloadLen), token)
+                                                                           .ConfigureAwait(false);
                         }
 
                         // Report received bytes (best-effort)
@@ -180,10 +176,17 @@ internal sealed class FRAME_READER(
             ReadOnlySpan<byte> chunkBody = chunkLease.Span[FragmentHeader.WireSize..];
 
             // Try to add chunk. If complete, assembled lease contains the full original payload.
-            bool isComplete = _fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled);
+            bool isComplete = _fragmentAssembler.TryAdd(header, chunkBody, out BufferLease? assembled, out bool streamEvicted);
 
             // Always dispose the chunk lease immediately (data has been copied by assembler)
             chunkLease.Dispose();
+
+            if (streamEvicted)
+            {
+                TcpSessionBase.Logging?.Warn(
+                    $"[SDK.{nameof(FRAME_READER)}] Fragment stream evicted " +
+                    $"stream={header.StreamId} — timeout or overflow");
+            }
 
             if (isComplete && assembled != null)
             {
@@ -203,6 +206,8 @@ internal sealed class FRAME_READER(
     /// </summary>
     private void PROCESS_NORMAL_FRAME(BufferLease lease)
     {
+
+        TcpSessionBase.Logging?.Debug($"[SDK.{nameof(FRAME_READER)}] header-read length={lease.Length}");
         try
         {
             PacketFlags flags = lease.Span.ReadFlagsLE();
