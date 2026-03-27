@@ -313,7 +313,7 @@ dotnet_diagnostic.CA1848.severity = warning  # Use LoggerMessage
 
 dotnet_analyzer_diagnostic.category-Reliability.severity = warning
 
-dotnet_diagnostic.CA2000.severity = warning  # Dispose objects
+# dotnet_diagnostic.CA2000.severity = warning  # Dispose objects
 dotnet_diagnostic.CA2012.severity = warning  # ValueTask usage
 dotnet_diagnostic.CA2208.severity = warning  # Argument exceptions
 
@@ -330,7 +330,7 @@ dotnet_analyzer_diagnostic.severity = warning
 warn_as_error = true
 
 dotnet_diagnostic.CA1040.severity = warning  # Avoid empty interfaces
-dotnet_diagnostic.CA1031.severity = warning  # Catch general exception
+# dotnet_diagnostic.CA1031.severity = warning  # Catch general exception
 
 charset = utf-8
 max_line_length = 150

@@ -80,16 +80,14 @@ public static class FrameTransformer
     /// <param name="dest">The destination buffer to write the encrypted packet.</param>
     /// <param name="key">The encryption key.</param>
     /// <param name="suite">The cipher suite used for encryption.</param>
-    /// <returns>
-    /// <c>true</c> if encryption succeeds; otherwise, <c>false</c>.
-    /// </returns>
     /// <remarks>
     /// The header portion of the packet is copied unchanged.
     /// Only the payload is encrypted.
     /// </remarks>
     /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException">Thrown when the source or destination buffer is too small.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Encrypt(
+    public static void Encrypt(
         IBufferLease src,
         IBufferLease dest,
         ReadOnlySpan<byte> key,
@@ -100,23 +98,18 @@ public static class FrameTransformer
             throw new ArgumentNullException(nameof(key), "Encryption key cannot be null.");
         }
 
-        // Validate buffer sizes
         if (src.Length <= Offset || dest.Capacity < Offset)
         {
-            return false;
+            throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the transformed payload.");
         }
 
-        // Copy header
         src.SpanFull[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
         Span<byte> plainData = src.Span[Offset..];
         Span<byte> outData = dest.SpanFull[Offset..];
 
-        // Encrypt
-        _ = EnvelopeCipher.Encrypt(key, plainData, outData, null, null, suite, out int encrypted);
+        EnvelopeCipher.Encrypt(key, plainData, outData, null, null, suite, out int encrypted);
         dest.CommitLength(Offset + encrypted);
-
-        return true;
     }
 
     /// <summary>
@@ -125,16 +118,14 @@ public static class FrameTransformer
     /// <param name="src">The source buffer containing the encrypted packet.</param>
     /// <param name="dest">The destination buffer to write the decrypted packet.</param>
     /// <param name="key">The decryption key.</param>
-    /// <returns>
-    /// <c>true</c> if decryption succeeds; otherwise, <c>false</c>.
-    /// </returns>
     /// <remarks>
     /// The header portion is copied unchanged.
     /// Only the payload is decrypted.
     /// </remarks>
     /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException">Thrown when the source or destination buffer is too small.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Decrypt(
+    public static void Decrypt(
         IBufferLease src,
         IBufferLease dest,
         ReadOnlySpan<byte> key)
@@ -144,27 +135,19 @@ public static class FrameTransformer
             throw new ArgumentNullException(nameof(key), "Encryption key cannot be null.");
         }
 
-        // Validate buffer sizes
         if (src.Length <= Offset || dest.Capacity < Offset)
         {
-            return false;
+            throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the transformed payload.");
         }
 
-        // Copy header
         src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
         Span<byte> cipherData = src.Span[Offset..];
         Span<byte> outData = dest.SpanFull[Offset..];
 
-        // Decrypt payload
-        if (!EnvelopeCipher.Decrypt(key, cipherData, outData, null, out int decrypted))
-        {
-            return false;
-        }
+        EnvelopeCipher.Decrypt(key, cipherData, outData, null, out int decrypted);
 
         dest.CommitLength(Offset + decrypted);
-
-        return true;
     }
 
     /// <summary>
@@ -172,35 +155,29 @@ public static class FrameTransformer
     /// </summary>
     /// <param name="src">The source buffer containing the original packet.</param>
     /// <param name="dest">The destination buffer to write the compressed packet.</param>
-    /// <returns>
-    /// <c>true</c> if compression succeeds; otherwise, <c>false</c>.
-    /// </returns>
     /// <remarks>
     /// The destination buffer must be large enough to hold the maximum possible compressed data.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Compress(IBufferLease src, IBufferLease dest)
+    public static void Compress(IBufferLease src, IBufferLease dest)
     {
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
-            return false;
+            throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the compressed payload.");
         }
 
-        // Copy header
         src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
-        // Compress payload
         Span<byte> input = src.Span[Offset..];
         Span<byte> output = dest.SpanFull[Offset..];
 
         int compressed = LZ4Codec.Encode(input, output);
         if (compressed < 0)
         {
-            return false;
+            throw new InvalidOperationException("Compression failed unexpectedly.");
         }
 
         dest.CommitLength(Offset + compressed);
-        return true;
     }
 
     /// <summary>
@@ -208,24 +185,19 @@ public static class FrameTransformer
     /// </summary>
     /// <param name="src">The source buffer containing the compressed packet.</param>
     /// <param name="dest">The destination buffer to write the decompressed packet.</param>
-    /// <returns>
-    /// <c>true</c> if decompression succeeds; otherwise, <c>false</c>.
-    /// </returns>
     /// <remarks>
     /// The destination buffer must be large enough to hold the original uncompressed payload.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool Decompress(IBufferLease src, IBufferLease dest)
+    public static void Decompress(IBufferLease src, IBufferLease dest)
     {
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
-            return false;
+            throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the decompressed payload.");
         }
 
-        // Copy header
         src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
 
-        // Decompress payload
         Span<byte> input = src.Span[Offset..];
         Span<byte> output = dest.SpanFull[Offset..];
 
@@ -233,92 +205,9 @@ public static class FrameTransformer
 
         if (decoded < 0)
         {
-            return false;
+            throw new InvalidOperationException("Decompression failed unexpectedly.");
         }
 
         dest.CommitLength(Offset + decoded);
-        return true;
-    }
-
-    /// <summary>
-    /// Attempts to encrypt the packet payload.
-    /// </summary>
-    /// <param name="src"></param>
-    /// <param name="dest"></param>
-    /// <param name="key"></param>
-    /// <param name="suite"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryEncrypt(
-        IBufferLease src,
-        IBufferLease dest,
-        ReadOnlySpan<byte> key,
-        CipherSuiteType suite)
-    {
-        try
-        {
-            return Encrypt(src, dest, key, suite);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Attempts to decrypt the packet payload.
-    /// </summary>
-    /// <param name="src"></param>
-    /// <param name="dest"></param>
-    /// <param name="key"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryDecrypt(
-        IBufferLease src,
-        IBufferLease dest,
-        ReadOnlySpan<byte> key)
-    {
-        try
-        {
-            return Decrypt(src, dest, key);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Attempts to compress the packet payload.
-    /// </summary>
-    /// <param name="src"></param>
-    /// <param name="dest"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryCompress(IBufferLease src, IBufferLease dest)
-    {
-        try
-        {
-            return Compress(src, dest);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Attempts to decompress the packet payload.
-    /// </summary>
-    /// <param name="src"></param>
-    /// <param name="dest"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryDecompress(IBufferLease src, IBufferLease dest)
-    {
-        try
-        {
-            return Decompress(src, dest);
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

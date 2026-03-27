@@ -50,31 +50,31 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
                                     .Trace($"[DECOMPRESS][{debugId}] Alloc decompress lease: DecompressLen={dest.Length}");
 #endif
 
-            if (!FrameTransformer.TryDecompress(lease, dest))
+            try
             {
-                dest.Dispose();
+                FrameTransformer.Decompress(lease, dest);
+
+                dest.Span.WriteFlagsLE(dest.Span
+                     .ReadFlagsLE()
+                     .RemoveFlag(PacketFlags.COMPRESSED));
+
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[DECOMPRESS][{debugId}] Failed to decompress buffer! Flags={lease.Span.ReadFlagsLE()}");
+                                        .Trace($"[DECOMPRESS][{debugId}] Decompression success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
+
+                int sampleLen = Math.Min(16, dest.Length);
+                string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[DECOMPRESS][{debugId}] Decompressed buffer sample: {hexSample}");
 #endif
-                return null;
+
+                return await next(dest, ct).ConfigureAwait(false);
             }
-
-            dest.Span.WriteFlagsLE(dest.Span
-                 .ReadFlagsLE()
-                 .RemoveFlag(PacketFlags.COMPRESSED));
-
-#if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[DECOMPRESS][{debugId}] Decompression success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
-
-            int sampleLen = Math.Min(16, dest.Length);
-            string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[DECOMPRESS][{debugId}] Decompressed buffer sample: {hexSample}");
-#endif
-
-            return await next(dest, ct).ConfigureAwait(false);
+            catch
+            {
+                dest.Dispose();
+                throw;
+            }
         }
         else
         {

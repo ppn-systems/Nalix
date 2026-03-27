@@ -40,11 +40,11 @@ public static class SymmetricEngine
     /// <param name="counter">Initial block counter value.</param>
     /// <param name="src">Source plaintext or ciphertext.</param>
     /// <param name="dst">Destination buffer; must be the same length as <paramref name="src"/>.</param>
-    /// <param name="written">Number of bytes written on success; 0 on failure.</param>
-    /// <returns><see langword="true"/> on success; <see langword="false"/> on unsupported algorithm.</returns>
+    /// <param name="written">Number of bytes written.</param>
+    /// <exception cref="System.NotSupportedException">Thrown when the algorithm is not supported for raw keystream use.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static bool Encrypt(
+    public static void Encrypt(
         CipherSuiteType type,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
@@ -59,21 +59,28 @@ public static class SymmetricEngine
         {
             case CipherSuiteType.Chacha20:
                 ChaCha20 chacha = new(key, nonce, (uint)counter);
-                written = chacha.Encrypt(src, dst);
-                chacha.Clear();
-                return true;
+                try
+                {
+                    written = chacha.Encrypt(src, dst);
+                }
+                finally
+                {
+                    chacha.Clear();
+                }
+
+                return;
 
             case CipherSuiteType.Salsa20:
                 written = Salsa20.Encrypt(key, nonce, counter, src, dst);
-                return true;
+                return;
 
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
-                return false;
+                throw new System.NotSupportedException("Authenticated symmetric algorithms are not supported by the raw keystream API.");
 
             default:
                 ThrowHelper.ThrowNotSupportedException("Unsupported symmetric algorithm");
-                return false;
+                return;
         }
     }
 
@@ -101,10 +108,11 @@ public static class SymmetricEngine
     /// </param>
     /// <param name="algorithm">Symmetric cipher to use (default: <see cref="CipherSuiteType.Chacha20"/>).</param>
     /// <param name="written">Total bytes written to <paramref name="ciphertext"/> on success.</param>
-    /// <returns><see langword="true"/> on success; <see langword="false"/> if the output buffer is too small.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the output buffer is too small.</exception>
+    /// <exception cref="System.NotSupportedException">Thrown when the algorithm is not supported.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static bool Encrypt(
+    public static void Encrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> plaintext,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> ciphertext,
@@ -131,7 +139,7 @@ public static class SymmetricEngine
 
         if (ciphertext.Length < total)
         {
-            return false;
+            throw new System.ArgumentException("The destination ciphertext buffer is too small for the generated envelope.", nameof(ciphertext));
         }
 
         System.Span<byte> nonceBuffer = stackalloc byte[System.Math.Max(16, resolvedNonceLength)];
@@ -148,14 +156,10 @@ public static class SymmetricEngine
         ulong counter = seqVal;
         System.Span<byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + resolvedNonceLength, plaintext.Length);
 
-        if (!Encrypt(algorithm, key, nonceToUse, counter, plaintext, ctSlice, out _))
-        {
-            return false;
-        }
+        Encrypt(algorithm, key, nonceToUse, counter, plaintext, ctSlice, out _);
 
         _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonceToUse, ctSlice);
         written = total;
-        return true;
     }
 
     /// <summary>
@@ -163,9 +167,15 @@ public static class SymmetricEngine
     /// <see cref="Encrypt(System.ReadOnlySpan{byte}, System.ReadOnlySpan{byte}, System.Span{byte}, System.ReadOnlySpan{byte}, uint?, CipherSuiteType, out int)"/>.
     /// On success, <paramref name="plaintext"/> is populated and <paramref name="written"/> holds the byte count.
     /// </summary>
+    /// <param name="key"></param>
+    /// <param name="envelope"></param>
+    /// <param name="plaintext"></param>
+    /// <param name="written">Number of plaintext bytes written.</param>
+    /// <exception cref="System.ArgumentException">Thrown when the envelope cannot be parsed or the destination buffer is too small.</exception>
+    /// <exception cref="System.NotSupportedException">Thrown when the envelope algorithm is not supported.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static bool Decrypt(
+    public static void Decrypt(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
@@ -175,11 +185,10 @@ public static class SymmetricEngine
 
         if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env))
         {
-            return false;
+            throw new System.ArgumentException("The envelope is invalid or malformed.", nameof(envelope));
         }
 
-        _ = Encrypt(env.AeadType, key, env.Nonce, env.Seq, env.Ciphertext, plaintext, out written);
-        return true;
+        Encrypt(env.AeadType, key, env.Nonce, env.Seq, env.Ciphertext, plaintext, out written);
     }
 
     #endregion Envelope API

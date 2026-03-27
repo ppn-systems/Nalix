@@ -25,4 +25,5 @@
 		<OutputPath>..\..\build\bin\Release\</OutputPath>
 		<IntermediateOutputPath>..\..\build\obj\Release\</IntermediateOutputPath>
 	</PropertyGroup>
+
 </Project>
