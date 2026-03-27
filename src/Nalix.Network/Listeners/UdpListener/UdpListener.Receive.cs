@@ -27,8 +27,9 @@ public abstract partial class UdpListenerBase
 {
     private const long MaxReplayWindowMs = 30_000;
     private const int TimestampSize = sizeof(long);
+    private const int NonceSize = sizeof(ulong);
     private const int AuthenticationTagSize = Poly1305.TagSize;
-    private const int AuthenticationMetadataSize = Snowflake.Size + TimestampSize + AuthenticationTagSize;
+    private const int AuthenticationMetadataSize = Snowflake.Size + TimestampSize + NonceSize + AuthenticationTagSize;
 
     [StackTraceHidden]
     [DebuggerStepThrough]
@@ -95,9 +96,11 @@ public abstract partial class UdpListenerBase
 
         ReadOnlySpan<byte> idBytes = MemoryExtensions.AsSpan(buffer, payloadLength, Snowflake.Size);
         ReadOnlySpan<byte> timestampBytes = MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size, TimestampSize);
-        ReadOnlySpan<byte> tagBytes = MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size + TimestampSize, AuthenticationTagSize);
+        ReadOnlySpan<byte> nonceBytes = MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size + TimestampSize, NonceSize);
+        ReadOnlySpan<byte> tagBytes = MemoryExtensions.AsSpan(buffer, payloadLength + Snowflake.Size + TimestampSize + NonceSize, AuthenticationTagSize);
 
         long timestamp = System.Buffers.Binary.BinaryPrimitives.ReadInt64LittleEndian(timestampBytes);
+        ulong nonce = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(nonceBytes);
         ISnowflake identifier = Snowflake.FromBytes(idBytes);
 
         ConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<ConnectionHub>();
@@ -120,7 +123,7 @@ public abstract partial class UdpListenerBase
 
         BufferLease lease = BufferLease.CopyFrom(MemoryExtensions.AsSpan(buffer)[..payloadLength]);
 
-        if (!ValidateAuthenticationToken(connection, result.RemoteEndPoint, lease.Span, idBytes, timestamp, tagBytes))
+        if (!ValidateAuthenticationToken(connection, result.RemoteEndPoint, lease.Span, idBytes, timestamp, nonce, tagBytes))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -151,6 +154,7 @@ public abstract partial class UdpListenerBase
         ReadOnlySpan<byte> payload,
         ReadOnlySpan<byte> identifierBytes,
         long timestamp,
+        ulong nonce,
         ReadOnlySpan<byte> expectedTag)
     {
         if (connection.Secret is null || connection.Secret.Length < Poly1305.KeySize)
@@ -183,8 +187,11 @@ public abstract partial class UdpListenerBase
 
             Span<byte> timestampBytes = stackalloc byte[TimestampSize];
             System.Buffers.Binary.BinaryPrimitives.WriteInt64LittleEndian(timestampBytes, timestamp);
+            Span<byte> nonceBytes = stackalloc byte[NonceSize];
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(nonceBytes, nonce);
 
             poly.Update(timestampBytes);
+            poly.Update(nonceBytes);
             poly.Update(remoteMeta[..remoteLength]);
             poly.FinalizeTag(computedTag);
 
@@ -195,7 +202,7 @@ public abstract partial class UdpListenerBase
             poly.Clear();
         }
 
-        return isValid;
+        return isValid && connection.TryAcceptUdpNonce(nonce, timestamp, MaxReplayWindowMs);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
