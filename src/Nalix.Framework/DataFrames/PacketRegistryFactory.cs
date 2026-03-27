@@ -86,13 +86,13 @@ public sealed class PacketRegistryFactory
     {
         // Text packets
         _ = this.RegisterPacket<Text256>()
-            .RegisterPacket<Text512>()
-            .RegisterPacket<Text1024>();
+                .RegisterPacket<Text512>()
+                .RegisterPacket<Text1024>();
 
         // Control / handshake packets
         _ = this.RegisterPacket<Control>()
-            .RegisterPacket<Handshake>()
-            .RegisterPacket<Directive>();
+                .RegisterPacket<Handshake>()
+                .RegisterPacket<Directive>();
     }
 
     #endregion Constructors
