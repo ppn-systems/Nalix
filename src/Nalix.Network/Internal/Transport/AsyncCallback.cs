@@ -67,8 +67,8 @@ internal static class AsyncCallback
     /// ── Global counters ────────────────────────────────────────────────────────
     /// </summary>
     private static int s_pendingNormal;
-    private static long s_droppedCallbacks;
     private static long s_totalInvoked;
+    private static long s_droppedCallbacks;
 
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
