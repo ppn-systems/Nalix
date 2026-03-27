@@ -3,16 +3,8 @@
 
 using System;
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
-
-#if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
 
 namespace Nalix.Network.Routing.Results;
 
@@ -27,8 +19,7 @@ internal sealed class UnsupportedReturnHandler<TPacket>(Type returnType) : IRetu
     {
         if (s_loggedTypes.TryAdd(returnType, true))
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(UnsupportedReturnHandler<>)}:{nameof(HandleAsync)}] unsupported-return type={returnType.Name}");
+            throw new NotSupportedException($"unsupported return type: {returnType.FullName}");
         }
 
         return ValueTask.CompletedTask;

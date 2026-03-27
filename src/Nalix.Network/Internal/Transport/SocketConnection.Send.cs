@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -22,26 +22,23 @@ internal sealed partial class SocketConnection
     /// stack; larger ones use a pooled heap buffer.
     /// </summary>
     /// <param name="data"></param>
-    /// <returns><see langword="true"/> if the data was sent successfully.</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool Send(ReadOnlySpan<byte> data)
+    public void Send(ReadOnlySpan<byte> data)
     {
         this.THROW_IF_NOT_CONFIGURED();
 
-        if (Volatile.Read(ref _disposed) != 0)
-        {
-            return false;
-        }
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(SocketConnection));
 
         if (data.IsEmpty)
         {
-            return false;
+            throw new ArgumentException("Data must not be empty.", nameof(data));
         }
 
         if (data.Length >= s_fragmentOptions.ChunkThreshold)
         {
-            return this.SEND_FRAGMENTED(data);
+            this.SEND_FRAGMENTED(data);
+            return;
         }
 
         ushort totalLength = (ushort)(data.Length + HeaderSize);
@@ -79,7 +76,7 @@ internal sealed partial class SocketConnection
 #endif
                         this.CANCEL_RECEIVE_ONCE();
                         this.INVOKE_CLOSE_ONCE();
-                        return false;
+                        throw new InvalidOperationException("The socket closed while sending.");
                     }
                     sent += n;
                 }
@@ -88,13 +85,13 @@ internal sealed partial class SocketConnection
                 args.Initialize(_cachedArgs.Connection);
 
                 AsyncCallback.Invoke(_callbackPost, _sender, args);
-                return true;
+                return;
             }
             catch (Exception ex)
             {
                 s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                 $"stackalloc-error ep={_socket.RemoteEndPoint}", ex);
-                return false;
+                throw;
             }
         }
 
@@ -132,19 +129,19 @@ internal sealed partial class SocketConnection
 #endif
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    return false;
+                    throw new InvalidOperationException("The socket closed while sending.");
                 }
                 sent += n;
             }
 
             this.InvokePostCallback();
-            return true;
+            return;
         }
         catch (Exception ex)
         {
             s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                             $"pooled-error ep={_socket.RemoteEndPoint}", ex);
-            return false;
+            throw;
         }
         finally
         {
@@ -159,23 +156,21 @@ internal sealed partial class SocketConnection
     /// <param name="cancellationToken"></param>
     /// <returns><see langword="true"/> if the data was sent successfully.</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public async Task<bool> SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+    public async Task SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
         this.THROW_IF_NOT_CONFIGURED();
 
-        if (Volatile.Read(ref _disposed) != 0)
-        {
-            return false;
-        }
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(SocketConnection));
 
         if (data.IsEmpty)
         {
-            return false;
+            throw new ArgumentException("Data must not be empty.", nameof(data));
         }
 
         if (data.Length >= s_fragmentOptions.ChunkThreshold)
         {
-            this.SEND_FRAGMENTED(data.Span);
+            await this.SEND_FRAGMENTED_ASYNC(data, cancellationToken).ConfigureAwait(false);
+            return;
         }
 
         ushort totalLength = (ushort)(data.Length + HeaderSize);
@@ -214,19 +209,19 @@ internal sealed partial class SocketConnection
 #endif
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    return false;
+                    throw new InvalidOperationException("The socket closed while sending.");
                 }
                 sent += n;
             }
 
             this.InvokePostCallback();
-            return true;
+            return;
         }
         catch (Exception ex)
         {
             s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
                             $"error ep={_socket.RemoteEndPoint}", ex);
-            return false;
+            throw;
         }
         finally
         {
@@ -240,7 +235,7 @@ internal sealed partial class SocketConnection
     /// Gửi payload lớn bằng cách tự động fragment.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2014:Do not use stackalloc in loops", Justification = "<Pending>")]
-    private bool SEND_FRAGMENTED(ReadOnlySpan<byte> payload)
+    private void SEND_FRAGMENTED(ReadOnlySpan<byte> payload)
     {
         if (payload.Length > s_fragmentOptions.MaxPayloadSize)
         {
@@ -293,10 +288,7 @@ internal sealed partial class SocketConnection
                 headerBuffer.CopyTo(frame[HeaderSize..]);
                 payload.Slice(offset, thisChunkSize).CopyTo(frame[(HeaderSize + FragmentHeader.WireSize)..]);
 
-                if (!SEND_RAW_FRAME(frame))
-                {
-                    throw new SocketException((int)SocketError.ConnectionReset);
-                }
+                SEND_RAW_FRAME(frame);
             }
             else
             {
@@ -308,10 +300,7 @@ internal sealed partial class SocketConnection
                     headerBuffer.CopyTo(MemoryExtensions.AsSpan(rented, HeaderSize));
                     payload.Slice(offset, thisChunkSize).CopyTo(MemoryExtensions.AsSpan(rented, HeaderSize + FragmentHeader.WireSize));
 
-                    if (!SEND_RAW_FRAME(rented.AsSpan(0, totalFrameSize)))
-                    {
-                        throw new SocketException((int)SocketError.ConnectionReset);
-                    }
+                    SEND_RAW_FRAME(rented.AsSpan(0, totalFrameSize));
                 }
                 finally
                 {
@@ -321,10 +310,9 @@ internal sealed partial class SocketConnection
         }
 
         this.InvokePostCallback();
-        return true;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        bool SEND_RAW_FRAME(ReadOnlySpan<byte> frame)
+        void SEND_RAW_FRAME(ReadOnlySpan<byte> frame)
         {
             int sent = 0;
             while (sent < frame.Length)
@@ -334,15 +322,14 @@ internal sealed partial class SocketConnection
                 {
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    return false;
+                    throw new InvalidOperationException("The socket closed while sending.");
                 }
                 sent += n;
             }
-            return true;
         }
     }
 
-    private async Task<bool> SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
+    private async Task SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
     {
         if (payload.Length > s_fragmentOptions.MaxPayloadSize)
         {
@@ -374,10 +361,7 @@ internal sealed partial class SocketConnection
             {
                 BUILD_FRAGMENT_FRAME(rented.AsSpan(0, totalFrameLen), headerSpan, payload.Slice(offset, chunkLen).Span);
 
-                if (!await SEND_RAW_FRAME_ASYNC(rented.AsMemory(0, totalFrameLen), token).ConfigureAwait(false))
-                {
-                    throw new SocketException((int)SocketError.ConnectionReset);
-                }
+                await SEND_RAW_FRAME_ASYNC(rented.AsMemory(0, totalFrameLen), token).ConfigureAwait(false);
             }
             finally
             {
@@ -386,7 +370,6 @@ internal sealed partial class SocketConnection
         }
 
         this.InvokePostCallback();
-        return true;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void BUILD_FRAGMENT_FRAME(Span<byte> frame, ReadOnlySpan<byte> fragHeader, ReadOnlySpan<byte> chunkBody)
@@ -401,7 +384,7 @@ internal sealed partial class SocketConnection
             chunkBody.CopyTo(frame[(HeaderSize + FragmentHeader.WireSize)..]);
         }
 
-        async Task<bool> SEND_RAW_FRAME_ASYNC(ReadOnlyMemory<byte> frame, CancellationToken token)
+        async Task SEND_RAW_FRAME_ASYNC(ReadOnlyMemory<byte> frame, CancellationToken token)
         {
             int sent = 0;
             while (sent < frame.Length)
@@ -413,11 +396,10 @@ internal sealed partial class SocketConnection
                 {
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    return false;
+                    throw new InvalidOperationException("The socket closed while sending.");
                 }
                 sent += n;
             }
-            return true;
         }
     }
 

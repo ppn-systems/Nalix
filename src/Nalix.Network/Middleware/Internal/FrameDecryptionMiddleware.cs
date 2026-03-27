@@ -56,8 +56,7 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Trace($"[DECRYPT][{debugId}] Alloc decrypt lease: PlaintextLen={FrameTransformer.GetPlaintextLength(lease.Span)}");
-#endif      
-
+#endif
                 dest = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
             }
             catch
@@ -69,31 +68,31 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
                 return null;
             }
 
-            if (!FrameTransformer.TryDecrypt(lease, dest, secret))
+            try
             {
-                dest.Dispose();
+                FrameTransformer.Decrypt(lease, dest, secret);
+
+                dest.Span.WriteFlagsLE(lease.Span
+                         .ReadFlagsLE()
+                         .RemoveFlag(PacketFlags.ENCRYPTED));
+
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[DECRYPT][{debugId}] Failed to decrypt frame! Flags={lease.Span.ReadFlagsLE()} - Closing connection.");
+                                        .Trace($"[DECRYPT][{debugId}] Decryption success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
+
+                int sampleLen = Math.Min(16, dest.Length);
+                string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[DECRYPT][{debugId}] Decrypted buffer sample: {hexSample}");
 #endif
-                return null; // fallback if failed
+
+                return await next(dest, ct).ConfigureAwait(false);
             }
-
-            dest.Span.WriteFlagsLE(lease.Span
-                     .ReadFlagsLE()
-                     .RemoveFlag(PacketFlags.ENCRYPTED));
-
-#if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[DECRYPT][{debugId}] Decryption success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
-
-            int sampleLen = Math.Min(16, dest.Length);
-            string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[DECRYPT][{debugId}] Decrypted buffer sample: {hexSample}");
-#endif
-
-            return await next(dest, ct).ConfigureAwait(false);
+            catch
+            {
+                dest.Dispose();
+                throw;
+            }
         }
         else
         {

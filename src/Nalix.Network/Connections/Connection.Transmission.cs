@@ -129,11 +129,11 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public bool Send(IPacket packet)
+        public void Send(IPacket packet)
         {
             if (packet.Length == 0)
             {
-                return false;
+                throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
@@ -142,11 +142,12 @@ public sealed partial class Connection : IConnection
                 try
                 {
 
-                    return this.Send(buffer[..written]);
+                    this.Send(buffer[..written]);
+                    return;
                 }
                 catch
                 {
-                    return false;
+                    throw;
                 }
             }
             else
@@ -154,22 +155,26 @@ public sealed partial class Connection : IConnection
                 using BufferLease lease = BufferLease.Rent(packet.Length);
                 int written = packet.Serialize(lease.SpanFull);
                 lease.CommitLength(written);
-                return this.Send(lease.Span);
+                this.Send(lease.Span);
+                return;
             }
         }
 
         /// <inheritdoc />
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public bool Send(ReadOnlySpan<byte> message)
+        public void Send(ReadOnlySpan<byte> message)
         {
             if (message.IsEmpty || _endPoint is null)
             {
-                return false;
+                throw new InvalidOperationException("Connection endpoint is not available.");
             }
 
             int sent = _socket.SendTo(message, SocketFlags.None, _endPoint);
-            return sent == message.Length;
+            if (sent != message.Length)
+            {
+                throw new InvalidOperationException("The socket did not send the full payload.");
+            }
         }
 
         #endregion Synchronous Methods
@@ -179,13 +184,13 @@ public sealed partial class Connection : IConnection
         /// <inheritdoc />
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public async Task<bool> SendAsync(
+        public async Task SendAsync(
             IPacket packet,
             CancellationToken cancellationToken = default)
         {
             if (packet.Length == 0)
             {
-                return false;
+                throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
@@ -193,12 +198,13 @@ public sealed partial class Connection : IConnection
                 int written = packet.Serialize(buffer);
                 try
                 {
-                    return await this.SendAsync(new ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
+                    await this.SendAsync(new ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
                                      .ConfigureAwait(false);
+                    return;
                 }
                 catch
                 {
-                    return false;
+                    throw;
                 }
             }
             else
@@ -207,31 +213,35 @@ public sealed partial class Connection : IConnection
 
                 int written = packet.Serialize(lease.SpanFull);
                 lease.CommitLength(written);
-                return await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
+                await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
+                return;
             }
         }
 
         /// <inheritdoc />
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public async Task<bool> SendAsync(
+        public async Task SendAsync(
             ReadOnlyMemory<byte> message,
             CancellationToken cancellationToken = default)
         {
             if (message.IsEmpty)
             {
-                return false;
+                throw new ArgumentException("Message must not be empty.", nameof(message));
             }
 
             if (_endPoint is null)
             {
-                return false;
+                throw new InvalidOperationException("Connection endpoint is not available.");
             }
 
             int sentBytes = await _socket.SendToAsync(message, _endPoint, cancellationToken)
                                          .ConfigureAwait(false);
 
-            return sentBytes == message.Length;
+            if (sentBytes != message.Length)
+            {
+                throw new InvalidOperationException("The socket did not send the full payload.");
+            }
         }
 
         /// <inheritdoc />
@@ -284,11 +294,11 @@ public sealed partial class Connection : IConnection
         /// </remarks>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        public bool Send(IPacket packet)
+        public void Send(IPacket packet)
         {
             if (packet.Length == 0)
             {
-                return false;
+                throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
@@ -297,7 +307,8 @@ public sealed partial class Connection : IConnection
                 int written = packet.Serialize(buffer);
                 _outer.AddBytesSent(written);
 
-                return this.Send(buffer[..written]);
+                this.Send(buffer[..written]);
+                return;
             }
             else
             {
@@ -307,7 +318,8 @@ public sealed partial class Connection : IConnection
                 lease.CommitLength(written);
                 _outer.AddBytesSent(written);
 
-                return this.Send(lease.Span);
+                this.Send(lease.Span);
+                return;
             }
         }
 
@@ -319,7 +331,15 @@ public sealed partial class Connection : IConnection
         /// </remarks>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public bool Send(ReadOnlySpan<byte> message) => _outer._socket.Send(message);
+        public void Send(ReadOnlySpan<byte> message)
+        {
+            if (message.IsEmpty)
+            {
+                throw new ArgumentException("Message must not be empty.", nameof(message));
+            }
+
+            _outer._socket.Send(message);
+        }
 
         /// <inheritdoc/>
         [StackTraceHidden]
@@ -327,7 +347,7 @@ public sealed partial class Connection : IConnection
         [Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]
-        public bool Send(string message)
+        public void Send(string message)
         {
             int byteCount = Encoding.UTF8.GetByteCount(message);
 
@@ -343,8 +363,8 @@ public sealed partial class Connection : IConnection
                         byte[] buffer = c.Serialize(pkt);
 
                         _outer.AddBytesSent(buffer.Length);
-                        _ = this.Send(buffer);
-                        return true;
+                        this.Send(buffer);
+                        return;
                     }
                     finally
                     {
@@ -364,8 +384,8 @@ public sealed partial class Connection : IConnection
                     byte[] buffer = max.Serialize(pkt);
 
                     _outer.AddBytesSent(buffer.Length);
-                    _ = this.Send(buffer);
-                    return true;
+                    this.Send(buffer);
+                    return;
                 }
                 finally
                 {
@@ -373,7 +393,7 @@ public sealed partial class Connection : IConnection
                 }
             }
 
-            return false;
+            throw new InvalidOperationException("Unable to serialize string for transmission.");
         }
 
         #endregion Synchronous Methods
@@ -388,13 +408,13 @@ public sealed partial class Connection : IConnection
         /// </remarks>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public async Task<bool> SendAsync(
+        public async Task SendAsync(
             IPacket packet,
             CancellationToken cancellationToken = default)
         {
             if (packet.Length == 0)
             {
-                return false;
+                throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
             }
             else if (packet.Length < BufferLease.StackAllocThreshold)
             {
@@ -402,8 +422,9 @@ public sealed partial class Connection : IConnection
                 int written = packet.Serialize(buffer);
 
                 _outer.AddBytesSent(written);
-                return await this.SendAsync(new ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
+                await this.SendAsync(new ReadOnlyMemory<byte>(buffer, 0, written), cancellationToken)
                                  .ConfigureAwait(false);
+                return;
             }
             else
             {
@@ -413,8 +434,9 @@ public sealed partial class Connection : IConnection
                 lease.CommitLength(written);
                 _outer.AddBytesSent(written);
 
-                return await this.SendAsync(lease.Memory, cancellationToken)
+                await this.SendAsync(lease.Memory, cancellationToken)
                                  .ConfigureAwait(false);
+                return;
             }
         }
 
@@ -426,10 +448,17 @@ public sealed partial class Connection : IConnection
         /// </remarks>
         [StackTraceHidden]
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public async Task<bool> SendAsync(
+        public async Task SendAsync(
             ReadOnlyMemory<byte> message,
             CancellationToken cancellationToken = default)
-            => await _outer._socket.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        {
+            if (message.IsEmpty)
+            {
+                throw new ArgumentException("Message must not be empty.", nameof(message));
+            }
+
+            await _outer._socket.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        }
 
         /// <inheritdoc/>
         [StackTraceHidden]
@@ -437,7 +466,7 @@ public sealed partial class Connection : IConnection
         [Obsolete(
             "This method may produce multiple packets for large messages. " +
             "Consider using a different approach for large data transmission.")]
-        public async Task<bool> SendAsync(
+        public async Task SendAsync(
             string message,
             CancellationToken cancellationToken = default)
         {
@@ -455,8 +484,9 @@ public sealed partial class Connection : IConnection
                         byte[] buffer = c.Serialize(pkt);
 
                         _outer.AddBytesSent(buffer.Length);
-                        return await this.SendAsync(buffer, cancellationToken)
+                        await this.SendAsync(buffer, cancellationToken)
                                          .ConfigureAwait(false);
+                        return;
                     }
                     finally
                     {
@@ -476,8 +506,9 @@ public sealed partial class Connection : IConnection
                     byte[] buffer = max.Serialize(pkt);
 
                     _outer.AddBytesSent(buffer.Length);
-                    return await this.SendAsync(buffer, cancellationToken)
+                    await this.SendAsync(buffer, cancellationToken)
                                      .ConfigureAwait(false);
+                    return;
                 }
                 finally
                 {
@@ -485,7 +516,7 @@ public sealed partial class Connection : IConnection
                 }
             }
 
-            return false;
+            throw new InvalidOperationException("Unable to serialize string for transmission.");
         }
 
         #endregion Asynchronous Methods

@@ -100,7 +100,7 @@ public static class HandshakeExtensions
 
         try
         {
-            _ = await client.SendAsync(new Handshake(opCode, kp.PublicKey, ProtocolType.TCP), linked.Token)
+            await client.SendAsync(new Handshake(opCode, kp.PublicKey, ProtocolType.TCP), linked.Token)
                         .ConfigureAwait(false);
 
             ResolveLogger(client)?.Debug("[SDK.HandshakeAsync] Handshake request sent.");

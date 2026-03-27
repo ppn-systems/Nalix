@@ -4,9 +4,8 @@
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
+using Nalix.Common.Networking.Protocols;
 
 namespace Nalix.Network.Routing.Results.Memory;
 
@@ -22,26 +21,17 @@ internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPac
             return;
         }
 
-        if (context?.Connection?.TCP == null)
+        ProtocolType protocol = context.Packet.Protocol;
+
+        if (protocol == ProtocolType.TCP)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(ReadOnlyMemoryReturnHandler<>)}:{nameof(HandleAsync)}] send-failed null");
+            await context.Connection.TCP.SendAsync(memory).ConfigureAwait(false);
             return;
         }
 
-        try
+        if (protocol == ProtocolType.UDP)
         {
-            bool sent = await context.Connection.TCP.SendAsync(memory).ConfigureAwait(false);
-            if (!sent)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[NW.{nameof(ReadOnlyMemoryReturnHandler<>)}:{nameof(HandleAsync)}] send-failed");
-            }
-        }
-        catch (Exception ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(ReadOnlyMemoryReturnHandler<>)}:{nameof(HandleAsync)}] error-serializing", ex);
+            await context.Connection.UDP.SendAsync(memory).ConfigureAwait(false);
         }
     }
 }

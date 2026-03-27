@@ -16,14 +16,14 @@ namespace Nalix.Framework.Extensions;
 /// </summary>
 public static class ReportExtensions
 {
-    private static readonly string ReportDir;
+    private static readonly string s_reportDir;
 
     static ReportExtensions()
     {
-        ReportDir = Path.GetFullPath(Path
-                                  .Combine(Directories.DataDirectory, "reports"));
+        s_reportDir = Path.GetFullPath(Path
+                          .Combine(Directories.DataDirectory, "reports"));
 
-        _ = Directory.CreateDirectory(ReportDir);
+        _ = Directory.CreateDirectory(s_reportDir);
     }
 
     /// <summary>
@@ -37,9 +37,9 @@ public static class ReportExtensions
         string report = @this.GenerateReport();
         string safePrefix = prefix?.ToLowerInvariant() ?? "null";
 
-        _ = Directory.CreateDirectory(ReportDir);
+        _ = Directory.CreateDirectory(s_reportDir);
 
-        string filePath = Path.Combine(ReportDir, $"{safePrefix}-report-{DateTime.UtcNow:yyyyMMdd-HHmm}.txt");
+        string filePath = Path.Combine(s_reportDir, $"{safePrefix}-report-{DateTime.UtcNow:yyyyMMdd-HHmm}.txt");
 
         try
         {
@@ -56,7 +56,17 @@ public static class ReportExtensions
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Info($"[RP.{@this.GetType().Name}] report-saved path={lastSegments}");
         }
-        catch (Exception ex)
+        catch (IOException ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
+        }
+        catch (NotSupportedException ex)
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);

@@ -72,7 +72,15 @@ internal static partial class TypeMetadata
                    BindingFlags.NonPublic |
                    BindingFlags.Public), f => IsUnmanaged(f.FieldType));
         }
-        catch
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
+        }
+        catch (TypeLoadException)
         {
             return false;
         }

@@ -20,7 +20,6 @@ internal sealed class TaskReturnHandler<TPacket, TResult>(IReturnHandler<TPacket
         }
 
         TResult taskResult = await task.ConfigureAwait(false);
-        await innerHandler.HandleAsync(taskResult, context)
-                          .ConfigureAwait(false);
+        await innerHandler.HandleAsync(taskResult, context).ConfigureAwait(false);
     }
 }

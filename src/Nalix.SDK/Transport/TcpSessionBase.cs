@@ -160,7 +160,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     public virtual bool IsConnected => Socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
 
     /// <inheritdoc/>
-    public virtual Task<bool> SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
+    public virtual Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
         FRAME_SENDER? sender = Volatile.Read(ref Sender);
@@ -168,7 +168,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public virtual Task<bool> SendAsync(IPacket packet, CancellationToken ct = default)
+    public virtual Task SendAsync(IPacket packet, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSessionBase));
@@ -219,27 +219,27 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// was not worth compressing uses path 3.
     /// </para>
     /// </remarks>
-    public async Task<bool> SendAsync(
+    public async Task SendAsync(
         IPacket packet,
         bool encrypt,
         CancellationToken cancellationToken = default)
     {
-        // Serialize into a pooled buffer — avoids allocating a byte[] per send.
         BufferLease rawLease = BufferLease.Rent(packet.Length);
-        int written = packet.Serialize(rawLease.SpanFull);
-        rawLease.CommitLength(written);
-
-        bool enableCompress = this.Options.EnableCompression && written >= this.Options.MinSizeToCompress;
-
         try
         {
+            int written = packet.Serialize(rawLease.SpanFull);
+            rawLease.CommitLength(written);
+
+            bool enableCompress = this.Options.EnableCompression && written >= this.Options.MinSizeToCompress;
+
             // ----------------------------------------------------------------
-            // Case 1: plain — no compression, no encryption
+            // Case 1: plain - no compression, no encryption
             // ----------------------------------------------------------------
             if (!enableCompress && !encrypt)
             {
                 this.Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Send plain payload, size={written}");
-                return await this.SendAsync(rawLease.Memory, cancellationToken).ConfigureAwait(false);
+                await this.SendAsync(rawLease.Memory, cancellationToken).ConfigureAwait(false);
+                return;
             }
 
             // ----------------------------------------------------------------
@@ -251,17 +251,14 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                 BufferLease compressedLease = BufferLease.Rent(maxCompressedSize + FrameTransformer.Offset);
                 try
                 {
-                    if (!FrameTransformer.TryCompress(rawLease, compressedLease))
-                    {
-                        this.Logger?.Warn($"[SDK.{this.GetType().Name}] SendAsync: Compression failed, packet={packet.GetType().Name}, size={written}");
-                        return false;
-                    }
+                    FrameTransformer.Compress(rawLease, compressedLease);
 
                     this.Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compressed and sent, original={written}, compressed={compressedLease.Length}");
                     compressedLease.Span.WriteFlagsLE(
                         compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
 
-                    return await this.SendAsync(compressedLease.Memory, cancellationToken).ConfigureAwait(false);
+                    await this.SendAsync(compressedLease.Memory, cancellationToken).ConfigureAwait(false);
+                    return;
                 }
                 finally
                 {
@@ -278,17 +275,14 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                 BufferLease encryptedLease = BufferLease.Rent(maxCipherSize + FrameTransformer.Offset);
                 try
                 {
-                    if (!FrameTransformer.TryEncrypt(rawLease, encryptedLease, this.Options.Secret, this.Options.Algorithm))
-                    {
-                        this.Logger?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] encrypt-failed");
-                        return false;
-                    }
+                    FrameTransformer.Encrypt(rawLease, encryptedLease, this.Options.Secret, this.Options.Algorithm);
 
                     encryptedLease.Span.WriteFlagsLE(
                         encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
                     this.Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Encrypted and sent, len={encryptedLease.Length}");
-                    return await this.SendAsync(encryptedLease.Memory, cancellationToken).ConfigureAwait(false);
+                    await this.SendAsync(encryptedLease.Memory, cancellationToken).ConfigureAwait(false);
+                    return;
                 }
                 finally
                 {
@@ -303,11 +297,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             BufferLease compressLease = BufferLease.Rent(maxCompressed + FrameTransformer.Offset);
             try
             {
-                if (!FrameTransformer.TryCompress(rawLease, compressLease))
-                {
-                    this.Logger?.Warn($"[SDK.{this.GetType().Name}] SendAsync: Compress-then-encrypt compression failed, len={written}");
-                    return false;
-                }
+                FrameTransformer.Compress(rawLease, compressLease);
 
                 compressLease.Span.WriteFlagsLE(
                     compressLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
@@ -316,17 +306,14 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                 BufferLease encryptLease = BufferLease.Rent(maxCipher + FrameTransformer.Offset);
                 try
                 {
-                    if (!FrameTransformer.TryEncrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm))
-                    {
-                        this.Logger?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] encrypt-after-compress-failed");
-                        return false;
-                    }
+                    FrameTransformer.Encrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm);
 
                     encryptLease.Span.WriteFlagsLE(
                         encryptLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
                     this.Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compress+Encrypt, final-size={encryptLease.Length}");
-                    return await this.SendAsync(encryptLease.Memory, cancellationToken).ConfigureAwait(false);
+                    await this.SendAsync(encryptLease.Memory, cancellationToken).ConfigureAwait(false);
+                    return;
                 }
                 finally
                 {
@@ -346,7 +333,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         catch (Exception ex)
         {
             this.Logger?.Error($"[SDK.{this.GetType().Name}:{nameof(SendAsync)}] send-failed", ex);
-            return false;
+            throw;
         }
         finally
         {

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Framework.Memory.Buffers;
@@ -324,7 +325,17 @@ public sealed class FragmentAssembler : IDisposable
 
             return true;
         }
-        catch
+        catch (InvalidDataException)
+        {
+            // If parsing fails -> treat as normal packet
+            return false;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            // If parsing fails -> treat as normal packet
+            return false;
+        }
+        catch (IndexOutOfRangeException)
         {
             // If parsing fails → treat as normal packet
             return false;

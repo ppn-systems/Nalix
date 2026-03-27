@@ -52,13 +52,13 @@ public partial interface IConnection
         /// Sends a packet synchronously over the connection.
         /// </summary>
         /// <param name="packet">The packet to send.</param>
-        bool Send(IPacket packet);
+        void Send(IPacket packet);
 
         /// <summary>
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        bool Send(ReadOnlySpan<byte> message);
+        void Send(ReadOnlySpan<byte> message);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -69,7 +69,7 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        Task<bool> SendAsync(IPacket packet, CancellationToken cancellationToken = default);
+        Task SendAsync(IPacket packet, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -80,7 +80,7 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        Task<bool> SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
+        Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -115,7 +115,7 @@ public partial interface IConnection
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
-        bool Send(string message);
+        void Send(string message);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -126,7 +126,7 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        Task<bool> SendAsync(string message, CancellationToken cancellationToken = default);
+        Task SendAsync(string message, CancellationToken cancellationToken = default);
     }
 
     /// <summary>

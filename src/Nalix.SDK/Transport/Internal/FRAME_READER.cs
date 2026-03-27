@@ -4,7 +4,6 @@
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
-using System.IO;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -221,13 +220,7 @@ internal sealed class FRAME_READER(
             {
                 BufferLease decryptedLease = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
 
-                if (!FrameTransformer.TryDecrypt(lease, decryptedLease, _options.Secret))
-                {
-                    decryptedLease.Dispose();
-                    lease.Dispose();
-                    throw new InvalidDataException("Failed to decrypt packet");
-                }
-
+                FrameTransformer.Decrypt(lease, decryptedLease, _options.Secret);
                 decryptedLease.Span.WriteFlagsLE(decryptedLease.Span.ReadFlagsLE().RemoveFlag(PacketFlags.ENCRYPTED));
                 lease.Dispose();
                 lease = decryptedLease;
@@ -239,13 +232,7 @@ internal sealed class FRAME_READER(
             {
                 BufferLease decompressedLease = BufferLease.Rent(FrameTransformer.GetDecompressedLength(lease.Span));
 
-                if (!FrameTransformer.TryDecompress(lease, decompressedLease))
-                {
-                    decompressedLease.Dispose();
-                    lease.Dispose();
-                    throw new InvalidDataException("Failed to decompress packet");
-                }
-
+                FrameTransformer.Decompress(lease, decompressedLease);
                 decompressedLease.Span.WriteFlagsLE(decompressedLease.Span.ReadFlagsLE().RemoveFlag(PacketFlags.COMPRESSED));
                 lease.Dispose();
                 lease = decompressedLease;

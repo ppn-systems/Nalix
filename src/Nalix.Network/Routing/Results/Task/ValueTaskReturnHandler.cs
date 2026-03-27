@@ -20,7 +20,6 @@ internal sealed class ValueTaskReturnHandler<TPacket, TResult>(IReturnHandler<TP
         }
 
         TResult taskResult = await valueTask.ConfigureAwait(false);
-        await innerHandler.HandleAsync(taskResult, context)
-                          .ConfigureAwait(false);
+        await innerHandler.HandleAsync(taskResult, context).ConfigureAwait(false);
     }
 }

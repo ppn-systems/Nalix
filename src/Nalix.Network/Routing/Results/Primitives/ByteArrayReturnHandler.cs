@@ -1,12 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
+using Nalix.Common.Networking.Protocols;
 
 namespace Nalix.Network.Routing.Results.Primitives;
 
@@ -22,31 +20,17 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket> 
             return;
         }
 
-        if (data.Length == 0)
+        ProtocolType protocol = context.Packet.Protocol;
+
+        if (protocol == ProtocolType.TCP)
         {
+            await context.Connection.TCP.SendAsync(data).ConfigureAwait(false);
             return;
         }
 
-        if (context?.Connection?.TCP == null)
+        if (protocol == ProtocolType.UDP)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(ByteArrayReturnHandler<>)}:{nameof(HandleAsync)}] send-failed transport=null");
-            return;
-        }
-
-        try
-        {
-            bool sent = await context.Connection.TCP.SendAsync(data).ConfigureAwait(false);
-            if (!sent)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[NW.{nameof(ByteArrayReturnHandler<>)}:{nameof(HandleAsync)}] send-failed");
-            }
-        }
-        catch (Exception ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(ByteArrayReturnHandler<>)}:{nameof(HandleAsync)}] error-serializing", ex);
+            await context.Connection.UDP.SendAsync(data).ConfigureAwait(false);
         }
     }
 }
