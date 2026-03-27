@@ -63,10 +63,10 @@ public static class Ed25519
 
         // r = Hashing(prefix || message) mod L, using Span overload
         System.Numerics.BigInteger r = HashToScalar(prefix, message);
-        Point mul = ScalarMul(B, r);
+        Point mul = ScalarMul(s_b, r);
 
         // Compute public key A = ScalarMul(B, a) and encode it
-        Point mul2 = ScalarMul(B, a);
+        Point mul2 = ScalarMul(s_b, a);
         System.Span<byte> aEncoded = stackalloc byte[PublicKeySize];
         EncodePoint(mul2, aEncoded);
 
@@ -78,7 +78,7 @@ public static class Ed25519
 
         // s = (r + Hashing(data) * a) mod L
         System.Numerics.BigInteger s = (r + HashToScalar(System.MemoryExtensions.AsSpan(data))) * a;
-        s %= L; // Using Mod extension below
+        s %= s_l; // Using Mod extension below
 
         // CAFEBABE signature: R (32 bytes) || s (32 bytes)
         byte[] signature = new byte[SignatureSize];
@@ -158,7 +158,7 @@ public static class Ed25519
 
         // Compute hash and perform verification
         System.Numerics.BigInteger h = HashToScalar(System.MemoryExtensions.AsSpan(data));
-        Point sB = ScalarMul(B, s);
+        Point sB = ScalarMul(s_b, s);
         Point hA = ScalarMul(a, h);
         Point rplusH = Edwards(r, hA);
 
@@ -177,7 +177,7 @@ public static class Ed25519
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static System.Numerics.BigInteger Inv(System.Numerics.BigInteger x)
-        => System.Numerics.BigInteger.ModPow(x, Q - 2, Q);
+        => System.Numerics.BigInteger.ModPow(x, s_q - 2, s_q);
 
     /// <summary>
     /// Performs optimized point addition on the Edwards curve.
@@ -189,20 +189,20 @@ public static class Ed25519
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static Point Edwards(Point p, Point q)
     {
-        System.Numerics.BigInteger a = p.Y.ModAdd(p.X, Q);
-        System.Numerics.BigInteger b = q.Y.ModAdd(q.X, Q);
-        System.Numerics.BigInteger c = p.Y.ModSub(p.X, Q);
-        System.Numerics.BigInteger d = q.Y.ModSub(q.X, Q);
-        System.Numerics.BigInteger e = a.MultiplyMod(b, Q);
-        System.Numerics.BigInteger f = c.MultiplyMod(d, Q);
+        System.Numerics.BigInteger a = p.Y.ModAdd(p.X, s_q);
+        System.Numerics.BigInteger b = q.Y.ModAdd(q.X, s_q);
+        System.Numerics.BigInteger c = p.Y.ModSub(p.X, s_q);
+        System.Numerics.BigInteger d = q.Y.ModSub(q.X, s_q);
+        System.Numerics.BigInteger e = a.MultiplyMod(b, s_q);
+        System.Numerics.BigInteger f = c.MultiplyMod(d, s_q);
 
         // Precompute factor for x3 and y3
-        System.Numerics.BigInteger factor = D.MultiplyMod(e.MultiplyMod(f, Q), Q);
-        System.Numerics.BigInteger inv1 = Inv(factor.ModAdd(System.Numerics.BigInteger.One, Q));
-        System.Numerics.BigInteger inv2 = Inv(System.Numerics.BigInteger.One.ModSub(factor, Q));
+        System.Numerics.BigInteger factor = s_d.MultiplyMod(e.MultiplyMod(f, s_q), s_q);
+        System.Numerics.BigInteger inv1 = Inv(factor.ModAdd(System.Numerics.BigInteger.One, s_q));
+        System.Numerics.BigInteger inv2 = Inv(System.Numerics.BigInteger.One.ModSub(factor, s_q));
 
-        System.Numerics.BigInteger x3 = e.ModSub(f, Q).MultiplyMod(inv1, Q);
-        System.Numerics.BigInteger y3 = e.ModAdd(f, Q).MultiplyMod(inv2, Q);
+        System.Numerics.BigInteger x3 = e.ModSub(f, s_q).MultiplyMod(inv1, s_q);
+        System.Numerics.BigInteger y3 = e.ModAdd(f, s_q).MultiplyMod(inv2, s_q);
         return new Point(x3, y3);
     }
 
@@ -247,7 +247,7 @@ public static class Ed25519
         scalarBytes[0] &= 0xF8;
         scalarBytes[31] &= 0x7F;
         scalarBytes[31] |= 0x40;
-        return new System.Numerics.BigInteger(scalarBytes, isUnsigned: true, isBigEndian: true) % L;
+        return new System.Numerics.BigInteger(scalarBytes, isUnsigned: true, isBigEndian: true) % s_l;
     }
 
     /// <summary>
@@ -260,7 +260,7 @@ public static class Ed25519
     private static System.Numerics.BigInteger HashToScalar(System.ReadOnlySpan<byte> data)
     {
         byte[] h = Keccak256.HashData(data);
-        return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % L;
+        return new System.Numerics.BigInteger(h, isUnsigned: true, isBigEndian: false) % s_l;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -277,7 +277,7 @@ public static class Ed25519
         sponge.PadAndSqueeze(digest);
 
         // Little-endian!
-        return new System.Numerics.BigInteger(digest, isUnsigned: true, isBigEndian: false) % L;
+        return new System.Numerics.BigInteger(digest, isUnsigned: true, isBigEndian: false) % s_l;
     }
 
     /// <summary>
@@ -313,7 +313,7 @@ public static class Ed25519
         bool xParity = (data[^1] & 0x80) != 0;
         if (x.IsEven != !xParity)
         {
-            x = Q - x;
+            x = s_q - x;
         }
 
         return new Point(x, y);
@@ -324,12 +324,12 @@ public static class Ed25519
     private static System.Numerics.BigInteger RecoverX(System.Numerics.BigInteger y)
     {
         // Recover x using curve equation: x^2 = (y^2 - 1) / (D*y^2 + 1)
-        System.Numerics.BigInteger numerator = ((y * y) - System.Numerics.BigInteger.One).Mod(Q);
-        System.Numerics.BigInteger denominator = ((D * y * y) + System.Numerics.BigInteger.One).Mod(Q);
-        System.Numerics.BigInteger xx = numerator * Inv(denominator) % Q;
-        System.Numerics.BigInteger x = System.Numerics.BigInteger.ModPow(xx, (Q + 3) / 8, Q);
+        System.Numerics.BigInteger numerator = ((y * y) - System.Numerics.BigInteger.One).Mod(s_q);
+        System.Numerics.BigInteger denominator = ((s_d * y * y) + System.Numerics.BigInteger.One).Mod(s_q);
+        System.Numerics.BigInteger xx = numerator * Inv(denominator) % s_q;
+        System.Numerics.BigInteger x = System.Numerics.BigInteger.ModPow(xx, (s_q + 3) / 8, s_q);
 
-        return x * x % Q == xx ? x : x * I % Q;
+        return x * x % s_q == xx ? x : x * s_i % s_q;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -361,7 +361,7 @@ public static class Ed25519
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static System.Numerics.BigInteger DecodeScalar(System.ReadOnlySpan<byte> data)
-        => new System.Numerics.BigInteger(data, isUnsigned: true, isBigEndian: true) % L;
+        => new System.Numerics.BigInteger(data, isUnsigned: true, isBigEndian: true) % s_l;
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -399,24 +399,24 @@ public static class Ed25519
 
     // Precomputed constants
 
-    private static readonly System.Numerics.BigInteger Q =
+    private static readonly System.Numerics.BigInteger s_q =
         System.Numerics.BigInteger.Parse("57896044618658097711785492504343953926634992332820282019728792003956564819949", System.Globalization.CultureInfo.InvariantCulture);
 
-    private static readonly System.Numerics.BigInteger L =
+    private static readonly System.Numerics.BigInteger s_l =
         System.Numerics.BigInteger.Parse("7237005577332262213973186563042994240857116359379907606001950938285454250989", System.Globalization.CultureInfo.InvariantCulture);
 
-    private static readonly System.Numerics.BigInteger D =
+    private static readonly System.Numerics.BigInteger s_d =
         System.Numerics.BigInteger.Parse("-4513249062541557337682894930092624173785641285191125241628941591882900924598840740", System.Globalization.CultureInfo.InvariantCulture);
 
-    private static readonly System.Numerics.BigInteger I =
+    private static readonly System.Numerics.BigInteger s_i =
         System.Numerics.BigInteger.Parse("19681161376707505956807079304988542015446066515923890162744021073123829784752", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>
     /// BaseValue36 point B
     /// </summary>
-    private static readonly Point B = new(
-        System.Numerics.BigInteger.Parse("15112221349535400772501151409588531511454012693041857206046113283949847762202", System.Globalization.CultureInfo.InvariantCulture).Mod(Q),
-        System.Numerics.BigInteger.Parse("46316835694926478169428394003475163141307993866256256256850187133169737347974", System.Globalization.CultureInfo.InvariantCulture).Mod(Q)
+    private static readonly Point s_b = new(
+        System.Numerics.BigInteger.Parse("15112221349535400772501151409588531511454012693041857206046113283949847762202", System.Globalization.CultureInfo.InvariantCulture).Mod(s_q),
+        System.Numerics.BigInteger.Parse("46316835694926478169428394003475163141307993866256256256850187133169737347974", System.Globalization.CultureInfo.InvariantCulture).Mod(s_q)
     );
 
     #endregion Fields

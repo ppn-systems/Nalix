@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -32,6 +32,15 @@ namespace Nalix.Framework.DataFrames.Chunks;
 /// </summary>
 public sealed class FragmentAssembler : IDisposable
 {
+    #region Constants
+
+    /// <summary>
+    /// Eviction check interval in number of processed chunks. Call <see cref="EvictExpired"/> every N chunks.
+    /// </summary>
+    public const int EvictInterval = 64;
+
+    #endregion Constants
+
     #region Inner state per stream
 
     private sealed class StreamState : IDisposable

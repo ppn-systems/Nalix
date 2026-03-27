@@ -46,9 +46,15 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     /// </para>
     /// </summary>
     [IniComment("Max packets queued per connection before dropping (Layer 1, default 8)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1024,
-        ErrorMessage = "MaxPerConnectionPendingPackets must be between 1 and 1024.")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxPerConnectionPendingPackets must be between 1 and 1024.")]
     public int MaxPerConnectionPendingPackets { get; set; } = 8;
+
+    /// <summary>
+    /// Maximum number of concurrently open fragmented streams per connection.
+    /// </summary>
+    [IniComment("Max concurrently open fragmented streams per connection (Layer 1, default 4)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 256, ErrorMessage = "MaxPerConnectionOpenFragmentStreams must be between 1 and 256.")]
+    public int MaxPerConnectionOpenFragmentStreams { get; set; } = 4;
 
     #endregion Layer 1 — Per-connection receive throttle
 
@@ -63,8 +69,7 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     /// </para>
     /// </summary>
     [IniComment("Max total normal-priority callbacks pending globally (Layer 2, default 10000)")]
-    [System.ComponentModel.DataAnnotations.Range(100, 1_000_000,
-        ErrorMessage = "MaxPendingNormalCallbacks must be between 100 and 1,000,000.")]
+    [System.ComponentModel.DataAnnotations.Range(100, 1_000_000, ErrorMessage = "MaxPendingNormalCallbacks must be between 100 and 1,000,000.")]
     public int MaxPendingNormalCallbacks { get; set; } = 10_000;
 
     /// <summary>
@@ -72,8 +77,7 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     /// multiple of this value. Set to <c>0</c> to disable warnings.
     /// </summary>
     [IniComment("Log warning when pending callbacks crosses this threshold (0 = disabled, default 5000)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
-        ErrorMessage = "CallbackWarningThreshold must be between 0 and 1,000,000.")]
+    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000, ErrorMessage = "CallbackWarningThreshold must be between 0 and 1,000,000.")]
     public int CallbackWarningThreshold { get; set; } = 5_000;
 
     /// <summary>
