@@ -183,8 +183,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         throw new InvalidOperationException("Unexpected state in packet sending logic.");
     }
 
-    private PacketContext<TPacket> GET_CONTEXT_OR_THROW()
-        => _context ?? throw new InvalidOperationException($"{nameof(PacketSender<>)} must be initialized before sending.");
+    private PacketContext<TPacket> GET_CONTEXT_OR_THROW() => _context ?? throw new InvalidOperationException($"{nameof(PacketSender<>)} must be initialized before sending.");
 
     #endregion Private Methods
 }
