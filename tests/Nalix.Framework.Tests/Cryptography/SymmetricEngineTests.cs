@@ -37,34 +37,34 @@ public sealed class SymmetricEngineTests
     // =========================================================================
 
     // 32-byte all-zero key (deterministic)
-    private static readonly byte[] Key32 = new byte[32];
+    private static readonly byte[] s_key32 = new byte[32];
 
     // 12-byte all-zero nonce for ChaCha20
-    private static readonly byte[] Nonce12 = new byte[12];
+    private static readonly byte[] s_nonce12 = new byte[12];
 
     // 8-byte all-zero nonce for Salsa20
-    private static readonly byte[] Nonce8 = new byte[8];
+    private static readonly byte[] s_nonce8 = new byte[8];
 
     // Short plaintext (< 1 block = 64 bytes)
-    private static readonly byte[] PlaintextShort =
+    private static readonly byte[] s_plaintextShort =
         System.Text.Encoding.UTF8.GetBytes("Hello, Nalix!");
 
     // Exactly 1 block (64 bytes)
-    private static readonly byte[] PlaintextOneBlock = new byte[64];
+    private static readonly byte[] s_plaintextOneBlock = new byte[64];
 
     // Multi-block plaintext (3 full blocks + a tail)
-    private static readonly byte[] PlaintextMultiBlock = new byte[200];
+    private static readonly byte[] s_plaintextMultiBlock = new byte[200];
 
     static SymmetricEngineTests()
     {
-        for (int i = 0; i < PlaintextOneBlock.Length; i++)
+        for (int i = 0; i < s_plaintextOneBlock.Length; i++)
         {
-            PlaintextOneBlock[i] = (byte)(i + 1);
+            s_plaintextOneBlock[i] = (byte)(i + 1);
         }
 
-        for (int i = 0; i < PlaintextMultiBlock.Length; i++)
+        for (int i = 0; i < s_plaintextMultiBlock.Length; i++)
         {
-            PlaintextMultiBlock[i] = (byte)(i & 0xFF);
+            s_plaintextMultiBlock[i] = (byte)(i & 0xFF);
         }
     }
 
@@ -100,7 +100,7 @@ public sealed class SymmetricEngineTests
         => algorithm is CipherSuiteType.Chacha20 ? ChaCha20NonceSize : Salsa20NonceSize;
 
     private static byte[] NonceFor(CipherSuiteType algorithm)
-        => algorithm is CipherSuiteType.Chacha20 ? Nonce12 : Nonce8;
+        => algorithm is CipherSuiteType.Chacha20 ? s_nonce12 : s_nonce8;
 
     // =========================================================================
     //  1. ChaCha20 — RFC 7539 Test Vector
@@ -138,15 +138,15 @@ public sealed class SymmetricEngineTests
     {
         byte[] tooSmall = new byte[1];
         _ = Assert.Throws<ArgumentException>(() =>
-            Salsa20.Encrypt(Key32, Nonce8, 0UL, PlaintextShort, tooSmall));
+            Salsa20.Encrypt(s_key32, s_nonce8, 0UL, s_plaintextShort, tooSmall));
     }
 
     [Fact]
     public void Salsa20SpanOverloadReturnsCorrectByteCount()
     {
-        byte[] dst = new byte[PlaintextShort.Length];
-        int written = Salsa20.Encrypt(Key32, Nonce8, 0UL, PlaintextShort, dst);
-        Assert.Equal(PlaintextShort.Length, written);
+        byte[] dst = new byte[s_plaintextShort.Length];
+        int written = Salsa20.Encrypt(s_key32, s_nonce8, 0UL, s_plaintextShort, dst);
+        Assert.Equal(s_plaintextShort.Length, written);
     }
 
     // =========================================================================
@@ -163,21 +163,21 @@ public sealed class SymmetricEngineTests
     {
         byte[] nonce = NonceFor(algorithm);
         int nLen = NonceLength(algorithm);
-        byte[] envelope = new byte[EnvelopeSize(nLen, PlaintextMultiBlock.Length)];
-        byte[] plaintext = new byte[PlaintextMultiBlock.Length];
+        byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextMultiBlock.Length)];
+        byte[] plaintext = new byte[s_plaintextMultiBlock.Length];
 
         bool encOk = SymmetricEngine.Encrypt(
-            Key32, PlaintextMultiBlock, envelope, nonce,
+            s_key32, s_plaintextMultiBlock, envelope, nonce,
             seq: 99u, algorithm, out int encWritten);
 
         Assert.True(encOk);
-        Assert.Equal(EnvelopeSize(nLen, PlaintextMultiBlock.Length), encWritten);
+        Assert.Equal(EnvelopeSize(nLen, s_plaintextMultiBlock.Length), encWritten);
 
-        bool decOk = SymmetricEngine.Decrypt(Key32, envelope, plaintext, out int decWritten);
+        bool decOk = SymmetricEngine.Decrypt(s_key32, envelope, plaintext, out int decWritten);
 
         Assert.True(decOk);
-        Assert.Equal(PlaintextMultiBlock.Length, decWritten);
-        Assert.Equal(PlaintextMultiBlock, plaintext);
+        Assert.Equal(s_plaintextMultiBlock.Length, decWritten);
+        Assert.Equal(s_plaintextMultiBlock, plaintext);
     }
 
     [Theory]
@@ -189,7 +189,7 @@ public sealed class SymmetricEngineTests
         byte[] tinyBuffer = new byte[1]; // far too small
 
         bool ok = SymmetricEngine.Encrypt(
-            Key32, PlaintextShort, tinyBuffer, nonce,
+            s_key32, s_plaintextShort, tinyBuffer, nonce,
             seq: 0u, algorithm, out int written);
 
         Assert.False(ok);
@@ -200,17 +200,17 @@ public sealed class SymmetricEngineTests
     public void SymmetricEngineEnvelopeCorruptMagicBytesDecryptReturnsFalse()
     {
         int nLen = ChaCha20NonceSize;
-        byte[] envelope = new byte[EnvelopeSize(nLen, PlaintextShort.Length)];
-        byte[] ptBuf = new byte[PlaintextShort.Length];
+        byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
+        byte[] ptBuf = new byte[s_plaintextShort.Length];
 
         _ = SymmetricEngine.Encrypt(
-            Key32, PlaintextShort, envelope, Nonce12,
+            s_key32, s_plaintextShort, envelope, s_nonce12,
             seq: 1u, CipherSuiteType.Chacha20, out _);
 
         // Corrupt the first byte of MAGIC "NALX"
         envelope[0] ^= 0xFF;
 
-        bool decOk = SymmetricEngine.Decrypt(Key32, envelope, ptBuf, out int decWritten);
+        bool decOk = SymmetricEngine.Decrypt(s_key32, envelope, ptBuf, out int decWritten);
 
         Assert.False(decOk);
         Assert.Equal(0, decWritten);
@@ -220,7 +220,7 @@ public sealed class SymmetricEngineTests
     public void SymmetricEngineEnvelopeEmptyEnvelopeDecryptReturnsFalse()
     {
         byte[] ptBuf = new byte[10];
-        bool ok = SymmetricEngine.Decrypt(Key32, [], ptBuf, out int written);
+        bool ok = SymmetricEngine.Decrypt(s_key32, [], ptBuf, out int written);
 
         Assert.False(ok);
         Assert.Equal(0, written);
@@ -230,17 +230,17 @@ public sealed class SymmetricEngineTests
     public void SymmetricEngineEnvelopeTruncatedEnvelopeDecryptReturnsFalse()
     {
         int nLen = ChaCha20NonceSize;
-        byte[] envelope = new byte[EnvelopeSize(nLen, PlaintextShort.Length)];
-        byte[] ptBuf = new byte[PlaintextShort.Length];
+        byte[] envelope = new byte[EnvelopeSize(nLen, s_plaintextShort.Length)];
+        byte[] ptBuf = new byte[s_plaintextShort.Length];
 
         _ = SymmetricEngine.Encrypt(
-            Key32, PlaintextShort, envelope, Nonce12,
+            s_key32, s_plaintextShort, envelope, s_nonce12,
             seq: 5u, CipherSuiteType.Chacha20, out _);
 
         // Truncate to just the header (missing nonce + ciphertext)
         byte[] truncated = envelope[..HeaderSize];
 
-        bool ok = SymmetricEngine.Decrypt(Key32, truncated, ptBuf, out int written);
+        bool ok = SymmetricEngine.Decrypt(s_key32, truncated, ptBuf, out int written);
 
         Assert.False(ok);
         Assert.Equal(0, written);

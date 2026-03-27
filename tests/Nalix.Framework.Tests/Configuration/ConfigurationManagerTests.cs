@@ -14,8 +14,21 @@ using Xunit;
 namespace Nalix.Framework.Tests.Configuration;
 
 /// <summary>
-/// Provides unit tests for the public API exposed by <see cref="ConfigurationManager"/>.
+/// Provides comprehensive unit tests for the public API surface of <see cref="ConfigurationManager"/>.
 /// </summary>
+/// <remarks>
+/// This test suite validates the following behaviors:
+/// <list type="bullet">
+/// <item><description>Configuration loading and binding from file.</description></item>
+/// <item><description>Instance caching and reuse semantics.</description></item>
+/// <item><description>File path validation and safety constraints.</description></item>
+/// <item><description>Reload behavior (manual and automatic).</description></item>
+/// <item><description>Cache invalidation (remove/clear).</description></item>
+/// <item><description>Graceful handling of missing or invalid configuration files.</description></item>
+/// </list>
+/// 
+/// Each test uses an isolated temporary directory to avoid cross-test interference.
+/// </remarks>
 public sealed class ConfigurationManagerTests : IDisposable
 {
     private readonly string _testDirectory;
@@ -34,7 +47,14 @@ public sealed class ConfigurationManagerTests : IDisposable
         _ = Directory.CreateDirectory(_testDirectory);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Releases all <see cref="ConfigurationManager"/> instances created during the test
+    /// and attempts to clean up the temporary directory.
+    /// </summary>
+    /// <remarks>
+    /// Cleanup is best-effort and may silently ignore exceptions,
+    /// especially due to asynchronous file watcher disposal.
+    /// </remarks>
     public void Dispose()
     {
         foreach (ConfigurationManager manager in _managers)
@@ -62,10 +82,18 @@ public sealed class ConfigurationManagerTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// Verifies that calling <see cref="ConfigurationManager.Get{T}"/> multiple times
+    /// returns the same cached instance.
+    /// </summary>
+    /// <remarks>
+    /// This ensures that configuration objects are singleton per type within a manager instance,
+    /// and no redundant allocations or rebindings occur.
+    /// </remarks>
     [Fact]
     public void GetWhenConfigurationFileContainsValuesReturnsInitializedConfiguration()
     {
-        string filePath = WriteConfigFile(
+        string filePath = this.WriteConfigFile(
             "appsettings.ini",
             """
             [Sample]
@@ -73,7 +101,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = hello
             """);
 
-        using ConfigurationManager manager = CreateManager(filePath);
+        using ConfigurationManager manager = this.CreateManager(filePath);
 
         SampleConfig configuration = manager.Get<SampleConfig>();
 
@@ -84,10 +112,18 @@ public sealed class ConfigurationManagerTests : IDisposable
         Assert.True(manager.ConfigFileExists);
     }
 
+    /// <summary>
+    /// Verifies that calling <see cref="ConfigurationManager.Get{T}"/> multiple times
+    /// returns the same cached instance.
+    /// </summary>
+    /// <remarks>
+    /// This ensures that configuration objects are singleton per type within a manager instance,
+    /// and no redundant allocations or rebindings occur.
+    /// </remarks>
     [Fact]
     public void GetWhenCalledMultipleTimesReturnsSameCachedInstance()
     {
-        string filePath = WriteConfigFile(
+        string filePath = this.WriteConfigFile(
             "cached.ini",
             """
             [Sample]
@@ -95,7 +131,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = cache
             """);
 
-        using ConfigurationManager manager = CreateManager(filePath);
+        using ConfigurationManager manager = this.CreateManager(filePath);
 
         SampleConfig first = manager.Get<SampleConfig>();
         SampleConfig second = manager.Get<SampleConfig>();
@@ -108,7 +144,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     {
         string filePath = Path.Combine(_testDirectory, "missing.ini");
 
-        using ConfigurationManager manager = CreateManager(filePath);
+        using ConfigurationManager manager = this.CreateManager(filePath);
 
         Assert.False(manager.ConfigFileExists);
 
@@ -124,7 +160,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     [Fact]
     public void GetWithPathOverloadUsesProvidedConfigurationFile()
     {
-        string filePath = WriteConfigFile(
+        string filePath = this.WriteConfigFile(
             "overload.ini",
             """
             [Sample]
@@ -132,7 +168,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = overload
             """);
 
-        using ConfigurationManager manager = CreateManager();
+        using ConfigurationManager manager = this.CreateManager();
 
         SampleConfig configuration = manager.Get<SampleConfig>(filePath);
 
@@ -147,7 +183,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     [InlineData("   ")]
     public void SetConfigFilePathWhenPathIsNullOrWhitespaceThrowsArgumentException(string? path)
     {
-        using ConfigurationManager manager = CreateManager();
+        using ConfigurationManager manager = this.CreateManager();
 
         _ = Assert.Throws<ArgumentException>(() => manager.SetConfigFilePath(path!));
     }
@@ -155,7 +191,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     [Fact]
     public void SetConfigFilePathWhenPathIsOutsideConfigurationDirectoryThrowsInternalErrorException()
     {
-        using ConfigurationManager manager = CreateManager();
+        using ConfigurationManager manager = this.CreateManager();
         string outsidePath = Path.Combine(Path.GetTempPath(), $"outside_{Guid.NewGuid():N}.ini");
 
         _ = Assert.Throws<InternalErrorException>(() => manager.SetConfigFilePath(outsidePath));
@@ -164,7 +200,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     [Fact]
     public void SetConfigFilePathWhenPathIsUnchangedReturnsFalse()
     {
-        string filePath = WriteConfigFile(
+        string filePath = this.WriteConfigFile(
             "same-path.ini",
             """
             [Sample]
@@ -172,7 +208,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = same
             """);
 
-        using ConfigurationManager manager = CreateManager(filePath);
+        using ConfigurationManager manager = this.CreateManager(filePath);
 
         bool changed = manager.SetConfigFilePath(filePath);
 
@@ -183,7 +219,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     [Fact]
     public void SetConfigFilePathWhenAutoReloadIsDisabledKeepsExistingValuesUntilReloadAll()
     {
-        string firstPath = WriteConfigFile(
+        string firstPath = this.WriteConfigFile(
             "first.ini",
             """
             [Sample]
@@ -191,7 +227,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = first
             """);
 
-        string secondPath = WriteConfigFile(
+        string secondPath = this.WriteConfigFile(
             "second.ini",
             """
             [Sample]
@@ -199,7 +235,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = second
             """);
 
-        using ConfigurationManager manager = CreateManager(firstPath);
+        using ConfigurationManager manager = this.CreateManager(firstPath);
         SampleConfig configuration = manager.Get<SampleConfig>();
 
         bool changed = manager.SetConfigFilePath(secondPath, autoReload: false);
@@ -219,7 +255,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     [Fact]
     public void SetConfigFilePathWhenAutoReloadIsEnabledUpdatesExistingLoadedInstance()
     {
-        string firstPath = WriteConfigFile(
+        string firstPath = this.WriteConfigFile(
             "auto-first.ini",
             """
             [Sample]
@@ -227,7 +263,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = before
             """);
 
-        string secondPath = WriteConfigFile(
+        string secondPath = this.WriteConfigFile(
             "auto-second.ini",
             """
             [Sample]
@@ -235,7 +271,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = after
             """);
 
-        using ConfigurationManager manager = CreateManager(firstPath);
+        using ConfigurationManager manager = this.CreateManager(firstPath);
         SampleConfig configuration = manager.Get<SampleConfig>();
 
         DateTime beforeReload = manager.LastReloadTime;
@@ -248,10 +284,22 @@ public sealed class ConfigurationManagerTests : IDisposable
         Assert.True(manager.LastReloadTime >= beforeReload);
     }
 
+    /// <summary>
+    /// Verifies that <see cref="ConfigurationManager.ReloadAll"/> reloads configuration data
+    /// when the underlying file content changes.
+    /// </summary>
+    /// <remarks>
+    /// This test ensures:
+    /// <list type="bullet">
+    /// <item><description>Existing instances are updated in-place (no new allocation).</description></item>
+    /// <item><description>New values are correctly rebound from disk.</description></item>
+    /// <item><description><see cref="ConfigurationManager.LastReloadTime"/> is updated.</description></item>
+    /// </list>
+    /// </remarks>
     [Fact]
     public void ReloadAllWhenConfigurationFileChangesReloadsLoadedConfigurationsAndUpdatesTimestamp()
     {
-        string filePath = WriteConfigFile(
+        string filePath = this.WriteConfigFile(
             "reload.ini",
             """
             [Sample]
@@ -259,7 +307,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = initial
             """);
 
-        using ConfigurationManager manager = CreateManager(filePath);
+        using ConfigurationManager manager = this.CreateManager(filePath);
         SampleConfig configuration = manager.Get<SampleConfig>();
         DateTime beforeReload = manager.LastReloadTime;
 
@@ -284,7 +332,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     [Fact]
     public void RemoveWhenConfigurationWasLoadedRemovesItFromCache()
     {
-        string filePath = WriteConfigFile(
+        string filePath = this.WriteConfigFile(
             "remove.ini",
             """
             [Sample]
@@ -292,7 +340,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = remove
             """);
 
-        using ConfigurationManager manager = CreateManager(filePath);
+        using ConfigurationManager manager = this.CreateManager(filePath);
         SampleConfig first = manager.Get<SampleConfig>();
 
         bool removed = manager.Remove<SampleConfig>();
@@ -306,7 +354,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     [Fact]
     public void RemoveWhenConfigurationWasNotLoadedReturnsFalse()
     {
-        using ConfigurationManager manager = CreateManager();
+        using ConfigurationManager manager = this.CreateManager();
 
         bool removed = manager.Remove<SampleConfig>();
 
@@ -316,7 +364,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     [Fact]
     public void ClearAllWhenConfigurationsWereLoadedRemovesAllCachedInstances()
     {
-        string filePath = WriteConfigFile(
+        string filePath = this.WriteConfigFile(
             "clear.ini",
             """
             [Sample]
@@ -326,7 +374,7 @@ public sealed class ConfigurationManagerTests : IDisposable
             Enabled = true
             """);
 
-        using ConfigurationManager manager = CreateManager(filePath);
+        using ConfigurationManager manager = this.CreateManager(filePath);
         SampleConfig sample = manager.Get<SampleConfig>();
         AnotherConfig another = manager.Get<AnotherConfig>();
 
@@ -347,7 +395,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     {
         string filePath = Path.Combine(_testDirectory, "flush.ini");
 
-        using ConfigurationManager manager = CreateManager(filePath);
+        using ConfigurationManager manager = this.CreateManager(filePath);
 
         Exception? exception = Record.Exception(manager.Flush);
 
@@ -376,8 +424,11 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     /// <summary>
-    /// Represents a configuration type used to validate scalar binding.
+    /// Represents a sample configuration used to validate scalar value binding.
     /// </summary>
+    /// <remarks>
+    /// Bound from the <c>[Sample]</c> section in the configuration file.
+    /// </remarks>
     public sealed class SampleConfig : ConfigurationLoader
     {
         /// <summary>
@@ -392,8 +443,11 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     /// <summary>
-    /// Represents an additional configuration type used to verify cache clearing.
+    /// Represents an additional configuration used to validate cache clearing behavior.
     /// </summary>
+    /// <remarks>
+    /// Used alongside <see cref="SampleConfig"/> to ensure multiple types are handled correctly.
+    /// </remarks>
     public sealed class AnotherConfig : ConfigurationLoader
     {
         /// <summary>
