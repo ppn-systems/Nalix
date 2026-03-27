@@ -1,6 +1,16 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Common.Abstractions;
+using Nalix.Common.Diagnostics;
+using Nalix.Common.Identity;
+using Nalix.Common.Networking;
+using Nalix.Common.Primitives;
+using Nalix.Common.Security;
+using Nalix.Framework.Configuration;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Time;
+using Nalix.Network.Configurations;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,16 +21,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking;
-using Nalix.Common.Security;
-using Nalix.Framework.Configuration;
-using Nalix.Framework.Identifiers;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Time;
-using Nalix.Network.Configurations;
 
 namespace Nalix.Network.Connections;
 
@@ -41,10 +41,10 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Queue tracking order of anonymous connections for O(1)-amortized eviction
     /// </summary>
-    private readonly ConcurrentQueue<ISnowflake> _anonymousQueue;
+    private readonly ConcurrentQueue<UInt56> _anonymousQueue;
 
     private readonly int _shardCount;
-    private readonly ConcurrentDictionary<int, ConcurrentDictionary<ISnowflake, IConnection>> _shards;
+    private readonly ConcurrentDictionary<UInt56, IConnection>[] _shards;
 
     private readonly ConnectionHubOptions _options;
 
@@ -112,16 +112,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _options.Validate();
 
         _shardCount = Math.Max(1, _options.ShardCount);
-        _ = Environment.ProcessorCount * 2;
-
-        _shards = new();
+        _anonymousQueue = new ConcurrentQueue<UInt56>();
+        _shards = new ConcurrentDictionary<UInt56, IConnection>[_shardCount];
 
         for (int i = 0; i < _shardCount; i++)
         {
-            _shards[i] = new ConcurrentDictionary<ISnowflake, IConnection>();
+            _shards[i] = new ConcurrentDictionary<UInt56, IConnection>();
         }
-
-        _anonymousQueue = new ConcurrentQueue<ISnowflake>();
     }
 
     #endregion Constructor
@@ -156,14 +153,15 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             scope = TimingScope.Start();
         }
 
-        int shardIndex = this.GetShardIndex(connection.ID);
-        ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+        UInt56 connectionKey = connection.ID.ToUInt56();
+        int shardIndex = this.GetShardIndex(connectionKey);
+        ConcurrentDictionary<UInt56, IConnection> shard = _shards[shardIndex];
 
-        if (shard.TryAdd(connection.ID, connection))
+        if (shard.TryAdd(connectionKey, connection))
         {
             connection.OnCloseEvent += this.OnClientDisconnected;
             _ = Interlocked.Increment(ref _count);
-            _anonymousQueue.Enqueue(connection.ID);
+            _anonymousQueue.Enqueue(connectionKey);
 
 
             s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
@@ -209,10 +207,11 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             scope = TimingScope.Start();
         }
 
-        int shardIndex = this.GetShardIndex(connection.ID);
-        ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+        UInt56 connectionKey = connection.ID.ToUInt56();
+        int shardIndex = this.GetShardIndex(connectionKey);
+        ConcurrentDictionary<UInt56, IConnection> shard = _shards[shardIndex];
 
-        if (!shard.TryRemove(connection.ID, out IConnection? existing))
+        if (!shard.TryRemove(connectionKey, out IConnection? existing))
         {
             s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
 
@@ -246,8 +245,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [return: MaybeNull]
     public IConnection? GetConnection(ISnowflake id)
     {
-        ConcurrentDictionary<ISnowflake, IConnection> shard = this.GetShard(id);
-        return shard.TryGetValue(id, out IConnection? connection) ? connection : null;
+        UInt56 key = id.ToUInt56();
+        ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(key);
+        return shard.TryGetValue(key, out IConnection? connection) ? connection : null;
     }
 
     /// <summary>
@@ -259,9 +259,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [return: MaybeNull]
     public IConnection? GetConnection(ReadOnlySpan<byte> id)
     {
-        ISnowflake snowflake = Snowflake.FromBytes(id);
-        ConcurrentDictionary<ISnowflake, IConnection> shard = this.GetShard(snowflake);
-        return shard.TryGetValue(snowflake, out IConnection? connection) ? connection : null;
+        UInt56 key = UInt56.ReadBytesLittleEndian(id);
+        ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(key);
+        return shard.TryGetValue(key, out IConnection? connection) ? connection : null;
     }
 
     /// <inheritdoc />
@@ -283,7 +283,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             List<IConnection> connections = [];
 
-            foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+            foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
             {
                 connections.AddRange(shard.Values);
             }
@@ -298,7 +298,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             int index = 0;
 
-            foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+            foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
             {
                 foreach (IConnection connection in shard.Values)
                 {
@@ -442,7 +442,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         List<IConnection> filteredConnections = [];
 
-        foreach (ConcurrentDictionary<ISnowflake, IConnection> shared in _shards.Values)
+        foreach (ConcurrentDictionary<UInt56, IConnection> shared in _shards)
         {
             foreach (IConnection connection in shared.Values)
             {
@@ -510,7 +510,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         int closedCount = 0;
         string targetAddress = networkEndpoint.Address;
 
-        foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
         {
             foreach (IConnection conn in shard.Values)
             {
@@ -574,7 +574,10 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         });
 
         // Dispose all dictionaries
-        _shards.Clear();
+        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+        {
+            shard.Clear();
+        }
         _anonymousQueue.Clear();
         _ = Interlocked.Exchange(ref _count, 0);
 
@@ -607,7 +610,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connections      : {(stats.MaxConnections < 0 ? "Unlimited" : stats.MaxConnections.ToString(CultureInfo.InvariantCulture))}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {stats.DropPolicy}");
 
-        foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
         {
             foreach (IConnection conn in shard.Values)
             {
@@ -674,22 +677,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _ = sb.AppendLine("ID             | Username");
         _ = sb.AppendLine("------------------------------------------------------------");
 
-        foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
         {
-            foreach (KeyValuePair<ISnowflake, IConnection> kvp in shard)
+            foreach (KeyValuePair<UInt56, IConnection> kvp in shard)
             {
-                ISnowflake id = kvp.Key;
-                string username;
-
-                if (kvp.Value.Attributes.TryGetValue("username", out object? name) && name is string s)
-                {
-                    username = s;
-                }
-                else
-                {
-                    username = "N/A";
-                }
-
+                UInt56 id = kvp.Key;
+                string username = kvp.Value.Attributes.TryGetValue("username", out object? name) && name is string s ? s : "N/A";
                 _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{id,-14} | {username}");
 
                 if (++count >= Limit)
@@ -735,7 +728,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         int limit = 15, current = 0;
         List<Dictionary<string, object>> sampleConnections = [];
 
-        foreach (ConcurrentDictionary<ISnowflake, IConnection> shard in _shards.Values)
+        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
         {
             foreach (IConnection conn in shard.Values)
             {
@@ -813,10 +806,10 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int GetShardIndex(ISnowflake id) => (id.GetHashCode() & 0x7FFFFFFF) % _shardCount;
+    private int GetShardIndex(UInt56 id) => (id.GetHashCode() & 0x7FFFFFFF) % _shardCount;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ConcurrentDictionary<ISnowflake, IConnection> GetShard(ISnowflake id)
+    private ConcurrentDictionary<UInt56, IConnection> GetShard(UInt56 id)
     {
         int index = this.GetShardIndex(id);
         return _shards[index];
@@ -843,15 +836,10 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
 
             case DropPolicy.DropOldest:
-                while (_anonymousQueue.TryDequeue(out ISnowflake? oldestId))
+                while (_anonymousQueue.TryDequeue(out UInt56 oldestId))
                 {
-                    if (oldestId is null)
-                    {
-                        continue;
-                    }
-
                     int shardIndex = this.GetShardIndex(oldestId);
-                    ConcurrentDictionary<ISnowflake, IConnection> shard = _shards[shardIndex];
+                    ConcurrentDictionary<UInt56, IConnection> shard = _shards[shardIndex];
 
                     if (shard.TryGetValue(oldestId, out IConnection? oldestConn) && oldestConn is not null)
                     {
