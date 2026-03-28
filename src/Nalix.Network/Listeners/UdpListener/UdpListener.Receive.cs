@@ -22,6 +22,9 @@ using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Transport;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
@@ -75,19 +78,29 @@ public abstract partial class UdpListenerBase
         }
         catch (ObjectDisposedException ex) when (Volatile.Read(ref _isDisposed) != 0 || _cancellationToken.IsCancellationRequested)
         {
-            _logger?.Debug(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] " +
-                $"disposed-or-cancelled port={_port} reason={ex.GetType().Name}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] " +
+                    $"disposed-or-cancelled port={_port} reason={ex.GetType().Name}");
+            }
         }
         catch (ObjectDisposedException ex)
         {
             _ = Interlocked.Increment(ref _recvErrors);
-            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-object-disposed port={_port}", ex);
+
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-object-disposed port={_port}");
+            }
         }
         catch (Exception ex) when (!_cancellationToken.IsCancellationRequested)
         {
             _ = Interlocked.Increment(ref _recvErrors);
-            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}");
+            }
 
             // Brief delay to prevent tight error loops on synchronous failure.
             this.ScheduleRetryStartReceive(args, _cancellationToken);
@@ -114,9 +127,12 @@ public abstract partial class UdpListenerBase
             if (error is not null && Volatile.Read(ref self._isDisposed) == 0 && !self._cancellationToken.IsCancellationRequested)
             {
                 _ = Interlocked.Increment(ref self._recvErrors);
-                _logger?.Error(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(RetryStartReceiveAsync)}] retry-failed port={self._port}",
-                    error);
+                if (self._logger != null && self._logger.IsEnabled(LogLevel.Error))
+                {
+                    self._logger.LogError(
+                        error,
+                        $"[NW.{nameof(UdpListenerBase)}:{nameof(RetryStartReceiveAsync)}] retry-failed port={self._port}");
+                }
             }
         }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
@@ -151,15 +167,24 @@ public abstract partial class UdpListenerBase
         }
         catch (SocketException ex)
         {
-            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}");
+            }
         }
         catch (ObjectDisposedException ex)
         {
-            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}");
+            }
         }
         catch (OperationCanceledException ex) when (_cancellationToken.IsCancellationRequested)
         {
-            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}");
+            }
         }
         finally
         {
@@ -226,9 +251,12 @@ public abstract partial class UdpListenerBase
             lease?.Dispose();
 
 #if DEBUG
-            _logger?.Debug(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                $"short-packet len={lease?.Length} from={remoteEndPoint}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                    $"short-packet len={lease?.Length} from={remoteEndPoint}");
+            }
 #endif
             return;
         }
@@ -326,9 +354,12 @@ public abstract partial class UdpListenerBase
             }
 
 #if DEBUG
-            _logger?.Trace(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                $"bound+protocol id={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                    $"bound+protocol id={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
+            }
 #endif
         }
         finally
@@ -460,7 +491,10 @@ public abstract partial class UdpListenerBase
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
 #if DEBUG
-                _logger?.Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+                }
 #endif
             }
             else

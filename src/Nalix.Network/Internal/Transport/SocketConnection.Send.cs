@@ -11,8 +11,12 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.Chunks;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
+
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -63,9 +67,9 @@ internal sealed partial class SocketConnection
             try
             {
 #if DEBUG
-                if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.Debug(
+                    _logger.LogDebug(
                         $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                         $"stackalloc len={data.Length} ep={_socket.RemoteEndPoint}");
                 }
@@ -74,10 +78,10 @@ internal sealed partial class SocketConnection
                 WRITE_FRAME_HEADER(frameS, (ushort)totalLength, data);
 
 #if DEBUG
-                if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
                     Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
-                    _logger.Debug(
+                    _logger.LogDebug(
                         $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                         $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} ep={_socket.RemoteEndPoint}");
                 }
@@ -90,9 +94,9 @@ internal sealed partial class SocketConnection
                     if (n == 0)
                     {
 #if DEBUG
-                        if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                         {
-                            _logger.Debug(
+                            _logger.LogDebug(
                                 $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                 $"stackalloc peer-closed ep={_socket.RemoteEndPoint}");
                         }
@@ -118,9 +122,9 @@ internal sealed partial class SocketConnection
                 if (IS_BENIGN_DISCONNECT(ex))
                 {
 #if DEBUG
-                    if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                        _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                       $"stackalloc-benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
                     }
 #endif
@@ -146,9 +150,9 @@ internal sealed partial class SocketConnection
         try
         {
 #if DEBUG
-            if (_logger?.IsEnabled(LogLevel.Debug) == true)
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.Debug(
+                _logger.LogDebug(
                     $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                     $"pooled len={data.Length} ep={_socket.RemoteEndPoint}");
             }
@@ -157,10 +161,10 @@ internal sealed partial class SocketConnection
             data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
 
 #if DEBUG
-            if (_logger?.IsEnabled(LogLevel.Debug) == true)
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
                 Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
-                _logger.Debug(
+                _logger.LogDebug(
                     $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                     $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
                     $"ep={_socket.RemoteEndPoint}");
@@ -175,12 +179,11 @@ internal sealed partial class SocketConnection
                 if (n == 0)
                 {
 #if DEBUG
-
-                    if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.Debug(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                            $"pooled peer-closed ep={_socket.RemoteEndPoint}");
+                        _logger.LogDebug(
+                            "[NW.{Class}:{Method}] pooled peer-closed ep={Ep}",
+                            nameof(SocketConnection), nameof(Send), _socket.RemoteEndPoint);
                     }
 #endif
                     this.CANCEL_RECEIVE_ONCE();
@@ -198,11 +201,11 @@ internal sealed partial class SocketConnection
             if (IS_BENIGN_DISCONNECT(ex))
             {
 #if DEBUG
-                if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.Debug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                        $"pooled-benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
+                    _logger.LogDebug(
+                        "[NW.{Class}:{Method}] pooled-benign-disconnect ep={Ep} ex={ExType}",
+                        nameof(SocketConnection), nameof(Send), FORMAT_ENDPOINT(_socket), ex.GetType().Name);
                 }
 #endif
             }
@@ -259,20 +262,23 @@ internal sealed partial class SocketConnection
         try
         {
 #if DEBUG
-            _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                            $"len={data.Length} ep={_socket.RemoteEndPoint}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    "[NW.{Class}:{Method}] len={Len} ep={Ep}",
+                    nameof(SocketConnection), nameof(SendAsync), data.Length, _socket.RemoteEndPoint);
+            }
 #endif
             WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength, data.Span);
 
 #if DEBUG
-            if (_logger?.IsEnabled(LogLevel.Debug) == true)
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
                 ReadOnlySpan<byte> payloadSpan = data.Span;
 
-                _logger.Debug(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                    $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
-                    $"ep={_socket.RemoteEndPoint}");
+                _logger.LogDebug(
+                    "[NW.{Class}:{Method}] sending frame totalLen={Total} payload={Payload} ep={Ep}",
+                    nameof(SocketConnection), nameof(SendAsync), totalLength, FORMAT_FRAME_FOR_LOG(payloadSpan), _socket.RemoteEndPoint);
             }
 #endif
 

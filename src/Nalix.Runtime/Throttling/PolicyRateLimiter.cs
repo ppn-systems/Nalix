@@ -124,7 +124,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             if (newCount <= 0)
             {
                 _ = Interlocked.Decrement(ref _activeUsers);
-                _logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
+                }
                 return false;
             }
 
@@ -138,7 +141,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
             if (remaining < 0)
             {
-                _logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
+                }
                 _ = Interlocked.Exchange(ref _activeUsers, 0);
                 _idleSignal.Set();
                 return;
@@ -190,9 +196,12 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             {
                 if (!_idleSignal.Wait(maxWaitMs))
                 {
-                    _logger?.Warn(
-                        $"[NW.{nameof(PolicyRateLimiter)}:Entry] " +
-                        $"dispose-timeout active-users={Volatile.Read(ref _activeUsers)}");
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(
+                            $"[NW.{nameof(PolicyRateLimiter)}:Entry] " +
+                            $"dispose-timeout active-users={Volatile.Read(ref _activeUsers)}");
+                    }
                 }
             }
             catch (ObjectDisposedException)
@@ -216,7 +225,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                _logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] disposal-error", ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex, $"[NW.{nameof(PolicyRateLimiter)}:Entry] disposal-error");
+                }
             }
 
             _idleSignal.Dispose();
@@ -460,9 +472,12 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
                     }
                     catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                     {
-                        _logger?.Error(
-                            $"[NW.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] " +
-                            $"disposal-error policy={policy}", ex);
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                        {
+                            _logger.LogError(ex, 
+                                $"[NW.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] " +
+                                $"disposal-error policy={policy}");
+                        }
                     }
                 }
 #pragma warning restore CA2000
@@ -480,7 +495,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             _limiters.Clear();
         }
 
-        _logger?.Info($"[NW.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] disposed={disposedCount}/{totalCount}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation($"[NW.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] disposed={disposedCount}/{totalCount}");
+        }
 
         GC.SuppressFinalize(this);
     }
@@ -514,7 +532,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         if (rl.Burst <= 0)
         {
-            _logger?.Warn($"[NW.{nameof(PolicyRateLimiter)}] invalid-burst burst={rl.Burst}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[NW.{nameof(PolicyRateLimiter)}] invalid-burst burst={rl.Burst}");
+            }
 
             return new CheckResult
             {
@@ -594,7 +615,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     {
         if (context.Connection?.NetworkEndpoint is null)
         {
-            _logger?.Warn($"[NW.{nameof(PolicyRateLimiter)}] missing-endpoint opCode={opCode}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[NW.{nameof(PolicyRateLimiter)}] missing-endpoint opCode={opCode}");
+            }
 
             return new CheckResult
             {
@@ -674,7 +698,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         {
             reused.Touch();
 
-            _logger?.Debug($"[NW.{nameof(PolicyRateLimiter)}] reusing-policy wanted=({wanted.Rps},{wanted.Burst}) closest=({closest.Rps},{closest.Burst})");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug($"[NW.{nameof(PolicyRateLimiter)}] reusing-policy wanted=({wanted.Rps},{wanted.Burst}) closest=({closest.Rps},{closest.Burst})");
+            }
 
             return reused;
         }
@@ -727,7 +754,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         if (ReferenceEquals(actualEntry, newEntry))
         {
-            _logger?.Info($"[NW.{nameof(PolicyRateLimiter)}] created-policy-limiter rps={policy.Rps} burst={policy.Burst} total={_limiters.Count}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation($"[NW.{nameof(PolicyRateLimiter)}] created-policy-limiter rps={policy.Rps} burst={policy.Burst} total={_limiters.Count}");
+            }
         }
         else
         {
@@ -816,9 +846,12 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         if (evictedCount > 0)
         {
-            _logger?.Debug(
-                $"[NW.{nameof(PolicyRateLimiter)}] evicted-stale-policies " +
-                $"count={evictedCount} remaining={_limiters.Count}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    $"[NW.{nameof(PolicyRateLimiter)}] evicted-stale-policies " +
+                    $"count={evictedCount} remaining={_limiters.Count}");
+            }
         }
     }
 

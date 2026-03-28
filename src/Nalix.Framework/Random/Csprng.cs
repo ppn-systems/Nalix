@@ -9,6 +9,9 @@ using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Random.Core;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Framework.Random;
 
 /// <summary>
@@ -53,14 +56,20 @@ public static class Csprng
             // permanently killing the class. Instead, fall back gracefully.
             s_f = OsRandom.Fill;
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error("[FW.Csprng] OS CSPRNG unavailable — falling back to OsRandom. " +
-                                           "Cryptographic strength may be reduced.", ex);
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+            if (logger != null && logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, "[FW.Csprng] OS CSPRNG unavailable — falling back to OsRandom. " +
+                                    "Cryptographic strength may be reduced.");
+            }
             return;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.Csprng] init using {(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}");
+        ILogger? loggerFinal = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        if (loggerFinal != null && loggerFinal.IsEnabled(LogLevel.Information))
+        {
+            loggerFinal.LogInformation($"[FW.Csprng] init using {(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}");
+        }
     }
 
     #endregion Constructor

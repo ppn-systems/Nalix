@@ -26,6 +26,9 @@ using Nalix.Framework.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Network.RateLimiting;
 
 /// <summary>
@@ -102,10 +105,13 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-        _logger?.Debug($"[NW.{nameof(ConnectionGuard)}] init " +
-                      $"maxPerEndpoint={_maxPerEndpoint} " +
-                      $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
-                      $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] init " +
+                          $"maxPerEndpoint={_maxPerEndpoint} " +
+                          $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
+                          $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
+        }
     }
 
     /// <summary>Initializes a new <see cref="ConnectionGuard"/> using global configuration.</summary>
@@ -176,15 +182,21 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 {
                     string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
-                    _logger?.Info(
-                        $"[NW.{nameof(ConnectionGuard)}] reject endpoint={endPoint} " +
-                        $"current={result.CurrentConnections} limit={_maxPerEndpoint}{suffix}");
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+                    {
+                        _logger.LogInformation(
+                            $"[NW.{nameof(ConnectionGuard)}] reject endpoint={endPoint} " +
+                            $"current={result.CurrentConnections} limit={_maxPerEndpoint}{suffix}");
+                    }
                 }
             }
         }
         else
         {
-            _logger?.Trace($"[NW.{nameof(ConnectionGuard)}] allow endpoint={endPoint} current={result.CurrentConnections} limit={_maxPerEndpoint}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] allow endpoint={endPoint} current={result.CurrentConnections} limit={_maxPerEndpoint}");
+            }
         }
 
         return result.Allowed;
@@ -206,13 +218,19 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         if (args?.Connection?.NetworkEndpoint is null)
         {
-            _logger?.Warn($"[NW.{nameof(ConnectionGuard)}:Internal] received-null args/connection/endpoint");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}:Internal] received-null args/connection/endpoint");
+            }
             return;
         }
 
         if (string.IsNullOrWhiteSpace(args.Connection.NetworkEndpoint.Address))
         {
-            _logger?.Warn($"[NW.{nameof(ConnectionGuard)}:Internal] received-empty-address");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}:Internal] received-empty-address");
+            }
             return;
         }
 
@@ -232,7 +250,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             {
                 string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
-                _logger?.Trace($"[NW.{nameof(ConnectionGuard)}] closed endpoint={args.Connection.NetworkEndpoint.Address}{suffix}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                {
+                    _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] closed endpoint={args.Connection.NetworkEndpoint.Address}{suffix}");
+                }
             }
         }
     }
@@ -365,7 +386,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
                 shouldForceClose = true;
 
-                _logger?.Warn($"[NW.{nameof(ConnectionGuard)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
+                }
 
                 result = new ConnectionAllowResult
                 {
@@ -422,7 +446,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        _logger?.Error($"[NW.{nameof(ConnectionGuard)}] force-close-failed ip={key.Address} ex={ex.Message}");
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                        {
+                            _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] force-close-failed ip={key.Address}");
+                        }
                     }
 
                     await Task.CompletedTask.ConfigureAwait(false);
@@ -509,7 +536,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 {
                     entry.RecentConnectionTimestamps.Clear();
 
-                    _logger?.Debug($"[NW.{nameof(ConnectionGuard)}] cleared-queue ip={key.Address} reason=oversized");
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] cleared-queue ip={key.Address} reason=oversized");
+                    }
                 }
             }
         }
@@ -551,14 +581,20 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         if (suppressed > 0)
         {
-            _logger?.Warn(
-                $"[NW.{nameof(ConnectionGuard)}] DDoS-detected ip={key.Address} " +
-                $"(+{suppressed} suppressed-in-last={_config.DDoSLogSuppressWindow.TotalSeconds:F0}s)");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(
+                    $"[NW.{nameof(ConnectionGuard)}] DDoS-detected ip={key.Address} " +
+                    $"(+{suppressed} suppressed-in-last={_config.DDoSLogSuppressWindow.TotalSeconds:F0}s)");
+            }
         }
         else
         {
-            _logger?.Warn(
-                $"[NW.{nameof(ConnectionGuard)}] DDoS-detected ip={key.Address}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(
+                    $"[NW.{nameof(ConnectionGuard)}] DDoS-detected ip={key.Address}");
+            }
         }
     }
 
@@ -624,8 +660,11 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         {
             string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
-            _logger?.Trace($"[NW.{nameof(ConnectionGuard)}] banned-reject ip={key.Address} " +
-                           $"until={bannedUntil:HH:mm:ss}{suffix}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] banned-reject ip={key.Address} " +
+                               $"until={bannedUntil:HH:mm:ss}{suffix}");
+            }
         }
     }
 
@@ -862,12 +901,18 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
             if (removed > 0)
             {
-                _logger?.Debug($"[NW.{nameof(ConnectionGuard)}] cleanup scanned={scanned} removed={removed} remaining={_map.Count}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] cleanup scanned={scanned} removed={removed} remaining={_map.Count}");
+                }
             }
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
-            _logger?.Error($"[NW.{nameof(ConnectionGuard)}] cleanup-error", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] cleanup-error");
+            }
         }
     }
 
@@ -939,11 +984,17 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
             _map.Clear();
 
-            _logger?.Debug($"[NW.{nameof(ConnectionGuard)}:{nameof(Dispose)}] disposed");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}:{nameof(Dispose)}] disposed");
+            }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Error($"[NW.{nameof(ConnectionGuard)}:{nameof(Dispose)}] dispose-error msg={ex.Message}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}:{nameof(Dispose)}] dispose-error");
+            }
         }
 
         GC.SuppressFinalize(this);

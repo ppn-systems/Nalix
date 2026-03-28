@@ -7,6 +7,10 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
+using Nalix.Framework.Extensions;
+
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
 
 namespace Nalix.Network.Protocols;
 
@@ -59,7 +63,10 @@ public abstract partial class Protocol : IProtocol
             {
                 args.Connection.Disconnect();
 
-                s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                {
+                    s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
+                }
             }
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
@@ -85,6 +92,9 @@ public abstract partial class Protocol : IProtocol
     {
         _ = Interlocked.Exchange(ref _accepting, isEnabled ? 1 : 0);
 
-        s_logger?.Info($"[NW.{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Information))
+        {
+            s_logger.LogInformation($"[NW.{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
+        }
     }
 }

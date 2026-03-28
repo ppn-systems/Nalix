@@ -128,7 +128,13 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     /// <summary>
     /// Initializes a new instance of the <see cref="TimeSynchronizer"/> class.
     /// </summary>
-    public TimeSynchronizer() => s_logger?.Debug($"[NW.{nameof(TimeSynchronizer)}] initialized");
+    public TimeSynchronizer()
+    {
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        {
+            s_logger.LogDebug($"[NW.{nameof(TimeSynchronizer)}] initialized");
+        }
+    }
 
     /// <summary>
     /// Enables synchronization and ensures the loop is running.
@@ -196,7 +202,10 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 }
                 else
                 {
-                    s_logger?.Warn($"[NW.{nameof(TimeSynchronizer)}] restart-timeout waiting for previous loop to stop");
+                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+                    {
+                        s_logger.LogWarning($"[NW.{nameof(TimeSynchronizer)}] restart-timeout waiting for previous loop to stop");
+                    }
                 }
             }
             catch (ObjectDisposedException)
@@ -243,7 +252,10 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                     }
                     else
                     {
-                        s_logger?.Warn($"[NW.{nameof(TimeSynchronizer)}] dispose-timeout waiting for loop shutdown");
+                        if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+                        {
+                            s_logger.LogWarning($"[NW.{nameof(TimeSynchronizer)}] dispose-timeout waiting for loop shutdown");
+                        }
                     }
                 }
                 catch (ObjectDisposedException)
@@ -255,7 +267,10 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
         GC.SuppressFinalize(this);
 
-        s_logger?.Debug($"[NW.{nameof(TimeSynchronizer)}] disposed");
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        {
+            s_logger.LogDebug($"[NW.{nameof(TimeSynchronizer)}] disposed");
+        }
     }
 
     #endregion Dispose
@@ -294,7 +309,10 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 {
                     using PeriodicTimer timer = new(this.Period);
 
-                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] started period={this.Period.TotalMilliseconds:0.#}ms");
+                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Information))
+                    {
+                        s_logger.LogInformation($"[NW.{nameof(TimeSynchronizer)}] started period={this.Period.TotalMilliseconds:0.#}ms");
+                    }
 
                     while (!ct.IsCancellationRequested)
                     {
@@ -324,7 +342,10 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                     }
                                     catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                                     {
-                                        s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
+                                        if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+                                        {
+                                            s_logger.LogError(ex, $"[NW.{nameof(TimeSynchronizer)}] handler-error");
+                                        }
                                     }
                                 }, (handler, timestamp), preferLocal: false);
                             }
@@ -336,7 +357,10 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                 }
                                 catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                                 {
-                                    s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
+                                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+                                    {
+                                        s_logger.LogError(ex, $"[NW.{nameof(TimeSynchronizer)}] handler-error");
+                                    }
                                 }
                             }
                         }
@@ -346,7 +370,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                             long elapsed = Clock.UnixMillisecondsNow() - timestamp;
                             if (elapsed > this.Period.TotalMilliseconds * 1.5)
                             {
-                                s_logger.Warn(
+                                s_logger.LogWarning(
                                     $"[NW.{nameof(TimeSynchronizer)}] tick overrun " +
                                     $"elapsed={elapsed}ms period={this.Period.TotalMilliseconds:0.#}ms");
                             }
@@ -361,13 +385,19 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 }
                 catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] loop-error", ex);
+                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+                    {
+                        s_logger.LogError(ex, $"[NW.{nameof(TimeSynchronizer)}] loop-error");
+                    }
                 }
                 finally
                 {
                     Volatile.Write(ref _isRunning, 0);
                     _stoppedSignal.Set();
-                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] stopped");
+                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Information))
+                    {
+                        s_logger.LogInformation($"[NW.{nameof(TimeSynchronizer)}] stopped");
+                    }
                 }
             },
             options: new WorkerOptions

@@ -12,6 +12,9 @@ using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Framework.Configuration.Binding;
 
 public partial class ConfigurationLoader
@@ -99,9 +102,11 @@ public partial class ConfigurationLoader
         configFile.WriteComment(section, property.Name, property.Comment);
         configFile.WriteValue(section, property.Name, valueToWrite);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
-                                       $"default-written section={section} key={property.Name} val={valueToWrite}");
+        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
+                           $"default-written section={section} key={property.Name} val={valueToWrite}");
+        }
     }
 
     /// <summary>
@@ -162,9 +167,11 @@ public partial class ConfigurationLoader
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static object ThrowUnsupported(PropertyMetadata property)
     {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
-                                       $"unsupported-type type={property.PropertyType.Name} info={property.PropertyInfo.Name} key={property.Name}");
+        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
+        {
+            logger.LogError($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
+                           $"unsupported-type type={property.PropertyType.Name} info={property.PropertyInfo.Name} key={property.Name}");
+        }
 
         throw new NotSupportedException(
             $"Value type {property.PropertyType.Name} is not supported for configuration files.");

@@ -12,6 +12,9 @@ using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Framework.Configuration.Binding;
 
 /// <summary>
@@ -139,8 +142,11 @@ public abstract partial class ConfigurationLoader
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
         string section = GetSectionName(type);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        if (logger != null && logger.IsEnabled(LogLevel.Trace))
+        {
+            logger.LogTrace($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
+        }
 
         // Write the section-level comment before the first property is processed.
         // IniConfig.WriteComment is a no-op when the section already exists, so the
@@ -157,8 +163,10 @@ public abstract partial class ConfigurationLoader
                 if (value == null ||
                    (value is string strValue && string.IsNullOrEmpty(strValue)))
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
+                    if (logger != null && logger.IsEnabled(LogLevel.Trace))
+                    {
+                        logger.LogTrace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
+                    }
 
                     // HandleEmptyValue writes the comment and default value for new
                     // keys so newly discovered settings are self-documenting.
