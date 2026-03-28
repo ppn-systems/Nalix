@@ -270,7 +270,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     /// </para>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public TokenBucketLimiter.RateLimitDecision Check(ushort opCode, PacketContext<IPacket> context)
+    public TokenBucketLimiter.RateLimitDecision Evaluate(ushort opCode, PacketContext<IPacket> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
@@ -306,7 +306,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PolicyRateLimiter Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Active Policies    : {_limiters.Count}/{MaxPolicies}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Check Counter      : {Volatile.Read(ref _checkCounter):N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Evaluate Counter      : {Volatile.Read(ref _checkCounter):N0}");
         _ = sb.AppendLine();
 
         if (_limiters.IsEmpty)
@@ -562,7 +562,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         try
         {
             RateLimitSubject subject = new(opCode, context.Connection.NetworkEndpoint);
-            TokenBucketLimiter.RateLimitDecision decision = entry.Limiter.Check(subject);
+            TokenBucketLimiter.RateLimitDecision decision = entry.Limiter.Evaluate(subject);
 
             return new CheckResult
             {

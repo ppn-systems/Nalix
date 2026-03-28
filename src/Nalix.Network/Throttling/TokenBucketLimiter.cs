@@ -204,7 +204,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     /// <exception cref="ArgumentNullException">Thrown when key is null.</exception>
     /// <exception cref="ArgumentException">Thrown when key address is null or empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public RateLimitDecision Check(INetworkEndpoint key)
+    public RateLimitDecision Evaluate(INetworkEndpoint key)
     {
         if (_disposed)
         {

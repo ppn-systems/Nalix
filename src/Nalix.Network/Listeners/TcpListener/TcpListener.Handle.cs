@@ -239,15 +239,14 @@ public abstract partial class TcpListenerBase
                         return;
                     }
 
-                    if (socket.RemoteEndPoint is not IPEndPoint remoteIp ||
-                        !_limiter.IsConnectionAllowed(remoteIp))
+                    if (socket.RemoteEndPoint is not IPEndPoint remoteIp || !_limiter.TryAccept(remoteIp))
                     {
                         SafeCloseSocket(socket);
                         throw new NetworkException();
                     }
 
                     // Create and process connection similar to async version
-                    PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context ?? throw new InvalidOperationException("Accept context was not bound to pooled socket args.");
+                    PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context ?? throw new InvalidOperationException("TryAccept context was not bound to pooled socket args.");
                     IConnection connection = this.InitializeConnection(socket, context);
 
                     // Process the connection
@@ -660,7 +659,7 @@ public abstract partial class TcpListenerBase
                                   .ConfigureAwait(false);
 
             EndPoint? remoteEndPoint = socket.RemoteEndPoint;
-            if (remoteEndPoint is null || !_limiter.IsConnectionAllowed(remoteEndPoint))
+            if (socket.RemoteEndPoint is not IPEndPoint remoteIp || !_limiter.TryAccept(remoteIp))
             {
                 SafeCloseSocket(socket);
 
@@ -711,7 +710,7 @@ public abstract partial class TcpListenerBase
             }
             catch { }
 
-            throw new NetworkException($"Accept failed. Listener={remote}, ContextReturned={contextReturned}", ex);
+            throw new NetworkException($"TryAccept failed. Listener={remote}, ContextReturned={contextReturned}", ex);
         }
     }
 }

@@ -44,7 +44,7 @@ internal sealed class PooledAcceptContext : IPoolable
         _ = e.SocketError == SocketError.Success
             ? e.AcceptSocket is Socket acceptedSocket
                 ? tcs.TrySetResult(acceptedSocket)
-                : tcs.TrySetException(new InvalidOperationException("Accept completed successfully without a socket."))
+                : tcs.TrySetException(new InvalidOperationException("TryAccept completed successfully without a socket."))
             : tcs.TrySetException(new SocketException((int)e.SocketError));
     };
 
@@ -157,7 +157,7 @@ internal sealed class PooledAcceptContext : IPoolable
                 args.AcceptSocket = null;
                 if (s is null)
                 {
-                    _ = tcs.TrySetException(new InvalidOperationException("Accept completed successfully without a socket."));
+                    _ = tcs.TrySetException(new InvalidOperationException("TryAccept completed successfully without a socket."));
                 }
                 else
                 {

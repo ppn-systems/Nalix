@@ -419,10 +419,7 @@ public sealed class ConcurrencyGate : IReportable
     /// <param name="attr"></param>
     /// <param name="lease"></param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryEnter(
-        ushort opcode,
-        PacketConcurrencyLimitAttribute attr,
-        out Lease lease)
+    public bool TryEnter(ushort opcode, PacketConcurrencyLimitAttribute attr, out Lease lease)
     {
         // FIX #12: Check and reset circuit breaker
         if (this.IS_CIRCUIT_OPEN())
@@ -486,10 +483,7 @@ public sealed class ConcurrencyGate : IReportable
     /// <exception cref="ConcurrencyConflictException"></exception>
     /// <exception cref="TimeoutException"></exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public async ValueTask<Lease> EnterAsync(
-        ushort opcode,
-        PacketConcurrencyLimitAttribute attr,
-        CancellationToken ct = default)
+    public async ValueTask<Lease> EnterAsync(ushort opcode, PacketConcurrencyLimitAttribute attr, CancellationToken ct = default)
     {
         VALIDATE_ATTRIBUTE(attr);
 
@@ -545,15 +539,7 @@ public sealed class ConcurrencyGate : IReportable
     /// <summary>
     /// Gets diagnostic statistics.
     /// </summary>
-    public (
-        long TotalAcquired,
-        long TotalRejected,
-        long TotalQueued,
-        long TotalCleaned,
-        long CircuitBreakerTrips,
-        bool CircuitBreakerOpen,
-        int TrackedOpcodes
-    ) GetStatistics()
+    public (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) GetStatistics()
     {
         return (
             Interlocked.Read(ref _totalAcquired),
@@ -604,18 +590,17 @@ public sealed class ConcurrencyGate : IReportable
         });
 
         // Calculate metrics
-        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) stats = this.GetStatistics();
         double rejectionRate = 0.0;
-        long totalAttempts = stats.TotalAcquired + stats.TotalRejected;
+        long totalAttempts = Interlocked.Read(ref _totalAcquired) + Interlocked.Read(ref _totalRejected);
         if (totalAttempts > 0)
         {
-            rejectionRate = stats.TotalRejected * 100.0 / totalAttempts;
+            rejectionRate = Interlocked.Read(ref _totalRejected) * 100.0 / totalAttempts;
         }
 
         // Build report
         StringBuilder sb = new();
 
-        this.APPEND_REPORT_HEADER(sb, stats, rejectionRate);
+        this.APPEND_REPORT_HEADER(sb, rejectionRate);
         APPEND_OPCODE_DETAILS(sb, snapshot);
 
         return sb.ToString();
@@ -635,25 +620,24 @@ public sealed class ConcurrencyGate : IReportable
             return cmp != 0 ? cmp : b.Value.QueueCount.CompareTo(a.Value.QueueCount);
         });
 
-        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) = this.GetStatistics();
-        long totalAttempts = TotalAcquired + TotalRejected;
-        double rejectionRate = totalAttempts > 0 ? (TotalRejected * 100.0 / totalAttempts) : 0.0;
+        long totalAttempts = Interlocked.Read(ref _totalAcquired) + Interlocked.Read(ref _totalRejected);
+        double rejectionRate = totalAttempts > 0 ? (Interlocked.Read(ref _totalRejected) * 100.0 / totalAttempts) : 0.0;
 
         Dictionary<string, object> report = new()
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["CleanupIntervalMinutes"] = _cleanupInterval.TotalMinutes,
             ["MinIdleAgeMinutes"] = _minIdleAge.TotalMinutes,
-            ["TrackedOpcodes"] = TrackedOpcodes,
-            ["TotalAcquired"] = TotalAcquired,
-            ["TotalRejected"] = TotalRejected,
-            ["TotalQueued"] = TotalQueued,
-            ["TotalCleaned"] = TotalCleaned,
+            ["TrackedOpcodes"] = s_table.Count,
+            ["TotalAcquired"] = Interlocked.Read(ref _totalAcquired),
+            ["TotalRejected"] = Interlocked.Read(ref _totalRejected),
+            ["TotalQueued"] = Interlocked.Read(ref _totalQueued),
+            ["TotalCleaned"] = Interlocked.Read(ref _totalCleanedEntries),
             ["RejectionRate"] = rejectionRate,
             ["CircuitBreaker"] = new Dictionary<string, object>
             {
-                ["IsOpen"] = CircuitBreakerOpen,
-                ["Trips"] = CircuitBreakerTrips
+                ["IsOpen"] = Volatile.Read(ref _circuitBreakerOpen) == 1,
+                ["Trips"] = Interlocked.Read(ref _circuitBreakerTrips)
             }
         };
 
@@ -682,20 +666,18 @@ public sealed class ConcurrencyGate : IReportable
         return report;
     }
 
-    private void APPEND_REPORT_HEADER(
-        StringBuilder sb,
-        (long TotalAcquired, long TotalRejected, long TotalQueued, long TotalCleaned, long CircuitBreakerTrips, bool CircuitBreakerOpen, int TrackedOpcodes) stats, double rejectionRate)
+    private void APPEND_REPORT_HEADER(StringBuilder sb, double rejectionRate)
     {
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConcurrencyGate Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CleanupInterval    : {_cleanupInterval.TotalMinutes:F1} min");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MinIdleAge         : {_minIdleAge.TotalMinutes:F1} min");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TrackedOpcodes     : {stats.TrackedOpcodes}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalAcquired      : {stats.TotalAcquired:N0}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalRejected      : {stats.TotalRejected:N0}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalQueued        : {stats.TotalQueued:N0}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalCleaned       : {stats.TotalCleaned:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TrackedOpcodes     : {s_table.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalAcquired      : {Interlocked.Read(ref _totalAcquired):N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalRejected      : {Interlocked.Read(ref _totalRejected):N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalQueued        : {Interlocked.Read(ref _totalQueued):N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalCleaned       : {Interlocked.Read(ref _totalCleanedEntries):N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"RejectionRate      : {rejectionRate:F2}%");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CircuitBreaker     : {(stats.CircuitBreakerOpen ? "OPEN" : "Closed")} (trips={stats.CircuitBreakerTrips})");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CircuitBreaker     : {(Volatile.Read(ref _circuitBreakerOpen) == 1 ? "OPEN" : "Closed")} (trips={Interlocked.Read(ref _circuitBreakerTrips)})");
         _ = sb.AppendLine();
     }
 
