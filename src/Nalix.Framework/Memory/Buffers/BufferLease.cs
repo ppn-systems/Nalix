@@ -19,7 +19,7 @@ namespace Nalix.Framework.Memory.Buffers;
 [DebuggerDisplay("BufferLease Start={_start}, Len={Length}, Cap={Capacity}, Detached={_detached != 0}")]
 public sealed class BufferLease : IBufferLease
 {
-    // ====== Static ======
+    #region Static
 
     /// <summary>
     /// Provides a centralized buffer pooling abstraction.
@@ -85,6 +85,10 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     public static readonly int StackAllocThreshold = 512; // 1KB threshold for stackalloc in CopyFrom
 
+    #endregion Static
+
+    #region Fields
+
 #if DEBUG
     private const byte PoisonByte = 0xCD;
     private const bool EnablePoisonOnDispose = true;
@@ -109,7 +113,9 @@ public sealed class BufferLease : IBufferLease
 
     private byte[]? _buffer;
 
-    // ====== Ctor ======
+    #endregion Fields
+
+    #region Constructors
 
     private BufferLease(byte[] buffer, int start, int length, bool zeroOnDispose)
     {
@@ -133,6 +139,8 @@ public sealed class BufferLease : IBufferLease
         this.Length = length;
         this.ZeroOnDispose = zeroOnDispose;
     }
+
+    #endregion Constructors
 
     #region Properties
 
@@ -345,9 +353,7 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     /// <param name="src"></param>
     /// <param name="zeroOnDispose"></param>
-    public static BufferLease CopyFrom(
-        ReadOnlySpan<byte> src,
-        bool zeroOnDispose = false)
+    public static BufferLease CopyFrom(ReadOnlySpan<byte> src, bool zeroOnDispose = false)
     {
         byte[] arr = ByteArrayPool.Rent(src.Length);
         src.CopyTo(MemoryExtensions.AsSpan(arr, 0, src.Length));
