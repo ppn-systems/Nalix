@@ -114,7 +114,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// Releases a buffer back into the pool.
     /// </summary>
     /// <param name="buffer"></param>
-    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is null or does not match this pool's buffer size.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReleaseBuffer(byte[] buffer)
@@ -140,7 +140,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// Increases the capacity of the pool by adding buffers.
     /// </summary>
     /// <param name="additionalCapacity"></param>
-    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="additionalCapacity"/> is less than or equal to zero.</exception>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void IncreaseCapacity(int additionalCapacity)

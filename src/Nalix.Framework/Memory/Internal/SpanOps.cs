@@ -27,7 +27,7 @@ internal static unsafe class SpanOps
     /// </summary>
     /// <param name="dest"></param>
     /// <param name="value"></param>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="value"/> is negative.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static int WriteVarInt(byte* dest, int value)
     {

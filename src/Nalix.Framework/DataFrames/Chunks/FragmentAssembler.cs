@@ -24,7 +24,7 @@ namespace Nalix.Framework.DataFrames.Chunks;
 /// No locking required as TCP ensures order and only a single goroutine reads from the socket.</para>
 ///
 /// <para><b>Ownership after reassembly:</b>
-/// <see cref="TryAdd"/> returns a <see cref="BufferLease"/> newly rented from the pool.
+/// <see cref="Add"/> returns a <see cref="BufferLease"/> newly rented from the pool.
 /// <b>The caller must Dispose the lease</b> after handling.</para>
 ///
 /// <para><b>Chunks must arrive in order</b> (TCP guarantees this) and not be duplicated.
@@ -108,42 +108,30 @@ public sealed class FragmentAssembler : IDisposable
 
     /// <summary>
     /// Adds a chunk to the assembler.
-    ///
-    /// <para>
-    /// Returns <see langword="true"/> and sets <paramref name="assembled"/> when
-    /// this is the last chunk and all previous chunks have arrived (stream is complete).
-    /// </para>
-    /// <para>
-    /// Returns <see langword="false"/> in all other cases:
-    /// waiting for more chunks, header error, or timeout eviction.
-    /// </para>
     /// </summary>
     /// <param name="header">Header of the received chunk.</param>
     /// <param name="chunkBody">
     /// The chunk body — without the 7-byte <see cref="FragmentHeader"/>.
     /// Data is <b>copied</b> immediately, so the caller may release the span after calling.
     /// </param>
-    /// <param name="assembled">
-    /// [out] Complete buffer lease when stream is done. <b>Caller must Dispose.</b>
-    /// </param>
     /// <param name="streamEvicted"></param>
-    /// <returns><see langword="true"/> if the stream is complete.</returns>
-    public bool TryAdd(in FragmentHeader header, ReadOnlySpan<byte> chunkBody, out BufferLease? assembled, out bool streamEvicted)
+    /// <returns>
+    /// A complete <see cref="BufferLease"/> when the stream is finished; otherwise <see langword="null"/>
+    /// while waiting for more chunks or when the stream was evicted as part of normal policy enforcement.
+    /// </returns>
+    public BufferLease? Add(in FragmentHeader header, ReadOnlySpan<byte> chunkBody, out bool streamEvicted)
     {
-        assembled = null;
         streamEvicted = false;
 
-        if (_disposed)
-        {
-            return false;
-        }
+        ObjectDisposedException.ThrowIf(_disposed, nameof(FragmentAssembler));
 
         // ── Validate ──────────────────────────────────────────────────────
         if (header.StreamId == 0
          || header.TotalChunks == 0
          || header.ChunkIndex >= header.TotalChunks)
         {
-            return false; // Malformed — skip, do not evict other streams
+            throw new InvalidDataException(
+                $"Invalid fragment header. StreamId={header.StreamId}, ChunkIndex={header.ChunkIndex}, TotalChunks={header.TotalChunks}.");
         }
 
         long now = Environment.TickCount64;
@@ -153,7 +141,8 @@ public sealed class FragmentAssembler : IDisposable
         {
             if (header.ChunkIndex != 0)
             {
-                return false;
+                throw new InvalidDataException(
+                    $"Fragment stream {header.StreamId} started with chunk index {header.ChunkIndex} instead of 0.");
             }
 
             // Estimate buffer size: firstChunk * totalChunks, capped at MaxStreamBytes
@@ -168,7 +157,7 @@ public sealed class FragmentAssembler : IDisposable
         {
             streamEvicted = true;
             this.EVICT(header.StreamId, state);
-            return false;
+            return null;
         }
 
         state.LastActivityMs = now;
@@ -179,20 +168,23 @@ public sealed class FragmentAssembler : IDisposable
         {
             streamEvicted = true;
             this.EVICT(header.StreamId, state);
-            return false;
+            throw new InvalidDataException(
+                $"Fragment stream {header.StreamId} changed TotalChunks from {state.TotalChunks} to {header.TotalChunks}.");
+        }
+
+        // ── Enforce ordered delivery ─────────────────────────────────────
+        if (header.ChunkIndex != state.ReceivedCount)
+        {
+            throw new InvalidDataException(
+                $"Fragment stream {header.StreamId} received out-of-order chunk. Expected index {state.ReceivedCount}, got {header.ChunkIndex}.");
         }
 
         // ── Check overflow ───────────────────────────────────────────────
-        if (state.ReceivedCount >= state.TotalChunks)
-        {
-            return false; // Duplicate or stale
-        }
-
         if (state.WrittenBytes + chunkBody.Length > this.MaxStreamBytes)
         {
             streamEvicted = true;
             this.EVICT(header.StreamId, state);
-            return false;
+            return null;
         }
 
         // ── Grow buffer if needed ────────────────────────────────────────
@@ -217,7 +209,7 @@ public sealed class FragmentAssembler : IDisposable
         // ── Check if stream is complete ──────────────────────────────────
         if (state.ReceivedCount < state.TotalChunks)
         {
-            return false; // Still waiting for more chunks
+            return null; // Still waiting for more chunks
         }
 
         // ── Stream done: hand over buffer to caller (zero-copy) ──────────
@@ -230,8 +222,7 @@ public sealed class FragmentAssembler : IDisposable
         _ = _streams.Remove(header.StreamId);
         // No need to call state.Dispose() because AccumBuffer is now null
 
-        assembled = BufferLease.FromRented(finalBuf, finalLen);
-        return true;
+        return BufferLease.FromRented(finalBuf, finalLen);
     }
 
     /// <summary>

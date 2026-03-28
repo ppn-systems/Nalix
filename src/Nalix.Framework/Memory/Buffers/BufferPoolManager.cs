@@ -189,6 +189,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// Rents a buffer of at least the requested size with optimized caching and optional fallback.
     /// </summary>
     /// <param name="minimumLength"></param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="minimumLength"/> cannot be serviced by the configured pools and fallback is disabled.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Rent(int minimumLength = 256)
@@ -319,6 +320,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// Gets the allocation ratio for a given buffer size with caching for performance.
     /// </summary>
     /// <param name="size"></param>
+    /// <exception cref="InvalidOperationException">Thrown when buffer allocation metadata is unavailable.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public double GetAllocationForSize(int size)
@@ -491,7 +493,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// </summary>
     /// <param name="size"></param>
     /// <param name="ex"></param>
-    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentException">Rethrown when the requested buffer size is invalid and fallback is disabled.</exception>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private byte[] HANDLE_RENT_FAILURE(int size, ArgumentException ex)

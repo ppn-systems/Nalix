@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
@@ -41,6 +42,7 @@ public static class FrameTransformer
     /// <returns>
     /// Maximum bytes required for the ciphertext buffer, i.e., encrypted envelope size.
     /// </returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="type"/> is not a supported cipher suite.</exception>
     public static int GetMaxCiphertextSize(CipherSuiteType type, int plaintextSize)
     {
         int tagSize = EnvelopeCipher.GetTagLength(type);
@@ -54,7 +56,7 @@ public static class FrameTransformer
     /// Returns the size of plaintext from an encrypted envelope (header || nonce || ciphertext [|| tag]).
     /// </summary>
     /// <param name="envelope">The input envelope.</param>
-    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="envelope"/> does not contain a valid Nalix packet envelope.</exception>
     public static int GetPlaintextLength(ReadOnlySpan<byte> envelope)
         => !EnvelopeFormat.TryParseEnvelope(envelope[Offset..], out EnvelopeFormat.ParsedEnvelope parsed)
         ? throw new ArgumentException("Malformed envelope", nameof(envelope)) : parsed.Ciphertext.Length;
@@ -63,11 +65,22 @@ public static class FrameTransformer
     /// Calculates the maximum compressed size for a given plaintext size using LZ4 compression.
     /// </summary>
     /// <param name="plaintextSize">Size of the plaintext input in bytes.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="plaintextSize"/> is negative.</exception>
     public static int GetMaxCompressedSize(int plaintextSize) => LZ4BlockEncoder.GetMinOutputBufferSize(plaintextSize);
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Reads the original uncompressed payload length from an LZ4 block header.
+    /// </summary>
+    /// <param name="src">The source packet buffer containing an LZ4-compressed payload.</param>
+    /// <returns>The original payload length stored in the LZ4 block header.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="src"/> is shorter than an <see cref="LZ4BlockHeader"/>.</exception>
     public static int GetDecompressedLength(ReadOnlySpan<byte> src)
     {
+        if (src.Length < Unsafe.SizeOf<LZ4BlockHeader>())
+        {
+            throw new ArgumentOutOfRangeException(nameof(src), "The source buffer is too small to contain an LZ4 block header.");
+        }
+
         LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(src);
 
         return header.OriginalLength;
@@ -84,8 +97,11 @@ public static class FrameTransformer
     /// The header portion of the packet is copied unchanged.
     /// Only the payload is encrypted.
     /// </remarks>
-    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="src"/> or <paramref name="dest"/> is null, or when <paramref name="key"/> is empty.</exception>
     /// <exception cref="ArgumentException">Thrown when the source or destination buffer is too small.</exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the selected cipher rejects the supplied key or destination envelope.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Encrypt(IBufferLease src, IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType suite)
     {
@@ -121,8 +137,10 @@ public static class FrameTransformer
     /// The header portion is copied unchanged.
     /// Only the payload is decrypted.
     /// </remarks>
-    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="src"/> or <paramref name="dest"/> is null, or when <paramref name="key"/> is empty.</exception>
     /// <exception cref="ArgumentException">Thrown when the source or destination buffer is too small.</exception>
+    /// <exception cref="CryptographicException">Thrown when AEAD authentication fails during payload decryption.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the encrypted payload declares an unsupported cipher suite.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Decrypt(IBufferLease src, IBufferLease dest, ReadOnlySpan<byte> key)
     {
@@ -157,6 +175,8 @@ public static class FrameTransformer
     /// <remarks>
     /// The destination buffer must be large enough to hold the maximum possible compressed data.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="src"/> or <paramref name="dest"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the packet header or payload buffers are too small.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Compress(IBufferLease src, IBufferLease dest)
     {
@@ -185,6 +205,8 @@ public static class FrameTransformer
     /// <remarks>
     /// The destination buffer must be large enough to hold the original uncompressed payload.
     /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="src"/> or <paramref name="dest"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when the packet header or payload buffers are too small.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Decompress(IBufferLease src, IBufferLease dest)
     {

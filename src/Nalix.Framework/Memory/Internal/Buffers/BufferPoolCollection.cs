@@ -120,8 +120,8 @@ internal sealed class BufferPoolCollection : IDisposable
     /// Rents a buffer that is at least the requested size with optimized lookup.
     /// </summary>
     /// <param name="size"></param>
-    /// <exception cref="ArgumentException"></exception>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="size"/> exceeds every configured pool size.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the selected pool key no longer resolves to a backing pool.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] RentBuffer(int size)
@@ -151,7 +151,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// Returns a buffer to the appropriate pool.
     /// </summary>
     /// <param name="buffer"></param>
-    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> does not match any managed pool size.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReturnBuffer(byte[]? buffer)

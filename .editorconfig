@@ -340,9 +340,8 @@ dotnet_code_quality.api_surface = public
 dotnet_analyzer_diagnostic.severity = warning
 warn_as_error = true
 
-dotnet_diagnostic.CA1040.severity = warning  # Avoid empty interfaces
-dotnet_diagnostic.CA1031.severity = warning  # Catch general exception
-dotnet_diagnostic.CA1031.severity = suggestion
+dotnet_diagnostic.CA1040.severity = warning  # Avoid empty interfaces-
+dotnet_diagnostic.CA1031.severity = suggestion # Catch general exception
 
 charset = utf-8
 max_line_length = 150

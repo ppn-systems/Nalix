@@ -69,6 +69,7 @@ public ref struct DataWriter
     /// Creates a writer over an existing external array (no renting, no automatic return).
     /// </summary>
     /// <param name="buffer">External backing array (length must be &gt; 0).</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="buffer"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="buffer"/> has zero length.</exception>
     public DataWriter(byte[] buffer)
     {
@@ -158,6 +159,7 @@ public ref struct DataWriter
     /// <param name="minimumSize">Required free space in bytes (must be &gt; 0).</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if non-positive.</exception>
     /// <exception cref="InvalidOperationException">Thrown when expansion is not allowed.</exception>
+    /// <exception cref="OutOfMemoryException">Thrown when a larger backing buffer cannot be rented.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public void Expand(int minimumSize)

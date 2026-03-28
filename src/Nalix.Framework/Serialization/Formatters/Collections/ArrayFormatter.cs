@@ -74,7 +74,7 @@ internal sealed class ArrayFormatter<
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized array of unmanaged values, or null if applicable.</returns>
-    /// <exception cref="SerializationException"></exception>
+    /// <exception cref="SerializationException">Thrown when the encoded array length is outside supported bounds or the reader does not contain enough bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] Deserialize(ref DataReader reader)

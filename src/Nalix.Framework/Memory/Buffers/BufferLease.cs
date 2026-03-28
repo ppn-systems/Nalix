@@ -200,7 +200,8 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Increases the reference count so multiple consumers can hold this lease safely.
     /// </summary>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the lease has already released its underlying buffer.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the internal reference count becomes invalid.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Retain()
@@ -221,7 +222,7 @@ public sealed class BufferLease : IBufferLease
     /// Sets the valid payload length (must be 0..Capacity).
     /// </summary>
     /// <param name="length"></param>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="length"/> is negative or larger than <see cref="Capacity"/>.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CommitLength(int length)
@@ -237,7 +238,9 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Releases a reference. When the count reaches zero and not detached, returns the array to <see cref="BufferPoolManager"/>.
     /// </summary>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <remarks>
+    /// Double-dispose is tolerated and becomes a debug-only diagnostic instead of throwing.
+    /// </remarks>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -338,6 +341,8 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     /// <param name="capacity"></param>
     /// <param name="zeroOnDispose"></param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="capacity"/> is negative.</exception>
+    /// <exception cref="OutOfMemoryException">Thrown when no backing array can be rented.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BufferLease Rent(
@@ -353,6 +358,7 @@ public sealed class BufferLease : IBufferLease
     /// </summary>
     /// <param name="src"></param>
     /// <param name="zeroOnDispose"></param>
+    /// <exception cref="OutOfMemoryException">Thrown when no backing array can be rented for the copied data.</exception>
     public static BufferLease CopyFrom(ReadOnlySpan<byte> src, bool zeroOnDispose = false)
     {
         byte[] arr = ByteArrayPool.Rent(src.Length);
@@ -367,6 +373,8 @@ public sealed class BufferLease : IBufferLease
     /// <param name="buffer"></param>
     /// <param name="length"></param>
     /// <param name="zeroOnDispose"></param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="buffer"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="length"/> is outside the bounds of <paramref name="buffer"/>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BufferLease FromRented(
         byte[] buffer,
@@ -382,6 +390,8 @@ public sealed class BufferLease : IBufferLease
     /// <param name="start"></param>
     /// <param name="length"></param>
     /// <param name="zeroOnDispose"></param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="buffer"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the requested slice is outside the bounds of <paramref name="buffer"/>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BufferLease TakeOwnership(
         byte[] buffer,

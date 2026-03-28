@@ -95,6 +95,7 @@ public abstract partial class ConfigurationLoader
     /// <summary>
     /// Creates a shallow clone of this configuration instance.
     /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when cached metadata cannot be created for the derived configuration type.</exception>
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public T Clone<T>() where T : ConfigurationLoader, new()

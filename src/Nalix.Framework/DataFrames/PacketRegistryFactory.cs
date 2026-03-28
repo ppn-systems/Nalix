@@ -102,6 +102,7 @@ public sealed class PacketRegistryFactory
     /// <summary>
     /// Registers a concrete packet type explicitly.
     /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <typeparamref name="TPacket"/> does not expose a stable packet identity at registration time.</exception>
     public PacketRegistryFactory RegisterPacket<TPacket>() where TPacket : IPacket
     {
         Type t = typeof(TPacket);
@@ -201,7 +202,10 @@ public sealed class PacketRegistryFactory
     /// Builds an immutable catalog of packet deserializers.
     /// </summary>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when duplicate magic numbers are detected.
+    /// Thrown when duplicate magic numbers are detected or when required deserialize bindings cannot be created consistently.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when a packet type resolves to an invalid full name during magic computation.
     /// </exception>
     public PacketRegistry CreateCatalog()
     {
@@ -344,6 +348,7 @@ public sealed class PacketRegistryFactory
     /// using FNV-1a. Consistent across machines and .NET versions as long as
     /// the type's full name does not change.
     /// </summary>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="type"/> is null.</exception>
     public static uint Compute(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);

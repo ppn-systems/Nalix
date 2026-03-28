@@ -34,7 +34,7 @@ public static class Salsa20
     /// <param name="plaintext">The data to encrypt.</param>
     /// <param name="ciphertext">Buffer to receive the encrypted data; must be at least as large as plaintext.</param>
     /// <returns>Number of bytes written to <paramref name="ciphertext"/>.</returns>
-    /// <exception cref="System.ArgumentException"></exception>
+    /// <exception cref="System.ArgumentException">Thrown when the key length, nonce length, or destination buffer size is invalid.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static int Encrypt(
@@ -64,6 +64,7 @@ public static class Salsa20
     /// <param name="ciphertext">The data to decrypt.</param>
     /// <param name="plaintext">Buffer to receive the decrypted data.</param>
     /// <returns>Number of bytes written to <paramref name="plaintext"/>.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when the key length, nonce length, or destination buffer size is invalid.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static int Decrypt(
@@ -83,7 +84,7 @@ public static class Salsa20
     /// </summary>
     /// <param name="key"></param>
     /// <param name="nonce"></param>
-    /// <exception cref="System.ArgumentException"></exception>
+    /// <exception cref="System.ArgumentException">Thrown when <paramref name="key"/> or <paramref name="nonce"/> has an unsupported length.</exception>
     private static void ValidateKeyAndNonce(
         System.ReadOnlySpan<byte> key,
         System.ReadOnlySpan<byte> nonce)

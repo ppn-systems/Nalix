@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
@@ -25,7 +26,8 @@ public sealed class StringFormatter : IFormatter<string>
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string value to serialize.</param>
-    /// <exception cref="SerializationException"></exception>
+    /// <exception cref="SerializationException">Thrown when the encoded UTF-8 payload exceeds the supported maximum length or encoding writes an unexpected byte count.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the target writer cannot expand and no formatter is available for the length prefix.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe void Serialize(ref DataWriter writer, string value)
@@ -85,8 +87,9 @@ public sealed class StringFormatter : IFormatter<string>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized string value.</returns>
     /// <exception cref="SerializationException">
-    /// Thrown if the string length exceeds the maximum allowed limit.
+    /// Thrown if the string length exceeds the maximum allowed limit or the reader does not contain enough bytes.
     /// </exception>
+    /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the string length prefix.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public unsafe string Deserialize(ref DataReader reader)
