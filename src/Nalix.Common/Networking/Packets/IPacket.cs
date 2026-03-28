@@ -67,6 +67,8 @@ public interface IPacket : IPacketSequenced
     /// <returns>
     /// A new byte array containing the serialized form of the packet.
     /// </returns>
+    /// <exception cref="Exceptions.SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     byte[] Serialize();
@@ -78,6 +80,9 @@ public interface IPacket : IPacketSequenced
     /// The destination buffer where the serialized packet will be written.
     /// The buffer must be large enough to hold the complete packet.
     /// </param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small for the serialized packet.</exception>
+    /// <exception cref="Exceptions.SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     int Serialize(Span<byte> buffer);

@@ -30,6 +30,8 @@ public interface IBufferLease : IDisposable
     /// <summary>
     /// Increases the reference count so multiple consumers can hold this lease safely.
     /// </summary>
+    /// <exception cref="ObjectDisposedException">Thrown when the underlying buffer has already been released.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the internal reference count becomes invalid.</exception>
     void Retain();
 
     /// <summary>
@@ -38,6 +40,7 @@ public interface IBufferLease : IDisposable
     /// <param name="length">
     /// The number of valid payload bytes to commit.
     /// </param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="length"/> is negative or greater than <see cref="Capacity"/>.</exception>
     void CommitLength(int length);
 
     /// <summary>
