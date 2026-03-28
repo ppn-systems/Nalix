@@ -28,11 +28,6 @@ public interface IConnectionHub : IReportable, IDisposable
     ISessionStore SessionStore { get; }
 
     /// <summary>
-    /// Gets the persistent Server Identity private key used for Handshake Authentication (MitM protection).
-    /// </summary>
-    Bytes32 IdentityPrivateKey { get; }
-
-    /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
     event Action<IConnection>? ConnectionUnregistered;

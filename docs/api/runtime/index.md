@@ -20,10 +20,9 @@ flowchart TD
     end
 
     subgraph Pipeline[Processing Pipeline]
-        WL -->|Step 1| MP[Network Buffer Middleware]
-        MP -->|Step 2| Des[IPacketRegistry.Deserialize]
-        Des -->|Step 3| PM[Packet Middleware Pipeline]
-        PM -->|Step 4| H[Packet Handler]
+        WL -->|Step 1| Des[IPacketRegistry.Deserialize]
+        Des -->|Step 2| PM[MiddlewarePipeline]
+        PM -->|Step 3| H[Packet Handler]
     end
 
     subgraph State[Context & Metadata]
@@ -51,7 +50,7 @@ flowchart TD
 
 ### Middleware & Routing
 
-- [Middleware Overview](./middleware/index.md): Explains the dual-layer pipeline (Buffer vs. Packet).
+- [Middleware Overview](./middleware/index.md): Explains the packet-level pipeline (`MiddlewarePipeline`).
 - [Routing Overview](./routing/index.md): Details how Nalix finds the right handler for each packet opcode.
 - [Metadata Provider](./routing/packet-metadata.md): Service for enriching the dispatch context with session or business data.
 

@@ -72,7 +72,7 @@ Instead of `await socket.AcceptAsync()`, Nalix employs **Pooled `SocketAsyncEven
 ### 2.2. Admission Control (`ConnectionGuard`)
 Before a `Socket` is promoted to a `Connection` object, it traverses the `ConnectionGuard`.
 - **IP Rate Limiting**: Drops rapid reconnects from identical IPs to prevent SYN/Connection flooding.
-- **Global connection limits**: Enforces an absolute ceiling on active `ConnectionHub` entries.
+- **Global connection limits**: Enforces an absolute ceiling on active `ConnectionHub` entries. The Listener explicitly registers every accepted connection into the `ConnectionHub` immediately after initialization.
 - Dropped sockets at this phase incur **zero object allocation** (garbage collector is untouched).
 
 ### 2.3. The Process Channel & Inbound Pipeline
@@ -86,6 +86,7 @@ To prevent "Slowloris" or blocking socket reading from exhausting the worker thr
 
 | Method | Description |
 |---|---|
+| `Constructor(..., IConnectionHub)` | Requires an explicit `IConnectionHub` instance for centralized connection management. |
 | `Activate()` | Binds the socket, begins listening, and spins up parallel accept loop workers. |
 | `Deactivate()` | Gracefully stops accepting new connections but allows existing connections to drain. |
 | `Dispose()` | Actively terminates the listening socket and all pending accept args. |
