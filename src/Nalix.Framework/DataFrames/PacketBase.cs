@@ -78,13 +78,13 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// <summary>
     /// null  → has dynamic properties, call ComputeDynamicLength() at runtime.
     /// value → all properties are fixed-size, return directly.
-    /// Using ushort? avoids the "0-as-sentinel" ambiguity from the previous version.
+    /// Using int? avoids the "0-as-sentinel" ambiguity from the previous version.
     /// </summary>
     [SerializeIgnore]
-    private static readonly Lazy<ushort?> s_cachedFixedSize = new(
+    private static readonly Lazy<int?> s_cachedFixedSize = new(
         static () =>
         {
-            ushort size = PacketConstants.HeaderSize;
+            int size = PacketConstants.HeaderSize;
             foreach (PropertyMetadata meta in s_metadata.Value)
             {
                 if (meta.IsDynamic)
@@ -121,7 +121,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         get
         {
             // Fast path: all properties are fixed-size → return cached value directly.
-            ushort? fixedSize = s_cachedFixedSize.Value;
+            int? fixedSize = s_cachedFixedSize.Value;
             return fixedSize ?? this.COMPUTE_DYNAMIC_LENGTH();
         }
     }
@@ -132,9 +132,9 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// dynamic contributions call through to the compiled getter delegate.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private ushort COMPUTE_DYNAMIC_LENGTH()
+    private int COMPUTE_DYNAMIC_LENGTH()
     {
-        ushort size = PacketConstants.HeaderSize;
+        int size = PacketConstants.HeaderSize;
 
         foreach (PropertyMetadata meta in s_metadata.Value)
         {
@@ -151,12 +151,12 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             size += meta.GetValue(this) switch
             {
                 string str when str.Length > 0
-                    => (ushort)(Encoding.UTF8.GetByteCount(str) + sizeof(ushort)),
+                    => Encoding.UTF8.GetByteCount(str) + sizeof(ushort),
 
                 string => sizeof(ushort),
 
                 byte[] { Length: > 0 } bytes
-                    => (ushort)(bytes.Length + sizeof(int)),
+                    => bytes.Length + sizeof(int),
 
                 byte[] => sizeof(int),
 
