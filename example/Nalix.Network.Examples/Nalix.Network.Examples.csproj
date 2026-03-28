@@ -22,4 +22,8 @@
 		</Reference>
 	</ItemGroup>
 
+	<ItemGroup>
+		<ProjectReference Include="..\Nalix.Examples\Nalix.Examples.csproj" />
+	</ItemGroup>
+
 </Project>
