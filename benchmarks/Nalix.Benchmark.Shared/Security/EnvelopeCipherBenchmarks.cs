@@ -7,13 +7,13 @@
 //   [Host]     : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
 //   DefaultJob : .NET 10.0.3 (10.0.3, 10.0.326.7603), X64 RyuJIT x86-64-v3
 
+using System;
+using System.Security.Cryptography;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Order;
 using Nalix.Common.Security.Enums;
 using Nalix.Shared.Security;
-using System;
-using System.Security.Cryptography;
 
 namespace Nalix.Benchmark.Shared.Security;
 
@@ -25,7 +25,7 @@ namespace Nalix.Benchmark.Shared.Security;
 public class EnvelopeCipherBenchmarks
 {
     [Params(128, 1024, 8192)]
-    public Int32 PayloadSize;
+    public int PayloadSize;
 
     // Keep all candidates, but handle unsupported ones explicitly in setup.
     [Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20,
@@ -33,49 +33,49 @@ public class EnvelopeCipherBenchmarks
     //[Params(CipherSuiteType.SALSA20, CipherSuiteType.CHACHA20)]
     public CipherSuiteType Algorithm;
 
-    private Byte[] _key = Array.Empty<Byte>();
-    private Byte[] _aad = Array.Empty<Byte>();
-    private Byte[] _plaintext = Array.Empty<Byte>();
-    private Byte[] _envelope = Array.Empty<Byte>();
-    private Byte[] _encryptBuffer = Array.Empty<Byte>();
-    private Byte[] _decryptBuffer = Array.Empty<Byte>();
+    private byte[] _key = [];
+    private byte[] _aad = [];
+    private byte[] _plaintext = [];
+    private byte[] _envelope = [];
+    private byte[] _encryptBuffer = [];
+    private byte[] _decryptBuffer = [];
 
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _key = new Byte[32];
+        _key = new byte[32];
         RandomNumberGenerator.Fill(_key);
 
-        _aad = new Byte[16];
+        _aad = new byte[16];
         RandomNumberGenerator.Fill(_aad);
 
-        _plaintext = new Byte[PayloadSize];
+        _plaintext = new byte[PayloadSize];
         RandomNumberGenerator.Fill(_plaintext);
 
-        _encryptBuffer = new Byte[_plaintext.Length + 64];
-        _decryptBuffer = new Byte[_plaintext.Length + 64];
+        _encryptBuffer = new byte[_plaintext.Length + 64];
+        _decryptBuffer = new byte[_plaintext.Length + 64];
 
-        const Int32 overheadMargin = 64;
-        var outBuffer = new Byte[_plaintext.Length + overheadMargin];
+        const int overheadMargin = 64;
+        byte[] outBuffer = new byte[_plaintext.Length + overheadMargin];
 
         try
         {
             // Call Encrypt; if algorithm unsupported, it may throw ArgumentException.
-            Boolean success = EnvelopeCipher.Encrypt(
+            bool success = EnvelopeCipher.Encrypt(
                 _key.AsSpan(),
                 _plaintext.AsSpan(),
                 outBuffer,
                 _aad.AsSpan(),
                 null,
                 Algorithm,
-                out Int32 bytesWritten);
+                out int bytesWritten);
 
             if (!success || bytesWritten <= 0)
             {
                 throw new InvalidOperationException($"EnvelopeCipher.Encrypt returned false or wrote 0 bytes for algorithm {Algorithm}.");
             }
 
-            _envelope = new Byte[bytesWritten];
+            _envelope = new byte[bytesWritten];
             Array.Copy(outBuffer, 0, _envelope, 0, bytesWritten);
         }
         catch (ArgumentException aex) when (aex.ParamName == "type" || aex.Message.Contains("Unsupported symmetric algorithm"))
@@ -86,7 +86,7 @@ public class EnvelopeCipherBenchmarks
     }
 
     [Benchmark(Description = "EnvelopeCipher.Encrypt")]
-    public Boolean Encrypt()
+    public bool Encrypt()
     {
         return EnvelopeCipher.Encrypt(
             _key.AsSpan(),
@@ -99,7 +99,7 @@ public class EnvelopeCipherBenchmarks
     }
 
     [Benchmark(Description = "EnvelopeCipher.Decrypt")]
-    public Boolean Decrypt()
+    public bool Decrypt()
     {
         return EnvelopeCipher.Decrypt(
             _key.AsSpan(),
