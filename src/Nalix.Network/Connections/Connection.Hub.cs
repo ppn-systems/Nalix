@@ -233,6 +233,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [return: MaybeNull]
     public IConnection? GetConnection(ISnowflake id)
     {
+        ArgumentNullException.ThrowIfNull(id);
+
         UInt56 key = id.ToUInt56();
         ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(key);
         return shard.TryGetValue(key, out IConnection? connection) ? connection : null;

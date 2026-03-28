@@ -23,9 +23,9 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly ILogger? s_logger;
-    private readonly TokenBucketLimiter s_Global;
-    private readonly PolicyRateLimiter s_PolicyRateLimiter;
+    private readonly ILogger? _logger;
+    private readonly PolicyRateLimiter _policy;
+    private readonly TokenBucketLimiter _global;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RateLimitMiddleware"/> class
@@ -33,9 +33,9 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     public RateLimitMiddleware()
     {
-        s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        s_Global = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
-        s_PolicyRateLimiter = InstanceManager.Instance.GetOrCreateInstance<PolicyRateLimiter>();
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _global = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
+        _policy = InstanceManager.Instance.GetOrCreateInstance<PolicyRateLimiter>();
     }
 
     /// <summary>
@@ -45,10 +45,9 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
     /// <param name="context">The packet context containing the packet, connection, and metadata.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task InvokeAsync(
-        PacketContext<IPacket> context,
-        Func<CancellationToken, Task> next)
+    public async Task InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, Task> next)
     {
+        ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(context);
 
         if (context.Attributes.RateLimit is null)
@@ -66,18 +65,18 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             if (rl is not null)
             {
                 // Attribute-driven policy: use centralized policy-based limiter
-                decision = s_PolicyRateLimiter.Check(context.Packet.OpCode, context);
+                decision = _policy.Check(context.Packet.OpCode, context);
             }
             else
             {
                 // No attribute: fallback to a global per-endpoint limiter
-                decision = s_Global.Check(context.Connection.NetworkEndpoint);
+                decision = _global.Check(context.Connection.NetworkEndpoint);
             }
         }
         catch (ObjectDisposedException)
         {
             // If the limiter has been disposed (e.g., during shutdown), allow the packet to proceed
-            s_logger?.Debug($"[NW.{nameof(RateLimitMiddleware)}:Invoke] rate-limiter-disposed request-allowed");
+            _logger?.Debug($"[NW.{nameof(RateLimitMiddleware)}:Invoke] rate-limiter-disposed request-allowed");
 
             await next(context.CancellationToken).ConfigureAwait(false);
             return;

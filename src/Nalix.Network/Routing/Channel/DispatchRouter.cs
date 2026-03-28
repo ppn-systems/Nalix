@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -63,10 +64,12 @@ public sealed class DispatchRouter<TPacket> : IDispatchChannel<TPacket> where TP
     #region APIs
 
     /// <inheritdoc/>
-    public void Push(
-        IConnection connection,
-        IBufferLease raw)
-        => this.GET_SHARD(connection).Push(connection, raw);
+    public void Push(IConnection connection, IBufferLease raw)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        this.GET_SHARD(connection).Push(connection, raw);
+    }
 
     /// <inheritdoc/>
     public bool Pull(

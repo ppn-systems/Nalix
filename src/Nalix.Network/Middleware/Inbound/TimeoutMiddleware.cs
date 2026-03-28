@@ -22,10 +22,11 @@ namespace Nalix.Network.Middleware.Inbound;
 public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
-    public async Task InvokeAsync(
-        PacketContext<IPacket> context,
-        Func<CancellationToken, Task> next)
+    public async Task InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, Task> next)
     {
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(context);
+
         int timeout = context.Attributes.Timeout?.TimeoutMilliseconds ?? 0;
         if (timeout <= 0)
         {

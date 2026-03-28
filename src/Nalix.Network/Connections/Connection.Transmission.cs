@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.ComponentModel;
 using System.Net;
 using System.Runtime.CompilerServices;
@@ -20,6 +21,8 @@ public sealed partial class Connection
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IConnection.IUdp GetOrCreateUDP(ref IPEndPoint iPEndPoint)
     {
+        ArgumentNullException.ThrowIfNull(iPEndPoint);
+
         if (this.UdpTransport == null)
         {
             this.UdpTransport = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -40,7 +43,7 @@ public sealed partial class Connection
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(lease, this);
 
-        _ = AsyncCallback.Invoke(OnProcessEventBridge, this, args);
+        _ = Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args);
 
 #if DEBUG
         s_logger.Debug($"[NW.{nameof(SocketConnection)}:{this.InjectIncoming}] inject-bytes len={lease.Length}");

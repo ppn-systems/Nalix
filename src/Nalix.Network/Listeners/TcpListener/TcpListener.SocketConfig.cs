@@ -184,6 +184,8 @@ public abstract partial class TcpListenerBase
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
     protected static void InitializeOptions(Socket socket)
     {
+        ArgumentNullException.ThrowIfNull(socket, nameof(socket));
+
         // When you want to disconnect immediately without making sure the data has been sent.
         // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
 

@@ -53,6 +53,8 @@ public abstract partial class UdpListenerBase
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
     protected virtual void ConfigureHighPerformanceSocket(Socket socket)
     {
+        ArgumentNullException.ThrowIfNull(socket, nameof(socket));
+
         socket.Blocking = false;
         socket.NoDelay = Config.NoDelay;
         socket.SendBufferSize = Config.BufferSize;

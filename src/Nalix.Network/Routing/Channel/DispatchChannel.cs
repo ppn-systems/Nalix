@@ -234,10 +234,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="connection">The connection to enqueue the packet for.</param>
     /// <param name="raw">The buffer lease containing the packet data.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void Push(
-        IConnection connection,
-        IBufferLease raw)
+    public void Push(IConnection connection, IBufferLease raw)
     {
+        ArgumentNullException.ThrowIfNull(raw, nameof(IBufferLease));
+
         ConnectionState cs = this.GET_STATE(connection);
         ConnectionQueues cqs = _queues.GetOrAdd(connection, static _ => new ConnectionQueues());
 

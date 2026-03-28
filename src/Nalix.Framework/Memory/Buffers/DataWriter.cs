@@ -72,6 +72,8 @@ public ref struct DataWriter
     /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="buffer"/> has zero length.</exception>
     public DataWriter(byte[] buffer)
     {
+        ArgumentNullException.ThrowIfNull(buffer, nameof(buffer));
+
         if (buffer.Length == 0)
         {
             throw new ArgumentOutOfRangeException(nameof(buffer), "SIZE must be greater than zero.");

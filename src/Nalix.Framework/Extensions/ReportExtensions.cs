@@ -34,6 +34,8 @@ public static class ReportExtensions
     /// <returns>The full path of the saved report file.</returns>
     public static string SaveReportToFile(this IReportable @this, string prefix = "null")
     {
+        ArgumentNullException.ThrowIfNull(@this, nameof(@this));
+
         string report = @this.GenerateReport();
         string safePrefix = prefix?.ToLowerInvariant() ?? "null";
 

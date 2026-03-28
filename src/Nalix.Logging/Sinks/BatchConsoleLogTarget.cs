@@ -99,10 +99,15 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ConsoleLogOptions Configure(Action<ConsoleLogOptions> configureOptions)
+    private static ConsoleLogOptions Configure(Action<ConsoleLogOptions>? configureOptions)
     {
         ConsoleLogOptions options = new();
-        configureOptions(options);
+
+        if (configureOptions is not null)
+        {
+            configureOptions(options);
+        }
+
         return options;
     }
 

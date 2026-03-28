@@ -23,7 +23,7 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly ConcurrencyGate s_ConcurrencyGate = InstanceManager.Instance.GetOrCreateInstance<ConcurrencyGate>();
+    private readonly ConcurrencyGate _concurrencyGate = InstanceManager.Instance.GetOrCreateInstance<ConcurrencyGate>();
 
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.
@@ -31,10 +31,11 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
     /// <param name="context">The packet context containing the packet and connection information.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task InvokeAsync(
-        PacketContext<IPacket> context,
-        Func<CancellationToken, Task> next)
+    public async Task InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, Task> next)
     {
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(context);
+
         if (context.Attributes.ConcurrencyLimit is null)
         {
             await next(context.CancellationToken).ConfigureAwait(false);
@@ -48,13 +49,13 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
         {
             if (context.Attributes.ConcurrencyLimit.Queue)
             {
-                lease = await s_ConcurrencyGate.EnterAsync(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, context.CancellationToken)
+                lease = await _concurrencyGate.EnterAsync(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, context.CancellationToken)
                                               .ConfigureAwait(false);
                 acquired = true;
             }
             else
             {
-                acquired = s_ConcurrencyGate.TryEnter(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, out lease);
+                acquired = _concurrencyGate.TryEnter(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, out lease);
 
                 if (!acquired)
                 {

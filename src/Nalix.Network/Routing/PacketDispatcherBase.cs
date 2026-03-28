@@ -95,11 +95,12 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// A <see cref="ValueTask"/> that represents the asynchronous execution of the handler logic.
     /// </returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected async ValueTask ExecuteHandlerAsync(
-        TPacket packet,
-        IConnection connection,
-        Func<TPacket, IConnection, Task> handler)
-        => await handler(packet, connection).ConfigureAwait(false);
+    protected async ValueTask ExecuteHandlerAsync(TPacket packet, IConnection connection, Func<TPacket, IConnection, Task> handler)
+    {
+        ArgumentNullException.ThrowIfNull(handler, nameof(handler));
+
+        await handler(packet, connection).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Asynchronously processes a single incoming packet by resolving and executing the appropriate handler.

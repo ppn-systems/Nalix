@@ -87,12 +87,11 @@ public static class FrameTransformer
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException">Thrown when the source or destination buffer is too small.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Encrypt(
-        IBufferLease src,
-        IBufferLease dest,
-        ReadOnlySpan<byte> key,
-        CipherSuiteType suite)
+    public static void Encrypt(IBufferLease src, IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType suite)
     {
+        ArgumentNullException.ThrowIfNull(src, nameof(src));
+        ArgumentNullException.ThrowIfNull(dest, nameof(dest));
+
         if (key.IsEmpty)
         {
             throw new ArgumentNullException(nameof(key), "Encryption key cannot be null.");
@@ -125,11 +124,11 @@ public static class FrameTransformer
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException">Thrown when the source or destination buffer is too small.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Decrypt(
-        IBufferLease src,
-        IBufferLease dest,
-        ReadOnlySpan<byte> key)
+    public static void Decrypt(IBufferLease src, IBufferLease dest, ReadOnlySpan<byte> key)
     {
+        ArgumentNullException.ThrowIfNull(src, nameof(src));
+        ArgumentNullException.ThrowIfNull(dest, nameof(dest));
+
         if (key.IsEmpty)
         {
             throw new ArgumentNullException(nameof(key), "Encryption key cannot be null.");
@@ -161,6 +160,9 @@ public static class FrameTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Compress(IBufferLease src, IBufferLease dest)
     {
+        ArgumentNullException.ThrowIfNull(src, nameof(src));
+        ArgumentNullException.ThrowIfNull(dest, nameof(dest));
+
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
             throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the compressed payload.");
@@ -191,6 +193,9 @@ public static class FrameTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Decompress(IBufferLease src, IBufferLease dest)
     {
+        ArgumentNullException.ThrowIfNull(src, nameof(src));
+        ArgumentNullException.ThrowIfNull(dest, nameof(dest));
+
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
             throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the decompressed payload.");

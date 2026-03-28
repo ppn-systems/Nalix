@@ -55,7 +55,7 @@ public sealed partial class Connection : IConnection
         _disposed = false;
 
         this.ID = Snowflake.NewId(SnowflakeType.Session);
-        this.NetworkEndpoint = Endpoint.FromEndPoint(socket.RemoteEndPoint ?? throw new InvalidOperationException("Socket does not expose a remote endpoint."));
+        this.NetworkEndpoint = Endpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InvalidOperationException("Socket does not expose a remote endpoint."));
 
         _args = new ConnectionEventArgs(this);
         this.Socket = new SocketConnection(socket);

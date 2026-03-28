@@ -219,11 +219,10 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// was not worth compressing uses path 3.
     /// </para>
     /// </remarks>
-    public async Task SendAsync(
-        IPacket packet,
-        bool encrypt,
-        CancellationToken cancellationToken = default)
+    public async Task SendAsync(IPacket packet, bool encrypt, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(packet);
+
         BufferLease rawLease = BufferLease.Rent(packet.Length);
         try
         {
@@ -426,6 +425,8 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// <inheritdoc/>
     protected void RaiseError(Exception ex)
     {
+        ArgumentNullException.ThrowIfNull(ex);
+
         this.Logger?.Info($"[SDK.{this.GetType().Name}] RaiseError event fired: {ex.Message}");
         try
         {
@@ -569,6 +570,8 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// <param name="lease"></param>
     protected virtual void HandleReceiveMessage(BufferLease lease)
     {
+        ArgumentNullException.ThrowIfNull(lease);
+
         ReadOnlyMemory<byte> asyncData = default;
         Delegate[]? handlers = OnMessageReceived?.GetInvocationList();
         Func<TcpSessionBase, ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageReceivedAsync;

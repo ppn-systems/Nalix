@@ -77,9 +77,7 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
-    protected void HandleConnectionClose(
-        object? sender,
-        IConnectEventArgs args)
+    protected void HandleConnectionClose(object? sender, IConnectEventArgs args)
     {
         if (args?.Connection == null)
         {
@@ -90,8 +88,8 @@ public abstract partial class TcpListenerBase
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
-        args.Connection.OnProcessEvent -= this.ForwardProcessMessage;
-        args.Connection.OnPostProcessEvent -= this.ForwardPostProcessMessage;
+        args.Connection.OnProcessEvent -= _protocol.ProcessMessage;
+        args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
 
         args.Connection.Dispose();
 
@@ -127,9 +125,7 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
-    private IConnection InitializeConnection(
-        Socket socket,
-        PooledAcceptContext context)
+    private IConnection InitializeConnection(Socket socket, PooledAcceptContext context)
     {
         InitializeOptions(socket);
 
@@ -142,8 +138,8 @@ public abstract partial class TcpListenerBase
         connection.OnCloseEvent += this.HandleConnectionClose;
         connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
-        connection.OnProcessEvent += this.ForwardProcessMessage;
-        connection.OnPostProcessEvent += this.ForwardPostProcessMessage;
+        connection.OnProcessEvent += _protocol.ProcessMessage;
+        connection.OnPostProcessEvent += _protocol.PostProcessMessage;
 
         if (s_config.EnableTimeout)
         {
@@ -168,8 +164,7 @@ public abstract partial class TcpListenerBase
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected static void SafeCloseSocket(
-        Socket socket)
+    protected static void SafeCloseSocket(Socket socket)
     {
         try
         {
@@ -224,9 +219,10 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     /// <exception cref="NetworkException"></exception>
     [DebuggerStepThrough]
-    protected void HandleAccept(
-        SocketAsyncEventArgs args)
+    protected void HandleAccept(SocketAsyncEventArgs args)
     {
+        ArgumentNullException.ThrowIfNull(args);
+
         try
         {
             if (args.SocketError == SocketError.Success &&
@@ -354,10 +350,10 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
-    protected void OnSyncAcceptCompleted(
-        object? sender,
-        SocketAsyncEventArgs args)
+    protected void OnSyncAcceptCompleted(object? sender, SocketAsyncEventArgs args)
     {
+        ArgumentNullException.ThrowIfNull(args);
+
         try
         {
             this.HandleAccept(args);
@@ -423,10 +419,10 @@ public abstract partial class TcpListenerBase
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining |
         MethodImplOptions.AggressiveOptimization)]
-    protected void AcceptNext(
-        SocketAsyncEventArgs args,
-        CancellationToken cancellationToken)
+    protected void AcceptNext(SocketAsyncEventArgs args, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(args);
+
         while (!cancellationToken.IsCancellationRequested)
         {
             // Take a stable local copy to reduce races
@@ -526,10 +522,9 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected async Task AcceptConnectionsAsync(
-        IWorkerContext ctx,
-        CancellationToken cancellationToken)
+    protected async Task AcceptConnectionsAsync(IWorkerContext ctx, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(ctx);
         TimeSpan heartbeatInterval = TimeSpan.FromSeconds(2);
 
         while (!cancellationToken.IsCancellationRequested)
@@ -645,8 +640,7 @@ public abstract partial class TcpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    protected async ValueTask<IConnection> CreateConnectionAsync(
-        CancellationToken cancellationToken)
+    protected async ValueTask<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -721,12 +715,4 @@ public abstract partial class TcpListenerBase
             throw new NetworkException($"Accept failed. Listener={remote}, ContextReturned={contextReturned}", ex);
         }
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ForwardProcessMessage(object? sender, IConnectEventArgs args)
-        => _protocol.ProcessMessage(sender, args);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ForwardPostProcessMessage(object? sender, IConnectEventArgs args)
-        => _protocol.PostProcessMessage(sender, args);
 }
