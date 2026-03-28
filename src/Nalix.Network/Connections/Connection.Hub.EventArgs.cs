@@ -25,7 +25,7 @@ public sealed class ConnectionHubEventArgs(
     int maxConnections,
     ISnowflake? triggeredConnectionId,
     string reason,
-    ConnectionHubStatistics snapshot) : EventArgs
+    ConnectionHub.Metrics snapshot) : EventArgs
 {
 
     /// <summary>
@@ -56,5 +56,5 @@ public sealed class ConnectionHubEventArgs(
     /// <summary>
     /// Gets a snapshot of hub statistics at the time of the event.
     /// </summary>
-    public ConnectionHubStatistics Snapshot { get; } = snapshot;
+    public ConnectionHub.Metrics Snapshot { get; } = snapshot;
 }

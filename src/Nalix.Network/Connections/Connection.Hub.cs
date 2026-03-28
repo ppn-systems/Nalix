@@ -85,7 +85,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Gets the current statistics snapshot for this connection hub.
     /// </summary>
-    public ConnectionHubStatistics Statistics => new(
+    public Metrics Statistics => new(
         connectionCount: _count,
         maxConnections: _options.MaxConnections,
         dropPolicy: _options.DropPolicy,
@@ -597,7 +597,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
 
         StringBuilder sb = new();
-        ConnectionHubStatistics stats = this.Statistics;
+        Metrics stats = this.Statistics;
         Dictionary<string, int> algoCounts = new(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, int> statusCounts = new(StringComparer.OrdinalIgnoreCase);
 
@@ -707,7 +707,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// </summary>
     public IDictionary<string, object> GenerateReportData()
     {
-        ConnectionHubStatistics stats = this.Statistics;
+        Metrics stats = this.Statistics;
         Dictionary<string, object> report = new()
         {
             ["UtcNow"] = DateTime.UtcNow,
@@ -802,6 +802,69 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     }
 
     #endregion APIs
+
+    #region Class
+
+    /// <summary>
+    /// Provides diagnostic statistics for a <see cref="ConnectionHub"/>.
+    /// </summary>
+    /// <param name="connectionCount"></param>
+    /// <param name="maxConnections"></param>
+    /// <param name="dropPolicy"></param>
+    /// <param name="shardCount"></param>
+    /// <param name="anonymousQueueDepth"></param>
+    /// <param name="evictedConnections"></param>
+    /// <param name="rejectedConnections"></param>
+    /// <remarks>
+    /// Initializes a new instance of the <see cref="Metrics"/> struct.
+    /// </remarks>
+    public readonly struct Metrics(
+        int connectionCount,
+        int maxConnections,
+        DropPolicy dropPolicy,
+        int shardCount,
+        int anonymousQueueDepth,
+        int evictedConnections,
+        int rejectedConnections)
+    {
+
+        /// <summary>
+        /// Gets the current number of registered connections.
+        /// </summary>
+        public int ConnectionCount { get; } = connectionCount;
+
+        /// <summary>
+        /// Gets the configured maximum number of connections.
+        /// </summary>
+        public int MaxConnections { get; } = maxConnections;
+
+        /// <summary>
+        /// Gets the drop policy that is active when limits are reached.
+        /// </summary>
+        public DropPolicy DropPolicy { get; } = dropPolicy;
+
+        /// <summary>
+        /// Gets the number of shards used for connection storage.
+        /// </summary>
+        public int ShardCount { get; } = shardCount;
+
+        /// <summary>
+        /// Gets the depth of the anonymous eviction queue.
+        /// </summary>
+        public int AnonymousQueueDepth { get; } = anonymousQueueDepth;
+
+        /// <summary>
+        /// Gets the cumulative number of evicted connections.
+        /// </summary>
+        public int EvictedConnections { get; } = evictedConnections;
+
+        /// <summary>
+        /// Gets the cumulative number of rejected connection attempts.
+        /// </summary>
+        public int RejectedConnections { get; } = rejectedConnections;
+    }
+
+    #endregion Class
 
     #region Private Methods
 

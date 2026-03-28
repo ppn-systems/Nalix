@@ -20,6 +20,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
+using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -224,7 +225,7 @@ public abstract partial class UdpListenerBase
             poly.Clear();
         }
 
-        return isValid && connection.TryAcceptUdpNonce(nonce, timestamp, MaxReplayWindowMs);
+        return isValid && ((SocketUdpTransport)connection.UDP).TryAcceptUdpNonce(nonce, timestamp, MaxReplayWindowMs);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
