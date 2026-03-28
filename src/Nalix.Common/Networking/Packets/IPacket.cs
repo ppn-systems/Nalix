@@ -25,7 +25,7 @@ public interface IPacket : IPacketSequenced
     /// Gets the total size, in bytes, of the serialized packet, including headers and payload.
     /// </summary>
     [SerializeIgnore]
-    ushort Length { get; }
+    int Length { get; }
 
     /// <summary>
     /// Gets the magic number that uniquely identifies the packet format or protocol.

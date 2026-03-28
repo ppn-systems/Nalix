@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -62,17 +62,6 @@ public class FragmentOptions : ConfigurationLoader
     public void Validate()
     {
         // ChunkBodySize + 2B (frame header) + 7B (ChunkHeader) ≤ PacketSizeLimit
-        int minPacketSize = this.ChunkBodySize
-                          + sizeof(ushort)                // FramedSocket frame header
-                          + FragmentHeader.WireSize;      // ChunkedFrameHeader
-
-        if (minPacketSize > PacketConstants.PacketSizeLimit)
-        {
-            throw new InvalidOperationException(
-                $"ChunkBodySize={this.ChunkBodySize} + overhead={sizeof(ushort) + FragmentHeader.WireSize} " +
-                $"= {minPacketSize} over MaxPacketSize={PacketConstants.PacketSizeLimit}. " +
-                $"Decrease ChunkBodySize or increase PacketSizeLimit.");
-        }
 
         if (this.ChunkThreshold <= 0)
         {
