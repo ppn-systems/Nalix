@@ -98,6 +98,7 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
     /// Write the header to <paramref name="dest"/> (little-endian).
     /// Requires <paramref name="dest"/>.Length >= <see cref="WireSize"/>.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="dest"/> is shorter than <see cref="WireSize"/>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteTo(Span<byte> dest)
     {
@@ -112,6 +113,8 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
     /// Read header from the start of <paramref name="src"/> (little-endian).
     /// Requires <paramref name="src"/>.Length >= <see cref="WireSize"/>.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="src"/> is shorter than <see cref="WireSize"/>.</exception>
+    /// <exception cref="InvalidDataException">Thrown when the fragment magic marker is invalid.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FragmentHeader ReadFrom(ReadOnlySpan<byte> src)
     {

@@ -98,6 +98,7 @@ internal static class OsRandom
     /// This improves randomness quality by periodically refreshing the internal state
     /// with fresh entropy from system sources. Thread-safe.
     /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when the recurring reseed task cannot be scheduled.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Attach()
     {

@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
@@ -22,7 +23,7 @@ public sealed class EnumFormatter<
 {
     private static readonly SerializeDelegate s_serialize;
     private static readonly DeserializeDelegate s_deserialize;
-    private static readonly System.TypeCode s_underlyingTypeCode;
+    private static readonly TypeCode s_underlyingTypeCode;
 
     private static string DebuggerDisplay => $"EnumFormatter<{typeof(T).FullName}>";
 
@@ -30,10 +31,10 @@ public sealed class EnumFormatter<
     {
         if (!typeof(T).IsEnum)
         {
-            throw new System.InvalidOperationException($"TYPE {typeof(T)} is not an enum.");
+            throw new InvalidOperationException($"TYPE {typeof(T)} is not an enum.");
         }
 
-        s_underlyingTypeCode = System.Type.GetTypeCode(System.Enum
+        s_underlyingTypeCode = Type.GetTypeCode(Enum
                                         .GetUnderlyingType(typeof(T)));
 
         (s_serialize, s_deserialize) = CreateEnumFormatterDelegates();
@@ -44,7 +45,8 @@ public sealed class EnumFormatter<
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The enum value to serialize.</param>
-    /// <exception cref="System.NotSupportedException">
+    /// <exception cref="InvalidOperationException">Thrown when the formatter was created for a non-enum type.</exception>
+    /// <exception cref="NotSupportedException">
     /// Thrown if the underlying type of the enum is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -56,7 +58,8 @@ public sealed class EnumFormatter<
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized enum value.</returns>
-    /// <exception cref="System.NotSupportedException">
+    /// <exception cref="InvalidOperationException">Thrown when the formatter was created for a non-enum type.</exception>
+    /// <exception cref="NotSupportedException">
     /// Thrown if the underlying type of the enum is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -77,7 +80,7 @@ public sealed class EnumFormatter<
     {
         return s_underlyingTypeCode switch
         {
-            System.TypeCode.Byte => (
+            TypeCode.Byte => (
                 (ref DataWriter writer, T value) =>
                 {
                     writer.Expand(sizeof(byte));
@@ -90,7 +93,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<byte, T>(ref b);
                 }
             ),
-            System.TypeCode.SByte => (
+            TypeCode.SByte => (
                 (ref DataWriter writer, T value) =>
                 {
                     writer.Expand(sizeof(sbyte));
@@ -103,7 +106,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<sbyte, T>(ref b);
                 }
             ),
-            System.TypeCode.Int16 => (
+            TypeCode.Int16 => (
                 (ref DataWriter writer, T value) =>
                 {
                     writer.Expand(sizeof(short));
@@ -116,7 +119,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<short, T>(ref v);
                 }
             ),
-            System.TypeCode.UInt16 => (
+            TypeCode.UInt16 => (
                 (ref DataWriter writer, T value) =>
                 {
                     writer.Expand(sizeof(ushort));
@@ -129,7 +132,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<ushort, T>(ref v);
                 }
             ),
-            System.TypeCode.Int32 => (
+            TypeCode.Int32 => (
                 (ref DataWriter writer, T value) =>
                 {
                     writer.Expand(sizeof(int));
@@ -142,7 +145,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<int, T>(ref v);
                 }
             ),
-            System.TypeCode.UInt32 => (
+            TypeCode.UInt32 => (
                 (ref DataWriter writer, T value) =>
                 {
                     writer.Expand(sizeof(uint));
@@ -155,7 +158,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<uint, T>(ref v);
                 }
             ),
-            System.TypeCode.Int64 => (
+            TypeCode.Int64 => (
                 (ref DataWriter writer, T value) =>
                 {
                     writer.Expand(sizeof(long));
@@ -168,7 +171,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<long, T>(ref v);
                 }
             ),
-            System.TypeCode.UInt64 => (
+            TypeCode.UInt64 => (
                 (ref DataWriter writer, T value) =>
                 {
                     writer.Expand(sizeof(ulong));
@@ -182,17 +185,17 @@ public sealed class EnumFormatter<
                 }
             ),
 
-            System.TypeCode.Empty => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            System.TypeCode.Object => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            System.TypeCode.DBNull => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            System.TypeCode.Boolean => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            System.TypeCode.Char => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            System.TypeCode.Single => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            System.TypeCode.Double => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            System.TypeCode.Decimal => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            System.TypeCode.DateTime => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            System.TypeCode.String => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
-            _ => throw new System.NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.Empty => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.Object => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.DBNull => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.Boolean => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.Char => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.Single => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.Double => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.Decimal => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.DateTime => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            TypeCode.String => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            _ => throw new NotSupportedException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
         };
     }
 

@@ -287,6 +287,7 @@ public struct Poly1305
     /// <param name="key">A 32-byte key.</param>
     /// <param name="message">The message to authenticate.</param>
     /// <returns>A 16-byte authentication tag.</returns>
+    /// <exception cref="System.ArgumentException">Thrown when <paramref name="key"/> is not <see cref="KeySize"/> bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static byte[] Compute(
@@ -330,7 +331,7 @@ public struct Poly1305
     /// <see langword="true"/> if <paramref name="tag"/> is valid; otherwise <see langword="false"/>.
     /// </returns>
     /// <exception cref="System.ArgumentException">
-    /// <paramref name="tag"/> is not <see cref="TagSize"/> (16) bytes.
+    /// <paramref name="tag"/> is not <see cref="TagSize"/> (16) bytes, or <paramref name="key"/> is not <see cref="KeySize"/> bytes.
     /// </exception>
     public static bool Verify(
         System.ReadOnlySpan<byte> key,
@@ -547,6 +548,8 @@ public struct Poly1305
     /// Finalizes the MAC computation and returns a new 16-byte array containing the tag.
     /// </summary>
     /// <returns>A 16-byte authentication tag.</returns>
+    /// <exception cref="System.ObjectDisposedException">This instance has been cleared.</exception>
+    /// <exception cref="System.InvalidOperationException">Already finalized.</exception>
     public byte[] FinalizeTag()
     {
         byte[] tag = new byte[TagSize];
@@ -562,6 +565,9 @@ public struct Poly1305
     /// <param name="destination">
     /// Destination span; must be at least <see cref="TagSize"/> (16) bytes.
     /// </param>
+    /// <exception cref="System.ObjectDisposedException">This instance has been cleared.</exception>
+    /// <exception cref="System.ArgumentException"><paramref name="destination"/> is too small.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown if the instance has already been finalized.</exception>
     public void ComputeTagIncremental(
         System.ReadOnlySpan<byte> message,
         System.Span<byte> destination)

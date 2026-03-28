@@ -119,6 +119,8 @@ public sealed class FragmentAssembler : IDisposable
     /// A complete <see cref="BufferLease"/> when the stream is finished; otherwise <see langword="null"/>
     /// while waiting for more chunks or when the stream was evicted as part of normal policy enforcement.
     /// </returns>
+    /// <exception cref="ObjectDisposedException">Thrown when the assembler has already been disposed.</exception>
+    /// <exception cref="InvalidDataException">Thrown when the fragment header is invalid, inconsistent, or arrives out of order.</exception>
     public BufferLease? Add(in FragmentHeader header, ReadOnlySpan<byte> chunkBody, out bool streamEvicted)
     {
         streamEvicted = false;
@@ -269,6 +271,9 @@ public sealed class FragmentAssembler : IDisposable
     /// Cancels and disposes all streams in progress.
     /// Call when connection is closed to avoid memory leaks.
     /// </summary>
+    /// <remarks>
+    /// This method is idempotent and safely disposes every buffered in-progress stream.
+    /// </remarks>
     public void Clear()
     {
         foreach (KeyValuePair<ushort, StreamState> kv in _streams)
@@ -294,6 +299,9 @@ public sealed class FragmentAssembler : IDisposable
     /// <summary>
     /// Quick check to determine if the payload is a fragmented chunk using the magic byte.
     /// </summary>
+    /// <remarks>
+    /// Parsing failures are swallowed and reported as <see langword="false"/> instead of escaping to the caller.
+    /// </remarks>
     public static bool IsFragmentedFrame(ReadOnlySpan<byte> payload, [NotNullWhen(true)] out FragmentHeader header)
     {
         header = default;

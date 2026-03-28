@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Runtime.CompilerServices;
 using Nalix.Framework.LZ4.Encoders;
 using Nalix.Framework.LZ4.Engine;
@@ -24,6 +25,8 @@ public static class LZ4Codec
     /// <param name="input">The input data to compress.</param>
     /// <param name="output">The output buffer to receive the compressed data.</param>
     /// <returns>The number of bytes written to the output buffer.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="output"/> is too small for the encoded block header.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when low-level encoding hits an unexpected memory access violation.</exception>
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -43,6 +46,8 @@ public static class LZ4Codec
     /// <summary>
     /// Compresses the input data into a newly allocated byte array sized to the compressed payload.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed output buffer would be too small for the encoded block.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when low-level encoding hits an unexpected memory access violation.</exception>
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -72,6 +77,8 @@ public static class LZ4Codec
     /// Must be disposed by the caller.
     /// </param>
     /// <param name="bytesWritten">The number of compressed bytes written into the lease.</param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the rented destination buffer cannot satisfy encoder requirements.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when low-level encoding hits an unexpected memory access violation.</exception>
     /// <example>
     /// <code>
     /// LZ4Codec.Encode(data, out BufferLease lease, out int written);
@@ -107,6 +114,8 @@ public static class LZ4Codec
     /// <param name="input">The compressed input data, including header information.</param>
     /// <param name="output">The output buffer to receive the decompressed data.</param>
     /// <returns>The number of bytes written to the output buffer.</returns>
+    /// <exception cref="ArgumentException">Thrown when the declared output size does not match <paramref name="output"/>.</exception>
+    /// <exception cref="InvalidDataException">Thrown when the compressed payload is malformed.</exception>
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,6 +132,8 @@ public static class LZ4Codec
     /// For hot paths, prefer <see cref="Decode(ReadOnlySpan{byte}, out BufferLease, out int)"/>
     /// which rents from the pool instead.
     /// </remarks>
+    /// <exception cref="InvalidDataException">Thrown when the compressed payload is malformed.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the underlying decoder unexpectedly returns a null buffer.</exception>
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -143,6 +154,8 @@ public static class LZ4Codec
     /// Must be disposed by the caller.
     /// </param>
     /// <param name="bytesWritten">The number of bytes written to the lease.</param>
+    /// <exception cref="InvalidDataException">Thrown when the compressed payload is malformed.</exception>
+    /// <exception cref="ArgumentException">Thrown when the decoded output cannot fit the required destination shape.</exception>
     /// <example>
     /// <code>
     /// LZ4Codec.Decode(compressed, out BufferLease lease, out int written);
