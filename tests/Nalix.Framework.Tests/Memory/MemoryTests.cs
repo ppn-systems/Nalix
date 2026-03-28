@@ -1,10 +1,5 @@
 #nullable enable
 
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Memory.Pools;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -12,6 +7,11 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Memory.Pools;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Memory;
@@ -119,7 +119,7 @@ public sealed class MemoryTests
         };
 
         // Act
-        Assert.Throws<ValidationException>(config.Validate);
+        _ = Assert.Throws<ValidationException>(config.Validate);
 
         // Assert
     }
@@ -245,7 +245,7 @@ public sealed class MemoryTests
         using BufferLease lease = BufferLease.Rent(8);
 
         // Act
-        Assert.Throws<ArgumentOutOfRangeException>(() => lease.CommitLength(lease.Capacity + 1));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => lease.CommitLength(lease.Capacity + 1));
 
         // Assert
     }
@@ -499,8 +499,8 @@ public sealed class MemoryTests
         using BufferPoolManager manager = new(CreateBufferConfig(enableMemoryTrimming: false));
 
         // Act
-        Assert.Throws<ArgumentNullException>(() => manager.RentForSaea(null!, 32));
-        Assert.Throws<ArgumentNullException>(() => manager.ReturnFromSaea(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => manager.RentForSaea(null!, 32));
+        _ = Assert.Throws<ArgumentNullException>(() => manager.ReturnFromSaea(null!));
 
         // Assert
     }
@@ -840,8 +840,8 @@ public sealed class MemoryTests
         TypedObjectPoolAdapter<TestPoolable> adapter = manager.GetTypedPool<TestPoolable>();
 
         // Act
-        Assert.Throws<ArgumentNullException>(() => adapter.Return(null!));
-        Assert.Throws<ArgumentNullException>(() => adapter.ReturnMultiple(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => adapter.Return(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => adapter.ReturnMultiple(null!));
 
         // Assert
     }
