@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Middleware;
@@ -32,21 +33,15 @@ public sealed class Handshake : PacketBase<Handshake>
     public byte[] Data { get; set; } = [];
 
     /// <summary>
-    /// Gets or sets the Ed25519 public key used for signature verification.
+    /// Authentication information for this handshake, if applicable.
     /// </summary>
     [SerializeOrder(PacketHeaderOffset.Region + 2)]
-    public byte[] Ed25519PublicKey { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the Ed25519 signature of the handshake data for authentication.
-    /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 3)]
-    public byte[] Ed25519Signature { get; set; } = [];
+    public HandshakeAuth Auth { get; set; } = new HandshakeAuth();
 
     /// <summary>
     /// Identity string for this handshake.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 4)]
+    [SerializeOrder(PacketHeaderOffset.Region + 3)]
     public string Identity { get; set; } = string.Empty;
 
     /// <summary>
@@ -62,7 +57,7 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <param name="transport"></param>
     public Handshake(ushort opCode, byte[] data, ProtocolType transport = ProtocolType.TCP) : this()
     {
-        this.Data = data ?? [];
+        this.Data = data ?? Array.Empty<byte>();
         this.OpCode = opCode;
         this.Protocol = transport;
     }
@@ -78,10 +73,11 @@ public sealed class Handshake : PacketBase<Handshake>
     public void Initialize(ushort opCode, byte[] data, byte[] PublicKey, byte[] Signature, ProtocolType transport = ProtocolType.TCP)
     {
         this.OpCode = opCode;
-        this.Data = data ?? [];
         this.Protocol = transport;
-        this.Ed25519PublicKey = PublicKey ?? [];
-        this.Ed25519Signature = Signature ?? [];
+
+        this.Data = data ?? Array.Empty<byte>();
+        this.Auth.Signature = Signature ?? Array.Empty<byte>();
+        this.Auth.PublicKey = PublicKey ?? Array.Empty<byte>();
     }
 
     /// <summary>
@@ -97,8 +93,26 @@ public sealed class Handshake : PacketBase<Handshake>
         base.ResetForPool(); // always call for consistency!
 
         this.Data = [];
-        this.Ed25519PublicKey = [];
-        this.Ed25519Signature = [];
+        this.Auth.Signature = [];
+        this.Auth.PublicKey = [];
         this.Identity = string.Empty;
+    }
+
+    /// <summary>
+    /// Authentication information for this handshake, if applicable.
+    /// </summary>
+    public sealed class HandshakeAuth
+    {
+        /// <summary>
+        /// Public key used for authentication, if applicable.
+        /// </summary>
+        [SerializeDynamicSize(DynamicSize)]
+        public byte[] PublicKey { get; set; } = Array.Empty<byte>();
+
+        /// <summary>
+        /// Signature corresponding to the public key, if applicable.
+        /// </summary>
+        [SerializeDynamicSize(DynamicSize * 2)]
+        public byte[] Signature { get; set; } = Array.Empty<byte>();
     }
 }
