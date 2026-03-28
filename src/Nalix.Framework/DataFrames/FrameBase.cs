@@ -20,10 +20,10 @@ public abstract class FrameBase : IPacket
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
-    [SerializeIgnore] public abstract ushort Length { get; }
+    [SerializeIgnore] public abstract int Length { get; }
 
     /// <inheritdoc/>
-    [SerializeIgnore] ushort IPacket.Length => this.Length;
+    [SerializeIgnore] int IPacket.Length => this.Length;
 
     /// <summary>
     /// Gets the magic number used to identify the packet format.
