@@ -73,6 +73,9 @@ public static class TaskNaming
         /// <summary>
         /// Build a recurring job id with a hex instance key, e.g. "cleanup.00BC614E".
         /// </summary>
+        /// <remarks>
+        /// Invalid characters in <paramref name="prefix"/> are replaced by <c>_</c> via <see cref="SanitizeToken(string)"/>.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static string CleanupJobId(string prefix, int instanceKey) => $"{SanitizeToken(prefix)}.{Tags.Cleanup}.{instanceKey:X8}";
     }

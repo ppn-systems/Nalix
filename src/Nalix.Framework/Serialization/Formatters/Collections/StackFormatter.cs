@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
@@ -56,7 +57,7 @@ internal sealed class StackFormatter<
     /// <summary>
     /// Initializes a new instance of the <see cref="StackFormatter{T}"/> class.
     /// </summary>
-    /// <exception cref="System.NotSupportedException">
+    /// <exception cref="NotSupportedException">
     /// Thrown when <typeparamref name="T"/> is a class other than <see cref="string"/>.
     /// </exception>
     /// <remarks>
@@ -70,11 +71,11 @@ internal sealed class StackFormatter<
     /// </remarks>
     public StackFormatter()
     {
-        System.Type elementType = typeof(T);
+        Type elementType = typeof(T);
 
         if (elementType.IsClass && elementType != typeof(string))
         {
-            throw new System.NotSupportedException(
+            throw new NotSupportedException(
                 $"StackFormatter: T='{elementType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as element.");
         }
 
@@ -90,6 +91,7 @@ internal sealed class StackFormatter<
     /// </summary>
     /// <param name="writer">The writer to which data will be written.</param>
     /// <param name="value">The stack to serialize. Can be <c>null</c>.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the target writer cannot expand or the element formatter cannot be resolved.</exception>
     /// <remarks>
     /// <para>
     /// Serialization behavior:
@@ -143,6 +145,8 @@ internal sealed class StackFormatter<
     /// <returns>
     /// A reconstructed stack with original LIFO order preserved, or <c>null</c> if the input represents null.
     /// </returns>
+    /// <exception cref="InvalidOperationException">Thrown when the element formatter cannot be resolved.</exception>
+    /// <exception cref="Common.Exceptions.SerializationException">Thrown when the reader does not contain enough bytes for the declared element count.</exception>
     /// <remarks>
     /// <para>
     /// Deserialization behavior:
@@ -166,6 +170,11 @@ internal sealed class StackFormatter<
         if (count == -1)
         {
             return null;
+        }
+
+        if (count < -1)
+        {
+            throw new Common.Exceptions.SerializationException("Stack count out of range.");
         }
 
         System.Collections.Generic.Stack<T> stack = new(count);

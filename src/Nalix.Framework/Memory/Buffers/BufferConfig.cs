@@ -146,6 +146,9 @@ public sealed class BufferConfig : ConfigurationLoader
     /// <exception cref="ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown by <see cref="ParseBufferAllocations(string)"/> and wrapped into a validation failure when the allocation pattern is malformed.
+    /// </exception>
     public void Validate()
     {
         ValidationContext context = new(this);
@@ -215,6 +218,9 @@ public sealed class BufferConfig : ConfigurationLoader
     /// <summary>
     /// Parses the buffer allocation settings with caching for repeated configurations.
     /// </summary>
+    /// <param name="bufferAllocationsString">Semicolon-separated <c>size,ratio</c> pairs.</param>
+    /// <returns>The parsed allocation pairs sorted by allocation size.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="bufferAllocationsString"/> is blank or malformed.</exception>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static (int, double)[] ParseBufferAllocations(string bufferAllocationsString)

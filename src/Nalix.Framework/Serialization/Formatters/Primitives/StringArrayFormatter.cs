@@ -87,7 +87,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
 
         if (length == 0)
         {
-            return System.Array.Empty<string>();
+            return Array.Empty<string>();
         }
 
         if (length == SerializerBounds.Null)

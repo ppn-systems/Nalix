@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
@@ -71,7 +72,7 @@ internal sealed class DictionaryFormatter<
     /// <summary>
     /// Initializes a new instance of the <see cref="DictionaryFormatter{TKey, TValue}"/> class.
     /// </summary>
-    /// <exception cref="System.NotSupportedException">
+    /// <exception cref="NotSupportedException">
     /// Thrown when <typeparamref name="TKey"/> is not a supported key type.
     /// </exception>
     /// <remarks>
@@ -91,10 +92,10 @@ internal sealed class DictionaryFormatter<
     {
         // ── Validate TKey ──────────────────────────────────────────────
         // Chỉ cho phép: primitive, string, enum, unmanaged struct
-        System.Type keyType = typeof(TKey);
+        Type keyType = typeof(TKey);
         if (keyType.IsClass && keyType != typeof(string))
         {
-            throw new System.NotSupportedException(
+            throw new NotSupportedException(
                 $"DictionaryFormatter: TKey='{keyType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as key.");
         }
 
@@ -111,6 +112,7 @@ internal sealed class DictionaryFormatter<
     /// </summary>
     /// <param name="writer">The writer to which data will be written.</param>
     /// <param name="value">The dictionary to serialize. Can be <c>null</c>.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the target writer cannot expand or the key/value formatter cannot be resolved.</exception>
     /// <remarks>
     /// <para>
     /// Serialization behavior:
@@ -163,6 +165,8 @@ internal sealed class DictionaryFormatter<
     /// <returns>
     /// A reconstructed dictionary instance, or <c>null</c> if the input represents null.
     /// </returns>
+    /// <exception cref="InvalidOperationException">Thrown when the key or value formatter cannot be resolved.</exception>
+    /// <exception cref="Common.Exceptions.SerializationException">Thrown when the reader does not contain enough bytes for the declared entries.</exception>
     /// <remarks>
     /// <para>
     /// Deserialization behavior:
@@ -188,6 +192,11 @@ internal sealed class DictionaryFormatter<
         if (count == -1)
         {
             return null;
+        }
+
+        if (count < -1)
+        {
+            throw new Common.Exceptions.SerializationException("Dictionary count out of range.");
         }
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);

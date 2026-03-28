@@ -256,6 +256,7 @@ public static class FormatterProvider
     /// </summary>
     /// <typeparam name="T">The type for which the formatter is being registered.</typeparam>
     /// <param name="formatter">The formatter to register.</param>
+    /// <exception cref="ArgumentNullException">Thrown if the provided formatter is null.</exception>
     /// <exception cref="InvalidOperationException">
     /// Thrown if the type is unsupported (neither a struct nor a class).
     /// </exception>
@@ -480,6 +481,7 @@ public static class FormatterProvider
     /// </summary>
     /// <param name="type">Target type</param>
     /// <param name="genericFormatterType">Generic definition, e.g. typeof(StructFormatter&lt;&gt;)</param>
+    /// <exception cref="InvalidOperationException">Thrown when the formatter type does not expose a parameterless constructor.</exception>
     private static Func<object> GetFormatterFactory(Type type, Type genericFormatterType)
     {
         return s_formatterFactories.GetOrAdd(type, t =>

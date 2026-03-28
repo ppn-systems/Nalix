@@ -95,6 +95,7 @@ public readonly partial struct Snowflake
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public UInt56 ToUInt56() => __combined;
 
+    /// <exception cref="OutOfMemoryException">Thrown when the runtime cannot allocate the destination byte array.</exception>
     /// <inheritdoc/>
     [EditorBrowsable(
         EditorBrowsableState.Never)]

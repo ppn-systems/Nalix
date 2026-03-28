@@ -20,6 +20,7 @@ public static class SubscriptionExtensions
     /// <param name="onMessageReceived">The action to invoke when a packet is received.</param>
     /// <param name="onDisconnected">The action to invoke when the client is disconnected.</param>
     /// <returns>An <see cref="IDisposable"/> that unsubscribes the handlers when disposed.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="this"/> is null.</exception>
     public static IDisposable SubscribeTemp(this IClientConnection @this, EventHandler<IBufferLease> onMessageReceived, EventHandler<Exception> onDisconnected)
     {
         ArgumentNullException.ThrowIfNull(@this);

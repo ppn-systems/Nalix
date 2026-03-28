@@ -80,6 +80,7 @@ public static partial class Clock
     /// <param name="externalTime">The accurate external UTC time.</param>
     /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied.</param>
     /// <returns>The adjustment made in milliseconds.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="externalTime"/> is not expressed in UTC.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static double SynchronizeTime(
         DateTime externalTime,

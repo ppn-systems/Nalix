@@ -19,6 +19,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="byte"/> from the buffer.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte ReadByte(this ref DataReader reader)
     {
@@ -31,6 +32,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="ushort"/> from the buffer.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort ReadUInt16(this ref DataReader reader)
     {
@@ -43,6 +45,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="uint"/> from the buffer.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint ReadUInt32(this ref DataReader reader)
     {
@@ -55,6 +58,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="int"/> from the buffer.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ReadInt32(this ref DataReader reader)
     {
@@ -67,6 +71,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="long"/> from the buffer.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long ReadInt64(this ref DataReader reader)
     {
@@ -79,6 +84,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="ulong"/> from the buffer.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong ReadUInt64(this ref DataReader reader)
     {
@@ -91,6 +97,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a <see cref="bool"/> from the buffer.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ReadBoolean(this ref DataReader reader) => reader.ReadByte() != 0;
 
@@ -101,6 +108,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads an enum value with underlying type <see cref="byte"/>.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum ReadEnumByte<TEnum>(this ref DataReader reader)
     where TEnum : unmanaged, Enum
@@ -112,6 +120,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads an enum value with underlying type <see cref="ushort"/>.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum ReadEnumUInt16<TEnum>(this ref DataReader reader)
     where TEnum : unmanaged, Enum
@@ -123,6 +132,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads an enum value with underlying type <see cref="uint"/>.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum ReadEnumUInt32<TEnum>(this ref DataReader reader)
     where TEnum : unmanaged, Enum
@@ -138,6 +148,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads a byte array with specified length.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain <paramref name="count"/> remaining bytes.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ReadBytes(this ref DataReader reader, int count)
     {
@@ -167,6 +178,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads remaining bytes as byte array.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader state is invalid and remaining bytes cannot be consumed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ReadRemainingBytes(this ref DataReader reader) => reader.ReadBytes(reader.BytesRemaining);
 
@@ -177,6 +189,7 @@ public static class DataReaderExtensions
     /// <summary>
     /// Reads any unmanaged type directly from buffer.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T ReadUnmanaged<T>(this ref DataReader reader) where T : unmanaged
     {

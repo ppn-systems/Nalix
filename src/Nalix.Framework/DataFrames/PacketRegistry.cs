@@ -97,6 +97,7 @@ public sealed class PacketRegistry : IPacketRegistry
     public bool IsRegistered<TPacket>() where TPacket : IPacket => _deserializers.ContainsKey(PacketRegistryFactory.Compute(typeof(TPacket)));
 
     /// <inheritdoc/>
+    /// <exception cref="ArgumentException">Thrown when a registered deserializer attempts to read a malformed packet header.</exception>
     public bool TryDeserialize(
         ReadOnlySpan<byte> raw,
         [NotNullWhen(true)] out IPacket? packet)

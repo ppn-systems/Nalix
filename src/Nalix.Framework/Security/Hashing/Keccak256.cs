@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Runtime.Intrinsics;
 
 namespace Nalix.Framework.Security.Hashing;
@@ -34,7 +35,7 @@ namespace Nalix.Framework.Security.Hashing;
 ///   <item>Zero heap allocation — sponge state lives on the stack via <see langword="ref struct"/>.</item>
 ///   <item>One-shot fast-path for inputs ≤ 136 bytes calls <c>AbsorbBlock</c> directly,
 ///         picking up AVX-512 / AVX2 / AdvSimd / SSE2 SIMD paths.</item>
-///   <item>Round constants stored as <see cref="System.ReadOnlySpan{T}"/> literal
+///   <item>Round constants stored as <see cref="ReadOnlySpan{T}"/> literal
 ///         (<c>.rdata</c> section) — immutable by the runtime, zero heap traffic.</item>
 ///   <item>ρ/π lookup tables replaced with compile-time <c>static readonly</c> spans
 ///         so they cannot be mutated after startup.</item>
@@ -43,7 +44,7 @@ namespace Nalix.Framework.Security.Hashing;
 /// </remarks>
 /// <threadsafety>
 /// Instances are <b>not</b> thread-safe.  Use one instance per hashing operation,
-/// or use the static <see cref="HashData(System.ReadOnlySpan{byte})"/> overload
+/// or use the static <see cref="HashData(ReadOnlySpan{byte})"/> overload
 /// which is stateless and safe to call concurrently.
 /// </threadsafety>
 public static class Keccak256
@@ -80,7 +81,7 @@ public static class Keccak256
 
     #region Precomputed Tables (immutable)
 
-    private static System.ReadOnlySpan<ulong> RC =>
+    private static ReadOnlySpan<ulong> RC =>
     [
         0x0000000000000001UL, 0x0000000000008082UL,
         0x800000000000808AUL, 0x8000000080008000UL,
@@ -100,7 +101,7 @@ public static class Keccak256
     /// ρ rotation offsets indexed by lane number [x + 5*y].
     /// Lane 0 (x=0,y=0) has rotation 0 per spec — included for uniform indexing.
     /// </summary>
-    private static System.ReadOnlySpan<byte> RotC =>
+    private static ReadOnlySpan<byte> RotC =>
     [
          0, 1, 62, 28, 27,
         36, 44,  6, 55, 20,
@@ -112,7 +113,7 @@ public static class Keccak256
     /// <summary>
     /// π permutation: destination lane for each source lane.
     /// </summary>
-    private static System.ReadOnlySpan<byte> PiDst =>
+    private static ReadOnlySpan<byte> PiDst =>
     [
          0, 10, 20,  5, 15,
         16,  1, 11, 21,  6,
@@ -131,11 +132,12 @@ public static class Keccak256
     /// </summary>
     /// <param name="data">Input bytes to hash.</param>
     /// <returns>A new 32-byte array containing the Keccak-256 digest.</returns>
+    /// <exception cref="OutOfMemoryException">Thrown when the runtime cannot allocate the destination hash buffer.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static byte[] HashData(System.ReadOnlySpan<byte> data)
+    public static byte[] HashData(ReadOnlySpan<byte> data)
     {
-        byte[] result = System.GC.AllocateUninitializedArray<byte>(HashSizeBytes);
+        byte[] result = GC.AllocateUninitializedArray<byte>(HashSizeBytes);
         HashData(data, result);
         return result;
     }
@@ -146,18 +148,18 @@ public static class Keccak256
     /// </summary>
     /// <param name="data">Input bytes to hash.</param>
     /// <param name="output">Destination span (must be ≥ 32 bytes).</param>
-    /// <exception cref="System.ArgumentException">
+    /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="output"/> is shorter than 32 bytes.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     public static void HashData(
-        System.ReadOnlySpan<byte> data,
-        System.Span<byte> output)
+        ReadOnlySpan<byte> data,
+        Span<byte> output)
     {
         if (output.Length < HashSizeBytes)
         {
-            throw new System.ArgumentException(
+            throw new ArgumentException(
                 $"Output buffer must be at least {HashSizeBytes} bytes.", nameof(output));
         }
 
@@ -187,8 +189,8 @@ public static class Keccak256
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public static bool TryHashData(
-        System.ReadOnlySpan<byte> data,
-        System.Span<byte> output)
+        ReadOnlySpan<byte> data,
+        Span<byte> output)
     {
         if (output.Length < HashSizeBytes)
         {
@@ -216,11 +218,11 @@ public static class Keccak256
     /// <param name="output"></param>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void OneShotFastPath(
-        System.ReadOnlySpan<byte> data,
-        System.Span<byte> output)
+        ReadOnlySpan<byte> data,
+        Span<byte> output)
     {
-        System.Span<ulong> state = stackalloc ulong[Lanes]; // zeroed by CLR
-        System.Span<byte> block = stackalloc byte[RateBytes];
+        Span<ulong> state = stackalloc ulong[Lanes]; // zeroed by CLR
+        Span<byte> block = stackalloc byte[RateBytes];
 
         data.CopyTo(block);
         block[data.Length..].Clear();
@@ -267,17 +269,17 @@ public static class Keccak256
 
         /// <inheritdoc/>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public void Absorb(scoped System.ReadOnlySpan<byte> data)
+        public void Absorb(scoped ReadOnlySpan<byte> data)
         {
-            System.Span<ulong> state = _state;
-            System.Span<byte> buffer = _buffer;
-            System.ReadOnlySpan<byte> input = data;
+            Span<ulong> state = _state;
+            Span<byte> buffer = _buffer;
+            ReadOnlySpan<byte> input = data;
 
             // Drain partial block
             if (_bufferLen > 0)
             {
                 int need = RateBytes - _bufferLen;
-                int take = System.Math.Min(need, input.Length);
+                int take = Math.Min(need, input.Length);
                 input[..take].CopyTo(buffer[_bufferLen..]);
                 _bufferLen += take;
                 input = input[take..];
@@ -308,10 +310,10 @@ public static class Keccak256
 
         /// <inheritdoc/>
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-        public void PadAndSqueeze(scoped System.Span<byte> output)
+        public void PadAndSqueeze(scoped Span<byte> output)
         {
-            System.Span<ulong> state = _state;
-            System.Span<byte> buffer = _buffer;
+            Span<ulong> state = _state;
+            Span<byte> buffer = _buffer;
             int n = _bufferLen;
 
             // Edge: buffer was exactly full — absorb it first, then pad a fresh block.
@@ -352,8 +354,8 @@ public static class Keccak256
     /// <param name="block"></param>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static unsafe void AbsorbBlock(
-        System.Span<ulong> state,
-        System.ReadOnlySpan<byte> block)
+        Span<ulong> state,
+        ReadOnlySpan<byte> block)
     {
         System.Diagnostics.Debug.Assert(block.Length == RateBytes,
             $"AbsorbBlock requires exactly {RateBytes} bytes.");
@@ -362,7 +364,7 @@ public static class Keccak256
         // Last lane (index 16) is always handled as a scalar tail after the SIMD body
         // because 17 is odd and no SIMD width divides 17 evenly.
 
-        if (System.BitConverter.IsLittleEndian)
+        if (BitConverter.IsLittleEndian)
         {
             fixed (byte* pBlock = block)
             {
@@ -459,7 +461,7 @@ public static class Keccak256
                     // The portable-vector branch is replaced by this fully unrolled scalar
                     // path which is correct regardless of SIMD width, and the JIT will
                     // auto-vectorise it anyway on hardware where it matters.
-                    System.ReadOnlySpan<ulong> u64 =
+                    ReadOnlySpan<ulong> u64 =
                         System.Runtime.InteropServices.MemoryMarshal
                             .Cast<byte, ulong>(block);
 
@@ -522,8 +524,8 @@ public static class Keccak256
     /// <param name="output"></param>
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void Squeeze(
-        System.ReadOnlySpan<ulong> state,
-        System.Span<byte> output)
+        ReadOnlySpan<ulong> state,
+        Span<byte> output)
     {
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output[..8], state[0]);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(output.Slice(8, 8), state[1]);
@@ -538,15 +540,15 @@ public static class Keccak256
     [System.Diagnostics.DebuggerStepThrough]
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void KeccakF1600(System.Span<ulong> A)
+    private static void KeccakF1600(Span<ulong> A)
     {
         // B is the intermediate buffer for the ρ+π step.
         // Kept as a local stackalloc — 200 B, stays in the same stack frame as Absorb.
-        System.Span<ulong> B = stackalloc ulong[Lanes];
+        Span<ulong> B = stackalloc ulong[Lanes];
 
-        System.ReadOnlySpan<ulong> rc = RC;
-        System.ReadOnlySpan<byte> rotC = RotC;
-        System.ReadOnlySpan<byte> piDst = PiDst;
+        ReadOnlySpan<ulong> rc = RC;
+        ReadOnlySpan<byte> rotC = RotC;
+        ReadOnlySpan<byte> piDst = PiDst;
 
         for (int round = 0; round < KeccakRounds; round++)
         {
