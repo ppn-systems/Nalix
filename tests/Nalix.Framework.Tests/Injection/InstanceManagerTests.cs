@@ -1,10 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Framework.Injection;
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Framework.Injection;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Injection;
@@ -36,6 +36,8 @@ public class InstanceManagerTests : IDisposable
         {
             // swallow in teardown
         }
+
+        GC.SuppressFinalize(this);
     }
 
     #region Test Helpers
@@ -69,11 +71,11 @@ public class InstanceManagerTests : IDisposable
     {
         public string SelectedCtor { get; }
 
-        public CtorClass() => SelectedCtor = "empty";
+        public CtorClass() => this.SelectedCtor = "empty";
 
-        public CtorClass(string x) => SelectedCtor = $"string:{x}";
+        public CtorClass(string x) => this.SelectedCtor = $"string:{x}";
 
-        public CtorClass(int n) => SelectedCtor = $"int:{n}";
+        public CtorClass(int n) => this.SelectedCtor = $"int:{n}";
     }
 
     #endregion

@@ -79,7 +79,7 @@ public sealed class TaskManagerTests : IDisposable
         using TaskManager manager = this.CreateManager();
 
         InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await manager.RunOnceAsync("run-once-fail", _ => ValueTask.FromException(new InvalidOperationException("boom"))));
+            async () => await manager.RunOnceAsync("run-once-fail", _ => ValueTask.FromException(new InvalidOperationException("boom"))).ConfigureAwait(false));
 
         Assert.Equal("boom", exception.Message);
     }
@@ -90,7 +90,7 @@ public sealed class TaskManagerTests : IDisposable
         using TaskManager manager = this.CreateManager();
 
         _ = await Assert.ThrowsAsync<ArgumentNullException>(
-            async () => await manager.RunOnceAsync(null!, _ => ValueTask.CompletedTask));
+            async () => await manager.RunOnceAsync(null!, _ => ValueTask.CompletedTask).ConfigureAwait(false));
     }
 
     [Theory]
@@ -101,7 +101,7 @@ public sealed class TaskManagerTests : IDisposable
         using TaskManager manager = this.CreateManager();
 
         _ = await Assert.ThrowsAsync<ArgumentException>(
-            async () => await manager.RunOnceAsync(name, _ => ValueTask.CompletedTask));
+            async () => await manager.RunOnceAsync(name, _ => ValueTask.CompletedTask).ConfigureAwait(false));
     }
 
     [Fact]
@@ -194,7 +194,7 @@ public sealed class TaskManagerTests : IDisposable
 
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -236,7 +236,7 @@ public sealed class TaskManagerTests : IDisposable
             async (context, cancellationToken) =>
             {
                 _ = groupAStarted.TrySetResult(true);
-                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
             },
             new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
 
@@ -246,7 +246,7 @@ public sealed class TaskManagerTests : IDisposable
             async (context, cancellationToken) =>
             {
                 _ = groupBStarted.TrySetResult(true);
-                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
             },
             new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
 
@@ -279,7 +279,7 @@ public sealed class TaskManagerTests : IDisposable
             async (context, cancellationToken) =>
             {
                 _ = runningWorkerStarted.TrySetResult(true);
-                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
             },
             new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
 
@@ -481,7 +481,7 @@ public sealed class TaskManagerTests : IDisposable
                 return;
             }
 
-            await Task.Delay(20);
+            await Task.Delay(20).ConfigureAwait(false);
         }
 
         Assert.True(condition(), "The expected condition was not satisfied before the timeout elapsed.");

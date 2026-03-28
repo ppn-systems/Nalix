@@ -507,11 +507,11 @@ namespace Nalix.Framework.Tests.DataFrames
             // Act + Assert
             if (useEmptyKey)
             {
-                Assert.Throws<ArgumentNullException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
+                _ = Assert.Throws<ArgumentNullException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
             }
             else
             {
-                Assert.Throws<ArgumentException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
+                _ = Assert.Throws<ArgumentException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
             }
         }
 
