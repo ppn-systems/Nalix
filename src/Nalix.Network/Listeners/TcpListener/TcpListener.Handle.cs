@@ -57,10 +57,10 @@ public abstract partial class TcpListenerBase
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] " +
                 $"process-error={connection.NetworkEndpoint}");
 
-            // Close the connection immediately if an error occurs -> prevent resource leaks.
-            // WHY close here: If OnAccept throws an error, the connection has not been registered to any
+            // Disconnect the connection immediately if an error occurs -> prevent resource leaks.
+            // WHY Disconnect here: If OnAccept throws an error, the connection has not been registered to any
             // managed list -> you must close it manually here; no one else can do it.
-            connection.Close();
+            connection.Dispose();
         }
     }
 

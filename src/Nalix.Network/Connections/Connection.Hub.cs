@@ -16,7 +16,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Sessions;
-using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Time;
@@ -884,7 +883,7 @@ public sealed class ConnectionHub : IConnectionHub
                         }
                     }
                 }
-                
+
             case DropPolicy.Coalesce:
             case DropPolicy.DropNewest:
             default:
@@ -1249,11 +1248,14 @@ public sealed class ConnectionHub : IConnectionHub
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void TryPersistSession(IConnection connection)
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
 
         if (connection.IsDisposed)
         {
-             return;
+            return;
         }
 
         // Only persist if the handshake was established
