@@ -36,6 +36,7 @@ namespace Nalix.Framework.Security.Engine;
 /// </para>
 /// </remarks>
 [System.Diagnostics.DebuggerNonUserCode]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class AeadEngine
 {
     /// <summary>

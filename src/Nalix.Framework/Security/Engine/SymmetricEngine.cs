@@ -25,6 +25,7 @@ namespace Nalix.Framework.Security.Engine;
 /// nonce of the appropriate length for the algorithm is generated automatically.
 /// </remarks>
 [System.Diagnostics.DebuggerNonUserCode]
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class SymmetricEngine
 {
     #region Raw Keystream API

@@ -14,10 +14,14 @@ namespace Nalix.Framework.Security.Symmetric;
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class Salsa20
 {
+    #region Constants
+
     /// <summary>
     /// Required nonce length in bytes (64-bit nonce).
     /// </summary>
     public const byte NonceSize = 8;
+
+    #endregion Constants
 
     #region Encryption/Decryption Methods
 
