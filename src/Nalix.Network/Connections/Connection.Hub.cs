@@ -118,20 +118,19 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// Registers a new connection with the hub.
     /// </summary>
     /// <param name="connection">The connection to register.</param>
-    /// <returns><c>true</c> if the connection was successfully registered; otherwise, <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool RegisterConnection(IConnection connection)
+    public void RegisterConnection(IConnection connection)
     {
-        if (connection is null || _disposed)
-        {
-            return false;
-        }
+        ArgumentNullException.ThrowIfNull(connection);
+
+        ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionHub));
 
         if (_options.MaxConnections > 0 && _count >= _options.MaxConnections)
         {
             this.HandleConnectionLimit(connection);
-            return false;
+            throw new InvalidOperationException(
+                $"Connection hub capacity reached. Maximum connections: {_options.MaxConnections}.");
         }
 
         TimingScope scope = default;
@@ -145,26 +144,22 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         int shardIndex = this.GetShardIndex(connectionKey);
         ConcurrentDictionary<UInt56, IConnection> shard = _shards[shardIndex];
 
-        if (shard.TryAdd(connectionKey, connection))
+        if (!shard.TryAdd(connectionKey, connection))
         {
-            connection.OnCloseEvent += this.OnClientDisconnected;
-            _ = Interlocked.Increment(ref _count);
-            _anonymousQueue.Enqueue(connectionKey);
-
-
-            s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
-
-            if (_options.IsEnableLatency)
-            {
-                s_logger?.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
-            }
-
-            return true;
+            s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
+            throw new InvalidOperationException($"Connection '{connection.ID}' is already registered.");
         }
 
-        s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
+        connection.OnCloseEvent += this.OnClientDisconnected;
+        _ = Interlocked.Increment(ref _count);
+        _anonymousQueue.Enqueue(connectionKey);
 
-        return false;
+        s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
+
+        if (_options.IsEnableLatency)
+        {
+            s_logger?.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+        }
     }
 
     /// <inheritdoc />
@@ -172,14 +167,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// Unregisters a connection from the hub.
     /// </summary>
     /// <param name="connection">The connection to unregister.</param>
-    /// <returns><c>true</c> if the connection was successfully unregistered; otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool UnregisterConnection(IConnection connection)
+    public void UnregisterConnection(IConnection connection)
     {
-        if (connection is null || _disposed)
-        {
-            return false;
-        }
+        ArgumentNullException.ThrowIfNull(connection);
+
+        ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionHub));
 
         // Wait for OnCloseEvent to complete if configured
         if (_options.UnregisterDrainMillis > 0)
@@ -202,8 +195,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         if (!shard.TryRemove(connectionKey, out IConnection? existing))
         {
             s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
-
-            return false;
+            throw new InvalidOperationException($"Connection '{connection.ID}' is not registered.");
         }
 
         IConnection removedConnection = existing ?? connection;
@@ -219,8 +211,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             s_logger?.Info($"[PERF.NW.UnregisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
         }
-
-        return true;
     }
 
     /// <inheritdoc />
@@ -777,8 +767,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        _disposed = true;
         this.CloseAllConnections("disposed");
+        _disposed = true;
 
         s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
     }
@@ -801,7 +791,19 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnClientDisconnected(
         object? sender,
-        IConnectEventArgs args) => this.UnregisterConnection(args.Connection);
+        IConnectEventArgs args)
+    {
+        try
+        {
+            this.UnregisterConnection(args.Connection);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
 
     [StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)
