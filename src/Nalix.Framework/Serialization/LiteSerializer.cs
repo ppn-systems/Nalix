@@ -49,8 +49,7 @@ public static class LiteSerializer
     /// </exception>
     [Pure]
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public static byte[] Serialize<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
@@ -367,8 +366,7 @@ public static class LiteSerializer
     /// <exception cref="ArgumentException">Thrown if the buffer is empty.</exception>
     [Pure]
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public static int Deserialize<[
         DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(
         ReadOnlySpan<byte> buffer, ref T value)
@@ -469,8 +467,7 @@ public static class LiteSerializer
     /// <exception cref="ArgumentException"></exception>
     [Pure]
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public static T Deserialize<[
         DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(

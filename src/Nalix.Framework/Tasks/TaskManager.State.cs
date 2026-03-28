@@ -123,8 +123,7 @@ public partial class TaskManager
 
         #region Computed Methods
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
         {
             long nowTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
@@ -134,8 +133,7 @@ public partial class TaskManager
             this.IsRunning = true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkStop()
         {
             this.IsRunning = false;
@@ -145,8 +143,7 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, nowTicks);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkError(Exception __)
         {
             this.IsRunning = false;
@@ -157,8 +154,7 @@ public partial class TaskManager
             _ = Interlocked.Exchange(ref _lastHeartbeatUtcTicks, ticks);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void Beat()
         {
             long ticks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
@@ -301,16 +297,14 @@ public partial class TaskManager
 
         #region Computed Methods
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
         {
             this.IsRunning = true;
             this.LastRunUtc = DateTimeOffset.UtcNow;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkSuccess()
         {
             this.IsRunning = false;
@@ -318,8 +312,7 @@ public partial class TaskManager
             _ = Interlocked.Increment(ref _totalRuns);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkFailure()
         {
             this.IsRunning = false;
@@ -372,8 +365,7 @@ public partial class TaskManager
         public string Name => _st.Name;
         public string Group => _st.Group;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void Beat() => _st.Beat();
 
         [MethodImpl(MethodImplOptions.NoInlining)]

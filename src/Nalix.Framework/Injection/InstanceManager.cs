@@ -94,8 +94,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         public readonly RuntimeTypeHandle P4;
         public readonly RuntimeTypeHandle Target;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public ActivatorKey(Type t, object?[]? args)
         {
             Target = t.TypeHandle;

@@ -47,8 +47,7 @@ public sealed partial class Connection
 
         /// <inheritdoc />
         [Pure]
-        [MethodImpl(MethodImplOptions.AggressiveInlining |
-            MethodImplOptions.AggressiveOptimization)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public static Endpoint FromEndPoint(
             EndPoint? endpoint)
         {
@@ -120,8 +119,7 @@ public sealed partial class Connection
         public string Address
         {
             [Pure]
-            [MethodImpl(MethodImplOptions.NoInlining |
-                MethodImplOptions.AggressiveOptimization)]
+            [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
             get
             {
                 if (!this.IsIPv6)

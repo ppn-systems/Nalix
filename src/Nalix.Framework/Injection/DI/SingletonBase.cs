@@ -107,8 +107,7 @@ public abstract class SingletonBase<T> : IDisposable where T : class
 
     #region Finalizer
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static T CREATE_INSTANCE_INTERNAL()
     {
         try
