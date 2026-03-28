@@ -149,6 +149,14 @@ internal sealed class FRAME_SENDER : IDisposable
         // only has to write bytes — no serialisation work on the hot path.
 
         int totalLen = TcpSession.HeaderSize + payload.Length;
+        if (totalLen > ushort.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(payload),
+                totalLen,
+                $"Non-fragmented frame size must not exceed {ushort.MaxValue} bytes.");
+        }
+
         byte[] frame = BufferLease.ByteArrayPool.Rent(totalLen);
 
         BinaryPrimitives.WriteUInt16LittleEndian(
@@ -320,6 +328,11 @@ internal sealed class FRAME_SENDER : IDisposable
         ushort streamId = FragmentStreamId.Next();
         int chunkBodySize = _fragmentOptions.ChunkBodySize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
+        if (totalChunks > ushort.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
+        }
 
         byte[] headerSpan = new byte[FragmentHeader.WireSize];
 
@@ -333,6 +346,12 @@ internal sealed class FRAME_SENDER : IDisposable
             fragHeader.WriteTo(headerSpan);
 
             int totalFrameLen = TcpSession.HeaderSize + FragmentHeader.WireSize + chunkLen;
+
+            if (totalFrameLen > ushort.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    $"Fragmented frame size {totalFrameLen} exceeds the {ushort.MaxValue}-byte wire header limit.");
+            }
 
             byte[] frame = BufferLease.ByteArrayPool.Rent(totalFrameLen);
 

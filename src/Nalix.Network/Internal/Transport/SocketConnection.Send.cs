@@ -41,7 +41,14 @@ internal sealed partial class SocketConnection
             return;
         }
 
-        ushort totalLength = (ushort)(data.Length + HeaderSize);
+        int totalLength = data.Length + HeaderSize;
+        if (totalLength > ushort.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(data),
+                totalLength,
+                $"Non-fragmented frame size must not exceed {ushort.MaxValue} bytes.");
+        }
 
         // ── Fast path: stack-allocate frame for small packets ─────────────
         if (data.Length <= PacketConstants.StackAllocLimit)
@@ -53,7 +60,7 @@ internal sealed partial class SocketConnection
                                 $"stackalloc len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
                 Span<byte> frameS = stackalloc byte[totalLength];
-                WRITE_FRAME_HEADER(frameS, totalLength, data);
+                WRITE_FRAME_HEADER(frameS, (ushort)totalLength, data);
 
 #if DEBUG
                 if (s_logger is not null)
@@ -103,7 +110,7 @@ internal sealed partial class SocketConnection
             s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                             $"pooled len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
-            BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), totalLength);
+            BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength);
             data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
 
 #if DEBUG
@@ -173,7 +180,15 @@ internal sealed partial class SocketConnection
             return;
         }
 
-        ushort totalLength = (ushort)(data.Length + HeaderSize);
+        int totalLength = data.Length + HeaderSize;
+        if (totalLength > ushort.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(data),
+                totalLength,
+                $"Non-fragmented frame size must not exceed {ushort.MaxValue} bytes.");
+        }
+
         byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
 
         try
@@ -182,7 +197,7 @@ internal sealed partial class SocketConnection
             s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
                             $"len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
-            WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), totalLength, data.Span);
+            WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength, data.Span);
 
 #if DEBUG
             if (s_logger is not null)
@@ -246,6 +261,11 @@ internal sealed partial class SocketConnection
         ushort streamId = FragmentStreamId.Next();
         int chunkBodySize = s_fragmentOptions.ChunkBodySize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
+        if (totalChunks > ushort.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
+        }
 
         Span<byte> headerBuffer = stackalloc byte[FragmentHeader.WireSize];
 
@@ -270,6 +290,12 @@ internal sealed partial class SocketConnection
 
             // + 2 byte length
             int totalFrameSize = HeaderSize + framePayloadSize;
+
+            if (totalFrameSize > ushort.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    $"Fragmented frame size {totalFrameSize} exceeds the {ushort.MaxValue}-byte wire header limit.");
+            }
 
             if (totalFrameSize > PacketConstants.PacketSizeLimit)
             {
@@ -340,6 +366,11 @@ internal sealed partial class SocketConnection
         ushort streamId = FragmentStreamId.Next();
         int chunkBodySize = s_fragmentOptions.ChunkBodySize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
+        if (totalChunks > ushort.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
+        }
 
         byte[] headerSpan = new byte[FragmentHeader.WireSize];
 
@@ -354,6 +385,12 @@ internal sealed partial class SocketConnection
 
             int framePayloadLen = FragmentHeader.WireSize + chunkLen;
             int totalFrameLen = HeaderSize + framePayloadLen;
+
+            if (totalFrameLen > ushort.MaxValue)
+            {
+                throw new InvalidOperationException(
+                    $"Fragmented frame size {totalFrameLen} exceeds the {ushort.MaxValue}-byte wire header limit.");
+            }
 
             byte[] rented = BufferLease.ByteArrayPool.Rent(totalFrameLen);
 

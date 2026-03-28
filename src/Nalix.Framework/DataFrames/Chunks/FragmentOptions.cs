@@ -73,5 +73,26 @@ public class FragmentOptions : ConfigurationLoader
             throw new InvalidOperationException(
                 $"MaxPayloadSize={this.MaxPayloadSize} must be >= ChunkThreshold={this.ChunkThreshold}.");
         }
+
+        if (this.ChunkBodySize <= 0)
+        {
+            throw new InvalidOperationException("ChunkBodySize must be > 0.");
+        }
+
+        int maxChunkCount = (this.MaxPayloadSize + this.ChunkBodySize - 1) / this.ChunkBodySize;
+        if (maxChunkCount > ushort.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"ChunkBodySize={this.ChunkBodySize} can produce {maxChunkCount} chunks for MaxPayloadSize={this.MaxPayloadSize}, " +
+                $"which exceeds the {ushort.MaxValue}-chunk wire header limit.");
+        }
+
+        int maxChunkFrameSize = PacketConstants.HeaderSize + FragmentHeader.WireSize + this.ChunkBodySize;
+        if (maxChunkFrameSize > ushort.MaxValue)
+        {
+            throw new InvalidOperationException(
+                $"ChunkBodySize={this.ChunkBodySize} produces a fragment frame of {maxChunkFrameSize} bytes, " +
+                $"which exceeds the {ushort.MaxValue}-byte wire header limit.");
+        }
     }
 }
