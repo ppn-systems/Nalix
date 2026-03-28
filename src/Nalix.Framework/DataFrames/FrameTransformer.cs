@@ -174,11 +174,6 @@ public static class FrameTransformer
         Span<byte> output = dest.SpanFull[Offset..];
 
         int compressed = LZ4Codec.Encode(input, output);
-        if (compressed < 0)
-        {
-            throw new InvalidOperationException("Compression failed unexpectedly.");
-        }
-
         dest.CommitLength(Offset + compressed);
     }
 
@@ -207,12 +202,6 @@ public static class FrameTransformer
         Span<byte> output = dest.SpanFull[Offset..];
 
         int decoded = LZ4Codec.Decode(input, output);
-
-        if (decoded < 0)
-        {
-            throw new InvalidOperationException("Decompression failed unexpectedly.");
-        }
-
         dest.CommitLength(Offset + decoded);
     }
 }

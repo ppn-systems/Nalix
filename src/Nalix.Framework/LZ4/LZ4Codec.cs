@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using Nalix.Framework.LZ4.Encoders;
@@ -24,18 +23,12 @@ public static class LZ4Codec
     /// </summary>
     /// <param name="input">The input data to compress.</param>
     /// <param name="output">The output buffer to receive the compressed data.</param>
-    /// <returns>The number of bytes written to the output buffer, or -1 if compression fails.</returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <returns>The number of bytes written to the output buffer.</returns>
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Encode(ReadOnlySpan<byte> input, Span<byte> output)
     {
-        if (output.Length < LZ4BlockHeader.Size)
-        {
-            return -1;
-        }
-
         try
         {
             return LZ4Encoder.Encode(input, output);
@@ -48,6 +41,27 @@ public static class LZ4Codec
     }
 
     /// <summary>
+    /// Compresses the input data into a newly allocated byte array sized to the compressed payload.
+    /// </summary>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static byte[] Encode(ReadOnlySpan<byte> input)
+    {
+        byte[] buffer = new byte[LZ4BlockEncoder.GetMaxLength(input.Length)];
+        int bytesWritten = Encode(input, buffer);
+
+        if (bytesWritten == buffer.Length)
+        {
+            return buffer;
+        }
+
+        byte[] result = new byte[bytesWritten];
+        buffer.AsSpan(0, bytesWritten).CopyTo(result);
+        return result;
+    }
+
+    /// <summary>
     /// Compresses the input data into a <see cref="BufferLease"/> rented from the pool.
     /// Caller is responsible for disposing the lease when done.
     /// </summary>
@@ -55,43 +69,36 @@ public static class LZ4Codec
     /// <param name="lease">
     /// On success, a <see cref="BufferLease"/> whose <see cref="BufferLease.Span"/> contains
     /// exactly <c>bytesWritten</c> bytes of compressed data (including the LZ4 block header).
-    /// Must be disposed by the caller. On failure, <c>null</c>.
+    /// Must be disposed by the caller.
     /// </param>
     /// <param name="bytesWritten">The number of compressed bytes written into the lease.</param>
-    /// <returns><c>true</c> if compression succeeds; otherwise, <c>false</c>.</returns>
     /// <example>
     /// <code>
-    /// if (LZ4Codec.Encode(data, out BufferLease? lease, out int written))
+    /// LZ4Codec.Encode(data, out BufferLease lease, out int written);
+    /// using (lease)
     /// {
-    ///     using (lease)
-    ///     {
-    ///         Send(lease.Span); // zero-copy handoff
-    ///     }
+    ///     Send(lease.Span); // zero-copy handoff
     /// }
     /// </code>
     /// </example>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool Encode(ReadOnlySpan<byte> input, [NotNullWhen(true)] out BufferLease? lease, out int bytesWritten)
+    public static void Encode(ReadOnlySpan<byte> input, out BufferLease lease, out int bytesWritten)
     {
-        lease = null;
-        bytesWritten = 0;
-
         int maxOutputSize = LZ4BlockEncoder.GetMaxLength(input.Length);
         BufferLease rentedLease = BufferLease.Rent(maxOutputSize);
-
-        int written = Encode(input, rentedLease.SpanFull);
-
-        if (written < 0)
+        try
+        {
+            int written = Encode(input, rentedLease.SpanFull);
+            rentedLease.CommitLength(written);
+            lease = rentedLease;
+            bytesWritten = written;
+        }
+        catch
         {
             rentedLease.Dispose();
-            return false;
+            throw;
         }
-
-        rentedLease.CommitLength(written);
-        lease = rentedLease;
-        bytesWritten = written;
-        return true;
     }
 
     /// <summary>
@@ -99,7 +106,7 @@ public static class LZ4Codec
     /// </summary>
     /// <param name="input">The compressed input data, including header information.</param>
     /// <param name="output">The output buffer to receive the decompressed data.</param>
-    /// <returns>The number of bytes written to the output buffer, or -1 if decompression fails.</returns>
+    /// <returns>The number of bytes written to the output buffer.</returns>
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -109,9 +116,8 @@ public static class LZ4Codec
     /// Decompresses the compressed input into a newly allocated byte array.
     /// </summary>
     /// <param name="input">The compressed input data, including header information.</param>
-    /// <param name="output">The output byte array containing the decompressed data, or null if decompression fails.</param>
+    /// <param name="output">The output byte array containing the decompressed data.</param>
     /// <param name="bytesWritten">The number of bytes actually written to the output array.</param>
-    /// <returns>True if decompression succeeds; otherwise, false.</returns>
     /// <remarks>
     /// This overload allocates a new byte[] for the result.
     /// For hot paths, prefer <see cref="Decode(ReadOnlySpan{byte}, out BufferLease, out int)"/>
@@ -120,7 +126,11 @@ public static class LZ4Codec
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool Decode(ReadOnlySpan<byte> input, [NotNullWhen(true)] out byte[]? output, out int bytesWritten) => LZ4Decoder.Decode(input, out output, out bytesWritten);
+    public static void Decode(ReadOnlySpan<byte> input, out byte[] output, out int bytesWritten)
+    {
+        _ = LZ4Decoder.Decode(input, out byte[]? decoded, out bytesWritten);
+        output = decoded ?? throw new InvalidOperationException("LZ4 decoder returned a null output buffer unexpectedly.");
+    }
 
     /// <summary>
     /// Decompresses the compressed input into a <see cref="BufferLease"/> rented from the pool.
@@ -130,22 +140,19 @@ public static class LZ4Codec
     /// <param name="lease">
     /// On success, a <see cref="BufferLease"/> whose <see cref="BufferLease.Span"/> contains
     /// exactly <c>bytesWritten</c> bytes of decompressed data.
-    /// Must be disposed by the caller. On failure, <c>null</c>.
+    /// Must be disposed by the caller.
     /// </param>
     /// <param name="bytesWritten">The number of bytes written to the lease.</param>
-    /// <returns><c>true</c> if decompression succeeds; otherwise, <c>false</c>.</returns>
     /// <example>
     /// <code>
-    /// if (LZ4Codec.Decode(compressed, out BufferLease? lease, out int written))
+    /// LZ4Codec.Decode(compressed, out BufferLease lease, out int written);
+    /// using (lease)
     /// {
-    ///     using (lease)
-    ///     {
-    ///         Process(lease.Span); // zero-copy
-    ///     }
+    ///     Process(lease.Span); // zero-copy
     /// }
     /// </code>
     /// </example>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool Decode(ReadOnlySpan<byte> input, [NotNullWhen(true)] out BufferLease? lease, out int bytesWritten) => LZ4Decoder.Decode(input, out lease, out bytesWritten);
+    public static void Decode(ReadOnlySpan<byte> input, out BufferLease? lease, out int bytesWritten) => _ = LZ4Decoder.Decode(input, out lease, out bytesWritten);
 }

@@ -58,17 +58,14 @@ public sealed class LZ4CodecTests
     }
 
     [Fact]
-    public void EncodeWithTooSmallOutputReturnsMinusOne()
+    public void EncodeWithTooSmallOutputThrowsArgumentOutOfRangeException()
     {
         // Arrange
         byte[] original = CreateSamplePayload(1024);
         byte[] tooSmallOutput = new byte[LZ4BlockHeader.Size - 1];
 
-        // Act
-        int result = LZ4Codec.Encode(original, tooSmallOutput);
-
         // Assert
-        Assert.Equal(-1, result);
+        Assert.Throws<ArgumentOutOfRangeException>(() => LZ4Codec.Encode(original, tooSmallOutput));
     }
 
     [Fact]
@@ -78,13 +75,12 @@ public sealed class LZ4CodecTests
         byte[] original = CreateSamplePayload(8 * 1024);
 
         // Act
-        bool encoded = LZ4Codec.Encode(
+        LZ4Codec.Encode(
             original,
             out BufferLease lease,
             out int compressedLength);
 
         // Assert
-        Assert.True(encoded);
         Assert.NotNull(lease);
         Assert.True(compressedLength > 0);
 
@@ -115,13 +111,12 @@ public sealed class LZ4CodecTests
         Assert.True(writtenCompressed > 0);
 
         // Act
-        bool decoded = LZ4Codec.Decode(
+        LZ4Codec.Decode(
             compressed.AsSpan(0, writtenCompressed),
             out byte[] output,
             out int bytesWritten);
 
         // Assert
-        Assert.True(decoded);
         Assert.NotNull(output);
         Assert.Equal(original.Length, bytesWritten);
 
@@ -130,7 +125,7 @@ public sealed class LZ4CodecTests
     }
 
     [Fact]
-    public void DecodeToLeaseRoundTripsDataIfSupported()
+    public void DecodeToLeaseRoundTripsData()
     {
         // Arrange
         byte[] original = CreateSamplePayload(10 * 1024);
@@ -142,21 +137,11 @@ public sealed class LZ4CodecTests
         Assert.True(writtenCompressed > 0);
 
         // Act
-        bool decoded = LZ4Codec.Decode(
+        LZ4Codec.Decode(
             compressed.AsSpan(0, writtenCompressed),
             out BufferLease lease,
             out int bytesWritten);
 
-        // Nếu decoder trả false thì đây là hành vi hợp lệ: không giải nén được,
-        // lease phải null và bytesWritten phải 0. Không fail test.
-        if (!decoded)
-        {
-            Assert.Null(lease);
-            Assert.Equal(0, bytesWritten);
-            return;
-        }
-
-        // Nếu decoder hỗ trợ, decoded phải true và lease != null
         Assert.NotNull(lease);
 
         using (lease)
