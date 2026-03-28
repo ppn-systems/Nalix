@@ -52,8 +52,7 @@ internal sealed class PooledAcceptContext : IPoolable
 
     /// <summary>The SAEA currently bound to this context.</summary>
     /// <exception cref="InvalidOperationException"></exception>
-    public SocketAsyncEventArgs Args =>
-        _args ?? throw new InvalidOperationException("Args not bound.");
+    public SocketAsyncEventArgs Args => _args ?? throw new InvalidOperationException("Args not bound.");
 
     /// <summary>
     /// Ensures that this context has a bound SAEA, acquiring one from the pool if necessary.
@@ -113,9 +112,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <param name="listener"></param>
     /// <param name="cancellationToken"></param>
     [Pure]
-    public ValueTask<Socket> BeginAcceptAsync(
-        Socket listener,
-        CancellationToken cancellationToken = default)
+    public ValueTask<Socket> BeginAcceptAsync(Socket listener, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 

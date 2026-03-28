@@ -28,8 +28,7 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
 {
     public async Task<IBufferLease?> InvokeAsync(
         IBufferLease lease, IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next,
-        CancellationToken ct)
+        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(lease);
         ArgumentNullException.ThrowIfNull(connection);

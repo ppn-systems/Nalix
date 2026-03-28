@@ -32,8 +32,7 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
     /// <inheritdoc />
     public async Task<IBufferLease?> InvokeAsync(
         IBufferLease lease, IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next,
-        CancellationToken ct)
+        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next, CancellationToken ct)
     {
 #if DEBUG
         string debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
