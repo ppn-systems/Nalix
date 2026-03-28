@@ -96,8 +96,7 @@ public sealed class PacketDispatchChannel
     /// </summary>
     /// <param name="cancellationToken"></param>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-       MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public void Activate(
         CancellationToken cancellationToken = default)
     {
@@ -158,8 +157,7 @@ public sealed class PacketDispatchChannel
     /// </summary>
     /// <param name="cancellationToken"></param>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-       MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
     public void Deactivate(
         CancellationToken cancellationToken = default)
@@ -215,8 +213,7 @@ public sealed class PacketDispatchChannel
     }
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-       MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(IBufferLease packet, IConnection connection)
     {
         ArgumentNullException.ThrowIfNull(packet, nameof(packet));
@@ -380,8 +377,7 @@ public sealed class PacketDispatchChannel
     /// <param name="ctx"></param>
     /// <param name="ct"></param>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-       MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private async Task RunLoop(IWorkerContext ctx, CancellationToken ct)
     {
         TimeSpan heartbeatInterval = TimeSpan.FromSeconds(1);

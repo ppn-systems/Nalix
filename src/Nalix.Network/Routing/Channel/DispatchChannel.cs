@@ -351,12 +351,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private ConnectionState GET_STATE(IConnection c) => _states.GetOrAdd(c, static _ => new ConnectionState());
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static bool HAS_ANY(
         ConnectionQueues cqs,
         out int highest)
@@ -373,8 +371,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         return false;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static bool TRY_DEQUEUE_HIGHEST(
         ConnectionQueues cqs,
         int startPrio,
@@ -403,8 +400,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="cqs"></param>
     /// <param name="cs"></param>
     /// <param name="lease"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static bool TRY_EVICT_OLDEST(
         ConnectionQueues cqs,
         ConnectionState cs,
@@ -434,8 +430,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// </summary>
     /// <param name="span"></param>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static int CLASSIFY_PRIORITY_INDEX(ReadOnlySpan<byte> span)
     {
         PacketPriority pr = span.ReadPriorityLE();
@@ -453,8 +448,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     #region Events / Cleanup
 
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private void OnUnregistered(IConnection connection) => this.RemoveConnection(connection);
 
     /// <summary>
@@ -462,8 +456,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// </summary>
     /// <param name="connection"></param>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void RemoveConnection(IConnection connection)
     {
         if (_queues.TryRemove(connection, out ConnectionQueues? cqs) && cqs is not null)

@@ -64,8 +64,7 @@ public static class Csprng
     /// Suitable for cryptographic purposes including key generation, nonces, and IVs.
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void Fill(Span<byte> data)
     {
         if (data.Length == 0)
@@ -111,8 +110,7 @@ public static class Csprng
     /// Thread-safe. Returns an empty array if length is 0.
     /// Use this for generating cryptographic keys, tokens, and other security-sensitive data.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static byte[] GetBytes(int length)
     {
         if (length < 0)
@@ -175,8 +173,7 @@ public static class Csprng
     /// <remarks>
     /// Thread-safe. Uses unbiased rejection sampling for uniform distribution.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static int GetInt32(
         int max) => GetInt32(0, max);
 
@@ -193,8 +190,7 @@ public static class Csprng
     /// Thread-safe. Equivalent to Fill(buffer.AsSpan()).
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
         byte[] buffer)
     {
@@ -210,8 +206,7 @@ public static class Csprng
     /// Thread-safe. Preferred over the array overload for performance-critical code.
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void NextBytes(
         Span<byte> buffer) => Fill(buffer);
 
@@ -223,8 +218,7 @@ public static class Csprng
     /// Thread-safe. Suitable for generating unpredictable identifiers and tokens.
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static uint NextUInt32()
     {
         Span<byte> b = stackalloc byte[4];
@@ -240,8 +234,7 @@ public static class Csprng
     /// Thread-safe. Useful for generating high-entropy identifiers and session tokens.
     /// </remarks>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static ulong NextUInt64()
     {
         Span<byte> b = stackalloc byte[8];
@@ -257,8 +250,7 @@ public static class Csprng
     /// Thread-safe. Uses 53 bits of precision (full mantissa of double).
     /// Suitable for Monte Carlo simulations and statistical sampling.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static double NextDouble() => (NextUInt64() >> 11) * (1.0 / 9007199254740992.0);
 
     #endregion Next

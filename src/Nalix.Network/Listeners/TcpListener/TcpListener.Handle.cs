@@ -417,8 +417,7 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     protected void AcceptNext(SocketAsyncEventArgs args, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(args);

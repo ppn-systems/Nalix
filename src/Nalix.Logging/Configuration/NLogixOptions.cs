@@ -122,8 +122,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Applies default configuration settings to the logging configuration.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions ConfigureDefaults(Func<NLogixOptions, NLogixOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
@@ -133,8 +132,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Sets the configuration options for file logging.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions ConfigureFileOptions(Action<FileLogOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
@@ -147,8 +145,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Adds a logging target to receive log entries.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions RegisterTarget(ILoggerTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
@@ -161,8 +158,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Sets the minimum logging level for filtering log entries.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public NLogixOptions SetMinimumLevel(LogLevel level)
     {
         ObjectDisposedException.ThrowIf(Interlocked
@@ -176,8 +172,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// </summary>
     [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly", Justification = "Pattern is intentional")]
     [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, 1) != 0)

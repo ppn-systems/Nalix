@@ -31,8 +31,7 @@ internal static class LZ4Encoder
     /// <exception cref="InvalidOperationException"></exception>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public static unsafe int Encode(ReadOnlySpan<byte> input, Span<byte> output)
     {
         if (input.IsEmpty)

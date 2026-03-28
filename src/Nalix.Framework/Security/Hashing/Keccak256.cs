@@ -214,9 +214,7 @@ public static class Keccak256
     /// </summary>
     /// <param name="data"></param>
     /// <param name="output"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void OneShotFastPath(
         System.ReadOnlySpan<byte> data,
         System.Span<byte> output)
@@ -268,9 +266,7 @@ public static class Keccak256
         // ── Absorb ────────────────────────────────────────────────────────────────
 
         /// <inheritdoc/>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void Absorb(scoped System.ReadOnlySpan<byte> data)
         {
             System.Span<ulong> state = _state;
@@ -311,9 +307,7 @@ public static class Keccak256
         // ── Pad + Squeeze ─────────────────────────────────────────────────────────
 
         /// <inheritdoc/>
-        [System.Runtime.CompilerServices.MethodImpl(
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-            System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
         public void PadAndSqueeze(scoped System.Span<byte> output)
         {
             System.Span<ulong> state = _state;
@@ -356,9 +350,7 @@ public static class Keccak256
     /// </summary>
     /// <param name="state"></param>
     /// <param name="block"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static unsafe void AbsorbBlock(
         System.Span<ulong> state,
         System.ReadOnlySpan<byte> block)
@@ -528,9 +520,7 @@ public static class Keccak256
     /// </summary>
     /// <param name="state"></param>
     /// <param name="output"></param>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining | System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static void Squeeze(
         System.ReadOnlySpan<ulong> state,
         System.Span<byte> output)

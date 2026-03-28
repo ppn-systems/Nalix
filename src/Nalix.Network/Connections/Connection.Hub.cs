@@ -259,8 +259,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// Retrieves a read-only collection of all active connections.
     /// </summary>
     /// <returns>A read-only collection of active connections.</returns>
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public IReadOnlyCollection<IConnection> ListConnections()
     {
@@ -482,8 +481,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <param name="networkEndpoint">The IP address to forcefully close.</param>
     /// <returns>Number of connections closed.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public int ForceClose(INetworkEndpoint networkEndpoint)
     {
         ArgumentNullException.ThrowIfNull(networkEndpoint);
