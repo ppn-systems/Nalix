@@ -513,7 +513,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         ReadOnlySpan<byte> payloadSpan = lease.Span;
 
         // 2. Fragment Assembly Check.
-        // A FragmentHeader is 7 bytes. If it's a fragment, we handle it separately.
+        // A FragmentHeader is 8 bytes. If it's a fragment, we handle it separately.
         if (FragmentAssembler.IsFragmentedFrame(payloadSpan, out FragmentHeader header))
         {
             this.HANDLE_FRAGMENTED_FRAME(lease, args, header);

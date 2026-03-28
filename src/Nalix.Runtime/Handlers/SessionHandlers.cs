@@ -93,7 +93,7 @@ public sealed class SessionHandlers
         _ = packet.SessionToken.TryWriteBytes(tokenBytes);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption to prevent DoS.
-        HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), tokenBytes[..7], expectedProofBytes);
+        HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), tokenBytes, expectedProofBytes);
 
         Bytes32 expectedProof = new(expectedProofBytes);
         if (packet.Proof != expectedProof)
@@ -115,7 +115,7 @@ public sealed class SessionHandlers
         Span<byte> newTokenBytes = stackalloc byte[8];
         _ = newTokenSnowflake.TryWriteBytes(newTokenBytes);
         Span<byte> responseProofBytes = stackalloc byte[32];
-        HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), newTokenBytes[..7], responseProofBytes);
+        HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), newTokenBytes, responseProofBytes);
 
         using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
         SessionResume ack = lease.Value;
