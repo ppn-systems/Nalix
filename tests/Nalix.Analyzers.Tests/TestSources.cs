@@ -78,7 +78,6 @@ namespace Nalix.Runtime.Dispatching
     {
         public PacketDispatchOptions<TPacket> WithHandler<TController>() where TController : class => this;
         public PacketDispatchOptions<TPacket> WithMiddleware(IPacketMiddleware<TPacket> middleware) => this;
-        public PacketDispatchOptions<TPacket> WithBufferMiddleware(INetworkBufferMiddleware middleware) => this;
         public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int count) => this;
     }
 
@@ -107,10 +106,6 @@ namespace Nalix.Runtime.Middleware
         ValueTask InvokeAsync(IPacketContext<TPacket> context, Func<CancellationToken, ValueTask> next);
     }
 
-    public interface INetworkBufferMiddleware
-    {
-        ValueTask<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, ValueTask<IBufferLease?>> nextHandler, CancellationToken ct);
-    }
 }
 
 namespace Nalix.Common.Networking.Packets

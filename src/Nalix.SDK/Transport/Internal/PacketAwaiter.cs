@@ -8,7 +8,9 @@ using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Transport.Extensions;
 
+#if DEBUG
 [assembly: InternalsVisibleTo("Nalix.SDK.Tests")]
+#endif
 
 namespace Nalix.SDK.Transport.Internal;
 
