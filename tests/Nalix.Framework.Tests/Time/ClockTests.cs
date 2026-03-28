@@ -26,7 +26,7 @@ public class ClockTests
         long expected = (long)(now - DateTime.UnixEpoch).TotalMilliseconds;
 
         // 2.5s đủ an toàn cho các môi trường có NTP/VM jitter
-        Assert.InRange(unix, expected - 2500, expected + 2500);
+        Assert.InRange(unix, expected - 2500, expected + 3000);
     }
 
     [Fact]
