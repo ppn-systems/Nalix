@@ -179,8 +179,7 @@ public sealed partial class Connection : IConnection
     }
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void Disconnect(string? reason = null) => this.Close(force: true);
 
     #endregion Methods
@@ -227,11 +226,8 @@ public sealed partial class Connection : IConnection
 
     #region Event Bridges
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
-    private void OnCloseEventBridge(
-        object? sender,
-        IConnectEventArgs e)
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private void OnCloseEventBridge(object? sender, IConnectEventArgs e)
     {
         if (Interlocked.Exchange(ref _closeSignaled, 1) != 0)
         {
@@ -242,11 +238,8 @@ public sealed partial class Connection : IConnection
         _ = Internal.Transport.AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
-    private static void OnProcessEventBridge(
-        object? sender,
-        IConnectEventArgs e)
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static void OnProcessEventBridge(object? sender, IConnectEventArgs e)
     {
         if (sender is not Connection self)
         {
@@ -256,11 +249,8 @@ public sealed partial class Connection : IConnection
         _ = Internal.Transport.AsyncCallback.Invoke(self._onProcessEvent, self, e);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining |
-        MethodImplOptions.AggressiveOptimization)]
-    private static void OnPostProcessEventBridge(
-        object? sender,
-        IConnectEventArgs e)
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static void OnPostProcessEventBridge(object? sender, IConnectEventArgs e)
     {
         if (sender is not Connection self)
         {

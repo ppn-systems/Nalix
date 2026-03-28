@@ -17,6 +17,7 @@ internal static class LZ4HashTablePool
     #region Fields
 
     [ThreadStatic]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     private static int[]? t_hashTable;
     private static readonly ArrayPool<int> s_pool = ArrayPool<int>.Shared;
 

@@ -82,18 +82,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// </summary>
     public event EventHandler<ConnectionHubEventArgs>? CapacityLimitReached;
 
-    /// <summary>
-    /// Gets the current statistics snapshot for this connection hub.
-    /// </summary>
-    public Metrics Statistics => new(
-        connectionCount: _count,
-        maxConnections: _options.MaxConnections,
-        dropPolicy: _options.DropPolicy,
-        shardCount: _shardCount,
-        anonymousQueueDepth: _anonymousQueue.Count,
-        evictedConnections: _evictedConnections,
-        rejectedConnections: _rejectedConnections);
-
     #endregion Properties
 
     #region Constructor
@@ -332,8 +320,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <returns>A task representing the asynchronous broadcast operation.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="message"/> or <paramref name="sendFunc"/> is null.</exception>
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public async Task BroadcastAsync<T>(
         T message,
         Func<IConnection, T, Task> sendFunc,
@@ -428,8 +415,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <returns>A task representing the asynchronous broadcast operation.</returns>
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="message"/>, <paramref name="sendFunc"/>, or <paramref name="predicate"/> is null.</exception>
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public async Task BroadcastWhereAsync<T>(
         T message,
         Func<IConnection, T, Task> sendFunc,
@@ -545,8 +531,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// Closes all active connections with an optional reason.
     /// </summary>
     /// <param name="reason">The reason for closing the connections, if any.</param>
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public void CloseAllConnections(string? reason = null)
     {
         if (_disposed)
@@ -587,8 +572,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Generates a human-readable report of active connections and statistics.
     /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining |
-        MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public string GenerateReport()
     {
         const int Limit = 15;
@@ -596,8 +580,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         int count = 0;
         long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
 
-        StringBuilder sb = new();
-        Metrics stats = this.Statistics;
+        StringBuilder sb = new(1024);
         Dictionary<string, int> algoCounts = new(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, int> statusCounts = new(StringComparer.OrdinalIgnoreCase);
 
@@ -605,10 +588,10 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {_count}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Evicted Connections  : {_evictedConnections}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Rejected Connections : {_rejectedConnections}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Shard Count          : {stats.ShardCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Queue Depth: {stats.AnonymousQueueDepth}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connections      : {(stats.MaxConnections < 0 ? "Unlimited" : stats.MaxConnections.ToString(CultureInfo.InvariantCulture))}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {stats.DropPolicy}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Shard Count          : {_shardCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Queue Depth: {_anonymousQueue.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connections      : {(_options.MaxConnections < 0 ? "Unlimited" : _options.MaxConnections.ToString(CultureInfo.InvariantCulture))}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {_options.DropPolicy}");
 
         foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
         {
@@ -707,17 +690,16 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// </summary>
     public IDictionary<string, object> GenerateReportData()
     {
-        Metrics stats = this.Statistics;
         Dictionary<string, object> report = new()
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["TotalConnections"] = _count,
             ["EvictedConnections"] = _evictedConnections,
             ["RejectedConnections"] = _rejectedConnections,
-            ["ShardCount"] = stats.ShardCount,
-            ["AnonymousQueueDepth"] = stats.AnonymousQueueDepth,
-            ["MaxConnections"] = stats.MaxConnections,
-            ["DropPolicy"] = stats.DropPolicy.ToString(),
+            ["ShardCount"] = _shardCount,
+            ["AnonymousQueueDepth"] = _anonymousQueue.Count,
+            ["MaxConnections"] = _options.MaxConnections,
+            ["DropPolicy"] = _options.DropPolicy.ToString(),
         };
 
         // Connection metrics summary
@@ -802,69 +784,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     }
 
     #endregion APIs
-
-    #region Class
-
-    /// <summary>
-    /// Provides diagnostic statistics for a <see cref="ConnectionHub"/>.
-    /// </summary>
-    /// <param name="connectionCount"></param>
-    /// <param name="maxConnections"></param>
-    /// <param name="dropPolicy"></param>
-    /// <param name="shardCount"></param>
-    /// <param name="anonymousQueueDepth"></param>
-    /// <param name="evictedConnections"></param>
-    /// <param name="rejectedConnections"></param>
-    /// <remarks>
-    /// Initializes a new instance of the <see cref="Metrics"/> struct.
-    /// </remarks>
-    public readonly struct Metrics(
-        int connectionCount,
-        int maxConnections,
-        DropPolicy dropPolicy,
-        int shardCount,
-        int anonymousQueueDepth,
-        int evictedConnections,
-        int rejectedConnections)
-    {
-
-        /// <summary>
-        /// Gets the current number of registered connections.
-        /// </summary>
-        public int ConnectionCount { get; } = connectionCount;
-
-        /// <summary>
-        /// Gets the configured maximum number of connections.
-        /// </summary>
-        public int MaxConnections { get; } = maxConnections;
-
-        /// <summary>
-        /// Gets the drop policy that is active when limits are reached.
-        /// </summary>
-        public DropPolicy DropPolicy { get; } = dropPolicy;
-
-        /// <summary>
-        /// Gets the number of shards used for connection storage.
-        /// </summary>
-        public int ShardCount { get; } = shardCount;
-
-        /// <summary>
-        /// Gets the depth of the anonymous eviction queue.
-        /// </summary>
-        public int AnonymousQueueDepth { get; } = anonymousQueueDepth;
-
-        /// <summary>
-        /// Gets the cumulative number of evicted connections.
-        /// </summary>
-        public int EvictedConnections { get; } = evictedConnections;
-
-        /// <summary>
-        /// Gets the cumulative number of rejected connection attempts.
-        /// </summary>
-        public int RejectedConnections { get; } = rejectedConnections;
-    }
-
-    #endregion Class
 
     #region Private Methods
 
@@ -978,11 +897,54 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             currentConnections: _count,
             maxConnections: _options.MaxConnections,
             triggeredConnectionId: newConnection?.ID,
-            reason: reason ?? string.Empty,
-            snapshot: this.Statistics);
+            reason: reason ?? string.Empty);
 
         CapacityLimitReached?.Invoke(this, args);
     }
 
     #endregion Private Methods
+}
+
+/// <summary>
+/// Event arguments raised when a capacity limit is hit.
+/// </summary>
+/// <param name="dropPolicy"></param>
+/// <param name="currentConnections"></param>
+/// <param name="maxConnections"></param>
+/// <param name="triggeredConnectionId"></param>
+/// <param name="reason"></param>
+/// <remarks>
+/// Initializes a new instance of the <see cref="ConnectionHubEventArgs"/> class.
+/// </remarks>
+public sealed class ConnectionHubEventArgs(
+    DropPolicy dropPolicy,
+    int currentConnections,
+    int maxConnections,
+    ISnowflake? triggeredConnectionId,
+    string reason) : EventArgs
+{
+    /// <summary>
+    /// Gets the active drop policy when the limit fired.
+    /// </summary>
+    public DropPolicy DropPolicy { get; } = dropPolicy;
+
+    /// <summary>
+    /// Gets the number of registered connections when the limit was reached.
+    /// </summary>
+    public int CurrentConnections { get; } = currentConnections;
+
+    /// <summary>
+    /// Gets the configured maximum number of connections.
+    /// </summary>
+    public int MaxConnections { get; } = maxConnections;
+
+    /// <summary>
+    /// Gets the connection that triggered the limit (may be null if not available).
+    /// </summary>
+    public ISnowflake? TriggeredConnectionId { get; } = triggeredConnectionId;
+
+    /// <summary>
+    /// Gets the textual reason for the limit notification.
+    /// </summary>
+    public string Reason { get; } = reason ?? string.Empty;
 }

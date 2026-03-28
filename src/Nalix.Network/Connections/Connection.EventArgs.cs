@@ -18,8 +18,15 @@ namespace Nalix.Network.Connections;
 /// </remarks>
 public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolable
 {
+    #region Fields
+
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
     private IBufferLease? _lease;
+
+    #endregion Fields
+
+    #region Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionEventArgs"/> class with default values.
@@ -34,6 +41,10 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     public ConnectionEventArgs(IConnection connection)
         => this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when creating ConnectionEventArgs");
 
+    #endregion Constructors
+
+    #region Properties
+
     /// <inheritdoc/>
     public IBufferLease Lease => _lease ?? throw new InvalidOperationException("Buffer lease is not available for this event.");
 
@@ -43,6 +54,10 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint => this.Connection.NetworkEndpoint;
+
+    #endregion Properties
+
+    #region APIs
 
     /// <inheritdoc />
     public void Initialize(IConnection connection)
@@ -66,4 +81,6 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
 
     /// <inheritdoc />
     public void Dispose() => s_pool.Return(this);
+
+    #endregion APIs
 }

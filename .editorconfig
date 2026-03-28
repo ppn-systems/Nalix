@@ -245,8 +245,6 @@ dotnet_naming_style.begins_with_i.required_suffix =
 dotnet_naming_style.begins_with_i.word_separator = 
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
-end_of_line = lf
-
 dotnet_diagnostic.CS0168.severity = warning
 dotnet_diagnostic.CS0219.severity = warning
 dotnet_analyzer_diagnostic.severity = warning
@@ -268,7 +266,7 @@ dotnet_naming_style.instance_field_style.capitalization = camel_case
 # Private static fields: prefix is s_
 dotnet_naming_rule.private_static_fields.symbols = private_static_field
 dotnet_naming_rule.private_static_fields.style = static_field_style
-dotnet_naming_rule.private_static_fields.severity = error
+dotnet_naming_rule.private_static_fields.severity = suggestion
 
 dotnet_naming_symbols.private_static_field.applicable_kinds = field
 dotnet_naming_symbols.private_static_field.applicable_accessibilities = private
@@ -276,6 +274,19 @@ dotnet_naming_symbols.private_static_field.required_modifiers = static
 
 dotnet_naming_style.static_field_style.required_prefix = s_
 dotnet_naming_style.static_field_style.capitalization = camel_case
+
+# Thread-static fields: prefix is t_
+dotnet_naming_symbols.thread_static_fields.applicable_kinds = field
+dotnet_naming_symbols.thread_static_fields.applicable_accessibilities = private
+dotnet_naming_symbols.thread_static_fields.required_modifiers = static
+dotnet_naming_symbols.thread_static_fields.applicable_attributes = ThreadStaticAttribute
+
+dotnet_naming_style.thread_static_prefix.required_prefix = t_
+dotnet_naming_style.thread_static_prefix.capitalization = camel_case
+
+dotnet_naming_rule.thread_static_should_have_prefix.symbols = thread_static_fields
+dotnet_naming_rule.thread_static_should_have_prefix.style = thread_static_prefix
+dotnet_naming_rule.thread_static_should_have_prefix.severity = error
 
 # Const fields: PascalCase (KHÔNG prefix)
 dotnet_naming_rule.const_fields.symbols = const_field
@@ -330,7 +341,12 @@ dotnet_analyzer_diagnostic.severity = warning
 warn_as_error = true
 
 dotnet_diagnostic.CA1040.severity = warning  # Avoid empty interfaces
-# dotnet_diagnostic.CA1031.severity = warning  # Catch general exception
+dotnet_diagnostic.CA1031.severity = warning  # Catch general exception
+dotnet_diagnostic.CA1031.severity = suggestion
 
 charset = utf-8
 max_line_length = 150
+
+dotnet_diagnostic.CA1850.severity = warning   # Prefer HashData
+dotnet_diagnostic.CA1860.severity = warning   # Avoid Enumerable.Any() when Count available
+dotnet_diagnostic.CA1864.severity = warning   # Prefer Dictionary.TryAdd
