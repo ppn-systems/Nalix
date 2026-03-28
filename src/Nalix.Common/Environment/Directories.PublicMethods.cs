@@ -146,10 +146,7 @@ public static partial class Directories
     /// The file extension to append to the generated file name.
     /// </param>
     /// <exception cref="ArgumentNullException"></exception>
-    public static string GetTimestampedFilePath(
-        [MaybeNull] string directoryPath,
-        [MaybeNull] string fileNameBase,
-        [MaybeNull] string extension)
+    public static string GetTimestampedFilePath([MaybeNull] string directoryPath, [MaybeNull] string fileNameBase, [MaybeNull] string extension)
     {
         if (string.IsNullOrWhiteSpace(directoryPath))
         {
@@ -162,7 +159,7 @@ public static partial class Directories
         }
 
         string timestamp = DateTime.UtcNow.ToString("yyyyMMddTHHmmssZ", CultureInfo.InvariantCulture);
-        string fileName = fileNameBase + "_" + timestamp + "." + extension.TrimStart('.');
+        string fileName = fileNameBase + "_" + timestamp + "." + extension?.TrimStart('.');
 
         return GetFilePath(directoryPath, fileName);
     }

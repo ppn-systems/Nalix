@@ -160,6 +160,7 @@ public sealed class PacketDispatchChannel
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining |
        MethodImplOptions.AggressiveOptimization)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
     public void Deactivate(
         CancellationToken cancellationToken = default)
     {
@@ -218,6 +219,9 @@ public sealed class PacketDispatchChannel
        MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(IBufferLease packet, IConnection connection)
     {
+        ArgumentNullException.ThrowIfNull(packet, nameof(packet));
+        ArgumentNullException.ThrowIfNull(connection, nameof(connection));
+
         if (packet is null || packet.Length <= 0)
         {
             this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.NetworkEndpoint}");
@@ -237,9 +241,7 @@ public sealed class PacketDispatchChannel
     // If you want typed fast-path, you can implement a separate typed channel.
     // For now, process immediately to avoid mixing typed/lease queues.
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void HandlePacket(
-        IPacket packet,
-        IConnection connection) => this.ExecutePacketHandlerAsync(packet, connection).Await();
+    public void HandlePacket(IPacket packet, IConnection connection) => this.ExecutePacketHandlerAsync(packet, connection).Await();
 
     #endregion Public Methods
 
