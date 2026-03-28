@@ -53,7 +53,8 @@ internal static partial class FieldCache<T>
     /// <exception cref="KeyNotFoundException">
     /// Thrown if the field name does not exist in the cache.
     /// </exception>
-    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="fieldName"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="fieldName"/> is empty.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FieldSchema GetField(string fieldName)

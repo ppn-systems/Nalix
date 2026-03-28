@@ -118,7 +118,7 @@ public static class DataWriterExtensions
     /// <typeparam name="TEnum"></typeparam>
     /// <param name="writer"></param>
     /// <param name="value"></param>
-    /// <exception cref="NotSupportedException"></exception>
+    /// <exception cref="NotSupportedException">Thrown when <typeparamref name="TEnum"/> uses an unsupported underlying type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WriteEnum<TEnum>(this ref DataWriter writer, TEnum value) where TEnum : Enum
     {
@@ -155,6 +155,8 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
+    /// <exception cref="InvalidOperationException">Thrown when the writer wraps a fixed buffer that cannot expand to fit <paramref name="value"/>.</exception>
+    /// <exception cref="OutOfMemoryException">Thrown when the writer cannot rent a larger backing buffer.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, byte[] value)
     {
@@ -185,6 +187,8 @@ public static class DataWriterExtensions
     /// </summary>
     /// <param name="writer"></param>
     /// <param name="value"></param>
+    /// <exception cref="InvalidOperationException">Thrown when the writer wraps a fixed buffer that cannot expand to fit <paramref name="value"/>.</exception>
+    /// <exception cref="OutOfMemoryException">Thrown when the writer cannot rent a larger backing buffer.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, ReadOnlySpan<byte> value)
     {
@@ -208,6 +212,8 @@ public static class DataWriterExtensions
     /// <typeparam name="T"></typeparam>
     /// <param name="writer"></param>
     /// <param name="value"></param>
+    /// <exception cref="InvalidOperationException">Thrown when the writer wraps a fixed buffer that cannot expand to fit the unmanaged value.</exception>
+    /// <exception cref="OutOfMemoryException">Thrown when the writer cannot rent a larger backing buffer.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WriteUnmanaged<T>(this ref DataWriter writer, T value) where T : unmanaged
     {

@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Engine;
@@ -189,6 +190,9 @@ public static class EnvelopeCipher
     /// Thrown if <paramref name="algorithm"/> is not recognized, the output buffer is too small,
     /// or key/nonce length errors are detected by the underlying engines.
     /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when a supported authenticated cipher rejects the supplied inputs during encryption.
+    /// </exception>
     /// <example>
     /// <code>
     /// // AEAD example (CHACHA20-Poly1305)
@@ -247,6 +251,16 @@ public static class EnvelopeCipher
     /// For AEAD suites, the same AAD convention is used as in encryption:
     /// <c>header || nonce || userAAD</c>.
     /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="envelope"/> is malformed, the destination buffer is too small,
+    /// or key length validation fails in the underlying engine.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when authentication fails for AEAD envelopes.
+    /// </exception>
+    /// <exception cref="NotSupportedException">
+    /// Thrown when the envelope declares an unsupported cipher suite.
+    /// </exception>
     /// <example>
     /// <code>
     /// EnvelopeCipher.Decrypt(key32, envelope, plaintext, aad, out var written);
@@ -302,7 +316,11 @@ public static class EnvelopeCipher
     /// </param>
     /// <param name="written">Written output</param>
     /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="algorithm"/> is not recognized or the destination buffer is too small.
+    /// Thrown if <paramref name="algorithm"/> is not recognized, the output buffer is too small,
+    /// or key/nonce length errors are detected by the underlying engines.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when a supported authenticated cipher rejects the supplied inputs during encryption.
     /// </exception>
     /// <example>
     /// <code>
@@ -334,6 +352,16 @@ public static class EnvelopeCipher
     /// For AEAD suites, the same AAD convention is used as in encryption:
     /// <c>header || nonce || userAAD</c>.
     /// </remarks>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="envelope"/> is malformed, the destination buffer is too small,
+    /// or key length validation fails in the underlying engine.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when authentication fails for AEAD envelopes.
+    /// </exception>
+    /// <exception cref="NotSupportedException">
+    /// Thrown when the envelope declares an unsupported cipher suite.
+    /// </exception>
     /// <example>
     /// <code>
     /// EnvelopeCipher.Decrypt(key32, envelope, plaintext, out var written);

@@ -20,8 +20,8 @@ public static class EnumExtensions
     /// <param name="this">The enumeration value to modify.</param>
     /// <param name="mask">The flag to add.</param>
     /// <returns>A new enumeration value with the specified flag added.</returns>
-    /// <exception cref="ArgumentException"></exception>
-    /// <exception cref="NotSupportedException"></exception>
+    /// <exception cref="ArgumentException">Thrown in debug builds when <typeparamref name="TEnum"/> is not marked with <see cref="FlagsAttribute"/>.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the enum underlying storage size is not 1, 2, 4, or 8 bytes.</exception>
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -80,8 +80,8 @@ public static class EnumExtensions
     /// <param name="this">The enumeration value to modify.</param>
     /// <param name="mask">The flag to remove.</param>
     /// <returns>A new enumeration value with the specified flag removed.</returns>
-    /// <exception cref="ArgumentException"></exception>
-    /// <exception cref="NotSupportedException"></exception>
+    /// <exception cref="ArgumentException">Thrown in debug builds when <typeparamref name="TEnum"/> is not marked with <see cref="FlagsAttribute"/>.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the enum underlying storage size is not 1, 2, 4, or 8 bytes.</exception>
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -256,7 +256,7 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="count"></param>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count"/> is less than or equal to zero.</exception>
     public int Prealloc<T>(int count) where T : IPoolable, new()
     {
         if (count <= 0)
@@ -282,6 +282,7 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="maxCapacity"></param>
+    /// <returns><see langword="true"/> when the target pool was updated or created; otherwise, <see langword="false"/>.</returns>
     public bool SetMaxCapacity<T>(int maxCapacity) where T : IPoolable
     {
         if (maxCapacity < 0)
@@ -389,6 +390,7 @@ public sealed class ObjectPoolManager : IReportable
     /// Trims all pools to their target sizes.
     /// </summary>
     /// <param name="percentage"></param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown by an underlying pool when <paramref name="percentage"/> falls outside the supported trim range.</exception>
     public int TrimAllPools(int percentage = 50)
     {
         int totalRemoved = 0;
@@ -480,6 +482,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="interval"></param>
     /// <param name="percentage"></param>
     /// <param name="cancellationToken"></param>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="interval"/> is negative or not supported by <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</exception>
     public Task ScheduleRegularTrimming(
         TimeSpan interval,
         int percentage = 50,

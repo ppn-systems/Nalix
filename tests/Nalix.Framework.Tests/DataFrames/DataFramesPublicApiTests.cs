@@ -613,7 +613,7 @@ namespace Nalix.Framework.Tests.DataFrames
         /// Verifies that adding all chunks for a stream returns the assembled payload and closes the stream.
         /// </summary>
         [Fact]
-        public void TryAdd_AllChunksArriveInOrder_ReturnsAssembledBuffer()
+        public void Add_AllChunksArriveInOrder_ReturnsAssembledBuffer()
         {
             // Arrange
             using FragmentAssembler assembler = new();
@@ -621,14 +621,12 @@ namespace Nalix.Framework.Tests.DataFrames
             FragmentHeader second = new(7, 1, 2, true);
 
             // Act
-            bool firstCompleted = assembler.TryAdd(first, Encoding.UTF8.GetBytes("hello "), out BufferLease? firstAssembled, out bool firstEvicted);
-            bool secondCompleted = assembler.TryAdd(second, Encoding.UTF8.GetBytes("world"), out BufferLease? secondAssembled, out bool secondEvicted);
+            BufferLease? firstAssembled = assembler.Add(first, Encoding.UTF8.GetBytes("hello "), out bool firstEvicted);
+            BufferLease? secondAssembled = assembler.Add(second, Encoding.UTF8.GetBytes("world"), out bool secondEvicted);
 
             // Assert
-            Assert.False(firstCompleted);
             Assert.Null(firstAssembled);
             Assert.False(firstEvicted);
-            Assert.True(secondCompleted);
             Assert.False(secondEvicted);
             using BufferLease assembled = Assert.IsType<BufferLease>(secondAssembled);
             Assert.Equal("hello world", Encoding.UTF8.GetString(assembled.Memory.Span));
@@ -642,39 +640,33 @@ namespace Nalix.Framework.Tests.DataFrames
         [InlineData((ushort)0, (ushort)0, (ushort)1)]
         [InlineData((ushort)1, (ushort)1, (ushort)1)]
         [InlineData((ushort)1, (ushort)0, (ushort)0)]
-        public void TryAdd_HeaderIsInvalid_ReturnsFalse(ushort streamId, ushort chunkIndex, ushort totalChunks)
+        public void Add_HeaderIsInvalid_ThrowsInvalidDataException(ushort streamId, ushort chunkIndex, ushort totalChunks)
         {
             // Arrange
             using FragmentAssembler assembler = new();
             FragmentHeader header = new(streamId, chunkIndex, totalChunks, false);
 
-            // Act
-            bool completed = assembler.TryAdd(header, [1, 2, 3], out BufferLease? assembled, out bool streamEvicted);
-
             // Assert
-            Assert.False(completed);
-            Assert.Null(assembled);
-            Assert.False(streamEvicted);
+            Assert.Throws<InvalidDataException>(() => assembler.Add(header, [1, 2, 3], out _));
         }
 
         /// <summary>
         /// Verifies that a timed out stream is evicted when the next chunk arrives after the timeout window.
         /// </summary>
         [Fact]
-        public void TryAdd_StreamHasTimedOut_EvictsStreamAndReturnsFalse()
+        public void Add_StreamHasTimedOut_EvictsStreamAndReturnsNull()
         {
             // Arrange
             using FragmentAssembler assembler = new() { StreamTimeoutMs = 1 };
             FragmentHeader first = new(15, 0, 2, false);
             FragmentHeader second = new(15, 1, 2, true);
-            _ = assembler.TryAdd(first, [1], out _, out _);
+            _ = assembler.Add(first, [1], out _);
             Thread.Sleep(100);
 
             // Act
-            bool completed = assembler.TryAdd(second, [2], out BufferLease? assembled, out bool streamEvicted);
+            BufferLease? assembled = assembler.Add(second, [2], out bool streamEvicted);
 
             // Assert
-            Assert.False(completed);
             Assert.Null(assembled);
             Assert.True(streamEvicted);
             Assert.Equal(0, assembler.OpenStreamCount);
@@ -688,12 +680,12 @@ namespace Nalix.Framework.Tests.DataFrames
         {
             // Arrange
             using FragmentAssembler assembler = new() { StreamTimeoutMs = 1 };
-            _ = assembler.TryAdd(new FragmentHeader(21, 0, 2, false), [1, 2], out _, out _);
+            _ = assembler.Add(new FragmentHeader(21, 0, 2, false), [1, 2], out _);
             Thread.Sleep(10);
 
             // Act
             int evicted = assembler.EvictExpired();
-            _ = assembler.TryAdd(new FragmentHeader(22, 0, 2, false), [3, 4], out _, out _);
+            _ = assembler.Add(new FragmentHeader(22, 0, 2, false), [3, 4], out _);
             assembler.Clear();
 
             // Assert

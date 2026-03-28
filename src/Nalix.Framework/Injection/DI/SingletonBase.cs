@@ -126,7 +126,7 @@ public abstract class SingletonBase<T> : IDisposable where T : class
     /// Builds a compiled lambda that invokes the non-public parameterless constructor of T.
     /// This runs once per closed generic T.
     /// </summary>
-    /// <exception cref="MissingMethodException"></exception>
+    /// <exception cref="MissingMethodException">Thrown when <typeparamref name="T"/> does not declare a parameterless constructor.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static Func<T> CREATE_CONSTRUCTORS()
     {
