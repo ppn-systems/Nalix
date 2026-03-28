@@ -9,6 +9,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Random;
 using Nalix.Logging;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Sinks;
@@ -33,8 +34,8 @@ internal class Program
         _ = await client.PerformAuthenticatedHandshakeAsync(
             clientIdentityProvider: () => "demo-client",
             ed25519KeyProvider: () => (
-                PrivateKey: new byte[32],
-                PublicKey: new byte[32]),
+                PrivateKey: Csprng.GetBytes(32),
+                PublicKey: Csprng.GetBytes(32)),
             validateServerPublicKey: serverKey => serverKey.Length == AuthenticatedHandshakeExtensions.X25519PublicKeyLength).ConfigureAwait(true);
 
         await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);

@@ -61,8 +61,8 @@ public sealed class PacketCommandHandler
 
         // Reject the packet early if any required field is missing.
         if (handshake.Data is null ||
-            handshake.Ed25519PublicKey is null ||
-            handshake.Ed25519Signature is null ||
+            handshake.Auth.PublicKey is null ||
+            handshake.Auth.Signature is null ||
             string.IsNullOrWhiteSpace(handshake.Identity))
         {
             await context.Connection.SendAsync(
@@ -74,8 +74,8 @@ public sealed class PacketCommandHandler
 
         // The handshake expects fixed-size public keys and signatures.
         if (handshake.Data.Length != 32 ||
-            handshake.Ed25519PublicKey.Length != 32 ||
-            handshake.Ed25519Signature.Length != 64)
+            handshake.Auth.PublicKey.Length != 32 ||
+            handshake.Auth.Signature.Length != 64)
         {
             await context.Connection.SendAsync(
                 ControlType.ERROR,
@@ -87,7 +87,7 @@ public sealed class PacketCommandHandler
         // The identity is included in the signed payload so it cannot be swapped later.
         byte[] identityBytes = System.Text.Encoding.UTF8.GetBytes(handshake.Identity);
         byte[] payloadToVerify = Ed25519.Combine(handshake.Data, identityBytes);
-        if (!Ed25519.Verify(handshake.Ed25519Signature, payloadToVerify, handshake.Ed25519PublicKey))
+        if (!Ed25519.Verify(handshake.Auth.Signature, payloadToVerify, handshake.Auth.PublicKey))
         {
             await context.Connection.SendAsync(
                 ControlType.ERROR,
@@ -98,7 +98,7 @@ public sealed class PacketCommandHandler
 
         // Store identity information on the connection so later handlers can reuse it.
         context.Connection.Attributes.Add("Identity", handshake.Identity);
-        context.Connection.Attributes.Add("Ed25519-PublicKey", handshake.Ed25519PublicKey);
+        context.Connection.Attributes.Add("Ed25519-PublicKey", handshake.Auth.PublicKey);
 
         // Use the object pool so the example follows the same allocation pattern as the library.
         HandshakePacket response = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()

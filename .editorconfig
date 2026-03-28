@@ -353,3 +353,7 @@ dotnet_diagnostic.CA1864.severity = warning   # Prefer Dictionary.TryAdd
 dotnet_diagnostic.CA1062.severity = warning   # Validate arguments of public methods
 dotnet_diagnostic.CA1303.severity = warning   # Do not pass literals as localized parameters
 dotnet_diagnostic.CA1310.severity = warning   # Specify StringComparison
+
+dotnet_diagnostic.CA1825.severity = warning   # Avoid zero-length array allocations
+csharp_style_prefer_collection_expression = false:suggestion
+dotnet_diagnostic.IDE0301.severity = silent
