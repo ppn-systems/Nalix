@@ -119,9 +119,12 @@ internal sealed class BufferPoolShared : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReleaseBuffer(byte[] buffer)
     {
-        if (buffer is null || buffer.Length != _bufferSize)
+        ArgumentNullException.ThrowIfNull(buffer);
+
+        if (buffer.Length != _bufferSize)
         {
-            throw new ArgumentException("Invalid buffer.");
+            throw new ArgumentException(
+                $"Buffer size mismatch: length={buffer.Length}, expected={_bufferSize}.");
         }
 
         if (_secureClear)

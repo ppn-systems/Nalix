@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 
 namespace Nalix.Framework.DataFrames.Internal;
@@ -99,6 +100,7 @@ internal sealed class PropertyMetadata
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="prop"/> is <see langword="null"/>.
     /// </exception>
+    /// <exception cref="InternalErrorException"></exception>
     public PropertyMetadata(PropertyInfo prop)
     {
         ArgumentNullException.ThrowIfNull(prop);
@@ -159,7 +161,7 @@ internal sealed class PropertyMetadata
             catch (Exception ex)
             {
                 // Fail fast at startup — better than a silent NullReferenceException at runtime.
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"Failed to compile setter delegate for property '{prop.DeclaringType.Name}.{prop.Name}' " +
                     $"(type: {prop.PropertyType.Name}). " +
                     "Ensure the property type is compatible with its default value.", ex);

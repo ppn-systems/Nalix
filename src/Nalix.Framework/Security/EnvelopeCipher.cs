@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 using Nalix.Framework.Random;
@@ -191,7 +190,7 @@ public static class EnvelopeCipher
     /// Thrown if <paramref name="algorithm"/> is not recognized, the output buffer is too small,
     /// or key/nonce length errors are detected by the underlying engines.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="CryptographyException">
     /// Thrown when a supported authenticated cipher rejects the supplied inputs during encryption.
     /// </exception>
     /// <example>
@@ -231,7 +230,7 @@ public static class EnvelopeCipher
                 return;
 
             default:
-                throw new CryptographicException($"Unsupported cipher type '{algorithm}'.");
+                throw new CryptographyException($"Unsupported cipher type '{algorithm}'.");
         }
     }
 
@@ -256,7 +255,7 @@ public static class EnvelopeCipher
     /// Thrown when <paramref name="envelope"/> is malformed, the destination buffer is too small,
     /// or key length validation fails in the underlying engine.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="CryptographyException">
     /// Thrown when authentication fails for AEAD envelopes.
     /// </exception>
     /// <exception cref="NotSupportedException">
@@ -292,7 +291,7 @@ public static class EnvelopeCipher
                 return;
 
             default:
-                throw new CryptographicException($"Unsupported cipher type '{env.AeadType}'.");
+                throw new CryptographyException($"Unsupported cipher type '{env.AeadType}'.");
         }
     }
 
@@ -316,7 +315,7 @@ public static class EnvelopeCipher
     /// Thrown if <paramref name="algorithm"/> is not recognized, the output buffer is too small,
     /// or key/nonce length errors are detected by the underlying engines.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="CryptographyException">
     /// Thrown when a supported authenticated cipher rejects the supplied inputs during encryption.
     /// </exception>
     /// <example>
@@ -353,7 +352,7 @@ public static class EnvelopeCipher
     /// Thrown when <paramref name="envelope"/> is malformed, the destination buffer is too small,
     /// or key length validation fails in the underlying engine.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="CryptographyException">
     /// Thrown when authentication fails for AEAD envelopes.
     /// </exception>
     /// <exception cref="NotSupportedException">
