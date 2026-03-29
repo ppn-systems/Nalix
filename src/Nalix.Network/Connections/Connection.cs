@@ -10,6 +10,7 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Security;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -55,7 +56,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         _disposed = false;
 
         this.ID = Snowflake.NewId(SnowflakeType.Session);
-        this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InvalidOperationException("Socket does not expose a remote endpoint."));
+        this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."));
 
         _args = new ConnectionEventArgs(this);
         this.Socket = new SocketConnection(socket);
@@ -79,7 +80,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     public IConnection.ITcp TCP { get; }
 
     /// <inheritdoc/>
-    public IConnection.IUdp UDP => this.UdpTransport ?? throw new InvalidOperationException("UDP transport has not been created yet.");
+    public IConnection.IUdp UDP => this.UdpTransport ?? throw new InternalErrorException("UDP transport has not been created yet.");
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint { get; }
