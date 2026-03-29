@@ -15,6 +15,7 @@
 // and Symmetric (header || nonce || ciphertext) formats.
 // Header + nonce SHOULD be included in AEAD AAD.
 
+using System;
 using Nalix.Common.Security;
 
 #if DEBUG
@@ -41,39 +42,35 @@ internal static class EnvelopeFormat
     /// Supports both AEAD (with tag) and Symmetric (no tag) formats.
     /// </summary>
     /// <param name="blob">The serialized envelope to parse.</param>
-    /// <param name="env">The parsed envelope view when parsing succeeds.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static bool TryParseEnvelope(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> blob,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out ParsedEnvelope env)
+    public static Envelope ParseEnvelope(ReadOnlySpan<byte> blob)
     {
-        env = default;
         if (blob.Length < HeaderSize)
         {
-            return false;
+            throw new ArgumentException("Envelope blob is too short for header.");
         }
 
         if (!EnvelopeHeader.Decode(blob[..HeaderSize], out EnvelopeHeader header))
         {
-            return false;
+            throw new ArgumentException("Unable to decode envelope header.");
         }
 
         int pos = HeaderSize;
         int nonceLen = header.NONCE_LEN;
         if (nonceLen <= 0)
         {
-            return false;
+            throw new ArgumentException("Invalid nonce length in envelope header.");
         }
 
         if (blob.Length < HeaderSize + nonceLen)
         {
-            return false;
+            throw new ArgumentException("Envelope blob is too short for nonce size.");
         }
 
-        System.ReadOnlySpan<byte> headerSlice = blob[..HeaderSize];
-        System.ReadOnlySpan<byte> nonceSlice = blob.Slice(pos, nonceLen);
+        ReadOnlySpan<byte> headerSlice = blob[..HeaderSize];
+        ReadOnlySpan<byte> nonceSlice = blob.Slice(pos, nonceLen);
         pos += nonceLen;
 
         // Decide format by suite type: AEAD => has tag, Symmetric => no tag
@@ -81,36 +78,33 @@ internal static class EnvelopeFormat
 
         if (hasTag)
         {
-            // Need at least tag
             if (blob.Length < pos + TagSize)
             {
-                return false;
+                throw new ArgumentException("Envelope blob is too short for AEAD tag.");
             }
 
             int ctLen = blob.Length - pos - TagSize;
             if (ctLen < 0)
             {
-                return false;
+                throw new ArgumentException("Negative ciphertext length.");
             }
 
-            System.ReadOnlySpan<byte> ctSlice = blob.Slice(pos, ctLen);
-            System.ReadOnlySpan<byte> tagSlice = blob.Slice(pos + ctLen, TagSize);
+            ReadOnlySpan<byte> ctSlice = blob.Slice(pos, ctLen);
+            ReadOnlySpan<byte> tagSlice = blob.Slice(pos + ctLen, TagSize);
 
-            env = new ParsedEnvelope(
+            return new Envelope(
                 header.VERSION, header.TYPE, header.FLAGS, header.NONCE_LEN, header.SEQ,
-                headerSlice, nonceSlice, ctSlice, tagSlice, hasTag: true);
-
-            return true;
+                headerSlice, nonceSlice, ctSlice, tagSlice, hasTag: true
+            );
         }
         else
         {
             // Symmetric: all remaining is ciphertext; no tag
-            System.ReadOnlySpan<byte> ctSlice = blob[pos..];
-            env = new ParsedEnvelope(
+            ReadOnlySpan<byte> ctSlice = blob[pos..];
+            return new Envelope(
                 header.VERSION, header.TYPE, header.FLAGS, header.NONCE_LEN, header.SEQ,
-                headerSlice, nonceSlice, ctSlice, [], hasTag: false);
-
-            return true;
+                headerSlice, nonceSlice, ctSlice, [], hasTag: false
+            );
         }
     }
 
@@ -128,13 +122,13 @@ internal static class EnvelopeFormat
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static int WriteEnvelope(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dest,
+        [System.Diagnostics.CodeAnalysis.NotNull] Span<byte> dest,
         [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
         [System.Diagnostics.CodeAnalysis.NotNull] byte flags,
         [System.Diagnostics.CodeAnalysis.NotNull] uint seq,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> ciphertext,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> tag)
+        [System.Diagnostics.CodeAnalysis.NotNull] ReadOnlySpan<byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] ReadOnlySpan<byte> ciphertext,
+        [System.Diagnostics.CodeAnalysis.NotNull] ReadOnlySpan<byte> tag)
     {
         int nonceLen = nonce.Length;
         int required = HeaderSize + nonceLen + ciphertext.Length + tag.Length;
@@ -166,12 +160,12 @@ internal static class EnvelopeFormat
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static int WriteEnvelope(
-        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dest,
+        [System.Diagnostics.CodeAnalysis.NotNull] Span<byte> dest,
         [System.Diagnostics.CodeAnalysis.NotNull] CipherSuiteType type,
         [System.Diagnostics.CodeAnalysis.NotNull] byte flags,
         [System.Diagnostics.CodeAnalysis.NotNull] uint seq,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> nonce,
-        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> ciphertext)
+        [System.Diagnostics.CodeAnalysis.NotNull] ReadOnlySpan<byte> nonce,
+        [System.Diagnostics.CodeAnalysis.NotNull] ReadOnlySpan<byte> ciphertext)
     {
         int nonceLen = nonce.Length;
         int required = HeaderSize + nonceLen + ciphertext.Length;
@@ -194,7 +188,7 @@ internal static class EnvelopeFormat
     /// Tag may be empty when HasTag = false (symmetric envelopes).
     /// </summary>
     [System.Diagnostics.DebuggerDisplay("Ver={VERSION}, Alg={AeadType}, NONCE_LEN={NONCE_LEN}, SEQ={SEQ}, Tag={HasTag}")]
-    public readonly ref struct ParsedEnvelope
+    public readonly ref struct Envelope
     {
         public readonly byte Version;
         public readonly CipherSuiteType AeadType;
@@ -202,22 +196,22 @@ internal static class EnvelopeFormat
         public readonly byte NonceLen;
         public readonly uint Seq;
         public readonly bool HasTag;
-        public readonly System.ReadOnlySpan<byte> Tag;
-        public readonly System.ReadOnlySpan<byte> Nonce;
+        public readonly ReadOnlySpan<byte> Tag;
+        public readonly ReadOnlySpan<byte> Nonce;
 
         /// <summary>
         /// the 12 bytes
         /// </summary>
-        public readonly System.ReadOnlySpan<byte> Header;
+        public readonly ReadOnlySpan<byte> Header;
 
-        public readonly System.ReadOnlySpan<byte> Ciphertext;
+        public readonly ReadOnlySpan<byte> Ciphertext;
 
-        public ParsedEnvelope(
+        public Envelope(
             byte version, CipherSuiteType type, byte flags, byte nonceLen, uint seq,
-            System.ReadOnlySpan<byte> header,
-            System.ReadOnlySpan<byte> nonce,
-            System.ReadOnlySpan<byte> ciphertext,
-            System.ReadOnlySpan<byte> tag,
+            ReadOnlySpan<byte> header,
+            ReadOnlySpan<byte> nonce,
+            ReadOnlySpan<byte> ciphertext,
+            ReadOnlySpan<byte> tag,
             bool hasTag)
         {
             Version = version;
@@ -241,6 +235,6 @@ internal static class EnvelopeFormat
     {
         [System.Diagnostics.CodeAnalysis.DoesNotReturn]
         public static void EnvelopeDestTooSmall()
-            => throw new System.ArgumentException("Destination too small for envelope.");
+            => throw new ArgumentException("Destination too small for envelope.");
     }
 }

@@ -108,12 +108,45 @@ public sealed class PacketRegistryFactory
     public PacketRegistryFactory RegisterPacket<TPacket>() where TPacket : IPacket
     {
         Type t = typeof(TPacket);
-        bool added = _explicitPacketTypes.Add(t);
 
-        TRACE(added
-            ? $"reg-type type={t.Name}"
-            : $"reg-type-skip type={t.Name}");
+        if (!_explicitPacketTypes.Add(t))
+        {
+            throw new InvalidOperationException($"Packet type {t.FullName} is already registered!");
+        }
 
+        return this;
+    }
+
+    /// <summary>
+    /// Register all packets that implement <see cref="IPacket"/> in the assembly.
+    /// If <paramref name="requireAttribute"/> is true, only register classes that have <see cref="PacketAttribute"/>.
+    /// </summary>
+    /// <param name="asm">Assembly to scan packets.</param>
+    /// <param name="requireAttribute">Only register classes with the attribute if true; register all if false.</param>
+    public PacketRegistryFactory RegisterAllPackets(Assembly? asm, bool requireAttribute = false)
+    {
+        if (asm is null) { TRACE("include-asm-null"); return this; }
+
+        int count = 0;
+        foreach (Type? type in SAFE_GET_TYPES(asm))
+        {
+            if (type is null || !type.IsClass || type.IsAbstract || !typeof(IPacket).IsAssignableFrom(type))
+            {
+                continue;
+            }
+
+            if (requireAttribute && type.GetCustomAttributes(typeof(PacketAttribute), inherit: false).Length == 0)
+            {
+                continue;
+            }
+
+            _ = _explicitPacketTypes.Add(type);
+            TRACE($"register-packet type={type.FullName} attr={requireAttribute}");
+
+            count++;
+        }
+
+        TRACE($"register-packets-complete from asm={asm.GetName().Name} packets={count}");
         return this;
     }
 
@@ -126,9 +159,7 @@ public sealed class PacketRegistryFactory
         if (asm is null) { TRACE("include-asm-null"); return this; }
 
         bool added = _assemblies.Add(asm);
-        TRACE(added
-            ? $"include-asm name={asm.GetName().Name}"
-            : $"include-asm-skip name={asm.GetName().Name}");
+        TRACE(added ? $"include-asm name={asm.GetName().Name}" : $"include-asm-skip name={asm.GetName().Name}");
 
         return this;
     }
@@ -272,7 +303,7 @@ public sealed class PacketRegistryFactory
 
         if (candidates.Count == 0)
         {
-            TRACE("no-candidate");
+            throw new InvalidOperationException("No packet types found for registration. Please check your assembly/namespace configuration.");
         }
 
         // ── 2. Bind per type ─────────────────────────────────────────────────────
@@ -283,15 +314,9 @@ public sealed class PacketRegistryFactory
             MethodInfo? miDeserialize = FIND_STATIC_METHOD(
                 type, StaticPublic,
                 nameof(IPacketDeserializer<>.Deserialize),
-                [typeof(ReadOnlySpan<byte>)]);
-
-            // ── Deserializer (required) ──────────────────────────────────────────
-            if (miDeserialize is null)
-            {
-                TRACE($"[ERROR] miss-deserialize type={type.Name} — skipping");
-                continue;
-            }
-
+                [typeof(ReadOnlySpan<byte>)]) ?? throw new InvalidOperationException(
+                    $"Packet type {type.FullName} does not implement " +
+                    $"the required static Deserialize(ReadOnlySpan<byte>) method.");
             if (deserializers.TryGetValue(key, out PacketDeserializer? existing))
             {
                 Type existingType = FIND_TYPE_BY_MAGIC(key);
@@ -476,9 +501,9 @@ public sealed class PacketRegistryFactory
     {
         // Only called on duplicate detection (rare, startup-only) — linear scan is fine.
         foreach (Type t in Enumerable.Where(Enumerable
-                                                        .SelectMany(AppDomain.CurrentDomain
-                                                        .GetAssemblies(), SAFE_GET_TYPES), t => t.IsClass && !t.IsAbstract && typeof(IPacket)
-                                                        .IsAssignableFrom(t)))
+                                     .SelectMany(AppDomain.CurrentDomain
+                                     .GetAssemblies(), SAFE_GET_TYPES), t => t.IsClass && !t.IsAbstract && typeof(IPacket)
+                                     .IsAssignableFrom(t)))
         {
             if (Compute(t) == magic)
             {
