@@ -14,10 +14,10 @@ namespace Nalix.Network.Connections;
 public sealed partial class Connection
 {
     /// <inheritdoc />
-    [DebuggerNonUserCode]
     [SkipLocalsInit]
-    [DebuggerDisplay("{ToString()}")]
+    [DebuggerNonUserCode]
     [ExcludeFromCodeCoverage]
+    [DebuggerDisplay("{ToString()}")]
     internal readonly struct Endpoint : INetworkEndpoint, IEquatable<Endpoint>
     {
         /// <summary>

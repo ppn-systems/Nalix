@@ -20,8 +20,7 @@ public sealed class BenchServiceWithIface : IBenchService { }
 
 public sealed class BenchServiceWithArgs(int value, string name)
 {
-    public int Value { get; } = value;
-    public string Name { get; } = name;
+    public int Value { get; } = value; public string Name { get; } = name;
 }
 
 // ---------------------------------------------------------------------------
@@ -29,35 +28,33 @@ public sealed class BenchServiceWithArgs(int value, string name)
 // ---------------------------------------------------------------------------
 
 /// <summary>
-/// Đo hiệu năng 3 operations chính của <see cref="InstanceManager"/>:
-/// <list type="bullet">
-///   <item>Register — replace existing, with/without interfaces</item>
-///   <item>GetOrCreateInstance — generic slot hit, dict hit, signature cache hit</item>
-///   <item>GetExistingInstance — generic slot hit, thread-local L1, dict fallback</item>
-/// </list>
+/// Đo hiệu năng <see cref="InstanceManager"/> trên 3 operations:
+/// Register, GetOrCreateInstance, GetExistingInstance.
 /// </summary>
+/// <remarks>
+/// QUAN TRỌNG: <see cref="InstanceManager"/> kế thừa <c>SingletonBase&lt;T&gt;</c>
+/// nên chỉ tồn tại MỘT instance trong toàn bộ process.
+/// Không được gọi <c>Dispose()</c> trong <c>GlobalCleanup</c> —
+/// chỉ dùng <c>Clear(dispose: false)</c> để reset state giữa các param runs.
+/// </remarks>
 [MemoryDiagnoser]
 [Config(typeof(BenchmarkConfig))]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "<Pending>")]
 public class InstanceManagerBenchmarks
 {
     // -----------------------------------------------------------------------
     // Fields
     // -----------------------------------------------------------------------
 
+    // Dùng singleton instance — KHÔNG tạo mới bằng new InstanceManager()
     private InstanceManager _manager = null!;
 
-    // Pre-allocated args — tránh tạo array mới trong vòng lặp benchmark
-    private static readonly object[] s_ctorArgs = [42, "bench"];
+    // Pre-allocated args để tránh allocation trong vòng benchmark
+    private static readonly object?[] s_ctorArgs = [42, "bench"];
 
     // -----------------------------------------------------------------------
     // Params
     // -----------------------------------------------------------------------
 
-    /// <summary>
-    /// Số lượng instance "nền" nạp sẵn vào cache.
-    /// Giúp quan sát ảnh hưởng của dictionary size lên lookup performance.
-    /// </summary>
     [Params(10, 50)]
     public int PreloadCount { get; set; }
 
@@ -68,29 +65,37 @@ public class InstanceManagerBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _manager = new InstanceManager();
+        // Lấy singleton — không tạo instance mới
+        _manager = InstanceManager.Instance;
 
-        // Register các type cốt lõi mà benchmark sẽ dùng
+        // Reset cache sạch từ run trước (nếu có), KHÔNG dispose
+        _manager.Clear(dispose: false);
+
+        // Register các type cốt lõi
         _manager.Register(new BenchServiceA());
         _manager.Register(new BenchServiceB());
         _manager.Register(new BenchServiceC());
         _manager.Register(new BenchServiceWithIface());
 
-        // Warm up signature cache cho BenchServiceWithArgs
-        _ = _manager.GetOrCreateInstance<BenchServiceWithArgs>(s_ctorArgs);
+        // Register BenchServiceWithArgs để GetOrCreate_SignatureCacheHit có cache hit
+        _manager.Register(new BenchServiceWithArgs(42, "bench"));
 
-        // Nạp thêm instances "nền" để đạt PreloadCount mong muốn.
-        // Mỗi i tạo ra ActivatorKey khác nhau → mô phỏng dictionary đông entries.
+        // Nạp thêm instances "nền" để đạt PreloadCount
         for (int i = 4; i < this.PreloadCount; i++)
         {
-            _ = _manager.GetOrCreateInstance<BenchServiceWithArgs>();
+            // RegisterForClassOnly để không spam interface slots
+            _manager.Register(new BenchServiceWithArgs(i, $"preload_{i}"),
+                              registerInterfaces: false);
         }
     }
 
     [GlobalCleanup]
-    public void Cleanup() => _manager.Dispose();
+    public void Cleanup() =>
+        // Chỉ Clear, KHÔNG Dispose — tránh lỗi "Cannot access a disposed object"
+        // khi BenchmarkDotNet gọi lại GlobalCleanup cho param tiếp theo
+        _manager?.Clear(dispose: false);
 
-    // Đảm bảo instances tồn tại trước mỗi iteration của nhóm Register
+    // IterationSetup cho nhóm Register: đảm bảo instances tồn tại trước mỗi lần đo
     [IterationSetup(Targets =
     [
         nameof(Register_Replace),
@@ -110,8 +115,7 @@ public class InstanceManagerBenchmarks
 
     /// <summary>
     /// Chi phí replace instance đã có trong cache.
-    /// Path: TryUpdate ConcurrentDictionary + Volatile.Write generic slot
-    ///       + dispose instance cũ nếu IDisposable.
+    /// Path: TryUpdate ConcurrentDictionary + Volatile.Write generic slot.
     /// </summary>
     [BenchmarkCategory("Register")]
     [Benchmark(Description = "Register<T> — replace existing")]
@@ -119,10 +123,9 @@ public class InstanceManagerBenchmarks
         => _manager.Register(new BenchServiceA());
 
     /// <summary>
-    /// Overhead khi register thêm interface slots.
-    /// Path: replace concrete type + loop GetInterfaces()
-    ///       + reflection PUBLISH_TO_INTERFACE_SLOT per interface.
-    /// Kỳ vọng: chậm hơn Register_Replace vì có thêm reflection.
+    /// Overhead khi register kèm interface slots.
+    /// Path: replace concrete + loop GetInterfaces() + reflection PUBLISH_TO_INTERFACE_SLOT.
+    /// Kỳ vọng: chậm hơn Register_Replace vì có reflection per interface.
     /// </summary>
     [BenchmarkCategory("Register")]
     [Benchmark(Description = "Register<T> — with interface slots")]
@@ -130,8 +133,8 @@ public class InstanceManagerBenchmarks
         => _manager.Register(new BenchServiceWithIface(), registerInterfaces: true);
 
     /// <summary>
-    /// Register bỏ qua tất cả interfaces — baseline rẻ nhất.
-    /// Chỉ update 1 dict entry + 1 Volatile.Write slot.
+    /// Register bỏ qua interfaces — baseline rẻ nhất.
+    /// Chỉ 1 dict entry update + 1 Volatile.Write slot.
     /// </summary>
     [BenchmarkCategory("Register")]
     [Benchmark(Description = "Register<T> — class only (no interfaces)")]
@@ -143,8 +146,7 @@ public class InstanceManagerBenchmarks
     // -----------------------------------------------------------------------
 
     /// <summary>
-    /// Fast-path tốt nhất: generic slot (Volatile.Read một static field).
-    /// Không có dictionary lookup, không lock.
+    /// Fast-path: Volatile.Read một static field — không dict lookup, không lock.
     /// Kỳ vọng: dưới 5 ns, zero allocation.
     /// </summary>
     [BenchmarkCategory("GetOrCreate")]
@@ -153,24 +155,25 @@ public class InstanceManagerBenchmarks
         => _manager.GetOrCreateInstance<BenchServiceA>();
 
     /// <summary>
-    /// Dict lookup bằng RuntimeTypeHandle, không có args.
-    /// Path: TryGetValue ConcurrentDictionary → TRY_PUBLISH_SLOT_BY_TYPE (reflection).
-    /// Chậm hơn generic slot vì qua non-generic overload + reflection publish.
+    /// Dict lookup bằng RuntimeTypeHandle, không args.
+    /// Path: non-generic overload → TryGetValue → TRY_PUBLISH_SLOT_BY_TYPE (reflection).
     /// </summary>
     [BenchmarkCategory("GetOrCreate")]
     [Benchmark(Description = "GetOrCreate(Type) — dict hit, no args")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2263:Prefer generic overload when type is known", Justification = "<Pending>")]
     public object GetOrCreate_DictHit_NoArgs()
-        => _manager.GetOrCreateInstance<BenchServiceC>();
+        => _manager.GetOrCreateInstance(typeof(BenchServiceC));
 
     /// <summary>
-    /// Signature cache hit: key = ActivatorKey struct (Target + P0 + P1 + Arity).
-    /// Path: tính HashCode ActivatorKey → TryGetValue _signatureInstanceCache.
-    /// Kỳ vọng: chậm hơn dict hit vì ActivatorKey.GetHashCode phức tạp hơn.
+    /// Signature cache hit: key = ActivatorKey(BenchServiceWithArgs, int, string).
+    /// Path: tính ActivatorKey.GetHashCode → TryGetValue _signatureInstanceCache.
+    /// Kỳ vọng: chậm hơn dict hit vì HashCode phức tạp hơn RuntimeTypeHandle.
     /// </summary>
     [BenchmarkCategory("GetOrCreate")]
     [Benchmark(Description = "GetOrCreate(Type, args) — signature cache hit")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2263:Prefer generic overload when type is known", Justification = "<Pending>")]
     public object GetOrCreate_SignatureCacheHit()
-        => _manager.GetOrCreateInstance<BenchServiceWithArgs>(s_ctorArgs);
+        => _manager.GetOrCreateInstance(typeof(BenchServiceWithArgs), s_ctorArgs);
 
     // -----------------------------------------------------------------------
     // GROUP 3 — GetExistingInstance<T>
@@ -178,7 +181,6 @@ public class InstanceManagerBenchmarks
 
     /// <summary>
     /// Layer 1 — generic slot (Volatile.Read): nhanh nhất, không lock.
-    /// BenchServiceA luôn được register nên slot luôn có giá trị.
     /// </summary>
     [BenchmarkCategory("GetExisting")]
     [Benchmark(Description = "GetExisting<T> — generic slot hit")]
@@ -187,7 +189,7 @@ public class InstanceManagerBenchmarks
 
     /// <summary>
     /// Layer 2 — thread-local L1 (s_tsLastKey / s_tsLastValue).
-    /// BenchServiceB được gọi liên tiếp → L1 hit sau lần đầu tiên.
+    /// Gọi BenchServiceB sau BenchServiceA → L1 hit sau iteration đầu tiên.
     /// </summary>
     [BenchmarkCategory("GetExisting")]
     [Benchmark(Description = "GetExisting<T> — thread-local L1 hit")]
@@ -196,8 +198,8 @@ public class InstanceManagerBenchmarks
 
     /// <summary>
     /// Layer 3 — ConcurrentDictionary fallback.
-    /// BenchServiceC xen kẽ giữa A và B → ép s_tsLastKey miss → đi vào dict.
-    /// Path: TryGetValue + Volatile.Write slot + Interlocked.Increment hit counter.
+    /// BenchServiceC xen kẽ ép s_tsLastKey miss → đi thẳng vào dict.
+    /// Path: TryGetValue + Volatile.Write slot + Interlocked.Increment.
     /// </summary>
     [BenchmarkCategory("GetExisting")]
     [Benchmark(Description = "GetExisting<T> — dict fallback")]
