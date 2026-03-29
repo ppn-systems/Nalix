@@ -5,6 +5,7 @@ using System;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Serialization;
 
 namespace Nalix.Framework.DataFrames.Internal;
@@ -110,12 +111,15 @@ internal sealed class PropertyMetadata
         }
 
         this.Property = prop;
-        this.IsWritable = prop.CanWrite;
+        this.IsWritable =
+            prop.CanWrite
+            && prop.SetMethod is { IsPublic: true }
+            && !(CustomAttributeExtensions.GetCustomAttribute<SkipCleanAttribute>(prop) is not null);
+
         this.IsReadable = prop.CanRead;
         this.IsString = prop.PropertyType == typeof(string);
         this.IsByteArray = prop.PropertyType == typeof(byte[]);
-        this.IsDynamic = CustomAttributeExtensions
-                           .GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
+        this.IsDynamic = CustomAttributeExtensions.GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
 
         this.DefaultValue = ComputeDefaultValue(prop.PropertyType);
         this.FixedSize = this.IsDynamic ? (ushort)0 : ComputeFixedSize(prop.PropertyType);
@@ -130,9 +134,8 @@ internal sealed class PropertyMetadata
             MemberExpression propAccess = Expression.Property(castInstance, prop);
             UnaryExpression boxResult = Expression.Convert(propAccess, typeof(object));
 
-            _getter = Expression
-                          .Lambda<Func<object, object?>>(boxResult, instanceParam)
-                          .Compile();
+            _getter = Expression.Lambda<Func<object, object?>>(boxResult, instanceParam)
+                                .Compile();
         }
 
         // ── Setter delegate ──────────────────────────────────────────────────────
@@ -150,9 +153,8 @@ internal sealed class PropertyMetadata
                 MemberExpression propAccess = Expression.Property(castInstance, prop);
                 BinaryExpression assignExpr = Expression.Assign(propAccess, castValue);
 
-                _setter = Expression
-                              .Lambda<Action<object, object?>>(assignExpr, instanceParam, valueParam)
-                              .Compile();
+                _setter = Expression.Lambda<Action<object, object?>>(assignExpr, instanceParam, valueParam)
+                                    .Compile();
             }
             catch (Exception ex)
             {
