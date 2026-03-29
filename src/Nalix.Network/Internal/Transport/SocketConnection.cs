@@ -24,6 +24,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
+using Nalix.Framework.Options;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
