@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Nalix.Common.Exceptions;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
@@ -27,7 +28,7 @@ internal static partial class OsCsprng
     #region Fields
 
     // Cached platform dispatcher (obfuscated)
-    private static Action<Span<byte>> _f;
+    private static Action<Span<byte>> s_f;
 
     // Lazy /dev/urandom handle for Unix fallback
     private static FileStream? s_devUrandom;
@@ -48,7 +49,7 @@ internal static partial class OsCsprng
     {
         try
         {
-            _f = OperatingSystem.IsWindows()
+            s_f = OperatingSystem.IsWindows()
                 ? W
                 : System.OperatingSystem.IsLinux()
                     ? L
@@ -61,7 +62,7 @@ internal static partial class OsCsprng
         }
         catch
         {
-            _f = OsRandom.Fill;
+            s_f = OsRandom.Fill;
         }
     }
 
@@ -90,7 +91,7 @@ internal static partial class OsCsprng
             return;
         }
 
-        _f(buffer);
+        s_f(buffer);
     }
 
     #endregion APIs
@@ -115,10 +116,10 @@ internal static partial class OsCsprng
     [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     private static void W(Span<byte> b)
     {
-        int s = BCryptGenRandom(nint.Zero, b, b.Length, C);
-        if (s != 0)
+        int status = BCryptGenRandom(nint.Zero, b, b.Length, C);
+        if (status != 0)
         {
-            throw new InvalidOperationException($"OS CSPRNG unavailable (BCryptGenRandom failed with code 0x{s:X}).");
+            throw new CryptographyException($"BCryptGenRandom failed: status=0x{status:X}.");
         }
     }
 
@@ -161,7 +162,7 @@ internal static partial class OsCsprng
                     if (errno == ENOSYS)
                     {
                         // switch dispatcher once so future calls skip getrandom
-                        _f = D;
+                        s_f = D;
 
                         // fill the remaining part via fallback
                         int offset = (int)t;
@@ -172,13 +173,13 @@ internal static partial class OsCsprng
                         return;
                     }
 
-                    throw new InvalidOperationException($"OS CSPRNG unavailable (getrandom failed with errno={errno}).");
+                    throw new CryptographyException($"OS CSPRNG unavailable (getrandom failed with errno={errno}).");
                 }
 
                 if (r == 0)
                 {
                     // Defensive: zero progress from getrandom should not loop forever
-                    throw new InvalidOperationException("OS CSPRNG unavailable (getrandom returned 0 bytes).");
+                    throw new CryptographyException("OS CSPRNG unavailable (getrandom returned 0 bytes).");
                 }
 
                 t += (nuint)r;
@@ -211,7 +212,7 @@ internal static partial class OsCsprng
             int s = SecRandomCopyBytes(nint.Zero, b.Length, (nint)p);
             if (s != 0)
             {
-                _f = D;
+                s_f = D;
                 D(b);
             }
         }
@@ -237,7 +238,7 @@ internal static partial class OsCsprng
                 int r = fs.Read(b[total..]);
                 if (r <= 0)
                 {
-                    throw new InvalidOperationException("OS CSPRNG unavailable (/dev/urandom returned 0 bytes).");
+                    throw new CryptographyException("OS CSPRNG unavailable (/dev/urandom returned 0 bytes).");
                 }
 
                 total += r;

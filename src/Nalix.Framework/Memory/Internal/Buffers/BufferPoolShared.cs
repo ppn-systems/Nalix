@@ -22,7 +22,7 @@ internal sealed class BufferPoolShared : IDisposable
 {
     #region Fields
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, BufferPoolShared> Pools = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, BufferPoolShared> s_pools = new();
 
     private readonly BufferRing _freeBuffers;
     private readonly int _bufferSize;
@@ -88,7 +88,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <param name="secureClear"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity, bool secureClear)
-        => Pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity, secureClear));
+        => s_pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity, secureClear));
 
     /// <summary>
     /// Acquires a buffer from the pool with fast path optimization.
@@ -386,7 +386,7 @@ internal sealed class BufferPoolShared : IDisposable
                     this.ReturnBuffersToArrayPool(buffers);
                 }
 
-                _ = Pools.TryRemove(_bufferSize, out _);
+                _ = s_pools.TryRemove(_bufferSize, out _);
             }
 
             _disposed = true;

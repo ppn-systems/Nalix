@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.LZ4.Encoders;
 using Nalix.Framework.LZ4.Engine;
 using Nalix.Framework.Memory.Buffers;
@@ -38,8 +39,8 @@ public static class LZ4Codec
         }
         catch (AccessViolationException ex)
         {
-            throw new InvalidOperationException(
-                $"Memory access violation during LZ4 encoding. Input length: {input.Length}, Output length: {output.Length}", ex);
+            throw new InternalErrorException(
+                $"LZ4 memory violation: inputLength={input.Length}, outputLength={output.Length}.", ex);
         }
     }
 

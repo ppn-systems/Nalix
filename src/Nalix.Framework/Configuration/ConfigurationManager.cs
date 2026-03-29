@@ -133,7 +133,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
         if (string.IsNullOrWhiteSpace(configDirectory))
         {
-            throw new InvalidOperationException("Configuration directory cannot be null or empty.");
+            throw new InvalidOperationException(
+                $"Invalid configuration directory: value='{configDirectory ?? "<null>"}'.");
         }
 
         _baseConfigDirectory = Path.GetFullPath(configDirectory);
@@ -177,8 +178,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         if (string.IsNullOrWhiteSpace(newConfigFilePath))
         {
             throw new ArgumentException(
-                "Configuration file path cannot be null or whitespace.",
-                nameof(newConfigFilePath));
+                $"Invalid config path: value='{newConfigFilePath}'.");
         }
 
         string normalizedPath = Path.GetFullPath(newConfigFilePath);
@@ -187,7 +187,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         // Wait up to 5 s for any concurrent reload/path-change to finish.
         if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
         {
-            throw new TimeoutException("Timed out waiting for concurrent configuration reload or path change to complete.");
+            throw new TimeoutException(
+                "Timeout waiting for config reload lock (5s).");
         }
         string? pathToWatch = null;
 
@@ -199,8 +200,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 if (string.Equals(_configFilePath, normalizedPath, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new ArgumentException(
-                        "The new configuration file path is the same as the current path.",
-                        nameof(newConfigFilePath));
+                        $"Config path unchanged: value='{normalizedPath}'.");
                 }
 
                 if (_iniFile.IsValueCreated)
@@ -247,9 +247,9 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         _iniFile = this.CREATE_LAZY_INI_CONFIG(oldPath);
 
                         pathToWatch = oldPath; // restore watcher for the old path
-                        
+
                         throw new InvalidOperationException(
-                            $"Auto-reload failed when changing config path to '{normalizedPath}': {ex.Message}", ex);
+                            $"Auto-reload failed: path='{normalizedPath}', error={ex.Message}", ex);
                     }
                 }
                 else
