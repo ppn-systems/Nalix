@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
@@ -66,14 +67,14 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// Initializes a new instance of <see cref="IoTTcpSession"/> using
     /// <see cref="ConfigurationManager"/> and <see cref="InstanceManager"/>.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="InternalErrorException">
     /// Thrown when <see cref="IPacketRegistry"/> is not registered
     /// or <see cref="TransportOptions"/> fails validation.
     /// </exception>
     public IoTTcpSession() : base()
     {
         this.Catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-            ?? throw new InvalidOperationException(
+            ?? throw new InternalErrorException(
                 $"[SDK.{nameof(IoTTcpSession)}] IPacketRegistry not found in InstanceManager.");
 
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
@@ -322,11 +323,10 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
                 }
             }
 
-            this.Logger?.Error($"[SDK.{nameof(IoTTcpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}");
             this.SetState(TcpSessionState.Disconnected);
-            throw lastEx
+            throw new NetworkException($"[SDK.{nameof(IoTTcpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx
                 ?? new SocketException(
-                    (int)SocketError.HostNotFound);
+                    (int)SocketError.HostNotFound));
         }
         finally
         {
@@ -374,7 +374,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
         if (wasConnected)
         {
             this.Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Disconnected.");
-            this.RaiseDisconnected(new Exception("Disconnected"));
+            this.RaiseDisconnected(new NetworkException("Disconnected"));
         }
     }
 
