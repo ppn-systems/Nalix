@@ -184,6 +184,27 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void ReleasePendingPacket() => this.Socket.OnPacketProcessed();
 
+#if DEBUG
+    /// <summary>
+    /// Injects a packet directly into the process pipeline for testing.
+    /// This bypasses the socket receive loop but still triggers AsyncCallback
+    /// and respects the per-connection throttle.
+    /// </summary>
+    internal void InjectIncoming(Nalix.Framework.Memory.Buffers.BufferLease lease)
+    {
+        this.Socket.IncrementPendingCallbacks();
+        ConnectionEventArgs args = this.AcquireEventArgs() ?? new ConnectionEventArgs(this);
+        args.Initialize(lease, this);
+
+        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
+        {
+            this.ReleasePendingPacket();
+            args.Dispose();
+            lease.Dispose();
+        }
+    }
+#endif
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
 
