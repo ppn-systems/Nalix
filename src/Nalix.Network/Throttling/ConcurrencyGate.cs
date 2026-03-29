@@ -86,7 +86,7 @@ public sealed class ConcurrencyGate : IReportable
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}] initialization-error", ex);
+            throw new InternalErrorException($"[NW.{nameof(ConcurrencyGate)}] initialization-error: {ex.Message}", ex);
         }
     }
 
