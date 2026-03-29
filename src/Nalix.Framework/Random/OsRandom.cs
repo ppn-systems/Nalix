@@ -104,7 +104,7 @@ internal static class OsRandom
     {
         // Cancel previous schedule if exists
         IRecurringHandle? old = Interlocked.Exchange(ref s_reseedHandle, null);
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().CancelRecurring(old?.Name);
+        InstanceManager.Instance.GetOrCreateInstance<TaskManager>().CancelRecurring(old?.Name);
 
         // Schedule new reseed (non-reentrant)
         s_reseedHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
@@ -135,7 +135,7 @@ internal static class OsRandom
     public static void Detach()
     {
         IRecurringHandle? h = Interlocked.Exchange(ref s_reseedHandle, null);
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().CancelRecurring(h?.Name);
+        InstanceManager.Instance.GetOrCreateInstance<TaskManager>().CancelRecurring(h?.Name);
     }
 
     /// <summary>

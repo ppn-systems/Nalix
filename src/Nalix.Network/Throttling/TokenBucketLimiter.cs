@@ -1448,10 +1448,9 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
         _disposed = true;
 
-        _ = (InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
+        InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
                                 .CancelRecurring(TaskNaming.Recurring
-                                .CleanupJobId(RecurringName,
-                                this.GetHashCode())));
+                                .CleanupJobId(RecurringName, this.GetHashCode()));
 
         s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
     }
