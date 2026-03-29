@@ -20,6 +20,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
+using Nalix.Common.Exceptions;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
@@ -714,7 +715,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     {
         if (_sender is null || _cachedArgs is null)
         {
-            throw new InvalidOperationException("SetCallback must be called before use");
+            throw new InternalErrorException("SetCallback must be called before use");
         }
     }
 
