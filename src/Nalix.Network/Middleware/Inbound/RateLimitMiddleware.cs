@@ -89,13 +89,12 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.RATE_LIMITED,
                 action: ProtocolAdvice.RETRY,
-                options: new ConnectionExtensions.ControlDirectiveOptions(
+                options: new ControlDirectiveOptions(
                     Flags: ControlFlags.IS_TRANSIENT,
                     SequenceId: context.Packet.SequenceId,
                     Arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
                     Arg1: (uint)decision.RetryAfterMs,
-                    Arg2: decision.Credit)
-            ).ConfigureAwait(false);
+                    Arg2: decision.Credit)).ConfigureAwait(false);
 
             return;
         }

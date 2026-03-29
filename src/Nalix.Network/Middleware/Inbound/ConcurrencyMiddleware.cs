@@ -63,10 +63,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                         controlType: ControlType.FAIL,
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
-                        options: new ConnectionExtensions.ControlDirectiveOptions(
-                            Flags: ControlFlags.IS_TRANSIENT,
-                            SequenceId: context.Packet.SequenceId,
-                            Arg0: context.Packet.OpCode)).ConfigureAwait(false);
+                        options: new ControlDirectiveOptions(Flags: ControlFlags.IS_TRANSIENT, SequenceId: context.Packet.SequenceId, Arg0: context.Packet.OpCode)).ConfigureAwait(false);
 
                     return;
                 }
@@ -80,10 +77,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.RATE_LIMITED,
                 action: ProtocolAdvice.RETRY,
-                options: new ConnectionExtensions.ControlDirectiveOptions(
-                    Flags: ControlFlags.IS_TRANSIENT,
-                    SequenceId: context.Packet.SequenceId,
-                    Arg0: context.Packet.OpCode)).ConfigureAwait(false);
+                options: new ControlDirectiveOptions(Flags: ControlFlags.IS_TRANSIENT, SequenceId: context.Packet.SequenceId, Arg0: context.Packet.OpCode)).ConfigureAwait(false);
         }
         finally
         {
