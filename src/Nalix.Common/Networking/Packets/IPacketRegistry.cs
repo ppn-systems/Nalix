@@ -48,14 +48,10 @@ public interface IPacketRegistry
     /// The raw byte span. The first four bytes are interpreted as a little-endian
     /// 32-bit magic number. Must be at least <see cref="PacketConstants.HeaderSize"/> bytes.
     /// </param>
-    /// <param name="packet">
+    /// <returns>
     /// When this method returns <see langword="true"/>, the deserialized
     /// <see cref="IPacket"/>; otherwise <see langword="null"/>.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> on success; <see langword="false"/> when the buffer is
-    /// too short or no deserializer is registered for the magic number found.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when a registered deserializer rejects a malformed packet buffer.</exception>
-    void Deserialize(ReadOnlySpan<byte> raw, out IPacket packet);
+    IPacket Deserialize(ReadOnlySpan<byte> raw);
 }
