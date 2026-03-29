@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
+		<Nullable>enable</Nullable>
 		<OutputType>Exe</OutputType>
 		<TargetFramework>net10.0</TargetFramework>
 	</PropertyGroup>
@@ -12,6 +13,10 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Injection\" />
 	</ItemGroup>
 
 </Project>

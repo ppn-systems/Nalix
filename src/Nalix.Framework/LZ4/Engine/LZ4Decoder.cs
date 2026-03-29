@@ -4,7 +4,6 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -34,32 +33,6 @@ internal static class LZ4Decoder
     {
         ReadAndValidateHeader(input, out LZ4BlockHeader header);
         return DecodeInternal(input, output, header);
-    }
-
-    /// <summary>
-    /// Decompresses the provided compressed data into a newly allocated output buffer.
-    /// </summary>
-    /// <param name="input">The compressed data, including the header.</param>
-    /// <param name="output">The decompressed data.</param>
-    /// <param name="bytesWritten">The number of bytes written to the output buffer.</param>
-    /// <returns><c>true</c> when decompression completes successfully.</returns>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static bool Decode(ReadOnlySpan<byte> input, [NotNullWhen(true)] out byte[]? output, out int bytesWritten)
-    {
-        bytesWritten = 0;
-
-        ReadAndValidateHeader(input, out LZ4BlockHeader header);
-
-        if (header.OriginalLength == 0)
-        {
-            output = [];
-            return true;
-        }
-
-        output = new byte[header.OriginalLength];
-        bytesWritten = DecodeInternal(input, output, header);
-        return true;
     }
 
     /// <summary>
