@@ -9,7 +9,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
@@ -167,7 +166,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             }
 
             const int maxWaitMs = 500;
-            _idleSignal.Wait(maxWaitMs);
+            _ = _idleSignal.Wait(maxWaitMs);
 
             int remainingUsers = Volatile.Read(ref _activeUsers);
 
@@ -404,7 +403,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         while (!_limiters.IsEmpty && attempt++ < maxAttempts)
         {
-            foreach ((Policy policy, Entry _) in _limiters)
+            foreach ((Policy policy, _) in _limiters)
             {
                 if (_limiters.TryRemove(policy, out Entry? removed) && removed is not null)
                 {
@@ -424,7 +423,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
             if (!_limiters.IsEmpty)
             {
-                drainSignal.Wait(50);
+                _ = drainSignal.Wait(50);
             }
         }
 
@@ -734,7 +733,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         if ((count & (SweepEveryNChecks - 1)) == 0)
         {
             _ = ThreadPool.UnsafeQueueUserWorkItem(
-                static state => ((PolicyRateLimiter)state!).EVICT_STALE_POLICIES(),
+                static state => state.EVICT_STALE_POLICIES(),
                 this,
                 preferLocal: false);
         }

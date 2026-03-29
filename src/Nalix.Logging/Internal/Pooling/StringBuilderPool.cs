@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 
 namespace Nalix.Logging.Internal.Pooling;
 
@@ -31,6 +32,7 @@ internal static class StringBuilderPool
     private static StringBuilder? t_cachedInstance;
 
     private static readonly System.Collections.Concurrent.ConcurrentBag<StringBuilder> s_pool = [];
+    private static int s_sharedCount;
 
     #endregion Fields
 
@@ -62,6 +64,7 @@ internal static class StringBuilderPool
         // Try to get from shared pool
         if (s_pool.TryTake(out sb))
         {
+            _ = Interlocked.Decrement(ref s_sharedCount);
             _ = sb.Clear();
 
             if (sb.Capacity < capacity)
@@ -104,8 +107,9 @@ internal static class StringBuilderPool
         }
 
         // Return to shared pool if not full
-        if (s_pool.Count < PoolSize)
+        if (Volatile.Read(ref s_sharedCount) < PoolSize)
         {
+            _ = Interlocked.Increment(ref s_sharedCount);
             s_pool.Add(builder);
         }
     }

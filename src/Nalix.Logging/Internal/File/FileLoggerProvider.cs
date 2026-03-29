@@ -237,11 +237,12 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
                 _ = Interlocked.Decrement(ref _queued);
 
                 long batchStartTicks = sw.ElapsedTicks;
+                long maxBatchDelayStopwatchTicks = currentDelay.Ticks * Stopwatch.Frequency / TimeSpan.TicksPerSecond;
 
                 while (batch.Count < _batchSize)
                 {
                     long elapsedSinceStart = sw.ElapsedTicks - batchStartTicks;
-                    if (elapsedSinceStart >= currentDelay.Ticks)
+                    if (elapsedSinceStart >= maxBatchDelayStopwatchTicks)
                     {
                         break;
                     }
@@ -281,7 +282,11 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         }
         catch (Exception ex)
         {
+#if DEBUG
             Debug.WriteLine($"[LG.FileLogger] Consumer error: {ex}");
+#else
+            GC.KeepAlive(ex);
+#endif
         }
         finally
         {
@@ -344,7 +349,11 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         }
         catch (Exception ex)
         {
+#if DEBUG
             Debug.WriteLine($"[LG.FileLogger] Dispose error: {ex}");
+#else
+            GC.KeepAlive(ex);
+#endif
         }
         finally
         {

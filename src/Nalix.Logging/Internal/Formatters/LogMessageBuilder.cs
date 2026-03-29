@@ -268,18 +268,7 @@ internal static class LogMessageBuilder
         string? stack = exception.StackTrace;
         if (!string.IsNullOrEmpty(stack))
         {
-            string[] lines = stack.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries);
-            for (int i = 0; i < lines.Length; i++)
-            {
-                string line = lines[i].TrimStart();
-                if (line.Length == 0)
-                {
-                    continue;
-                }
-
-                _ = builder.Append(' ', (level + 1) * 2)
-                           .AppendLine(line);
-            }
+            AppendStackTraceLines(builder, stack.AsSpan(), level);
         }
 
         // AggregateException: enumerate all inner exceptions explicitly
@@ -308,6 +297,36 @@ internal static class LogMessageBuilder
                        .AppendLine("Caused by:");
 
             FormatExceptionDetails(builder, exception.InnerException, level + 1, includeHeader: true);
+        }
+    }
+
+    /// <summary>
+    /// Appends stack trace lines without allocating an intermediate string array.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static void AppendStackTraceLines(StringBuilder builder, ReadOnlySpan<char> stack, int level)
+    {
+        int start = 0;
+        while (start < stack.Length)
+        {
+            int relativeEnd = stack.Slice(start).IndexOf('\n');
+            int length = relativeEnd < 0 ? stack.Length - start : relativeEnd;
+
+            ReadOnlySpan<char> line = stack.Slice(start, length);
+            if (!line.IsEmpty && line[^1] == '\r')
+            {
+                line = line[..^1];
+            }
+
+            line = line.TrimStart();
+            if (!line.IsEmpty)
+            {
+                _ = builder.Append(' ', (level + 1) * 2)
+                           .Append(line)
+                           .AppendLine();
+            }
+
+            start += length + 1;
         }
     }
 

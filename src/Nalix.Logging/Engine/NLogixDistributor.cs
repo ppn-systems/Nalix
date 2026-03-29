@@ -183,7 +183,13 @@ public sealed class NLogixDistributor : ILogDistributor
         ArgumentNullException.ThrowIfNull(loggerHandler);
         ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
-        return _targets.TryRemove(loggerHandler, out _);
+        bool removed = _targets.TryRemove(loggerHandler, out _);
+        if (removed)
+        {
+            _targetsCache = null;
+        }
+
+        return removed;
     }
 
     /// <summary>
@@ -198,9 +204,11 @@ public sealed class NLogixDistributor : ILogDistributor
         try
         {
             // Log to debug output at minimum
+#if DEBUG
             Debug.WriteLine(
                 $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR publishing to " +
                 $"{target.GetType().Name}: {exception.Message}");
+#endif
 
             // Check if target implements error handling
             if (target is ILoggerErrorHandler errorHandler)
@@ -239,8 +247,12 @@ public sealed class NLogixDistributor : ILogDistributor
                 catch (Exception ex)
                 {
                     // Log disposal errors to debug output
+#if DEBUG
                     Debug.WriteLine(
                         $"ERROR disposing logging target: {ex.Message}");
+#else
+                    GC.KeepAlive(ex);
+#endif
                 }
             }
 
@@ -249,8 +261,12 @@ public sealed class NLogixDistributor : ILogDistributor
         catch (Exception ex)
         {
             // Log final disposal errors to debug output
+#if DEBUG
             Debug.WriteLine(
                 $"ERROR during NLogixDistributor disposal: {ex.Message}");
+#else
+            GC.KeepAlive(ex);
+#endif
         }
     }
 

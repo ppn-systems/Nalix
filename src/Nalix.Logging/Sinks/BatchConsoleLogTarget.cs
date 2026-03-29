@@ -75,7 +75,9 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
     {
         if (!_provider.TryEnqueue(logMessage))
         {
+#if DEBUG
             Debug.WriteLine($"[LG.BatchConsoleLogTarget] dropped-log msg={logMessage.Message}");
+#endif
         }
     }
 

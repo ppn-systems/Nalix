@@ -186,7 +186,11 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
         }
         catch (Exception ex)
         {
+#if DEBUG
             Debug.WriteLine($"ERROR disposing NLogixOptions: {ex.Message}");
+#else
+            GC.KeepAlive(ex);
+#endif
         }
 
         GC.SuppressFinalize(this);

@@ -101,7 +101,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
             group: "log",
             work: async (ctx, ct) =>
             {
-                CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
+                using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
                 await this.CONSUME_LOOP_ASYNC(ctx, linkedCts.Token).ConfigureAwait(false);
             },
             options: new WorkerOptions
@@ -192,11 +192,12 @@ internal sealed class ConsoleLoggerProvider : IDisposable
                 batch.Add(first);
 
                 long batchStartTicks = sw.ElapsedTicks;
+                long maxBatchDelayStopwatchTicks = _batchDelay.Ticks * Stopwatch.Frequency / TimeSpan.TicksPerSecond;
 
                 // accumulate batch
                 while (batch.Count < _batchSize)
                 {
-                    if (sw.Elapsed - TimeSpan.FromTicks(batchStartTicks) >= _batchDelay)
+                    if (sw.ElapsedTicks - batchStartTicks >= maxBatchDelayStopwatchTicks)
                     {
                         break;
                     }
