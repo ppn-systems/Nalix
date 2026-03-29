@@ -12,7 +12,7 @@ using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Network.Configurations;
+using Nalix.Framework.Options;
 
 namespace Nalix.Network.Routing;
 
