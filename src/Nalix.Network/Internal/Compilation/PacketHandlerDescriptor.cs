@@ -25,5 +25,5 @@ namespace Nalix.Network.Internal.Compilation;
 /// <param name="ReturnType"></param>
 /// <param name="CompiledInvoker"></param>
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal readonly record struct CompiledHandler<TPacket>(MethodInfo MethodInfo, Type ReturnType, Func<object, PacketContext<TPacket>, ValueTask<object>> CompiledInvoker)
+internal readonly record struct PacketHandlerDescriptor<TPacket>(MethodInfo MethodInfo, Type ReturnType, Func<object, PacketContext<TPacket>, ValueTask<object>> CompiledInvoker)
     where TPacket : IPacket;
