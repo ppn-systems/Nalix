@@ -42,6 +42,7 @@ namespace Nalix.SDK.Transport;
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+[Obsolete("UDP transport is not ready for use and is currently unsupported. This feature is in development and may change or be removed in future releases.", error: false)]
 public sealed class UdpSession : IClientConnection, IAsyncDisposable
 {
     #region Constants
