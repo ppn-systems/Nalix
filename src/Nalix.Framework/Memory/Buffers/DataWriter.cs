@@ -178,7 +178,7 @@ public ref struct DataWriter
         if (!_rent) // external array (or external span if we ever add such ctor) cannot expand by policy
         {
             throw new InvalidOperationException(
-                $"Cannot expand fixed buffer: available={available}, required={minimumSize}.");
+                $"Cannot expand fixed buffer: available={_span.Length}, required={minimumSize}.");
         }
 
         // Rent a larger buffer and copy committed bytes

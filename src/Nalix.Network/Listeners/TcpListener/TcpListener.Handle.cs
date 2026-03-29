@@ -44,13 +44,12 @@ public abstract partial class TcpListenerBase
             _protocol.OnAccept(connection, _cancellationToken);
 
             this.Metrics.RECORD_ACCEPTED();
-            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection?.NetworkEndpoint}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.NetworkEndpoint}");
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection?.NetworkEndpoint}", ex);
+            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.NetworkEndpoint}", ex);
 
-            ArgumentNullException.ThrowIfNull(connection);
             connection.Close();
         }
     }
@@ -462,8 +461,8 @@ public abstract partial class TcpListenerBase
 
                 // Brief delay to prevent CPU spinning on repeated errors
                 Task.Delay(50, CancellationToken.None)
-                                           .GetAwaiter()
-                                           .GetResult();
+                    .GetAwaiter()
+                    .GetResult();
             }
             finally
             {
