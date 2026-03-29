@@ -236,7 +236,8 @@ public sealed class ObjectPoolManager : IReportable
         {
             // Log and reset to zero to avoid negative counters due to bugs
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                .Warn($"[SH.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
+                                    .Warn($"[SH.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
+            
             _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
         }
     }

@@ -241,16 +241,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     }
                     catch (Exception ex)
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                            .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                                   $"auto-reload-fail msg={ex.Message}", ex);
-
                         // Roll back state — do NOT call SETUP_FILE_WATCHER inside the write lock.
                         _configFilePath = oldPath;
                         _directoryChecked = false;
                         _iniFile = this.CREATE_LAZY_INI_CONFIG(oldPath);
 
                         pathToWatch = oldPath; // restore watcher for the old path
+                        
+                        throw new InvalidOperationException(
+                            $"Auto-reload failed when changing config path to '{normalizedPath}': {ex.Message}", ex);
                     }
                 }
                 else
