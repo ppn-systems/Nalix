@@ -56,13 +56,6 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     // Dispose behavior
 
     /// <summary>
-    /// Gets or sets the wait time before unregistering connections during disposal.
-    /// </summary>
-    [IniComment("Milliseconds to wait for OnCloseEvent before force-unregistering on disposal (0 = no wait)")]
-    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "UnregisterDrainMillis cannot be negative.")]
-    public int UnregisterDrainMillis { get; init; }
-
-    /// <summary>
     /// Gets a value indicating whether latency measurement is enabled.
     /// </summary>
     [IniComment("Enable latency measurement for diagnostic and performance monitoring")]
