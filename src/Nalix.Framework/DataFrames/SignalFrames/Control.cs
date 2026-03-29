@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
@@ -14,7 +13,6 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
-[PipelineManagedTransform]
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned
