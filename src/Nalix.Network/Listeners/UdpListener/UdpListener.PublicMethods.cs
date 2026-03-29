@@ -28,6 +28,7 @@ namespace Nalix.Network.Listeners.Udp;
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [DebuggerDisplay("Port={s_config?.Port}, Running={_isRunning}")]
+[Obsolete("Udp listener is not ready for use and is currently unsupported. This feature is in development and may change or be removed in future releases.", error: false)]
 public abstract partial class UdpListenerBase : IListener
 {
     /// <summary>
