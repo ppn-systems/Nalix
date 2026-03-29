@@ -20,7 +20,7 @@ namespace Nalix.Network.Connections;
 /// <summary>
 /// Represents a network connection that manages socket communication, stream transformation, and event handling.
 /// </summary>
-public sealed partial class Connection : IConnection
+public sealed partial class Connection : IConnection, IConnectionErrorTracked
 {
     #region Fields
 

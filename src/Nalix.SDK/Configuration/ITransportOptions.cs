@@ -3,7 +3,7 @@
 
 using Nalix.Common.Security;
 
-namespace Nalix.Common.Networking.Transport;
+namespace Nalix.SDK.Configuration;
 
 /// <summary>
 /// Defines the full set of options required to configure a transport connection.

@@ -8,7 +8,6 @@ using System.Threading;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Transport;
 using Nalix.Framework.Injection;
 
 namespace Nalix.SDK.Transport.Extensions;

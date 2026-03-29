@@ -16,28 +16,23 @@ public interface IRecurringOptions
     /// Gets the tag associated with the recurring job for identification or grouping.
     /// </summary>
     [Required]
-    [MinLength(1)]
-    [MaxLength(32)]
     string? Tag { get; init; }
 
     /// <summary>
     /// Gets the amount of random jitter to add to the job interval.
     /// Jitter helps to spread out job executions and avoid thundering herd problems.
     /// </summary>
-    [Range(typeof(TimeSpan), "00:00:00", "1.00:00:00")]
     TimeSpan? Jitter { get; init; }
 
     /// <summary>
     /// Gets the maximum backoff duration to wait before retrying after failures.
     /// </summary>
-    [Range(typeof(TimeSpan), "00:00:00", "7.00:00:00")]
     TimeSpan BackoffCap { get; init; }
 
     /// <summary>
     /// Gets the maximum duration allowed for each job run.
     /// If the job exceeds this timeout, it may be cancelled.
     /// </summary>
-    [Range(typeof(TimeSpan), "00:00:00", "1.00:00:00")]
     TimeSpan? ExecutionTimeout { get; init; }
 
     /// <summary>

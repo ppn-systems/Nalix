@@ -17,7 +17,7 @@ public partial class ConfigurationLoader
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static string GetSectionName(Type type)
-        => _sectionNameCache.GetOrAdd(type, t =>
+        => s_sectionNameCache.GetOrAdd(type, t =>
         {
             string section = t.Name;
 
@@ -25,7 +25,7 @@ public partial class ConfigurationLoader
             string? longestMatch = null;
             int longestLength = 0;
 
-            foreach (string suffix in _suffixesToTrim)
+            foreach (string suffix in s_suffixesToTrim)
             {
                 if (suffix.Length > longestLength &&
                     section.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))

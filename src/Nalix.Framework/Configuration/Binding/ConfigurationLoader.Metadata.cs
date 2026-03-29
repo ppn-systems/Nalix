@@ -69,5 +69,5 @@ public partial class ConfigurationLoader
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ConfigurationMetadata GetOrCreateMetadata(Type type) => _metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
+    private static ConfigurationMetadata GetOrCreateMetadata(Type type) => s_metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
 }

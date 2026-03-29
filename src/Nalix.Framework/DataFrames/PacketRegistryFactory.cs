@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -415,6 +416,7 @@ public sealed class PacketRegistryFactory
     /// Safely enumerates types in an assembly even when some types fail to load
     /// (e.g. missing dependencies, AOT restrictions).
     /// </summary>
+    [RequiresUnreferencedCode("Calls System.Reflection.Assembly.GetTypes()")]
     private static IEnumerable<Type> SAFE_GET_TYPES(Assembly asm)
     {
         try
@@ -438,6 +440,7 @@ public sealed class PacketRegistryFactory
     /// Inherited static methods from generic base types require manual walking because
     /// <c>GetMethod(FlattenHierarchy)</c> does not handle closed generic base types.
     /// </summary>
+    [RequiresDynamicCode("Calls System.Reflection.MethodInfo.MakeGenericMethod(params Type[])")]
     private static MethodInfo? FIND_STATIC_METHOD(
         Type startType,
         BindingFlags flags,
@@ -467,6 +470,7 @@ public sealed class PacketRegistryFactory
     /// Reverse-lookup helper: given a magic number, find which type is currently
     /// registered for it. Used to produce clear duplicate-magic error messages.
     /// </summary>
+    [RequiresUnreferencedCode("Calls Nalix.Framework.DataFrames.PacketRegistryFactory.SAFE_GET_TYPES(Assembly)")]
     private static Type FIND_TYPE_BY_MAGIC(uint magic)
     {
         // Only called on duplicate detection (rare, startup-only) — linear scan is fine.

@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Transport;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;

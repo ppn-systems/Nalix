@@ -3,9 +3,9 @@
 
 using System;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Networking.Transport;
+using Nalix.SDK.Transport;
 
-namespace Nalix.Framework.Extensions;
+namespace Nalix.SDK.Extensions;
 
 /// <summary>
 /// Provides extension methods for subscribing to <see cref="IClientConnection"/> events with automatic unsubscription.

@@ -44,29 +44,6 @@ public static class LZ4Codec
     }
 
     /// <summary>
-    /// Compresses the input data into a newly allocated byte array sized to the compressed payload.
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed output buffer would be too small for the encoded block.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when low-level encoding hits an unexpected memory access violation.</exception>
-    [Pure]
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static byte[] Encode(ReadOnlySpan<byte> input)
-    {
-        byte[] buffer = new byte[LZ4BlockEncoder.GetMaxLength(input.Length)];
-        int bytesWritten = Encode(input, buffer);
-
-        if (bytesWritten == buffer.Length)
-        {
-            return buffer;
-        }
-
-        byte[] result = new byte[bytesWritten];
-        buffer.AsSpan(0, bytesWritten).CopyTo(result);
-        return result;
-    }
-
-    /// <summary>
     /// Compresses the input data into a <see cref="BufferLease"/> rented from the pool.
     /// Caller is responsible for disposing the lease when done.
     /// </summary>
@@ -120,28 +97,6 @@ public static class LZ4Codec
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Decode(ReadOnlySpan<byte> input, Span<byte> output) => LZ4Decoder.Decode(input, output);
-
-    /// <summary>
-    /// Decompresses the compressed input into a newly allocated byte array.
-    /// </summary>
-    /// <param name="input">The compressed input data, including header information.</param>
-    /// <param name="output">The output byte array containing the decompressed data.</param>
-    /// <param name="bytesWritten">The number of bytes actually written to the output array.</param>
-    /// <remarks>
-    /// This overload allocates a new byte[] for the result.
-    /// For hot paths, prefer <see cref="Decode(ReadOnlySpan{byte}, out BufferLease, out int)"/>
-    /// which rents from the pool instead.
-    /// </remarks>
-    /// <exception cref="InvalidDataException">Thrown when the compressed payload is malformed.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the underlying decoder unexpectedly returns a null buffer.</exception>
-    [Pure]
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Decode(ReadOnlySpan<byte> input, out byte[] output, out int bytesWritten)
-    {
-        _ = LZ4Decoder.Decode(input, out byte[]? decoded, out bytesWritten);
-        output = decoded ?? throw new InvalidOperationException("LZ4 decoder returned a null output buffer unexpectedly.");
-    }
 
     /// <summary>
     /// Decompresses the compressed input into a <see cref="BufferLease"/> rented from the pool.

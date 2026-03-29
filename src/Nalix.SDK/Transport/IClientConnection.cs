@@ -6,8 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
+using Nalix.SDK.Configuration;
 
-namespace Nalix.Common.Networking.Transport;
+namespace Nalix.SDK.Transport;
 
 /// <summary>
 /// Represents a reliable client connection to a server.

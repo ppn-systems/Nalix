@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Networking.Transport;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Random;
 using Nalix.Framework.Time;
@@ -122,7 +121,7 @@ public static class ControlExtensions
     /// <exception cref="TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     public static Task<TPkt> AwaitPacketAsync<TPkt>(
-        this IClientConnection client,
+        this TcpSessionBase client,
         Func<TPkt, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)

@@ -18,8 +18,6 @@ public interface IWorkerOptions
     /// Gets the optional tag associated with the worker.
     /// </summary>
     [Required]
-    [MinLength(1)]
-    [MaxLength(32)]
     string? Tag { get; init; }
 
     /// <summary>
@@ -52,7 +50,6 @@ public interface IWorkerOptions
     /// Gets the duration for which finished workers are retained for diagnostics.
     /// Set to <c>null</c> or <c>TimeSpan.Zero</c> to auto-remove workers immediately.
     /// </summary>
-    [Range(typeof(TimeSpan), "00:00:00", "1.00:00:00")]
     TimeSpan? RetainFor { get; init; }
 
     /// <summary>
