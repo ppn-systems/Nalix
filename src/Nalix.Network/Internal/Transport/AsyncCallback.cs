@@ -12,6 +12,7 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooled;
@@ -58,6 +59,7 @@ internal static class AsyncCallback
     /// All throttle values are read from config so they can be tuned without recompile.
     /// </summary>
     private static readonly NetworkCallbackOptions s_opts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+    private static readonly PoolingOptions s_pooling = ConfigurationManager.Instance.Get<PoolingOptions>();
 
     #endregion Options
 
@@ -71,6 +73,17 @@ internal static class AsyncCallback
     private static long s_droppedCallbacks;
 
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+    static AsyncCallback()
+    {
+        s_pooling.Validate();
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .SetMaxCapacity<PooledConnectEventContext>(s_pooling.ConnectEventContextCapacity);
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Prealloc<PooledConnectEventContext>(s_pooling.ConnectEventContextPreallocate);
+    }
 
     /// <summary>
     /// ── Per-IP pending counter ─────────────────────────────────────────────────
