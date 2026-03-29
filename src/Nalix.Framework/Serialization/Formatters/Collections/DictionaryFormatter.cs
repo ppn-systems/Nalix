@@ -73,7 +73,7 @@ internal sealed class DictionaryFormatter<
     /// <summary>
     /// Initializes a new instance of the <see cref="DictionaryFormatter{TKey, TValue}"/> class.
     /// </summary>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown when <typeparamref name="TKey"/> is not a supported key type.
     /// </exception>
     /// <remarks>
@@ -96,7 +96,7 @@ internal sealed class DictionaryFormatter<
         Type keyType = typeof(TKey);
         if (keyType.IsClass && keyType != typeof(string))
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"DictionaryFormatter: TKey='{keyType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as key.");
         }
 
@@ -167,7 +167,7 @@ internal sealed class DictionaryFormatter<
     /// A reconstructed dictionary instance, or <c>null</c> if the input represents null.
     /// </returns>
     /// <exception cref="InvalidOperationException">Thrown when the key or value formatter cannot be resolved.</exception>
-    /// <exception cref="SerializationException">Thrown when the reader does not contain enough bytes for the declared entries.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the reader does not contain enough bytes for the declared entries.</exception>
     /// <remarks>
     /// <para>
     /// Deserialization behavior:
@@ -197,7 +197,7 @@ internal sealed class DictionaryFormatter<
 
         if (count < -1)
         {
-            throw new SerializationException("Dictionary count out of range.");
+            throw new SerializationFailureException("Dictionary count out of range.");
         }
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);

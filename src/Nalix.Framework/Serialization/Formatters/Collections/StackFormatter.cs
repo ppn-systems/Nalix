@@ -58,7 +58,7 @@ internal sealed class StackFormatter<
     /// <summary>
     /// Initializes a new instance of the <see cref="StackFormatter{T}"/> class.
     /// </summary>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown when <typeparamref name="T"/> is a class other than <see cref="string"/>.
     /// </exception>
     /// <remarks>
@@ -76,7 +76,7 @@ internal sealed class StackFormatter<
 
         if (elementType.IsClass && elementType != typeof(string))
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"StackFormatter: T='{elementType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as element.");
         }
 
@@ -147,7 +147,7 @@ internal sealed class StackFormatter<
     /// A reconstructed stack with original LIFO order preserved, or <c>null</c> if the input represents null.
     /// </returns>
     /// <exception cref="InvalidOperationException">Thrown when the element formatter cannot be resolved.</exception>
-    /// <exception cref="SerializationException">Thrown when the reader does not contain enough bytes for the declared element count.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the reader does not contain enough bytes for the declared element count.</exception>
     /// <remarks>
     /// <para>
     /// Deserialization behavior:
@@ -175,7 +175,7 @@ internal sealed class StackFormatter<
 
         if (count < -1)
         {
-            throw new SerializationException("Stack count out of range.");
+            throw new SerializationFailureException("Stack count out of range.");
         }
 
         System.Collections.Generic.Stack<T> stack = new(count);

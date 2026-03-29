@@ -59,7 +59,7 @@ internal sealed class HashSetFormatter<
     /// <summary>
     /// Initializes a new instance of the <see cref="HashSetFormatter{T}"/> class.
     /// </summary>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown when <typeparamref name="T"/> is a class other than <see cref="string"/>.
     /// </exception>
     /// <remarks>
@@ -80,7 +80,7 @@ internal sealed class HashSetFormatter<
 
         if (elementType.IsClass && elementType != typeof(string))
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"HashSetFormatter: T='{elementType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as element.");
         }
 
@@ -147,7 +147,7 @@ internal sealed class HashSetFormatter<
     /// A reconstructed hash set instance, or <c>null</c> if the input represents null.
     /// </returns>
     /// <exception cref="InvalidOperationException">Thrown when the element formatter cannot be resolved.</exception>
-    /// <exception cref="SerializationException">Thrown when the reader does not contain enough bytes for the declared element count.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the reader does not contain enough bytes for the declared element count.</exception>
     /// <remarks>
     /// <para>
     /// Deserialization behavior:
@@ -178,7 +178,7 @@ internal sealed class HashSetFormatter<
 
         if (count < -1)
         {
-            throw new SerializationException("HashSet count out of range.");
+            throw new SerializationFailureException("HashSet count out of range.");
         }
 
         System.Collections.Generic.HashSet<T> set = new(count);

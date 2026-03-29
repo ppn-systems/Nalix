@@ -35,7 +35,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string array to serialize.</param>
-    /// <exception cref="SerializationException">Thrown when <paramref name="value"/> exceeds the maximum encodable element count.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when <paramref name="value"/> exceeds the maximum encodable element count.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the writer cannot expand or a required nested formatter is unavailable.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -60,7 +60,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         if (value.Length > ushort.MaxValue - 1)
         {
             // Chừa 65535 cho null
-            throw new SerializationException("The string array exceeds the maximum encodable length.");
+            throw new SerializationFailureException("The string array exceeds the maximum encodable length.");
         }
 
         s_uInt16Formatter.Serialize(ref writer, (ushort)value.Length);

@@ -173,14 +173,14 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     #region APIs
 
     /// <inheritdoc/>
-    /// <exception cref="SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
 
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small for the serialized packet.</exception>
-    /// <exception cref="SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
@@ -206,7 +206,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// <exception cref="InvalidOperationException">
     /// Thrown when deserialization reads zero bytes or no formatter is available for the packet type.
     /// </exception>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown when the payload is malformed or does not contain enough data to deserialize the packet.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

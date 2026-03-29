@@ -119,7 +119,7 @@ internal static partial class OsCsprng
         int status = BCryptGenRandom(nint.Zero, b, b.Length, C);
         if (status != 0)
         {
-            throw new CryptographyException($"BCryptGenRandom failed: status=0x{status:X}.");
+            throw new CipherException($"BCryptGenRandom failed: status=0x{status:X}.");
         }
     }
 
@@ -173,13 +173,13 @@ internal static partial class OsCsprng
                         return;
                     }
 
-                    throw new CryptographyException($"OS CSPRNG unavailable (getrandom failed with errno={errno}).");
+                    throw new CipherException($"OS CSPRNG unavailable (getrandom failed with errno={errno}).");
                 }
 
                 if (r == 0)
                 {
                     // Defensive: zero progress from getrandom should not loop forever
-                    throw new CryptographyException("OS CSPRNG unavailable (getrandom returned 0 bytes).");
+                    throw new CipherException("OS CSPRNG unavailable (getrandom returned 0 bytes).");
                 }
 
                 t += (nuint)r;
@@ -238,7 +238,7 @@ internal static partial class OsCsprng
                 int r = fs.Read(b[total..]);
                 if (r <= 0)
                 {
-                    throw new CryptographyException("OS CSPRNG unavailable (/dev/urandom returned 0 bytes).");
+                    throw new CipherException("OS CSPRNG unavailable (/dev/urandom returned 0 bytes).");
                 }
 
                 total += r;

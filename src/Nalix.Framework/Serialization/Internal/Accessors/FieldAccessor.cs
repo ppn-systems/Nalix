@@ -63,7 +63,7 @@ internal abstract class FieldAccessor<
     {
         if (schema.Equals(default))
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"[{nameof(FieldAccessor<>)}.{nameof(Create)}] Invalid argument: {nameof(schema)} is default (index={index}).");
         }
 
@@ -99,7 +99,7 @@ internal abstract class FieldAccessor<
         }
         catch (Exception ex)
         {
-            throw new SerializationException($"Failed to create accessor for field '{schema.Name}' of type '{fieldType}'.", ex);
+            throw new SerializationFailureException($"Failed to create accessor for field '{schema.Name}' of type '{fieldType}'.", ex);
         }
     }
 

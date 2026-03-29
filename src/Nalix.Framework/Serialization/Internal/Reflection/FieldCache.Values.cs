@@ -67,7 +67,7 @@ internal static partial class FieldCache<T>
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
@@ -85,7 +85,7 @@ internal static partial class FieldCache<T>
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
@@ -117,7 +117,7 @@ internal static partial class FieldCache<T>
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"Field '{metadata.Name}' expects type '{metadata.FieldType}', but got '{typeof(TField)}'.");
         }
 

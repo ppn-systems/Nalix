@@ -42,7 +42,7 @@ internal sealed partial class UnmanagedFormatter<
     /// </summary>
     /// <param name="writer">The <see cref="DataWriter"/> to write to.</param>
     /// <param name="value">The unmanaged value to write.</param>
-    /// <exception cref="SerializationException">Thrown when the writer cannot expand to fit the unmanaged payload.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the writer cannot expand to fit the unmanaged payload.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
@@ -104,11 +104,11 @@ internal sealed partial class UnmanagedFormatter<
                 return;
             }
 
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"UnmanagedFormatter<{typeof(T).Name}>: 16-byte type not supported (only decimal).");
         }
 
-        throw new SerializationException(
+        throw new SerializationFailureException(
             $"UnmanagedFormatter<{typeof(T).Name}>: Unsupported size {size}.");
     }
 
@@ -117,7 +117,7 @@ internal sealed partial class UnmanagedFormatter<
     /// </summary>
     /// <param name="reader">The <see cref="DataReader"/> to read from.</param>
     /// <returns>The unmanaged value read from the buffer.</returns>
-    /// <exception cref="SerializationException">Thrown when the reader does not contain enough bytes for the unmanaged payload.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the reader does not contain enough bytes for the unmanaged payload.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
@@ -177,11 +177,11 @@ internal sealed partial class UnmanagedFormatter<
                 return System.Runtime.CompilerServices.Unsafe.As<decimal, T>(ref dec);
             }
 
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"UnmanagedFormatter<{typeof(T).Name}>: 16-byte type not supported (only decimal).");
         }
 
-        throw new SerializationException(
+        throw new SerializationFailureException(
             $"UnmanagedFormatter<{typeof(T).Name}>: Unsupported size {size}.");
     }
 }

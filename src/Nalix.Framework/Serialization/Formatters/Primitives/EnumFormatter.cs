@@ -183,7 +183,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<ulong, T>(ref v);
                 }
             ),
-            _ => throw new SerializationException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
+            _ => throw new SerializationFailureException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
         };
     }
 

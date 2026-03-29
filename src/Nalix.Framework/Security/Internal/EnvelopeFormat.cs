@@ -51,24 +51,24 @@ internal static class EnvelopeFormat
     {
         if (blob.Length < HeaderSize)
         {
-            throw new CryptographyException($"Envelope too short: length={blob.Length}, required>={HeaderSize} (header).");
+            throw new CipherException($"Envelope too short: length={blob.Length}, required>={HeaderSize} (header).");
         }
 
         if (!EnvelopeHeader.Decode(blob[..HeaderSize], out EnvelopeHeader header))
         {
-            throw new CryptographyException($"Invalid envelope header: unable to decode (length={blob.Length}).");
+            throw new CipherException($"Invalid envelope header: unable to decode (length={blob.Length}).");
         }
 
         int pos = HeaderSize;
         int nonceLen = header.NONCE_LEN;
         if (nonceLen <= 0)
         {
-            throw new CryptographyException($"Invalid nonce length: {nonceLen}.");
+            throw new CipherException($"Invalid nonce length: {nonceLen}.");
         }
 
         if (blob.Length < HeaderSize + nonceLen)
         {
-            throw new CryptographyException(
+            throw new CipherException(
                 $"Envelope too short for nonce: length={blob.Length}, required>={pos + nonceLen}.");
         }
 
@@ -83,14 +83,14 @@ internal static class EnvelopeFormat
         {
             if (blob.Length < pos + TagSize)
             {
-                throw new CryptographyException(
+                throw new CipherException(
                     $"Envelope too short for tag: length={blob.Length}, required>={pos + TagSize}.");
             }
 
             int ctLen = blob.Length - pos - TagSize;
             if (ctLen < 0)
             {
-                throw new CryptographyException($"Invalid ciphertext length: {ctLen}.");
+                throw new CipherException($"Invalid ciphertext length: {ctLen}.");
             }
 
             ReadOnlySpan<byte> ctSlice = blob.Slice(pos, ctLen);

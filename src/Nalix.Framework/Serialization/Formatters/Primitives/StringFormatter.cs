@@ -26,7 +26,7 @@ public sealed class StringFormatter : IFormatter<string>
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string value to serialize.</param>
-    /// <exception cref="SerializationException">Thrown when the encoded UTF-8 payload exceeds the supported maximum length or encoding writes an unexpected byte count.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the encoded UTF-8 payload exceeds the supported maximum length or encoding writes an unexpected byte count.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the target writer cannot expand and no formatter is available for the length prefix.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -51,7 +51,7 @@ public sealed class StringFormatter : IFormatter<string>
         int byteCount = s_utf8.GetByteCount(value);
         if (byteCount > SerializerBounds.MaxString)
         {
-            throw new SerializationException("The string exceeds the allowed limit.");
+            throw new SerializationFailureException("The string exceeds the allowed limit.");
         }
 
         FormatterProvider.Get<ushort>()
@@ -71,7 +71,7 @@ public sealed class StringFormatter : IFormatter<string>
 
                     if (bytesWritten != byteCount)
                     {
-                        throw new SerializationException(
+                        throw new SerializationFailureException(
                             $"UTF8 encoding mismatch:  expected {byteCount} bytes, got {bytesWritten} bytes.");
                     }
                 }
@@ -86,7 +86,7 @@ public sealed class StringFormatter : IFormatter<string>
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized string value.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the string length exceeds the maximum allowed limit or the reader does not contain enough bytes.
     /// </exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the string length prefix.</exception>
@@ -109,7 +109,7 @@ public sealed class StringFormatter : IFormatter<string>
 
         if (length > SerializerBounds.MaxString)
         {
-            throw new SerializationException("String length out of range");
+            throw new SerializationFailureException("String length out of range");
         }
 
         string result;

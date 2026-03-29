@@ -67,7 +67,7 @@ internal sealed class NullableFormatter<
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized nullable value.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the nullable data is invalid or has an unexpected format.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -84,7 +84,7 @@ internal sealed class NullableFormatter<
         }
         else if (hasValue != HasValueFlag)
         {
-            throw new SerializationException("Invalid nullable data!");
+            throw new SerializationFailureException("Invalid nullable data!");
         }
         else
         {

@@ -63,7 +63,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                         }
                         catch (Exception ex)
                         {
-                            throw new SerializationException($"[{nameof(StringReturnHandler<>)}] error-serializing: {ex.Message}", ex);
+                            throw new SerializationFailureException($"[{nameof(StringReturnHandler<>)}] error-serializing: {ex.Message}", ex);
                         }
 
                         return;
@@ -96,7 +96,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                     }
                     catch (Exception ex)
                     {
-                        throw new SerializationException($"[{nameof(StringReturnHandler<>)}] error-serializing msg=chunk: {ex.Message}", ex);
+                        throw new SerializationFailureException($"[{nameof(StringReturnHandler<>)}] error-serializing msg=chunk: {ex.Message}", ex);
                     }
                 }
                 finally

@@ -241,7 +241,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         // 3) Unauthorized / security
-        if (ex is UnauthorizedAccessException or CryptographyException)
+        if (ex is UnauthorizedAccessException or CipherException)
         {
             return (ProtocolReason.ACCOUNT_LOCKED, ProtocolAdvice.NONE, ControlFlags.NONE);
         }

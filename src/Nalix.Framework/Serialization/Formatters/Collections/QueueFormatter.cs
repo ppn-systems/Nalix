@@ -61,7 +61,7 @@ internal sealed class QueueFormatter<
     /// <summary>
     /// Initializes a new instance of the <see cref="QueueFormatter{T}"/> class.
     /// </summary>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown when <typeparamref name="T"/> is a class other than <see cref="string"/>.
     /// </exception>
     /// <remarks>
@@ -79,7 +79,7 @@ internal sealed class QueueFormatter<
 
         if (elementType.IsClass && elementType != typeof(string))
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"QueueFormatter: T='{elementType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as element.");
         }
 
@@ -150,7 +150,7 @@ internal sealed class QueueFormatter<
     /// A reconstructed queue instance in original FIFO order, or <c>null</c> if the input represents null.
     /// </returns>
     /// <exception cref="InvalidOperationException">Thrown when the element formatter cannot be resolved.</exception>
-    /// <exception cref="SerializationException">Thrown when the reader does not contain enough bytes for the declared element count.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the reader does not contain enough bytes for the declared element count.</exception>
     /// <remarks>
     /// <para>
     /// Deserialization behavior:
@@ -180,7 +180,7 @@ internal sealed class QueueFormatter<
 
         if (count < -1)
         {
-            throw new SerializationException("Queue count out of range.");
+            throw new SerializationFailureException("Queue count out of range.");
         }
 
         System.Collections.Generic.Queue<T> queue = new(count);

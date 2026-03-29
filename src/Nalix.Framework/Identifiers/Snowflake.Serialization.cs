@@ -49,7 +49,7 @@ public readonly partial struct Snowflake
         // Input validation - buffer overflow protection
         if (bytes.Length != Size)
         {
-            throw new SerializationException($"Input buffer must be exactly {Size} bytes. Received {bytes.Length} bytes.");
+            throw new SerializationFailureException($"Input buffer must be exactly {Size} bytes. Received {bytes.Length} bytes.");
         }
 
         // Optimized deserialization using BinaryPrimitives (bounds-checked, vectorized)
@@ -79,7 +79,7 @@ public readonly partial struct Snowflake
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake FromBytes(byte[] bytes)
-        => bytes is null ? throw new SerializationException("Byte array cannot be null.") : FromBytes(MemoryExtensions.AsSpan(bytes));
+        => bytes is null ? throw new SerializationFailureException("Byte array cannot be null.") : FromBytes(MemoryExtensions.AsSpan(bytes));
 
     #endregion Deserialize
 
