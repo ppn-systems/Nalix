@@ -19,7 +19,7 @@ using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Constants;
 using Nalix.Network.Routing.Channel;
 
 namespace Nalix.Network.Routing;
@@ -137,14 +137,14 @@ public sealed class PacketDispatchChannel
 
             _workerHandle[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"{TaskNaming.Tags.Dispatch}.{TaskNaming.Tags.Process}.{i}",
-                group: $"{NetTaskNames.Net}/{TaskNaming.Tags.Dispatch}",
+                group: $"{NetworkTags.Net}/{TaskNaming.Tags.Dispatch}",
                 work: async (ctx, ct) => await this.RunLoop(ctx, ct).ConfigureAwait(false),
                 options: new WorkerOptions
                 {
                     IdType = SnowflakeType.System,
                     CancellationToken = linkedToken,
                     RetainFor = TimeSpan.Zero,
-                    Tag = NetTaskNames.Net
+                    Tag = NetworkTags.Net
                 }
             );
         }

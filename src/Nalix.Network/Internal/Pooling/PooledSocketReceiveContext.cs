@@ -13,7 +13,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
-namespace Nalix.Network.Internal.Pooled;
+namespace Nalix.Network.Internal.Pooling;
 
 /// <summary>
 /// Represents a pooled context for receiving TCP data asynchronously via SAEA.
