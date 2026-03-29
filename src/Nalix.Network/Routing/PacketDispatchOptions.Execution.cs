@@ -66,9 +66,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.REQUEST_INVALID,
                 action: ProtocolAdvice.FIX_AND_RETRY,
-                options: new ConnectionExtensions.ControlDirectiveOptions(
-                    SequenceId: packet.SequenceId,
-                    Arg0: descriptor.OpCode)).ConfigureAwait(false);
+                options: new ControlDirectiveOptions(SequenceId: packet.SequenceId, Arg0: descriptor.OpCode)).ConfigureAwait(false);
 
             return;
         }
@@ -97,10 +95,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                         controlType: ControlType.FAIL,
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
-                        options: new ConnectionExtensions.ControlDirectiveOptions(
-                            Flags: ControlFlags.IS_TRANSIENT,
-                            SequenceId: context.Packet.SequenceId,
-                            Arg0: descriptor.OpCode)).ConfigureAwait(false);
+                        options: new ControlDirectiveOptions(Flags: ControlFlags.IS_TRANSIENT, SequenceId: context.Packet.SequenceId, Arg0: descriptor.OpCode)).ConfigureAwait(false);
 
                     return;
                 }
@@ -149,10 +144,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
               controlType: ControlType.FAIL,
               reason: reason,
               action: action,
-              options: new ConnectionExtensions.ControlDirectiveOptions(
-                  Flags: flags,
-                  SequenceId: context.Packet.SequenceId,
-                  Arg0: descriptor.OpCode)).ConfigureAwait(false);
+              options: new ControlDirectiveOptions(Flags: flags, SequenceId: context.Packet.SequenceId, Arg0: descriptor.OpCode)).ConfigureAwait(false);
     }
 
     [Pure]
@@ -164,8 +156,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static T ThrowIfNull<T>(T value, string param) where T : class
-        => value ?? throw new ArgumentNullException(param);
+    private static T ThrowIfNull<T>(T value, string param) where T : class => value ?? throw new ArgumentNullException(param);
 
 
     /// <summary>

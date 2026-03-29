@@ -13,11 +13,10 @@ using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Nalix.Framework.Random;
-using Nalix.Framework.Identifiers;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.SDK.Configuration;
@@ -91,32 +90,6 @@ public sealed class TcpSession : TcpSessionBase
     #endregion Properties
 
     #region Constructors
-
-    /// <summary>
-    /// Initializes static members of the <see cref="TcpSession"/> class.
-    /// </summary>
-    static TcpSession()
-    {
-        BufferConfig bufferConfig = ConfigurationManager.Instance.Get<BufferConfig>();
-        bufferConfig.TotalBuffers = 32;
-        bufferConfig.EnableMemoryTrimming = true;
-        bufferConfig.TrimIntervalMinutes = 2;
-        bufferConfig.DeepTrimIntervalMinutes = 10;
-        bufferConfig.EnableAnalytics = false;
-        bufferConfig.AdaptiveGrowthFactor = 1.25;
-        bufferConfig.MaxMemoryPercentage = 0.05;
-        bufferConfig.SecureClear = false;
-        bufferConfig.EnableQueueCompaction = false;
-        bufferConfig.AutoTuneOperationThreshold = 32;
-        bufferConfig.FallbackToArrayPool = true;
-        bufferConfig.ExpandThresholdPercent = 0.20;
-        bufferConfig.ShrinkThresholdPercent = 0.60;
-        bufferConfig.MinimumIncrease = 1;
-        bufferConfig.MaxBufferIncreaseLimit = 16;
-        bufferConfig.BufferAllocations = "256,0.25; 512,0.30; 1024,0.45";
-        bufferConfig.MaxMemoryBytes = 0;
-        bufferConfig.Validate();
-    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpSession"/> class.

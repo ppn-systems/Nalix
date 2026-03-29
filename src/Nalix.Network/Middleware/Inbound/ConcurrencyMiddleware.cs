@@ -59,17 +59,13 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
 
                 if (!acquired)
                 {
-                    uint sequenceId1 = context.Packet is IPacketSequenced sequenced1
-                        ? sequenced1.SequenceId
-                        : 0;
-
                     await context.Connection.SendAsync(
                         controlType: ControlType.FAIL,
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
                         options: new ConnectionExtensions.ControlDirectiveOptions(
                             Flags: ControlFlags.IS_TRANSIENT,
-                            SequenceId: sequenceId1,
+                            SequenceId: context.Packet.SequenceId,
                             Arg0: context.Packet.OpCode)).ConfigureAwait(false);
 
                     return;
@@ -80,17 +76,13 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
         }
         catch (ConcurrencyConflictException)
         {
-            uint sequenceId2 = context.Packet is IPacketSequenced sequenced2
-                ? sequenced2.SequenceId
-                : 0;
-
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.RATE_LIMITED,
                 action: ProtocolAdvice.RETRY,
                 options: new ConnectionExtensions.ControlDirectiveOptions(
                     Flags: ControlFlags.IS_TRANSIENT,
-                    SequenceId: sequenceId2,
+                    SequenceId: context.Packet.SequenceId,
                     Arg0: context.Packet.OpCode)).ConfigureAwait(false);
         }
         finally
