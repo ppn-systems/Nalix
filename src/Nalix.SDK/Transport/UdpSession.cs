@@ -608,15 +608,16 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
-        await this.DisconnectAsync().ConfigureAwait(false);
+        this.TearDownConnection();
         GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
     }
 
     #endregion Public Methods

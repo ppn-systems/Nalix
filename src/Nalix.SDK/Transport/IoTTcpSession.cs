@@ -11,7 +11,9 @@ using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Random;
+using Nalix.Framework.Tasks;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
 
@@ -38,7 +40,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
 
     /// <summary>
     /// Serializes Connect/Disconnect operations — prevents concurrent reconnect races.
-    /// Disposed in <see cref="Dispose"/>.
+    /// Disposed when the session is disposed.
     /// </summary>
     private readonly SemaphoreSlim _connectLock = new(1, 1);
 
@@ -156,25 +158,43 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
             return;
         }
 
-        // IoT target: no TaskManager dependency — plain Task.Run is intentional here.
-        // The task is fire-and-forget; errors are routed through HANDLE_RECEIVE_ERROR.
-        _ = Task.Run(async () =>
+        try
         {
-            try
+            TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
+            _ = taskManager.ScheduleWorker(
+                name: $"IoTTcpSession-Receive-{_host}:{_port}",
+                group: "client",
+                work: async (_, workerCt) =>
+                {
+                    CancellationToken effective = workerCt.CanBeCanceled ? workerCt : loopToken;
+                    this.Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Receive worker started.");
+                    await Receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
+                },
+                options: new WorkerOptions { CancellationToken = loopToken });
+        }
+        catch (Exception ex)
+        {
+            this.Logger?.Warn(
+                $"[SDK.{nameof(IoTTcpSession)}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run",
+                ex);
+            _ = Task.Run(async () =>
             {
-                this.Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Receive worker started.");
-                await Receiver.ReceiveLoopAsync(loopToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                // Normal shutdown — do not log as error.
-            }
-            catch (Exception ex)
-            {
-                this.Logger?.Error($"[SDK.{nameof(IoTTcpSession)}] Receive worker crashed: {ex.Message}", ex);
-                this.HandleReceiveError(ex);
-            }
-        }, CancellationToken.None);
+                try
+                {
+                    this.Logger?.Info($"[SDK.{nameof(IoTTcpSession)}] Receive worker started.");
+                    await Receiver.ReceiveLoopAsync(loopToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Normal shutdown — do not log as error.
+                }
+                catch (Exception runEx)
+                {
+                    this.Logger?.Error($"[SDK.{nameof(IoTTcpSession)}] Receive worker crashed: {runEx.Message}", runEx);
+                    this.HandleReceiveError(runEx);
+                }
+            }, CancellationToken.None);
+        }
     }
 
     /// <inheritdoc/>
@@ -359,17 +379,6 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
         }
     }
 
-    /// <inheritdoc/>
-    public void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            _connectLock.Dispose();
-        }
-
-        this.Dispose();
-    }
-
     #endregion Overrides
 
     #region Private Methods
@@ -397,6 +406,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
         _ = this.ReconnectLoopAsync(cause);
     }
 
+    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private async Task ReconnectLoopAsync(Exception cause)
     {
         this.TearDownConnection();
