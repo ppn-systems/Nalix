@@ -55,11 +55,11 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.UNAUTHENTICATED,
                 action: ProtocolAdvice.NONE,
-                sequenceId: sequenceId,
-                flags: ControlFlags.NONE,
-                arg0: (byte)context.Attributes.Permission.Level,
-                arg1: (byte)context.Connection.Level,
-                arg2: context.Attributes.PacketOpcode.OpCode).ConfigureAwait(false);
+                options: new ConnectionExtensions.ControlDirectiveOptions(
+                    SequenceId: sequenceId,
+                    Arg0: (byte)context.Attributes.Permission.Level,
+                    Arg1: (byte)context.Connection.Level,
+                    Arg2: context.Attributes.PacketOpcode.OpCode)).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

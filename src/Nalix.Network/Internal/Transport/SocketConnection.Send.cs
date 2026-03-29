@@ -297,11 +297,6 @@ internal sealed partial class SocketConnection
                     $"Fragmented frame size {totalFrameSize} exceeds the {ushort.MaxValue}-byte wire header limit.");
             }
 
-            if (totalFrameSize > PacketConstants.PacketSizeLimit)
-            {
-                throw new InvalidOperationException("Chunk size too large");
-            }
-
             // Fast path: stackalloc if small
             if (totalFrameSize <= PacketConstants.StackAllocLimit)
             {

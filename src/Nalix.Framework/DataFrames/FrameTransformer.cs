@@ -105,8 +105,8 @@ public static class FrameTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Encrypt(IBufferLease src, IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType suite)
     {
-        ArgumentNullException.ThrowIfNull(src, nameof(src));
-        ArgumentNullException.ThrowIfNull(dest, nameof(dest));
+        ArgumentNullException.ThrowIfNull(src);
+        ArgumentNullException.ThrowIfNull(dest);
 
         if (key.IsEmpty)
         {
@@ -144,8 +144,8 @@ public static class FrameTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Decrypt(IBufferLease src, IBufferLease dest, ReadOnlySpan<byte> key)
     {
-        ArgumentNullException.ThrowIfNull(src, nameof(src));
-        ArgumentNullException.ThrowIfNull(dest, nameof(dest));
+        ArgumentNullException.ThrowIfNull(src);
+        ArgumentNullException.ThrowIfNull(dest);
 
         if (key.IsEmpty)
         {
@@ -180,8 +180,8 @@ public static class FrameTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Compress(IBufferLease src, IBufferLease dest)
     {
-        ArgumentNullException.ThrowIfNull(src, nameof(src));
-        ArgumentNullException.ThrowIfNull(dest, nameof(dest));
+        ArgumentNullException.ThrowIfNull(src);
+        ArgumentNullException.ThrowIfNull(dest);
 
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
@@ -210,8 +210,8 @@ public static class FrameTransformer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Decompress(IBufferLease src, IBufferLease dest)
     {
-        ArgumentNullException.ThrowIfNull(src, nameof(src));
-        ArgumentNullException.ThrowIfNull(dest, nameof(dest));
+        ArgumentNullException.ThrowIfNull(src);
+        ArgumentNullException.ThrowIfNull(dest);
 
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {

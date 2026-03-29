@@ -18,6 +18,23 @@ namespace Nalix.Network.Connections;
 /// </summary>
 public static class ConnectionExtensions
 {
+    /// <summary>
+    /// Optional metadata and payload arguments for a control directive.
+    /// </summary>
+    /// <param name="Flags">Optional control flags to include with the message.</param>
+    /// <param name="SequenceId">
+    /// Correlation id to map this directive to a prior request (0 = server-initiated / no correlation).
+    /// </param>
+    /// <param name="Arg0">Optional argument 0 for the directive.</param>
+    /// <param name="Arg1">Optional argument 1 for the directive.</param>
+    /// <param name="Arg2">Optional argument 2 for the directive.</param>
+    public readonly record struct ControlDirectiveOptions(
+        ControlFlags Flags = ControlFlags.NONE,
+        uint SequenceId = 0,
+        uint Arg0 = 0,
+        uint Arg1 = 0,
+        ushort Arg2 = 0);
+
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     /// <summary>
@@ -27,21 +44,14 @@ public static class ConnectionExtensions
     /// <param name="controlType">The type of control message to send.</param>
     /// <param name="reason">The reason code associated with the control message.</param>
     /// <param name="action">The suggested action for the recipient.</param>
-    /// <param name="flags">Optional control flags to include with the message.</param>
-    /// <param name="sequenceId">
-    /// Correlation id to map this directive to a prior request (0 = server-initiated / no correlation).
-    /// </param>
-    /// <param name="arg0">Optional argument 0 for the directive (default is 0).</param>
-    /// <param name="arg1">Optional argument 1 for the directive (default is 0).</param>
-    /// <param name="arg2">Optional argument 2 for the directive (default is 0).</param>
+    /// <param name="options">Optional directive metadata and payload arguments.</param>
     /// <returns>A task representing the asynchronous send operation.</returns>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public static async Task SendAsync(this IConnection connection,
         ControlType controlType,
         ProtocolReason reason,
         ProtocolAdvice action,
-        ControlFlags flags = ControlFlags.NONE,
-        uint sequenceId = 0, uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
+        ControlDirectiveOptions options = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
 
@@ -49,7 +59,12 @@ public static class ConnectionExtensions
 
         try
         {
-            directive.Initialize(controlType, reason, action, sequenceId: sequenceId, flags: flags, arg0: arg0, arg1: arg1, arg2: arg2);
+            directive.Initialize(controlType, reason, action,
+                sequenceId: options.SequenceId,
+                flags: options.Flags,
+                arg0: options.Arg0,
+                arg1: options.Arg1,
+                arg2: options.Arg2);
 
             using BufferLease lease = BufferLease.Rent(directive.Length + 32);
 

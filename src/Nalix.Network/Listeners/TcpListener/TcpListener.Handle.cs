@@ -225,79 +225,7 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            if (args.SocketError == SocketError.Success &&
-                args.AcceptSocket is Socket socket)
-            {
-                try
-                {
-                    if (!socket.Connected || socket.Handle.ToInt64() == -1)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] invalid-socket remote={socket.RemoteEndPoint}");
-
-                        SafeCloseSocket(socket);
-                        return;
-                    }
-
-                    if (socket.RemoteEndPoint is not IPEndPoint remoteIp || !_limiter.TryAccept(remoteIp))
-                    {
-                        SafeCloseSocket(socket);
-                        throw new NetworkException();
-                    }
-
-                    // Create and process connection similar to async version
-                    PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context ?? throw new InvalidOperationException("TryAccept context was not bound to pooled socket args.");
-                    IConnection connection = this.InitializeConnection(socket, context);
-
-                    // Process the connection
-                    PooledTcpListenerContext ctx = s_pool.Get<PooledTcpListenerContext>();
-
-                    ctx.Listener = this;
-                    ctx.Connection = connection;
-
-                    this.DISPATCH_CONNECTION(connection);
-
-                    // Rebind a fresh context for the next accept on this args
-                    PooledAcceptContext nextCtx = s_pool.Get<PooledAcceptContext>();
-
-                    ((PooledSocketAsyncEventArgs)args).Context = nextCtx;
-                    nextCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
-                }
-                catch (ObjectDisposedException)
-                {
-                    s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] disposed-during-accept remote={socket.RemoteEndPoint}");
-
-                    SafeCloseSocket(socket);
-                    if (args is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
-                    {
-                        s_pool.Return(pooled.Context);
-
-                        // Rebind a fresh context for next accepts on this args
-                        PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
-
-                        pooled.Context = newCtx;
-                        newCtx.BindArgsForSync(pooled);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    this.Metrics.RECORD_ERROR();
-                    s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
-
-                    SafeCloseSocket(socket);
-
-                    if (((PooledSocketAsyncEventArgs)args).Context is PooledAcceptContext failedContext)
-                    {
-                        s_pool.Return(failedContext);
-                    }
-
-                    PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
-
-                    ((PooledSocketAsyncEventArgs)args).Context = newCtx;
-                    newCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
-                }
-            }
-            else
+            if (args.SocketError != SocketError.Success || args.AcceptSocket is not Socket socket)
             {
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-failed={args.SocketError}");
 
@@ -312,6 +240,77 @@ public abstract partial class TcpListenerBase
 
                     pooled.Context.BindArgsForSync(pooled);
                 }
+
+                return;
+            }
+
+            try
+            {
+                if (!socket.Connected || socket.Handle.ToInt64() == -1)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] invalid-socket remote={socket.RemoteEndPoint}");
+
+                    SafeCloseSocket(socket);
+                    return;
+                }
+
+                if (socket.RemoteEndPoint is not IPEndPoint remoteIp || !_limiter.TryAccept(remoteIp))
+                {
+                    SafeCloseSocket(socket);
+                    throw new NetworkException();
+                }
+
+                // Create and process connection similar to async version
+                PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context ?? throw new InvalidOperationException("TryAccept context was not bound to pooled socket args.");
+                IConnection connection = this.InitializeConnection(socket, context);
+
+                // Process the connection
+                PooledTcpListenerContext ctx = s_pool.Get<PooledTcpListenerContext>();
+
+                ctx.Listener = this;
+                ctx.Connection = connection;
+
+                this.DISPATCH_CONNECTION(connection);
+
+                // Rebind a fresh context for the next accept on this args
+                PooledAcceptContext nextCtx = s_pool.Get<PooledAcceptContext>();
+
+                ((PooledSocketAsyncEventArgs)args).Context = nextCtx;
+                nextCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
+            }
+            catch (ObjectDisposedException)
+            {
+                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] disposed-during-accept remote={socket.RemoteEndPoint}");
+
+                SafeCloseSocket(socket);
+                if (args is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
+                {
+                    s_pool.Return(pooled.Context);
+
+                    // Rebind a fresh context for next accepts on this args
+                    PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
+
+                    pooled.Context = newCtx;
+                    newCtx.BindArgsForSync(pooled);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.Metrics.RECORD_ERROR();
+                s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}", ex);
+
+                SafeCloseSocket(socket);
+
+                if (((PooledSocketAsyncEventArgs)args).Context is PooledAcceptContext failedContext)
+                {
+                    s_pool.Return(failedContext);
+                }
+
+                PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
+
+                ((PooledSocketAsyncEventArgs)args).Context = newCtx;
+                newCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
             }
         }
         finally
