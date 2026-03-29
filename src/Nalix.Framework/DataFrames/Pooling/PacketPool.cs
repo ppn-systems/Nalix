@@ -12,7 +12,8 @@ namespace Nalix.Framework.DataFrames.Pooling;
 /// Provides a type-specific pool for packet instances with a disposable lease API.
 /// </summary>
 /// <typeparam name="TPacket">The packet type.</typeparam>
-[SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "A generic packet pool is intentionally exposed as a per-packet-type static API.")]
+[SuppressMessage(
+    "Design", "CA1000:Do not declare static members on generic types", Justification = "A generic packet pool is intentionally exposed as a per-packet-type static API.")]
 public static class PacketPool<TPacket> where TPacket : PacketBase<TPacket>, new()
 {
     #region Fields
