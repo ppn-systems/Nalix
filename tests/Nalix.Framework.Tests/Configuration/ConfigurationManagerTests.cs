@@ -198,25 +198,6 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void SetConfigFilePathWhenPathIsUnchangedReturnsFalse()
-    {
-        string filePath = this.WriteConfigFile(
-            "same-path.ini",
-            """
-            [Sample]
-            Number = 1
-            Message = same
-            """);
-
-        using ConfigurationManager manager = this.CreateManager(filePath);
-
-        bool changed = manager.SetConfigFilePath(filePath);
-
-        Assert.False(changed);
-        Assert.Equal(filePath, manager.ConfigFilePath);
-    }
-
-    [Fact]
     public void SetConfigFilePathWhenAutoReloadIsDisabledKeepsExistingValuesUntilReloadAll()
     {
         string firstPath = this.WriteConfigFile(
@@ -238,16 +219,14 @@ public sealed class ConfigurationManagerTests : IDisposable
         using ConfigurationManager manager = this.CreateManager(firstPath);
         SampleConfig configuration = manager.Get<SampleConfig>();
 
-        bool changed = manager.SetConfigFilePath(secondPath, autoReload: false);
+        manager.SetConfigFilePath(secondPath, autoReload: false);
 
-        Assert.True(changed);
         Assert.Equal(secondPath, manager.ConfigFilePath);
         Assert.Equal(1, configuration.Number);
         Assert.Equal("first", configuration.Message);
 
-        bool reloaded = manager.ReloadAll();
+        manager.ReloadAll();
 
-        Assert.True(reloaded);
         Assert.Equal(2, configuration.Number);
         Assert.Equal("second", configuration.Message);
     }
@@ -275,9 +254,8 @@ public sealed class ConfigurationManagerTests : IDisposable
         SampleConfig configuration = manager.Get<SampleConfig>();
 
         DateTime beforeReload = manager.LastReloadTime;
-        bool changed = manager.SetConfigFilePath(secondPath, autoReload: true);
+        manager.SetConfigFilePath(secondPath, autoReload: true);
 
-        Assert.True(changed);
         Assert.Equal(secondPath, manager.ConfigFilePath);
         Assert.Equal(20, configuration.Number);
         Assert.Equal("after", configuration.Message);
@@ -321,9 +299,8 @@ public sealed class ConfigurationManagerTests : IDisposable
             Message = updated
             """);
 
-        bool reloaded = manager.ReloadAll();
+        manager.ReloadAll();
 
-        Assert.True(reloaded);
         Assert.Equal(99, configuration.Number);
         Assert.Equal("updated", configuration.Message);
         Assert.True(manager.LastReloadTime > beforeReload);
@@ -409,8 +386,7 @@ public sealed class ConfigurationManagerTests : IDisposable
 
         if (filePath is not null)
         {
-            bool changed = manager.SetConfigFilePath(filePath, autoReload: true);
-            Assert.True(changed);
+            manager.SetConfigFilePath(filePath, autoReload: true);
         }
 
         return manager;

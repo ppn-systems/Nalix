@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -26,11 +27,10 @@ namespace Nalix.Framework.Tests.DataFrames;
 ///   so that <see cref="PacketBase{TSelf}.Deserialize"/> can pull pooled instances.
 /// </para>
 /// </summary>
-public sealed class PacketRegistryTests : System.IDisposable
+public sealed class PacketRegistryTests : IDisposable
 {
     #region Setup
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance", Justification = "<Pending>")]
     private readonly IPacketRegistry _catalog;
 
     public PacketRegistryTests()
@@ -55,23 +55,6 @@ public sealed class PacketRegistryTests : System.IDisposable
 
     #endregion Setup
 
-    [Fact]
-    public void DebugRegistryBuildDirect()
-    {
-        // Build registry thủ công, không qua PacketRegistry constructor
-        PacketRegistryFactory factory = new();
-
-        PacketRegistry registry = factory.CreateCatalog();
-
-        uint key = PacketRegistryFactory.Compute(typeof(Control));
-
-        bool hasKey = registry.TryGetDeserializer(key, out _);
-
-        Assert.True(hasKey, $"Key 0x{key:X8} không có trong registry sau khi build, Auto 0x{new Control().MagicNumber:X8}");
-    }
-
-
-
     // -------------------------------------------------------------------------
     // Control (fixed-size packet)
     // -------------------------------------------------------------------------
@@ -93,9 +76,8 @@ public sealed class PacketRegistryTests : System.IDisposable
         byte[] bytes = original.Serialize();
 
         // Assert catalog can identify and deserialize it
-        bool found = _catalog.TryDeserialize(bytes, out IPacket packet);
+        IPacket packet = _catalog.Deserialize(bytes);
 
-        Assert.True(found);
         Assert.NotNull(packet);
 
         Control result = Assert.IsType<Control>(packet);
@@ -140,9 +122,8 @@ public sealed class PacketRegistryTests : System.IDisposable
         packet.Initialize(0x0003, ControlType.PING, sequenceId: 7);
         byte[] bytes = packet.Serialize();
 
-        bool found = _catalog.TryDeserialize(bytes, out IPacket result);
+        IPacket result = _catalog.Deserialize(bytes);
 
-        Assert.True(found);
         Control control = Assert.IsType<Control>(result);
         Assert.Equal(0x0003, control.OpCode);
         Assert.Equal(7u, control.SequenceId);
@@ -162,10 +143,9 @@ public sealed class PacketRegistryTests : System.IDisposable
 
         // Act
         byte[] bytes = original.Serialize();
-        bool found = _catalog.TryDeserialize(bytes, out IPacket packet);
+        IPacket packet = _catalog.Deserialize(bytes);
 
         // Assert
-        Assert.True(found);
         Handshake result = Assert.IsType<Handshake>(packet);
         Assert.Equal(original.OpCode, result.OpCode);
         Assert.Equal(original.MagicNumber, result.MagicNumber);
@@ -202,9 +182,8 @@ public sealed class PacketRegistryTests : System.IDisposable
         Handshake original = new(opCode: 0x0011, data: [], transport: ProtocolType.UDP);
         byte[] bytes = original.Serialize();
 
-        bool found = _catalog.TryDeserialize(bytes, out IPacket packet);
+        IPacket packet = _catalog.Deserialize(bytes);
 
-        Assert.True(found);
         Handshake result = Assert.IsType<Handshake>(packet);
         Assert.NotNull(result.Data);
         Assert.Empty(result.Data);
@@ -232,10 +211,9 @@ public sealed class PacketRegistryTests : System.IDisposable
 
         // Act
         byte[] bytes = original.Serialize();
-        bool found = _catalog.TryDeserialize(bytes, out IPacket packet);
+        IPacket packet = _catalog.Deserialize(bytes);
 
         // Assert
-        Assert.True(found);
         Directive result = Assert.IsType<Directive>(packet);
 
         Assert.Equal(original.OpCode, result.OpCode);
@@ -261,10 +239,9 @@ public sealed class PacketRegistryTests : System.IDisposable
     {
         // Buffer smaller than HeaderSize must return false, not throw.
         byte[] tooShort = new byte[3];
-        bool found = _catalog.TryDeserialize(tooShort, out IPacket packet);
 
-        Assert.False(found);
-        Assert.Null(packet);
+        ArgumentException ex = Assert.Throws<ArgumentException>(() => _catalog.Deserialize(tooShort));
+        Assert.StartsWith("Raw packet data is too short to contain a valid header", ex.Message);
     }
 
     [Fact]
@@ -274,19 +251,15 @@ public sealed class PacketRegistryTests : System.IDisposable
         byte[] buf = new byte[PacketConstants.HeaderSize];
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buf, 0xDEADBEEF);
 
-        bool found = _catalog.TryDeserialize(buf, out IPacket packet);
-
-        Assert.False(found);
-        Assert.Null(packet);
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => _catalog.Deserialize(buf));
+        Assert.StartsWith("Cannot deserialize packet: Magic", ex.Message);
     }
 
     [Fact]
     public void TryDeserializeEmptyBufferReturnsFalse()
     {
-        bool found = _catalog.TryDeserialize([], out IPacket packet);
-
-        Assert.False(found);
-        Assert.Null(packet);
+        ArgumentException ex = Assert.Throws<ArgumentException>(() => _catalog.Deserialize([]));
+        Assert.StartsWith("Raw packet data is too short to contain a valid header", ex.Message);
     }
 
     // -------------------------------------------------------------------------
