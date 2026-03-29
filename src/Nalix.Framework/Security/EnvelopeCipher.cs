@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Engine;
@@ -116,7 +117,7 @@ public static class EnvelopeCipher
         CipherSuiteType.Chacha20Poly1305 => ChaCha20.NonceSize,
         CipherSuiteType.Salsa20 => Salsa20.NonceSize,
         CipherSuiteType.Salsa20Poly1305 => Salsa20.NonceSize,
-        _ => throw new ArgumentException("Unsupported symmetric algorithm", nameof(type))
+        _ => throw new CryptographyException($"Unsupported cipher suite '{type}' for nonce length.")
     };
 
     /// <summary>
@@ -162,7 +163,7 @@ public static class EnvelopeCipher
         CipherSuiteType.Chacha20Poly1305 => EnvelopeFormat.TagSize,
         CipherSuiteType.Salsa20 => 0,
         CipherSuiteType.Salsa20Poly1305 => EnvelopeFormat.TagSize,
-        _ => throw new ArgumentException("Unsupported symmetric algorithm", nameof(type))
+        _ => throw new CryptographyException($"Unsupported cipher suite '{type}' for tag length.")
     };
 
     /// <summary>
@@ -230,7 +231,7 @@ public static class EnvelopeCipher
                 return;
 
             default:
-                throw new ArgumentException("Unsupported cipher type", nameof(algorithm));
+                throw new CryptographicException($"Unsupported cipher type '{algorithm}'.");
         }
     }
 
@@ -291,7 +292,7 @@ public static class EnvelopeCipher
                 return;
 
             default:
-                throw new NotSupportedException("Unsupported cipher type.");
+                throw new CryptographicException($"Unsupported cipher type '{env.AeadType}'.");
         }
     }
 
