@@ -37,6 +37,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private readonly Lock _gate = new();
+    private readonly ManualResetEventSlim _stoppedSignal = new(true);
     private CancellationTokenSource? _cts;
 
     private int _isRunning;
@@ -174,8 +175,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
         }
 
         this.TERMINATE_SYNC_LOOP();
-
-        Thread.Sleep(50);
+        _stoppedSignal.Wait(TimeSpan.FromMilliseconds(50));
 
         this.INITIALIZE_SYNC_LOOP();
     }
@@ -195,6 +195,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
         this.Deactivate();
 
         TimeSynchronized = null;
+        _stoppedSignal.Dispose();
 
         GC.SuppressFinalize(this);
 
@@ -225,6 +226,8 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
             _cts = new CancellationTokenSource();
             linkedToken = _cts.Token;
         }
+
+        _stoppedSignal.Reset();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: $"{NetTaskNames.Time}.{NetTaskNames.Sync}",
@@ -304,6 +307,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 finally
                 {
                     Volatile.Write(ref _isRunning, 0);
+                    _stoppedSignal.Set();
                     s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] stopped");
                 }
             },
