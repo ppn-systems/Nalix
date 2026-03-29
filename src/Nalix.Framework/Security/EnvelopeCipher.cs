@@ -276,11 +276,7 @@ public static class EnvelopeCipher
         out int written)
     {
         written = 0;
-
-        if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.ParsedEnvelope env))
-        {
-            throw new ArgumentException("The envelope is invalid or malformed.", nameof(envelope));
-        }
+        EnvelopeFormat.Envelope env = EnvelopeFormat.ParseEnvelope(envelope);
 
         switch (env.AeadType)
         {

@@ -58,8 +58,11 @@ public static class FrameTransformer
     /// <param name="envelope">The input envelope.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="envelope"/> does not contain a valid Nalix packet envelope.</exception>
     public static int GetPlaintextLength(ReadOnlySpan<byte> envelope)
-        => !EnvelopeFormat.TryParseEnvelope(envelope[Offset..], out EnvelopeFormat.ParsedEnvelope parsed)
-        ? throw new ArgumentException("Malformed envelope", nameof(envelope)) : parsed.Ciphertext.Length;
+    {
+        EnvelopeFormat.Envelope parsed = EnvelopeFormat.ParseEnvelope(envelope[Offset..]);
+
+        return parsed.Ciphertext.Length;
+    }
 
     /// <summary>
     /// Calculates the maximum compressed size for a given plaintext size using LZ4 compression.

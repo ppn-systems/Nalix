@@ -437,16 +437,7 @@ public sealed class PacketDispatchChannel
                 try
                 {
                     // Deserialize packet
-                    if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
-                    {
-                        int len = lease.Length;
-                        string head = Convert.ToHexString(lease.Span[..Math.Min(16, len)]);
-                        this.Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
-
-                        lease.Dispose();
-                        lease = null;
-                        continue;
-                    }
+                    _catalog.Deserialize(lease.Span, out IPacket packet);
 
                     await this.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
                 }
@@ -457,6 +448,10 @@ public sealed class PacketDispatchChannel
                 }
                 finally
                 {
+                    int len = lease.Length;
+                    string head = Convert.ToHexString(lease.Span[..Math.Min(16, len)]);
+                    this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
+
                     lease?.Dispose();
                     lease = null;
                 }

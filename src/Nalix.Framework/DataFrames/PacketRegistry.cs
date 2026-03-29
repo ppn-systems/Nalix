@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Extensions;
@@ -97,33 +96,26 @@ public sealed class PacketRegistry : IPacketRegistry
 
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown when a registered deserializer attempts to read a malformed packet header.</exception>
-    public bool TryDeserialize(
-        ReadOnlySpan<byte> raw,
-        [NotNullWhen(true)] out IPacket? packet)
+    public void Deserialize(ReadOnlySpan<byte> raw, out IPacket packet)
     {
         if (raw.Length < PacketConstants.HeaderSize)
         {
-            packet = null;
-            return false;
+            throw new ArgumentException(
+                $"Raw packet data is too short to contain a valid header. " +
+                $"Expected at least {PacketConstants.HeaderSize} bytes, but got {raw.Length}.", nameof(raw));
         }
 
         uint magic = raw.ReadMagicNumberLE();
 
-        if (_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer))
+        if (!_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer))
         {
-            packet = deserializer(raw);
-            return packet is not null;   // BUG FIX: guard against deserializer returning null
+            throw new InvalidOperationException(
+                $"Cannot deserialize packet: Magic 0x{magic:X8} is not registered. " +
+                $"Check your PacketRegistryFactory configuration.");
         }
 
-        packet = null;
-        return false;
+        packet = deserializer(raw);
     }
-
-    /// <inheritdoc/>
-    public bool TryGetDeserializer(
-        uint magic,
-        [NotNullWhen(true)] out PacketDeserializer? deserializer)
-        => _deserializers.TryGetValue(magic, out deserializer);
 
     #endregion Public API
 }
