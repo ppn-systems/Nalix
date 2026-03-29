@@ -437,7 +437,7 @@ public sealed class PacketDispatchChannel
                 try
                 {
                     // Deserialize packet
-                    _catalog.Deserialize(lease.Span, out IPacket packet);
+                    IPacket packet = _catalog.Deserialize(lease.Span);
 
                     await this.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
                 }
