@@ -36,6 +36,12 @@ namespace Nalix.Common.Security;
 /// </remarks>
 public enum CipherSuiteType : byte
 {
+    /// <summary>
+    /// No encryption is applied. The packet payload is sent as plaintext.
+    /// Default state for new connections before a handshake is established.
+    /// </summary>
+    None = 0,
+
     // ────────────────────────────────
     // Base symmetric ciphers
     // ────────────────────────────────

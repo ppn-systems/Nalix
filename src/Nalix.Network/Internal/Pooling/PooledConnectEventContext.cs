@@ -49,6 +49,12 @@ internal sealed class PooledConnectEventContext : IPoolable
     public bool ReleasePendingPacketOnCompletion;
 
     /// <summary>
+    /// For local pooling! If set, calling Dispose() will invoke this callback
+    /// instead of returning to the global ObjectPoolManager.
+    /// </summary>
+    internal Action<PooledConnectEventContext>? OnDisposedCallback { get; set; }
+
+    /// <summary>
     /// Initializes the pooled wrapper with the callback, sender, and arguments
     /// so they can be passed to the worker thread without allocating a closure.
     /// </summary>
@@ -86,5 +92,14 @@ internal sealed class PooledConnectEventContext : IPoolable
     }
 
     /// <inheritdoc/>
-    public void Dispose() => s_pool.Return(this);
+    public void Dispose()
+    {
+        if (this.OnDisposedCallback is { } callback)
+        {
+            callback(this);
+            return;
+        }
+
+        s_pool.Return(this);
+    }
 }

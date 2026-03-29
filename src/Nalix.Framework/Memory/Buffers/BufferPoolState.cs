@@ -23,6 +23,11 @@ public readonly record struct BufferPoolState : IEquatable<BufferPoolState>
     public required int Misses { get; init; }
 
     /// <summary>
+    /// Number of hits (successful reuses).
+    /// </summary>
+    public required int Hits { get; init; }
+
+    /// <summary>
     /// Size of each buffer in bytes.
     /// </summary>
     public required int BufferSize { get; init; }
@@ -55,8 +60,12 @@ public readonly record struct BufferPoolState : IEquatable<BufferPoolState>
         => this.TotalBuffers <= 0 ? 0.0 : Math.Max(0.0, Math.Min(1.0, 1.0 - (this.FreeBuffers / (double)this.TotalBuffers)));
 
     /// <summary>
-    /// Gets the miss rate as a ratio of total buffers.
+    /// Gets the miss rate as a ratio of total requests (Hits + Misses).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double GetMissRate() => this.TotalBuffers <= 0 ? 0.0 : Math.Min(1.0, this.Misses / (double)this.TotalBuffers);
+    public double GetMissRate()
+    {
+        int total = this.Hits + this.Misses;
+        return total <= 0 ? 0.0 : Math.Min(1.0, this.Misses / (double)total);
+    }
 }

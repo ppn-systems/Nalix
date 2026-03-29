@@ -306,6 +306,28 @@ public sealed class ObjectPoolManager : IReportable
         return true;
     }
 
+    /// <summary>
+    /// Resets all global and per-pool metrics to baseline (zero).
+    /// Use this between benchmark runs to ensure a clean slate for diagnostic reports.
+    /// </summary>
+    public void ResetMetrics()
+    {
+        _ = Interlocked.Exchange(ref _totalGetOperations, 0);
+        _ = Interlocked.Exchange(ref _totalReturnOperations, 0);
+
+        foreach (PoolMetrics metrics in _metricsDict.Values)
+        {
+            _ = Interlocked.Exchange(ref metrics.TotalGets, 0);
+            _ = Interlocked.Exchange(ref metrics.TotalReturns, 0);
+            _ = Interlocked.Exchange(ref metrics.CacheHits, 0);
+            _ = Interlocked.Exchange(ref metrics.CacheMisses, 0);
+            _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
+            _ = Interlocked.Exchange(ref metrics.ConsecutiveFailures, 0);
+            _ = Interlocked.Exchange(ref metrics.TotalCreated, 0);
+            _ = Interlocked.Exchange(ref metrics.TotalDisposed, 0);
+        }
+    }
+
     /// <summary>Gets information about a specific type's pool.</summary>
     /// <typeparam name="T">The poolable type.</typeparam>
     public Dictionary<string, object> GetTypeInfo<T>() where T : IPoolable

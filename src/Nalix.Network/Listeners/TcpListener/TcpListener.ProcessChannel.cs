@@ -124,9 +124,12 @@ public abstract partial class TcpListenerBase
 
         if (processChannel.Writer.TryWrite(connection))
         {
-            s_logger?.Trace(
-                $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
-                $"queued remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            {
+                s_logger.Trace(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
+                    $"queued remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
+            }
 
             return;
         }
@@ -153,9 +156,12 @@ public abstract partial class TcpListenerBase
 
     private void PROCESS_CHANNEL_LOOP(CancellationToken cancellationToken)
     {
-        s_logger?.Trace(
-            $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
-            $"thread-started port={_port} priority={Thread.CurrentThread.Priority}");
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+        {
+            s_logger.Trace(
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
+                $"thread-started port={_port} priority={Thread.CurrentThread.Priority}");
+        }
 
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
@@ -228,10 +234,12 @@ public abstract partial class TcpListenerBase
 
             this.INVOKE_PROCESS(connection);
         }
-
-        s_logger?.Trace(
-            $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
-            $"thread-exited port={_port}");
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+        {
+            s_logger.Trace(
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
+                $"thread-exited port={_port}");
+        }
     }
 
     /// <summary>

@@ -195,7 +195,24 @@ public sealed class SdkRequestAndTransportExtensionsTests
             return Task.CompletedTask;
         }
 
-        public override Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
+        public override Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
+        {
+            SendPacketCallCount++;
+            if (SendPacketException is not null)
+            {
+                throw SendPacketException;
+            }
+
+            if (_catalog.TryDequeue(out _))
+            {
+                using BufferLease lease = BufferLease.CopyFrom([1]);
+                OnMessageReceived?.Invoke(this, lease);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public override Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
             => Task.CompletedTask;
 
         public void EnqueueNextPacket(IPacket packet) => _catalog.Enqueue(packet);

@@ -204,13 +204,14 @@ public class TcpSession : TransportSession
     }
 
     /// <inheritdoc/>
-    public override Task SendAsync(IPacket packet, CancellationToken ct = default) => this.SendAsync(packet, null, ct);
+    public override async Task SendAsync(IPacket packet, CancellationToken ct = default)
+        => await this.SendAsync(packet, this.Options.EncryptionEnabled, ct).ConfigureAwait(false);
 
     /// <summary>Sends a packet asynchronously with an optional encryption override.</summary>
     /// <param name="packet">The packet to serialize and send.</param>
     /// <param name="encrypt">A value that overrides packet encryption when provided.</param>
     /// <param name="ct">The token to observe while sending.</param>
-    public async Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
+    public override async Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
 
@@ -227,7 +228,8 @@ public class TcpSession : TransportSession
     }
 
     /// <inheritdoc/>
-    public override Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default) => _sender.SendAsync(payload, null, ct);
+    public override async Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
+        => await _sender.SendAsync(payload, encrypt, ct).ConfigureAwait(false);
 
     /// <inheritdoc/>
     public override void Dispose()

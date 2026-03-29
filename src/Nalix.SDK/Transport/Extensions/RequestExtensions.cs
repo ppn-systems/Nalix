@@ -143,7 +143,7 @@ public static class RequestExtensions
                     timeoutMs: options.TimeoutMs,
                     sendAsync: token => options.Encrypt
                         ? ((TcpSession)client).SendAsync(request, encrypt: true, token)
-                        : client.SendAsync(request, token),
+                        : client.SendAsync(request, encrypt: false, token),
                     ct).ConfigureAwait(false);
 
                 return result;
