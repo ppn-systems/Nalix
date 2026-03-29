@@ -111,7 +111,7 @@ public sealed class PacketRegistryFactory
 
         if (!_explicitPacketTypes.Add(t))
         {
-            throw new InvalidOperationException($"Packet type {t.FullName} is already registered!");
+            TRACE($"register-packet-skip type={t.FullName} reason=already-registered");
         }
 
         return this;

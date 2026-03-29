@@ -288,16 +288,15 @@ namespace Nalix.Framework.Tests.DataFrames
         public void TryDeserialize_RegisteredPacketBytes_ReturnsExpectedPacket()
         {
             // Arrange
-            PacketRegistry registry = new(factory => _ = factory.RegisterPacket<Control>());
+            PacketRegistry registry = new(factory => _ = factory);
             Control packet = new();
             packet.Initialize(33, ControlType.PONG, 88, ProtocolReason.NONE, ProtocolType.TCP);
             byte[] bytes = packet.Serialize();
 
             // Act
-            bool found = registry.TryDeserialize(bytes, out IPacket? deserialized);
+            IPacket deserialized = registry.Deserialize(bytes);
 
-            // Assert
-            Assert.True(found);
+            // Assert=
             Control control = Assert.IsType<Control>(deserialized);
             Assert.Equal(packet.MagicNumber, control.MagicNumber);
             Assert.Equal(packet.Type, control.Type);
@@ -313,41 +312,35 @@ namespace Nalix.Framework.Tests.DataFrames
         [Theory]
         [InlineData(0)]
         [InlineData(3)]
-        [InlineData(PacketConstants.HeaderSize)]
-        public void TryDeserialize_BufferIsUnknownOrTooShort_ReturnsFalse(int bufferLength)
+        [InlineData(PacketConstants.HeaderSize - 5)]
+        public void TryDeserialize_BufferIsUnknownOrTooShort_ThrowsArgumentException(int bufferLength)
         {
             // Arrange
-            PacketRegistry registry = new(factory => _ = factory.RegisterPacket<Control>());
+            PacketRegistry registry = new(factory => _ = factory);
             byte[] raw = new byte[bufferLength];
             if (bufferLength >= PacketConstants.HeaderSize)
             {
                 BitConverter.GetBytes(0xDEADBEEFu).CopyTo(raw, 0);
             }
 
-            // Act
-            bool found = registry.TryDeserialize(raw, out IPacket? packet);
-
-            // Assert
-            Assert.False(found);
-            Assert.Null(packet);
+            // Act & Assert
+            ArgumentException ex = Assert.Throws<ArgumentException>(() => registry.Deserialize(raw));
+            Assert.StartsWith("Raw packet data is too short to contain a valid header", ex.Message);
         }
 
-        /// <summary>
-        /// Verifies that the packet registry can expose a deserializer delegate for a registered packet type.
-        /// </summary>
-        [Fact]
-        public void TryGetDeserializer_KnownMagic_ReturnsDeserializer()
+        [Theory]
+        [InlineData(PacketConstants.HeaderSize)]
+        [InlineData(PacketConstants.HeaderSize + 10)]
+        public void TryDeserialize_HeaderIsUnknown_ThrowsInvalidOperationException(int bufferLength)
         {
             // Arrange
-            PacketRegistry registry = new(factory => _ = factory.RegisterPacket<Directive>());
-            uint magic = PacketRegistryFactory.Compute(typeof(Directive));
+            PacketRegistry registry = new(factory => _ = factory);
+            byte[] raw = new byte[bufferLength];
+            BitConverter.GetBytes(0xDEADBEEFu).CopyTo(raw, 0);
 
-            // Act
-            bool found = registry.TryGetDeserializer(magic, out PacketDeserializer? deserializer);
-
-            // Assert
-            Assert.True(found);
-            Assert.NotNull(deserializer);
+            // Act & Assert
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => registry.Deserialize(raw));
+            Assert.StartsWith("Cannot deserialize packet: Magic", ex.Message);
         }
 
         /// <summary>
