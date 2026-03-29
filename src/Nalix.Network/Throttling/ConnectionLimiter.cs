@@ -26,6 +26,7 @@ using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
+using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Throttling;
 
@@ -190,7 +191,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         }
 
         DateTime now = Clock.NowUtc();
-        Connection.Endpoint key = Connection.Endpoint.FromIpAddress(
+        SocketEndpoint key = SocketEndpoint.FromIpAddress(
             IPAddress.Parse(args.Connection.NetworkEndpoint.Address)
         );
 
@@ -287,7 +288,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static INetworkEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint)
-        => Connection.Endpoint.FromIpAddress(endPoint.Address);
+        => SocketEndpoint.FromIpAddress(endPoint.Address);
 
     /// <summary>
     /// Attempts to acquire a connection slot.
@@ -424,7 +425,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     /// </summary>
     /// <param name="key"></param>
     /// <param name="now"></param>
-    private bool TRY_RELEASE_CONNECTION_SLOT(Connection.Endpoint key, DateTime now)
+    private bool TRY_RELEASE_CONNECTION_SLOT(SocketEndpoint key, DateTime now)
     {
         if (!_map.TryGetValue(key, out ConnectionLimitEntry? entry) || entry is null)
         {
