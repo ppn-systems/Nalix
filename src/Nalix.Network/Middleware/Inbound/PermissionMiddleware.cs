@@ -53,7 +53,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.UNAUTHENTICATED,
                 action: ProtocolAdvice.NONE,
-                options: new ConnectionExtensions.ControlDirectiveOptions(
+                options: new ControlDirectiveOptions(
                     SequenceId: context.Packet.SequenceId,
                     Arg0: (byte)context.Attributes.Permission.Level,
                     Arg1: (byte)context.Connection.Level,
