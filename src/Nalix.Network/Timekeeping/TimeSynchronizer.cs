@@ -12,7 +12,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Constants;
 
 namespace Nalix.Network.Timekeeping;
 
@@ -175,7 +175,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
         }
 
         this.TERMINATE_SYNC_LOOP();
-        _stoppedSignal.Wait(TimeSpan.FromMilliseconds(50));
+        _ = _stoppedSignal.Wait(TimeSpan.FromMilliseconds(50));
 
         this.INITIALIZE_SYNC_LOOP();
     }
@@ -230,8 +230,8 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
         _stoppedSignal.Reset();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: $"{NetTaskNames.Time}.{NetTaskNames.Sync}",
-            group: NetTaskNames.Time,
+            name: $"{NetworkTags.Time}.{NetworkTags.Sync}",
+            group: NetworkTags.Time,
             work: async (ctx, ct) =>
             {
                 try
@@ -316,7 +316,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 CancellationToken = linkedToken,
                 IdType = SnowflakeType.System,
                 RetainFor = TimeSpan.Zero,
-                Tag = NetTaskNames.Sync
+                Tag = NetworkTags.Sync
             }
         );
     }

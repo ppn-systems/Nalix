@@ -9,10 +9,10 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
-namespace Nalix.Network.Internal;
+namespace Nalix.Network.Internal.Constants;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal static class NetTaskNames
+internal static class NetworkTags
 {
     internal const string Tcp = "tcp";
     internal const string Udp = "udp";

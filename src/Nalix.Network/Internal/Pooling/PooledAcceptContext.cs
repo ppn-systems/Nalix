@@ -15,12 +15,13 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
 
+
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 #endif
 
-namespace Nalix.Network.Internal.Pooled;
+namespace Nalix.Network.Internal.Pooling;
 
 /// <summary>
 /// Represents a pooled context for accepting TCP socket connections asynchronously.

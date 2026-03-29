@@ -9,7 +9,7 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
-namespace Nalix.Network.Internal.Pooled;
+namespace Nalix.Network.Internal.Pooling;
 
 /// <summary>
 /// Represents a reusable (pooled) context for invoking a connection event callback.

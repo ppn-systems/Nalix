@@ -15,7 +15,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Pooled;
+using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -190,7 +190,7 @@ public abstract partial class TcpListenerBase
     /// <remarks>
     /// <para>
     /// On success the method validates the accepted socket, checks the connection limiter,
-    /// wires up a <see cref="PooledListenerProcessContext"/>, calls
+    /// wires up a <see cref="PooledTcpListenerContext"/>, calls
     /// <see cref="DISPATCH_CONNECTION"/>, and rebinds a fresh <see cref="PooledAcceptContext"/>
     /// on <paramref name="args"/> so it can be reused for the next accept.
     /// </para>
@@ -250,7 +250,7 @@ public abstract partial class TcpListenerBase
                     IConnection connection = this.InitializeConnection(socket, context);
 
                     // Process the connection
-                    PooledListenerProcessContext ctx = s_pool.Get<PooledListenerProcessContext>();
+                    PooledTcpListenerContext ctx = s_pool.Get<PooledTcpListenerContext>();
 
                     ctx.Listener = this;
                     ctx.Connection = connection;
@@ -514,7 +514,7 @@ public abstract partial class TcpListenerBase
     /// </list>
     /// </para>
     /// <para>
-    /// On each successfully accepted connection a <see cref="PooledListenerProcessContext"/>
+    /// On each successfully accepted connection a <see cref="PooledTcpListenerContext"/>
     /// is retrieved from the pool, populated, and forwarded to <see cref="DISPATCH_CONNECTION"/>.
     /// </para>
     /// </remarks>
@@ -579,7 +579,7 @@ public abstract partial class TcpListenerBase
 
             s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] accepted remote={connection.NetworkEndpoint} port={_port}");
 
-            PooledListenerProcessContext pctx = s_pool.Get<PooledListenerProcessContext>();
+            PooledTcpListenerContext pctx = s_pool.Get<PooledTcpListenerContext>();
             pctx.Listener = this;
             pctx.Connection = connection;
 

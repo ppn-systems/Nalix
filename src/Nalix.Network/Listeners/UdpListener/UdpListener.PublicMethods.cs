@@ -17,7 +17,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
-using Nalix.Network.Internal;
+using Nalix.Network.Internal.Constants;
 using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Listeners.Udp;
@@ -78,12 +78,12 @@ public abstract partial class UdpListenerBase : IListener
                                         .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] listening port={_port}");
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
-                    name: $"{NetTaskNames.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
-                    group: $"{NetTaskNames.Net}/{NetTaskNames.Udp}/{_port}",            // "net/udp/port"
+                    name: $"{NetworkTags.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
+                    group: $"{NetworkTags.Net}/{NetworkTags.Udp}/{_port}",            // "net/udp/port"
                     work: async (_, ct) => await this.ReceiveDatagramsAsync(ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
-                        Tag = NetTaskNames.Udp,
+                        Tag = NetworkTags.Udp,
                         IdType = SnowflakeType.System,
                         CancellationToken = _cancellationToken,
                         GroupConcurrencyLimit = s_config.MaxGroupConcurrency
