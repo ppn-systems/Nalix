@@ -52,9 +52,6 @@ public sealed class ConcurrencyGate : IReportable
     private long _circuitBreakerTrips;
     private readonly TimeSpan _timeout = TimeSpan.FromSeconds(20);
 
-    /// <summary>
-    /// FIX #1: Circuit breaker state management
-    /// </summary>
     private int _circuitBreakerOpen; // 0 = closed, 1 = open
     private long _circuitBreakerResetTimeTicks;
 
@@ -111,9 +108,6 @@ public sealed class ConcurrencyGate : IReportable
         private long _lastUsedUtcTicks;
         private int _disposed;
 
-        /// <summary>
-        /// FIX #2: Add lock for disposal coordination
-        /// </summary>
         private readonly Lock _disposalLock = new();
 
         /// <summary>
@@ -203,7 +197,6 @@ public sealed class ConcurrencyGate : IReportable
                 int activeUsers = Volatile.Read(ref _activeUsers);
                 int queueCount = Volatile.Read(ref _queueCount);
 
-                // FIX #3: Use SpinLock for atomic read of semaphore state
                 int available = this.Sem.CurrentCount;
 
                 return activeUsers == 0 && available == this.Capacity && queueCount == 0;
@@ -216,7 +209,6 @@ public sealed class ConcurrencyGate : IReportable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryAcquire()
         {
-            // FIX #4: Check disposed BEFORE incrementing
             if (Volatile.Read(ref _disposed) != 0)
             {
                 return false;
@@ -231,7 +223,6 @@ public sealed class ConcurrencyGate : IReportable
                 return false;
             }
 
-            // FIX #5: Prevent overflow
             if (newCount <= 0) // Overflow detection
             {
                 _ = Interlocked.Decrement(ref _activeUsers);
@@ -250,7 +241,6 @@ public sealed class ConcurrencyGate : IReportable
         {
             int remaining = Interlocked.Decrement(ref _activeUsers);
 
-            // FIX #6: Detect underflow
             if (remaining < 0)
             {
                 s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers underflow detected");
@@ -290,7 +280,6 @@ public sealed class ConcurrencyGate : IReportable
                     return true; // Success
                 }
 
-                // FIX #7: Add spin-wait to reduce contention
                 Thread.SpinWait(1);
             }
         }
@@ -303,7 +292,6 @@ public sealed class ConcurrencyGate : IReportable
         {
             int remaining = Interlocked.Decrement(ref _queueCount);
 
-            // FIX #8: Detect underflow
             if (remaining < 0)
             {
                 s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] queueCount underflow detected");
@@ -316,7 +304,6 @@ public sealed class ConcurrencyGate : IReportable
         /// </summary>
         public void Dispose()
         {
-            // FIX #9: Use lock to prevent concurrent disposal and usage
             lock (_disposalLock)
             {
                 // Atomic check-and-set: 0 -> 1
@@ -338,7 +325,6 @@ public sealed class ConcurrencyGate : IReportable
                     backoffMs = Math.Min(backoffMs * 2, maxBackoffMs);
                 }
 
-                //  FIX #10: Log if forced disposal with active users
                 int remainingUsers = Volatile.Read(ref _activeUsers);
                 if (remainingUsers > 0)
                 {
@@ -421,7 +407,6 @@ public sealed class ConcurrencyGate : IReportable
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool TryEnter(ushort opcode, PacketConcurrencyLimitAttribute attr, out Lease lease)
     {
-        // FIX #12: Check and reset circuit breaker
         if (this.IS_CIRCUIT_OPEN())
         {
             _ = Interlocked.Increment(ref _circuitBreakerTrips);
@@ -487,7 +472,6 @@ public sealed class ConcurrencyGate : IReportable
     {
         VALIDATE_ATTRIBUTE(attr);
 
-        // FIX #13: Create timeout CTS properly
         using CancellationTokenSource timeoutCts = new();
         timeoutCts.CancelAfter(_timeout);
 

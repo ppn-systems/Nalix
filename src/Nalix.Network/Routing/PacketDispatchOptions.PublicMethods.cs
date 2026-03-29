@@ -280,11 +280,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </returns>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool TryResolveHandler(
-        ushort opCode,
-        [NotNullWhen(true)] out Func<TPacket, IConnection, Task> handler)
+    public bool TryResolveHandler(ushort opCode, [NotNullWhen(true)] out Func<TPacket, IConnection, Task> handler)
     {
-        if (this.TryResolveHandlerDescriptor(opCode, out PacketHandler<TPacket> descriptor))
+        if (_handlerCache.TryGetValue(opCode, out PacketHandler<TPacket> descriptor))
         {
             handler = async (packet, connection) =>
             {
@@ -306,31 +304,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         handler = null!;
-        return false;
-    }
-
-    /// <summary>
-    /// Attempts to resolve a registered packet handler descriptor for the specified opcode.
-    /// </summary>
-    /// <param name="opCode">The opcode of the packet handler to resolve.</param>
-    /// <param name="descriptor">
-    /// When this method returns, contains the <see cref="PacketHandler{TPacket}"/> associated with the specified opcode,
-    /// if the opcode is found; otherwise, the default value for the type of the descriptor parameter.
-    /// </param>
-    /// <returns>
-    /// <see langword="true"/> if a handler descriptor was found; otherwise, <see langword="false"/>.
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool TryResolveHandlerDescriptor(
-        ushort opCode,
-        [NotNullWhen(true)] out PacketHandler<TPacket> descriptor)
-    {
-        if (_handlerCache.TryGetValue(opCode, out descriptor))
-        {
-            return true;
-        }
-
-        this.Logging?.Warn($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(TryResolveHandlerDescriptor)}] handler-not-found opcode={opCode}");
         return false;
     }
 }
