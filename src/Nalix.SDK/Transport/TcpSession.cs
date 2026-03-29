@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Configuration;
@@ -16,6 +17,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Nalix.Framework.Random;
+using Nalix.Framework.Identifiers;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.SDK.Configuration;
@@ -595,7 +597,7 @@ public sealed class TcpSession : TcpSessionBase
             catch (Exception ex)
             {
                 _session.Logger?.Warn($"[SDK.SessionMonitor] Failed to schedule '{name}' via TaskManager, falling back to Task.Run: {ex.Message}");
-                _ = Task.Run(() => work(null!, token), token);
+                _ = Task.Run(async () => await work(new InlineWorkerContext(name), token).ConfigureAwait(false), token);
                 return null;
             }
         }
@@ -709,6 +711,20 @@ public sealed class TcpSession : TcpSessionBase
                     break;
                 }
             }
+        }
+
+        /// <summary>
+        /// Minimal worker context used only by Task.Run fallbacks.
+        /// Keeps fallback paths alive without depending on TaskManager internals.
+        /// </summary>
+        private sealed class InlineWorkerContext(string name) : IWorkerContext
+        {
+            public ISnowflake Id => Snowflake.Empty;
+            public string Name => name;
+            public string Group => "inline";
+            public bool IsCancellationRequested => false;
+            public void Beat() { }
+            public void Advance(long delta, string? note = null) { }
         }
     }
 
