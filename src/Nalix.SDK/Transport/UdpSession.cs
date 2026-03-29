@@ -20,6 +20,7 @@ using Nalix.Framework.Extensions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Hashing;
 using Nalix.Framework.Time;
@@ -55,6 +56,8 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     #endregion Constants
 
     #region Fields
+
+    private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
 
     private readonly ILogger? _logger;
     private readonly IThreadDispatcher _dispatcher;
@@ -448,7 +451,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             int written = packet.Serialize(rawLease.SpanFull);
             rawLease.CommitLength(written);
 
-            bool enableCompression = this.Options.EnableCompression && written >= this.Options.MinSizeToCompress;
+            bool enableCompression = s_options.Enabled && written >= s_options.MinSizeToCompress;
 
             if (!enableCompression && !encrypt)
             {

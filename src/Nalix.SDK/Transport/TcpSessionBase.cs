@@ -11,10 +11,12 @@ using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
 
@@ -34,6 +36,8 @@ namespace Nalix.SDK.Transport;
 public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 {
     #region Fields
+
+    private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
 
     private protected readonly Lock Sync = new();
 
@@ -228,7 +232,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             int written = packet.Serialize(rawLease.SpanFull);
             rawLease.CommitLength(written);
 
-            bool enableCompress = this.Options.EnableCompression && written >= this.Options.MinSizeToCompress;
+            bool enableCompress = s_options.Enabled && written >= s_options.MinSizeToCompress;
 
             // ----------------------------------------------------------------
             // Case 1: plain - no compression, no encryption

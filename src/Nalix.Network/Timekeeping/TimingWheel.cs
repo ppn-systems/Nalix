@@ -65,8 +65,8 @@ namespace Nalix.Network.Timekeeping;
 /// </code>
 /// </example>
 /// <seealso cref="IActivatable"/>
-[DebuggerNonUserCode]
 [SkipLocalsInit]
+[DebuggerNonUserCode]
 public sealed class TimingWheel : IActivatable
 {
     #region Fields
