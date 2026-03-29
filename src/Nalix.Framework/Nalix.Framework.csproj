@@ -32,17 +32,12 @@ Designed for modern .NET 9, it follows SOLID and Domain-Driven Design (DDD) prin
 
 	<Import Project="..\Nalix.Build.props" />
 	<Import Project="..\Package.Build.props" />
-	<ItemGroup>
-	  <Compile Remove="Security\Asymmetric\**" />
-	  <EmbeddedResource Remove="Security\Asymmetric\**" />
-	  <None Remove="Security\Asymmetric\**" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
 		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll"
 			  Pack="true"
 			  PackagePath="analyzers/dotnet/cs"

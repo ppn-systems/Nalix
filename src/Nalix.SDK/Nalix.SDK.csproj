@@ -53,7 +53,7 @@ It acts as the bridge between application logic and the Nalix.Network layer, sim
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
 		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll"
 			  Pack="true"
 			  PackagePath="analyzers/dotnet/cs"
