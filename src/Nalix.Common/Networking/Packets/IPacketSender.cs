@@ -10,7 +10,7 @@ namespace Nalix.Common.Networking.Packets;
 /// Abstracts packet sending with automatic transform (encrypt/compress)
 /// </summary>
 /// <typeparam name="TPacket"></typeparam>
-public interface IPacketSender<TPacket>
+public interface IPacketSender<TPacket> where TPacket : IPacket
 {
     /// <summary>
     /// Sends a packet, applying encryption/compression automatically

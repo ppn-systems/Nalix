@@ -70,10 +70,10 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
                     ControlType.TIMEOUT,
                     ProtocolReason.TIMEOUT,
                     ProtocolAdvice.RETRY,
-                    sequenceId: sequenceId,
-                    flags: ControlFlags.IS_TRANSIENT,
-                    arg0: (uint)(timeout / 100),
-                    arg1: 0, arg2: 0
+                    new ConnectionExtensions.ControlDirectiveOptions(
+                        Flags: ControlFlags.IS_TRANSIENT,
+                        SequenceId: sequenceId,
+                        Arg0: (uint)(timeout / 100))
                 ).ConfigureAwait(false);
             }
             catch
