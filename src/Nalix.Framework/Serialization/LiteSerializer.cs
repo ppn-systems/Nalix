@@ -207,7 +207,7 @@ public static class LiteSerializer
             }
         }
 
-        throw new NotSupportedException(
+        throw new SerializationException(
             $"Array-based serialization is not supported for type {typeof(T)}. Use Serialize<T>(in T) to get byte[] instead.");
     }
 
@@ -361,7 +361,7 @@ public static class LiteSerializer
             }
         }
 
-        throw new NotSupportedException(
+        throw new SerializationException(
             $"Span<byte> serialization is not supported for variable-length type '{typeof(T).FullName}'. Use Serialize<T>(in T value) to obtain a byte[] instead.");
     }
 
@@ -387,10 +387,7 @@ public static class LiteSerializer
     {
         if (buffer.IsEmpty)
         {
-            throw new ArgumentException(
-                $"Cannot deserialize type '{typeof(T)}' from an empty buffer.",
-                nameof(buffer)
-            );
+            throw new SerializationException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.");
         }
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())
@@ -491,7 +488,7 @@ public static class LiteSerializer
     {
         if (buffer.IsEmpty)
         {
-            throw new ArgumentException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.", nameof(buffer));
+            throw new SerializationException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.");
         }
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())

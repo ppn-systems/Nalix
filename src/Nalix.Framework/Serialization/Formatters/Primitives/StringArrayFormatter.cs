@@ -27,8 +27,8 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
 {
     private static string DebuggerDisplay => "StringFormatter<SYSTEM.String[]>";
 
-    private static readonly IFormatter<ushort> UInt16Formatter = FormatterProvider.Get<ushort>();
-    private static readonly IFormatter<string> StringFormatterInstance = FormatterProvider.Get<string>();
+    private static readonly IFormatter<ushort> s_uInt16Formatter = FormatterProvider.Get<ushort>();
+    private static readonly IFormatter<string> s_stringFormatterInstance = FormatterProvider.Get<string>();
 
     /// <summary>
     /// Serializes a string array into the provided writer.
@@ -44,13 +44,13 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         if (value is null)
         {
             // 65535 biểu diễn null array
-            UInt16Formatter.Serialize(ref writer, SerializerBounds.Null);
+            s_uInt16Formatter.Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
         if (value.Length == 0)
         {
-            UInt16Formatter.Serialize(ref writer, 0);
+            s_uInt16Formatter.Serialize(ref writer, 0);
             return;
         }
 
@@ -63,13 +63,13 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
             throw new SerializationException("The string array exceeds the maximum encodable length.");
         }
 
-        UInt16Formatter.Serialize(ref writer, (ushort)value.Length);
+        s_uInt16Formatter.Serialize(ref writer, (ushort)value.Length);
 
         for (int i = 0; i < value.Length; i++)
         {
             writer.Expand(sizeof(int));
             // Reuse StringFormatter logic (null, empty, UTF8, bounds, ...)
-            StringFormatterInstance.Serialize(ref writer, value[i]);
+            s_stringFormatterInstance.Serialize(ref writer, value[i]);
         }
     }
 
@@ -83,7 +83,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public string[] Deserialize(ref DataReader reader)
     {
-        ushort length = UInt16Formatter.Deserialize(ref reader);
+        ushort length = s_uInt16Formatter.Deserialize(ref reader);
 
         if (length == 0)
         {
@@ -100,7 +100,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         for (int i = 0; i < length; i++)
         {
             // Ensure non-null assignment; if null, assign string.Empty to avoid CS8601
-            result[i] = StringFormatterInstance.Deserialize(ref reader);
+            result[i] = s_stringFormatterInstance.Deserialize(ref reader);
         }
 
         return result;

@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Exceptions;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
@@ -66,7 +67,7 @@ internal static partial class FieldCache<T>
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new InvalidOperationException(
+            throw new SerializationException(
                 $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
@@ -84,7 +85,7 @@ internal static partial class FieldCache<T>
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new InvalidOperationException(
+            throw new SerializationException(
                 $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
@@ -101,7 +102,7 @@ internal static partial class FieldCache<T>
     private delegate void RefSetter<TVal>(ref T obj, TVal value);
 
     // Cache riêng cho ref-setters — key là fieldIndex
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, object> _refSetterCache = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, object> s_refSetterCache = new();
 
     /// <summary>
     /// Set field value trực tiếp lên struct gốc thông qua ref T.
@@ -116,9 +117,8 @@ internal static partial class FieldCache<T>
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new InvalidOperationException(
-                $"Field '{metadata.Name}' expects type '{metadata.FieldType}', " +
-                $"but got '{typeof(TField)}'.");
+            throw new SerializationException(
+                $"Field '{metadata.Name}' expects type '{metadata.FieldType}', but got '{typeof(TField)}'.");
         }
 
         RefSetter<TField> setter = GetOrCreateRefSetter<TField>(fieldIndex, metadata);
@@ -130,7 +130,7 @@ internal static partial class FieldCache<T>
         int fieldIndex,
         FieldSchema metadata)
     {
-        return (RefSetter<TField>)_refSetterCache.GetOrAdd(fieldIndex, _ =>
+        return (RefSetter<TField>)s_refSetterCache.GetOrAdd(fieldIndex, _ =>
         {
             // (ref T obj, TField value) => obj.<FieldName> = value
             System.Linq.Expressions.ParameterExpression objParam = System.Linq.Expressions.Expression.Parameter(typeof(T).MakeByRefType(), "obj");         // ref T
