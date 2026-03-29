@@ -340,8 +340,8 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
 
             if (_workerHandle != null)
             {
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                               .CancelWorker(_workerHandle.Id);
+                InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                        .CancelWorker(_workerHandle.Id);
             }
 
             _fileWriter.Flush();

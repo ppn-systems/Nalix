@@ -427,32 +427,31 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     /// <exception cref="ObjectDisposedException">Thrown when the matched worker's cancellation source has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public bool CancelWorker(ISnowflake id)
+    public void CancelWorker(ISnowflake id)
     {
-        if (_workers.TryGetValue(id, out WorkerState? st))
+        if (!_workers.TryGetValue(id, out WorkerState? st))
         {
-            st.Cancel();
-
-            Task? t = st.Task;
-            if (t?.IsCompleted == true)
-            {
-                try
-                {
-                    st.Cts.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] cts-dispose-error id={id} msg={ex.Message}");
-                }
-            }
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
-            return true;
+            return;
         }
 
-        return false;
+        st.Cancel();
+
+        Task? t = st.Task;
+        if (t?.IsCompleted == true)
+        {
+            try
+            {
+                st.Cts.Dispose();
+            }
+            catch (Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] cts-dispose-error id={id} msg={ex.Message}");
+            }
+        }
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
     }
 
     /// <inheritdoc/>
@@ -480,70 +479,67 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
+    /// <exception cref="ArgumentNullException">Thrown if the name is null or whitespace.</exception>"
     /// <exception cref="ObjectDisposedException">Thrown when the matched recurring task's cancellation source has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public bool CancelRecurring(string? name)
+    public void CancelRecurring(string? name)
     {
-        if (name is null)
+        ArgumentNullException.ThrowIfNull(name, nameof(name));
+
+        if (!_recurring.TryRemove(name, out RecurringState? st))
         {
-            return false;
+            return;
         }
 
-        if (_recurring.TryRemove(name, out RecurringState? st))
-        {
-            st.Cancel();
+        st.Cancel();
 
-            Task? t = st.Task;
-            if (t is not null)
+        Task? t = st.Task;
+        if (t is not null)
+        {
+            _ = t.ContinueWith(_ =>
             {
-                _ = t.ContinueWith(_ =>
-                {
-                    try { st.CancellationTokenSource.Dispose(); }
-                    catch (Exception ex)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error name={name} msg={ex.Message}");
-                    }
-                    try { st.Gate.Dispose(); }
-                    catch (Exception ex)
-                    {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error name={name} msg={ex.Message}");
-                    }
-                },
-                    CancellationToken.None,
-                    TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default
-                );
-            }
-            else
-            {
-                try
-                {
-                    st.CancellationTokenSource.Dispose();
-                }
+                try { st.CancellationTokenSource.Dispose(); }
                 catch (Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error-sync name={name} msg={ex.Message}");
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error name={name} msg={ex.Message}");
                 }
-                try
-                {
-                    st.Gate.Dispose();
-                }
+                try { st.Gate.Dispose(); }
                 catch (Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error-sync name={name} msg={ex.Message}");
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error name={name} msg={ex.Message}");
                 }
+            },
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default
+            );
+        }
+        else
+        {
+            try
+            {
+                st.CancellationTokenSource.Dispose();
             }
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
-            return true;
+            catch (Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error-sync name={name} msg={ex.Message}");
+            }
+            try
+            {
+                st.Gate.Dispose();
+            }
+            catch (Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error-sync name={name} msg={ex.Message}");
+            }
         }
 
-        return false;
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
     }
 
     /// <inheritdoc/>

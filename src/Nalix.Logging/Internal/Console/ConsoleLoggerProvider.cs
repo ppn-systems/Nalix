@@ -37,7 +37,6 @@ internal sealed class ConsoleLoggerProvider : IDisposable
     private readonly ChannelWriter<LogEntry> _writer;
     private readonly ChannelReader<LogEntry> _reader;
 
-    private readonly LogFormatter _formatter;
     private readonly int _batchSize;
     private readonly bool _enableFlush;
     private readonly IWorkerHandle? _workerHandle;
@@ -71,8 +70,6 @@ internal sealed class ConsoleLoggerProvider : IDisposable
         _adaptiveFlush = options.AdaptiveFlush;
         _batchSize = Math.Max(1, options.BatchSize);
         _batchDelay = options.BatchDelay > TimeSpan.Zero ? options.BatchDelay : TimeSpan.FromMilliseconds(100);
-
-        _formatter = new LogFormatter(_enableColors);
 
         ChannelOptions channelOptions = options.MaxQueueSize > 0
             ? new System.Threading.Channels.BoundedChannelOptions(options.MaxQueueSize)
@@ -163,7 +160,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
 
         if (_workerHandle != null)
         {
-            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelWorker(_workerHandle.Id);
         }
 

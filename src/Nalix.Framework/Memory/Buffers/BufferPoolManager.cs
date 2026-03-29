@@ -993,7 +993,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (_config.EnableMemoryTrimming)
         {
-            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelRecurring(TaskNaming.Recurring
                                     .CleanupJobId(RecurringName, this.GetHashCode()));
         }
