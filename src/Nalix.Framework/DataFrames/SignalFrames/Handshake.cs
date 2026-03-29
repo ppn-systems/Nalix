@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -14,9 +15,9 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
+[ExcludeFromCodeCoverage]
 [PipelineManagedTransform]
 [SerializePackable(SerializeLayout.Explicit)]
-[ExcludeFromCodeCoverage]
 [DebuggerDisplay("HANDSHAKE OPCODE={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Handshake : PacketBase<Handshake>
 {
@@ -35,6 +36,7 @@ public sealed class Handshake : PacketBase<Handshake>
     /// <summary>
     /// Authentication information for this handshake, if applicable.
     /// </summary>
+    [SkipClean]
     [SerializeOrder(PacketHeaderOffset.Region + 2)]
     public HandshakeAuth Auth { get; set; } = new HandshakeAuth();
 
