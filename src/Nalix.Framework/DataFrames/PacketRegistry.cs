@@ -46,8 +46,7 @@ public sealed class PacketRegistry : IPacketRegistry
     /// <exception cref="ArgumentNullException">
     /// Thrown when either argument is <see langword="null"/>.
     /// </exception>
-    public PacketRegistry(
-        System.Collections.Frozen.FrozenDictionary<uint, PacketDeserializer> deserializers)
+    public PacketRegistry(System.Collections.Frozen.FrozenDictionary<uint, PacketDeserializer> deserializers)
     {
         ArgumentNullException.ThrowIfNull(deserializers);
 

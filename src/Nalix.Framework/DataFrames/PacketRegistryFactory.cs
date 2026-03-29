@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -47,7 +48,7 @@ public sealed class PacketRegistryFactory
 
     // Built-in namespaces whose types are pre-registered in the default constructor
     // and must NOT be re-added during assembly scanning (would cause duplicate magic).
-    private static readonly System.Collections.Frozen.FrozenSet<string> s_builtInNamespaces;
+    private static readonly FrozenSet<string> s_builtInNamespaces;
 
     #endregion Static: Defaults & Utilities
 
@@ -66,7 +67,7 @@ public sealed class PacketRegistryFactory
 
     static PacketRegistryFactory()
     {
-        s_builtInNamespaces = System.Collections.Frozen.FrozenSet.ToFrozenSet(
+        s_builtInNamespaces = FrozenSet.ToFrozenSet(
             [
                 typeof(Text256).Namespace!,
                 typeof(Control).Namespace!
@@ -341,7 +342,7 @@ public sealed class PacketRegistryFactory
         TRACE($"build-ok packets={deserializers.Count}");
 
         return new PacketRegistry(
-            System.Collections.Frozen.FrozenDictionary.ToFrozenDictionary(deserializers));
+            FrozenDictionary.ToFrozenDictionary(deserializers));
     }
 
     /// <summary>
