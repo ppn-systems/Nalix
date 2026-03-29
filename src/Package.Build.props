@@ -3,7 +3,7 @@
 		<PackageIcon>assets\Nalix.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-		<PackageProjectUrl>https://github.com/phcnguyen/Nalix</PackageProjectUrl>
+		<PackageProjectUrl>https://github.com/ppn-systems/Nalix</PackageProjectUrl>
 
 		<PackageTags>Nalix,.NET 10,library,network,security</PackageTags>
 
