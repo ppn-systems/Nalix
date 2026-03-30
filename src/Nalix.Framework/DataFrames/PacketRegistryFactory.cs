@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.DataFrames.TextFrames;
@@ -65,19 +66,18 @@ public sealed class PacketRegistryFactory
 
     #region Constructors
 
+    [DynamicDependency(DynamicallyAccessedMemberTypes.NonPublicMethods, typeof(PacketRegistryFactory))]
     static PacketRegistryFactory()
     {
         s_builtInNamespaces = FrozenSet.ToFrozenSet(
-            [
-                typeof(Text256).Namespace!,
-                typeof(Control).Namespace!
-            ],
-            StringComparer.Ordinal);
+        [
+            typeof(Text256).Namespace!,
+        typeof(Control).Namespace!
+        ],
+        StringComparer.Ordinal);
 
-        s_bindAllPtrsMi = typeof(PacketRegistryFactory)
-            .GetMethod(nameof(BIND_PTRS), StaticNonPublic)
-            ?? throw new InvalidOperationException(
-                $"Cannot locate private method '{nameof(BIND_PTRS)}' on {nameof(PacketRegistryFactory)}.");
+        s_bindAllPtrsMi = typeof(PacketRegistryFactory).GetMethod(nameof(BIND_PTRS), StaticNonPublic)
+            ?? throw new InternalErrorException($"Missing method: {nameof(PacketRegistryFactory)}.{nameof(BIND_PTRS)} (Static, NonPublic).");
     }
 
     /// <summary>
@@ -303,7 +303,7 @@ public sealed class PacketRegistryFactory
 
         if (candidates.Count == 0)
         {
-            throw new InvalidOperationException("No packet types found for registration. Please check your assembly/namespace configuration.");
+            throw new InternalErrorException("No packet types found for registration. Please check your assembly/namespace configuration.");
         }
 
         // ── 2. Bind per type ─────────────────────────────────────────────────────
@@ -314,14 +314,14 @@ public sealed class PacketRegistryFactory
             MethodInfo? miDeserialize = FIND_STATIC_METHOD(
                 type, StaticPublic,
                 nameof(IPacketDeserializer<>.Deserialize),
-                [typeof(ReadOnlySpan<byte>)]) ?? throw new InvalidOperationException(
+                [typeof(ReadOnlySpan<byte>)]) ?? throw new InternalErrorException(
                     $"Packet type {type.FullName} does not implement " +
                     $"the required static Deserialize(ReadOnlySpan<byte>) method.");
             if (deserializers.TryGetValue(key, out PacketDeserializer? existing))
             {
                 Type existingType = FIND_TYPE_BY_MAGIC(key);
 
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"[PacketRegistryFactory] Hash collision detected!\n" +
                     $"Magic: 0x{key:X8}\n" +
                     $"Type A: {existingType.FullName}\n" +
@@ -366,8 +366,7 @@ public sealed class PacketRegistryFactory
 
         TRACE($"build-ok packets={deserializers.Count}");
 
-        return new PacketRegistry(
-            FrozenDictionary.ToFrozenDictionary(deserializers));
+        return new PacketRegistry(FrozenDictionary.ToFrozenDictionary(deserializers));
     }
 
     /// <summary>

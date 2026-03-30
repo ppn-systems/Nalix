@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Nalix.Common.Exceptions;
 
 namespace Nalix.Framework.DataFrames.Chunks;
 
@@ -83,10 +84,13 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
 
     static FragmentHeader()
     {
-        if (Unsafe.SizeOf<FragmentHeader>() != WireSize - 1)
+        int actual = Unsafe.SizeOf<FragmentHeader>();
+        int expected = WireSize - 1;
+
+        if (actual != expected)
         {
-            throw new InvalidOperationException(
-                $"FragmentHeader size mismatch. Expected {WireSize} bytes, got {Unsafe.SizeOf<FragmentHeader>()} bytes.");
+            throw new InternalErrorException(
+                $"FragmentHeader size mismatch: actual={actual}, expected={expected} (WireSize-1).");
         }
     }
 

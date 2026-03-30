@@ -55,7 +55,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             && !expectedType.IsInstanceOfType(context.Packet))
         {
             Type? actualType = context.Packet?.GetType();
-            IPacket packet = context.Packet ?? throw new InvalidOperationException("Packet context contains a null packet.");
+            IPacket packet = context.Packet ?? throw new InternalErrorException("Packet context contains a null packet.");
 
             this.Logging?.Warn(
                 $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
@@ -241,7 +241,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         // 3) Unauthorized / security
-        if (ex is UnauthorizedAccessException or CryptographyException)
+        if (ex is UnauthorizedAccessException or CipherException)
         {
             return (ProtocolReason.ACCOUNT_LOCKED, ProtocolAdvice.NONE, ControlFlags.NONE);
         }

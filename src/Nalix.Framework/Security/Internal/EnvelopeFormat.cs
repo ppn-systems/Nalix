@@ -16,6 +16,8 @@
 // Header + nonce SHOULD be included in AEAD AAD.
 
 using System;
+using System.Security.Cryptography;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 
 #if DEBUG
@@ -49,24 +51,25 @@ internal static class EnvelopeFormat
     {
         if (blob.Length < HeaderSize)
         {
-            throw new ArgumentException("Envelope blob is too short for header.");
+            throw new CipherException($"Envelope too short: length={blob.Length}, required>={HeaderSize} (header).");
         }
 
         if (!EnvelopeHeader.Decode(blob[..HeaderSize], out EnvelopeHeader header))
         {
-            throw new ArgumentException("Unable to decode envelope header.");
+            throw new CipherException($"Invalid envelope header: unable to decode (length={blob.Length}).");
         }
 
         int pos = HeaderSize;
         int nonceLen = header.NONCE_LEN;
         if (nonceLen <= 0)
         {
-            throw new ArgumentException("Invalid nonce length in envelope header.");
+            throw new CipherException($"Invalid nonce length: {nonceLen}.");
         }
 
         if (blob.Length < HeaderSize + nonceLen)
         {
-            throw new ArgumentException("Envelope blob is too short for nonce size.");
+            throw new CipherException(
+                $"Envelope too short for nonce: length={blob.Length}, required>={pos + nonceLen}.");
         }
 
         ReadOnlySpan<byte> headerSlice = blob[..HeaderSize];
@@ -80,13 +83,14 @@ internal static class EnvelopeFormat
         {
             if (blob.Length < pos + TagSize)
             {
-                throw new ArgumentException("Envelope blob is too short for AEAD tag.");
+                throw new CipherException(
+                    $"Envelope too short for tag: length={blob.Length}, required>={pos + TagSize}.");
             }
 
             int ctLen = blob.Length - pos - TagSize;
             if (ctLen < 0)
             {
-                throw new ArgumentException("Negative ciphertext length.");
+                throw new CipherException($"Invalid ciphertext length: {ctLen}.");
             }
 
             ReadOnlySpan<byte> ctSlice = blob.Slice(pos, ctLen);
@@ -134,7 +138,8 @@ internal static class EnvelopeFormat
         int required = HeaderSize + nonceLen + ciphertext.Length + tag.Length;
         if (dest.Length < required)
         {
-            ThrowHelper.EnvelopeDestTooSmall();
+            throw new CryptographicException(
+                $"Destination too small: length={dest.Length}, required>={required}.");
         }
 
         EnvelopeHeader header = new(CurrentVersion, type, flags, (byte)nonceLen, seq);
@@ -171,7 +176,8 @@ internal static class EnvelopeFormat
         int required = HeaderSize + nonceLen + ciphertext.Length;
         if (dest.Length < required)
         {
-            ThrowHelper.EnvelopeDestTooSmall();
+            throw new CryptographicException(
+                $"Destination too small: length={dest.Length}, required>={required}.");
         }
 
         EnvelopeHeader header = new(CurrentVersion, type, flags, (byte)nonceLen, seq);
@@ -230,11 +236,4 @@ internal static class EnvelopeFormat
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
     private static bool IsAeadSuite(CipherSuiteType t) => t is CipherSuiteType.Salsa20Poly1305 or CipherSuiteType.Chacha20Poly1305;
-
-    private static class ThrowHelper
-    {
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void EnvelopeDestTooSmall()
-            => throw new ArgumentException("Destination too small for envelope.");
-    }
 }

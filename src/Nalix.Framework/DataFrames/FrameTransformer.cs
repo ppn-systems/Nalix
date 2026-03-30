@@ -116,9 +116,16 @@ public static class FrameTransformer
             throw new ArgumentNullException(nameof(key), "Encryption key cannot be null.");
         }
 
-        if (src.Length <= Offset || dest.Capacity < Offset)
+        if (src.Length <= Offset)
         {
-            throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the transformed payload.");
+            throw new ArgumentException(
+                $"Source too small: length={src.Length}, required>{Offset} (header).");
+        }
+
+        if (dest.Capacity < Offset)
+        {
+            throw new ArgumentException(
+                $"Destination too small: capacity={dest.Capacity}, required>={Offset} (header).");
         }
 
         src.SpanFull[..Offset].CopyTo(dest.SpanFull[..Offset]);
@@ -155,9 +162,16 @@ public static class FrameTransformer
             throw new ArgumentNullException(nameof(key), "Encryption key cannot be null.");
         }
 
-        if (src.Length <= Offset || dest.Capacity < Offset)
+        if (src.Length <= Offset)
         {
-            throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the transformed payload.");
+            throw new ArgumentException(
+                $"Source too small: length={src.Length}, required>{Offset} (header).");
+        }
+
+        if (dest.Capacity < Offset)
+        {
+            throw new ArgumentException(
+                $"Destination too small: capacity={dest.Capacity}, required>={Offset} (header).");
         }
 
         src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);

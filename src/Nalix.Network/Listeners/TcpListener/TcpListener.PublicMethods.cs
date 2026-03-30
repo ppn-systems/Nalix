@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Nalix.Common.Concurrency;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
@@ -44,7 +45,7 @@ public abstract partial class TcpListenerBase
     /// The listening process can be cancelled using the provided <see cref="CancellationToken"/>.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> to cancel the listening process.</param>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InternalErrorException"></exception>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -54,7 +55,7 @@ public abstract partial class TcpListenerBase
 
         if (s_config.MaxParallel < 1)
         {
-            throw new InvalidOperationException("s_config.MaxParallel must be at least 1.");
+            throw new InternalErrorException("s_config.MaxParallel must be at least 1.");
         }
 
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");

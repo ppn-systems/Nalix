@@ -39,17 +39,7 @@ internal sealed class FileWriter : IDisposable
 
     #region Static Fields
 
-    /// <summary>
-    /// ✅ Tạo 1 lần duy nhất — tránh allocation mỗi batch
-    /// </summary>
-    private static readonly UTF8Encoding s_utf8NoBom =
-        new(encoderShouldEmitUTF8Identifier: false);
-
-    /// <summary>
-    /// ✅ Cache số byte của newline (không đổi trong suốt lifetime)
-    /// </summary>
-    private static readonly int s_newlineByteCount =
-        s_utf8NoBom.GetByteCount(Environment.NewLine);
+    private static readonly UTF8Encoding s_utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     #endregion Static Fields
 
@@ -96,9 +86,7 @@ internal sealed class FileWriter : IDisposable
     /// <param name="entries">Danh sách entries cần ghi.</param>
     /// <param name="formatter">Formatter dùng để chuyển entry thành string.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    internal void WriteBatch(
-        List<LogEntry> entries,
-        ILoggerFormatter formatter)
+    internal void WriteBatch(List<LogEntry> entries, ILoggerFormatter formatter)
     {
         if (entries.Count == 0)
         {
@@ -113,24 +101,22 @@ internal sealed class FileWriter : IDisposable
 
                 if (_writer is null || _stream is null)
                 {
-                    return; // drop silently
+                    return;
                 }
+
+                StringBuilder sb = new(entries.Count * 256);
 
                 foreach (LogEntry entry in entries)
                 {
-                    // ✅ Format tại đây — single-threaded, không contention
-                    string msg = formatter.Format(entry);
+                    int sbStartLen = sb.Length;
 
-                    if (string.IsNullOrEmpty(msg))
-                    {
-                        continue;
-                    }
+                    formatter.Format(entry, sb);
+                    _ = sb.AppendLine();
 
-                    // ✅ Tính byte count 1 lần duy nhất — dùng cho cả size check lẫn tracking
+                    string msg = sb.ToString(sbStartLen, sb.Length - sbStartLen);
                     int msgBytes = s_utf8NoBom.GetByteCount(msg);
-                    int totalBytes = msgBytes + s_newlineByteCount;
+                    int totalBytes = msgBytes;
 
-                    // Roll file nếu sẽ vượt quá giới hạn kích thước
                     if (_writtenBytesForCurrentFile + totalBytes > _provider.Options.MaxFileSizeBytes)
                     {
                         this.CLOSE_LOG_FILE_LOCKED();
@@ -139,23 +125,36 @@ internal sealed class FileWriter : IDisposable
 
                         if (_writer is null || _stream is null)
                         {
-                            return; // không mở được file mới → drop phần còn lại
+                            return;
                         }
+
+                        _ = sb.Clear();
+                        formatter.Format(entry, sb);
+                        _ = sb.AppendLine();
+
+                        msg = sb.ToString();
+                        msgBytes = s_utf8NoBom.GetByteCount(msg);
+                        totalBytes = msgBytes;
+                        _writer.Write(sb.ToString());
+                        _writtenBytesForCurrentFile = totalBytes;
+                        _ = sb.Clear();
+                        continue;
                     }
 
-                    _writer.WriteLine(msg);
                     _writtenBytesForCurrentFile += totalBytes;
                 }
 
-                // ✅ Flush 1 lần sau toàn bộ batch — giảm số lần syscall
+                if (sb.Length > 0)
+                {
+                    _writer.Write(sb.ToString());
+                }
+
                 _writer.Flush();
             }
             catch (Exception ex)
             {
                 _provider.Options.HandleFileError?.Invoke(
                     new FileError(ex, _currentPath ?? "<unknown>"));
-
-                // Cố gắng recovery cho batch tiếp theo
                 try { this.CLOSE_LOG_FILE_LOCKED(); } catch { /* ignore */ }
             }
         }
@@ -306,8 +305,6 @@ internal sealed class FileWriter : IDisposable
             _writer.Write(header);
             _writer.Flush();
 
-            // ✅ Fix bug cũ: AppendLine đã có newline trong header rồi
-            // → chỉ cần đếm bytes của header, không cộng thêm newline
             _writtenBytesForCurrentFile += s_utf8NoBom.GetByteCount(header);
         }
         catch (Exception ex)

@@ -31,7 +31,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Gets or sets the minimum logging level. Messages below this level will be ignored.
     /// </summary>
-    [IniComment("Minimum log level to process (e.g. Meta, Trace, Debug, Info, Warn, Error, Critical)")]
+    [IniComment("Minimum log level to process (e.g. Trace, Debug, Info, Warn, Error, Critical)")]
     public LogLevel MinLevel { get; set; }
 
     /// <summary>

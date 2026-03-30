@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing.Results.Memory;
 using Nalix.Network.Routing.Results.Packet;
@@ -100,7 +101,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     {
         Type handlerType = typeof(TaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
         return (IReturnHandler<TPacket>)(Activator.CreateInstance(handlerType, innerHandler)
-            ?? throw new InvalidOperationException($"Failed to create return handler for '{handlerType.FullName}'."));
+            ?? throw new InternalErrorException($"Failed to create return handler for '{handlerType.FullName}'."));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -108,6 +109,6 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     {
         Type handlerType = typeof(ValueTaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
         return (IReturnHandler<TPacket>)(Activator.CreateInstance(handlerType, innerHandler)
-            ?? throw new InvalidOperationException($"Failed to create return handler for '{handlerType.FullName}'."));
+            ?? throw new InternalErrorException($"Failed to create return handler for '{handlerType.FullName}'."));
     }
 }

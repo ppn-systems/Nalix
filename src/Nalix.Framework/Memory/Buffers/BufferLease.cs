@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Framework.Memory.Buffers;
@@ -213,8 +214,8 @@ public sealed class BufferLease : IBufferLease
         if (newValue <= 1)
         {
             // newValue == 1: ok (single owner) — overflow -> negative or 0
-            throw new InvalidOperationException(
-                $"[{nameof(BufferLease)}] Invalid ref-count increment: {newValue}.");
+            throw new InternalErrorException(
+                $"[{nameof(BufferLease)}] Invalid ref-count after Retain: value={newValue}, thread={Environment.CurrentManagedThreadId}.");
         }
     }
 

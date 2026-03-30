@@ -4,7 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Engine;
@@ -116,7 +116,7 @@ public static class EnvelopeCipher
         CipherSuiteType.Chacha20Poly1305 => ChaCha20.NonceSize,
         CipherSuiteType.Salsa20 => Salsa20.NonceSize,
         CipherSuiteType.Salsa20Poly1305 => Salsa20.NonceSize,
-        _ => throw new ArgumentException("Unsupported symmetric algorithm", nameof(type))
+        _ => throw new CipherException($"Unsupported cipher suite '{type}' for nonce length.")
     };
 
     /// <summary>
@@ -162,7 +162,7 @@ public static class EnvelopeCipher
         CipherSuiteType.Chacha20Poly1305 => EnvelopeFormat.TagSize,
         CipherSuiteType.Salsa20 => 0,
         CipherSuiteType.Salsa20Poly1305 => EnvelopeFormat.TagSize,
-        _ => throw new ArgumentException("Unsupported symmetric algorithm", nameof(type))
+        _ => throw new CipherException($"Unsupported cipher suite '{type}' for tag length.")
     };
 
     /// <summary>
@@ -190,7 +190,7 @@ public static class EnvelopeCipher
     /// Thrown if <paramref name="algorithm"/> is not recognized, the output buffer is too small,
     /// or key/nonce length errors are detected by the underlying engines.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="CipherException">
     /// Thrown when a supported authenticated cipher rejects the supplied inputs during encryption.
     /// </exception>
     /// <example>
@@ -230,7 +230,7 @@ public static class EnvelopeCipher
                 return;
 
             default:
-                throw new ArgumentException("Unsupported cipher type", nameof(algorithm));
+                throw new CipherException($"Unsupported cipher type '{algorithm}'.");
         }
     }
 
@@ -255,7 +255,7 @@ public static class EnvelopeCipher
     /// Thrown when <paramref name="envelope"/> is malformed, the destination buffer is too small,
     /// or key length validation fails in the underlying engine.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="CipherException">
     /// Thrown when authentication fails for AEAD envelopes.
     /// </exception>
     /// <exception cref="NotSupportedException">
@@ -291,7 +291,7 @@ public static class EnvelopeCipher
                 return;
 
             default:
-                throw new NotSupportedException("Unsupported cipher type.");
+                throw new CipherException($"Unsupported cipher type '{env.AeadType}'.");
         }
     }
 
@@ -315,7 +315,7 @@ public static class EnvelopeCipher
     /// Thrown if <paramref name="algorithm"/> is not recognized, the output buffer is too small,
     /// or key/nonce length errors are detected by the underlying engines.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="CipherException">
     /// Thrown when a supported authenticated cipher rejects the supplied inputs during encryption.
     /// </exception>
     /// <example>
@@ -352,7 +352,7 @@ public static class EnvelopeCipher
     /// Thrown when <paramref name="envelope"/> is malformed, the destination buffer is too small,
     /// or key length validation fails in the underlying engine.
     /// </exception>
-    /// <exception cref="CryptographicException">
+    /// <exception cref="CipherException">
     /// Thrown when authentication fails for AEAD envelopes.
     /// </exception>
     /// <exception cref="NotSupportedException">

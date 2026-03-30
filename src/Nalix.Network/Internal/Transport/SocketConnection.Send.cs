@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Memory.Buffers;
@@ -83,7 +84,7 @@ internal sealed partial class SocketConnection
 #endif
                         this.CANCEL_RECEIVE_ONCE();
                         this.INVOKE_CLOSE_ONCE();
-                        throw new InvalidOperationException("The socket closed while sending.");
+                        throw new NetworkException("The socket closed while sending.");
                     }
                     sent += n;
                 }
@@ -136,7 +137,7 @@ internal sealed partial class SocketConnection
 #endif
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    throw new InvalidOperationException("The socket closed while sending.");
+                    throw new NetworkException("The socket closed while sending.");
                 }
                 sent += n;
             }
@@ -224,7 +225,7 @@ internal sealed partial class SocketConnection
 #endif
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    throw new InvalidOperationException("The socket closed while sending.");
+                    throw new NetworkException("The socket closed while sending.");
                 }
                 sent += n;
             }
@@ -263,7 +264,7 @@ internal sealed partial class SocketConnection
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
         if (totalChunks > ushort.MaxValue)
         {
-            throw new InvalidOperationException(
+            throw new InternalErrorException(
                 $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
         }
 
@@ -293,7 +294,7 @@ internal sealed partial class SocketConnection
 
             if (totalFrameSize > ushort.MaxValue)
             {
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"Fragmented frame size {totalFrameSize} exceeds the {ushort.MaxValue}-byte wire header limit.");
             }
 
@@ -343,7 +344,7 @@ internal sealed partial class SocketConnection
                 {
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    throw new InvalidOperationException("The socket closed while sending.");
+                    throw new NetworkException("The socket closed while sending.");
                 }
                 sent += n;
             }
@@ -363,7 +364,7 @@ internal sealed partial class SocketConnection
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
         if (totalChunks > ushort.MaxValue)
         {
-            throw new InvalidOperationException(
+            throw new InternalErrorException(
                 $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
         }
 
@@ -383,7 +384,7 @@ internal sealed partial class SocketConnection
 
             if (totalFrameLen > ushort.MaxValue)
             {
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"Fragmented frame size {totalFrameLen} exceeds the {ushort.MaxValue}-byte wire header limit.");
             }
 
@@ -428,7 +429,7 @@ internal sealed partial class SocketConnection
                 {
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    throw new InvalidOperationException("The socket closed while sending.");
+                    throw new NetworkException("The socket closed while sending.");
                 }
                 sent += n;
             }

@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.TextFrames;
 using Nalix.Framework.Injection;
@@ -53,9 +54,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
                         if (context?.Connection?.TCP == null)
                         {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[{nameof(StringReturnHandler<>)}] send-failed transport=null");
-                            return;
+                            throw new NetworkException($"[{nameof(StringReturnHandler<>)}] send-failed transport=null");
                         }
 
                         try
@@ -64,8 +63,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                         }
                         catch (Exception ex)
                         {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Error($"[{nameof(StringReturnHandler<>)}] error-serializing", ex);
+                            throw new SerializationFailureException($"[{nameof(StringReturnHandler<>)}] error-serializing: {ex.Message}", ex);
                         }
 
                         return;
@@ -80,9 +78,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             // 2) Fallback: chunk by UTF-8 byte limit using the largest candidate.
             if (context?.Connection?.TCP == null)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[{nameof(StringReturnHandler<>)}] send-failed transport=null");
-                return;
+                throw new NetworkException($"[{nameof(StringReturnHandler<>)}] send-failed transport=null");
             }
 
             Candidate max = UTF8_STRING.Candidates[^1];
@@ -100,8 +96,7 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                     }
                     catch (Exception ex)
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Error($"[{nameof(StringReturnHandler<>)}] error-serializing msg=chunk", ex);
+                        throw new SerializationFailureException($"[{nameof(StringReturnHandler<>)}] error-serializing msg=chunk: {ex.Message}", ex);
                     }
                 }
                 finally
