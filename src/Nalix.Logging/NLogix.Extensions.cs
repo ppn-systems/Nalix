@@ -87,7 +87,7 @@ public static class NLogixExtensions
         this ILogger logger, string message, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger?.Fatal($"[{typeof(T).Name}:{member}] {message}", eventId);
+        => logger?.Critical($"[{typeof(T).Name}:{member}] {message}", eventId);
 
     /// <summary>
     /// Logs an exception as a fatal error with class and member context.
@@ -97,7 +97,7 @@ public static class NLogixExtensions
         this ILogger logger, Exception ex, EventId? eventId = null,
         [CallerMemberName] string member = "")
         where T : class
-        => logger?.Fatal($"[{typeof(T).Name}:{member}] {ex?.Message}", ex!, eventId);
+        => logger?.Critical($"[{typeof(T).Name}:{member}] {ex?.Message}", ex!, eventId);
 
     #endregion Fatal
 }

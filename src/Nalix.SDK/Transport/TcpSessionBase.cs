@@ -354,7 +354,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 
         this.TearDownConnection();
         this.Logger?.Info($"[SDK.{this.GetType().Name}] Disconnected (requested).");
-        try { OnDisconnected?.Invoke(this, null!); } catch (Exception ex) { this.Logger?.Error($"[SDK.{this.GetType().Name}] OnDisconnected handler threw: {ex.Message}", ex); }
+        try { OnDisconnected?.Invoke(this, null!); } catch (Exception ex) { this.Logger?.Error($"[SDK.{this.GetType().Name}] OnDisconnected handler threw: {ex.Message}"); }
 
         return Task.CompletedTask;
     }
@@ -406,7 +406,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            this.Logger?.Error($"[SDK.{this.GetType().Name}] OnConnected handler threw: {ex.Message}", ex);
+            this.Logger?.Error($"[SDK.{this.GetType().Name}] OnConnected handler threw: {ex.Message}");
         }
     }
 
@@ -451,7 +451,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            this.Logger?.Error($"[SDK.{this.GetType().Name}] BytesSent handler threw: {ex.Message}", ex);
+            this.Logger?.Error($"[SDK.{this.GetType().Name}] BytesSent handler threw: {ex.Message}");
         }
     }
 
@@ -465,7 +465,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            this.Logger?.Error($"[SDK.{this.GetType().Name}] BytesReceived handler threw: {ex.Message}", ex);
+            this.Logger?.Error($"[SDK.{this.GetType().Name}] BytesReceived handler threw: {ex.Message}");
         }
     }
 
@@ -506,7 +506,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                this.Logger?.Warn($"[SDK.{this.GetType().Name}] TearDownConnection: Sender cleanup threw: {ex.Message}", ex);
+                this.Logger?.Warn($"[SDK.{this.GetType().Name}] TearDownConnection: Sender cleanup threw: {ex.Message}");
             }
 
             try { Socket?.Shutdown(SocketShutdown.Both); } catch { }
@@ -602,7 +602,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                         }
                         catch (Exception ex)
                         {
-                            this.Logger?.Error($"[SDK.{nameof(TcpSessionBase)}] sync handler faulted: {ex.Message}", ex);
+                            this.Logger?.Error($"[SDK.{nameof(TcpSessionBase)}] sync handler faulted: {ex.Message}");
                         }
                         finally
                         {
@@ -678,7 +678,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            this.Logger?.Error($"[SDK.{this.GetType().Name}] OnReconnected handler threw: {ex.Message}", ex);
+            this.Logger?.Error($"[SDK.{this.GetType().Name}] OnReconnected handler threw: {ex.Message}");
         }
     }
 
@@ -696,7 +696,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            this.Logger?.Error($"[SDK.{nameof(TcpSessionBase)}] async handler faulted: {ex.Message}", ex);
+            this.Logger?.Error($"[SDK.{nameof(TcpSessionBase)}] async handler faulted: {ex.Message}");
         }
     }
 

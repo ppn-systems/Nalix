@@ -151,7 +151,7 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex)
         {
-            s_logger?.Fatal($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
+            s_logger?.Critical($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }

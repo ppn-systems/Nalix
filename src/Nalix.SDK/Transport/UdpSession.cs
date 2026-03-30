@@ -383,12 +383,14 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             {
                 lastEx = ex;
                 try { socket.Dispose(); } catch { }
-                _logger?.Warn($"[SDK.{nameof(UdpSession)}] Failed to connect to {address}:{effectivePort}: {ex.Message}", ex);
+                _logger?.Warn($"[SDK.{nameof(UdpSession)}] Failed to connect to {address}:{effectivePort}: {ex.Message}");
             }
         }
 
         _ = Interlocked.Exchange(ref _connected, 0);
-        throw new NetworkException($"[SDK.{nameof(UdpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx ?? new SocketException((int)SocketError.HostNotFound));
+
+        throw new NetworkException($"[SDK.{nameof(UdpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}",
+            lastEx ?? new SocketException((int)SocketError.HostNotFound));
     }
 
     /// <summary>
@@ -905,7 +907,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
     private async Task ReconnectLoopAsync(Exception cause)
     {
-        _logger?.Warn($"[SDK.{nameof(UdpSession)}] Triggering reconnect after: {cause.Message}", cause);
+        _logger?.Warn($"[SDK.{nameof(UdpSession)}] Triggering reconnect after: {cause.Message}");
         this.TearDownConnection();
 
         if (Volatile.Read(ref _disposed) == 1 || string.IsNullOrWhiteSpace(_host) || _port is null)
@@ -940,7 +942,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                _logger?.Warn($"[SDK.{nameof(UdpSession)}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
+                _logger?.Warn($"[SDK.{nameof(UdpSession)}] Reconnect attempt {attempt} failed: {ex.Message}");
                 delay = Math.Min(max, delay * 2);
             }
         }

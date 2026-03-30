@@ -46,6 +46,15 @@ public sealed partial class NLogix : NLogixEngine, ILogger
 
     #endregion Constructors
 
+    /// <inheritdoc/>
+    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => throw new NotImplementedException();
+
+    /// <inheritdoc/>
+    public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) => throw new NotImplementedException();
+
     #region Private Methods
 
     /// <summary>

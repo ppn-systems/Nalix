@@ -166,16 +166,10 @@ public static class FormatterProvider
         Register(new NullableArrayFormatter<UInt56>());
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info(
-            "[SH.FormatterProvider] init-ok in {0} ms. total={1}, primitives={2}, nullables={3}, arrays={4}, nullableArrays={5}, lists={6}, enums={7}, strings={8}",
-            s_sw.ElapsedMilliseconds,
-            s_cntTotal,
-            s_cntPrimitives,
-            s_cntNullables,
-            s_cntArrays,
-            s_cntNullableArrays,
-            s_cntLists,
-            s_cntEnums,
-            s_cntStrings
+            $"[SH.FormatterProvider] init-ok in {s_sw.ElapsedMilliseconds} ms. " +
+            $"total={s_cntTotal}, primitives={s_cntPrimitives}, nullables={s_cntNullables}, " +
+            $"arrays={s_cntArrays}, nullableArrays={s_cntNullableArrays}, " +
+            $"lists={s_cntLists}, enums={s_cntEnums}, strings={s_cntStrings}"
         );
     }
 

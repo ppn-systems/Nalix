@@ -281,7 +281,7 @@ public sealed class TcpSession : TcpSessionBase
             catch (Exception ex)
             {
                 lastEx = ex;
-                this.Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
+                this.Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to connect to {addr}:{effectivePort}: {ex.Message}");
                 try { s.Dispose(); } catch { }
             }
             finally
@@ -291,7 +291,10 @@ public sealed class TcpSession : TcpSessionBase
         }
 
         this.SetState(TcpSessionState.Disconnected);
-        throw new NetworkException($"[SDK.{this.GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx ?? new SocketException((int)SocketError.HostNotFound));
+
+        throw new NetworkException(
+            $"[SDK.{this.GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}",
+            lastEx ?? new SocketException((int)SocketError.HostNotFound));
     }
 
     #endregion APIs
@@ -336,7 +339,7 @@ public sealed class TcpSession : TcpSessionBase
         }
         catch (Exception ex)
         {
-            this.Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run", ex);
+            this.Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run");
             _ = Task.Run(() => Receiver.ReceiveLoopAsync(loopToken), loopToken);
         }
 
@@ -363,7 +366,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <inheritdoc/>
     protected override void HandleSendError(Exception ex)
     {
-        this.Logger?.Warn($"[SDK.{this.GetType().Name}] Send error: {ex.Message}", ex);
+        this.Logger?.Warn($"[SDK.{this.GetType().Name}] Send error: {ex.Message}");
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
@@ -371,7 +374,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <inheritdoc/>
     protected override void HandleReceiveError(Exception ex)
     {
-        this.Logger?.Warn($"[SDK.{this.GetType().Name}] Receive error: {ex.Message}", ex);
+        this.Logger?.Warn($"[SDK.{this.GetType().Name}] Receive error: {ex.Message}");
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
@@ -419,7 +422,7 @@ public sealed class TcpSession : TcpSessionBase
         }
         catch (Exception ex)
         {
-            this.Logger?.Warn($"[SDK.{this.GetType().Name}] Exception during TearDownConnection: {ex.Message}", ex);
+            this.Logger?.Warn($"[SDK.{this.GetType().Name}] Exception during TearDownConnection: {ex.Message}");
         }
 
         if (wasConnected)
@@ -490,7 +493,7 @@ public sealed class TcpSession : TcpSessionBase
             }
             catch (Exception ex)
             {
-                this.Logger?.Warn($"[SDK.{this.GetType().Name}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
+                this.Logger?.Warn($"[SDK.{this.GetType().Name}] Reconnect attempt {attempt} failed: {ex.Message}");
                 delay = Math.Min(max, delay * 2);
             }
         }

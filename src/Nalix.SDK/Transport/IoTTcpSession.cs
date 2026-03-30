@@ -174,9 +174,8 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
         }
         catch (Exception ex)
         {
-            this.Logger?.Warn(
-                $"[SDK.{nameof(IoTTcpSession)}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run",
-                ex);
+            this.Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run");
+
             _ = Task.Run(async () =>
             {
                 try
@@ -319,7 +318,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
                 {
                     lastEx = ex;
                     try { s.Dispose(); } catch { }
-                    this.Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
+                    this.Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Failed to connect to {addr}:{effectivePort}: {ex.Message}");
                 }
             }
 
@@ -351,7 +350,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// <inheritdoc/>
     protected override void HandleSendError(Exception ex)
     {
-        this.Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Send error: {ex.Message}", ex);
+        this.Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Send error: {ex.Message}");
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
@@ -359,13 +358,12 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// <inheritdoc/>
     protected override void HandleReceiveError(Exception ex)
     {
-        this.Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Receive error: {ex.Message}", ex);
+        this.Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Receive error: {ex.Message}");
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
 
     /// <inheritdoc/>
-    [SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "<Pending>")]
     protected override void TearDownConnection()
     {
         bool wasConnected = this.IsConnected;
@@ -456,7 +454,7 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
             }
             catch (Exception ex)
             {
-                this.Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
+                this.Logger?.Warn($"[SDK.{nameof(IoTTcpSession)}] Reconnect attempt {attempt} failed: {ex.Message}");
                 delay = Math.Min(max, delay * 2);
             }
         }

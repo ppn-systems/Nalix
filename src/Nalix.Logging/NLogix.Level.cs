@@ -108,17 +108,17 @@ public sealed partial class NLogix
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Fatal(string format, params object[] args)
+    public void Critical(string format, params object[] args)
         => this.Publish(LogLevel.Critical, EventId.Empty, format, args);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Fatal(string message, EventId? eventId = null)
+    public void Critical(string message, EventId? eventId = null)
         => this.WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void Fatal(string message, Exception exception, EventId? eventId = null)
+    public void Critical(string message, Exception exception, EventId? eventId = null)
         => this.WriteLog(LogLevel.Critical, eventId ?? EventId.Empty, message, exception);
 
     #endregion Fatal Methods

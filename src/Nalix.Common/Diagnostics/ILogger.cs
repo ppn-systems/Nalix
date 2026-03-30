@@ -28,7 +28,7 @@ namespace Nalix.Common.Diagnostics;
 /// logger.Info("Initializing modules...", startup);
 /// </code>
 /// </example>
-public interface ILogger
+public interface ILogger : Microsoft.Extensions.Logging.ILogger
 {
     // =========================
     // Trace
@@ -39,13 +39,6 @@ public interface ILogger
     /// </summary>
     /// <param name="message">The message text.</param>
     void Trace(string message);
-
-    /// <summary>
-    /// Writes a trace-level log entry using composite formatting.
-    /// </summary>
-    /// <param name="format">A composite format string.</param>
-    /// <param name="args">An array of objects to format.</param>
-    void Trace(string format, params object[] args);
 
     /// <summary>
     /// Writes a trace-level log entry with an optional event identifier.
@@ -65,13 +58,6 @@ public interface ILogger
     void Debug(string message);
 
     /// <summary>
-    /// Writes a debug-level log entry using composite formatting.
-    /// </summary>
-    /// <param name="format">A composite format string.</param>
-    /// <param name="args">An array of objects to format.</param>
-    void Debug(string format, params object[] args);
-
-    /// <summary>
     /// Writes a debug-level log entry with an optional event identifier.
     /// </summary>
     /// <param name="message">The message text.</param>
@@ -89,13 +75,6 @@ public interface ILogger
     void Info(string message);
 
     /// <summary>
-    /// Writes an informational log entry using composite formatting.
-    /// </summary>
-    /// <param name="format">A composite format string.</param>
-    /// <param name="args">An array of objects to format.</param>
-    void Info(string format, params object[] args);
-
-    /// <summary>
     /// Writes an informational log entry with an optional event identifier.
     /// </summary>
     /// <param name="message">The message text.</param>
@@ -111,13 +90,6 @@ public interface ILogger
     /// </summary>
     /// <param name="message">The warning message text.</param>
     void Warn(string message);
-
-    /// <summary>
-    /// Writes a warning log entry using composite formatting.
-    /// </summary>
-    /// <param name="format">A composite format string.</param>
-    /// <param name="args">An array of objects to format.</param>
-    void Warn(string format, params object[] args);
 
     /// <summary>
     /// Writes a warning log entry with an optional event identifier.
@@ -138,13 +110,6 @@ public interface ILogger
     void Error(string message, EventId? eventId = null);
 
     /// <summary>
-    /// Writes an error log entry using composite formatting.
-    /// </summary>
-    /// <param name="format">A composite format string.</param>
-    /// <param name="args">An array of objects to format.</param>
-    void Error(string format, params object[] args);
-
-    /// <summary>
     /// Writes an error log entry with a message, exception, and an optional event identifier.
     /// </summary>
     /// <param name="message">The error message text.</param>
@@ -157,18 +122,11 @@ public interface ILogger
     // =========================
 
     /// <summary>
-    /// Writes a critical log entry using composite formatting.
-    /// </summary>
-    /// <param name="format">A composite format string.</param>
-    /// <param name="args">An array of objects to format.</param>
-    void Fatal(string format, params object[] args);
-
-    /// <summary>
     /// Writes a critical log entry with an optional event identifier.
     /// </summary>
     /// <param name="message">The critical error message text.</param>
     /// <param name="eventId">An optional event identifier for correlation and filtering.</param>
-    void Fatal(string message, EventId? eventId = null);
+    void Critical(string message, EventId? eventId = null);
 
     /// <summary>
     /// Writes a critical log entry with a message, exception, and an optional event identifier.
@@ -176,5 +134,5 @@ public interface ILogger
     /// <param name="message">The critical error message text.</param>
     /// <param name="exception">The associated exception.</param>
     /// <param name="eventId">An optional event identifier for correlation and filtering.</param>
-    void Fatal(string message, Exception exception, EventId? eventId = null);
+    void Critical(string message, Exception exception, EventId? eventId = null);
 }

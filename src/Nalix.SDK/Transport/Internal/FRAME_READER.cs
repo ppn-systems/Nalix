@@ -199,7 +199,7 @@ internal sealed class FRAME_READER(
         }
         catch (Exception ex)
         {
-            _logger?.Warn($"[SDK.{nameof(FRAME_READER)}] Failed to process fragmented chunk", ex);
+            _logger?.Warn($"[SDK.{nameof(FRAME_READER)}] Failed to process fragmented chunk ex={ex.Message}");
             chunkLease.Dispose();
         }
     }
