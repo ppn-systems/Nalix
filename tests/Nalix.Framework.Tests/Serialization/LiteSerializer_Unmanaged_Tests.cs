@@ -70,7 +70,7 @@ public class LiteSerializerUnmanagedTests
         byte[] exact = LiteSerializer.Serialize(in value);
         byte[] tooSmall = new byte[exact.Length - 1];
 
-        _ = Assert.Throws<SerializationException>(() => LiteSerializer.Serialize(in value, tooSmall));
+        _ = Assert.Throws<SerializationFailureException>(() => LiteSerializer.Serialize(in value, tooSmall));
     }
 
     [Fact]
@@ -84,6 +84,6 @@ public class LiteSerializerUnmanagedTests
         Array.Copy(full, small, small.Length);
 
         ComplexStruct dest = default;
-        _ = Assert.Throws<SerializationException>(() => LiteSerializer.Deserialize(small, ref dest));
+        _ = Assert.Throws<SerializationFailureException>(() => LiteSerializer.Deserialize(small, ref dest));
     }
 }

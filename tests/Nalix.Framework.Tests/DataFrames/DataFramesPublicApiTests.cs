@@ -15,6 +15,7 @@ using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.DataFrames.TextFrames;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames

@@ -430,8 +430,8 @@ public sealed class MemoryTests
         DataReader reader = new([1, 2]);
 
         // Act
-        SerializationException spanException = Assert.Throws<SerializationException>(() => reader.GetSpanReference(3));
-        SerializationException advanceException = Assert.Throws<SerializationException>(() => reader.Advance(3));
+        SerializationFailureException spanException = Assert.Throws<SerializationFailureException>(() => reader.GetSpanReference(3));
+        SerializationFailureException advanceException = Assert.Throws<SerializationFailureException>(() => reader.Advance(3));
         ArgumentOutOfRangeException negativeException = Assert.Throws<ArgumentOutOfRangeException>(() => reader.Advance(-1));
         reader.Dispose();
 
@@ -822,7 +822,7 @@ public sealed class MemoryTests
         int unhealthyPools = manager.PerformHealthCheck();
         Task scheduled = manager.ScheduleRegularTrimming(TimeSpan.FromMilliseconds(10), cancellationToken: cancellationTokenSource.Token);
         cancellationTokenSource.CancelAfter(20);
-        await scheduled;
+        await scheduled.ConfigureAwait(false);
 
         // Assert
         Assert.True(unhealthyPools >= 0);
