@@ -91,7 +91,6 @@ public sealed class FileLogFormatter : ILoggerFormatter
 
                     string exStr = entry.Exception.ToString();
                     exStr.AsSpan().CopyTo(span[pos..]);
-                    pos += exStr.Length;
                 }
             });
     }
