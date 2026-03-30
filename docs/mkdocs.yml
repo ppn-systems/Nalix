@@ -4,7 +4,7 @@ site_url: https://ppn-systems.github.io/nalix-docs/
 copyright: Copyright © 2025-2026 PPN Corporation
 repo_url: https://github.com/ppn-systems/nalix
 repo_name: nalix
-edit_uri: https://github.com/ppn-systems/ppn-systems.github.io/edit/main/docs/
+edit_uri: https://github.com/ppn-systems/nalix/edit/master/docs/
 
 extra:
   social:
