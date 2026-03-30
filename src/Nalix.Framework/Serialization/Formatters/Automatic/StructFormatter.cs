@@ -7,6 +7,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Internal.Accessors;
+using Nalix.Framework.Serialization.Internal.Emit;
 using Nalix.Framework.Serialization.Internal.Reflection;
 
 namespace Nalix.Framework.Serialization.Formatters.Automatic;
@@ -60,7 +61,7 @@ internal sealed class StructFormatter<
                                     .Error($"[StructFormatter<{typeof(T).Name}>] " +
                                            $"init-fail msg={ex.Message}");
 
-            throw new SerializationFailureException($"Formatter initialization failed for {typeof(T).Name}", ex);
+            throw new SerializationFailureException($"Instance initialization failed for {typeof(T).Name}", ex);
         }
     }
 
@@ -79,12 +80,7 @@ internal sealed class StructFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
-    {
-        for (int i = 0; i < _accessors.Length; i++)
-        {
-            _accessors[i].Serialize(ref writer, value);
-        }
-    }
+        => StructEmitter<T>.Serialize(ref writer, value);
 
     /// <summary>
     /// Deserializes an object from the provided binary reader.
@@ -97,16 +93,7 @@ internal sealed class StructFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
-    {
-        T obj = default;
-
-        for (int i = 0; i < _accessors.Length; i++)
-        {
-            _accessors[i].Deserialize(ref reader, ref obj); // ← ref obj
-        }
-
-        return obj;
-    }
+        => StructEmitter<T>.Deserialize(ref reader);
 
     #endregion Serialization
 
