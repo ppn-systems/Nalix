@@ -41,7 +41,7 @@ public sealed class FileLogFormatter : ILoggerFormatter
     {
         string timestamp = TimestampCache.GetFormattedTimestamp(message.Timestamp, TimestampFormat);
 
-        bool hasEventId = message.EventId != EventId.Empty;
+        bool hasEventId = message.EventId is not null;
         bool hasException = message.Exception is not null;
 
         return string.Create(
@@ -64,7 +64,7 @@ public sealed class FileLogFormatter : ILoggerFormatter
                 if (eventIdFlag)
                 {
                     span[pos++] = '[';
-                    _ = entry.EventId.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
+                    _ = entry.EventId!.Value.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
                     pos += written;
                     span[pos++] = ']';
                     span[pos++] = ' ';
@@ -100,7 +100,7 @@ public sealed class FileLogFormatter : ILoggerFormatter
     {
         ArgumentNullException.ThrowIfNull(sb);
 
-        bool hasEventId = message.EventId != EventId.Empty;
+        bool hasEventId = message.EventId is not null;
         bool hasException = message.Exception is not null;
 
         // [timestamp]
@@ -113,7 +113,7 @@ public sealed class FileLogFormatter : ILoggerFormatter
         if (hasEventId)
         {
             _ = sb.Append('[')
-                  .Append(message.EventId.Id)
+                  .Append(message.EventId!.Value.Id)
                   .Append(']')
                   .Append(' ');
         }

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Logging.Tests")]
@@ -113,13 +113,13 @@ internal static class AnsiColors
     static AnsiColors()
     {
         // Initialize color cache
-        s_levelColorCache[(int)LogLevel.None] = Cyan;
         s_levelColorCache[(int)LogLevel.Trace] = DarkGray;
         s_levelColorCache[(int)LogLevel.Debug] = LightCyan;
-        s_levelColorCache[(int)LogLevel.Info] = LightGreen;
-        s_levelColorCache[(int)LogLevel.Warn] = LightYellow;
+        s_levelColorCache[(int)LogLevel.Information] = LightGreen;
+        s_levelColorCache[(int)LogLevel.Warning] = LightYellow;
         s_levelColorCache[(int)LogLevel.Error] = Red;
         s_levelColorCache[(int)LogLevel.Critical] = LightMagenta;
+        s_levelColorCache[(int)LogLevel.None] = Cyan;
     }
 
     #endregion Constructor

@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Engine;
 
@@ -18,7 +18,7 @@ namespace Nalix.Logging;
 /// combining structured logging and customizable output targets.
 /// </para>
 /// <para>
-/// This class is the core of the Nalix logging system, and implements <see cref="ILogger"/> for unified logging.
+/// This class is the core of the Nalix logging system, and implements <see cref="Common.Diagnostics.ILogger"/> for unified logging.
 /// Use this logger to write diagnostic messages, errors, warnings, or audit logs across the application.
 /// </para>
 /// </summary>
@@ -29,7 +29,7 @@ namespace Nalix.Logging;
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("Logger=NLogix, {GetType().Name,nq}")]
-public sealed partial class NLogix : NLogixEngine, ILogger
+public sealed partial class NLogix : NLogixEngine, Common.Diagnostics.ILogger
 {
     #region Constructors
 
@@ -45,15 +45,6 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     }
 
     #endregion Constructors
-
-    /// <inheritdoc/>
-    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => throw new NotImplementedException();
-
-    /// <inheritdoc/>
-    public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => throw new NotImplementedException();
-
-    /// <inheritdoc/>
-    public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) => throw new NotImplementedException();
 
     #region Private Methods
 
@@ -86,7 +77,7 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void WriteLog(
         LogLevel level,
-        EventId eventId,
+        EventId? eventId,
         string message,
         Exception? exception = null) => this.Publish(level, eventId, message, exception);
 

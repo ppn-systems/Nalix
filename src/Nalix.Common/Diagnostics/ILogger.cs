@@ -4,6 +4,7 @@
 #pragma warning disable CA1716
 
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace Nalix.Common.Diagnostics;
 
