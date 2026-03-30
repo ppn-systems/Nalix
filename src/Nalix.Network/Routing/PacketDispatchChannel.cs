@@ -12,8 +12,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
-using Nalix.Common.Identity;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Extensions;
@@ -441,6 +441,11 @@ public sealed class PacketDispatchChannel
                     IPacket packet = _catalog.Deserialize(lease.Span);
 
                     await this.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
+                }
+                catch (InvalidOperationException)
+                {
+                    connection.IncrementErrorCount();
+                    this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-invalid ep={connection.NetworkEndpoint} len={lease.Length}");
                 }
                 catch (Exception ex)
                 {

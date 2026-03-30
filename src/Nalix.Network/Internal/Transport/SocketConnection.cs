@@ -651,6 +651,11 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
             return true;
         }
 
+        if (ex is NetworkException netEx && netEx.InnerException != null)
+        {
+            return IS_BENIGN_DISCONNECT(netEx.InnerException);
+        }
+
         if (ex is SocketException se)
         {
             return se.SocketErrorCode
