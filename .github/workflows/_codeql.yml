@@ -26,7 +26,9 @@ jobs:
               issue_number: context.issue.number
             });
             const hasLabel = labels.data.some(label => label.name === 'document');
-            core.setOutput('is_document', hasLabel);
+            core.setOutput("is_document", hasLabel ? 'true' : 'false');
+      - name: Debug output
+        run: echo "is_document=${{ steps.label_check.outputs.is_document }}"
 
   analyze:
     name: Analyze C#
