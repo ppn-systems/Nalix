@@ -44,13 +44,12 @@ public abstract partial class TcpListenerBase
             _protocol.OnAccept(connection, _cancellationToken);
 
             this.Metrics.RECORD_ACCEPTED();
-            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection?.NetworkEndpoint}");
+            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] new={connection.NetworkEndpoint}");
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection?.NetworkEndpoint}", ex);
+            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] process-error={connection.NetworkEndpoint}", ex);
 
-            ArgumentNullException.ThrowIfNull(connection);
             connection.Close();
         }
     }
@@ -262,7 +261,7 @@ public abstract partial class TcpListenerBase
                 }
 
                 // Create and process connection similar to async version
-                PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context ?? throw new InvalidOperationException("TryAccept context was not bound to pooled socket args.");
+                PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context ?? throw new InternalErrorException("TryAccept context was not bound to pooled socket args.");
                 IConnection connection = this.InitializeConnection(socket, context);
 
                 // Process the connection
@@ -462,8 +461,8 @@ public abstract partial class TcpListenerBase
 
                 // Brief delay to prevent CPU spinning on repeated errors
                 Task.Delay(50, CancellationToken.None)
-                                           .GetAwaiter()
-                                           .GetResult();
+                    .GetAwaiter()
+                    .GetResult();
             }
             finally
             {
@@ -603,7 +602,7 @@ public abstract partial class TcpListenerBase
     /// A <see cref="ValueTask{TResult}"/> whose result is the
     /// accepted and initialized <see cref="IConnection"/>.
     /// </returns>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="InternalErrorException">
     /// Thrown when the listener socket has not been initialized (i.e. <c>_listener</c> is
     /// <see langword="null"/>).
     /// </exception>
@@ -650,7 +649,7 @@ public abstract partial class TcpListenerBase
 
             if (_listener == null)
             {
-                throw new InvalidOperationException("Socket is not initialized.");
+                throw new InternalErrorException("Socket is not initialized.");
             }
 
             // Wait async accept:

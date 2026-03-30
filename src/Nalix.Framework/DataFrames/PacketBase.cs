@@ -173,21 +173,25 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     #region APIs
 
     /// <inheritdoc/>
-    /// <exception cref="SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
 
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small for the serialized packet.</exception>
-    /// <exception cref="SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
     {
-        return buffer.Length < this.Length
-            ? throw new ArgumentException($"Buffer too small for {typeof(TSelf).Name}. Required: {this.Length}, Actual: {buffer.Length}.", nameof(buffer))
-            : LiteSerializer.Serialize((TSelf)this, buffer);
+        if (buffer.Length < this.Length)
+        {
+            throw new ArgumentException(
+                $"Buffer too small: length={buffer.Length}, required>={this.Length}, type={typeof(TSelf).FullName}.");
+        }
+
+        return LiteSerializer.Serialize((TSelf)this, buffer);
     }
 
     /// <summary>
@@ -202,7 +206,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// <exception cref="InvalidOperationException">
     /// Thrown when deserialization reads zero bytes or no formatter is available for the packet type.
     /// </exception>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown when the payload is malformed or does not contain enough data to deserialize the packet.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -212,18 +216,20 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         if (buffer.IsEmpty)
         {
             throw new ArgumentException(
-                $"Cannot deserialize {typeof(TSelf).Name} from an empty buffer.",
-                nameof(buffer));
+                $"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
         }
+
         TSelf packet = new();
 
         int bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
-        return bytesRead == 0
-            ? throw new InvalidOperationException(
-                $"Failed to deserialize {typeof(TSelf).Name}: zero bytes were consumed. " +
-                $"Buffer length: {buffer.Length}.")
-            : packet;
+        if (bytesRead == 0)
+        {
+            throw new InvalidOperationException(
+                $"Deserialize failed: type={typeof(TSelf).Name}, bytesRead=0, length={buffer.Length}.");
+        }
+
+        return packet;
     }
 
     /// <inheritdoc/>

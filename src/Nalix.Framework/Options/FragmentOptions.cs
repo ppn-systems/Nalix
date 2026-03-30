@@ -4,8 +4,9 @@
 using System;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration.Binding;
+using Nalix.Framework.DataFrames.Chunks;
 
-namespace Nalix.Framework.DataFrames.Chunks;
+namespace Nalix.Framework.Options;
 
 /// <summary>
 /// Options for fragmentation and reassembly of large frames.

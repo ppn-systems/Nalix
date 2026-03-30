@@ -44,7 +44,7 @@ public static class LiteSerializer
     /// <typeparam name="T">The type of object to serialize.</typeparam>
     /// <param name="value">The object to serialize.</param>
     /// <returns>A byte array representing the serialized object.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if serialization encounters an error.
     /// </exception>
     /// <exception cref="ArgumentNullException">
@@ -139,7 +139,7 @@ public static class LiteSerializer
         }
         else
         {
-            throw new SerializationException($"TYPE {typeof(T).FullName} is not serializable.");
+            throw new SerializationFailureException($"TYPE {typeof(T).FullName} is not serializable.");
         }
     }
 
@@ -150,7 +150,7 @@ public static class LiteSerializer
     /// <param name="value">The object to serialize.</param>
     /// <param name="buffer">The target span to write the serialized data into.</param>
     /// <returns>The number of bytes written into the buffer.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if serialization fails or the buffer is too small.
     /// </exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="buffer"/> is null.</exception>
@@ -174,7 +174,7 @@ public static class LiteSerializer
             int size = TypeMetadata.SizeOf<T>();
             if (buffer.Length < size)
             {
-                throw new SerializationException($"Buffer too small. Required: {size}, Actual: {buffer.Length}");
+                throw new SerializationFailureException($"Buffer too small. Required: {size}, Actual: {buffer.Length}");
             }
 
             Unsafe.WriteUnaligned(
@@ -190,7 +190,7 @@ public static class LiteSerializer
         {
             if (buffer.Length < fixedSize)
             {
-                throw new SerializationException($"Buffer too small. Required: {fixedSize}, Actual: {buffer.Length}");
+                throw new SerializationFailureException($"Buffer too small. Required: {fixedSize}, Actual: {buffer.Length}");
             }
 
             IFormatter<T> formatter = FormatterProvider.Get<T>();
@@ -207,7 +207,7 @@ public static class LiteSerializer
             }
         }
 
-        throw new NotSupportedException(
+        throw new SerializationFailureException(
             $"Array-based serialization is not supported for type {typeof(T)}. Use Serialize<T>(in T) to get byte[] instead.");
     }
 
@@ -218,7 +218,7 @@ public static class LiteSerializer
     /// <param name="value">The object to serialize.</param>
     /// <param name="buffer">The target span to write the serialized data into.</param>
     /// <returns>The number of bytes written into the buffer.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if serialization fails or the buffer is too small.
     /// </exception>
     /// <exception cref="InvalidOperationException">
@@ -242,7 +242,7 @@ public static class LiteSerializer
 
             if (buffer.Length < size)
             {
-                throw new SerializationException(
+                throw new SerializationFailureException(
                     $"Buffer too small for unmanaged type '{typeof(T)}'. " +
                     $"Required: {size}, Actual: {buffer.Length}.");
             }
@@ -267,7 +267,7 @@ public static class LiteSerializer
                 // Write null-array marker (4 bytes: 0xFF 0xFF 0xFF 0xFF)
                 if (buffer.Length < 4)
                 {
-                    throw new SerializationException(
+                    throw new SerializationFailureException(
                         $"Buffer too small to write null-array marker for type '{typeof(T)}'. " +
                         $"Required: 4, Actual: {buffer.Length}.");
                 }
@@ -284,7 +284,7 @@ public static class LiteSerializer
                 // Write empty-array marker (4 bytes: 0x00 0x00 0x00 0x00)
                 if (buffer.Length < 4)
                 {
-                    throw new SerializationException(
+                    throw new SerializationFailureException(
                         $"Buffer too small to write empty-array marker for type '{typeof(T)}'. " +
                         $"Required: 4, Actual: {buffer.Length}.");
                 }
@@ -298,7 +298,7 @@ public static class LiteSerializer
 
             if (buffer.Length < totalSize)
             {
-                throw new SerializationException(
+                throw new SerializationFailureException(
                     $"Buffer too small for array of type '{typeof(T)}'. " +
                     $"Required: {totalSize} (4-byte prefix + {dataSize} data), Actual: {buffer.Length}.");
             }
@@ -324,7 +324,7 @@ public static class LiteSerializer
         {
             if (buffer.Length < fixedSize)
             {
-                throw new SerializationException(
+                throw new SerializationFailureException(
                     $"Buffer too small for fixed-size type '{typeof(T)}'. " +
                     $"Required: {fixedSize}, Actual: {buffer.Length}.");
             }
@@ -361,7 +361,7 @@ public static class LiteSerializer
             }
         }
 
-        throw new NotSupportedException(
+        throw new SerializationFailureException(
             $"Span<byte> serialization is not supported for variable-length type '{typeof(T).FullName}'. Use Serialize<T>(in T value) to obtain a byte[] instead.");
     }
 
@@ -372,7 +372,7 @@ public static class LiteSerializer
     /// <param name="buffer">The byte array containing serialized data.</param>
     /// <param name="value">The reference to the object where deserialized data will be stored.</param>
     /// <returns>The number of bytes read during deserialization.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
     /// <exception cref="ArgumentException">Thrown if the buffer is empty.</exception>
@@ -387,17 +387,14 @@ public static class LiteSerializer
     {
         if (buffer.IsEmpty)
         {
-            throw new ArgumentException(
-                $"Cannot deserialize type '{typeof(T)}' from an empty buffer.",
-                nameof(buffer)
-            );
+            throw new SerializationFailureException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.");
         }
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
-                throw new SerializationException(
+                throw new SerializationFailureException(
                     $"Insufficient buffer size for unmanaged type '{typeof(T)}'. " +
                     $"Expected {TypeMetadata.SizeOf<T>()} bytes but got {buffer.Length} bytes."
                 );
@@ -419,7 +416,7 @@ public static class LiteSerializer
             }
 
             Type elementType = typeof(T).GetElementType()
-                ?? throw new SerializationException(
+                ?? throw new SerializationFailureException(
                     $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
                 );
 
@@ -431,7 +428,7 @@ public static class LiteSerializer
 
             if (buffer.Length < 4)
             {
-                throw new SerializationException(
+                throw new SerializationFailureException(
                     $"Buffer too small to contain array length prefix for type '{typeof(T)}'."
                 );
             }
@@ -442,7 +439,7 @@ public static class LiteSerializer
             int dataSize = size * length;
             if (buffer.Length < dataSize + 4)
             {
-                throw new SerializationException(
+                throw new SerializationFailureException(
                     $"Insufficient buffer size for array data. Expected {dataSize + 4} bytes " +
                     $"(including length prefix), but got {buffer.Length} bytes."
                 );
@@ -464,7 +461,7 @@ public static class LiteSerializer
         DataReader reader = new(buffer);
         value = formatter.Deserialize(ref reader);
         return EqualityComparer<T?>.Default.Equals(value, default)
-            ? throw new SerializationException($"Deserialization of type '{typeof(T)}' resulted in null value.")
+            ? throw new SerializationFailureException($"Deserialization of type '{typeof(T)}' resulted in null value.")
             : reader.BytesRead;
     }
 
@@ -475,7 +472,7 @@ public static class LiteSerializer
     /// <param name="buffer">The byte array containing serialized data.</param>
     /// <param name="value">The reference to the object where deserialized data will be stored.</param>
     /// <returns>The number of bytes read during deserialization.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if deserialization encounters an error or if there is insufficient data in the buffer.
     /// </exception>
     /// <exception cref="ArgumentException">Thrown if the buffer is empty.</exception>
@@ -491,14 +488,14 @@ public static class LiteSerializer
     {
         if (buffer.IsEmpty)
         {
-            throw new ArgumentException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.", nameof(buffer));
+            throw new SerializationFailureException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.");
         }
 
         if (!TypeMetadata.IsReferenceOrNullable<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
-                throw new SerializationException(
+                throw new SerializationFailureException(
                     $"Insufficient buffer size for unmanaged type '{typeof(T)}'. " +
                     $"Expected {TypeMetadata.SizeOf<T>()} bytes but got {buffer.Length} bytes."
                 );
@@ -520,7 +517,7 @@ public static class LiteSerializer
             }
 
             Type elementType = typeof(T).GetElementType()
-                ?? throw new SerializationException(
+                ?? throw new SerializationFailureException(
                     $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
                 );
 
@@ -532,7 +529,7 @@ public static class LiteSerializer
 
             if (buffer.Length < 4)
             {
-                throw new SerializationException(
+                throw new SerializationFailureException(
                     $"Buffer too small to contain array length prefix for type '{typeof(T)}'."
                 );
             }
@@ -543,7 +540,7 @@ public static class LiteSerializer
             int dataSize = size * length;
             if (buffer.Length < dataSize + 4)
             {
-                throw new SerializationException(
+                throw new SerializationFailureException(
                     $"Insufficient buffer size for array data. Expected {dataSize + 4} bytes " +
                     $"(including length prefix), but got {buffer.Length} bytes."
                 );

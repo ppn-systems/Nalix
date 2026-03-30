@@ -142,7 +142,7 @@ public unsafe struct DataReader : IDisposable
     /// </summary>
     /// <param name="sizeHint">The minimum number of bytes required.</param>
     /// <returns>A reference to the first byte of the span.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the requested size exceeds the available buffer size.
     /// </exception>
     [Pure]
@@ -152,7 +152,7 @@ public unsafe struct DataReader : IDisposable
     {
         if (sizeHint > this.BytesRemaining)
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"Not enough data: requested {sizeHint} bytes, only {this.BytesRemaining} bytes remaining.");
         }
 
@@ -164,7 +164,7 @@ public unsafe struct DataReader : IDisposable
     /// </summary>
     /// <param name="count">The number of bytes to advance.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the advance count is negative.</exception>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the advance count exceeds the available buffer size.
     /// </exception>
     [DebuggerStepThrough]
@@ -174,7 +174,7 @@ public unsafe struct DataReader : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (count > this.BytesRemaining)
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"Cannot advance {count} bytes, only {this.BytesRemaining} bytes remaining.");
         }
 

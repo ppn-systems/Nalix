@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Primitives;
@@ -129,7 +130,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         if (_options.MaxConnections > 0 && _count >= _options.MaxConnections)
         {
             this.HandleConnectionLimit(connection);
-            throw new InvalidOperationException(
+            throw new InternalErrorException(
                 $"Connection hub capacity reached. Maximum connections: {_options.MaxConnections}.");
         }
 
@@ -147,7 +148,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         if (!shard.TryAdd(connectionKey, connection))
         {
             s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
-            throw new InvalidOperationException($"Connection '{connection.ID}' is already registered.");
+            throw new InternalErrorException($"Connection '{connection.ID}' is already registered.");
         }
 
         connection.OnCloseEvent += this.OnClientDisconnected;
@@ -188,7 +189,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         if (!shard.TryRemove(connectionKey, out IConnection? existing))
         {
             s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
-            throw new InvalidOperationException($"Connection '{connection.ID}' is not registered.");
+            throw new InternalErrorException($"Connection '{connection.ID}' is not registered.");
         }
 
         IConnection removedConnection = existing ?? connection;

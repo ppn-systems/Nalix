@@ -129,12 +129,13 @@ internal sealed class BufferPoolCollection : IDisposable
         int poolSize = this.FindSuitablePoolSize(size);
         if (poolSize == 0)
         {
-            throw new ArgumentException($"Requested buffer size ({size}) exceeds maximum available pool size.");
+            throw new ArgumentException($"Requested size too large: size={size}");
         }
 
         if (!_pools.TryGetValue(poolSize, out BufferPoolShared? pool))
         {
-            throw new InvalidOperationException($"Pools for size {poolSize} is not available.");
+            throw new InvalidOperationException(
+    $"Buffer pool not found: size={poolSize}.");
         }
 
         byte[] buffer = pool.AcquireBuffer();

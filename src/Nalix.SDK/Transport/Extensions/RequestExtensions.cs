@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
@@ -100,7 +101,7 @@ public static class RequestExtensions
 
         if (!client.IsConnected)
         {
-            throw new InvalidOperationException("Client is not connected.");
+            throw new NetworkException("Client is not connected.");
         }
 
         // PacketAwaiter handles: subscribe → send → await → timeout → unsubscribe.
@@ -201,7 +202,7 @@ public static class RequestExtensions
 
         if (!client.IsConnected)
         {
-            throw new InvalidOperationException(
+            throw new NetworkException(
                 $"[SDK.RequestAsync<{typeof(TResponse).Name}>] Client is not connected.");
         }
 

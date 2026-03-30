@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Primitives;
 
@@ -48,9 +49,7 @@ public readonly partial struct Snowflake
         // Input validation - buffer overflow protection
         if (bytes.Length != Size)
         {
-            throw new ArgumentException(
-                $"Input buffer must be exactly {Size} bytes. Received {bytes.Length} bytes.",
-                nameof(bytes));
+            throw new SerializationFailureException($"Input buffer must be exactly {Size} bytes. Received {bytes.Length} bytes.");
         }
 
         // Optimized deserialization using BinaryPrimitives (bounds-checked, vectorized)
@@ -80,11 +79,7 @@ public readonly partial struct Snowflake
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake FromBytes(byte[] bytes)
-    {
-        return bytes is null
-            ? throw new ArgumentNullException(nameof(bytes), "Byte array cannot be null.")
-            : FromBytes(MemoryExtensions.AsSpan(bytes));
-    }
+        => bytes is null ? throw new SerializationFailureException("Byte array cannot be null.") : FromBytes(MemoryExtensions.AsSpan(bytes));
 
     #endregion Deserialize
 

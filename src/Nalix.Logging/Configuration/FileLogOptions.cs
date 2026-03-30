@@ -33,12 +33,6 @@ public sealed class FileLogOptions : ConfigurationLoader
 
     #endregion Constants
 
-    #region Fields
-
-    private static readonly TimeSpan DefaultFlushInterval = TimeSpan.FromSeconds(1);
-
-    #endregion Fields
-
     #region Properties
 
     /// <summary>
@@ -107,7 +101,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     /// A shorter interval reduces the risk of data loss but may impact performance.
     /// </remarks>
     [IniComment("How often buffered log entries are written to disk (e.g. 00:00:01 = 1 second)")]
-    public TimeSpan FlushInterval { get; set; } = DefaultFlushInterval;
+    public TimeSpan FlushInterval { get; set; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
     /// Gets or sets the behavior when the queue is full.

@@ -14,41 +14,41 @@ namespace Nalix.Common.Exceptions;
 /// attempt to modify the same resource simultaneously, and a conflict resolution
 /// strategy determines that the operation must be denied.
 /// </remarks>
-public sealed class ConcurrencyConflictException : InternalErrorException
+public sealed class ConcurrencyFailureException : InternalErrorException
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConcurrencyConflictException"/> class.
+    /// Initializes a new instance of the <see cref="ConcurrencyFailureException"/> class.
     /// </summary>
-    public ConcurrencyConflictException()
+    public ConcurrencyFailureException()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConcurrencyConflictException"/> class
+    /// Initializes a new instance of the <see cref="ConcurrencyFailureException"/> class
     /// with a specified error message.
     /// </summary>
     /// <param name="message">A message that describes the error.</param>
-    public ConcurrencyConflictException(string message) : base(message)
+    public ConcurrencyFailureException(string message) : base(message)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConcurrencyConflictException"/> class
+    /// Initializes a new instance of the <see cref="ConcurrencyFailureException"/> class
     /// with a specified error message and additional details.
     /// </summary>
     /// <param name="message">A message that describes the error.</param>
     /// <param name="details">Additional information that provides more context about the error.</param>
-    public ConcurrencyConflictException(string message, string details) : base(message, details)
+    public ConcurrencyFailureException(string message, string details) : base(message, details)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConcurrencyConflictException"/> class
+    /// Initializes a new instance of the <see cref="ConcurrencyFailureException"/> class
     /// with a specified error message and a reference to the inner exception that caused this exception.
     /// </summary>
     /// <param name="message">A message that describes the error.</param>
     /// <param name="innerException">The exception that caused the current exception.</param>
-    public ConcurrencyConflictException(string message, Exception innerException) : base(message, innerException)
+    public ConcurrencyFailureException(string message, Exception innerException) : base(message, innerException)
     {
     }
 }

@@ -25,8 +25,11 @@ public sealed class PacketLease<TPacket> : IDisposable where TPacket : PacketBas
 
     internal PacketLease(TPacket value, Action<TPacket> @return)
     {
-        this.Value = value ?? throw new ArgumentNullException(nameof(value));
-        _return = @return ?? throw new ArgumentNullException(nameof(@return));
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(@return);
+
+        _return = @return;
+        this.Value = value;
     }
 
     #endregion Constructors

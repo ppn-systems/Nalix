@@ -25,11 +25,11 @@ internal static partial class FieldCache<
 {
     #region Static Fields
 
-    private static readonly FieldSchema[] _metadata;
-    private static readonly SerializeLayout _layout;
-    private static readonly Dictionary<string, int> _fieldIndex;
+    private static readonly FieldSchema[] s_metadata;
+    private static readonly SerializeLayout s_layout;
+    private static readonly Dictionary<string, int> s_fieldIndex;
 
-    private static readonly Dictionary<string, PropertyInfo> _propertyCache;
+    private static readonly Dictionary<string, PropertyInfo> s_propertyCache;
 
     #endregion Static Fields
 
@@ -38,9 +38,9 @@ internal static partial class FieldCache<
     /// <summary>
     /// Store as object delegates, will be cast at runtime
     /// </summary>
-    private static readonly Delegate[] _getters;
+    private static readonly Delegate[] s_getters;
 
-    private static readonly Delegate[] _setters;
+    private static readonly Delegate[] s_setters;
 
     #endregion Compiled Delegates Cache
 
@@ -53,9 +53,9 @@ internal static partial class FieldCache<
         "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
     static FieldCache()
     {
-        _layout = GetSerializeLayout();
+        s_layout = GetSerializeLayout();
 
-        _propertyCache = new Dictionary<string, PropertyInfo>(
+        s_propertyCache = new Dictionary<string, PropertyInfo>(
             capacity: 32,
             comparer: StringComparer.Ordinal
         );
@@ -65,21 +65,21 @@ internal static partial class FieldCache<
             BindingFlags.NonPublic |
             BindingFlags.Instance))
         {
-            _propertyCache[p.Name] = p;
+            s_propertyCache[p.Name] = p;
         }
 
-        _metadata = DiscoverFields<T>();
-        _fieldIndex = BuildFieldIndex();
+        s_metadata = DiscoverFields<T>();
+        s_fieldIndex = BuildFieldIndex();
 
         // Create compiled getters/setters for each field
-        _getters = new Delegate[_metadata.Length];
-        _setters = new Delegate[_metadata.Length];
+        s_getters = new Delegate[s_metadata.Length];
+        s_setters = new Delegate[s_metadata.Length];
 
-        for (int i = 0; i < _metadata.Length; i++)
+        for (int i = 0; i < s_metadata.Length; i++)
         {
-            FieldInfo field = _metadata[i].FieldInfo;
-            _getters[i] = CreateGetter(field);
-            _setters[i] = CreateSetter(field);
+            FieldInfo field = s_metadata[i].FieldInfo;
+            s_getters[i] = CreateGetter(field);
+            s_setters[i] = CreateSetter(field);
         }
 
         EnsureExplicitLayoutIsValid();
@@ -120,7 +120,7 @@ internal static partial class FieldCache<
 
             int order;
 
-            if (_layout is SerializeLayout.Explicit)
+            if (s_layout is SerializeLayout.Explicit)
             {
                 int? explicitOrder = GetExplicitOrder(field);
                 if (explicitOrder is null)
@@ -153,7 +153,7 @@ internal static partial class FieldCache<
             throw new InvalidOperationException($"Type {typeof(TField).Name} has no serializable fields.");
         }
 
-        return _layout is SerializeLayout.Explicit
+        return s_layout is SerializeLayout.Explicit
             ? [.. System.Linq.Enumerable.OrderBy(includedFields, f => f.Order)]
             : [.. includedFields];
     }
@@ -163,11 +163,11 @@ internal static partial class FieldCache<
     {
         // Performance: StringComparer.Ordinal nhanh hơn default
         Dictionary<string, int> index = new(
-            _metadata.Length, StringComparer.Ordinal);
+            s_metadata.Length, StringComparer.Ordinal);
 
-        for (int i = 0; i < _metadata.Length; i++)
+        for (int i = 0; i < s_metadata.Length; i++)
         {
-            index[_metadata[i].Name] = i;
+            index[s_metadata[i].Name] = i;
         }
 
         return index;
@@ -225,7 +225,7 @@ internal static partial class FieldCache<
         if (field.Name.StartsWith('<') && field.Name.Contains(">k__BackingField"))
         {
             string propertyName = field.Name[1..field.Name.IndexOf('>')];
-            if (_propertyCache.TryGetValue(propertyName, out PropertyInfo? property))
+            if (s_propertyCache.TryGetValue(propertyName, out PropertyInfo? property))
             {
                 // Nếu property bị ignore thì skip backing field
                 if (property.GetCustomAttribute<SerializeIgnoreAttribute>() is not null)
@@ -253,7 +253,7 @@ internal static partial class FieldCache<
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static SerializeLayout GetLayout() => _layout;
+    public static SerializeLayout GetLayout() => s_layout;
 
     #endregion Layout Detection
 
@@ -264,7 +264,7 @@ internal static partial class FieldCache<
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void EnsureExplicitLayoutIsValid()
     {
-        if (_layout is not SerializeLayout.Explicit)
+        if (s_layout is not SerializeLayout.Explicit)
         {
             return;
         }
@@ -279,7 +279,7 @@ internal static partial class FieldCache<
     private static void EnsureNoDuplicateOrders()
     {
         IEnumerable<IGrouping<int, FieldSchema>> orderGroups = Enumerable.Where(
-            Enumerable.GroupBy(_metadata, f => f.Order),
+            Enumerable.GroupBy(s_metadata, f => f.Order),
             g => Enumerable.Count(g) > 1
         );
 
@@ -301,7 +301,7 @@ internal static partial class FieldCache<
     private static void EnsureNoNegativeOrders()
     {
         IEnumerable<FieldSchema> negativeOrders = Enumerable
-            .Where(_metadata, f => f.Order < 0);
+            .Where(s_metadata, f => f.Order < 0);
 
         if (Enumerable.Any(negativeOrders))
         {

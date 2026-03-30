@@ -33,8 +33,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
 {
     #region Fields
 
-    private static readonly Lazy<Assembly> s_entryAssemblyLazy = new(() =>
-        Assembly.GetEntryAssembly() ?? throw new InvalidOperationException("Entry assembly is null."));
+    private static readonly Lazy<Assembly> s_entryAssemblyLazy = new(() => Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly());
 
     /// <summary>
     /// Keep one OS mutex for lifetime to ensure correctness and performance.
@@ -1070,7 +1069,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             }
         }
 
-        return best ?? throw new InvalidOperationException($"Type {type.Name} does not have a suitable constructor for the provided arguments.");
+        return best ?? throw new InternalErrorException($"Type {type.Name} does not have a suitable constructor for the provided arguments.");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

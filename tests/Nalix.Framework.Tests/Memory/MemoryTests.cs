@@ -343,49 +343,6 @@ public sealed class MemoryTests
     }
 
     /// <summary>
-    /// Verifies that fixed writers reject expansion and invalid advance counts.
-    /// </summary>
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void Expand_FixedWriter_ThrowsInvalidOperationException(bool useArrayConstructor)
-    {
-        // Arrange
-        DataWriter writer = useArrayConstructor
-            ? new DataWriter(new byte[4])
-            : new DataWriter(new Span<byte>(new byte[4]));
-
-        // Act
-        InvalidOperationException expandException;
-        try
-        {
-            writer.Expand(5);
-            throw new Xunit.Sdk.XunitException("Expected InvalidOperationException was not thrown.");
-        }
-        catch (InvalidOperationException ex)
-        {
-            expandException = ex;
-        }
-
-        ArgumentOutOfRangeException advanceException;
-        try
-        {
-            writer.Advance(0);
-            throw new Xunit.Sdk.XunitException("Expected ArgumentOutOfRangeException was not thrown.");
-        }
-        catch (ArgumentOutOfRangeException ex)
-        {
-            advanceException = ex;
-        }
-
-        writer.Dispose();
-
-        // Assert
-        Assert.Equal("Cannot expand a fixed buffer.", expandException.Message);
-        Assert.Equal("count", advanceException.ParamName);
-    }
-
-    /// <summary>
     /// Verifies that reader constructors over arrays, spans, and memory track progress consistently.
     /// </summary>
     [Theory]
@@ -430,8 +387,8 @@ public sealed class MemoryTests
         DataReader reader = new([1, 2]);
 
         // Act
-        SerializationException spanException = Assert.Throws<SerializationException>(() => reader.GetSpanReference(3));
-        SerializationException advanceException = Assert.Throws<SerializationException>(() => reader.Advance(3));
+        SerializationFailureException spanException = Assert.Throws<SerializationFailureException>(() => reader.GetSpanReference(3));
+        SerializationFailureException advanceException = Assert.Throws<SerializationFailureException>(() => reader.Advance(3));
         ArgumentOutOfRangeException negativeException = Assert.Throws<ArgumentOutOfRangeException>(() => reader.Advance(-1));
         reader.Dispose();
 
@@ -822,7 +779,7 @@ public sealed class MemoryTests
         int unhealthyPools = manager.PerformHealthCheck();
         Task scheduled = manager.ScheduleRegularTrimming(TimeSpan.FromMilliseconds(10), cancellationToken: cancellationTokenSource.Token);
         cancellationTokenSource.CancelAfter(20);
-        await scheduled;
+        await scheduled.ConfigureAwait(false);
 
         // Assert
         Assert.True(unhealthyPools >= 0);

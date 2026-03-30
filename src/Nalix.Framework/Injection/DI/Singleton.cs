@@ -28,21 +28,21 @@ public static class Singleton
     [SuppressMessage(
         "Usage", "CA2000:Dispose objects before losing scope", Justification = "Lock object is disposed in Clear/Dispose")]
     [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    private static readonly ReaderWriterLockSlim CacheLock;
+    private static readonly ReaderWriterLockSlim s_cacheLock;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Type> TypeMapping = new();
-    private static readonly ConditionalWeakTable<Type, object> ResolutionCache = [];
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Lazy<object>> Services = new();
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<object>> Factories = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Type> s_typeMapping = new();
+    private static readonly ConditionalWeakTable<Type, object> s_resolutionCache = [];
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Lazy<object>> s_services = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<object>> s_factories = new();
 
     // Track whether we're in the dispose process
-    private static int _isDisposing;
+    private static int s_isDisposing;
 
     #endregion Fields
 
     #region Constructor
 
-    static Singleton() => CacheLock = new(LockRecursionPolicy.NoRecursion);
+    static Singleton() => s_cacheLock = new(LockRecursionPolicy.NoRecursion);
 
     #endregion Constructor
 
@@ -52,7 +52,7 @@ public static class Singleton
     /// Gets a value indicating whether the Singleton container is currently in the process of disposing.
     /// </summary>
     [MemberNotNullWhen(false, nameof(IsDisposing))]
-    public static bool IsDisposing => Volatile.Read(ref _isDisposing) != 0;
+    public static bool IsDisposing => Volatile.Read(ref s_isDisposing) != 0;
 
     #endregion Properties
 
@@ -80,24 +80,24 @@ public static class Singleton
             () => instance, LazyThreadSafetyMode.ExecutionAndPublication);
 
         // Dispose cache entry if it exists
-        CacheLock.EnterWriteLock();
+        s_cacheLock.EnterWriteLock();
 
         try
         {
-            _ = ResolutionCache.Remove(type);
+            _ = s_resolutionCache.Remove(type);
         }
         finally
         {
-            CacheLock.ExitWriteLock();
+            s_cacheLock.ExitWriteLock();
         }
 
         if (allowOverwrite)
         {
-            _ = Services.AddOrUpdate(type, lazy, (_, _) => lazy);
+            _ = s_services.AddOrUpdate(type, lazy, (_, _) => lazy);
         }
-        else if (!Services.TryAdd(type, lazy))
+        else if (!s_services.TryAdd(type, lazy))
         {
-            throw new InvalidOperationException($"Type {type.Name} has been registered.");
+            throw new InvalidOperationException($"Service already registered: type={type.FullName}.");
         }
     }
 
@@ -117,25 +117,25 @@ public static class Singleton
         Type implementationType = typeof(TImplementation);
 
         // Dispose cache entry if it exists
-        CacheLock.EnterWriteLock();
+        s_cacheLock.EnterWriteLock();
 
         try
         {
-            _ = ResolutionCache.Remove(interfaceType);
+            _ = s_resolutionCache.Remove(interfaceType);
         }
         finally
         {
-            CacheLock.ExitWriteLock();
+            s_cacheLock.ExitWriteLock();
         }
 
-        if (!TypeMapping.TryAdd(interfaceType, implementationType))
+        if (!s_typeMapping.TryAdd(interfaceType, implementationType))
         {
             throw new InvalidOperationException($"Type {interfaceType.Name} has been registered.");
         }
 
         if (factory != null)
         {
-            _ = Factories.TryAdd(interfaceType, () => factory());
+            _ = s_factories.TryAdd(interfaceType, () => factory());
         }
     }
 
@@ -154,18 +154,18 @@ public static class Singleton
         Type type = typeof(TClass);
 
         // Fast path: Check resolution cache first
-        CacheLock.EnterReadLock();
+        s_cacheLock.EnterReadLock();
 
         try
         {
-            if (ResolutionCache.TryGetValue(type, out object? cachedInstance))
+            if (s_resolutionCache.TryGetValue(type, out object? cachedInstance))
             {
                 return (TClass)cachedInstance;
             }
         }
         finally
         {
-            CacheLock.ExitReadLock();
+            s_cacheLock.ExitReadLock();
         }
 
         // Normal resolution path
@@ -174,15 +174,15 @@ public static class Singleton
         // Caches the instance if it was found
         if (instance != null)
         {
-            CacheLock.EnterWriteLock();
+            s_cacheLock.EnterWriteLock();
 
             try
             {
-                ResolutionCache.AddOrUpdate(type, instance);
+                s_resolutionCache.AddOrUpdate(type, instance);
             }
             finally
             {
-                CacheLock.ExitWriteLock();
+                s_cacheLock.ExitWriteLock();
             }
         }
 
@@ -197,7 +197,7 @@ public static class Singleton
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static bool IsRegistered<TClass>() where TClass : class
-        => Services.ContainsKey(typeof(TClass)) || TypeMapping.ContainsKey(typeof(TClass)) || Factories.ContainsKey(typeof(TClass));
+        => s_services.ContainsKey(typeof(TClass)) || s_typeMapping.ContainsKey(typeof(TClass)) || s_factories.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes the registration of a specific type.
@@ -209,20 +209,20 @@ public static class Singleton
         Type type = typeof(TClass);
 
         // Remove from cache
-        CacheLock.EnterWriteLock();
+        s_cacheLock.EnterWriteLock();
 
         try
         {
-            _ = ResolutionCache.Remove(type);
+            _ = s_resolutionCache.Remove(type);
         }
         finally
         {
-            CacheLock.ExitWriteLock();
+            s_cacheLock.ExitWriteLock();
         }
 
-        _ = Services.TryRemove(type, out _);
-        _ = TypeMapping.TryRemove(type, out _);
-        _ = Factories.TryRemove(type, out _);
+        _ = s_services.TryRemove(type, out _);
+        _ = s_typeMapping.TryRemove(type, out _);
+        _ = s_factories.TryRemove(type, out _);
     }
 
     /// <summary>
@@ -231,24 +231,24 @@ public static class Singleton
     public static void Clear()
     {
         // Dispose the resolution cache
-        CacheLock.EnterWriteLock();
+        s_cacheLock.EnterWriteLock();
 
         try
         {
             // ConditionalWeakTable doesn't have Dispose method, so we're recreating it
             foreach (Type key in GET_ALL_CACHED_TYPES())
             {
-                _ = ResolutionCache.Remove(key);
+                _ = s_resolutionCache.Remove(key);
             }
         }
         finally
         {
-            CacheLock.ExitWriteLock();
+            s_cacheLock.ExitWriteLock();
         }
 
-        Services.Clear();
-        TypeMapping.Clear();
-        Factories.Clear();
+        s_services.Clear();
+        s_typeMapping.Clear();
+        s_factories.Clear();
     }
 
     #endregion Public Methods
@@ -266,7 +266,7 @@ public static class Singleton
         [
             // This is a bit of a hack because ConditionalWeakTable doesn't expose keys directly
             // In production, you might want a different approach
-            .. Services.Keys,
+            .. s_services.Keys,
         ];
 
         return result;
@@ -281,26 +281,26 @@ public static class Singleton
     {
         Type type = typeof(TClass);
 
-        if (Services.TryGetValue(
+        if (s_services.TryGetValue(
             type, out Lazy<object>? lazyService))
         {
             return (TClass)lazyService.Value;
         }
 
-        if (Factories.TryGetValue(
+        if (s_factories.TryGetValue(
             type, out Func<object>? factory))
         {
             Lazy<object> lazyInstance = new(
                 () => factory(), LazyThreadSafetyMode.ExecutionAndPublication);
 
-            _ = Services.TryAdd(type, lazyInstance);
+            _ = s_services.TryAdd(type, lazyInstance);
             return (TClass)lazyInstance.Value;
         }
 
-        if (TypeMapping.TryGetValue(
+        if (s_typeMapping.TryGetValue(
             type, out Type? implementationType))
         {
-            if (!Services.TryGetValue(
+            if (!s_services.TryGetValue(
                 implementationType, out Lazy<object>? lazyImpl))
             {
                 if (!createIfNotExists)
@@ -319,8 +319,8 @@ public static class Singleton
                         return instance;
                     }, LazyThreadSafetyMode.ExecutionAndPublication);
 
-                    _ = Services.TryAdd(implementationType, lazyInstance);
-                    _ = Services.TryAdd(type, lazyInstance);
+                    _ = s_services.TryAdd(implementationType, lazyInstance);
+                    _ = s_services.TryAdd(type, lazyInstance);
                     return (TClass)lazyInstance.Value;
                 }
                 catch (Exception ex)
@@ -346,14 +346,14 @@ public static class Singleton
     public static void Dispose()
     {
         // Ensure Dispose is only called once
-        if (Interlocked.Exchange(ref _isDisposing, 1) == 1)
+        if (Interlocked.Exchange(ref s_isDisposing, 1) == 1)
         {
             return;
         }
 
         // Collect disposable instances first to avoid modification during enumeration
         List<IDisposable> disposables = [];
-        foreach (Lazy<object> lazyService in Services.Values)
+        foreach (Lazy<object> lazyService in s_services.Values)
         {
             if (lazyService.IsValueCreated &&
                 lazyService.Value is IDisposable disposable)
@@ -380,7 +380,7 @@ public static class Singleton
         Clear();
 
         // Initialize the disposing flag
-        _ = Interlocked.Exchange(ref _isDisposing, 0);
+        _ = Interlocked.Exchange(ref s_isDisposing, 0);
     }
 
     #endregion Disposal

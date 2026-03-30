@@ -74,7 +74,7 @@ internal sealed class ArrayFormatter<
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized array of unmanaged values, or null if applicable.</returns>
-    /// <exception cref="SerializationException">Thrown when the encoded array length is outside supported bounds or the reader does not contain enough bytes.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when the encoded array length is outside supported bounds or the reader does not contain enough bytes.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] Deserialize(ref DataReader reader)
@@ -94,7 +94,7 @@ internal sealed class ArrayFormatter<
 
         if (length > SerializerBounds.MaxArray)
         {
-            throw new SerializationException("Array length out of range");
+            throw new SerializationFailureException("Array length out of range");
         }
 
         int total = length * TypeMetadata.SizeOf<T>();

@@ -74,7 +74,7 @@ public interface IPacket
     /// <returns>
     /// A new byte array containing the serialized form of the packet.
     /// </returns>
-    /// <exception cref="Exceptions.SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="Exceptions.SerializationFailureException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,7 +88,7 @@ public interface IPacket
     /// The buffer must be large enough to hold the complete packet.
     /// </param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small for the serialized packet.</exception>
-    /// <exception cref="Exceptions.SerializationException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
+    /// <exception cref="Exceptions.SerializationFailureException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -165,18 +165,18 @@ public abstract partial class ConfigurationLoader
             }
             catch (ArgumentException ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] invalid-argument section={section} key={propertyInfo.Name}", ex);
+                throw new ArgumentException(
+                    $"Invalid argument while setting section={section} key={propertyInfo.Name}.", ex);
             }
             catch (InvalidOperationException ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] invalid-operation section={section} key={propertyInfo.Name}", ex);
+                throw new InvalidOperationException(
+                    $"Invalid operation while setting section={section} key={propertyInfo.Name}.", ex);
             }
             catch (Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(ConfigurationLoader)}:Internal] set-error section={section} key={propertyInfo.Name} type={ex.GetType().Name}, ex={ex.Message}");
+                throw new InvalidOperationException(
+                    $"Unexpected error while setting section={section} key={propertyInfo.Name}: {ex.Message}", ex);
             }
         }
 

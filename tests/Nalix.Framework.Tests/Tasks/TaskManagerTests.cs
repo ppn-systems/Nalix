@@ -8,6 +8,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -317,7 +318,7 @@ public sealed class TaskManagerTests : IDisposable
                 NonReentrant = false
             });
 
-        _ = Assert.Throws<InvalidOperationException>(() =>
+        _ = Assert.Throws<InternalErrorException>(() =>
             manager.ScheduleRecurring(
                 "recurring.duplicate",
                 TimeSpan.FromMilliseconds(50),

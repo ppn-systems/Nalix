@@ -5,6 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -132,7 +133,7 @@ public static class ControlExtensions
 
         if (!client.IsConnected)
         {
-            throw new InvalidOperationException("Client not connected.");
+            throw new NetworkException("Client not connected.");
         }
 
         // Delegate all TCS + subscribe + timeout logic to PacketAwaiter.
@@ -188,7 +189,7 @@ public static class ControlExtensions
 
         if (!client.IsConnected)
         {
-            throw new InvalidOperationException("Client not connected.");
+            throw new NetworkException("Client not connected.");
         }
 
         uint seq = sequenceId ?? Csprng.NextUInt32();
@@ -273,7 +274,7 @@ public static class ControlExtensions
 
         if (!client.IsConnected)
         {
-            throw new InvalidOperationException("Client not connected.");
+            throw new NetworkException("Client not connected.");
         }
 
         // Materialize the Control from the builder first; ref structs cannot be lambda-captured.

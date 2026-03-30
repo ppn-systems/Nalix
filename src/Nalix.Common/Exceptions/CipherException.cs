@@ -12,31 +12,31 @@ namespace Nalix.Common.Exceptions;
 /// This exception is typically thrown when a cryptographic process fails due to invalid data,
 /// unsupported algorithms, or incorrect keys.
 /// </remarks>
-public class CryptographyException : BaseException
+public class CipherException : BaseException
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="CryptographyException"/> class
+    /// Initializes a new instance of the <see cref="CipherException"/> class
     /// with a default error message.
     /// </summary>
-    public CryptographyException()
+    public CipherException()
         : base("A cryptographic operation error occurred.")
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CryptographyException"/> class
+    /// Initializes a new instance of the <see cref="CipherException"/> class
     /// with a specified error message.
     /// </summary>
     /// <param name="message">
     /// The error message that describes the reason for the exception.
     /// </param>
-    public CryptographyException(string message)
+    public CipherException(string message)
         : base(message)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CryptographyException"/> class
+    /// Initializes a new instance of the <see cref="CipherException"/> class
     /// with a specified error message and a reference to the inner exception
     /// that is the cause of this exception.
     /// </summary>
@@ -46,7 +46,7 @@ public class CryptographyException : BaseException
     /// <param name="innerException">
     /// The exception that caused the current exception.
     /// </param>
-    public CryptographyException(string message, Exception innerException)
+    public CipherException(string message, Exception innerException)
         : base(message, innerException)
     {
     }

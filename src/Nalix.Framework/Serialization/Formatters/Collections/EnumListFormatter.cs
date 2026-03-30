@@ -32,7 +32,7 @@ internal sealed class EnumListFormatter<
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The list of enum values to serialize.</param>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the underlying type of the enum is not supported by the <see cref="EnumFormatter{T}"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -62,7 +62,7 @@ internal sealed class EnumListFormatter<
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized list of enum values, or null if the serialized data represents a null list.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the list length is out of range or if the underlying type of the enum is not supported by the <see cref="EnumFormatter{T}"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -84,7 +84,7 @@ internal sealed class EnumListFormatter<
 
         if (count > SerializerBounds.MaxArray)
         {
-            throw new SerializationException("Enum list length out of range.");
+            throw new SerializationFailureException("Enum list length out of range.");
         }
 
         System.Collections.Generic.List<T> result = new(count);

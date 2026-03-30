@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing;
@@ -197,7 +198,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="middleware"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="InternalErrorException">
     /// Thrown when the middleware instance has already been registered.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
@@ -209,7 +210,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
         {
             if (!_registeredMiddlewares.Add(middleware))
             {
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"Middleware '{middleware.GetType().FullName}' already registered");
             }
 

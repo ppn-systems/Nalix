@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
@@ -71,9 +72,9 @@ public abstract partial class UdpListenerBase
 
     /// <summary>
     /// Gets or sets a value indicating whether time synchronization is enabled for the UDP listener.
-    /// Throws <see cref="InvalidOperationException"/> if set while the listener is running.
+    /// Throws <see cref="InternalErrorException"/> if set while the listener is running.
     /// </summary>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InternalErrorException"></exception>
     public bool IsTimeSyncEnabled
     {
         [DebuggerStepThrough]
@@ -86,7 +87,7 @@ public abstract partial class UdpListenerBase
         {
             if (_isRunning)
             {
-                throw new InvalidOperationException($"[{nameof(UdpListenerBase)}] Cannot change IsTimeSyncEnabled while listening.");
+                throw new InternalErrorException($"[{nameof(UdpListenerBase)}] Cannot change IsTimeSyncEnabled while listening.");
             }
 
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()

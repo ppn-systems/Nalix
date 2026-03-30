@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
@@ -213,7 +214,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// interface — the cast is deferred to handler code itself.
     /// </para>
     /// </remarks>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InternalErrorException"></exception>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] TController>(Func<TController> factory)
@@ -224,7 +225,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         Type controllerType = typeof(TController);
 
         PacketControllerAttribute controllerAttr = CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
-            ?? throw new InvalidOperationException($"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
+            ?? throw new InternalErrorException($"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
         PacketHandler<TPacket>[] handlerDescriptors = PacketHandlerCompiler<TController, TPacket>.CompileHandlers(factory);
 
@@ -234,7 +235,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (_handlerCache.ContainsKey(descriptor.OpCode))
             {
-                throw new InvalidOperationException($"OpCode '{descriptor.OpCode}' has already been registered.");
+                throw new InternalErrorException($"OpCode '{descriptor.OpCode}' has already been registered.");
             }
 
             _handlerCache[descriptor.OpCode] = descriptor;

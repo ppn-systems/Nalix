@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing.Metadata;
 
@@ -77,13 +78,13 @@ public sealed class PacketMetadataBuilder
     /// the current builder state.
     /// </summary>
     /// <returns>A new <see cref="PacketMetadata"/> instance.</returns>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="InternalErrorException">
     /// Thrown when the <see cref="Opcode"/> is <see langword="null"/>.
     /// </exception>
     public PacketMetadata Build()
     {
         return this.Opcode is null
-            ? throw new InvalidOperationException("PacketMetadata requires a non-null Opcode. Ensure that a PacketOpcodeAttribute is present.")
+            ? throw new InternalErrorException("PacketMetadata requires a non-null Opcode. Ensure that a PacketOpcodeAttribute is present.")
             : new PacketMetadata(
                 this.Opcode,
                 this.Timeout,

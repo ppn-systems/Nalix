@@ -9,11 +9,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Configuration;
+using Nalix.Framework.Options;
 
 namespace Nalix.SDK.Transport.Internal;
 
@@ -330,7 +332,7 @@ internal sealed class FRAME_SENDER : IDisposable
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
         if (totalChunks > ushort.MaxValue)
         {
-            throw new InvalidOperationException(
+            throw new InternalErrorException(
                 $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
         }
 
@@ -349,7 +351,7 @@ internal sealed class FRAME_SENDER : IDisposable
 
             if (totalFrameLen > ushort.MaxValue)
             {
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"Fragmented frame size {totalFrameLen} exceeds the {ushort.MaxValue}-byte wire header limit.");
             }
 

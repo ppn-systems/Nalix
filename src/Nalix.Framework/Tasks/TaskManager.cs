@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
@@ -148,7 +149,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the worker cannot be added.</exception>
+    /// <exception cref="InternalErrorException">Thrown if the worker cannot be added.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the manager has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public IWorkerHandle ScheduleWorker(string name, string group, Func<IWorkerContext, CancellationToken, ValueTask> work, IWorkerOptions? options = null)
@@ -183,7 +184,7 @@ public sealed partial class TaskManager : ITaskManager
 
         if (!_workers.TryAdd(id, st))
         {
-            throw new InvalidOperationException($"[{nameof(TaskManager)}:{nameof(ScheduleWorker)}] cannot add worker");
+            throw new InternalErrorException($"[{nameof(TaskManager)}:{nameof(ScheduleWorker)}] cannot add worker");
         }
 
         // Optional concurrency cap per-group
@@ -327,7 +328,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <exception cref="ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the interval is less than or equal to zero.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if a recurring task with the same name already exists.</exception>
+    /// <exception cref="InternalErrorException">Thrown if a recurring task with the same name already exists.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if the manager has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public IRecurringHandle ScheduleRecurring([StringSyntax("identifier")] string name, TimeSpan interval, Func<CancellationToken, ValueTask> work, IRecurringOptions? options = null)
@@ -350,7 +351,7 @@ public sealed partial class TaskManager : ITaskManager
         if (!_recurring.TryAdd(name, st))
         {
             _ = Interlocked.Increment(ref _recurringErrorCount);
-            throw new InvalidOperationException($"[{nameof(TaskManager)}] duplicate recurring name: {name}");
+            throw new InternalErrorException($"[{nameof(TaskManager)}] duplicate recurring name: {name}");
         }
 
         try
@@ -446,12 +447,12 @@ public sealed partial class TaskManager : ITaskManager
             catch (Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] cts-dispose-error id={id} msg={ex.Message}");
+                                        .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] cts-dispose-error id={id} msg={ex.Message}");
             }
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
+                                .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
     }
 
     /// <inheritdoc/>
@@ -502,13 +503,13 @@ public sealed partial class TaskManager : ITaskManager
                 catch (Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error name={name} msg={ex.Message}");
+                                            .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error name={name} msg={ex.Message}");
                 }
                 try { st.Gate.Dispose(); }
                 catch (Exception ex)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error name={name} msg={ex.Message}");
+                                            .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error name={name} msg={ex.Message}");
                 }
             },
                 CancellationToken.None,
@@ -525,7 +526,7 @@ public sealed partial class TaskManager : ITaskManager
             catch (Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error-sync name={name} msg={ex.Message}");
+                                        .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error-sync name={name} msg={ex.Message}");
             }
             try
             {
@@ -534,12 +535,12 @@ public sealed partial class TaskManager : ITaskManager
             catch (Exception ex)
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error-sync name={name} msg={ex.Message}");
+                                        .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error-sync name={name} msg={ex.Message}");
             }
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
+                                .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
     }
 
     /// <inheritdoc/>

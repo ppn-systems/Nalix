@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Exceptions;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
@@ -62,16 +63,16 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TField GetValue<TField>(T obj, int fieldIndex)
     {
-        FieldSchema metadata = _metadata[fieldIndex];
+        FieldSchema metadata = s_metadata[fieldIndex];
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new InvalidOperationException(
+            throw new SerializationFailureException(
                 $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
         // Cast and invoke compiled delegate - NO BOXING!
-        Func<T, TField> getter = (Func<T, TField>)_getters[fieldIndex];
+        Func<T, TField> getter = (Func<T, TField>)s_getters[fieldIndex];
         return getter(obj);
     }
 
@@ -80,16 +81,16 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TField>(T obj, int fieldIndex, TField value)
     {
-        FieldSchema metadata = _metadata[fieldIndex];
+        FieldSchema metadata = s_metadata[fieldIndex];
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new InvalidOperationException(
+            throw new SerializationFailureException(
                 $"Field '{metadata.Name}' is of type '{metadata.FieldType}', not '{typeof(TField)}'");
         }
 
         // Cast and invoke compiled delegate - NO BOXING!
-        Action<T, TField> setter = (Action<T, TField>)_setters[fieldIndex];
+        Action<T, TField> setter = (Action<T, TField>)s_setters[fieldIndex];
         setter(obj, value);
     }
 
@@ -101,7 +102,7 @@ internal static partial class FieldCache<T>
     private delegate void RefSetter<TVal>(ref T obj, TVal value);
 
     // Cache riêng cho ref-setters — key là fieldIndex
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, object> _refSetterCache = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, object> s_refSetterCache = new();
 
     /// <summary>
     /// Set field value trực tiếp lên struct gốc thông qua ref T.
@@ -112,13 +113,12 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TField>(ref T obj, int fieldIndex, TField value)
     {
-        FieldSchema metadata = _metadata[fieldIndex];
+        FieldSchema metadata = s_metadata[fieldIndex];
 
         if (metadata.FieldType != typeof(TField))
         {
-            throw new InvalidOperationException(
-                $"Field '{metadata.Name}' expects type '{metadata.FieldType}', " +
-                $"but got '{typeof(TField)}'.");
+            throw new SerializationFailureException(
+                $"Field '{metadata.Name}' expects type '{metadata.FieldType}', but got '{typeof(TField)}'.");
         }
 
         RefSetter<TField> setter = GetOrCreateRefSetter<TField>(fieldIndex, metadata);
@@ -130,7 +130,7 @@ internal static partial class FieldCache<T>
         int fieldIndex,
         FieldSchema metadata)
     {
-        return (RefSetter<TField>)_refSetterCache.GetOrAdd(fieldIndex, _ =>
+        return (RefSetter<TField>)s_refSetterCache.GetOrAdd(fieldIndex, _ =>
         {
             // (ref T obj, TField value) => obj.<FieldName> = value
             System.Linq.Expressions.ParameterExpression objParam = System.Linq.Expressions.Expression.Parameter(typeof(T).MakeByRefType(), "obj");         // ref T

@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Internal.Reflection;
 
@@ -62,8 +63,10 @@ internal abstract class FieldAccessor<
     {
         if (schema.Equals(default))
         {
-            throw new ArgumentNullException(nameof(schema));
+            throw new SerializationFailureException(
+                $"[{nameof(FieldAccessor<>)}.{nameof(Create)}] Invalid argument: {nameof(schema)} is default (index={index}).");
         }
+
         ArgumentNullException.ThrowIfNull(schema.FieldInfo, nameof(schema.FieldInfo));
 
         // Normalize and validate target field type
@@ -96,7 +99,7 @@ internal abstract class FieldAccessor<
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to create accessor for field '{schema.Name}' of type '{fieldType}'.", ex);
+            throw new SerializationFailureException($"Failed to create accessor for field '{schema.Name}' of type '{fieldType}'.", ex);
         }
     }
 

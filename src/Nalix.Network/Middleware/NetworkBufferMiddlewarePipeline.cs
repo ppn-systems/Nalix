@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
 
@@ -54,7 +55,7 @@ public class NetworkBufferMiddlewarePipeline
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="middleware"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="InternalErrorException">
     /// Thrown if the middleware has already been registered.
     /// </exception>
     /// <remarks>
@@ -69,7 +70,7 @@ public class NetworkBufferMiddlewarePipeline
         {
             if (!_registered.Add(middleware))
             {
-                throw new InvalidOperationException(
+                throw new InternalErrorException(
                     $"Middleware '{middleware.GetType().FullName}' already registered.");
             }
 
@@ -147,7 +148,7 @@ public class NetworkBufferMiddlewarePipeline
         {
             MiddlewareEntry current = snapshot[i];
             INetworkBufferMiddleware middleware = current.Middleware
-                ?? throw new InvalidOperationException("Registered middleware cannot be null.");
+                ?? throw new InternalErrorException("Registered middleware cannot be null.");
             Func<IBufferLease, CancellationToken, Task<IBufferLease?>> localNext = next;
             next = CreateNext(middleware, connection, localNext);
         }

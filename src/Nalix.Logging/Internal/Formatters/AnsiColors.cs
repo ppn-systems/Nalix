@@ -101,7 +101,7 @@ internal static class AnsiColors
     /// <summary>
     /// Cache of color codes by log level to avoid repeated switch statements
     /// </summary>
-    private static readonly string[] _levelColorCache = new string[(int)LogLevel.Critical + 1];
+    private static readonly string[] s_levelColorCache = new string[(int)LogLevel.Critical + 1];
 
     #endregion Fields
 
@@ -113,13 +113,13 @@ internal static class AnsiColors
     static AnsiColors()
     {
         // Initialize color cache
-        _levelColorCache[(int)LogLevel.None] = Cyan;
-        _levelColorCache[(int)LogLevel.Trace] = Orange;
-        _levelColorCache[(int)LogLevel.Debug] = LightCyan;
-        _levelColorCache[(int)LogLevel.Info] = LightGreen;
-        _levelColorCache[(int)LogLevel.Warn] = LightYellow;
-        _levelColorCache[(int)LogLevel.Error] = LightMagenta;
-        _levelColorCache[(int)LogLevel.Critical] = Red;
+        s_levelColorCache[(int)LogLevel.None] = Cyan;
+        s_levelColorCache[(int)LogLevel.Trace] = DarkGray;
+        s_levelColorCache[(int)LogLevel.Debug] = LightCyan;
+        s_levelColorCache[(int)LogLevel.Info] = LightGreen;
+        s_levelColorCache[(int)LogLevel.Warn] = LightYellow;
+        s_levelColorCache[(int)LogLevel.Error] = Red;
+        s_levelColorCache[(int)LogLevel.Critical] = LightMagenta;
     }
 
     #endregion Constructor
@@ -134,9 +134,9 @@ internal static class AnsiColors
     public static string GetForLevel(LogLevel level)
     {
         // Use the cached color if level is within range
-        if ((int)level >= 0 && (int)level < _levelColorCache.Length)
+        if ((int)level >= 0 && (int)level < s_levelColorCache.Length)
         {
-            return _levelColorCache[(int)level];
+            return s_levelColorCache[(int)level];
         }
 
         return White; // Default color for unknown levels

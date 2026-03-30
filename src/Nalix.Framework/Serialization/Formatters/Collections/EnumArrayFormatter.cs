@@ -34,7 +34,7 @@ internal sealed class EnumArrayFormatter<
             System.Type t when t == typeof(short) || t == typeof(ushort) => 2,
             System.Type t when t == typeof(int) || t == typeof(uint) => 4,
             System.Type t when t == typeof(long) || t == typeof(ulong) => 8,
-            _ => throw new SerializationException($"Unsupported enum underlying type: {underlyingType}")
+            _ => throw new SerializationFailureException($"Unsupported enum underlying type: {underlyingType}")
         };
     }
 
@@ -43,7 +43,7 @@ internal sealed class EnumArrayFormatter<
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The array of enum values to serialize.</param>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the underlying type size of the enum is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -86,7 +86,7 @@ internal sealed class EnumArrayFormatter<
     /// </summary>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized array of enum values.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if the array length is out of range or the underlying type size is not supported.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -108,7 +108,7 @@ internal sealed class EnumArrayFormatter<
 
         if (length > SerializerBounds.MaxArray)
         {
-            throw new SerializationException("Array length out of range");
+            throw new SerializationFailureException("Array length out of range");
         }
 
         int totalBytes = length * _elementSize;
@@ -116,7 +116,7 @@ internal sealed class EnumArrayFormatter<
 #if DEBUG
         if (reader.BytesRemaining < totalBytes)
         {
-            throw new SerializationException(
+            throw new SerializationFailureException(
                 $"Buffer underrun when reading array of {typeof(T)}. Needed {totalBytes} bytes.");
         }
 #endif

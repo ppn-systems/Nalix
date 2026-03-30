@@ -15,6 +15,7 @@ namespace Nalix.Logging.Internal.Pooling;
 /// </summary>
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
+[SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
 internal static class TimestampCache
 {
     #region Fields

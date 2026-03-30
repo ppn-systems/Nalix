@@ -30,7 +30,10 @@ public sealed class PacketCommandHandler
     [PacketPermission(PermissionLevel.NONE)]
     [PacketTag("ping")]
     public static async Task Ping(PacketContext<IPacket> context)
-        => await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Second smoke test route.
@@ -41,7 +44,10 @@ public sealed class PacketCommandHandler
     [PacketPermission(PermissionLevel.NONE)]
     [PacketTag("pong")]
     public static async Task Pong(PacketContext<IPacket> context)
-        => await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Performs the server side of the demo handshake.
@@ -57,6 +63,7 @@ public sealed class PacketCommandHandler
     [PacketTag("handshake")]
     public static async Task Handshake(PacketContext<IPacket> context)
     {
+        ArgumentNullException.ThrowIfNull(context);
         HandshakePacket handshake = (HandshakePacket)context.Packet;
 
         // Reject the packet early if any required field is missing.
@@ -134,7 +141,8 @@ public sealed class PacketCommandHandler
                 ControlType.ERROR,
                 ProtocolReason.INTERNAL_ERROR,
                 ProtocolAdvice.BACKOFF_RETRY,
-                flags: ControlFlags.IS_TRANSIENT).ConfigureAwait(false);
+                new ControlDirectiveOptions(
+                    Flags: ControlFlags.IS_TRANSIENT)).ConfigureAwait(false);
         }
         finally
         {

@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
@@ -146,7 +147,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// <exception cref="InvalidOperationException">
     /// Thrown when <see cref="EnsureArgsBound"/> has not been called yet.
     /// </exception>
-    public SocketAsyncEventArgs Args => _args ?? throw new InvalidOperationException("Args not bound.");
+    public SocketAsyncEventArgs Args => _args ?? throw new InternalErrorException("Args not bound.");
 
     /// <summary>
     /// Ensures this context has a bound SAEA, acquiring one from

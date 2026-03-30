@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -94,7 +95,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpSession"/> class.
     /// </summary>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="InternalErrorException">
     /// Thrown when required configuration or dependencies cannot be loaded.
     /// </exception>
     public TcpSession() : base()
@@ -110,14 +111,12 @@ public sealed class TcpSession : TcpSessionBase
         }
         catch (Exception ex)
         {
-            this.Logger?.Error($"[SDK.{this.GetType().Name}] Failed to load TransportOptions: {ex.Message}", ex);
-            throw new InvalidOperationException("Failed to load TransportOptions", ex);
+            throw new InternalErrorException($"[SDK.{this.GetType().Name}] Failed to load TransportOptions: {ex.Message}", ex);
         }
 
         if (this.Catalog is null)
         {
-            this.Logger?.Error($"[SDK.{this.GetType().Name}] Missing IPacketRegistry");
-            throw new InvalidOperationException("Missing IPacketRegistry");
+            throw new InternalErrorException($"[SDK.{this.GetType().Name}] Missing IPacketRegistry");
         }
     }
 
@@ -189,7 +188,7 @@ public sealed class TcpSession : TcpSessionBase
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="ArgumentException">Thrown when host is invalid.</exception>
-    /// <exception cref="SocketException">Thrown when connection fails.</exception>
+    /// <exception cref="NetworkException">Thrown when connection fails.</exception>
     public override async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
@@ -292,8 +291,7 @@ public sealed class TcpSession : TcpSessionBase
         }
 
         this.SetState(TcpSessionState.Disconnected);
-        this.Logger?.Error($"[SDK.{this.GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx!);
-        throw lastEx ?? new SocketException((int)SocketError.HostNotFound);
+        throw new NetworkException($"[SDK.{this.GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx ?? new SocketException((int)SocketError.HostNotFound));
     }
 
     #endregion APIs

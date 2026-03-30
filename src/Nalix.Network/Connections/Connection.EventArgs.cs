@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -46,11 +47,11 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     #region Properties
 
     /// <inheritdoc/>
-    public IBufferLease Lease => _lease ?? throw new InvalidOperationException("Buffer lease is not available for this event.");
+    public IBufferLease Lease => _lease ?? throw new InternalErrorException("Buffer lease is not available for this event.");
 
     /// <inheritdoc />
     [AllowNull]
-    public IConnection Connection { get => field ?? throw new InvalidOperationException("Connection is not available for this event."); private set; }
+    public IConnection Connection { get => field ?? throw new InternalErrorException("Connection is not available for this event."); private set; }
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint => this.Connection.NetworkEndpoint;

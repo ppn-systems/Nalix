@@ -25,7 +25,7 @@ internal static partial class FieldCache<T>
     /// <returns>The count of cached fields.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetFieldCount() => _metadata.Length;
+    public static int GetFieldCount() => s_metadata.Length;
 
     /// <summary>
     /// Retrieves all cached field metadata as a span.
@@ -34,7 +34,7 @@ internal static partial class FieldCache<T>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlySpan<FieldSchema> GetFields()
-        => MemoryExtensions.AsSpan(_metadata);
+        => MemoryExtensions.AsSpan(s_metadata);
 
     /// <summary>
     /// Retrieves metadata for a field at the given index.
@@ -43,7 +43,7 @@ internal static partial class FieldCache<T>
     /// <returns>The metadata for the specified field.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FieldSchema GetField(int index) => _metadata[index];
+    public static FieldSchema GetField(int index) => s_metadata[index];
 
     /// <summary>
     /// Retrieves metadata for a field by its name.
@@ -61,18 +61,18 @@ internal static partial class FieldCache<T>
     {
         ArgumentNullException.ThrowIfNull(fieldName);
 
-        if (fieldName.Length is 0)
+        if (fieldName.Length == 0)
         {
-            throw new ArgumentException("Field name cannot be empty.", nameof(fieldName));
+            throw new ArgumentException("Field name cannot be empty.");
         }
-        else if (_fieldIndex.TryGetValue(fieldName, out int index))
+
+        if (s_fieldIndex.TryGetValue(fieldName, out int index))
         {
-            return _metadata[index];
+            return s_metadata[index];
         }
-        else
-        {
-            throw new KeyNotFoundException($"Field '{fieldName}' not found in type {typeof(T).FullName}");
-        }
+
+        throw new KeyNotFoundException(
+            $"Field not found: name='{fieldName}', type={typeof(T).FullName}.");
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ internal static partial class FieldCache<T>
     /// <returns><c>true</c> if the field exists; otherwise, <c>false</c>.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool HasField(string fieldName) => _fieldIndex.ContainsKey(fieldName);
+    public static bool HasField(string fieldName) => s_fieldIndex.ContainsKey(fieldName);
 
     /// <summary>
     /// Gets the type of the specified field by its name.

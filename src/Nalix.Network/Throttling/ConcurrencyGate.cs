@@ -86,7 +86,7 @@ public sealed class ConcurrencyGate : IReportable
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}] initialization-error", ex);
+            throw new InternalErrorException($"[NW.{nameof(ConcurrencyGate)}] initialization-error: {ex.Message}", ex);
         }
     }
 
@@ -465,7 +465,7 @@ public sealed class ConcurrencyGate : IReportable
     /// <param name="opcode"></param>
     /// <param name="attr"></param>
     /// <param name="ct"></param>
-    /// <exception cref="ConcurrencyConflictException"></exception>
+    /// <exception cref="ConcurrencyFailureException"></exception>
     /// <exception cref="TimeoutException"></exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public async ValueTask<Lease> EnterAsync(ushort opcode, PacketConcurrencyLimitAttribute attr, CancellationToken ct = default)
@@ -482,7 +482,7 @@ public sealed class ConcurrencyGate : IReportable
 
         if (!entry.TryAcquire())
         {
-            throw new ConcurrencyConflictException(
+            throw new ConcurrencyFailureException(
                 $"Entry for opcode {opcode:X4} is being disposed");
         }
 
@@ -494,7 +494,7 @@ public sealed class ConcurrencyGate : IReportable
                 if (!entry.Sem.Wait(0, linkedCts.Token))
                 {
                     _ = Interlocked.Increment(ref _totalRejected);
-                    throw new ConcurrencyConflictException(
+                    throw new ConcurrencyFailureException(
                         $"Concurrency limit reached for opcode {opcode:X4} (no queue)");
                 }
 
@@ -813,7 +813,7 @@ public sealed class ConcurrencyGate : IReportable
         if (!entry.TryIncrementQueue())
         {
             _ = Interlocked.Increment(ref _totalRejected);
-            throw new ConcurrencyConflictException(
+            throw new ConcurrencyFailureException(
                 $"Concurrency queue is full for opcode {opcode:X4} " +
                 $"(limit={entry.QueueMax}, current={entry.QueueCount})");
         }

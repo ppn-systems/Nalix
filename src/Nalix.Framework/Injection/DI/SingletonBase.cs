@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Common.Exceptions;
 
 namespace Nalix.Framework.Injection.DI;
 
@@ -116,7 +117,7 @@ public abstract class SingletonBase<T> : IDisposable where T : class
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException(
+            throw new InternalErrorException(
                 $"Failed to create singleton instance of type {typeof(T).FullName}. " +
                 "Ensure it has a parameterless constructor (private/protected).", ex);
         }

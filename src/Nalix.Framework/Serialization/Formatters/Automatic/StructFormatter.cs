@@ -42,7 +42,7 @@ internal sealed class StructFormatter<
     /// <summary>
     /// Initializes a new instance of <see cref="ObjectFormatter{T}"/>.
     /// </summary>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if initialization of property accessors fails.
     /// </exception>
     public StructFormatter()
@@ -60,7 +60,7 @@ internal sealed class StructFormatter<
                                     .Error($"[StructFormatter<{typeof(T).Name}>] " +
                                            $"init-fail msg={ex.Message}");
 
-            throw new SerializationException($"Formatter initialization failed for {typeof(T).Name}", ex);
+            throw new SerializationFailureException($"Formatter initialization failed for {typeof(T).Name}", ex);
         }
     }
 
@@ -73,7 +73,7 @@ internal sealed class StructFormatter<
     /// </summary>
     /// <param name="writer">The binary writer used for serialization.</param>
     /// <param name="value">The object to serialize.</param>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if serialization encounters an error.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -91,7 +91,7 @@ internal sealed class StructFormatter<
     /// </summary>
     /// <param name="reader">The binary reader containing serialized data.</param>
     /// <returns>The deserialized object.</returns>
-    /// <exception cref="SerializationException">
+    /// <exception cref="SerializationFailureException">
     /// Thrown if deserialization encounters an error.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(

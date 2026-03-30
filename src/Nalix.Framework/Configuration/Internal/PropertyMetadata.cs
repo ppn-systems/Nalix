@@ -4,7 +4,6 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -63,21 +62,17 @@ internal class PropertyMetadata
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public void SetValue(
-        object target,
-        [MaybeNull] object? value)
+    public void SetValue(object target, object? value)
     {
         // Only set if the types are compatible
-        if (value == null || this.PropertyType.IsInstanceOfType(value))
+        if (value is null || this.PropertyType.IsInstanceOfType(value))
         {
             this.PropertyInfo.SetValue(target, value);
+            return;
         }
-        else
-        {
-            throw new InvalidOperationException(
-                $"Type mismatch for property {this.Name}: " +
-                $"Expected {this.PropertyType}, but got {value.GetType()}");
-        }
+
+        throw new ArgumentException(
+            $"Type mismatch: property={this.Name}, expected={this.PropertyType.FullName}, actual={value.GetType().FullName}.");
     }
 
     #endregion Public Methods

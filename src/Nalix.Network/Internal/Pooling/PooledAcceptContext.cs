@@ -11,10 +11,10 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Concurrency;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-
-
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
@@ -45,7 +45,7 @@ internal sealed class PooledAcceptContext : IPoolable
         _ = e.SocketError == SocketError.Success
             ? e.AcceptSocket is Socket acceptedSocket
                 ? tcs.TrySetResult(acceptedSocket)
-                : tcs.TrySetException(new InvalidOperationException("TryAccept completed successfully without a socket."))
+                : tcs.TrySetException(new InternalErrorException("TryAccept completed successfully without a socket."))
             : tcs.TrySetException(new SocketException((int)e.SocketError));
     };
 
@@ -53,7 +53,7 @@ internal sealed class PooledAcceptContext : IPoolable
 
     /// <summary>The SAEA currently bound to this context.</summary>
     /// <exception cref="InvalidOperationException"></exception>
-    public SocketAsyncEventArgs Args => _args ?? throw new InvalidOperationException("Args not bound.");
+    public SocketAsyncEventArgs Args => _args ?? throw new InternalErrorException("Args not bound.");
 
     /// <summary>
     /// Ensures that this context has a bound SAEA, acquiring one from the pool if necessary.
@@ -70,7 +70,7 @@ internal sealed class PooledAcceptContext : IPoolable
 
             if (pooledArgs == null)
             {
-                throw new InvalidOperationException("Failed to acquire PooledSocketAsyncEventArgs.");
+                throw new InternalErrorException("Failed to acquire PooledSocketAsyncEventArgs.");
             }
 
             this.BindArgs(pooledArgs);
@@ -158,7 +158,7 @@ internal sealed class PooledAcceptContext : IPoolable
                 args.AcceptSocket = null;
                 if (s is null)
                 {
-                    _ = tcs.TrySetException(new InvalidOperationException("TryAccept completed successfully without a socket."));
+                    _ = tcs.TrySetException(new InternalErrorException("TryAccept completed successfully without a socket."));
                 }
                 else
                 {

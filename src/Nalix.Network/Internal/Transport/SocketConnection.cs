@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
@@ -19,6 +20,7 @@ using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
@@ -299,9 +301,9 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
             if (n == 0)
             {
-                throw new IOException("Peer closed (FIN)",
-                    new SocketException(
-                        (int)SocketError.Shutdown));
+                throw new NetworkException(
+                    $"Connection closed (FIN): read={read}, required={count}, endpoint={_socket.RemoteEndPoint}.",
+                    new SocketException((int)SocketError.ConnectionReset));
             }
 
 #if DEBUG
@@ -309,7 +311,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
             {
                 s_logger?.Debug(
                     $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_EXACTLY_ASYNC)}] " +
-                    $"partial recv got={n} need={count} offset={offset} ep={_socket.RemoteEndPoint}");
+                    $"partial recv: got={n}, need={count}, offset={offset}, ep={_socket.RemoteEndPoint}");
             }
 #endif
             read += n;
@@ -649,6 +651,11 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
             return true;
         }
 
+        if (ex is NetworkException netEx && netEx.InnerException != null)
+        {
+            return IS_BENIGN_DISCONNECT(netEx.InnerException);
+        }
+
         if (ex is SocketException se)
         {
             return se.SocketErrorCode
@@ -714,7 +721,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     {
         if (_sender is null || _cachedArgs is null)
         {
-            throw new InvalidOperationException("SetCallback must be called before use");
+            throw new InternalErrorException("SetCallback must be called before use");
         }
     }
 

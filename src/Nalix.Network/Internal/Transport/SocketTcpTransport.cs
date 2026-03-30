@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Memory.Buffers;
@@ -142,7 +143,7 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITcp
             }
             finally { max.Return(pkt); }
         }
-        throw new InvalidOperationException("Unable to serialize string for transmission.");
+        throw new InternalErrorException("Unable to serialize string for transmission.");
     }
 
     [StackTraceHidden]
@@ -183,6 +184,6 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITcp
             finally { max.Return(pkt); }
         }
 
-        throw new InvalidOperationException("Unable to serialize string for transmission.");
+        throw new InternalErrorException("Unable to serialize string for transmission.");
     }
 }

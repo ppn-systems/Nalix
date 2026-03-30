@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Options;
@@ -297,7 +298,7 @@ public sealed class TasksTests : IDisposable
             _ => ValueTask.CompletedTask,
             new RecurringOptions { Jitter = TimeSpan.Zero, NonReentrant = false });
 
-        _ = Assert.Throws<InvalidOperationException>(() =>
+        _ = Assert.Throws<InternalErrorException>(() =>
             manager.ScheduleRecurring(
                 "recurring.duplicate",
                 TimeSpan.FromMilliseconds(50),

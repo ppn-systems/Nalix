@@ -10,6 +10,7 @@ using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -64,7 +65,7 @@ public abstract partial class TcpListenerBase : IListener
     /// <summary>
     /// Enables or disables the update loop for the listener.
     /// </summary>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="InternalErrorException"></exception>
     public bool IsTimeSyncEnabled
     {
         [DebuggerStepThrough]
@@ -77,7 +78,7 @@ public abstract partial class TcpListenerBase : IListener
         {
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
-                throw new InvalidOperationException("Cannot change IsTimeSyncEnabled while listening.");
+                throw new InternalErrorException("Cannot change IsTimeSyncEnabled while listening.");
             }
 
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled = value;

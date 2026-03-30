@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
@@ -211,7 +212,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             s_logger?.Debug("[NW.PacketSender] ERROR: Unexpected state reached!");
 #endif
 
-            throw new InvalidOperationException("Unexpected state in packet sending logic.");
+            throw new InternalErrorException("Unexpected state in packet sending logic.");
         }
         finally
         {
@@ -220,7 +221,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
     }
 
     private PacketContext<TPacket> GET_CONTEXT_OR_THROW()
-        => _context ?? throw new InvalidOperationException($"{nameof(PacketSender<>)} must be initialized before sending.");
+        => _context ?? throw new InternalErrorException($"{nameof(PacketSender<>)} must be initialized before sending.");
 
     #endregion Private Methods
 }
