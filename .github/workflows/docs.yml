@@ -3,9 +3,6 @@ name: Deploy Docs
 on:
   push:
     branches: [master]
-    tags:
-      - 'docs*'
-      - 'doc*'
     paths:
       - 'docs/**'
   workflow_dispatch:
@@ -16,6 +13,27 @@ permissions:
   id-token: write
 
 jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if PR has 'documentation' label
+        id: label_check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            const hasDocsLabel = labels.data.some(label => label.name === 'documentation');
+            core.setOutput('hasDocsLabel', hasDocsLabel);
+      - name: End early if missing label
+        if: steps.label_check.outputs.hasDocsLabel != 'true'
+        run: |
+          echo "If PR lacks label documentation, skip the remaining steps."
+          exit 0
+
   lint:
     runs-on: ubuntu-latest
 
