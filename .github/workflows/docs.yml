@@ -15,6 +15,9 @@ permissions:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
     steps:
       - name: Check if PR has 'documentation' label
         id: label_check
