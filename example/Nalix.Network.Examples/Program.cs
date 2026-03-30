@@ -15,7 +15,7 @@ using Nalix.Network.Examples.Attributes;
 using Nalix.Network.Examples.Handlers;
 using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 using Nalix.Network.Options;
 using Nalix.Runtime.Options;
 
