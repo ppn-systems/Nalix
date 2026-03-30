@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Text;
 using Nalix.Common.Diagnostics;
 using Nalix.Logging.Internal.Formatters;
+using Nalix.Logging.Internal.Pooling;
 
 namespace Nalix.Logging.Formatters;
 
@@ -21,14 +22,14 @@ internal class AnsiColorFormatter : ILoggerFormatter
     private const string TimestampFormat = "HH:mm:ss.fff";
 
     /// <inheritdoc/>
-    public string Format(LogEntry logEntry)
+    public string Format(LogEntry message)
     {
-        string timestamp = logEntry.Timestamp.ToString(TimestampFormat, CultureInfo.InvariantCulture);
-        string levelColor = AnsiColors.GetForLevel(logEntry.LogLevel);
+        string timestamp = TimestampCache.GetFormattedTimestamp(message.Timestamp, TimestampFormat);
+        string levelColor = AnsiColors.GetForLevel(message.LogLevel);
 
-        Exception? ex = logEntry.Exception;
-        bool hasException = logEntry.Exception is not null;
-        bool hasEventId = logEntry.EventId != EventId.Empty;
+        Exception? ex = message.Exception;
+        bool hasException = message.Exception is not null;
+        bool hasEventId = message.EventId != EventId.Empty;
 
         int exceptionLen = 0;
         if (ex != null)
@@ -46,12 +47,12 @@ internal class AnsiColorFormatter : ILoggerFormatter
         int len =
             AnsiColors.White.Length + 1 + timestamp.Length + 1 + // [timestamp] với màu
             AnsiColors.White.Length + 1 + 4 + 1 +                 // [LVL] với màu
-            (hasEventId ? AnsiColors.Cyan.Length + 1 + 5 + 1 + (logEntry.EventId.Name?.Length ?? 0) + 1 + AnsiColors.DarkGray.Length : 0) + // [EventId]
-            logEntry.Message.Length + 3 +                        // Message + " - "
+            (hasEventId ? AnsiColors.Cyan.Length + 1 + 5 + 1 + (message.EventId.Name?.Length ?? 0) + 1 + AnsiColors.DarkGray.Length : 0) + // [EventId]
+            message.Message.Length + 3 +                        // Message + " - "
             exceptionLen
             + 32; // buffer dư
 
-        return string.Create(len, (logEntry, timestamp, levelColor, hasEventId, hasException), (span, state) =>
+        return string.Create(len, (message, timestamp, levelColor, hasEventId, hasException), (span, state) =>
         {
             (LogEntry entry, string? ts, string? color, bool evt, bool ex) = state;
             int pos = 0;
@@ -111,30 +112,30 @@ internal class AnsiColorFormatter : ILoggerFormatter
     }
 
     /// <inheritdoc/>
-    public void Format(LogEntry logEntry, StringBuilder sb)
+    public void Format(LogEntry message, StringBuilder sb)
     {
         ArgumentNullException.ThrowIfNull(sb);
 
         _ = sb.Append(AnsiColors.White)
               .Append('[')
               .Append(AnsiColors.Blue)
-              .Append(logEntry.Timestamp.ToString(TimestampFormat, CultureInfo.InvariantCulture))
+              .Append(TimestampCache.GetFormattedTimestamp(message.Timestamp, TimestampFormat))
               .Append(AnsiColors.White)
               .Append(']')
               .Append(' ')
-              .Append(AnsiColors.GetForLevel(logEntry.LogLevel))
-              .Append('[').Append(LogLevelShortNames.GetShortName(logEntry.LogLevel)).Append(']')
+              .Append(AnsiColors.GetForLevel(message.LogLevel))
+              .Append('[').Append(LogLevelShortNames.GetShortName(message.LogLevel)).Append(']')
               .Append(AnsiColors.White);
 
-        if (logEntry.EventId != EventId.Empty)
+        if (message.EventId != EventId.Empty)
         {
             _ = sb.Append(' ')
-                  .Append(AnsiColors.Cyan).Append('[').Append(logEntry.EventId.Id);
+                  .Append(AnsiColors.Cyan).Append('[').Append(message.EventId.Id);
 
-            if (!string.IsNullOrEmpty(logEntry.EventId.Name))
+            if (!string.IsNullOrEmpty(message.EventId.Name))
             {
                 _ = sb.Append(':')
-                      .Append(AnsiColors.DarkGray).Append(logEntry.EventId.Name);
+                      .Append(AnsiColors.DarkGray).Append(message.EventId.Name);
             }
             _ = sb.Append(']')
                   .Append(AnsiColors.White);
@@ -145,13 +146,13 @@ internal class AnsiColorFormatter : ILoggerFormatter
               .Append(" - ")
               .Append(AnsiColors.White)
               .Append(' ')
-              .Append(logEntry.Message);
+              .Append(message.Message);
 
-        if (logEntry.Exception is not null)
+        if (message.Exception is not null)
         {
             _ = sb.Append(AnsiColors.Red)
                   .Append(" - Exception: ")
-                  .Append(logEntry.Exception)
+                  .Append(message.Exception)
                   .Append(AnsiColors.White);
         }
     }

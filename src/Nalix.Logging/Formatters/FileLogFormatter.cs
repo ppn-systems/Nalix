@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using Nalix.Common.Diagnostics;
 using Nalix.Logging.Internal.Formatters;
+using Nalix.Logging.Internal.Pooling;
 
 namespace Nalix.Logging.Formatters;
 
@@ -38,7 +39,7 @@ public sealed class FileLogFormatter : ILoggerFormatter
     /// </example>
     public string Format(LogEntry message)
     {
-        string timestamp = message.Timestamp.ToString(TimestampFormat, CultureInfo.InvariantCulture);
+        string timestamp = TimestampCache.GetFormattedTimestamp(message.Timestamp, TimestampFormat);
 
         bool hasEventId = message.EventId != EventId.Empty;
         bool hasException = message.Exception is not null;
@@ -100,14 +101,12 @@ public sealed class FileLogFormatter : ILoggerFormatter
     {
         ArgumentNullException.ThrowIfNull(sb);
 
-        string timestamp = message.Timestamp.ToString(TimestampFormat, CultureInfo.InvariantCulture);
-
         bool hasEventId = message.EventId != EventId.Empty;
         bool hasException = message.Exception is not null;
 
         // [timestamp]
         _ = sb.Append('[')
-              .Append(timestamp)
+              .Append(TimestampCache.GetFormattedTimestamp(message.Timestamp, TimestampFormat))
               .Append(']')
               .Append(' ');
 
