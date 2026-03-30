@@ -7,15 +7,15 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Networking.Packets;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.SDK.Configuration;
 using Nalix.Framework.Options;
+using Nalix.SDK.Configuration;
 
 namespace Nalix.SDK.Transport.Internal;
 
@@ -258,7 +258,14 @@ internal sealed class FRAME_SENDER : IDisposable
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_SENDER)}] drain-loop-faulted: {ex.Message}", ex);
+            if (_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                _logger.LogError(
+                    ex,
+                    "[SDK.FRAME_SENDER] drain-loop-faulted: {ExceptionMessage}",
+                    ex.Message
+                );
+            }
 
             _onError(ex);
         }
@@ -303,7 +310,14 @@ internal sealed class FRAME_SENDER : IDisposable
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_SENDER)}:{nameof(SEND_FRAME_ASYNC)}] send-error: {ex.Message}", ex);
+            if (_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                _logger.LogError(
+                    ex,
+                    "[SDK.FRAME_SENDER:SEND_FRAME_ASYNC] send-error: {ExceptionMessage}",
+                    ex.Message
+                );
+            }
 
             _ = tcs.TrySetResult(false);
             _onError(ex);
