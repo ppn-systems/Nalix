@@ -316,6 +316,14 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureCertificate(string certificatePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(certificatePath);
+        _state.IdentityCertificatePath = certificatePath;
+        return this;
+    }
+
+    /// <inheritdoc />
     public NetworkApplication Build()
     {
         bool metadataRegistered = false;
@@ -327,6 +335,15 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             this.EnsureConnectionHubRegistered();
             this.EnsureBufferPoolManagerRegistered();
+
+            if (_state.IdentityCertificatePath is not null)
+            {
+                HandshakeHandlers.SetCertificatePath(_state.IdentityCertificatePath);
+            }
+            else
+            {
+                HandshakeHandlers.Initialize();
+            }
 
             if (!metadataRegistered)
             {
