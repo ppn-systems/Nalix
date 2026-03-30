@@ -53,3 +53,4 @@ benchmarks/BenchmarkDotNet.Artifacts
 nalix-docs
 .dotnet/
 BenchmarkDotNet.Artifacts
+site/
