@@ -105,8 +105,7 @@ internal static partial class TypeMetadata
     /// <returns>True if the type is a reference type or nullable; otherwise, false.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsReferenceOrNullable<[DynamicallyAccessedMembers(PropertyAccess)] T>()
-        => Cache<T>.IsReference || Cache<T>.IsNullable;
+    public static bool IsReferenceOrNullable<[DynamicallyAccessedMembers(PropertyAccess)] T>() => Cache<T>.IsReference || Cache<T>.IsNullable;
 
     /// <summary>
     /// Attempts to retrieve the fixed or unmanaged size of a type.
