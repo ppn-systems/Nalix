@@ -18,7 +18,7 @@ namespace Nalix.Logging;
 /// combining structured logging and customizable output targets.
 /// </para>
 /// <para>
-/// This class is the core of the Nalix logging system, and implements <see cref="Common.Diagnostics.ILogger"/> for unified logging.
+/// This class is the core of the Nalix logging system, and implements <see cref="ILogger"/> for unified logging.
 /// Use this logger to write diagnostic messages, errors, warnings, or audit logs across the application.
 /// </para>
 /// </summary>
@@ -29,7 +29,7 @@ namespace Nalix.Logging;
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("Logger=NLogix, {GetType().Name,nq}")]
-public sealed partial class NLogix : NLogixEngine, Common.Diagnostics.ILogger
+public sealed partial class NLogix : NLogixEngine, ILogger
 {
     #region Constructors
 
