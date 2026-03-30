@@ -79,7 +79,7 @@ internal class AnsiColorFormatter : ILoggerFormatter
 
                 AnsiColors.Cyan.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.Cyan.Length;
                 span[pos++] = '[';
-                bool idLen = entry.EventId.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
+                entry.EventId.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
                 pos += written;
 
                 if (!string.IsNullOrEmpty(entry.EventId.Name))
