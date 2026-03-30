@@ -10,7 +10,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Serialization;
@@ -165,12 +165,23 @@ public static class FormatterProvider
         Register(new NullableFormatter<UInt56>());
         Register(new NullableArrayFormatter<UInt56>());
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info(
-            $"[SH.FormatterProvider] init-ok in {s_sw.ElapsedMilliseconds} ms. " +
-            $"total={s_cntTotal}, primitives={s_cntPrimitives}, nullables={s_cntNullables}, " +
-            $"arrays={s_cntArrays}, nullableArrays={s_cntNullableArrays}, " +
-            $"lists={s_cntLists}, enums={s_cntEnums}, strings={s_cntStrings}"
-        );
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        if (logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            logger.LogInformation(
+                "[SH.FormatterProvider] init-ok in {ElapsedMs} ms. total={Total}, primitives={Primitives}, " +
+                "nullables={Nullables}, arrays={Arrays}, nullableArrays={NullableArrays}, lists={Lists}, enums={Enums}, strings={Strings}",
+                s_sw.ElapsedMilliseconds,
+                s_cntTotal,
+                s_cntPrimitives,
+                s_cntNullables,
+                s_cntArrays,
+                s_cntNullableArrays,
+                s_cntLists,
+                s_cntEnums,
+                s_cntStrings
+            );
+        }
     }
 
     #endregion Constructors

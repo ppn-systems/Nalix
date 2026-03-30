@@ -12,8 +12,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Concurrency;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Framework.Configuration;
@@ -131,8 +131,15 @@ public sealed partial class TaskManager : ITaskManager
             );
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}] init cleanup-iv={_options.CleanupInterval.TotalSeconds:F0}s concurrency={_currentConcurrencyLimit}");
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        if (logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            logger.LogInformation(
+                "[FW.TaskManager] init cleanup-iv={CleanupInterval}s concurrency={ConcurrencyLimit}",
+                _options.CleanupInterval.TotalSeconds,
+                _currentConcurrencyLimit
+            );
+        }
     }
 
     /// <summary>
@@ -196,6 +203,8 @@ public sealed partial class TaskManager : ITaskManager
             gate = _groupGates.GetOrAdd(group, _ => new Gate(new SemaphoreSlim(cap, cap), cap));
         }
 
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
         // run
         try
         {
@@ -214,8 +223,13 @@ public sealed partial class TaskManager : ITaskManager
                                                                .ConfigureAwait(false);
                             if (!acquired)
                             {
-                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                        .Warn($"[FW.{nameof(TaskManager)}] worker-reject name={name} group={group} reason=group-cap");
+                                if (logger?.IsEnabled(LogLevel.Warning) == true)
+                                {
+                                    logger.LogWarning(
+                                        "[FW.TaskManager] worker-reject name={Name} group={Group} reason=group-cap",
+                                        name, group
+                                    );
+                                }
 
                                 _ = _workers.TryRemove(id, out _);
                                 try
@@ -224,8 +238,14 @@ public sealed partial class TaskManager : ITaskManager
                                 }
                                 catch (Exception ex)
                                 {
-                                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                            .Warn($"[FW.{nameof(TaskManager)}] cts-dispose-error-reject id={id} msg={ex.Message}");
+                                    if (logger?.IsEnabled(LogLevel.Warning) == true)
+                                    {
+                                        logger.LogWarning(
+                                            "[FW.TaskManager] cts-dispose-error-reject id={Id} msg={Message}",
+                                            id,
+                                            ex.Message
+                                        );
+                                    }
                                 }
 
                                 return;
@@ -265,8 +285,16 @@ public sealed partial class TaskManager : ITaskManager
                     st.MarkError(ex);
                     _ = Interlocked.Increment(ref _workerErrorCount);
 
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[FW.{nameof(TaskManager)}] worker-error id={id} name={name} msg={ex.Message}");
+                    if (logger?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        logger.LogError(
+                            ex,
+                            "[FW.TaskManager] worker-error id={Id} name={Name} msg={Message}",
+                            id,
+                            name,
+                            ex.Message
+                        );
+                    }
                 }
                 finally
                 {
@@ -285,8 +313,15 @@ public sealed partial class TaskManager : ITaskManager
                     {
                         _ = Interlocked.Increment(ref _workerErrorCount);
 
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Warn($"[FW.{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
+                        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+                        if (logger?.IsEnabled(LogLevel.Warning) == true)
+                        {
+                            logger.LogWarning(
+                                "[FW.TaskManager] worker-callback-error id={Id} msg={Message}",
+                                id,
+                                cbex.Message
+                            );
+                        }
                     }
 
                     if (gate is not null && acquired)
@@ -299,8 +334,15 @@ public sealed partial class TaskManager : ITaskManager
                         {
                             _ = Interlocked.Increment(ref _workerErrorCount);
 
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[FW.{nameof(TaskManager)}] gate-release-error id={id} msg={ex.Message}");
+                            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+                            if (logger?.IsEnabled(LogLevel.Warning) == true)
+                            {
+                                logger.LogWarning(
+                                    "[FW.TaskManager] gate-release-error id={Id} msg={Message}",
+                                    id,
+                                    ex.Message
+                                );
+                            }
                         }
                     }
 
@@ -309,8 +351,16 @@ public sealed partial class TaskManager : ITaskManager
                 }
             }, cts.Token);
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} tag={options.Tag ?? "-"}");
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.LogDebug(
+                    "[FW.TaskManager] worker-start id={Id} name={Name} group={Group} tag={Tag}",
+                    id,
+                    name,
+                    group,
+                    options.Tag ?? "-"
+                );
+            }
 
             return st;
         }
@@ -358,9 +408,18 @@ public sealed partial class TaskManager : ITaskManager
         {
             st.Task = Task.Run(() => this.RECURRING_LOOP_ASYNC(st, work), cts.Token);
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} " +
-                                           $"iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.LogDebug(
+                    "[FW.TaskManager] start-recurring name={Name} iv={IntervalMs}ms nonReentrant={NonReentrant} tag={Tag}",
+                    name,
+                    interval.TotalMilliseconds,
+                    options.NonReentrant,
+                    options.Tag ?? "-"
+                );
+            }
+
             return st;
         }
         finally
@@ -396,8 +455,12 @@ public sealed partial class TaskManager : ITaskManager
         }
         catch (Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[FW.{nameof(TaskManager)}:{nameof(RunOnceAsync)}] run-once-error name={name} msg={ex.Message}");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+            if (logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                logger.LogError(ex, "[FW.TaskManager:RunOnceAsync] run-once-error name={Name} msg={Message}", name, ex.Message);
+            }
+
             throw;
         }
     }
@@ -418,8 +481,11 @@ public sealed partial class TaskManager : ITaskManager
         }
         if (n > 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+            if (logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                logger.LogInformation("[FW.TaskManager] cancel-all-workers count={Count}", n);
+            }
         }
 
         return n;
@@ -446,13 +512,24 @@ public sealed partial class TaskManager : ITaskManager
             }
             catch (Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] cts-dispose-error id={id} msg={ex.Message}");
+                ILogger? logger1 = InstanceManager.Instance.GetExistingInstance<ILogger>();
+                if (logger1?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    logger1.LogDebug("[FW.TaskManager:CancelWorker] cts-dispose-error id={Id} msg={Message}", id, ex.Message);
+                }
             }
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        if (logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            logger.LogInformation(
+                "[FW.TaskManager:CancelWorker] worker-cancel id={Id} name={Name} group={Group}",
+                id,
+                st.Name,
+                st.Group
+            );
+        }
     }
 
     /// <inheritdoc/>
@@ -472,8 +549,15 @@ public sealed partial class TaskManager : ITaskManager
         }
         if (n > 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+            if (logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                logger.LogInformation(
+                    "[FW.TaskManager:CancelGroup] group-cancel group={Group} count={Count}",
+                    group,
+                    n
+                );
+            }
         }
 
         return n;
@@ -495,6 +579,8 @@ public sealed partial class TaskManager : ITaskManager
         st.Cancel();
 
         Task? t = st.Task;
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
         if (t is not null)
         {
             _ = t.ContinueWith(_ =>
@@ -502,14 +588,26 @@ public sealed partial class TaskManager : ITaskManager
                 try { st.CancellationTokenSource.Dispose(); }
                 catch (Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error name={name} msg={ex.Message}");
+                    if (logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        logger.LogDebug(
+                            "[FW.TaskManager:CancelRecurring] cts-dispose-error name={Name} msg={Message}",
+                            name,
+                            ex.Message
+                        );
+                    }
                 }
                 try { st.Gate.Dispose(); }
                 catch (Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error name={name} msg={ex.Message}");
+                    if (logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        logger.LogDebug(
+                            "[FW.TaskManager:CancelRecurring] gate-dispose-error name={Name} msg={Message}",
+                            name,
+                            ex.Message
+                        );
+                    }
                 }
             },
                 CancellationToken.None,
@@ -525,8 +623,14 @@ public sealed partial class TaskManager : ITaskManager
             }
             catch (Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error-sync name={name} msg={ex.Message}");
+                if (logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    logger.LogDebug(
+                        "[FW.TaskManager:CancelRecurring] cts-dispose-error-sync name={Name} msg={Message}",
+                        name,
+                        ex.Message
+                    );
+                }
             }
             try
             {
@@ -534,13 +638,25 @@ public sealed partial class TaskManager : ITaskManager
             }
             catch (Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error-sync name={name} msg={ex.Message}");
+                if (logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    logger.LogDebug(
+                        "[FW.TaskManager:CancelRecurring] gate-dispose-error-sync name={Name} msg={Message}",
+                        name,
+                        ex.Message
+                    );
+                }
             }
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
+        ILogger? logger1 = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        if (logger1?.IsEnabled(LogLevel.Information) == true)
+        {
+            logger1.LogInformation(
+                "[FW.TaskManager:CancelRecurring] cancel recurring name={Name}",
+                name
+            );
+        }
     }
 
     /// <inheritdoc/>
@@ -923,6 +1039,7 @@ public sealed partial class TaskManager : ITaskManager
         }
 
         _disposed = true;
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         try
         {
@@ -930,8 +1047,13 @@ public sealed partial class TaskManager : ITaskManager
         }
         catch (Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] cleanup-timer-dispose-error msg={ex.Message}");
+            if (logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                logger.LogWarning(
+                    "[FW.TaskManager:Dispose] cleanup-timer-dispose-error msg={Message}",
+                    ex.Message
+                );
+            }
         }
 
         foreach (KeyValuePair<string, RecurringState> kv in _recurring)
@@ -947,14 +1069,26 @@ public sealed partial class TaskManager : ITaskManager
                         try { st.CancellationTokenSource.Dispose(); }
                         catch (Exception ex)
                         {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-cts-dispose-error name={st.Name} msg={ex.Message}");
+                            if (logger?.IsEnabled(LogLevel.Warning) == true)
+                            {
+                                logger.LogWarning(
+                                    "[FW.TaskManager:Dispose] recurring-cts-dispose-error name={Name} msg={Message}",
+                                    st.Name,
+                                    ex.Message
+                                );
+                            }
                         }
                         try { st.Gate.Dispose(); }
                         catch (Exception ex)
                         {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-gate-dispose-error name={st.Name} msg={ex.Message}");
+                            if (logger?.IsEnabled(LogLevel.Warning) == true)
+                            {
+                                logger.LogWarning(
+                                    "[FW.TaskManager:Dispose] recurring-gate-dispose-error name={Name} msg={Message}",
+                                    st.Name,
+                                    ex.Message
+                                );
+                            }
                         }
                     },
                     CancellationToken.None,
@@ -970,8 +1104,14 @@ public sealed partial class TaskManager : ITaskManager
                 }
                 catch (Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-cts-dispose-error-sync name={st.Name} msg={ex.Message}");
+                    if (logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        logger.LogWarning(
+                            "[FW.TaskManager:Dispose] recurring-cts-dispose-error-sync name={Name} msg={Message}",
+                            st.Name,
+                            ex.Message
+                        );
+                    }
                 }
                 try
                 {
@@ -979,8 +1119,14 @@ public sealed partial class TaskManager : ITaskManager
                 }
                 catch (Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-gate-dispose-error-sync name={st.Name} msg={ex.Message}");
+                    if (logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        logger.LogWarning(
+                            "[FW.TaskManager:Dispose] recurring-gate-dispose-error-sync name={Name} msg={Message}",
+                            st.Name,
+                            ex.Message
+                        );
+                    }
                 }
             }
         }
@@ -999,8 +1145,14 @@ public sealed partial class TaskManager : ITaskManager
                 }
                 catch (Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-cts-dispose-error id={st.Id} msg={ex.Message}");
+                    if (logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        logger.LogWarning(
+                            "[FW.TaskManager:Dispose] worker-cts-dispose-error id={Id} msg={Message}",
+                            st.Id,
+                            ex.Message
+                        );
+                    }
                 }
             }
             else if (t is not null)
@@ -1013,8 +1165,14 @@ public sealed partial class TaskManager : ITaskManager
                     }
                     catch (Exception ex)
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-cts-dispose-error-async id={st.Id} msg={ex.Message}");
+                        if (logger?.IsEnabled(LogLevel.Warning) == true)
+                        {
+                            logger.LogWarning(
+                                "[FW.TaskManager:Dispose] worker-cts-dispose-error-async id={Id} msg={Message}",
+                                st.Id,
+                                ex.Message
+                            );
+                        }
                     }
                 }, CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously,
@@ -1028,8 +1186,14 @@ public sealed partial class TaskManager : ITaskManager
                 }
                 catch (Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-cts-dispose-error-notask id={st.Id} msg={ex.Message}");
+                    if (logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        logger.LogWarning(
+                            "[FW.TaskManager:Dispose] worker-cts-dispose-error-notask id={Id} msg={Message}",
+                            st.Id,
+                            ex.Message
+                        );
+                    }
                 }
             }
         }
@@ -1044,15 +1208,23 @@ public sealed partial class TaskManager : ITaskManager
             }
             catch (Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] gate-dispose-error group={g.Key} msg={ex.Message}");
+                if (logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    logger.LogWarning(
+                        "[FW.TaskManager:Dispose] gate-dispose-error group={Group} msg={Message}",
+                        g.Key,
+                        ex.Message
+                    );
+                }
             }
         }
 
         _groupGates.Clear();
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] disposed");
+        if (logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            logger.LogDebug("[FW.TaskManager:Dispose] disposed");
+        }
 
         GC.SuppressFinalize(this);
     }

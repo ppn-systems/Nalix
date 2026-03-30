@@ -4,8 +4,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Environment;
 using Nalix.Framework.Injection;
 
@@ -16,6 +16,7 @@ namespace Nalix.Framework.Extensions;
 /// </summary>
 public static class ReportExtensions
 {
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly string s_reportDir;
 
     static ReportExtensions()
@@ -59,23 +60,31 @@ public static class ReportExtensions
                                                       .Skip(segments, Math
                                                       .Max(0, segmentCount - 3)));
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[RP.{@this.GetType().Name}] report-saved path={lastSegments}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation("[RP.{Type}] report-saved path={Path}", @this.GetType().Name, lastSegments);
+            }
         }
         catch (IOException ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(ex, "[RP.{Type}] failed-save-report", @this.GetType().Name);
+            }
         }
         catch (UnauthorizedAccessException ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(ex, "[RP.{Type}] failed-save-report", @this.GetType().Name);
+            }
         }
         catch (NotSupportedException ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(ex, "[RP.{Type}] failed-save-report", @this.GetType().Name);
+            }
         }
 
         return filePath;

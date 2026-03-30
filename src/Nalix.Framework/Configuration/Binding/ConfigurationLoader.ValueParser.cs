@@ -8,9 +8,8 @@ using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration.Internal;
-using Nalix.Framework.Injection;
 
 namespace Nalix.Framework.Configuration.Binding;
 
@@ -99,9 +98,10 @@ public partial class ConfigurationLoader
         configFile.WriteComment(section, property.Name, property.Comment);
         configFile.WriteValue(section, property.Name, valueToWrite);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
-                                       $"default-written section={section} key={property.Name} val={valueToWrite}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug("[FW.ConfigurationLoader:Internal] default-written section={Section} key={Key} val={Value}", section, property.Name, valueToWrite);
+        }
     }
 
     /// <summary>
@@ -162,9 +162,12 @@ public partial class ConfigurationLoader
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static object ThrowUnsupported(PropertyMetadata property)
     {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error($"[FW.{nameof(ConfigurationLoader)}:Internal] " +
-                                       $"unsupported-type type={property.PropertyType.Name} info={property.PropertyInfo.Name} key={property.Name}");
+        if (s_logger?.IsEnabled(LogLevel.Error) == true)
+        {
+            s_logger.LogError(
+                "[FW.ConfigurationLoader:Internal] unsupported-type type={Type} info={Info} key={Key}",
+                property.PropertyType.Name, property.PropertyInfo.Name, property.Name);
+        }
 
         throw new NotSupportedException(
             $"Value type {property.PropertyType.Name} is not supported for configuration files.");

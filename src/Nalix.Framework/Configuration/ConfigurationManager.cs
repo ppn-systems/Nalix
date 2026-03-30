@@ -10,7 +10,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Environment;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration.Binding;
@@ -44,6 +44,8 @@ namespace Nalix.Framework.Configuration;
 public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 {
     #region Fields
+
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// volatile: assigned atomically in SetConfigFilePath; all threads must see the latest reference.
@@ -187,8 +189,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
         // Wait up to 5 s for any concurrent reload/path-change to finish.
         if (!_reloadGate.Wait(TimeSpan.FromSeconds(5)))
         {
-            throw new TimeoutException(
-                "Timeout waiting for config reload lock (5s).");
+            throw new TimeoutException("Timeout waiting for config reload lock (5s).");
         }
         string? pathToWatch = null;
 
@@ -213,9 +214,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 _directoryChecked = false;
                 _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                          $"path-changed from='{oldPath}' to='{normalizedPath}'");
+                if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    s_logger.LogInformation("[FW.ConfigurationManager] path-changed from='{OldPath}' to='{NewPath}'", oldPath, normalizedPath);
+                }
 
                 if (autoReload && !_configContainerDict.IsEmpty)
                 {
@@ -233,9 +235,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                         this.LastReloadTime = DateTime.UtcNow;
 
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                                                      $"auto-reload-ok count={_configContainerDict.Count}");
+                        if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                        {
+                            s_logger.LogInformation("[FW.ConfigurationManager] auto-reload-ok count={Count}", _configContainerDict.Count);
+                        }
 
                         pathToWatch = normalizedPath;
                     }
@@ -312,8 +315,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 TClass container = new();
                 container.Initialize(iniSnapshot.Value);
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug("[FW.ConfigurationManager:Get] create {ClassName}", typeof(TClass).Name);
+                }
 
                 return container;
             }, LazyThreadSafetyMode.ExecutionAndPublication)
@@ -391,8 +396,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             throw new TimeoutException("Timed out waiting for concurrent configuration reload or path change to complete.");
         }
 
-        Exception? reloadException = null;
-
         try
         {
             _configLock.EnterWriteLock();
@@ -413,9 +416,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                 this.LastReloadTime = DateTime.UtcNow;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                reloadException = ex;
             }
             finally
             {
@@ -424,8 +426,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 _configLock.ExitWriteLock();
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation("[FW.ConfigurationManager] reload-ok count={Count}", _configContainerDict.Count);
+            }
         }
         finally
         {
@@ -463,8 +467,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug("[FW.ConfigurationManager] remove {ClassName}", typeof(TClass).Name);
+        }
 
         return _configContainerDict.TryRemove(typeof(TClass), out _);
     }
@@ -479,8 +485,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void ClearAll()
     {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug("[FW.ConfigurationManager] clear-all");
+        }
 
         _configContainerDict.Clear();
     }
@@ -507,13 +515,17 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             try
             {
                 snapshot.Value.Flush();
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug("[FW.ConfigurationManager] flushed");
+                }
             }
             catch (Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushErr msg={ex.Message}", ex);
+                if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                {
+                    s_logger.LogError(ex, "[FW.ConfigurationManager:Flush] flushErr msg={Message}", ex.Message);
+                }
                 throw;
             }
         }

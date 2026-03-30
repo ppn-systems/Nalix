@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
 
@@ -31,6 +31,7 @@ public abstract partial class ConfigurationLoader
 {
     #region Fields
 
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly ConcurrentDictionary<Type, string> s_sectionNameCache;
     private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> s_metadataCache;
 
@@ -136,8 +137,10 @@ public abstract partial class ConfigurationLoader
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
         string section = GetSectionName(type);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace("[FW.ConfigurationLoader:Internal] init type={Name} section={Section}", type.Name, section);
+        }
 
         // Write the section-level comment once, before the first property is processed.
         // IniConfig.WriteComment is a no-op when the section already exists, so this
@@ -153,8 +156,10 @@ public abstract partial class ConfigurationLoader
                 if (value == null ||
                    (value is string strValue && string.IsNullOrEmpty(strValue)))
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
+                    if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                    {
+                        s_logger.LogTrace("[FW.ConfigurationLoader:Internal] missing-value section={Section} key={Key}", section, propertyInfo.Name);
+                    }
 
                     // HandleEmptyValue writes the comment + default value for new keys
                     this.HandleEmptyValue(configFile, section, propertyInfo);
