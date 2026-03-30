@@ -3,8 +3,8 @@ name: Deploy Docs
 on:
   push:
     branches: [master]
-    paths:
-      - 'docs/**'
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -15,9 +15,6 @@ permissions:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
     steps:
       - name: Check if PR has 'documentation' label
         id: label_check
