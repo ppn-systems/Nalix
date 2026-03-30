@@ -20,13 +20,21 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const labels = await github.rest.issues.listLabelsOnIssue({
+            const prNumber = context.payload.pull_request?.number;
+
+            if (!prNumber) {
+              core.setOutput('hasDocsLabel', 'false');
+              return;
+            }
+
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number
+              issue_number: prNumber
             });
-            const hasLabel = labels.data.some(label => label.name === 'document');
-            core.setOutput("is_document", hasLabel ? 'true' : 'false');
+
+            const hasDocsLabel = labels.some(label => label.name === 'documentation');
+            core.setOutput('hasDocsLabel', hasDocsLabel ? 'true' : 'false');
       - name: Debug output
         run: echo "is_document=${{ steps.label_check.outputs.is_document }}"
 
