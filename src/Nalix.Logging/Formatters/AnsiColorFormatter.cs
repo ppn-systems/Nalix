@@ -141,11 +141,9 @@ internal class AnsiColorFormatter : ILoggerFormatter
                   .Append(AnsiColors.White);
         }
 
-        _ = sb.Append(' ')
-              .Append(AnsiColors.DarkGray)
+        _ = sb.Append(AnsiColors.DarkGray)
               .Append(" - ")
               .Append(AnsiColors.White)
-              .Append(' ')
               .Append(message.Message);
 
         if (message.Exception is not null)

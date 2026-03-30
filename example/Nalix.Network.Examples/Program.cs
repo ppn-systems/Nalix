@@ -22,7 +22,7 @@ internal class Program
     {
         // Turn on debug logs so the sample shows the full packet and connection flow.
         ConfigurationManager.Instance.Get<NLogixOptions>()
-                            .MinLevel = LogLevel.Debug;
+                            .MinLevel = LogLevel.Trace;
 
         // Register a console logger first because the routing pipeline and protocols
         // rely on ILogger being available from the shared container.
