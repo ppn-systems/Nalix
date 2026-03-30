@@ -27,7 +27,7 @@ internal class Program
         // Register a console logger first because the routing pipeline and protocols
         // rely on ILogger being available from the shared container.
         ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
-        InstanceManager.Instance.Register(logger);
+        InstanceManager.Instance.Register(NLogix.Host.Instance);
 
         // Packet handlers are discovered through the registry, so the sample
         // registers one up front before any protocol starts processing packets.

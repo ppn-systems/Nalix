@@ -6,8 +6,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Diagnostics;
 using Nalix.Logging.Configuration;
+using Nalix.Logging.Formatters;
 using Nalix.Logging.Internal.File;
-using Nalix.Logging.Internal.Formatters;
 
 namespace Nalix.Logging.Sinks;
 
@@ -49,9 +49,9 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with default options.
     /// </summary>
     /// <remarks>
-    /// Uses the default <see cref="LogFormatter"/> and <see cref="FileLogOptions"/>.
+    /// Uses the default <see cref="AnsiColorFormatter"/> and <see cref="FileLogOptions"/>.
     /// </remarks>
-    public BatchFileLogTarget() : this(null, new LogFormatter(false))
+    public BatchFileLogTarget() : this(null, new FileLogFormatter())
     {
     }
 
@@ -60,7 +60,7 @@ public sealed class BatchFileLogTarget : ILoggerTarget, IDisposable
     /// </summary>
     /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
     public BatchFileLogTarget(Action<FileLogOptions> options)
-        : this(Configure(options), new LogFormatter(false))
+        : this(Configure(options), new FileLogFormatter())
     {
     }
 
