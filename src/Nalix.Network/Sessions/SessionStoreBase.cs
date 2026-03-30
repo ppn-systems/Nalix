@@ -6,11 +6,11 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Sessions;
-using Nalix.Framework.Configuration;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Sessions;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Time;
+using Nalix.Environment.Time;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Sessions;

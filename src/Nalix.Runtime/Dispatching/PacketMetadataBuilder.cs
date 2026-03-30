@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
 
 namespace Nalix.Runtime.Dispatching;
 

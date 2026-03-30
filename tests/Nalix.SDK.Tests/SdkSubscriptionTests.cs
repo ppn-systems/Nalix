@@ -1,17 +1,18 @@
+using Nalix.Codec.Memory;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Extensions;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 using System.Buffers.Binary;
 using Xunit;
 
@@ -187,3 +188,19 @@ public sealed class SdkSubscriptionTests
         public void Dispose() => throw new InvalidOperationException("dispose failed");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

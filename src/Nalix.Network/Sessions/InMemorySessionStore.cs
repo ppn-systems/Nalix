@@ -7,13 +7,13 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Concurrency;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking.Sessions;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Time;
+using Nalix.Environment.Time;
 
 namespace Nalix.Network.Sessions;
 
@@ -58,7 +58,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
             {
                 this.Scavenge();
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 // Ignore background cleanup errors
             }
@@ -194,7 +194,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
             _cts.Cancel();
             _cts.Dispose();
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             // Ignore cancel errors
         }
@@ -205,7 +205,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
                                     .CancelWorker(_scavenger.Id);
             _scavenger.Dispose();
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             // Best-effort cleanup
         }

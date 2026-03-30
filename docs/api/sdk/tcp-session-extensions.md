@@ -110,7 +110,7 @@ using var sub = client.On<NoticePacket>(notice =>
 
 - [TCP Session](./tcp-session.md)
 - [Handshake Extensions](./handshake-extensions.md)
-- [Request Options](./options/request-options.md)
+- [Request Options](../options/sdk/request-options.md)
 - [Cipher Updates](./cipher-extensions.md)
 - [Control Utilities](./control-utilities.md)
-- [Control Type Enum](../common/protocols/control-type.md)
+- [Control Type Enum](../abstractions/protocols/control-type.md)

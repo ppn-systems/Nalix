@@ -20,7 +20,7 @@ public sealed partial class NalixUsageAnalyzer
 
         AnalyzeRequestOptionsInvocation(context, invocation, symbols);
 
-        if (SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType, symbols.PacketRegistryFactoryType))
+        if (IsSymbol(targetMethod.ContainingType, symbols.PacketRegistryFactoryType))
         {
             if (targetMethod.Name == "RegisterPacket")
             {
@@ -30,7 +30,7 @@ public sealed partial class NalixUsageAnalyzer
             return;
         }
 
-        if (SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType, symbols.NetworkApplicationBuilderType))
+        if (IsSymbol(targetMethod.ContainingType, symbols.NetworkApplicationBuilderType))
         {
             if (targetMethod.Name == "Build")
             {
@@ -48,7 +48,7 @@ public sealed partial class NalixUsageAnalyzer
             return;
         }
 
-        if (!SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType.OriginalDefinition, symbols.PacketDispatchOptionsType))
+        if (!IsSymbol(targetMethod.ContainingType.OriginalDefinition, symbols.PacketDispatchOptionsType))
         {
             return;
         }
@@ -139,7 +139,7 @@ public sealed partial class NalixUsageAnalyzer
     {
         IMethodSymbol targetMethod = invocation.TargetMethod;
 
-        if (SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType, symbols.RequestOptionsType))
+        if (IsSymbol(targetMethod.ContainingType, symbols.RequestOptionsType))
         {
             if (targetMethod.Name == "WithRetry"
                 && invocation.Arguments.Length == 1
@@ -160,7 +160,7 @@ public sealed partial class NalixUsageAnalyzer
             return;
         }
 
-        if (!SymbolEqualityComparer.Default.Equals(targetMethod.ContainingType, symbols.RequestExtensionsType)
+        if (!IsSymbol(targetMethod.ContainingType, symbols.RequestExtensionsType)
             || targetMethod.Name != "RequestAsync")
         {
             return;
@@ -230,7 +230,7 @@ public sealed partial class NalixUsageAnalyzer
 
         if (operation is IPropertyReferenceOperation propertyReference
             && propertyReference.Property.Name == "Default"
-            && SymbolEqualityComparer.Default.Equals(propertyReference.Member.ContainingType, symbols.RequestOptionsType))
+            && IsSymbol(propertyReference.Member.ContainingType, symbols.RequestOptionsType))
         {
             timeoutMs = 5000;
             retryCount = 0;
@@ -238,7 +238,7 @@ public sealed partial class NalixUsageAnalyzer
         }
 
         if (operation is IObjectCreationOperation creation
-            && SymbolEqualityComparer.Default.Equals(creation.Type, symbols.RequestOptionsType))
+            && IsSymbol(creation.Type, symbols.RequestOptionsType))
         {
             timeoutMs = 5000;
             retryCount = 0;
@@ -269,7 +269,7 @@ public sealed partial class NalixUsageAnalyzer
         }
 
         if (operation is IInvocationOperation invocation
-            && SymbolEqualityComparer.Default.Equals(invocation.TargetMethod.ContainingType, symbols.RequestOptionsType))
+            && IsSymbol(invocation.TargetMethod.ContainingType, symbols.RequestOptionsType))
         {
             bool hasInstanceValues = invocation.Instance is not null
                 && TryGetTimeoutAndRetryValues(invocation.Instance, symbols, out timeoutMs, out retryCount);
@@ -356,7 +356,7 @@ public sealed partial class NalixUsageAnalyzer
 
     private static void AnalyzeRegisterPacketInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
     {
-        if (!SymbolEqualityComparer.Default.Equals(invocation.TargetMethod.ContainingType, symbols.PacketRegistryFactoryType))
+        if (!IsSymbol(invocation.TargetMethod.ContainingType, symbols.PacketRegistryFactoryType))
         {
             return;
         }
@@ -377,7 +377,7 @@ public sealed partial class NalixUsageAnalyzer
         }
 
         INamedTypeSymbol? expectedDeserializer = symbols.PacketDeserializerType?.Construct(packetType);
-        bool hasDeserializer = packetType.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, expectedDeserializer));
+        bool hasDeserializer = packetType.AllInterfaces.Any(i => IsSymbol(i, expectedDeserializer));
         if (!hasDeserializer)
         {
             Report(
@@ -396,7 +396,7 @@ public sealed partial class NalixUsageAnalyzer
         }
 
         bool hasConnectionHub = ContainsInvocation(invocation.Instance, "ConfigureConnectionHub");
-        bool hasBufferPoolManager = ContainsInvocation(invocation.Instance, "UseBufferPoolManager");
+        bool hasBufferPoolManager = ContainsInvocation(invocation.Instance, "ConfigureBufferPoolManager");
         bool hasTcpBinding = ContainsInvocation(invocation.Instance, "AddTcp");
         bool hasUdpBinding = ContainsInvocation(invocation.Instance, "AddUdp");
 
@@ -472,14 +472,14 @@ public sealed partial class NalixUsageAnalyzer
 
         IEnumerable<ITypeSymbol> legacyPacketTypes = controllerType.GetMembers()
             .OfType<IMethodSymbol>()
-            .Where(method => !SymbolEqualityComparer.Default.Equals(method, methodSymbol))
+            .Where(method => !IsSymbol(method, methodSymbol))
             .Where(method => HasAttribute(method, symbols.PacketOpcodeAttribute))
             .Select(method => GetLegacyPacketType(method, symbols))
             .Where(static type => type is not null)!;
 
         foreach (ITypeSymbol legacyPacketType in legacyPacketTypes)
         {
-            if (!SymbolEqualityComparer.Default.Equals(legacyPacketType, packetContextType))
+            if (!IsSymbol(legacyPacketType, packetContextType))
             {
                 Report(
                     context,
@@ -516,7 +516,7 @@ public sealed partial class NalixUsageAnalyzer
 
         IEnumerable<INamedTypeSymbol> middlewareInterfaces = middlewareType.AllInterfaces
             .OfType<INamedTypeSymbol>()
-            .Where(i => i.IsGenericType && SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, symbols.PacketMiddlewareType));
+            .Where(i => i.IsGenericType && IsSymbol(i.OriginalDefinition, symbols.PacketMiddlewareType));
 
         bool isCompatible = middlewareInterfaces.Any(i => IsAssignable(dispatcherPacketType, i.TypeArguments[0]));
         if (!isCompatible)
@@ -568,7 +568,7 @@ public sealed partial class NalixUsageAnalyzer
             {
                 if (TryGetPacketContextType(handlerMethod, symbols.PacketContextType, out ITypeSymbol? contextPacketType)
                     && contextPacketType is not null
-                    && !SymbolEqualityComparer.Default.Equals(contextPacketType, dispatcherPacketType))
+                    && !IsSymbol(contextPacketType, dispatcherPacketType))
                 {
                     Report(
                         context,

@@ -5,11 +5,11 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Time;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Environment.Time;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;

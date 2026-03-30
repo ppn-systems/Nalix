@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Framework.Security.Hashing;
+using Nalix.Codec.Security.Hashing;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -63,3 +63,16 @@ public sealed class Pbkdf2Tests
         Assert.False(Pbkdf2.Encoded.Verify(credential, changedVersion));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

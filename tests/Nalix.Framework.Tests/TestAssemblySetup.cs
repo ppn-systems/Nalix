@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
-using Nalix.Framework.Environment;
+using Nalix.Environment.IO;
 
 namespace Nalix.Framework.Tests;
 
@@ -16,3 +16,16 @@ internal static class TestAssemblySetup
         Directories.SetBasePathOverride(testDir);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

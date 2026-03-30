@@ -1,7 +1,7 @@
 using System;
-using Nalix.Common.Primitives;
-using Nalix.Framework.Security.Asymmetric;
-using Nalix.Framework.Security.Primitives;
+using Nalix.Abstractions.Primitives;
+using Nalix.Codec.Security.Asymmetric;
+using Nalix.Codec.Security.Primitives;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -34,3 +34,16 @@ public sealed class X25519Tests
         Assert.Equal(original.PublicKey, derived.PublicKey);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

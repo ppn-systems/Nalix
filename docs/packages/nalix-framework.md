@@ -1,176 +1,73 @@
 # Nalix.Framework
 
-`Nalix.Framework` provides shared runtime services for configuration, instance registration, scheduling, IDs, frames, packet registry, and serialization helpers used by both SDK and Network.
+`Nalix.Framework` provides core runtime services for dependency injection, task scheduling, system-wide identifiers, and high-level memory management.
 
-!!! note "This package is infrastructure, not business logic"
-    Use it to centralize configuration, shared services, workers, and timing primitives that other packages rely on.
-
-## Runtime services map
+## Runtime Services Map
 
 ```mermaid
 flowchart LR
-    A["ConfigurationManager"] --> B["Typed options"]
-    B --> C["InstanceManager"]
-    C --> D["TaskManager"]
-    C --> E["Application services"]
-    D --> F["Recurring workers / cleanup jobs"]
+    A["InstanceManager"] --> B["Service Registry"]
+    A --> C["TaskManager"]
+    B --> D["Application Infrastructure"]
+    C --> E["Recurring Workers / Cleanup Jobs"]
 ```
 
 ## What belongs here
 
-- `ConfigurationManager` for loading and reloading typed options from INI files
-- `InstanceManager` for registering or creating shared singleton-like services
-- `TaskManager` for background workers and recurring jobs
-- `Snowflake` for generated IDs
-- `Clock` and `TimingScope` for monotonic timing and lightweight latency measurement
+- `InstanceManager` for registering and resolving shared services and infrastructure.
+- `TaskManager` for managing named background workers and recurring jobs.
+- `Snowflake` for generating 64-bit compact, sortable identifiers.
+- `TimingScope` for lightweight, high-precision latency measurement.
+- `BufferPoolManager` and `ObjectPoolManager` for managing shared resource pools.
 
-## Configuration
+## Instance Registration
 
-`ConfigurationManager` is the entry point for typed options. It loads `ConfigurationLoader` classes, caches them, and can hot-reload when the watched INI file changes.
+`InstanceManager` is the common registry used across the stack. It can register existing instances or lazily create new ones. It is the preferred way to publish infrastructure such as loggers and packet registries.
 
-### TaskManager example
-
-```csharp
-ConnectionHubOptions hub = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
-TaskManagerOptions taskOptions = ConfigurationManager.Instance.Get<TaskManagerOptions>();
-```
-
-Use it when you want one shared config source across packages.
-
-## Instance registration
-
-`InstanceManager` is the common registry used across the stack. It can register existing instances or lazily create new ones.
-
-### Quick example
+### Quick Example
 
 ```csharp
+// Register a logger
 InstanceManager.Instance.Register<ILogger>(logger);
 
+// Resolve or create a task manager
 TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
-IPacketRegistry registry = InstanceManager.Instance.GetOrCreateInstance<PacketRegistryFactory>()
-                                                   .CreateCatalog();
 ```
 
-This is the normal place to publish infrastructure such as loggers, packet registries, and shared services.
+## Background Work
 
-## Background work
+`TaskManager` manages the execution and lifecycle of background tasks and recurring jobs. It provides features like group concurrency limits, named workers, and execution reporting.
 
-`TaskManager` is not just a timer helper. It manages:
-
-- named workers
-- recurring jobs
-- cancellation by ID or group
-- group concurrency limits
-- execution reporting
-
-### Quick example
+### Quick Example
 
 ```csharp
 TaskManager manager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
 
 manager.ScheduleRecurring(
     "session.cleanup",
-    System.TimeSpan.FromSeconds(30),
+    TimeSpan.FromSeconds(30),
     async ct => await CleanupExpiredSessionsAsync(ct));
 ```
 
-For long-running server processes, this is the preferred place for cleanup loops and maintenance work.
+## Identifiers and Timing
 
-## Time and IDs
+- `Snowflake` provides unique, time-sortable 64-bit IDs suitable for tasks, sessions, and packets.
+- `TimingScope` allows for easy measurement of operation duration with minimal overhead.
 
-Use:
+## Memory Management
 
-- `Clock` when you need monotonic timestamps or Unix time
-- `TimingScope` when you need cheap elapsed-time measurement
-- `Snowflake` when you need compact sortable IDs
+`Nalix.Framework` owns the management logic for resource pools. While the actual leasing primitives (like `BufferLease`) live in `Nalix.Codec`, the managers that own the underlying arrays and objects live here.
 
-`TimeSynchronizer` is part of `Nalix.Runtime`, not `Nalix.Framework`.
+- `BufferPoolManager`: Manages sharded byte array pools.
+- `ObjectPoolManager`: Manages pools of reusable class instances to minimize GC pressure.
 
-## When to add this package
+## Key API Pages
 
-- Add it on the server when you use `ConfigurationManager`, `InstanceManager`, or `TaskManager`.
-- Add it on the client only if you want the same config and service-registration model there too.
-
-## Registry flow
-
-```mermaid
-flowchart LR
-    A["PacketRegistryFactory"] --> B["Include assemblies / namespaces"]
-    B --> C["CreateCatalog()"]
-    C --> D["PacketRegistry"]
-    D --> E["Nalix.Network"]
-    D --> F["Nalix.SDK"]
-```
-
-### Purpose
-
-- Define built-in frames.
-- Build an immutable packet registry.
-- Provide shared serialization helpers.
-- Provide pooled LZ4 compression primitives.
-- Provide shared framed packet transform helpers (`PacketCipher` and `PacketCompression`).
-
-### Key components
-
-- `FrameBase` / `PacketBase<TSelf>` — base abstractions for headers, auto-magic, serialization, and pooling.
-- `SerializePackableAttribute` / `SerializeOrderAttribute` / `SerializeIgnoreAttribute` / `SerializeHeaderAttribute` / `SerializeDynamicSizeAttribute` — low-level serialization layout controls.
-- `LiteSerializer` / `FormatterProvider` / `IFormatter<T>` — serializer entry points and formatter resolution.
-- `DataReaderExtensions` / `DataWriterExtensions` / `HeaderExtensions` — low-level read/write and header inspection helpers.
-- `PacketRegistryFactory` — scans packet types and binds deserialize function pointers.
-- `PacketRegistry` — frozen catalog of deserializers/transformers.
-- `Handshake` — default handshake frame used to exchange ephemeral keys, nonces, proofs, and transcript hash.
-- `SessionResume` — unified session signal packet for resume request/response flows (uses `SessionResumeStage` for stage disambiguation).
-- `Control` — built-in frame type.
-- `PacketPool<TPacket>` / `PacketLease<TPacket>` — packet pooling helpers for reusable packet instances.
-- `FragmentHeader` / `FragmentAssembler` / `FragmentOptions` — chunk large payloads and reassemble them safely.
-- `PacketCipher` / `PacketCompression` — framed packet encrypt/decrypt and compress/decompress helpers.
-- `LZ4Codec` — pooled block compression and decompression.
-
-### Quick example
-
-```csharp
-// Build and register the shared catalog
-PacketRegistryFactory factory = new();
-IPacketRegistry registry = factory.CreateCatalog();
-InstanceManager.Instance.Register<IPacketRegistry>(registry);
-
-// Handshake frame
-Handshake hs = new(
-    HandshakeStage.CLIENT_HELLO,
-    Csprng.GetBytes32(),
-    Csprng.GetBytes32(),
-    flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
-hs.UpdateTranscriptHash("nalix-default-handshake"u8);
-byte[] bytes = hs.Serialize();
-```
-
-### Registry build flow
-
-- Add assemblies or namespaces if you have custom packets.
-- Call `CreateCatalog()` once and reuse the result in listeners and clients.
-
-### Quick example
-
-```csharp
-PacketRegistryFactory factory = new();
-factory.IncludeNamespaceRecursive("MyApp.Packets");
-IPacketRegistry catalog = factory.CreateCatalog();
-```
-
-## Key API pages
-
-- [Configuration](../api/framework/runtime/configuration.md)
-- [Instance Manager (DI)](../api/framework/runtime/instance-manager.md)
-- [Task Manager](../api/framework/runtime/task-manager.md)
-- [Clock](../api/framework/runtime/clock.md)
-- [Timing Scope](../api/framework/runtime/timing-scope.md)
-- [Snowflake](../api/framework/runtime/snowflake.md)
-- [Packet Registry](../api/framework/packets/packet-registry.md)
-- [Built-in Frames](../api/framework/packets/built-in-frames.md)
-- [Packet Pooling](../api/framework/packets/packet-pooling.md)
-- [Frame Model](../api/framework/packets/frame-model.md)
-- [Fragmentation](../api/framework/packets/fragmentation.md)
-- [LZ4](../api/framework/memory/lz4.md)
-- [Serialization](../api/framework/packets/serialization.md)
+- [Instance Manager (DI)](../api/framework/instance-manager.md)
+- [Task Manager](../api/framework/task-manager.md)
+- [Timing Scope](../api/environment/timing-scope.md)
+- [Snowflake](../api/framework/snowflake.md)
 - [Buffer Management](../api/framework/memory/buffer-management.md)
 - [Object Pooling](../api/framework/memory/object-pooling.md)
+- [Object Map](../api/framework/memory/object-map.md)
+- [Typed Object Pools](../api/framework/memory/typed-object-pools.md)

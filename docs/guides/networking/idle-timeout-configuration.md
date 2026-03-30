@@ -72,7 +72,7 @@ BucketCount = 512
 If you prefer to configure the server in code, use the `Configure<T>` methods on the `NetworkApplicationBuilder`.
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 using Nalix.Network.Options;
 
 var host = NetworkApplication.CreateBuilder()
@@ -113,5 +113,5 @@ Idle timeout detects **application-level** silence. To detect **network-level** 
 ## Related Information
 
 - [Timing Wheel API Reference](../../api/network/time/timing-wheel.md)
-- [Network Socket Options](../../api/network/options/network-socket-options.md)
+- [Network Socket Options](../../api/options/network/network-socket-options.md)
 - [Production Checklist](../deployment/production-checklist.md)

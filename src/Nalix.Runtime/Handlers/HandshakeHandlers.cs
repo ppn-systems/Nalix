@@ -6,22 +6,21 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Networking.Sessions;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
-using Nalix.Framework.DataFrames.Pooling;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Environment;
-using Nalix.Framework.Identifiers;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Networking.Sessions;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Security;
+using Nalix.Codec.Security.Asymmetric;
+using Nalix.Environment.IO;
+using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Random;
-using Nalix.Framework.Security;
-using Nalix.Framework.Security.Asymmetric;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -312,6 +311,7 @@ public sealed class HandshakeHandlers
         SessionEntry? session = Hub?.SessionStore.CreateSession(connection);
 
         using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
+
         Handshake reply = lease.Value;
         reply.Stage = HandshakeStage.SERVER_FINISH;
         reply.PublicKey = Bytes32.Zero;
@@ -319,7 +319,7 @@ public sealed class HandshakeHandlers
         reply.Proof = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
         reply.TranscriptHash = state.TranscriptHash;
-        reply.SessionToken = session is not null ? Snowflake.NewId(session.Snapshot.SessionToken) : (Snowflake)connection.ID;
+        reply.SessionToken = session is not null ? session.Snapshot.SessionToken : connection.ID.ToUInt64();
 
         await connection.TCP.SendAsync(reply).ConfigureAwait(false);
     }

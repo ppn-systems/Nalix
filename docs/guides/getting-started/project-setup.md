@@ -48,7 +48,7 @@ The contracts project must be a `Class Library` referenced by both the Server an
 
 ```bash
 dotnet new classlib -n MyProject.Contracts
-dotnet add MyProject.Contracts package Nalix.Common --version 12.0.7
+dotnet add MyProject.Contracts package Nalix.Abstractions --version 12.0.7
 dotnet add MyProject.Contracts package Nalix.Framework --version 12.0.7
 ```
 
@@ -74,12 +74,12 @@ public sealed class JoinRequest : PacketBase<JoinRequest>
 
 ## 3. Server Setup (`MyProject.Server`)
 
-The server project should be a `Console Application` or `Worker Service` that uses the `Nalix.Network.Hosting` package.
+The server project should be a `Console Application` or `Worker Service` that uses the `Nalix.Hosting` package.
 
 ```bash
 dotnet new console -n MyProject.Server
 dotnet add MyProject.Server reference MyProject.Contracts
-dotnet add MyProject.Server package Nalix.Network.Hosting --version 12.0.7
+dotnet add MyProject.Server package Nalix.Hosting --version 12.0.7
 ```
 
 ### Best Practice: `NetworkApplication`
@@ -87,11 +87,11 @@ dotnet add MyProject.Server package Nalix.Network.Hosting --version 12.0.7
 Use the fluent builder to assemble your server layers:
 
 ```csharp
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 using Nalix.Network.Options;
 using Nalix.Runtime.Dispatching;
 

@@ -92,3 +92,16 @@ public sealed partial class MemoryTests
         Assert.Equal(0L, pool.TrimmedCount);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

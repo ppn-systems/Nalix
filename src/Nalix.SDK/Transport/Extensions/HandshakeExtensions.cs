@@ -4,13 +4,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Random;
-using Nalix.Framework.Security;
-using Nalix.Framework.Security.Asymmetric;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Security;
+using Nalix.Codec.Security.Asymmetric;
+using Nalix.Environment.Random;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Extensions;

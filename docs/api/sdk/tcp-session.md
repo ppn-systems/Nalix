@@ -36,7 +36,7 @@ sequenceDiagram
 - `src/Nalix.SDK/Transport/TcpSession.cs`
 - `src/Nalix.SDK/Transport/Internal/FrameReader.cs`
 - `src/Nalix.SDK/Transport/Internal/FrameSender.cs`
-- `src/Nalix.Framework/DataFrames/Transforms/FramePipeline.cs`
+- `src/Nalix.Codec/Transforms/FramePipeline.cs`
 
 ## Role and Design
 
@@ -106,4 +106,4 @@ var loginResponse = await client.RequestAsync<LoginResponse>(
 - [SDK Overview](./index.md)
 - [UDP Session](./udp-session.md)
 - [Transport Session](./transport-session.md)
-- [Transport Options](./options/transport-options.md)
+- [Transport Options](../options/sdk/transport-options.md)

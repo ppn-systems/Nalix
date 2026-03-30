@@ -1,8 +1,10 @@
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Xunit;
@@ -181,3 +183,18 @@ public sealed class DataReaderWriterExtensionsTests
         public short B;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

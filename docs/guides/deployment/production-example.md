@@ -26,8 +26,8 @@ dotnet new console -n MyNet.Client
 Use `[SerializePackable]` to define your packets. This ensures the source generator can create allocation-free deserializers.
 
 ```csharp
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Serialization;
 
 namespace MyNet.Contracts;
 
@@ -95,7 +95,7 @@ public sealed class DataHandlers
 ### Server Host
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 using Nalix.Logging;
 using Nalix.Network.Options;
 using Nalix.Runtime.Middleware.Standard;

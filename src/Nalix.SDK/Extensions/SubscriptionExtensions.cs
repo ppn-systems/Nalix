@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 using Nalix.SDK.Transport;
 
 namespace Nalix.SDK.Extensions;

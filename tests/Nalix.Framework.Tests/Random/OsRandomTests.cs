@@ -1,6 +1,6 @@
 #if DEBUG
 using System;
-using Nalix.Framework.Random;
+using Nalix.Environment.Random;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Random;
@@ -63,3 +63,16 @@ public sealed class OsRandomTests
     }
 }
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+

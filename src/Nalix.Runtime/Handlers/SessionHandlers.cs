@@ -2,20 +2,21 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Networking.Sessions;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
-using Nalix.Framework.DataFrames.Pooling;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Networking.Sessions;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Security.Hashing;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Security.Hashing;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -69,7 +70,7 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        SessionEntry? session = await Hub.SessionStore.ConsumeAsync(packet.SessionToken.ToUInt64())
+        SessionEntry? session = await Hub.SessionStore.ConsumeAsync(packet.SessionToken)
                                                        .ConfigureAwait(false);
         if (session == null)
         {
@@ -90,7 +91,7 @@ public sealed class SessionHandlers
         Span<byte> tokenBytes = stackalloc byte[8];
         Span<byte> expectedProofBytes = stackalloc byte[32];
 
-        _ = packet.SessionToken.TryWriteBytes(tokenBytes);
+        BinaryPrimitives.WriteUInt64LittleEndian(tokenBytes, packet.SessionToken);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption to prevent DoS.
         HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), tokenBytes, expectedProofBytes);
@@ -121,7 +122,7 @@ public sealed class SessionHandlers
         SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,
-            sessionToken: newTokenSnowflake,
+            sessionToken: newTokenSnowflake.ToUInt64(),
             reason: ProtocolReason.NONE,
             proof: new Bytes32(responseProofBytes),
             flags: packet.Flags);

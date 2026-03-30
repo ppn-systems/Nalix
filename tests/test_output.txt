@@ -1,0 +1,14 @@
+﻿Test run for E:\Cs\Nalix\tests\Nalix.Analyzers.Tests\bin\Debug\net10.0\Nalix.Analyzers.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+  Failed Nalix.Analyzers.Tests.NalixUsageAnalyzerTests.PacketMiddlewareMissingOrder_ReportsNalix030 [1 s]
+  Error Message:
+   Test0.cs(11,21): error CS0311: The type 'Demo.DemoPacket' cannot be used as type parameter 'TPacket' in the generic type or method 'IPacketMiddleware<TPacket>'. There is no implicit reference conversion from 'Demo.DemoPacket' to 'Nalix.Abstractions.Networking.Packets.IPacket'.
+Test0.cs(11,44): error CS0535: 'DemoPacketMiddleware' does not implement interface member 'IPacketMiddleware<DemoPacket>.InvokeAsync(IPacketContext<DemoPacket>, Func<CancellationToken, ValueTask>)'
+  Stack Trace:
+     at Nalix.Analyzers.Tests.Verifier`1.GetDiagnosticsAsync(Document document) in E:\Cs\Nalix\tests\Nalix.Analyzers.Tests\Verifier.cs:line 159
+   at Nalix.Analyzers.Tests.Verifier`1.VerifyAnalyzerAsync(String[] sources, String[] expectedDiagnosticIds) in E:\Cs\Nalix\tests\Nalix.Analyzers.Tests\Verifier.cs:line 34
+   at Nalix.Analyzers.Tests.Verifier`1.VerifyAnalyzerAsync(String source, String[] expectedDiagnosticIds) in E:\Cs\Nalix\tests\Nalix.Analyzers.Tests\Verifier.cs:line 27
+   at Nalix.Analyzers.Tests.NalixUsageAnalyzerTests.PacketMiddlewareMissingOrder_ReportsNalix030() in E:\Cs\Nalix\tests\Nalix.Analyzers.Tests\NalixUsageAnalyzerTests.cs:line 484
+--- End of stack trace from previous location ---
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 1 s - Nalix.Analyzers.Tests.dll (net10.0)

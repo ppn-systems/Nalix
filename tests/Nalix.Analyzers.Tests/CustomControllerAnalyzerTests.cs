@@ -13,16 +13,16 @@ public sealed class CustomControllerAnalyzerTests
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController]
 public sealed class MyController
 {
     [PacketOpcode(0x0001)]
-    public void Handle(LoginPacket packet, Nalix.Common.Networking.IConnection connection) { }
+    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
 }
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -38,16 +38,16 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
     {
         const string source1 = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController]
 public sealed class Controller1
 {
     [PacketOpcode(0x0200)]
-    public void Handle(LoginPacket packet, Nalix.Common.Networking.IConnection connection) { }
+    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
 }
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -55,13 +55,13 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 
         const string source2 = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController]
 public sealed class Controller2
 {
     [PacketOpcode(0x0200)]
-    public void Handle(LoginPacket packet, Nalix.Common.Networking.IConnection connection) { }
+    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
 }
 """;
 
@@ -75,16 +75,16 @@ public sealed class Controller2
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController]
 public sealed class MyController
 {
     [PacketOpcode(0x0150)]
-    public void Handle(LoginPacket packet, Nalix.Common.Networking.IConnection connection) { }
+    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
 }
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -98,19 +98,19 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController]
 public sealed class MyController
 {
     [PacketOpcode(0x0200)]
-    public void Handle(LoginPacket packet, Nalix.Common.Networking.IConnection connection) 
+    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) 
     { 
         var x = new object(); // Allocation in hot path
     }
 }
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -126,7 +126,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController]
 public sealed class MyController
@@ -135,10 +135,10 @@ public sealed class MyController
     /// Authenticates a user. OpCode: 0x0150
     /// </summary>
     [PacketOpcode(0x0300)]
-    public void Handle(LoginPacket packet, Nalix.Common.Networking.IConnection connection) { }
+    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
 }
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -150,3 +150,16 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

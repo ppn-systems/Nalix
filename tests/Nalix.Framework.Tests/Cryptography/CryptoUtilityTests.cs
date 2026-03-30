@@ -4,10 +4,10 @@
 using System;
 using System.Linq;
 using System.Text;
-using Nalix.Common.Primitives;
-using Nalix.Framework.Security;
-using Nalix.Framework.Security.Hashing;
-using Nalix.Framework.Security.Primitives;
+using Nalix.Abstractions.Primitives;
+using Nalix.Codec.Security;
+using Nalix.Codec.Security.Hashing;
+using Nalix.Codec.Security.Primitives;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -161,3 +161,16 @@ public sealed class CryptoUtilityTests
         return new Bytes32(bytes);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

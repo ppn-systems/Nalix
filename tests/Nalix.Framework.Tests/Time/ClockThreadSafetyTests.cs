@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Framework.Time;
+using Nalix.Environment.Time;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
@@ -181,3 +181,16 @@ public class ClockThreadSafetyTests
         });
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

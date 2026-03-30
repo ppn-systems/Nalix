@@ -1,17 +1,17 @@
-# Cryptography
+﻿# Cryptography
 
 Nalix ships several cryptography primitives in `Nalix.Framework.Security`, but they are easier to read as separate topics than as one long page.
 
 ## Source mapping
 
-- `src/Nalix.Framework/Security/Asymmetric`
-- `src/Nalix.Framework/Security/Hashing`
-- `src/Nalix.Framework/Security/Symmetric`
-- `src/Nalix.Framework/Security/Aead`
-- `src/Nalix.Framework/Security/Engine`
-- `src/Nalix.Framework/Security/Primitives`
-- `src/Nalix.Framework/Security/EnvelopeCipher.cs`
-- `src/Nalix.Framework/Security/HandshakeX25519.cs`
+- `src/Nalix.Codec/Security/Asymmetric`
+- `src/Nalix.Codec/Security/Hashing`
+- `src/Nalix.Codec/Security/Symmetric`
+- `src/Nalix.Codec/Security/Aead`
+- `src/Nalix.Codec/Security/Engine`
+- `src/Nalix.Abstractions/Primitives`
+- `src/Nalix.Codec/Security/EnvelopeCipher.cs`
+- `src/Nalix.Codec/Security/HandshakeX25519.cs`
 
 ## What is in this package
 
@@ -42,7 +42,7 @@ Pbkdf2.Hash("secret", out byte[] salt, out byte[] hash);
 
 Nalix also ships `Csprng` in `Nalix.Framework.Random`:
 
-- `src/Nalix.Framework/Random/Csprng.cs`
+- `src/Nalix.Environment/Random/Csprng.cs`
 
 Use it for:
 

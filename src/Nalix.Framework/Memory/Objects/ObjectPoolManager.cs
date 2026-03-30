@@ -9,23 +9,20 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration;
+using Nalix.Abstractions;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.PoolTypes;
 using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Framework.Memory.Objects;
 
 /// <summary>
 /// Provides thread-safe access to a collection of object pools.
 /// </summary>
-public sealed class ObjectPoolManager : IReportable
+public sealed class ObjectPoolManager : IObjectPoolManager
 {
     #region Nested Types
 
@@ -73,6 +70,8 @@ public sealed class ObjectPoolManager : IReportable
     #endregion Nested Types
 
     #region Fields
+
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Thread-safe storage for pools
@@ -319,18 +318,19 @@ public sealed class ObjectPoolManager : IReportable
 
         pool.Return(obj);
 
-        metrics.LastAccessUtc = DateTime.UtcNow;
         metrics.LastAccessType = "Return";
+        metrics.LastAccessUtc = DateTime.UtcNow;
         _ = Interlocked.Increment(ref metrics.TotalReturns);
 
         // Decrement outstanding; ensure it doesn't go negative
         long outstandingAfter = Interlocked.Decrement(ref metrics.Outstanding);
+
         if (outstandingAfter < 0)
         {
             // Log and reset to zero to avoid negative counters due to bugs
-            if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
             {
-                logger.LogWarning($"[FW.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
+                s_logger.LogWarning($"[FW.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
             }
 
             _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
@@ -674,7 +674,7 @@ public sealed class ObjectPoolManager : IReportable
             {
                 break;
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
                 {
@@ -845,7 +845,7 @@ public sealed class ObjectPoolManager : IReportable
     /// Generates a key-value diagnostic report of the object pool manager and all pools.
     /// </summary>
     /// <returns>A dictionary describing the state of the ObjectPoolManager.</returns>
-    public IDictionary<string, object> GetReportData()
+    public Dictionary<string, object> GetReportData()
     {
         Dictionary<string, object> data = new(13, StringComparer.Ordinal)
         {

@@ -1,3 +1,5 @@
+using Nalix.Codec.Memory;
+using Nalix.Abstractions.Serialization;
 using Nalix.Analyzers.CodeFixes;
 using System.Threading.Tasks;
 using Xunit;
@@ -11,7 +13,7 @@ public sealed class NalixUsageAnalyzerTests
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 public sealed class MissingSpanPacket : IPacket
 {
@@ -52,7 +54,7 @@ public static class DeserializeUtility
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class MyPacket : PacketBase<MyPacket>
 {
@@ -64,7 +66,7 @@ public sealed class MyPacket : PacketBase<MyPacket>
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class MyPacket : PacketBase<MyPacket>
 {
@@ -86,7 +88,7 @@ public sealed class MyPacket : PacketBase<MyPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class WrongPacket : PacketBase<OtherPacket>
 {
@@ -99,7 +101,7 @@ public sealed class OtherPacket : PacketBase<OtherPacket>
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class WrongPacket : PacketBase<WrongPacket>
 {
@@ -121,8 +123,8 @@ public sealed class OtherPacket : PacketBase<OtherPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class WrongPacket : PacketBase<WrongPacket>, IPacketDeserializer<OtherPacket>
 {
@@ -137,8 +139,8 @@ public sealed class OtherPacket : PacketBase<OtherPacket>
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class WrongPacket : PacketBase<WrongPacket>, IPacketDeserializer<WrongPacket>
 {
@@ -200,9 +202,9 @@ public static class RequestOptionUsage
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -226,8 +228,8 @@ public sealed class NotAController
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -258,9 +260,9 @@ public static class RequestUsage
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -284,10 +286,10 @@ public static class DispatchSetup
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
-using Nalix.Runtime.Middleware;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Middleware;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -311,10 +313,10 @@ public static class DispatchSetup
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -347,7 +349,7 @@ public static class DispatchSetup
         const string source = """
 namespace Demo;
 using System.Collections.Generic;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoConfig : ConfigurationLoader
 {
@@ -363,7 +365,7 @@ public sealed class DemoConfig : ConfigurationLoader
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoConfig : ConfigurationLoader
 {
@@ -379,8 +381,8 @@ public sealed class DemoConfig : ConfigurationLoader
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -407,8 +409,8 @@ public static class RequestUsage
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -436,9 +438,9 @@ public static class RequestUsage
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 [PacketController]
 public sealed class DemoController
@@ -463,9 +465,12 @@ public sealed class DemoPacket : PacketBase<DemoPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Middleware;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Abstractions.Middleware;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -488,9 +493,9 @@ public sealed class DemoPacketMiddleware : IPacketMiddleware<DemoPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 [PacketController]
 public sealed class DemoController
@@ -516,9 +521,9 @@ public sealed class DemoPacket : PacketBase<DemoPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 [PacketController]
 public sealed class DemoController
@@ -540,8 +545,8 @@ public sealed class DemoPacket : PacketBase<DemoPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 [PacketController]
 public sealed class DemoController
@@ -564,11 +569,11 @@ public sealed class DemoPacket : PacketBase<DemoPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
-using Nalix.Runtime.Middleware;
-using Nalix.Common.Middleware;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Middleware;
 
 public sealed class PacketA : PacketBase<PacketA>
 {
@@ -604,8 +609,8 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public abstract class AbstractPacket : IPacket { }
 
@@ -626,8 +631,8 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class PlainPacket : IPacket { }
 
@@ -648,7 +653,7 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class ExplicitPacket
@@ -665,7 +670,7 @@ public sealed class ExplicitPacket
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class ExplicitPacket
@@ -686,7 +691,7 @@ public sealed class ExplicitPacket
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public abstract class BasePacket
@@ -711,7 +716,7 @@ public sealed class DerivedPacket : BasePacket
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class ExplicitPacket
@@ -730,7 +735,7 @@ public sealed class ExplicitPacket
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class ExplicitPacket
@@ -749,7 +754,7 @@ public sealed class ExplicitPacket
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class ExplicitPacket
@@ -768,7 +773,7 @@ public sealed class ExplicitPacket
         const string source = """
 namespace Demo;
 using System.Reflection;
-using Nalix.Runtime.Dispatching;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class Provider : IPacketMetadataProvider
 {
@@ -788,8 +793,8 @@ public sealed class Provider : IPacketMetadataProvider
         const string source = """
 namespace Demo;
 using System.Reflection;
-using Nalix.Common.Networking.Packets;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class Provider : IPacketMetadataProvider
 {
@@ -808,10 +813,10 @@ public sealed class Provider : IPacketMetadataProvider
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Middleware;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Abstractions.Middleware;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -834,11 +839,11 @@ public sealed class DemoMiddleware : IPacketMiddleware<DemoPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
-using Nalix.Runtime.Middleware;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Middleware;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -876,7 +881,7 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class ExplicitPacket
@@ -895,9 +900,9 @@ public sealed class ExplicitPacket
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -927,9 +932,9 @@ public sealed class ControllerB
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class Helper { }
 
@@ -957,9 +962,9 @@ public sealed class ControllerA
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -983,7 +988,7 @@ public sealed class ControllerA
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 
 public sealed class LeakDemo
 {
@@ -1001,7 +1006,7 @@ public sealed class LeakDemo
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class ExplicitPacket
@@ -1022,9 +1027,9 @@ public sealed class ExplicitPacket
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -1047,13 +1052,15 @@ public sealed class ControllerA
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class FixedType : IFixedSizeSerializable
 {
     [SerializeOrder(1)]
     public string Name { get; set; } = string.Empty;
+
+    public static int Size => 10;
 }
 """;
 
@@ -1065,9 +1072,9 @@ public sealed class FixedType : IFixedSizeSerializable
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -1097,9 +1104,9 @@ public sealed class ControllerB
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -1125,9 +1132,9 @@ public sealed class ControllerA
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -1150,9 +1157,9 @@ public sealed class ControllerA
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -1178,9 +1185,9 @@ public static class DispatchSetup
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -1216,10 +1223,10 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -1256,7 +1263,7 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 public static class Setup
 {
@@ -1275,7 +1282,7 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 public static class Setup
 {
@@ -1296,7 +1303,7 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 public interface IHandler { }
 
@@ -1317,7 +1324,7 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 public interface IProvider { }
 
@@ -1338,7 +1345,7 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class MissingDeserializePacket : PacketBase<MissingDeserializePacket>
 {
@@ -1353,7 +1360,7 @@ public sealed class MissingDeserializePacket : PacketBase<MissingDeserializePack
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class BadDeserializePacket : PacketBase<BadDeserializePacket>
 {
@@ -1370,8 +1377,8 @@ public sealed class BadDeserializePacket : PacketBase<BadDeserializePacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -1403,8 +1410,8 @@ public static class RequestUsage
         const string source = """
 namespace Demo;
 using System.Reflection;
-using Nalix.Common.Networking.Packets;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class Provider : IPacketMetadataProvider
 {
@@ -1426,11 +1433,11 @@ public sealed class Provider : IPacketMetadataProvider
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Runtime.Dispatching;
-using Nalix.Runtime.Middleware;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Middleware;
 
 public sealed class DemoPacket : PacketBase<DemoPacket>
 {
@@ -1466,8 +1473,8 @@ public static class Setup
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class MyPacket : PacketBase<MyPacket>
@@ -1485,3 +1492,18 @@ public sealed class MyPacket : PacketBase<MyPacket>
         await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

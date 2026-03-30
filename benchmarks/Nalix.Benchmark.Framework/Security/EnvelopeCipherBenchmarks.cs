@@ -1,7 +1,7 @@
 using System;
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Common.Security;
+using Nalix.Abstractions.Security;
 using Nalix.Framework.Security;
 
 namespace Nalix.Benchmark.Framework.Security;

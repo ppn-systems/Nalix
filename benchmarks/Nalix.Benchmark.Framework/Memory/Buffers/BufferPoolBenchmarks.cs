@@ -1,8 +1,9 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Framework.Memory.Buffers;
+using Nalix.Codec.Memory;
 using Nalix.Framework.Options;
 
+using Nalix.Framework.Memory.Buffers;
 namespace Nalix.Benchmark.Framework.Memory.Buffers;
 
 /// <summary>

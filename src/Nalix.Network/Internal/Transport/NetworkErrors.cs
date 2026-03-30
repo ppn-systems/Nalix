@@ -3,13 +3,13 @@
 
 using System;
 using System.Net.Sockets;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Network.Internal.Pooling;
 
 namespace Nalix.Network.Internal.Transport;
 
 /// <summary>
-/// Provides cached, zero-allocation exception instances for common transport errors.
+/// Provides cached, zero-allocation exception instances for Abstractions transport errors.
 /// These instances avoid the overhead of stack trace generation by overriding the StackTrace property.
 /// </summary>
 internal static class NetworkErrors

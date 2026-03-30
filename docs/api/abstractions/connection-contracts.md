@@ -1,0 +1,102 @@
+# Connection Contracts
+
+`Nalix.Abstractions.Networking` defines the contracts shared by the network runtime and higher-level application code.
+
+## Source mapping
+
+- `src/Nalix.Abstractions/Networking/IConnection.cs`
+- `src/Nalix.Abstractions/Networking/IConnection.Hub.cs`
+- `src/Nalix.Abstractions/Networking/IConnection.Transmission.cs`
+- `src/Nalix.Abstractions/Networking/IProtocol.cs`
+
+## Main types
+
+- `IConnection`
+- `IConnectionHub`
+- `IProtocol`
+
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `IConnection` | `ID`, `UpTime`, `BytesSent`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Disconnect(...)` |
+| `IConnectionHub` | `Count`, `SessionStore`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ForceClose(...)`, `CloseAllConnections(...)`, `ListConnections(...)` |
+| `IProtocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)` |
+
+## IConnection
+
+`IConnection` is the shared connection contract.
+
+It exposes:
+
+- connection identity
+- endpoint information
+- connection metrics such as uptime and bytes sent
+- crypto state such as `Secret` and `Algorithm`
+- lifecycle events
+- close and disconnect operations
+
+### Common pitfalls
+
+- treating `Secret` like a nullable optional when the current transport flow depends on it
+- updating `Attributes` from multiple paths without coordinating ownership
+- assuming `Disconnect(...)` is interchangeable in every lifecycle path
+
+## IConnectionHub
+
+`IConnectionHub` is the shared connection registry contract.
+
+It supports:
+
+- lookup by ID
+- register and unregister
+- listing active connections
+- session store access via `SessionStore`
+- close-all operations
+
+### Common pitfalls
+
+- keeping stale connection references after unregistering
+- using the hub as a general app-state store instead of a connection registry
+- assuming a connection exists without checking whether `GetConnection(...)` returned `null`
+
+## IProtocol
+
+`IProtocol` is the shared protocol contract.
+
+It supports:
+
+- `OnAccept(...)`
+- `ProcessMessage(...)`
+- `PostProcessMessage(...)`
+- `KeepConnectionOpen`
+
+### Common pitfalls
+
+- doing business logic in `OnAccept(...)` that really belongs in dispatch or middleware
+- forgetting to keep `ProcessMessage(...)` and `PostProcessMessage(...)` aligned with the connection lifecycle
+- treating `KeepConnectionOpen` as a transport-level guarantee instead of a protocol decision
+
+## Example
+
+```csharp
+IConnection connection = hub.GetConnection(connectionId);
+IProtocol protocol = new SampleProtocol();
+
+protocol.OnAccept(connection, ct);
+protocol.ProcessMessage(sender, args);
+```
+
+Typical flow:
+
+1. accept a connection through the protocol
+2. the listener handles frame normalization (decryption/decompression)
+3. the listener forwards processed messages to `ProcessMessage`
+4. send through the connection or packet sender when the handler finishes
+
+## Related APIs
+
+- [Connection](../network/connection/connection.md)
+- [Connection Hub](../network/connection/connection-hub.md)
+- [Session Contracts](./session-contracts.md)
+- [Protocol](../network/protocol.md)

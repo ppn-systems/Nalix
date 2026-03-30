@@ -4,7 +4,7 @@
 
 ## Source Mapping
 
-- `src/Nalix.Common/Networking/IConnection.Hub.cs`
+- `src/Nalix.Abstractions/Networking/IConnection.Hub.cs`
 - `src/Nalix.Network/Connections/Connection.Hub.cs`
 
 ## Why This Type Exists
@@ -92,7 +92,7 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 ## Related Information Paths
 
 - [Connection](./connection.md)
-- [Connection Hub Options](../options/connection-hub-options.md)
+- [Connection Hub Options](../../options/network/connection-hub-options.md)
 - [Timing Wheel](../time/timing-wheel.md)
 - [Session Store](../session-store.md)
 

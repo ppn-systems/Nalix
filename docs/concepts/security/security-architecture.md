@@ -45,7 +45,7 @@ Security requirements are declared directly on handler methods using attributes:
 
 ```csharp
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController("AccountHandlers")]
 public sealed class AccountHandlers
@@ -105,7 +105,7 @@ UDP should be treated as an authenticated datagram path, not as a looser copy of
 Requirements for secure UDP traffic:
 
 - Session identity must already be established (typically over TCP)
-- Each datagram must include the session token prefix (7 bytes)
+- Each datagram must include the session token prefix (8 bytes)
 - The connection secret must be initialized
 - `IsAuthenticated(...)` must validate the datagram before processing
 - Replay and timestamp checks should be enabled

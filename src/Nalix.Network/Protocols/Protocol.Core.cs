@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking;
+using Nalix.Abstractions.Networking;
 using Nalix.Framework.Extensions;
 
 #pragma warning disable CA1848 // Use the LoggerMessage delegates
@@ -69,7 +69,7 @@ public abstract partial class Protocol : IProtocol
                 }
             }
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Increment(ref _totalErrors);
 

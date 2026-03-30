@@ -45,7 +45,7 @@ sequenceDiagram
 High performance starts with how you define your data. Use `SerializeLayout.Explicit` to ensure the framework can use specialized bit-blitting deserializers.
 
 ```csharp
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Serialization;
 
 [Packet]
@@ -79,7 +79,7 @@ When you call `AddHandlers` or `AddPacket`, the framework performs two critical 
 2.  **Handler Compilation**: Uses expression trees to compile your controller methods into optimized static delegates, eliminating reflection overhead.
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Register Packet Contracts (triggers Frozen Registry creation)
@@ -200,7 +200,7 @@ Exception handling can be expensive. In the hot path, Nalix provides mechanisms 
 Instead of per-packet `try-catch` blocks in your handlers, use the global observer:
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 builder.ConfigureDispatch(options =>
 {
@@ -348,7 +348,7 @@ You can programmatically verify that a block of code does not allocate in unit t
 
 ```csharp
 using System;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 long startingBytes = GC.GetAllocatedBytesForCurrentThread();
 

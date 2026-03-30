@@ -6,13 +6,8 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
-
-#if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
 
 namespace Nalix.Runtime.Internal.Compilation;
 
@@ -27,3 +22,4 @@ namespace Nalix.Runtime.Internal.Compilation;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal readonly record struct PacketHandlerDescriptor<TPacket>(MethodInfo MethodInfo, Type ReturnType, Func<object, PacketContext<TPacket>, ValueTask<object>> CompiledInvoker)
     where TPacket : IPacket;
+
