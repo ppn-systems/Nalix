@@ -129,23 +129,6 @@ internal sealed class ConsoleLoggerProvider : IDisposable
         return false;
     }
 
-    public async ValueTask WriteAsync(LogEntry log)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        try
-        {
-            await _writer.WriteAsync(log, _cts.Token).ConfigureAwait(false);
-        }
-        catch
-        {
-            _ = Interlocked.Increment(ref _droppedCount);
-        }
-    }
-
     public void Dispose()
     {
         if (_disposed)
@@ -271,7 +254,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
                 _ = sb.AppendLine();
             }
 
-            System.Console.Out.Write(sb);
+            System.Console.Write(sb);
             _ = Interlocked.Add(ref _writtenCount, batch.Count);
         }
         catch

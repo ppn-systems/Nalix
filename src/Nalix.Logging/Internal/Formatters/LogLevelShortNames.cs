@@ -26,7 +26,7 @@ internal static class LogLevelShortNames
     /// <summary>
     /// Constants for optimized memory layout
     /// </summary>
-    private const int MaxLogLevels = 8;
+    private const int MaxLogLevels = 7;
 
     private const int LogLevelLength = 4;
     /// <summary>
@@ -64,7 +64,7 @@ internal static class LogLevelShortNames
         if ((byte)logLevel >= MaxLogLevels)
         {
             // Fall back to the string representation for unknown levels
-            return MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant());
+            return "NONE";
         }
 
         // Get the pre-computed span for this log level

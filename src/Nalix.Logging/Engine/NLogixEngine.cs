@@ -116,11 +116,6 @@ public abstract class NLogixEngine : IDisposable
 
         ArgumentNullException.ThrowIfNull(formatter);
 
-        if (_isDisposed != 0 || !this.IsEnabled(logLevel))
-        {
-            return;
-        }
-
         string message = formatter(state, exception);
         if (string.IsNullOrEmpty(message) && exception == null)
         {

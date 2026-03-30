@@ -101,7 +101,7 @@ internal static class AnsiColors
     /// <summary>
     /// Cache of color codes by log level to avoid repeated switch statements
     /// </summary>
-    private static readonly string[] s_levelColorCache = new string[(int)LogLevel.Critical + 1];
+    private static readonly string[] s_levelColorCache = new string[(int)LogLevel.None + 1];
 
     #endregion Fields
 
