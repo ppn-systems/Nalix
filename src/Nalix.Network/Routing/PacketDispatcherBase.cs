@@ -5,7 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 
@@ -127,7 +127,14 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
             packet.OpCode,
             out Func<TPacket, IConnection, Task> handler))
         {
-            this.Logging?.Trace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handle opcode={packet.OpCode}");
+            if (this.Logging?.IsEnabled(LogLevel.Trace) == true)
+            {
+                this.Logging.LogTrace(
+                    "[NW.PacketDispatcherBase<T>:ExecuteHandlerAsync] handle opcode={OpCode}",
+                    packet.OpCode
+                );
+            }
+
             try
             {
                 await this.ExecuteHandlerAsync(packet, connection, handler)
@@ -135,13 +142,26 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
             }
             catch (Exception ex)
             {
-                this.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handler-error opcode={packet.OpCode}", ex);
+                if (this.Logging?.IsEnabled(LogLevel.Error) == true)
+                {
+                    this.Logging.LogError(
+                        ex,
+                        "[NW.PacketDispatcherBase<T>:ExecuteHandlerAsync] handler-error opcode={OpCode}",
+                        packet.OpCode
+                    );
+                }
             }
 
             return;
         }
 
-        this.Logging?.Warn($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] no-handler opcode={packet.OpCode}");
+        if (this.Logging?.IsEnabled(LogLevel.Warning) == true)
+        {
+            this.Logging.LogWarning(
+                "[NW.PacketDispatcherBase<T>:ExecuteHandlerAsync] no-handler opcode={OpCode}",
+                packet.OpCode
+            );
+        }
     }
 
     #endregion Protected Methods

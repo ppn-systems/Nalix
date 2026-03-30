@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
@@ -58,7 +59,14 @@ public abstract partial class TcpListenerBase
             throw new InternalErrorException("s_config.MaxParallel must be at least 1.");
         }
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}:{MethodName}] activate-request port={Port}",
+                nameof(TcpListenerBase),
+                nameof(Activate),
+                _port);
+        }
 
         _lock.Wait(CancellationToken.None);
 
@@ -68,7 +76,14 @@ public abstract partial class TcpListenerBase
         {
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
-                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={this.State}");
+                if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    s_logger.LogWarning(
+                        "[NW.{ClassName}:{MethodName}] ignored-activate state={State}",
+                        nameof(TcpListenerBase),
+                        nameof(Activate),
+                        this.State);
+                }
 
                 return;
             }
@@ -107,7 +122,15 @@ public abstract partial class TcpListenerBase
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
 
-            s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[NW.{ClassName}:{MethodName}] start protocol={Protocol} port={Port}",
+                    nameof(TcpListenerBase),
+                    nameof(Activate),
+                    _protocol,
+                    _port);
+            }
 
             if (s_config.EnableTimeout)
             {
@@ -139,19 +162,42 @@ public abstract partial class TcpListenerBase
         }
         catch (OperationCanceledException)
         {
-            s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] cancel port={_port}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[NW.{ClassName}:{MethodName}] cancel port={Port}",
+                    nameof(TcpListenerBase),
+                    nameof(Activate),
+                    _port);
+            }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         catch (SocketException ex)
         {
-            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}: {nameof(Activate)} ] start-failed port= {_port}", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex,
+                    "[NW.{ClassName}:{MethodName}] start-failed port={Port}",
+                    nameof(TcpListenerBase),
+                    nameof(Activate),
+                    _port);
+            }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         catch (Exception ex)
         {
-            s_logger?.Critical($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
+            if (s_logger?.IsEnabled(LogLevel.Critical) == true)
+            {
+                s_logger.LogCritical(
+                    ex,
+                    "[NW.{ClassName}:{MethodName}] critical-error port={Port}",
+                    nameof(TcpListenerBase),
+                    nameof(Activate),
+                    _port);
+            }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
@@ -176,7 +222,14 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}:{MethodName}] deactivate-request port={Port}",
+                nameof(TcpListenerBase),
+                nameof(Deactivate),
+                _port);
+        }
 
         // Try Running->Stopping; if not, try Starting->Stopping
         int prev = Interlocked.CompareExchange(ref _state,
@@ -189,7 +242,14 @@ public abstract partial class TcpListenerBase
 
             if (prev != (int)ListenerState.STARTING)
             {
-                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] ignored-deactivate state={this.State}");
+                if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    s_logger.LogWarning(
+                        "[NW.{ClassName}:{MethodName}] ignored-deactivate state={State}",
+                        nameof(TcpListenerBase),
+                        nameof(Deactivate),
+                        this.State);
+                }
 
                 return;
             }
@@ -218,7 +278,15 @@ public abstract partial class TcpListenerBase
                                         .Deactivate(CancellationToken.None);
             }
 
-            s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] stop protocol={_protocol} port={_port}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[NW.{ClassName}:{MethodName}] stop protocol={Protocol} port={Port}",
+                    nameof(TcpListenerBase),
+                    nameof(Deactivate),
+                    _protocol,
+                    _port);
+            }
         }
         finally
         {

@@ -5,12 +5,12 @@ using System;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Security;
-using Nalix.Common.Exceptions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -66,7 +66,14 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.TCP = new SocketTcpTransport(this);
         this.Attributes = ObjectMap<string, object>.Rent();
 
-        s_logger.Debug($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.Connection] created remote={NetworkEndpoint} id={ID}",
+                this.NetworkEndpoint,
+                this.ID
+            );
+        }
     }
 
     #endregion Constructor
@@ -175,7 +182,15 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
 #if DEBUG
-        s_logger.Debug($"[NW.{nameof(Connection)}:{this.Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.Connection:{Close}] close request id={ID} remote={NetworkEndpoint}",
+                nameof(this.Close),
+                this.ID,
+                this.NetworkEndpoint
+            );
+        }
 #endif
     }
 
@@ -217,7 +232,13 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         }
         catch (Exception ex)
         {
-            s_logger.Error($"[NW.{nameof(Connection)}:{this.Dispose}] dispose-error msg={ex.Message}");
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    "[NW.Connection:Dispose] dispose-error msg={Message}",
+                    ex.Message
+                );
+            }
         }
 
         GC.SuppressFinalize(this);

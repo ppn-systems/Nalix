@@ -10,7 +10,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
@@ -45,15 +45,28 @@ public abstract partial class UdpListenerBase : IListener
 
         if (_isRunning)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] already-running");
+            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                s_logger.LogWarning(
+                    "[NW.{ClassName}:{MethodName}] already-running",
+                    nameof(UdpListenerBase),
+                    nameof(Activate));
+            }
+
             return;
         }
 
         if (_udpClient == null)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] init port={_port}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[NW.{ClassName}:{MethodName}] init port={Port}",
+                    nameof(UdpListenerBase),
+                    nameof(Activate),
+                    _port);
+            }
+
             this.Initialize();
         }
 
@@ -72,10 +85,24 @@ public abstract partial class UdpListenerBase : IListener
                 _isRunning = true;
                 started = true;
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] listening port={_port}");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug(
+                        "[NW.{ClassName}:{MethodName}] start protocol={Protocol} port={Port}",
+                        nameof(UdpListenerBase),
+                        nameof(Activate),
+                        _protocol,
+                        _port);
+                }
+
+                if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    s_logger.LogInformation(
+                        "[NW.{ClassName}:{MethodName}] listening port={Port}",
+                        nameof(UdpListenerBase),
+                        nameof(Activate),
+                        _port);
+                }
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
                     name: $"{NetworkTags.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
@@ -101,8 +128,15 @@ public abstract partial class UdpListenerBase : IListener
                 _isRunning = false;
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] cancel port={_port}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[NW.{ClassName}:{MethodName}] cancel port={Port}",
+                    nameof(UdpListenerBase),
+                    nameof(Activate),
+                    _port);
+            }
+
             _cts?.Dispose();
             _cts = null;
         }
@@ -113,8 +147,16 @@ public abstract partial class UdpListenerBase : IListener
                 _isRunning = false;
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Critical($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] bind-fail port={_port}", ex);
+            if (s_logger?.IsEnabled(LogLevel.Critical) == true)
+            {
+                s_logger.LogCritical(
+                    ex,
+                    "[NW.{ClassName}:{MethodName}] bind-fail port={Port}",
+                    nameof(UdpListenerBase),
+                    nameof(Activate),
+                    _port);
+            }
+
             _cts?.Dispose();
             _cts = null;
         }
@@ -125,8 +167,16 @@ public abstract partial class UdpListenerBase : IListener
                 _isRunning = false;
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Critical($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] critical port={_port}", ex);
+            if (s_logger?.IsEnabled(LogLevel.Critical) == true)
+            {
+                s_logger.LogCritical(
+                    ex,
+                    "[NW.{ClassName}:{MethodName}] critical port={Port}",
+                    nameof(UdpListenerBase),
+                    nameof(Activate),
+                    _port);
+            }
+
             _cts?.Dispose();
             _cts = null;
         }
@@ -152,14 +202,26 @@ public abstract partial class UdpListenerBase : IListener
 
             if (_isRunning)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] stopped port={_port}");
+                if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    s_logger.LogInformation(
+                        "[NW.{ClassName}:{MethodName}] stopped port={Port}",
+                        nameof(UdpListenerBase),
+                        nameof(Deactivate),
+                        _port);
+                }
             }
         }
         catch (Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Error($"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] stop-error", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex,
+                    "[NW.{ClassName}:{MethodName}] stop-error",
+                    nameof(UdpListenerBase),
+                    nameof(Deactivate));
+            }
         }
         finally
         {

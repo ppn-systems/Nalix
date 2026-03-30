@@ -7,9 +7,9 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
@@ -225,9 +225,16 @@ public sealed class TimingWheel : IActivatable
             }
         );
 
-        s_logger?.Info(
-            $"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activated " +
-            $"wheelsize={_wheelSize} tick={_tickMs}ms idle={_idleTimeoutMs}ms mask={_useMask}");
+        if (s_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            s_logger.LogInformation(
+                "[NW.TimingWheel:Activate] activated wheelsize={WheelSize} tick={TickMs}ms idle={IdleTimeoutMs}ms mask={UseMask}",
+                _wheelSize,
+                _tickMs,
+                _idleTimeoutMs,
+                _useMask
+            );
+        }
     }
 
     /// <summary>
@@ -256,7 +263,10 @@ public sealed class TimingWheel : IActivatable
         this.DRAIN_AND_RELEASE_ALL_BUCKETS();
         this.CLEAR_ACTIVE_REGISTRATIONS();
 
-        s_logger?.Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
+        if (s_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            s_logger.LogInformation("[NW.TimingWheel:Deactivate] deactivated");
+        }
     }
 
     #endregion IActivatable
@@ -423,9 +433,14 @@ public sealed class TimingWheel : IActivatable
 
                     if (idleMs >= _idleTimeoutMs)
                     {
-                        s_logger?.Debug(
-                            $"[NW.{nameof(TimingWheel)}] timeout " +
-                            $"remote={task.Conn.NetworkEndpoint?.Address} idle={idleMs}ms");
+                        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            s_logger.LogDebug(
+                                "[NW.TimingWheel] timeout remote={RemoteAddress} idle={IdleMs}ms",
+                                task.Conn.NetworkEndpoint?.Address,
+                                idleMs
+                            );
+                        }
 
                         try
                         {
@@ -474,7 +489,13 @@ public sealed class TimingWheel : IActivatable
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(TimingWheel)}] loop-error", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex,
+                    "[NW.TimingWheel] loop-error"
+                );
+            }
         }
     }
 

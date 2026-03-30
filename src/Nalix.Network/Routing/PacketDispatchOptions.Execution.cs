@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -57,10 +58,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
             Type? actualType = context.Packet?.GetType();
             IPacket packet = context.Packet ?? throw new InternalErrorException("Packet context contains a null packet.");
 
-            this.Logging?.Warn(
-                $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
-                $"type-mismatch opcode=0x{descriptor.OpCode:X4} " +
-                $"expected={expectedType.Name} actual={actualType?.Name ?? "null"} — skipping handler");
+            if (this.Logging?.IsEnabled(LogLevel.Warning) == true)
+            {
+                this.Logging.LogWarning(
+                    "[NW.{ClassName}:{MethodName}] type-mismatch opcode=0x{OpCode:X4} expected={ExpectedType} actual={ActualType} — skipping handler",
+                    nameof(PacketDispatchOptions<>),
+                    nameof(ExecuteHandlerAsync),
+                    descriptor.OpCode,
+                    expectedType.Name,
+                    actualType?.Name ?? "null");
+            }
 
             await context.Connection.SendAsync(
                 controlType: ControlType.FAIL,
@@ -102,9 +109,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
                 // Execute the handler and await the ValueTask once
                 object result = await descriptor.ExecuteAsync(context)
-                                                       .AsTask()
-                                                       .WaitAsync(ct)
-                                                       .ConfigureAwait(false);
+                                                .AsTask()
+                                                .WaitAsync(ct)
+                                                .ConfigureAwait(false);
 
                 // Handle the result
                 if (!context.SkipOutbound)
@@ -133,18 +140,31 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context, Exception exception)
     {
-        this.Logging?.Error($"[{nameof(PacketDispatchOptions<>)}:{this.HandleDispatchExceptionAsync}] " +
-                            $"handler-failed opcode={descriptor.OpCode}", exception);
+        if (this.Logging?.IsEnabled(LogLevel.Error) == true)
+        {
+            this.Logging.LogError(
+                exception,
+                "[{ClassName}:{MethodName}] handler-failed opcode={OpCode}",
+                nameof(PacketDispatchOptions<>),
+                nameof(this.HandleDispatchExceptionAsync),
+                descriptor.OpCode);
+        }
 
         _errorHandler?.Invoke(exception, descriptor.OpCode);
 
         (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) = MapExceptionToProtocol(exception);
 
-        await context.Connection.SendAsync(
-              controlType: ControlType.FAIL,
-              reason: reason,
-              action: action,
-              options: new ControlDirectiveOptions(Flags: flags, SequenceId: context.Packet.SequenceId, Arg0: descriptor.OpCode)).ConfigureAwait(false);
+        try
+        {
+            await context.Connection.SendAsync(
+                  controlType: ControlType.FAIL,
+                  reason: reason,
+                  action: action,
+                  options: new ControlDirectiveOptions(Flags: flags, SequenceId: context.Packet.SequenceId, Arg0: descriptor.OpCode)).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+        }
     }
 
     [Pure]

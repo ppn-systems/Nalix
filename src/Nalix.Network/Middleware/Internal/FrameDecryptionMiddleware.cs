@@ -11,9 +11,10 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
+using Microsoft.Extensions.Logging;
+
 
 #if DEBUG
-using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
 using System.Runtime.CompilerServices;
 
@@ -26,6 +27,8 @@ namespace Nalix.Network.Middleware.Internal;
 [MiddlewareOrder(-50)]
 internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
 {
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     public async Task<IBufferLease?> InvokeAsync(
         IBufferLease lease, IConnection connection,
         Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next, CancellationToken ct)
@@ -38,8 +41,14 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
 
 #if DEBUG
         string debugId = $"{safeConnection.NetworkEndpoint}/{safeConnection.ID}/leasePtr=0x{lease.GetHashCode():X8}";
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[DECRYPT][{debugId}] Start - Flags={lease.Span.ReadFlagsLE()} LeaseLen={lease.Length}");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace(
+                "[DECRYPT][{DebugId}] Start - Flags={Flags} LeaseLen={LeaseLen}",
+                debugId,
+                lease.Span.ReadFlagsLE(),
+                lease.Length);
+        }
 #endif
 
         if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED))
@@ -53,16 +62,25 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
             try
             {
 #if DEBUG
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[DECRYPT][{debugId}] Alloc decrypt lease: PlaintextLen={FrameTransformer.GetPlaintextLength(lease.Span)}");
+                if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                {
+                    s_logger.LogTrace(
+                        "[DECRYPT][{DebugId}] Alloc decrypt lease: PlaintextLen={PlaintextLen}",
+                        debugId,
+                        FrameTransformer.GetPlaintextLength(lease.Span));
+                }
 #endif
                 dest = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
             }
             catch
             {
 #if DEBUG
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[DECRYPT][{debugId}] Failed to get plaintext length.");
+                if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                {
+                    s_logger.LogError(
+                        "[DECRYPT][{DebugId}] Failed to get plaintext length.",
+                        debugId);
+                }
 #endif
                 return null;
             }
@@ -76,13 +94,25 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
                          .RemoveFlag(PacketFlags.ENCRYPTED));
 
 #if DEBUG
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[DECRYPT][{debugId}] Decryption success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
+                if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                {
+                    s_logger.LogTrace(
+                        "[DECRYPT][{DebugId}] Decryption success! FlagsAfter={FlagsAfter} DestLen={DestLen}",
+                        debugId,
+                        dest.Span.ReadFlagsLE(),
+                        dest.Length);
+                }
 
                 int sampleLen = Math.Min(16, dest.Length);
                 string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[DECRYPT][{debugId}] Decrypted buffer sample: {hexSample}");
+
+                if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                {
+                    s_logger.LogTrace(
+                        "[DECRYPT][{DebugId}] Decrypted buffer sample: {HexSample}",
+                        debugId,
+                        hexSample);
+                }
 #endif
 
                 return await next(dest, ct).ConfigureAwait(false);
@@ -96,8 +126,13 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
         else
         {
 #if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[DECRYPT][{debugId}] Bypass decryption (flags do not match). LeaseLen={lease.Length}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[DECRYPT][{DebugId}] Bypass decryption (flags do not match). LeaseLen={LeaseLen}",
+                    debugId,
+                    lease.Length);
+            }
 #endif
 
             return await next(lease, ct).ConfigureAwait(false);

@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
@@ -85,7 +86,10 @@ public sealed class PacketDispatchChannel
                        $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager. Make sure to build and register IPacketRegistry before starting dispatcher.");
 
         // Push any additional initialization here if needed
-        this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}] init");
+        if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+        {
+            this.Logging.LogDebug("[{ClassName}] init", nameof(PacketDispatchChannel));
+        }
     }
 
     #endregion Constructors
@@ -102,7 +106,14 @@ public sealed class PacketDispatchChannel
     {
         if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
-            this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{this.Activate}] already-running");
+            if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+            {
+                this.Logging.LogDebug(
+                    "[{ClassName}:{MethodName}] already-running",
+                    nameof(PacketDispatchChannel),
+                    nameof(Activate)
+                );
+            }
             return;
         }
 
@@ -149,7 +160,13 @@ public sealed class PacketDispatchChannel
             );
         }
 
-        this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{this.Activate}] start");
+        if (this.Logging?.IsEnabled(LogLevel.Trace) == true)
+        {
+            this.Logging.LogTrace(
+                "[{ClassName}:{MethodName}] start",
+                nameof(PacketDispatchChannel),
+                nameof(this.Activate));
+        }
     }
 
     /// <summary>
@@ -183,7 +200,13 @@ public sealed class PacketDispatchChannel
             if (localCts is { IsCancellationRequested: false })
             {
                 localCts.Cancel();
-                this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{this.Deactivate}] stop");
+                if (this.Logging?.IsEnabled(LogLevel.Trace) == true)
+                {
+                    this.Logging.LogTrace(
+                        "[{ClassName}:{MethodName}] stop",
+                        nameof(PacketDispatchChannel),
+                        nameof(this.Deactivate));
+                }
             }
 
             try
@@ -198,11 +221,24 @@ public sealed class PacketDispatchChannel
         }
         catch (ObjectDisposedException)
         {
-            this.Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{this.Deactivate}] stop-on-disposed-cts");
+            if (this.Logging?.IsEnabled(LogLevel.Trace) == true)
+            {
+                this.Logging.LogTrace(
+                    "[{ClassName}:{MethodName}] stop",
+                    nameof(PacketDispatchChannel),
+                    nameof(this.Deactivate));
+            }
         }
         catch (Exception ex)
         {
-            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{this.Deactivate}] stop-error", ex);
+            if (this.Logging?.IsEnabled(LogLevel.Error) == true)
+            {
+                this.Logging.LogError(
+                    ex,
+                    "[{ClassName}:{MethodName}] stop-error",
+                    nameof(PacketDispatchChannel),
+                    nameof(this.Deactivate));
+            }
         }
         finally
         {
@@ -220,7 +256,14 @@ public sealed class PacketDispatchChannel
 
         if (packet is null || packet.Length <= 0)
         {
-            this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.NetworkEndpoint}");
+            if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+            {
+                this.Logging.LogDebug(
+                    "[{ClassName}:{MethodName}] empty-payload ep={EndPoint}",
+                    nameof(PacketDispatchChannel),
+                    nameof(HandlePacket),
+                    connection.NetworkEndpoint);
+            }
             packet?.Dispose();
 
             return;
@@ -401,7 +444,13 @@ public sealed class PacketDispatchChannel
                         continue;
                     }
 
-                    this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
+                    if (this.Logging?.IsEnabled(LogLevel.Trace) == true)
+                    {
+                        this.Logging.LogTrace(
+                            "[{ClassName}:{MethodName}] pull-empty",
+                            nameof(PacketDispatchChannel),
+                            nameof(RunLoop));
+                    }
                     lease?.Dispose();
                     lease = null;
                     continue;
@@ -413,7 +462,14 @@ public sealed class PacketDispatchChannel
 
                     if (afterMw is null)
                     {
-                        this.Logging?.Debug($"[PacketDispatchChannel:RunLoop] middleware-reject ep={connection.NetworkEndpoint}");
+                        if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            this.Logging.LogDebug(
+                                "[{ClassName}:{MethodName}] middleware-reject ep={EndPoint}",
+                                nameof(PacketDispatchChannel),
+                                nameof(RunLoop),
+                                connection.NetworkEndpoint);
+                        }
                         lease.Dispose();
                         lease = null;
                         continue;
@@ -428,7 +484,16 @@ public sealed class PacketDispatchChannel
                 catch (Exception ex)
                 {
                     connection.IncrementErrorCount();
-                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection.NetworkEndpoint} leaseLen={lease?.Length}", ex);
+                    if (this.Logging?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        this.Logging.LogError(
+                            ex,
+                            "[{ClassName}:{MethodName}] buffer-middleware-error ep={EndPoint} leaseLen={LeaseLength}",
+                            nameof(PacketDispatchChannel),
+                            nameof(RunLoop),
+                            connection.NetworkEndpoint,
+                            lease?.Length);
+                    }
 
                     lease?.Dispose();
                     lease = null;
@@ -445,18 +510,43 @@ public sealed class PacketDispatchChannel
                 catch (InvalidOperationException)
                 {
                     connection.IncrementErrorCount();
-                    this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-invalid ep={connection.NetworkEndpoint} len={lease.Length}");
+                    if (this.Logging?.IsEnabled(LogLevel.Trace) == true)
+                    {
+                        this.Logging.LogTrace(
+                            "[{ClassName}:{MethodName}] deserialize-invalid ep={EndPoint} len={LeaseLength}",
+                            nameof(PacketDispatchChannel),
+                            nameof(RunLoop),
+                            connection.NetworkEndpoint,
+                            lease.Length);
+                    }
                 }
                 catch (Exception ex)
                 {
                     connection.IncrementErrorCount();
-                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.NetworkEndpoint}", ex);
+                    if (this.Logging?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        this.Logging.LogError(
+                            ex,
+                            "[{ClassName}:{MethodName}] handle-error ep={EndPoint}",
+                            nameof(PacketDispatchChannel),
+                            nameof(RunLoop),
+                            connection.NetworkEndpoint);
+                    }
                 }
                 finally
                 {
                     int len = lease.Length;
                     string head = Convert.ToHexString(lease.Span[..Math.Min(16, len)]);
-                    this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
+                    if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        this.Logging.LogDebug(
+                            "[{ClassName}:{MethodName}] deserialize-none ep={EndPoint} len={Len} head={Head}",
+                            nameof(PacketDispatchChannel),
+                            nameof(RunLoop),
+                            connection.NetworkEndpoint,
+                            len,
+                            head);
+                    }
 
                     lease?.Dispose();
                     lease = null;
@@ -471,7 +561,14 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex)
         {
-            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] loop-error", ex);
+            if (this.Logging?.IsEnabled(LogLevel.Error) == true)
+            {
+                this.Logging.LogError(
+                    ex,
+                    "[{ClassName}:{MethodName}] loop-error",
+                    nameof(PacketDispatchChannel),
+                    nameof(RunLoop));
+            }
         }
         finally
         {

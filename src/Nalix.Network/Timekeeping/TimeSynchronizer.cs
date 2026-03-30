@@ -5,8 +5,8 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
@@ -129,7 +129,13 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     /// <summary>
     /// Initializes a new instance of the <see cref="TimeSynchronizer"/> class.
     /// </summary>
-    public TimeSynchronizer() => s_logger?.Debug($"[NW.{nameof(TimeSynchronizer)}] initialized");
+    public TimeSynchronizer()
+    {
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug("[NW.TimeSynchronizer] initialized");
+        }
+    }
 
     /// <summary>
     /// Enables synchronization and ensures the loop is running.
@@ -194,12 +200,15 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
         this.Deactivate();
 
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug("[NW.TimeSynchronizer] disposed");
+        }
+
         TimeSynchronized = null;
         _stoppedSignal.Dispose();
 
         GC.SuppressFinalize(this);
-
-        s_logger?.Debug($"[NW.{nameof(TimeSynchronizer)}] disposed");
     }
 
     #endregion Dispose
@@ -238,7 +247,13 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 {
                     using PeriodicTimer timer = new(this.Period);
 
-                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] started period={this.Period.TotalMilliseconds:0.#}ms");
+                    if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                    {
+                        s_logger.LogInformation(
+                            "[NW.TimeSynchronizer] started period={PeriodMs}ms",
+                            this.Period.TotalMilliseconds
+                        );
+                    }
 
                     while (!ct.IsCancellationRequested)
                     {
@@ -268,7 +283,13 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                     }
                                     catch (Exception ex)
                                     {
-                                        s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
+                                        if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                                        {
+                                            s_logger.LogError(
+                                                ex,
+                                                "[NW.TimeSynchronizer] handler-error"
+                                            );
+                                        }
                                     }
                                 }, (handler, timestamp), preferLocal: false);
                             }
@@ -280,7 +301,13 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                 }
                                 catch (Exception ex)
                                 {
-                                    s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
+                                    if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                                    {
+                                        s_logger.LogError(
+                                            ex,
+                                            "[NW.TimeSynchronizer] handler-error"
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -288,9 +315,14 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                         long elapsed = Clock.UnixMillisecondsNow() - timestamp;
                         if (elapsed > this.Period.TotalMilliseconds * 1.5)
                         {
-                            s_logger?.Warn(
-                                $"[NW.{nameof(TimeSynchronizer)}] tick overrun " +
-                                $"elapsed={elapsed}ms period={this.Period.TotalMilliseconds:0.#}ms");
+                            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+                            {
+                                s_logger.LogWarning(
+                                    "[NW.TimeSynchronizer] tick overrun elapsed={Elapsed}ms period={PeriodMs}ms",
+                                    elapsed,
+                                    this.Period.TotalMilliseconds
+                                );
+                            }
                         }
 
                         ctx?.Beat();
@@ -302,13 +334,23 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 }
                 catch (Exception ex)
                 {
-                    s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] loop-error", ex);
+                    if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        s_logger.LogError(
+                            ex,
+                            "[NW.TimeSynchronizer] loop-error"
+                        );
+                    }
                 }
                 finally
                 {
                     Volatile.Write(ref _isRunning, 0);
                     _stoppedSignal.Set();
-                    s_logger?.Info($"[NW.{nameof(TimeSynchronizer)}] stopped");
+
+                    if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                    {
+                        s_logger.LogInformation("[NW.TimeSynchronizer] stopped");
+                    }
                 }
             },
             options: new WorkerOptions

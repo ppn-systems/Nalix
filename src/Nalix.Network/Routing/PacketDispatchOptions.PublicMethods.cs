@@ -8,7 +8,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -33,7 +33,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
         this.Logging = logger;
-        this.Logging.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
+
+        if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+        {
+            this.Logging.LogDebug(
+                "[NW.PacketDispatchOptions<T>:WithLogging] logger-attached"
+            );
+        }
 
         return this;
     }
@@ -52,8 +58,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         Action<Exception, ushort> errorHandler)
     {
-        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
         _errorHandler = errorHandler;
+
+        if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+        {
+            this.Logging.LogDebug(
+                "[NW.PacketDispatchOptions<T>:WithErrorHandling] error-handler-set"
+            );
+        }
 
         return this;
     }
@@ -72,9 +84,15 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         ArgumentNullException.ThrowIfNull(middleware);
 
-        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
-
         _pipeline.Use(middleware);
+
+        if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+        {
+            this.Logging.LogDebug(
+                "[NW.PacketDispatchOptions<T>:WithMiddleware] middleware-added type={MiddlewareType}",
+                middleware.GetType().Name
+            );
+        }
 
         return this;
     }
@@ -93,9 +111,15 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         ArgumentNullException.ThrowIfNull(middleware);
 
-        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
-
         this.NetworkPipeline.Use(middleware);
+
+        if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+        {
+            this.Logging.LogDebug(
+                "[NW.PacketDispatchOptions<T>:WithMiddleware] middleware-added type={MiddlewareType}",
+                middleware.GetType().Name
+            );
+        }
 
         return this;
     }
@@ -120,7 +144,15 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         this.DispatchLoopCount = loopCount;
-        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto")}");
+
+        if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+        {
+            this.Logging.LogDebug(
+                "[NW.PacketDispatchOptions<T>:WithDispatchLoopCount] loops={LoopCount}",
+                loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto"
+            );
+        }
+
         return this;
     }
 
@@ -256,14 +288,25 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
             if (concretePacketType is not null && concretePacketType != typeof(TPacket))
             {
-                this.Logging?.Debug(
-                    $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
-                    $"type-map opcode=0x{descriptor.OpCode:X4} → {concretePacketType.Name}");
+                if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    this.Logging.LogDebug(
+                        "[NW.PacketDispatchOptions<T>:WithHandler] type-map opcode=0x{OpCode:X4} → {PacketType}",
+                        descriptor.OpCode,
+                        concretePacketType.Name
+                    );
+                }
             }
         }
 
-        this.Logging?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
-                           $"reg-handlers count={handlerDescriptors.Length} controller={controllerType.Name}");
+        if (this.Logging?.IsEnabled(LogLevel.Information) == true)
+        {
+            this.Logging.LogInformation(
+                "[NW.PacketDispatchOptions<T>:WithHandler] reg-handlers count={HandlerCount} controller={ControllerType}",
+                handlerDescriptors.Length,
+                controllerType.Name
+            );
+        }
 
         return this;
     }

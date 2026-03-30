@@ -15,13 +15,13 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Network.Routing;
 using Nalix.Network.Routing.Metadata;
-using Nalix.Common.Exceptions;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
@@ -43,6 +43,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     where TController : class where TPacket : IPacket
 {
     #region Fields
+
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Caches attribute lookups per method for performance.
@@ -73,8 +75,14 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         PacketControllerAttribute controllerAttr = CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
             ?? throw new InternalErrorException($"Controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(PacketHandlerCompiler<,>)}:{nameof(CompileHandlers)}] scan controller={controllerType.Name}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}:{MethodName}] scan controller={ControllerType}",
+                nameof(PacketHandlerCompiler<,>),
+                nameof(CompileHandlers),
+                controllerType.Name);
+        }
 
         // Get or compile all handler methods
         FrozenDictionary<ushort, PacketHandlerDescriptor<TPacket>> compiledMethods = CompileControllerHandlers(controllerType);
@@ -100,12 +108,19 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         }
 
         string firstOps = string.Join(",", Enumerable
-                                              .Select(Enumerable
-                                              .Take(compiledMethods.Keys, 6), o => $"0x{o:X4}"));
+                                .Select(Enumerable
+                                .Take(compiledMethods.Keys, 6), o => $"0x{o:X4}"));
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(PacketHandlerCompiler<,>)}:{nameof(CompileHandlers)}] " +
-                                       $"found count={compiledMethods.Count} controller={controllerType.FullName} ops=[{firstOps}{(compiledMethods.Count > 6 ? ",..." : string.Empty)}]");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}:{MethodName}] found count={Count} controller={ControllerFullName} ops=[{FirstOps}]",
+                nameof(PacketHandlerCompiler<,>),
+                nameof(CompileHandlers),
+                compiledMethods.Count,
+                controllerType.FullName,
+                $"{firstOps}{(compiledMethods.Count > 6 ? ",..." : string.Empty)}");
+        }
 
         return descriptors;
     }
@@ -148,12 +163,23 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
         if (methodInfos.Length == 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(PacketHandlerCompiler<,>)}:Internal] no-method controller={x03.Name}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.{ClassName}:Internal] no-method controller={ControllerName}",
+                    nameof(PacketHandlerCompiler<,>),
+                    x03.Name);
+            }
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(PacketHandlerCompiler<,>)}:Internal] compile count={methodInfos.Length} controller={x03.Name}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}:Internal] compile count={MethodCount} controller={ControllerName}",
+                nameof(PacketHandlerCompiler<,>),
+                methodInfos.Length,
+                x03.Name);
+        }
 
         return s_compiledMethodCache.GetOrAdd(x03, static (_, methods) =>
         {
@@ -173,8 +199,13 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 {
                     string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[NW.{nameof(PacketHandlerCompiler<,>)}:Internal] dup-opcode {x01}");
+                    if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        s_logger.LogWarning(
+                            "[NW.{ClassName}:Internal] dup-opcode {OpCode}",
+                            nameof(PacketHandlerCompiler<,>),
+                            x01);
+                    }
 
                     continue;
                 }
@@ -185,15 +216,27 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
                     string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[NW.{nameof(PacketHandlerCompiler<,>)}:Internal] compiled {x01}");
+                    if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                    {
+                        s_logger.LogTrace(
+                            "[NW.{ClassName}:Internal] compiled {OpCode}",
+                            nameof(PacketHandlerCompiler<,>),
+                            x01);
+                    }
                 }
                 catch (Exception ex)
                 {
                     string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[NW.{nameof(PacketHandlerCompiler<,>)}:Internal] failed-compile {x01} ex={ex.GetType().Name}", ex);
+                    if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        s_logger.LogError(
+                            ex,
+                            "[NW.{ClassName}:Internal] failed-compile {OpCode} ex={ExceptionType}",
+                            nameof(PacketHandlerCompiler<,>),
+                            x01,
+                            ex.GetType().Name);
+                    }
                 }
             }
 

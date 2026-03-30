@@ -10,8 +10,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
@@ -174,16 +174,22 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             ? "full"
             : _options.InitialTokens.ToString(CultureInfo.InvariantCulture);
 
-        s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] init " +
-                       $"initial={initialDesc} " +
-                       $"scale={_options.TokenScale} " +
-                       $"shards={_options.ShardCount} " +
-                       $"cap={_options.CapacityTokens} " +
-                       $"stale_s={_options.StaleEntrySeconds} " +
-                       $"hardlock_s={_options.HardLockoutSeconds} " +
-                       $"refill={_options.RefillTokensPerSecond}/s " +
-                       $"cleanup_s={_options.CleanupIntervalSeconds} " +
-                       $"max_endpoints={_options.MaxTrackedEndpoints}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.TokenBucketLimiter] init initial={InitialDesc} scale={TokenScale} shards={ShardCount} cap={CapacityTokens} " +
+                "stale_s={StaleEntrySeconds} hardlock_s={HardLockoutSeconds} refill={RefillTokensPerSecond}/s cleanup_s={CleanupIntervalSeconds} max_endpoints={MaxTrackedEndpoints}",
+                initialDesc,
+                _options.TokenScale,
+                _options.ShardCount,
+                _options.CapacityTokens,
+                _options.StaleEntrySeconds,
+                _options.HardLockoutSeconds,
+                _options.RefillTokensPerSecond,
+                _options.CleanupIntervalSeconds,
+                _options.MaxTrackedEndpoints
+            );
+        }
     }
 
     /// <summary>
@@ -366,7 +372,14 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         // Pre-check limit before allocation
         if (this.IS_ENDPOINT_LIMIT_REACHED())
         {
-            s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}");
+            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                s_logger.LogWarning(
+                    "[NW.TokenBucketLimiter:Internal] endpoint-limit-reached-precheck count={TotalEndpointCount} limit={MaxTrackedEndpoints}",
+                    _totalEndpointCount,
+                    _options.MaxTrackedEndpoints
+                );
+            }
 
             return new EndpointStateResult
             {
@@ -399,7 +412,13 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             };
         }
 
-        s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.TokenBucketLimiter:Internal] new-endpoint total={TotalEndpointCount}",
+                _totalEndpointCount
+            );
+        }
 
         return new EndpointStateResult { State = newState, IsNew = true };
     }
@@ -522,7 +541,13 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         if (state.HardBlockedUntilSw > now)
         {
             int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
-            s_logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[NW.TokenBucketLimiter:Internal] hard-blocked retry_ms={RetryMs}",
+                    retryMs
+                );
+            }
 
             decision = new RateLimitDecision
             {
@@ -559,7 +584,13 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
         if (credit <= 1)
         {
-            s_logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] allow credit={credit}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[NW.TokenBucketLimiter:Internal] allow credit={Credit}",
+                    credit
+                );
+            }
         }
 
         return new RateLimitDecision
@@ -640,8 +671,14 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         state.SoftViolations = 0;
 
         int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
-        s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] escalate-to-hard-lock " +
-                     $"endpoint={key.Address} retry_ms={retryMs}");
+        if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+        {
+            s_logger.LogWarning(
+                "[NW.TokenBucketLimiter:Internal] escalate-to-hard-lock endpoint={Endpoint} retry_ms={RetryMs}",
+                key.Address,
+                retryMs
+            );
+        }
 
         return new RateLimitDecision
         {
@@ -1153,19 +1190,31 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
             removed += this.ENFORCE_LIMIT_IF_NEEDED(token);
 
-            if (removed > 0)
+            if (removed > 0 && s_logger?.IsEnabled(LogLevel.Debug) == true)
             {
-                s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] " +
-                               $"Cleanup removed={removed}");
+                s_logger.LogDebug(
+                    "[NW.TokenBucketLimiter:Internal] cleanup removed={Removed}",
+                    removed
+                );
             }
         }
         catch (OperationCanceledException)
         {
-            s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] Cleanup was cancelled due to timeout");
+            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                s_logger.LogWarning("[NW.TokenBucketLimiter:Internal] cleanup was cancelled due to timeout");
+            }
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
-            s_logger?.Error($"[NW.{nameof(TokenBucketLimiter)}:Internal] cleanup-error msg={ex.Message}");
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex,
+                    "[NW.TokenBucketLimiter:Internal] cleanup-error msg={ErrorMessage}",
+                    ex.Message
+                );
+            }
         }
     }
 
@@ -1268,8 +1317,13 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
         if (removed > 0)
         {
-            s_logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] " +
-                         $"Evicted {removed} endpoints to enforce MaxTrackedEndpoints limit");
+            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                s_logger.LogWarning(
+                    "[NW.TokenBucketLimiter:Internal] Evicted {Removed} endpoints to enforce MaxTrackedEndpoints limit",
+                    removed
+                );
+            }
         }
 
         return removed;
@@ -1452,7 +1506,10 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
                                 .CancelRecurring(TaskNaming.Recurring
                                 .CleanupJobId(RecurringName, this.GetHashCode()));
 
-        s_logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug("[NW.TokenBucketLimiter:Dispose] disposed");
+        }
     }
 
     /// <inheritdoc />

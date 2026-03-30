@@ -5,7 +5,7 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -43,9 +43,15 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        _logger?.Trace(
-            $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
-            $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
+        if (_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            _logger.LogTrace(
+                "[NW.PermissionMiddleware] deny op=0x{OpCode:X4} need={NeedLevel} have={HaveLevel}",
+                context.Attributes.PacketOpcode.OpCode,
+                context.Attributes.Permission.Level,
+                context.Connection.Level
+            );
+        }
 
         try
         {
@@ -61,7 +67,13 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[NW.{nameof(PermissionMiddleware)}] send-error-failed", ex);
+            if (_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                _logger.LogError(
+                    ex,
+                    "[NW.PermissionMiddleware] send-error-failed"
+                );
+            }
         }
     }
 }
