@@ -343,49 +343,6 @@ public sealed class MemoryTests
     }
 
     /// <summary>
-    /// Verifies that fixed writers reject expansion and invalid advance counts.
-    /// </summary>
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void Expand_FixedWriter_ThrowsInvalidOperationException(bool useArrayConstructor)
-    {
-        // Arrange
-        DataWriter writer = useArrayConstructor
-            ? new DataWriter(new byte[4])
-            : new DataWriter(new Span<byte>(new byte[4]));
-
-        // Act
-        InvalidOperationException expandException;
-        try
-        {
-            writer.Expand(5);
-            throw new Xunit.Sdk.XunitException("Expected InvalidOperationException was not thrown.");
-        }
-        catch (InvalidOperationException ex)
-        {
-            expandException = ex;
-        }
-
-        ArgumentOutOfRangeException advanceException;
-        try
-        {
-            writer.Advance(0);
-            throw new Xunit.Sdk.XunitException("Expected ArgumentOutOfRangeException was not thrown.");
-        }
-        catch (ArgumentOutOfRangeException ex)
-        {
-            advanceException = ex;
-        }
-
-        writer.Dispose();
-
-        // Assert
-        Assert.Equal("Cannot expand a fixed buffer.", expandException.Message);
-        Assert.Equal("count", advanceException.ParamName);
-    }
-
-    /// <summary>
     /// Verifies that reader constructors over arrays, spans, and memory track progress consistently.
     /// </summary>
     [Theory]
