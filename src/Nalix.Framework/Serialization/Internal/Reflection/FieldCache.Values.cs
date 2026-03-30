@@ -63,7 +63,7 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TField GetValue<TField>(T obj, int fieldIndex)
     {
-        FieldSchema metadata = _metadata[fieldIndex];
+        FieldSchema metadata = s_metadata[fieldIndex];
 
         if (metadata.FieldType != typeof(TField))
         {
@@ -72,7 +72,7 @@ internal static partial class FieldCache<T>
         }
 
         // Cast and invoke compiled delegate - NO BOXING!
-        Func<T, TField> getter = (Func<T, TField>)_getters[fieldIndex];
+        Func<T, TField> getter = (Func<T, TField>)s_getters[fieldIndex];
         return getter(obj);
     }
 
@@ -81,7 +81,7 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TField>(T obj, int fieldIndex, TField value)
     {
-        FieldSchema metadata = _metadata[fieldIndex];
+        FieldSchema metadata = s_metadata[fieldIndex];
 
         if (metadata.FieldType != typeof(TField))
         {
@@ -90,7 +90,7 @@ internal static partial class FieldCache<T>
         }
 
         // Cast and invoke compiled delegate - NO BOXING!
-        Action<T, TField> setter = (Action<T, TField>)_setters[fieldIndex];
+        Action<T, TField> setter = (Action<T, TField>)s_setters[fieldIndex];
         setter(obj, value);
     }
 
@@ -113,7 +113,7 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void SetValue<TField>(ref T obj, int fieldIndex, TField value)
     {
-        FieldSchema metadata = _metadata[fieldIndex];
+        FieldSchema metadata = s_metadata[fieldIndex];
 
         if (metadata.FieldType != typeof(TField))
         {

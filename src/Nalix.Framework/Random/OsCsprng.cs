@@ -45,6 +45,8 @@ internal static partial class OsCsprng
 
     #region Constructor
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
     static OsCsprng()
     {
         try
@@ -60,7 +62,7 @@ internal static partial class OsCsprng
                     ? A
                     : D;
         }
-        catch
+        catch (Exception)
         {
             s_f = OsRandom.Fill;
         }
@@ -104,10 +106,7 @@ internal static partial class OsCsprng
     /// P/Invoke declaration for Windows BCryptGenRandom function.
     /// </summary>
     [LibraryImport("Bcrypt.dll")]
-    private static partial int BCryptGenRandom(
-        nint hAlgorithm,
-        Span<byte> pbBuffer,
-        int cbBuffer, uint dwFlags);
+    private static partial int BCryptGenRandom(nint hAlgorithm, Span<byte> pbBuffer, int cbBuffer, uint dwFlags);
 
     /// <summary>
     /// Windows-specific CSPRNG implementation using BCryptGenRandom (CNG).
