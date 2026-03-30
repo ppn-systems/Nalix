@@ -286,7 +286,7 @@ public static class FormatterProvider
     {
         ArgumentNullException.ThrowIfNull(formatter);
 
-        FormatterCache<T>.Formatter = formatter;
+        FormatterCache<T>.Instance = formatter;
 
         Type t = typeof(T);
         Type ut = t;
@@ -362,7 +362,7 @@ public static class FormatterProvider
             DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         // ── Fast path ─────────────────────────────────────────────────────
-        IFormatter<T>? cached = FormatterCache<T>.Formatter;
+        IFormatter<T>? cached = FormatterCache<T>.Instance;
         if (cached is not null)
         {
             return cached;
@@ -498,7 +498,7 @@ public static class FormatterProvider
     private static IFormatter<T> CacheOrGetExisting<T>(IFormatter<T> created)
     {
         IFormatter<T>? existing = Interlocked.CompareExchange(
-            ref FormatterCache<T>.Formatter, created, null);
+            ref FormatterCache<T>.Instance, created, null);
         return existing ?? created;
     }
 

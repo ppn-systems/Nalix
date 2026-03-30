@@ -21,5 +21,5 @@ internal static class FormatterCache<
     /// <summary>
     /// The cached formatter instance for the specified type <typeparamref name="T"/>.
     /// </summary>
-    public static IFormatter<T> Formatter = null!;
+    public static IFormatter<T> Instance = null!;
 }
