@@ -42,8 +42,8 @@ public sealed class ConcurrencyGate : IReportable
 
     #region Fields
 
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, Entry> s_table = new();
+    private ILogger? _logger;
 
     private long _totalAcquired;
     private long _totalRejected;
@@ -64,6 +64,7 @@ public sealed class ConcurrencyGate : IReportable
     /// </summary>
     public ConcurrencyGate()
     {
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         try
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
@@ -82,7 +83,7 @@ public sealed class ConcurrencyGate : IReportable
                     ExecutionTimeout = TimeSpan.FromSeconds(5)
                 });
 
-            s_logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] initialized with cleanup interval={_cleanupInterval.TotalMinutes:F1}min");
+            _logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] initialized with cleanup interval={_cleanupInterval.TotalMinutes:F1}min");
         }
         catch (Exception ex)
         {
@@ -136,7 +137,8 @@ public sealed class ConcurrencyGate : IReportable
         /// <param name="max"></param>
         /// <param name="queue"></param>
         /// <param name="queueMax"></param>
-        public Entry(int max, bool queue, int queueMax)
+        /// <param name="logger">The logger used for entry diagnostics.</param>
+        public Entry(int max, bool queue, int queueMax, ILogger? logger = null)
         {
             if (max <= 0)
             {
@@ -147,6 +149,7 @@ public sealed class ConcurrencyGate : IReportable
             this.Capacity = max;
             this.QueueMax = queueMax < 0 ? int.MaxValue : queueMax;
             this.Sem = new SemaphoreSlim(this.Capacity, this.Capacity);
+            this.Logger = logger;
 
             _activeUsers = 0;
             _queueCount = 0;
@@ -181,6 +184,8 @@ public sealed class ConcurrencyGate : IReportable
         /// Gets current queue count.
         /// </summary>
         public int QueueCount => Volatile.Read(ref _queueCount);
+
+        internal ILogger? Logger { get; }
 
         /// <summary>
         /// Entry is idle when no slots are in use and queue is empty.
@@ -226,7 +231,7 @@ public sealed class ConcurrencyGate : IReportable
             if (newCount <= 0) // Overflow detection
             {
                 _ = Interlocked.Decrement(ref _activeUsers);
-                s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers overflow detected");
+                this.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers overflow detected");
                 return false;
             }
 
@@ -243,7 +248,7 @@ public sealed class ConcurrencyGate : IReportable
 
             if (remaining < 0)
             {
-                s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers underflow detected");
+                this.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers underflow detected");
                 _ = Interlocked.Exchange(ref _activeUsers, 0);
             }
         }
@@ -294,7 +299,7 @@ public sealed class ConcurrencyGate : IReportable
 
             if (remaining < 0)
             {
-                s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] queueCount underflow detected");
+                this.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] queueCount underflow detected");
                 _ = Interlocked.Exchange(ref _queueCount, 0);
             }
         }
@@ -328,7 +333,7 @@ public sealed class ConcurrencyGate : IReportable
                 int remainingUsers = Volatile.Read(ref _activeUsers);
                 if (remainingUsers > 0)
                 {
-                    s_logger?.Warn(
+                    this.Logger?.Warn(
                         $"[NW.{nameof(ConcurrencyGate)}:Entry] disposing with {remainingUsers} active users");
                 }
 
@@ -343,7 +348,7 @@ public sealed class ConcurrencyGate : IReportable
                 }
                 catch (Exception ex)
                 {
-                    s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] disposal-error", ex);
+                    this.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] disposal-error", ex);
                 }
             }
         }
@@ -385,7 +390,7 @@ public sealed class ConcurrencyGate : IReportable
             }
             catch (Exception ex)
             {
-                s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Lease] release-error", ex);
+                _entry.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Lease] release-error", ex);
             }
             finally
             {
@@ -397,6 +402,18 @@ public sealed class ConcurrencyGate : IReportable
     #endregion Lease Struct
 
     #region Public API
+
+    /// <summary>
+    /// Assigns a logger instance used by the gate for diagnostic output.
+    /// </summary>
+    /// <param name="logger">The logger to use for subsequent diagnostics.</param>
+    /// <returns>The current <see cref="ConcurrencyGate"/> instance.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ConcurrencyGate WithLogging(ILogger logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        return this;
+    }
 
     /// <summary>
     /// Attempts to enter immediately without waiting.
@@ -416,7 +433,7 @@ public sealed class ConcurrencyGate : IReportable
 
         VALIDATE_ATTRIBUTE(attr);
 
-        Entry entry = GET_OR_CREATE_ENTRY(opcode, attr);
+        Entry entry = this.GET_OR_CREATE_ENTRY(opcode, attr);
 
         if (!entry.TryAcquire())
         {
@@ -449,7 +466,7 @@ public sealed class ConcurrencyGate : IReportable
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}:{nameof(TryEnter)}] unexpected error opcode={opcode:X4}", ex);
+            _logger?.Error($"[NW.{nameof(ConcurrencyGate)}:{nameof(TryEnter)}] unexpected error opcode={opcode:X4}", ex);
             lease = default;
             return false;
         }
@@ -478,7 +495,7 @@ public sealed class ConcurrencyGate : IReportable
         using CancellationTokenSource linkedCts =
             CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
-        Entry entry = GET_OR_CREATE_ENTRY(opcode, attr);
+        Entry entry = this.GET_OR_CREATE_ENTRY(opcode, attr);
 
         if (!entry.TryAcquire())
         {
@@ -740,7 +757,7 @@ public sealed class ConcurrencyGate : IReportable
                 _ = Interlocked.Exchange(ref _totalAcquired, 0);
                 _ = Interlocked.Exchange(ref _totalRejected, 0);
 
-                s_logger?.Info($"[NW.{nameof(ConcurrencyGate)}] circuit breaker closed");
+                _logger?.Info($"[NW.{nameof(ConcurrencyGate)}] circuit breaker closed");
             }
 
             return Volatile.Read(ref _circuitBreakerOpen) == 1;
@@ -764,7 +781,7 @@ public sealed class ConcurrencyGate : IReportable
                 long resetTime = DateTime.UtcNow.AddSeconds(CircuitBreakerResetAfterSeconds).Ticks;
                 _ = Interlocked.Exchange(ref _circuitBreakerResetTimeTicks, resetTime);
 
-                s_logger?.Error(
+                _logger?.Error(
                     $"[NW.{nameof(ConcurrencyGate)}] circuit breaker opened " +
                     $"(rejection_rate={rejectionRate:P2}, attempts={totalAttempts})");
             }
@@ -796,13 +813,13 @@ public sealed class ConcurrencyGate : IReportable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Entry GET_OR_CREATE_ENTRY(
+    private Entry GET_OR_CREATE_ENTRY(
         ushort opcode,
         PacketConcurrencyLimitAttribute attr)
     {
         return s_table.GetOrAdd(
             opcode,
-            _ => new Entry(attr.Max, attr.Queue, attr.QueueMax));
+            _ => new Entry(attr.Max, attr.Queue, attr.QueueMax, _logger));
     }
 
     private async ValueTask<Lease> ENTER_WITH_QUEUE_ASYNC(
@@ -876,12 +893,12 @@ public sealed class ConcurrencyGate : IReportable
 
             if (removed > 0)
             {
-                s_logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] cleanup removed={removed} remaining={s_table.Count}");
+                _logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] cleanup removed={removed} remaining={s_table.Count}");
             }
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(ConcurrencyGate)}] cleanup-error", ex);
+            _logger?.Error($"[NW.{nameof(ConcurrencyGate)}] cleanup-error", ex);
         }
     }
 
