@@ -1,11 +1,110 @@
 using System;
 using System.Reflection;
+using System.Reflection.Emit;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Serialization;
+using Nalix.Framework.Serialization.Formatters.Cache;
+using Nalix.Framework.Serialization.Internal.Reflection;
 using Nalix.Framework.Serialization.Internal.Types;
 
-internal static partial class EmitHelpers
+internal static class EmitFieldOps
 {
+    public static void EmitSerializeField(ILGenerator il, FieldSchema field, MethodInfo? directWrite)
+    {
+        FieldInfo fi = field.FieldInfo;
+
+        if (directWrite != null)
+        {
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Ldarg_1);
+            il.Emit(OpCodes.Ldfld, fi);
+            il.Emit(OpCodes.Call, directWrite);
+            return;
+        }
+
+        EmitFormatterSerialize(il, field);
+    }
+
+    public static void EmitDeserializeObjectField(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal)
+    {
+        FieldInfo fi = field.FieldInfo;
+
+        if (directRead != null)
+        {
+            il.Emit(OpCodes.Ldloc, objLocal);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Call, directRead);
+            il.Emit(OpCodes.Stfld, fi);
+            return;
+        }
+
+        EmitFormatterDeserializeObject(il, fi, objLocal);
+    }
+
+    public static void EmitDeserializeStructField(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal)
+    {
+        FieldInfo fi = field.FieldInfo;
+
+        if (directRead != null)
+        {
+            il.Emit(OpCodes.Ldloca_S, objLocal);
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Call, directRead);
+            il.Emit(OpCodes.Stfld, fi);
+            return;
+        }
+
+        EmitFormatterDeserializeStruct(il, fi, objLocal);
+    }
+
+    private static void EmitFormatterSerialize(ILGenerator il, FieldSchema field)
+    {
+        Type fType = field.FieldType;
+        FieldInfo fi = field.FieldInfo;
+
+        Type cache = typeof(FormatterCache<>).MakeGenericType(fType);
+        FieldInfo? instanceField = cache.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo? serializeMethod = typeof(IFormatter<>).MakeGenericType(fType)
+            .GetMethod("Serialize", [typeof(DataWriter).MakeByRefType(), fType]);
+
+        il.Emit(OpCodes.Ldsfld, instanceField!);
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Ldarg_1);
+        il.Emit(OpCodes.Ldfld, fi);
+        il.Emit(OpCodes.Callvirt, serializeMethod!);
+    }
+
+    private static void EmitFormatterDeserializeObject(ILGenerator il, FieldInfo field, LocalBuilder objLocal)
+    {
+        Type fType = field.FieldType;
+        Type cache = typeof(FormatterCache<>).MakeGenericType(fType);
+        FieldInfo? instanceField = cache.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo? deserializeMethod = typeof(IFormatter<>).MakeGenericType(fType)
+            .GetMethod("Deserialize", [typeof(DataReader).MakeByRefType()]);
+
+        il.Emit(OpCodes.Ldloc, objLocal);
+        il.Emit(OpCodes.Ldsfld, instanceField!);
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Callvirt, deserializeMethod!);
+        il.Emit(OpCodes.Stfld, field);
+    }
+
+    private static void EmitFormatterDeserializeStruct(ILGenerator il, FieldInfo field, LocalBuilder objLocal)
+    {
+        Type fType = field.FieldType;
+        Type cache = typeof(FormatterCache<>).MakeGenericType(fType);
+        FieldInfo? instanceField = cache.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo? deserializeMethod = typeof(IFormatter<>).MakeGenericType(fType)
+            .GetMethod("Deserialize", [typeof(DataReader).MakeByRefType()]);
+
+        il.Emit(OpCodes.Ldloca_S, objLocal);
+        il.Emit(OpCodes.Ldsfld, instanceField!);
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Callvirt, deserializeMethod!);
+        il.Emit(OpCodes.Stfld, field);
+    }
+
     /// <summary>
     /// Returns the direct Write method from <see cref="DataWriterExtensions"/> if available.
     /// Prioritizes fast-path primitive and unmanaged writes.
@@ -58,12 +157,7 @@ internal static partial class EmitHelpers
         // Note: short is missing in DataWriterExtensions → we fall through to WriteUnmanaged
         // You can add Write(short) later if you want.
 
-        // === Arrays & Spans ===
-        if (fieldType == typeof(byte[]))
-        {
-            return ext.GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(byte[])]);
-        }
-
+        // Arrays need their formatter to preserve framing metadata such as length prefixes.
         if (fieldType == typeof(ReadOnlySpan<byte>))
         {
             return ext.GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(ReadOnlySpan<byte>)]);
@@ -124,12 +218,6 @@ internal static partial class EmitHelpers
         if (fieldType.IsEnum)
         {
             return TryGetDirectReadMethod(Enum.GetUnderlyingType(fieldType));
-        }
-
-        // Byte array support
-        if (fieldType == typeof(byte[]))
-        {
-            return ext.GetMethod("ReadBytes", [typeof(DataReader).MakeByRefType(), typeof(int)]); // Note: needs length
         }
 
         // Generic unmanaged fallback

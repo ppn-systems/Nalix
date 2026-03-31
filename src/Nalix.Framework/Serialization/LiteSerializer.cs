@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Serialization.Formatters.Automatic;
 using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization;
@@ -101,7 +102,7 @@ public static class LiteSerializer
             Debug.WriteLine(
                 $"Serializing fixed-size type {typeof(T).FullName} with size {size} bytes.");
 
-            IFormatter<T> formatter = FormatterProvider.Get<T>();
+            IFormatter<T> formatter = ResolveRootFormatter<T>(value);
             DataWriter writer = (size > 512) ? new(size) : new(512);
 
             try
@@ -120,7 +121,7 @@ public static class LiteSerializer
         }
         else if (kind is TypeKind.None)
         {
-            IFormatter<T> formatter = FormatterProvider.Get<T>();
+            IFormatter<T> formatter = ResolveRootFormatter<T>(value);
             DataWriter writer = (size > 512) ? new(size) : new(512);
 
             try
@@ -193,7 +194,7 @@ public static class LiteSerializer
                 throw new SerializationFailureException($"Buffer too small. Required: {fixedSize}, Actual: {buffer.Length}");
             }
 
-            IFormatter<T> formatter = FormatterProvider.Get<T>();
+            IFormatter<T> formatter = ResolveRootFormatter<T>(value);
             DataWriter writer = new(buffer);
             try
             {
@@ -333,7 +334,7 @@ public static class LiteSerializer
             // The formatter must not write more than fixedSize bytes, so Expand() is never called.
 
             DataWriter writer = new(buffer);
-            FormatterProvider.Get<T>().Serialize(ref writer, value);
+            ResolveRootFormatter<T>(value).Serialize(ref writer, value);
             return writer.WrittenCount;
         }
 
@@ -344,7 +345,7 @@ public static class LiteSerializer
         // (because Span-based DataWriter cannot Expand()).
         if (kind is TypeKind.None)
         {
-            IFormatter<T> formatter = FormatterProvider.Get<T>();
+            IFormatter<T> formatter = ResolveRootFormatter<T>(value);
 
             // DataWriter(Span<byte>) wraps the span directly — no renting, no pool.
             // Expand() is disabled: if formatter overflows, it throws InvalidOperationException.
@@ -457,7 +458,7 @@ public static class LiteSerializer
             return dataSize + 4;
         }
 
-        IFormatter<T> formatter = FormatterProvider.Get<T>();
+        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
         DataReader reader = new(buffer);
         value = formatter.Deserialize(ref reader);
         return EqualityComparer<T?>.Default.Equals(value, default)
@@ -558,7 +559,7 @@ public static class LiteSerializer
             return (T)(object)arr;
         }
 
-        IFormatter<T> formatter = FormatterProvider.Get<T>();
+        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
         DataReader reader = new(buffer);
 
         T result = formatter.Deserialize(ref reader);
@@ -577,6 +578,46 @@ public static class LiteSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsEmptyArrayMarker(ReadOnlySpan<byte> buffer) =>
         buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == 0;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> ResolveRootFormatter<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
+    {
+        if (typeof(T).IsClass && typeof(T) != typeof(string) && value is null)
+        {
+            throw new SerializationFailureException(
+                $"Cannot serialize null reference type '{typeof(T).FullName}' without an explicit nullable wrapper.");
+        }
+
+        IFormatter<T> formatter = FormatterProvider.Get<T>();
+        return ShouldBypassNullableRootFormatter(formatter)
+            ? FormatterProvider.GetComplex<T>()
+            : formatter;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> ResolveRootFormatterForRead<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
+    {
+        IFormatter<T> formatter = FormatterProvider.Get<T>();
+        return ShouldBypassNullableRootFormatter(formatter)
+            ? FormatterProvider.GetComplex<T>()
+            : formatter;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool ShouldBypassNullableRootFormatter<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(IFormatter<T> formatter)
+    {
+        if (!typeof(T).IsClass || typeof(T) == typeof(string))
+        {
+            return false;
+        }
+
+        Type formatterType = formatter.GetType();
+        return formatterType.IsGenericType &&
+               formatterType.GetGenericTypeDefinition() == typeof(NullableObjectFormatter<>);
+    }
 
     #endregion Private Methods
 }

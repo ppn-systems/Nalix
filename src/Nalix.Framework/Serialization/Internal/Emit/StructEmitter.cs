@@ -4,7 +4,6 @@ using System;
 using System.Reflection;
 using System.Reflection.Emit;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Formatters.Cache;
 using Nalix.Framework.Serialization.Internal.Reflection;
 
 namespace Nalix.Framework.Serialization.Internal.Emit;
@@ -36,8 +35,8 @@ internal static class StructEmitter<T> where T : struct
         {
             Type fieldType = s_fields[i].FieldType;
 
-            s_directReadMethods[i] = EmitHelpers.TryGetDirectReadMethod(fieldType);
-            s_directWriteMethods[i] = EmitHelpers.TryGetDirectWriteMethod(fieldType);
+            s_directReadMethods[i] = EmitFieldOps.TryGetDirectReadMethod(fieldType);
+            s_directWriteMethods[i] = EmitFieldOps.TryGetDirectWriteMethod(fieldType);
         }
 
         Serialize = GenerateSerialize();
@@ -58,7 +57,7 @@ internal static class StructEmitter<T> where T : struct
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            EmitSerializeField(il, s_fields[i], s_directWriteMethods[i]);
+            EmitFieldOps.EmitSerializeField(il, s_fields[i], s_directWriteMethods[i]);
         }
 
         il.Emit(OpCodes.Ret);
@@ -79,7 +78,7 @@ internal static class StructEmitter<T> where T : struct
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            EmitDeserializeField(il, s_fields[i], s_directReadMethods[i], obj, isStruct: true);
+            EmitFieldOps.EmitDeserializeStructField(il, s_fields[i], s_directReadMethods[i], obj);
         }
 
         il.Emit(OpCodes.Ldloc_0);
@@ -87,89 +86,4 @@ internal static class StructEmitter<T> where T : struct
 
         return (DeserializeDelegate)dm.CreateDelegate(typeof(DeserializeDelegate));
     }
-
-    #region Emit Methods
-
-    private static void EmitSerializeField(ILGenerator il, FieldSchema field, MethodInfo? directWrite)
-    {
-        FieldInfo fi = field.FieldInfo;
-        if (directWrite != null)
-        {
-            // Fast path: direct extension call
-            il.Emit(OpCodes.Ldarg_0);           // ref DataWriter
-            il.Emit(OpCodes.Ldarg_1);           // value
-            il.Emit(OpCodes.Ldfld, fi);
-            il.Emit(OpCodes.Call, directWrite);
-            return;
-        }
-
-        // Formatter fallback
-        EmitFormatterSerialize(il, field);
-    }
-
-    private static void EmitDeserializeField(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal, bool isStruct)
-    {
-        FieldInfo fi = field.FieldInfo;
-
-        if (directRead != null)
-        {
-            if (isStruct)
-            {
-                il.Emit(OpCodes.Ldloca_S, objLocal);
-            }
-            else
-            {
-                il.Emit(OpCodes.Ldloc, objLocal);
-            }
-
-            il.Emit(OpCodes.Ldarg_0);           // ref DataReader
-            il.Emit(OpCodes.Call, directRead);
-            il.Emit(OpCodes.Stfld, fi);
-            return;
-        }
-
-        EmitFormatterDeserialize(il, fi, objLocal, isStruct);
-    }
-
-    private static void EmitFormatterSerialize(ILGenerator il, FieldSchema field)
-    {
-        Type fType = field.FieldType;
-        FieldInfo fi = field.FieldInfo;
-
-        Type cache = typeof(FormatterCache<>).MakeGenericType(fType);
-        FieldInfo? instanceField = cache.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
-        MethodInfo? serializeMethod = typeof(IFormatter<>).MakeGenericType(fType)
-                                .GetMethod("Serialize", [typeof(DataWriter).MakeByRefType(), fType]);
-
-        il.Emit(OpCodes.Ldsfld, instanceField!);
-        il.Emit(OpCodes.Ldarg_0);
-        il.Emit(OpCodes.Ldarg_1);
-        il.Emit(OpCodes.Ldfld, fi);
-        il.Emit(OpCodes.Callvirt, serializeMethod!);
-    }
-
-    private static void EmitFormatterDeserialize(ILGenerator il, FieldInfo field, LocalBuilder objLocal, bool isStruct)
-    {
-        Type fType = field.FieldType;
-        Type cache = typeof(FormatterCache<>).MakeGenericType(fType);
-        FieldInfo? instanceField = cache.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
-        MethodInfo? deserializeMethod = typeof(IFormatter<>).MakeGenericType(fType)
-                                  .GetMethod("Deserialize", [typeof(DataReader).MakeByRefType()]);
-
-        if (isStruct)
-        {
-            il.Emit(OpCodes.Ldloca_S, objLocal);
-        }
-        else
-        {
-            il.Emit(OpCodes.Ldloc, objLocal);
-        }
-
-        il.Emit(OpCodes.Ldsfld, instanceField!);
-        il.Emit(OpCodes.Ldarg_0);
-        il.Emit(OpCodes.Callvirt, deserializeMethod!);
-        il.Emit(OpCodes.Stfld, field);
-    }
-
-    #endregion
 }
