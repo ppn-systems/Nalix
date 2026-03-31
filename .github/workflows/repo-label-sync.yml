@@ -1,0 +1,28 @@
+name: "Repo: Sync labels"
+
+# Keeps repository labels in sync with the definition file at
+# .github/labels.yml — run manually or whenever the file changes.
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - ".github/labels.yml"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  sync-labels:
+    name: "Sync labels from .github/labels.yml"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync labels
+        uses: EndBug/label-sync@v2
+        with:
+          config-file: .github/labels.yml
+          delete-other-labels: false # keep manually created labels
+          token: ${{ secrets.GITHUB_TOKEN }}

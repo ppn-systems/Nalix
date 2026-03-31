@@ -1,11 +1,15 @@
-name: Deploy Docs
+name: "Docs: Build & Deploy"
 
 on:
   push:
-    branches: [master]
+    branches: ["master"]
   pull_request:
-    branches: [master]
+    branches: ["master"]
   workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -13,105 +17,101 @@ permissions:
   id-token: write
 
 jobs:
-  build-docs:
+  # ---------------------------------------------------------------------------
+  # Gate: on PR, require 'documentation' label; push/dispatch always proceeds
+  # ---------------------------------------------------------------------------
+  check-label:
+    name: "Check: Documentation label"
     runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.label_check.outputs.should_run }}
     steps:
-      - name: Check if PR has 'documentation' label
+      - name: Evaluate label gate
         id: label_check
         uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = context.payload.pull_request?.number;
-
-            if (!prNumber) {
-              core.setOutput('hasDocsLabel', 'false');
+            // Non-PR events (push, workflow_dispatch) always proceed
+            if (context.eventName !== 'pull_request') {
+              core.setOutput('should_run', 'true');
               return;
             }
-
             const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: prNumber
+              issue_number: context.payload.pull_request.number,
             });
+            const isDoc = labels.some(l => l.name === 'documentation');
+            core.info(`documentation label present: ${isDoc}`);
+            core.setOutput('should_run', isDoc ? 'true' : 'false');
 
-            const hasDocsLabel = labels.some(label => label.name === 'documentation');
-            core.setOutput('hasDocsLabel', hasDocsLabel ? 'true' : 'false');
-      - name: End early if missing label
-        if: steps.label_check.outputs.hasDocsLabel != 'true'
-        run: |
-          echo "If PR lacks label documentation, skip the remaining steps."
-          exit 0
-
+  # ---------------------------------------------------------------------------
+  # Lint: spell-check docs
+  # ---------------------------------------------------------------------------
   lint:
+    name: "Lint: Spell check"
+    needs: check-label
+    if: needs.check-label.outputs.should_run == 'true'
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.x
-          cache: 'pip'
+          python-version: "3.x"
+          cache: pip
           cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Codespell
+      - name: Spell check
         run: codespell docs mkdocs.yml
 
+  # ---------------------------------------------------------------------------
+  # Build: compile docs and upload artifact (reused by deploy)
+  # ---------------------------------------------------------------------------
   build:
+    name: "Build: MkDocs"
     needs: lint
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout source
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.x
-          cache: 'pip'
+          python-version: "3.x"
+          cache: pip
           cache-dependency-path: requirements.txt
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Build (strict)
+      - name: Build docs (strict)
         run: mkdocs build --strict
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.x
-          cache: 'pip'
-          cache-dependency-path: requirements.txt
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Build (strict)
-        run: mkdocs build --strict
-
+      # Upload once here; deploy job reuses this artifact — no double-build
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./site
 
+  # ---------------------------------------------------------------------------
+  # Deploy: publish to GitHub Pages (push to master only)
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: "Deploy: GitHub Pages"
+    needs: build
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
+        id: deploy
         uses: actions/deploy-pages@v4
