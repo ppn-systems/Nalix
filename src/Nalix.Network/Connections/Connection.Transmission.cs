@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;

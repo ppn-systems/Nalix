@@ -5,7 +5,7 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;

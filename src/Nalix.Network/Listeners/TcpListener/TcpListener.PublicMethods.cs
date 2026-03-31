@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;

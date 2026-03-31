@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -78,7 +78,7 @@ public static class DirectiveClientExtensions
         public long ThrottleUntilMonoTicks;
     }
 
-    private static readonly ConditionalWeakTable<IClientConnection, ClientState> _states = [];
+    private static readonly ConditionalWeakTable<IClientConnection, ClientState> s_states = [];
 
     /// <summary>
     /// Attempts to handle a <see cref="Directive"/> packet and apply the relevant behavior.
@@ -123,7 +123,7 @@ public static class DirectiveClientExtensions
                 // Compute delay in ticks: delayMs * freq / 1000, using long arithmetic to prevent overflow.
                 long delayTicks = delayMs * Clock.TicksPerSecond / 1000L;
 
-                ClientState state = _states.GetOrCreateValue(client);
+                ClientState state = s_states.GetOrCreateValue(client);
                 _ = Interlocked.Exchange(ref state.ThrottleUntilMonoTicks, nowTicks + delayTicks);
 
                 callbacks?.OnThrottle?.Invoke(d, TimeSpan.FromMilliseconds(delayMs));
@@ -217,7 +217,7 @@ public static class DirectiveClientExtensions
         ArgumentNullException.ThrowIfNull(client);
         remaining = TimeSpan.Zero;
 
-        if (!_states.TryGetValue(client, out ClientState? s))
+        if (!s_states.TryGetValue(client, out ClientState? s))
         {
             return false;
         }
@@ -277,7 +277,7 @@ public static class DirectiveClientExtensions
     {
         ArgumentNullException.ThrowIfNull(client);
 
-        if (_states.TryGetValue(client, out ClientState? s))
+        if (s_states.TryGetValue(client, out ClientState? s))
         {
             _ = Interlocked.Exchange(ref s.ThrottleUntilMonoTicks, 0L);
         }

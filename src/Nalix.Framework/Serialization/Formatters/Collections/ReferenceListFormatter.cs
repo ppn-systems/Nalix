@@ -2,11 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using System.Runtime.InteropServices;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
