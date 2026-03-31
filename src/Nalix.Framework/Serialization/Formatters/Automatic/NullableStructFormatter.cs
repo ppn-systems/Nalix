@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
 
 namespace Nalix.Framework.Serialization.Formatters.Automatic;
 
@@ -43,11 +43,11 @@ internal sealed class NullableStructFormatter<
     {
         if (!value.HasValue)
         {
-            BufferPrimitives.WriteByte(ref writer, 0);
+            writer.Write((byte)0);
             return;
         }
 
-        BufferPrimitives.WriteByte(ref writer, 1);
+        writer.Write((byte)1);
         s_valueFormatter.Serialize(ref writer, value.Value);
     }
 
@@ -66,7 +66,7 @@ internal sealed class NullableStructFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
-        byte marker = BufferPrimitives.ReadByte(ref reader);
+        byte marker = reader.ReadByte();
         return marker == 0 ? null : s_valueFormatter.Deserialize(ref reader);
     }
 }

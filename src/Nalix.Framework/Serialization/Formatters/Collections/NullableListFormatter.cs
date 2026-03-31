@@ -1,10 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Serialization;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
 using System.Runtime.InteropServices;
+using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
+using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
@@ -33,12 +33,12 @@ internal sealed class NullableValueListFormatter<
     {
         if (value == null)
         {
-            BufferPrimitives.WriteUInt16(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
         ushort count = (ushort)value.Count;
-        BufferPrimitives.WriteUInt16(ref writer, count);
+        writer.Write(count);
 
         if (count == 0)
         {
@@ -52,11 +52,11 @@ internal sealed class NullableValueListFormatter<
             T? item = span[i];
             if (!item.HasValue)
             {
-                BufferPrimitives.WriteByte(ref writer, 0);
+                writer.Write((byte)0);
                 continue;
             }
 
-            BufferPrimitives.WriteByte(ref writer, 1);
+            writer.Write((byte)1);
             s_elementFormatter.Serialize(ref writer, item.Value);
         }
     }
@@ -65,7 +65,7 @@ internal sealed class NullableValueListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T?> Deserialize(ref DataReader reader)
     {
-        ushort length = BufferPrimitives.ReadUInt16(ref reader);
+        ushort length = reader.ReadUInt16();
 
         if (length == SerializerBounds.Null)
         {
@@ -83,9 +83,7 @@ internal sealed class NullableValueListFormatter<
 
         for (int i = 0; i < span.Length; i++)
         {
-            span[i] = BufferPrimitives.ReadByte(ref reader) == 0
-                ? null
-                : s_elementFormatter.Deserialize(ref reader);
+            span[i] = reader.ReadByte() == 0 ? null : s_elementFormatter.Deserialize(ref reader);
         }
 
         return list;

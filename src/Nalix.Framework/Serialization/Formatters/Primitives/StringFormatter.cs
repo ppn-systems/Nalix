@@ -5,8 +5,8 @@ using System;
 using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 
@@ -36,13 +36,13 @@ public sealed class StringFormatter : IFormatter<string>
     {
         if (value == null)
         {
-            BufferPrimitives.WriteUInt16(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
         if (value.Length == 0)
         {
-            BufferPrimitives.WriteUInt16(ref writer, 0);
+            writer.Write((ushort)0);
             return;
         }
 
@@ -52,7 +52,7 @@ public sealed class StringFormatter : IFormatter<string>
             throw new SerializationFailureException("The string exceeds the allowed limit.");
         }
 
-        BufferPrimitives.WriteUInt16(ref writer, (ushort)byteCount);
+        writer.Write((ushort)byteCount);
 
         writer.Expand(byteCount);
         int bytesWritten = s_utf8.GetBytes(
@@ -81,7 +81,7 @@ public sealed class StringFormatter : IFormatter<string>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public string Deserialize(ref DataReader reader)
     {
-        ushort length = BufferPrimitives.ReadUInt16(ref reader);
+        ushort length = reader.ReadUInt16();
 
         if (length == 0)
         {

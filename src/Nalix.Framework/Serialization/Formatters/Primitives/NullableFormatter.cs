@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Exceptions;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 
@@ -54,8 +54,7 @@ internal sealed class NullableFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T? value)
     {
-        BufferPrimitives.WriteByte(
-            ref writer, value.HasValue ? HasValueFlag : NoValueFlag);
+        writer.Write(value.HasValue ? HasValueFlag : NoValueFlag);
 
         if (value.HasValue)
         {
@@ -75,7 +74,7 @@ internal sealed class NullableFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
-        byte hasValue = BufferPrimitives.ReadByte(ref reader);
+        byte hasValue = reader.ReadByte();
 
         if (hasValue == NoValueFlag)
         {

@@ -4,8 +4,8 @@
 using System;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
 using System.Runtime.InteropServices;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
@@ -42,12 +42,12 @@ internal sealed class ReferenceListFormatter<
     {
         if (value is null)
         {
-            BufferPrimitives.WriteUInt16(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
         ushort count = (ushort)value.Count;
-        BufferPrimitives.WriteUInt16(ref writer, count);
+        writer.Write(count);
 
         ReadOnlySpan<T> span = CollectionsMarshal.AsSpan(value);
         for (int i = 0; i < span.Length; i++)
@@ -68,7 +68,7 @@ internal sealed class ReferenceListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        ushort count = BufferPrimitives.ReadUInt16(ref reader);
+        ushort count = reader.ReadUInt16();
 
         if (count == 0)
         {

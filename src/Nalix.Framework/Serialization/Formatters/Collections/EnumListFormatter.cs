@@ -4,8 +4,8 @@
 using System;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
 using Nalix.Framework.Serialization.Internal.Types;
 using System.Runtime.InteropServices;
 
@@ -44,12 +44,12 @@ internal sealed class EnumListFormatter<
     {
         if (value is null)
         {
-            BufferPrimitives.WriteUInt16(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
         ushort count = (ushort)value.Count;
-        BufferPrimitives.WriteUInt16(ref writer, count);
+        writer.Write(count);
 
         if (count == 0)
         {
@@ -83,7 +83,7 @@ internal sealed class EnumListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        ushort count = BufferPrimitives.ReadUInt16(ref reader);
+        ushort count = reader.ReadUInt16();
 
         if (count == 0)
         {

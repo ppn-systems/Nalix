@@ -3,8 +3,8 @@
 
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
 using Nalix.Framework.Serialization.Internal.Types;
 using System.Runtime.InteropServices;
 
@@ -38,11 +38,11 @@ internal sealed class ArrayFormatter<
     {
         if (value == null)
         {
-            BufferPrimitives.WriteUInt16(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
-        BufferPrimitives.WriteUInt16(ref writer, unchecked((ushort)value.Length));
+        writer.Write(unchecked((ushort)value.Length));
 
         if (value.Length == 0)
         {
@@ -74,7 +74,7 @@ internal sealed class ArrayFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] Deserialize(ref DataReader reader)
     {
-        ushort length = BufferPrimitives.ReadUInt16(ref reader);
+        ushort length = reader.ReadUInt16();
 
         if (length == 0)
         {

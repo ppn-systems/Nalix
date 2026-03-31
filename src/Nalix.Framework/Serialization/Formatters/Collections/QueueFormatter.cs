@@ -3,8 +3,8 @@
 
 using System;
 using Nalix.Common.Exceptions;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
@@ -109,12 +109,12 @@ internal sealed class QueueFormatter<
     {
         if (value is null)
         {
-            BufferPrimitives.WriteInt32(ref writer, -1);
+            writer.Write(-1);
             return;
         }
 
         int count = value.Count;
-        BufferPrimitives.WriteInt32(ref writer, count);
+        writer.Write(count);
 
         if (count is 0)
         {
@@ -161,7 +161,7 @@ internal sealed class QueueFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.Queue<T>? Deserialize(ref DataReader reader)
     {
-        int count = BufferPrimitives.ReadInt32(ref reader);
+        int count = reader.ReadInt32();
 
         if (count == -1)
         {

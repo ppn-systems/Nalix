@@ -487,6 +487,13 @@ public static class LiteSerializer
         return result;
     }
 
+    /// <summary>
+    /// Deserializes an object from a read-only span of bytes.
+    /// </summary>
+    /// <typeparam name="T">The type of object to deserialize.</typeparam>
+    /// <param name="buffer">The span containing serialized data.</param>
+    /// <param name="value">The reference to the object where deserialized data will be stored.</param>
+    /// <returns>The number of bytes read during deserialization.</returns>
     [Pure]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]

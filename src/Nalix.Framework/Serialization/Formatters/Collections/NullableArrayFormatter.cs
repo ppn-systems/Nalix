@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
@@ -35,11 +35,11 @@ internal sealed class NullableArrayFormatter<
     {
         if (value == null)
         {
-            BufferPrimitives.WriteUInt16(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
-        BufferPrimitives.WriteUInt16(ref writer, (ushort)value.Length);
+        writer.Write((ushort)value.Length);
 
         if (value.Length == 0)
         {
@@ -62,7 +62,7 @@ internal sealed class NullableArrayFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T?[] Deserialize(ref DataReader reader)
     {
-        ushort length = BufferPrimitives.ReadUInt16(ref reader);
+        ushort length = reader.ReadUInt16();
 
         if (length == SerializerBounds.Null)
         {

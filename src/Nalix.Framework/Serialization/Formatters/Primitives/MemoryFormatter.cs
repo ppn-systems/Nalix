@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal;
+using Nalix.Framework.Extensions;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 
@@ -61,7 +61,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
     public void Serialize(ref DataWriter writer, System.Memory<T> value)
     {
         int length = value.Length;
-        BufferPrimitives.WriteInt32(ref writer, length);
+        writer.Write(length);
 
         if (length is 0)
         {
@@ -91,7 +91,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Memory<T> Deserialize(ref DataReader reader)
     {
-        int length = BufferPrimitives.ReadInt32(ref reader);
+        int length = reader.ReadInt32();
 
         if (length <= 0)
         {
