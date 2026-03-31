@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -16,10 +15,6 @@ namespace Nalix.Framework.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
-    [ThreadStatic]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
-    private static HashSet<Type>? t_visitedTypes;
-
     private static readonly MethodInfo s_isReferenceOrContainsReferencesMethod;
     private static readonly MethodInfo s_unsafeSizeOfMethod;
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<bool>> s_isRefCache;
