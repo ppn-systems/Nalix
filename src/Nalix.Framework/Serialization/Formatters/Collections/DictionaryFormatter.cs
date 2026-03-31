@@ -54,6 +54,7 @@ internal sealed class DictionaryFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] TValue> : IFormatter<System.Collections.Generic.Dictionary<TKey, TValue>?> where TKey : notnull
 {
+    private static readonly IFormatter<int> s_countFormatter = FormatterProvider.Get<int>();
     /// <summary>
     /// Gets the debugger display string for this formatter.
     /// </summary>
@@ -63,12 +64,12 @@ internal sealed class DictionaryFormatter<
     /// <summary>
     /// Formatter used to serialize and deserialize dictionary keys.
     /// </summary>
-    private readonly IFormatter<TKey> _keyFormatter = FormatterProvider.Get<TKey>();
+    private readonly IFormatter<TKey> _keyFormatter;
 
     /// <summary>
     /// Formatter used to serialize and deserialize dictionary values.
     /// </summary>
-    private readonly IFormatter<TValue> _valueFormatter = FormatterProvider.Get<TValue>();
+    private readonly IFormatter<TValue> _valueFormatter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DictionaryFormatter{TKey, TValue}"/> class.
@@ -133,15 +134,13 @@ internal sealed class DictionaryFormatter<
         if (value is null)
         {
             writer.Expand(sizeof(int));
-            FormatterProvider.Get<int>()
-                             .Serialize(ref writer, -1);
+            s_countFormatter.Serialize(ref writer, -1);
             return;
         }
 
         int count = value.Count;
         writer.Expand(sizeof(int));
-        FormatterProvider.Get<int>()
-                         .Serialize(ref writer, count);
+        s_countFormatter.Serialize(ref writer, count);
 
         if (count is 0)
         {
@@ -187,8 +186,7 @@ internal sealed class DictionaryFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.Dictionary<TKey, TValue>? Deserialize(ref DataReader reader)
     {
-        int count = FormatterProvider.Get<int>()
-                                     .Deserialize(ref reader);
+        int count = s_countFormatter.Deserialize(ref reader);
 
         if (count == -1)
         {

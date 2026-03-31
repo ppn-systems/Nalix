@@ -4,7 +4,9 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Formatters.Primitives;
+using Nalix.Framework.Serialization.Internal;
+using Nalix.Framework.Serialization.Internal.Types;
+using System.Runtime.InteropServices;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
@@ -24,7 +26,7 @@ internal sealed class EnumListFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<System.Collections.Generic.List<T>>
     where T : struct, System.Enum
 {
-    private static readonly EnumFormatter<T> _enumFormatter = new();
+    private static readonly int s_elementSize = TypeMetadata.SizeOf<T>();
     private static string DebuggerDisplay => $"EnumListFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -41,20 +43,31 @@ internal sealed class EnumListFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(ushort));
-            FormatterProvider.Get<ushort>()
-                             .Serialize(ref writer, SerializerBounds.Null);
+            BufferPrimitives.WriteUInt16(ref writer, SerializerBounds.Null);
             return;
         }
 
-        writer.Expand(sizeof(ushort));
         ushort count = (ushort)value.Count;
-        FormatterProvider.Get<ushort>().Serialize(ref writer, count);
+        BufferPrimitives.WriteUInt16(ref writer, count);
 
-        for (int i = 0; i < count; i++)
+        if (count == 0)
         {
-            _enumFormatter.Serialize(ref writer, value[i]);
+            return;
         }
+
+        ReadOnlySpan<T> span = CollectionsMarshal.AsSpan(value);
+        int totalBytes = span.Length * s_elementSize;
+        writer.Expand(totalBytes);
+
+        ref byte destination = ref writer.GetFreeBufferReference();
+        ref T source = ref MemoryMarshal.GetReference(span);
+
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            ref destination,
+            ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref source),
+            (uint)totalBytes);
+
+        writer.Advance(totalBytes);
     }
 
     /// <summary>
@@ -69,8 +82,7 @@ internal sealed class EnumListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        ushort count = FormatterProvider.Get<ushort>()
-                                               .Deserialize(ref reader);
+        ushort count = BufferPrimitives.ReadUInt16(ref reader);
 
         if (count == 0)
         {
@@ -88,10 +100,19 @@ internal sealed class EnumListFormatter<
         }
 
         System.Collections.Generic.List<T> result = new(count);
-        for (ushort i = 0; i < count; i++)
-        {
-            result.Add(_enumFormatter.Deserialize(ref reader));
-        }
+        CollectionsMarshal.SetCount(result, count);
+
+        int totalBytes = count * s_elementSize;
+        Span<T> span = CollectionsMarshal.AsSpan(result);
+        ref byte source = ref reader.GetSpanReference(totalBytes);
+        ref T destination = ref MemoryMarshal.GetReference(span);
+
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref destination),
+            ref source,
+            (uint)totalBytes);
+
+        reader.Advance(totalBytes);
 
         return result;
     }

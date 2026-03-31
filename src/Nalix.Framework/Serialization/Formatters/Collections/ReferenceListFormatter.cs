@@ -4,6 +4,8 @@
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Serialization.Internal;
+using System.Runtime.InteropServices;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
@@ -22,7 +24,7 @@ internal sealed class ReferenceListFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<System.Collections.Generic.List<T>> where T : class
 {
-    private static readonly IFormatter<T> _elementFormatter = FormatterProvider.Get<T>();
+    private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
     private static string DebuggerDisplay => $"ReferenceListFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -39,19 +41,17 @@ internal sealed class ReferenceListFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(ushort));
-            FormatterProvider.Get<ushort>()
-                             .Serialize(ref writer, SerializerBounds.Null);
+            BufferPrimitives.WriteUInt16(ref writer, SerializerBounds.Null);
             return;
         }
 
-        writer.Expand(sizeof(ushort));
         ushort count = (ushort)value.Count;
-        FormatterProvider.Get<ushort>().Serialize(ref writer, count);
+        BufferPrimitives.WriteUInt16(ref writer, count);
 
-        for (int i = 0; i < count; i++)
+        ReadOnlySpan<T> span = CollectionsMarshal.AsSpan(value);
+        for (int i = 0; i < span.Length; i++)
         {
-            _elementFormatter.Serialize(ref writer, value[i]);
+            s_elementFormatter.Serialize(ref writer, span[i]);
         }
     }
 
@@ -67,8 +67,7 @@ internal sealed class ReferenceListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        ushort count = FormatterProvider.Get<ushort>()
-                                        .Deserialize(ref reader);
+        ushort count = BufferPrimitives.ReadUInt16(ref reader);
 
         if (count == 0)
         {
@@ -86,9 +85,11 @@ internal sealed class ReferenceListFormatter<
         }
 
         System.Collections.Generic.List<T> list = new(count);
-        for (ushort i = 0; i < count; i++)
+        CollectionsMarshal.SetCount(list, count);
+        Span<T> span = CollectionsMarshal.AsSpan(list);
+        for (int i = 0; i < span.Length; i++)
         {
-            list.Add(_elementFormatter.Deserialize(ref reader));
+            span[i] = s_elementFormatter.Deserialize(ref reader);
         }
 
         return list;

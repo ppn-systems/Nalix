@@ -48,6 +48,7 @@ internal sealed class QueueFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
     : IFormatter<System.Collections.Generic.Queue<T>?>
 {
+    private static readonly IFormatter<int> s_countFormatter = FormatterProvider.Get<int>();
     /// <summary>
     /// Gets the debugger display string for this formatter.
     /// </summary>
@@ -115,15 +116,13 @@ internal sealed class QueueFormatter<
         if (value is null)
         {
             writer.Expand(sizeof(int));
-            FormatterProvider.Get<int>()
-                             .Serialize(ref writer, -1);
+            s_countFormatter.Serialize(ref writer, -1);
             return;
         }
 
         int count = value.Count;
         writer.Expand(sizeof(int));
-        FormatterProvider.Get<int>()
-                         .Serialize(ref writer, count);
+        s_countFormatter.Serialize(ref writer, count);
 
         if (count is 0)
         {
@@ -170,8 +169,7 @@ internal sealed class QueueFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.Queue<T>? Deserialize(ref DataReader reader)
     {
-        int count = FormatterProvider.Get<int>()
-                                              .Deserialize(ref reader);
+        int count = s_countFormatter.Deserialize(ref reader);
 
         if (count == -1)
         {
