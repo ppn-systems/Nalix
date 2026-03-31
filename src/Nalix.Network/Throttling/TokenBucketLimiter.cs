@@ -30,7 +30,7 @@ namespace Nalix.Network.Throttling;
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReportable
+public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReportable, IWithLogging<TokenBucketLimiter>
 {
     #region Public Types
 
@@ -169,22 +169,6 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         }
 
         this.SCHEDULE_CLEANUP_JOB();
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
-        string initialDesc = _options.InitialTokens < 0
-            ? "full"
-            : _options.InitialTokens.ToString(CultureInfo.InvariantCulture);
-
-        _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}] init " +
-                      $"initial={initialDesc} " +
-                      $"scale={_options.TokenScale} " +
-                      $"shards={_options.ShardCount} " +
-                      $"cap={_options.CapacityTokens} " +
-                      $"stale_s={_options.StaleEntrySeconds} " +
-                      $"hardlock_s={_options.HardLockoutSeconds} " +
-                      $"refill={_options.RefillTokensPerSecond}/s " +
-                      $"cleanup_s={_options.CleanupIntervalSeconds} " +
-                      $"max_endpoints={_options.MaxTrackedEndpoints}");
     }
 
     /// <summary>

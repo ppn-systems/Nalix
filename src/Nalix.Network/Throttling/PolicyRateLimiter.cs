@@ -14,7 +14,6 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Network.Routing;
 
@@ -39,7 +38,7 @@ namespace Nalix.Network.Throttling;
 /// </remarks>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed class PolicyRateLimiter : IReportable, IDisposable
+public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<PolicyRateLimiter>
 {
     #region Constants
 
@@ -243,9 +242,6 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     {
         _disposed = 0;
         _checkCounter = 0;
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
-        _logger?.Debug($"[NW.{nameof(PolicyRateLimiter)}] initialized");
     }
 
     #endregion Constructor
@@ -258,7 +254,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     /// <param name="logger">The logger to use for subsequent diagnostics.</param>
     /// <returns>The current <see cref="PolicyRateLimiter"/> instance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PolicyRateLimiter WithLogging(ILogger logger)
+    public void WithLogging(ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         return this;
@@ -783,6 +779,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
                 $"count={evictedCount} remaining={_limiters.Count}");
         }
     }
+
+    PolicyRateLimiter IWithLogging<PolicyRateLimiter>.WithLogging(ILogger logger) => throw new NotImplementedException();
 
     #endregion Cleanup
 }

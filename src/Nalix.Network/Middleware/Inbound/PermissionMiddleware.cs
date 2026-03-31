@@ -23,7 +23,13 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly ILogger? _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger? _logger;
+
+    /// <inheritdoc/>
+    public PermissionMiddleware() => _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+    /// <inheritdoc/>
+    public PermissionMiddleware(ILogger logger) => _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.

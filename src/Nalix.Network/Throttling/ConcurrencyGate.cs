@@ -27,7 +27,7 @@ namespace Nalix.Network.Throttling;
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed class ConcurrencyGate : IReportable
+public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
 {
     #region Constants
 
@@ -64,7 +64,6 @@ public sealed class ConcurrencyGate : IReportable
     /// </summary>
     public ConcurrencyGate()
     {
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         try
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
@@ -82,8 +81,6 @@ public sealed class ConcurrencyGate : IReportable
                     Jitter = TimeSpan.FromSeconds(10),
                     ExecutionTimeout = TimeSpan.FromSeconds(5)
                 });
-
-            _logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] initialized with cleanup interval={_cleanupInterval.TotalMinutes:F1}min");
         }
         catch (Exception ex)
         {

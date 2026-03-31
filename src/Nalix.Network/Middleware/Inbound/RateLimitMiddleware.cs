@@ -34,8 +34,17 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
     public RateLimitMiddleware()
     {
         _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        _global = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
         _policy = InstanceManager.Instance.GetOrCreateInstance<PolicyRateLimiter>();
+        _global = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
+    }
+
+    /// <inheritdoc/>
+    public RateLimitMiddleware(ILogger logger, PolicyRateLimiter policyRate, TokenBucketLimiter tokenBucket)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _policy = policyRate ?? throw new ArgumentNullException(nameof(policyRate));
+        _global = tokenBucket ?? throw new ArgumentNullException(nameof(tokenBucket));
+
     }
 
     /// <summary>

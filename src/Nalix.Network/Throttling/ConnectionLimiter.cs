@@ -39,7 +39,7 @@ namespace Nalix.Network.Throttling;
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportable
+public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportable, IWithLogging<ConnectionLimiter>
 {
     #region Constants
 
