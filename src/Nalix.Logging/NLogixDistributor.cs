@@ -9,9 +9,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 
-namespace Nalix.Logging.Engine;
+namespace Nalix.Logging;
 
 /// <summary>
 /// High-performance publisher that dispatches log entries to registered logging targets.
@@ -19,7 +19,7 @@ namespace Nalix.Logging.Engine;
 [DebuggerDisplay("{ToString(),nq}")]
 [ExcludeFromCodeCoverage]
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed class NLogixDistributor : ILogDistributor
+public sealed class NLogixDistributor : INLogixDistributor
 {
     #region Fields
 
@@ -31,8 +31,8 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <summary>
     /// Using a concurrent dictionary for thread-safe operations on targets
     /// </summary>
-    private ILoggerTarget[]? _targetsCache;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<ILoggerTarget, byte> _targets = new();
+    private INLogixTarget[]? _targetsCache;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<INLogixTarget, byte> _targets = new();
 
     /// <summary>
     /// Track disposed state in a thread-safe way
@@ -72,21 +72,27 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <summary>
     /// Publishes a log entry to all registered logging targets.
     /// </summary>
-    /// <param name="entry">The log entry to be published.</param>
-    /// <exception cref="ArgumentNullException">Thrown if entry is null.</exception>
+    /// <param name="timestampUtc">The UTC timestamp assigned to the log event.</param>
+    /// <param name="logLevel">The severity level of the log event.</param>
+    /// <param name="eventId">The associated event identifier.</param>
+    /// <param name="message">The rendered log message.</param>
+    /// <param name="exception">The associated exception, if any.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="message"/> is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public void Publish(LogEntry? entry)
+    public void Publish(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception)
     {
-        if (entry == null)
-        {
-            throw new ArgumentNullException(nameof(entry));
-        }
+        ArgumentNullException.ThrowIfNull(message);
 
         // Quick check for disposed state
         ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
 
-        ILoggerTarget[] targets = _targetsCache ??= [.. _targets.Keys];
+        INLogixTarget[] targets = _targetsCache ??= [.. _targets.Keys];
 
         if (targets.Length == 0)
         {
@@ -100,67 +106,26 @@ public sealed class NLogixDistributor : ILogDistributor
         {
             try
             {
-                targets[i].Publish(entry.Value);
+                targets[i].Publish(timestampUtc, logLevel, eventId, message, exception);
                 _ = Interlocked.Increment(ref _totalTargetInvocations);
             }
             catch (Exception ex)
             {
                 _ = Interlocked.Increment(ref _totalPublishErrors);
-                HandleTargetError(targets[i], ex, entry.Value);
+                HandleTargetError(targets[i], ex, timestampUtc, logLevel, eventId, message, exception);
             }
         }
-    }
-
-    /// <summary>
-    /// Publishes a log entry asynchronously to all registered logging targets.
-    /// </summary>
-    /// <param name="entry">The log entry to be published.</param>
-    /// <returns>A task representing the asynchronous publish operation.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if entry is null.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
-    public ValueTask PublishAsync(LogEntry? entry)
-    {
-        if (entry == null)
-        {
-            throw new ArgumentNullException(nameof(entry));
-        }
-
-        // Quick check for disposed state
-        ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
-
-        ILoggerTarget[] targets = _targetsCache ??= [.. _targets.Keys];
-
-        if (targets.Length == 0)
-        {
-            return ValueTask.CompletedTask;
-        }
-
-        for (int i = 0; i < targets.Length; i++)
-        {
-            try
-            {
-                targets[i].Publish(entry.Value);
-                _ = Interlocked.Increment(ref _totalTargetInvocations);
-            }
-            catch (Exception ex)
-            {
-                _ = Interlocked.Increment(ref _totalPublishErrors);
-                HandleTargetError(targets[i], ex, entry.Value);
-            }
-        }
-
-        return ValueTask.CompletedTask;
     }
 
     /// <summary>
     /// Adds a logging target to receive log entries.
     /// </summary>
     /// <param name="loggerHandler">The logging target to add.</param>
-    /// <returns>The current instance of <see cref="ILogDistributor"/>, allowing method chaining.</returns>
+    /// <returns>The current instance of <see cref="INLogixDistributor"/>, allowing method chaining.</returns>
     /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public ILogDistributor RegisterTarget(ILoggerTarget loggerHandler)
+    public INLogixDistributor RegisterTarget(INLogixTarget loggerHandler)
     {
         ArgumentNullException.ThrowIfNull(loggerHandler);
         ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
@@ -178,7 +143,7 @@ public sealed class NLogixDistributor : ILogDistributor
     /// <exception cref="ArgumentNullException">Thrown if target is null.</exception>
     /// <exception cref="ObjectDisposedException">Thrown if this instance is disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool UnregisterTarget(ILoggerTarget loggerHandler)
+    public bool UnregisterTarget(INLogixTarget loggerHandler)
     {
         ArgumentNullException.ThrowIfNull(loggerHandler);
         ObjectDisposedException.ThrowIf(_isDisposed != 0, nameof(NLogixDistributor));
@@ -197,9 +162,20 @@ public sealed class NLogixDistributor : ILogDistributor
     /// </summary>
     /// <param name="target">The target that caused the error.</param>
     /// <param name="exception">The exception that occurred.</param>
-    /// <param name="entry">The log entry being published.</param>
+    /// <param name="timestampUtc">The UTC timestamp assigned to the original log event.</param>
+    /// <param name="logLevel">The severity level of the original log event.</param>
+    /// <param name="eventId">The event identifier of the original log event.</param>
+    /// <param name="message">The rendered message of the original log event.</param>
+    /// <param name="originalException">The exception attached to the original log event, if any.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static void HandleTargetError(ILoggerTarget target, Exception exception, LogEntry entry)
+    private static void HandleTargetError(
+        INLogixTarget target,
+        Exception exception,
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? originalException)
     {
         try
         {
@@ -211,9 +187,9 @@ public sealed class NLogixDistributor : ILogDistributor
 #endif
 
             // Check if target implements error handling
-            if (target is ILoggerErrorHandler errorHandler)
+            if (target is INLogixErrorHandler errorHandler)
             {
-                errorHandler.HandleError(exception, entry);
+                errorHandler.HandleError(exception, timestampUtc, logLevel, eventId, message, originalException);
             }
         }
         catch
@@ -282,6 +258,22 @@ public sealed class NLogixDistributor : ILogDistributor
            $"- Target Operations: {this.TotalTargetInvocations:N0}" + Environment.NewLine +
            $"- Errors: {this.TotalPublishErrors:N0}" + Environment.NewLine +
            $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;
+
+    /// <summary>
+    /// Asynchronously publishes a log entry to all registered logging targets.
+    /// </summary>
+    /// <param name="timestampUtc">The UTC timestamp assigned to the log event.</param>
+    /// <param name="logLevel">The severity level of the log event.</param>
+    /// <param name="eventId">The associated event identifier.</param>
+    /// <param name="message">The rendered log message.</param>
+    /// <param name="exception">The associated exception, if any.</param>
+    /// <returns>A task representing the asynchronous publish operation.</returns>
+    public ValueTask PublishAsync(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception) => throw new NotImplementedException();
 
     #endregion Public Methods
 }

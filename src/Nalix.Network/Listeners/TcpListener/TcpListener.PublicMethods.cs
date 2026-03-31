@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
@@ -151,7 +152,7 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex)
         {
-            s_logger?.Fatal($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
+            s_logger?.Critical($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }

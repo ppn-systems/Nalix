@@ -5,7 +5,7 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -23,7 +23,13 @@ namespace Nalix.Network.Middleware.Inbound;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly ILogger? _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger? _logger;
+
+    /// <inheritdoc/>
+    public PermissionMiddleware() => _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+    /// <inheritdoc/>
+    public PermissionMiddleware(ILogger logger) => _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.

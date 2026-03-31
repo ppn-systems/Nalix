@@ -9,7 +9,6 @@ namespace Nalix.Common.Networking.Protocols;
 /// CONTROL flags providing additional context for control messages.
 /// </summary>
 [System.Flags]
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "<Pending>")]
 public enum ControlFlags : byte
 {
     /// <summary>

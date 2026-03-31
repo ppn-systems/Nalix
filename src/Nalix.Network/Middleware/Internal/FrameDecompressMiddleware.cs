@@ -11,10 +11,10 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
+using Microsoft.Extensions.Logging;
 
 #if DEBUG
 using Nalix.Framework.Injection;
-using Nalix.Common.Diagnostics;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
