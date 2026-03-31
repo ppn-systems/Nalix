@@ -18,6 +18,7 @@ namespace Nalix.Framework.Serialization.Internal.Types;
 internal static partial class TypeMetadata
 {
     [ThreadStatic]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     private static HashSet<Type>? t_visitedTypes;
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<bool>> s_isRefCache;

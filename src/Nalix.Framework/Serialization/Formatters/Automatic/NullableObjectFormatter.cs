@@ -71,7 +71,7 @@ internal sealed class NullableObjectFormatter<
     public T? Deserialize(ref DataReader reader)
     {
         byte marker = FormatterProvider.Get<byte>()
-                                              .Deserialize(ref reader);
+                                       .Deserialize(ref reader);
         return marker == 0 ? null
             : FormatterProvider.GetComplex<T>()
                                .Deserialize(ref reader);

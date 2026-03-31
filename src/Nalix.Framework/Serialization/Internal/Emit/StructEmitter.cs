@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Formatters.Cache;
+using Nalix.Framework.Serialization.Internal.Reflection;
 
 namespace Nalix.Framework.Serialization.Internal.Emit;
 
@@ -20,13 +21,13 @@ internal static class StructEmitter<T> where T : struct
     public delegate T DeserializeDelegate(ref DataReader reader);
 
     // Cached per type
-    private static readonly FieldInfo[] s_fields;
+    private static readonly FieldSchema[] s_fields;
     private static readonly MethodInfo?[] s_directReadMethods;
     private static readonly MethodInfo?[] s_directWriteMethods;
 
     static StructEmitter()
     {
-        s_fields = EmitHelpers.GetSerializableFields(typeof(T));
+        s_fields = FieldCache<T>.GetFields();
 
         s_directWriteMethods = new MethodInfo?[s_fields.Length];
         s_directReadMethods = new MethodInfo?[s_fields.Length];
@@ -89,14 +90,15 @@ internal static class StructEmitter<T> where T : struct
 
     #region Emit Methods
 
-    private static void EmitSerializeField(ILGenerator il, FieldInfo field, MethodInfo? directWrite)
+    private static void EmitSerializeField(ILGenerator il, FieldSchema field, MethodInfo? directWrite)
     {
+        FieldInfo fi = field.FieldInfo;
         if (directWrite != null)
         {
             // Fast path: direct extension call
             il.Emit(OpCodes.Ldarg_0);           // ref DataWriter
             il.Emit(OpCodes.Ldarg_1);           // value
-            il.Emit(OpCodes.Ldfld, field);
+            il.Emit(OpCodes.Ldfld, fi);
             il.Emit(OpCodes.Call, directWrite);
             return;
         }
@@ -105,8 +107,10 @@ internal static class StructEmitter<T> where T : struct
         EmitFormatterSerialize(il, field);
     }
 
-    private static void EmitDeserializeField(ILGenerator il, FieldInfo field, MethodInfo? directRead, LocalBuilder objLocal, bool isStruct)
+    private static void EmitDeserializeField(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal, bool isStruct)
     {
+        FieldInfo fi = field.FieldInfo;
+
         if (directRead != null)
         {
             if (isStruct)
@@ -120,16 +124,18 @@ internal static class StructEmitter<T> where T : struct
 
             il.Emit(OpCodes.Ldarg_0);           // ref DataReader
             il.Emit(OpCodes.Call, directRead);
-            il.Emit(OpCodes.Stfld, field);
+            il.Emit(OpCodes.Stfld, fi);
             return;
         }
 
-        EmitFormatterDeserialize(il, field, objLocal, isStruct);
+        EmitFormatterDeserialize(il, fi, objLocal, isStruct);
     }
 
-    private static void EmitFormatterSerialize(ILGenerator il, FieldInfo field)
+    private static void EmitFormatterSerialize(ILGenerator il, FieldSchema field)
     {
         Type fType = field.FieldType;
+        FieldInfo fi = field.FieldInfo;
+
         Type cache = typeof(FormatterCache<>).MakeGenericType(fType);
         FieldInfo? instanceField = cache.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
         MethodInfo? serializeMethod = typeof(IFormatter<>).MakeGenericType(fType)
@@ -138,7 +144,7 @@ internal static class StructEmitter<T> where T : struct
         il.Emit(OpCodes.Ldsfld, instanceField!);
         il.Emit(OpCodes.Ldarg_0);
         il.Emit(OpCodes.Ldarg_1);
-        il.Emit(OpCodes.Ldfld, field);
+        il.Emit(OpCodes.Ldfld, fi);
         il.Emit(OpCodes.Callvirt, serializeMethod!);
     }
 

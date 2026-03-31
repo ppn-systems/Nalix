@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -16,6 +17,7 @@ using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.DataFrames.TextFrames;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
+using Nalix.Framework.Serialization;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames
@@ -240,6 +242,7 @@ namespace Nalix.Framework.Tests.DataFrames
         [Fact]
         public void TryDeserialize_RegisteredPacketBytes_ReturnsExpectedPacket()
         {
+            Debug.WriteLine(FormatterProvider.Get<Control>().GetType().FullName);
             // Arrange
             PacketRegistry registry = new(factory => _ = factory);
             Control packet = new();

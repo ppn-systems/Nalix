@@ -20,6 +20,17 @@ namespace Nalix.Framework.Serialization.Internal.Reflection;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static partial class FieldCache<T>
 {
+    #region Compiled Delegates Cache
+
+    /// <summary>
+    /// Store as object delegates, will be cast at runtime
+    /// </summary>
+    private static readonly Delegate[] s_getters;
+
+    private static readonly Delegate[] s_setters;
+
+    #endregion Compiled Delegates Cache
+
     // -------------------------------------------------------------------------
     // Delegate definitions
     // -------------------------------------------------------------------------

@@ -14,7 +14,6 @@ using System.Threading;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Primitives;
-using Nalix.Common.Serialization;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Serialization.Formatters.Automatic;
 using Nalix.Framework.Serialization.Formatters.Cache;
@@ -236,14 +235,8 @@ public static class FormatterProvider
         return dm.CreateDelegate<Func<object>>();
     }
 
-    /// <summary>
-    /// Gets (or emits and caches) the factory for <paramref name="concreteFormatterType"/>.
-    /// Thread-safe — <see cref="ConcurrentDictionary{TKey,TValue}.GetOrAdd(Type)"/> is
-    /// lock-free on the read path after the first write.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Func<object> GetOrAddFactory(Type concreteFormatterType)
-        => s_factoryCache.GetOrAdd(concreteFormatterType, static t => BuildCtorFactory(t));
+    private static Func<object> GetOrAddFactory(Type concreteFormatterType) => s_factoryCache.GetOrAdd(concreteFormatterType, static t => BuildCtorFactory(t));
 
     /// <summary>
     /// Resolves the concrete formatter type from a generic definition + type args,
@@ -371,6 +364,11 @@ public static class FormatterProvider
         // ── Slow path: resolve once, then cache ───────────────────────────
         IFormatter<T>? f;
 
+        if ((f = TryCreateEnumFormatter<T>()) is not null)
+        {
+            return CacheOrGetExisting(f);
+        }
+
         if ((f = TryCreateArrayFormatter<T>()) is not null)
         {
             return CacheOrGetExisting(f);
@@ -411,11 +409,6 @@ public static class FormatterProvider
             return CacheOrGetExisting(f);
         }
 
-        if ((f = TryCreateEnumFormatter<T>()) is not null)
-        {
-            return CacheOrGetExisting(f);
-        }
-
         Type t = typeof(T);
 
         // Nullable<TUnderlying>
@@ -428,10 +421,7 @@ public static class FormatterProvider
         // Class (non-string)
         if (t.IsClass && t != typeof(string))
         {
-            f = Attribute.IsDefined(t, typeof(SerializePackableAttribute))
-                ? GetComplex<T>()
-                : EmitCreate<T>(typeof(NullableObjectFormatter<>), t);
-            return CacheOrGetExisting(f);
+            return CacheOrGetExisting(EmitCreate<T>(typeof(NullableObjectFormatter<>), t));
         }
 
         // Struct / auto-generated complex

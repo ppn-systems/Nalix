@@ -1,10 +1,14 @@
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using Nalix.Framework.Serialization;
+using Perfolizer.Mathematics.OutlierDetection;
 
 namespace Nalix.Benchmark.Framework.Serialization;
 
 [MemoryDiagnoser]
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
+[SimpleJob(RuntimeMoniker.Net10_0)]
+[Outliers(OutlierMode.RemoveAll)]
+[Config(typeof(BenchmarkConfig))]
 public class LiteSerializerBenchmarks
 {
     private BenchPayload _payload = null!;
@@ -20,13 +24,14 @@ public class LiteSerializerBenchmarks
     [GlobalSetup]
     public void Setup()
     {
+        // Init array
         _intArray = new int[this.ItemCount];
-
         for (int i = 0; i < _intArray.Length; i++)
         {
             _intArray[i] = i * 17;
         }
 
+        // Init payload
         _payload = new BenchPayload
         {
             Id = 42,
@@ -35,11 +40,27 @@ public class LiteSerializerBenchmarks
             Enabled = true
         };
 
+        // Serialize once
         _payloadBytes = LiteSerializer.Serialize(_payload);
         _intArrayBytes = LiteSerializer.Serialize(_intArray);
+
+        // Struct
         _point = new BenchPoint(123, 456);
         _spanBuffer = new byte[LiteSerializer.Serialize(_point).Length];
+
+        // 🔥 CRITICAL: warm-up ALL deserialize paths
+        _ = LiteSerializer.Deserialize<BenchPayload>(_payloadBytes, out _);
+        _ = LiteSerializer.Deserialize<int[]>(_intArrayBytes, out _);
+
+        // 🔥 Optional: warm serialize too (ổn định hơn)
+        _ = LiteSerializer.Serialize(_payload);
+        _ = LiteSerializer.Serialize(_intArray);
+        _ = LiteSerializer.Serialize(_point);
     }
+
+    // =========================
+    // Serialize
+    // =========================
 
     [Benchmark]
     public byte[] Serialize_UnmanagedStruct()
@@ -57,6 +78,10 @@ public class LiteSerializerBenchmarks
     public byte[] Serialize_UnmanagedArray()
         => LiteSerializer.Serialize(_intArray);
 
+    // =========================
+    // Deserialize (HOT PATH)
+    // =========================
+
     [Benchmark]
     public BenchPayload Deserialize_Object()
         => LiteSerializer.Deserialize<BenchPayload>(_payloadBytes, out _)!;
@@ -64,6 +89,10 @@ public class LiteSerializerBenchmarks
     [Benchmark]
     public int[] Deserialize_UnmanagedArray()
         => LiteSerializer.Deserialize<int[]>(_intArrayBytes, out _)!;
+
+    // =========================
+    // Models
+    // =========================
 
     public readonly record struct BenchPoint(int X, int Y);
 
