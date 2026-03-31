@@ -119,9 +119,17 @@ public sealed class NetworkApplicationIntegrationTests
             // Disambiguate SendAsync by specifying CancellationToken
             await client.SendAsync(pkt, ct: default);
             
-            // 4. Verify (with small delay for processing)
-            // Increased delay slightly for dispatch pipeline
-            await Task.Delay(2000);
+            // 4. Verify (with polling for processing)
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            try
+            {
+                while (IntegrationTestController.ReceivedCount < 1 && !cts.IsCancellationRequested)
+                {
+                    await Task.Delay(100, cts.Token);
+                }
+            }
+            catch (TaskCanceledException) { }
+            
             Assert.Equal(1, IntegrationTestController.ReceivedCount);
             
             await client.DisconnectAsync();
