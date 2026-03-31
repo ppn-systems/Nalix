@@ -83,9 +83,14 @@ internal static class ObjectEmitter<T> where T : class, new()
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            EmitDeserializeField(il, s_fields[i], s_directReadMethods[i], obj, isStruct: false);
+            if (s_fields[i].FieldInfo.Name.Contains("Auth")) // hoặc == tên field Auth
+            {
+                Type ft = s_fields[i].FieldType;
+                object? formatter = typeof(FormatterCache<>).MakeGenericType(ft).GetField("Instance", BindingFlags.Public | BindingFlags.Static)!.GetValue(null);
+                Debug.WriteLine($"[DEBUG] FormatterCache<{ft.Name}>.Instance = {formatter?.GetType().FullName ?? "<null>"}");
+            }
 
-            Debug.WriteLine(">>> EmitFormatterDeserialize cho field: " + s_fields[i].FieldType);
+            EmitDeserializeField(il, s_fields[i], s_directReadMethods[i], obj, isStruct: false);
         }
 
         il.Emit(OpCodes.Ldloc, obj);

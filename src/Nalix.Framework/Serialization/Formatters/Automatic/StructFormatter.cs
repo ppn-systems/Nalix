@@ -4,6 +4,7 @@
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Internal.Emit;
+using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization.Formatters.Automatic;
 
@@ -36,9 +37,7 @@ internal sealed class StructFormatter<
     /// <exception cref="SerializationFailureException">
     /// Thrown if initialization of property accessors fails.
     /// </exception>
-    public StructFormatter()
-    {
-    }
+    public StructFormatter() => TypeMetadata.RecursiveWarmupFields(typeof(T));
 
     #endregion Constructors
 

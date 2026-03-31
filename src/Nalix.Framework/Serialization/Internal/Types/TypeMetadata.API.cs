@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -12,8 +13,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Serialization.Internal.Types;
@@ -159,4 +160,47 @@ internal static partial class TypeMetadata
 
         return hasNoNamespace && isSealed && nameIndicatesAnonymous && isCompilerGenerated;
     }
+
+    #region Private Methods
+
+    public static void RecursiveWarmupFields(Type type, HashSet<Type>? visited = null)
+    {
+        visited ??= [];
+        if (!visited.Add(type))
+        {
+            return;
+        }
+
+        _ = typeof(FormatterProvider).GetMethod("Get")!.MakeGenericMethod(type).Invoke(null, null);
+
+        if (type.IsPrimitive || type.IsEnum || type == typeof(string))
+        {
+            return;
+        }
+
+        if (type.IsArray)
+        {
+            RecursiveWarmupFields(type.GetElementType()!, visited);
+            return;
+        }
+        if (type.IsGenericType)
+        {
+            foreach (Type ga in type.GetGenericArguments())
+            {
+                RecursiveWarmupFields(ga, visited);
+            }
+        }
+
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+        {
+            if (field.FieldType == type)
+            {
+                continue;
+            }
+
+            RecursiveWarmupFields(field.FieldType, visited);
+        }
+    }
+
+    #endregion Private Method
 }
