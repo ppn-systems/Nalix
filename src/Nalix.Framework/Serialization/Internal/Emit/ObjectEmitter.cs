@@ -34,8 +34,8 @@ internal static class ObjectEmitter<T> where T : class, new()
         for (int i = 0; i < s_fields.Length; i++)
         {
             Type ft = s_fields[i].FieldType;
-            s_directReadMethods[i] = EmitFieldOps.TryGetDirectReadMethod(ft);
-            s_directWriteMethods[i] = EmitFieldOps.TryGetDirectWriteMethod(ft);
+            s_directReadMethods[i] = FieldILCodec.TryResolveReadMethod(ft);
+            s_directWriteMethods[i] = FieldILCodec.TryResolveWriteMethod(ft);
         }
 
         Serialize = GenerateSerialize();
@@ -55,7 +55,7 @@ internal static class ObjectEmitter<T> where T : class, new()
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            EmitFieldOps.EmitSerializeField(il, s_fields[i], s_directWriteMethods[i]);
+            FieldILCodec.EmitWriteField(il, s_fields[i], s_directWriteMethods[i]);
         }
 
         il.Emit(OpCodes.Ret);
@@ -79,7 +79,7 @@ internal static class ObjectEmitter<T> where T : class, new()
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            EmitFieldOps.EmitDeserializeObjectField(il, s_fields[i], s_directReadMethods[i], obj);
+            FieldILCodec.EmitReadFieldRef(il, s_fields[i], s_directReadMethods[i], obj);
         }
 
         il.Emit(OpCodes.Ldloc, obj);

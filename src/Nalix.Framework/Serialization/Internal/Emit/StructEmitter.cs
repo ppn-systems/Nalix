@@ -35,8 +35,8 @@ internal static class StructEmitter<T> where T : struct
         {
             Type fieldType = s_fields[i].FieldType;
 
-            s_directReadMethods[i] = EmitFieldOps.TryGetDirectReadMethod(fieldType);
-            s_directWriteMethods[i] = EmitFieldOps.TryGetDirectWriteMethod(fieldType);
+            s_directReadMethods[i] = FieldILCodec.TryResolveReadMethod(fieldType);
+            s_directWriteMethods[i] = FieldILCodec.TryResolveWriteMethod(fieldType);
         }
 
         Serialize = GenerateSerialize();
@@ -57,7 +57,7 @@ internal static class StructEmitter<T> where T : struct
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            EmitFieldOps.EmitSerializeField(il, s_fields[i], s_directWriteMethods[i]);
+            FieldILCodec.EmitWriteField(il, s_fields[i], s_directWriteMethods[i]);
         }
 
         il.Emit(OpCodes.Ret);
@@ -78,7 +78,7 @@ internal static class StructEmitter<T> where T : struct
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            EmitFieldOps.EmitDeserializeStructField(il, s_fields[i], s_directReadMethods[i], obj);
+            FieldILCodec.EmitReadFieldValue(il, s_fields[i], s_directReadMethods[i], obj);
         }
 
         il.Emit(OpCodes.Ldloc_0);

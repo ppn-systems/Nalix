@@ -9,16 +9,23 @@ using Nalix.Framework.Serialization.Formatters.Cache;
 using Nalix.Framework.Serialization.Internal.Reflection;
 using Nalix.Framework.Serialization.Internal.Types;
 
-internal static class EmitFieldOps
+internal static class FieldILCodec
 {
+    #region Nested Types
+
     private readonly record struct FormatterEmitMethods(
         FieldInfo InstanceField,
         MethodInfo SerializeMethod,
         MethodInfo DeserializeMethod);
 
-    private static readonly ConcurrentDictionary<Type, FormatterEmitMethods> s_formatterEmitMethods = new();
-    private static readonly ConcurrentDictionary<Type, MethodInfo> s_genericWriteMethods = new();
+    #endregion Nested Types
+
+    #region Static Fields
+
     private static readonly ConcurrentDictionary<Type, MethodInfo> s_genericReadMethods = new();
+    private static readonly ConcurrentDictionary<Type, MethodInfo> s_genericWriteMethods = new();
+    private static readonly ConcurrentDictionary<Type, FormatterEmitMethods> s_formatterEmitMethods = new();
+
     private static readonly MethodInfo s_writeByteMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(byte)])!;
     private static readonly MethodInfo s_writeBoolMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(bool)])!;
     private static readonly MethodInfo s_writeUInt16Method = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(ushort)])!;
@@ -29,6 +36,7 @@ internal static class EmitFieldOps
     private static readonly MethodInfo s_writeReadOnlySpanByteMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(ReadOnlySpan<byte>)])!;
     private static readonly MethodInfo s_writeUnmanagedMethod = typeof(DataWriterExtensions).GetMethod("WriteUnmanaged", BindingFlags.Public | BindingFlags.Static)!;
 
+    // Note: DataReaderExtensions doesn't have Read(short), float, double, char, etc. → we fall back to ReadUnmanaged for those.
     private static readonly MethodInfo s_readByteMethod = typeof(DataReaderExtensions).GetMethod("ReadByte", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readBooleanMethod = typeof(DataReaderExtensions).GetMethod("ReadBoolean", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readUInt16Method = typeof(DataReaderExtensions).GetMethod("ReadUInt16", [typeof(DataReader).MakeByRefType()])!;
@@ -38,7 +46,12 @@ internal static class EmitFieldOps
     private static readonly MethodInfo s_readInt64Method = typeof(DataReaderExtensions).GetMethod("ReadInt64", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readUnmanagedMethod = typeof(DataReaderExtensions).GetMethod("ReadUnmanaged", BindingFlags.Public | BindingFlags.Static)!;
 
-    public static void EmitSerializeField(ILGenerator il, FieldSchema field, MethodInfo? directWrite)
+    #endregion Static Fields
+
+
+    #region Public API
+
+    public static void EmitWriteField(ILGenerator il, FieldSchema field, MethodInfo? directWrite)
     {
         FieldInfo fi = field.FieldInfo;
 
@@ -51,10 +64,10 @@ internal static class EmitFieldOps
             return;
         }
 
-        EmitFormatterSerialize(il, field);
+        EMIT_WRITE_WITH_FORMATTER(il, field);
     }
 
-    public static void EmitDeserializeObjectField(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal)
+    public static void EmitReadFieldRef(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal)
     {
         FieldInfo fi = field.FieldInfo;
 
@@ -67,10 +80,10 @@ internal static class EmitFieldOps
             return;
         }
 
-        EmitFormatterDeserializeObject(il, fi, objLocal);
+        EMIT_READ_REF_WITH_FORMATTER(il, fi, objLocal);
     }
 
-    public static void EmitDeserializeStructField(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal)
+    public static void EmitReadFieldValue(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal)
     {
         FieldInfo fi = field.FieldInfo;
 
@@ -83,44 +96,10 @@ internal static class EmitFieldOps
             return;
         }
 
-        EmitFormatterDeserializeStruct(il, fi, objLocal);
+        EMIT_READ_VALUE_WITH_FORMATTER(il, fi, objLocal);
     }
 
-    private static void EmitFormatterSerialize(ILGenerator il, FieldSchema field)
-    {
-        FieldInfo fi = field.FieldInfo;
-        FormatterEmitMethods emitMethods = GetFormatterEmitMethods(field.FieldType);
-
-        il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
-        il.Emit(OpCodes.Ldarg_0);
-        il.Emit(OpCodes.Ldarg_1);
-        il.Emit(OpCodes.Ldfld, fi);
-        il.Emit(OpCodes.Callvirt, emitMethods.SerializeMethod);
-    }
-
-    private static void EmitFormatterDeserializeObject(ILGenerator il, FieldInfo field, LocalBuilder objLocal)
-    {
-        FormatterEmitMethods emitMethods = GetFormatterEmitMethods(field.FieldType);
-
-        il.Emit(OpCodes.Ldloc, objLocal);
-        il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
-        il.Emit(OpCodes.Ldarg_0);
-        il.Emit(OpCodes.Callvirt, emitMethods.DeserializeMethod);
-        il.Emit(OpCodes.Stfld, field);
-    }
-
-    private static void EmitFormatterDeserializeStruct(ILGenerator il, FieldInfo field, LocalBuilder objLocal)
-    {
-        FormatterEmitMethods emitMethods = GetFormatterEmitMethods(field.FieldType);
-
-        il.Emit(OpCodes.Ldloca_S, objLocal);
-        il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
-        il.Emit(OpCodes.Ldarg_0);
-        il.Emit(OpCodes.Callvirt, emitMethods.DeserializeMethod);
-        il.Emit(OpCodes.Stfld, field);
-    }
-
-    private static FormatterEmitMethods GetFormatterEmitMethods(Type fieldType)
+    private static FormatterEmitMethods ResolveFormatterMethods(Type fieldType)
         => s_formatterEmitMethods.GetOrAdd(fieldType, static ft =>
         {
             Type cacheType = typeof(FormatterCache<>).MakeGenericType(ft);
@@ -136,7 +115,7 @@ internal static class EmitFieldOps
     /// Returns the direct Write method from <see cref="DataWriterExtensions"/> if available.
     /// Prioritizes fast-path primitive and unmanaged writes.
     /// </summary>
-    public static MethodInfo? TryGetDirectWriteMethod(Type fieldType)
+    public static MethodInfo? TryResolveWriteMethod(Type fieldType)
     {
         // === Exact primitive matches ===
         if (fieldType == typeof(byte))
@@ -176,7 +155,7 @@ internal static class EmitFieldOps
 
         if (fieldType.IsEnum)
         {
-            return TryGetDirectWriteMethod(Enum.GetUnderlyingType(fieldType));
+            return TryResolveWriteMethod(Enum.GetUnderlyingType(fieldType));
         }
 
         // Note: short is missing in DataWriterExtensions → we fall through to WriteUnmanaged
@@ -206,7 +185,7 @@ internal static class EmitFieldOps
     /// <summary>
     /// Returns the direct Read method from <see cref="DataReaderExtensions"/> if available.
     /// </summary>
-    public static MethodInfo? TryGetDirectReadMethod(Type fieldType)
+    public static MethodInfo? TryResolveReadMethod(Type fieldType)
     {
         if (fieldType == typeof(byte))
         {
@@ -245,7 +224,7 @@ internal static class EmitFieldOps
 
         if (fieldType.IsEnum)
         {
-            return TryGetDirectReadMethod(Enum.GetUnderlyingType(fieldType));
+            return TryResolveReadMethod(Enum.GetUnderlyingType(fieldType));
         }
 
         if (Nullable.GetUnderlyingType(fieldType) is not null)
@@ -262,4 +241,44 @@ internal static class EmitFieldOps
 
         return null;
     }
+
+    #endregion Public API
+
+    #region Private Methods
+
+    private static void EMIT_WRITE_WITH_FORMATTER(ILGenerator il, FieldSchema field)
+    {
+        FieldInfo fi = field.FieldInfo;
+        FormatterEmitMethods emitMethods = ResolveFormatterMethods(field.FieldType);
+
+        il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Ldarg_1);
+        il.Emit(OpCodes.Ldfld, fi);
+        il.Emit(OpCodes.Callvirt, emitMethods.SerializeMethod);
+    }
+
+    private static void EMIT_READ_REF_WITH_FORMATTER(ILGenerator il, FieldInfo field, LocalBuilder objLocal)
+    {
+        FormatterEmitMethods emitMethods = ResolveFormatterMethods(field.FieldType);
+
+        il.Emit(OpCodes.Ldloc, objLocal);
+        il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Callvirt, emitMethods.DeserializeMethod);
+        il.Emit(OpCodes.Stfld, field);
+    }
+
+    private static void EMIT_READ_VALUE_WITH_FORMATTER(ILGenerator il, FieldInfo field, LocalBuilder objLocal)
+    {
+        FormatterEmitMethods emitMethods = ResolveFormatterMethods(field.FieldType);
+
+        il.Emit(OpCodes.Ldloca_S, objLocal);
+        il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Callvirt, emitMethods.DeserializeMethod);
+        il.Emit(OpCodes.Stfld, field);
+    }
+
+    #endregion Private Methods
 }
