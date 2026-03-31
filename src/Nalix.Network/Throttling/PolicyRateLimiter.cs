@@ -254,7 +254,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     /// <param name="logger">The logger to use for subsequent diagnostics.</param>
     /// <returns>The current <see cref="PolicyRateLimiter"/> instance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WithLogging(ILogger logger)
+    public PolicyRateLimiter WithLogging(ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         return this;
@@ -779,8 +779,6 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
                 $"count={evictedCount} remaining={_limiters.Count}");
         }
     }
-
-    PolicyRateLimiter IWithLogging<PolicyRateLimiter>.WithLogging(ILogger logger) => throw new NotImplementedException();
 
     #endregion Cleanup
 }
