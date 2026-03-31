@@ -1,16 +1,15 @@
 ---
-
 name: Question
 about: Ask a question about the project
-title: ''
-labels: 'question'
-assignees: ''
-
+title: "[Question] "
+labels: "question"
+assignees: ""
 ---
 
-> [!IMPORTANT]  
-> **This is for questions only**.  
-> If you have a bug report or feature request, please use the appropriate template.
+> [!IMPORTANT]
+> **This template is for questions only.**
+> For bug reports or feature requests, please use the appropriate template.
+> Consider using [Discussions](../../discussions) for open-ended questions — it allows others to benefit from the answers too.
 
 ---
 
@@ -22,10 +21,10 @@ Ask your question here. Be as specific as possible to help us provide a clear an
 
 ---
 
-## Additional Context
+## 📂 Additional Context
 
-Add any additional context, code snippets, or screenshots that might help us understand your question better.
+Add any additional context, code snippets, or screenshots that may help us understand your question better.
 
 ---
 
-*Thank you for your question! We'll do our best to assist you.*
+*Thank you for your question! We will do our best to help.*
