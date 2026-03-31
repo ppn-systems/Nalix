@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Automatic;
@@ -23,6 +24,8 @@ internal sealed class NullableObjectFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : class, new()
 {
+    private static readonly IFormatter<T> s_objectFormatter = FormatterProvider.GetComplex<T>();
+
     private static string DebuggerDisplay => $"NullableObjectFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -40,19 +43,12 @@ internal sealed class NullableObjectFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(byte));
-            FormatterProvider.Get<byte>()
-                             .Serialize(ref writer, 0);
-
+            writer.Write((byte)0);
             return;
         }
 
-        writer.Expand(sizeof(byte));
-        FormatterProvider.Get<byte>()
-                         .Serialize(ref writer, 1);
-
-        FormatterProvider.GetComplex<T>()
-                         .Serialize(ref writer, value);
+        writer.Write((byte)1);
+        s_objectFormatter.Serialize(ref writer, value);
     }
 
     /// <summary>
@@ -70,10 +66,7 @@ internal sealed class NullableObjectFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
-        byte marker = FormatterProvider.Get<byte>()
-                                              .Deserialize(ref reader);
-        return marker == 0 ? null
-            : FormatterProvider.GetComplex<T>()
-                               .Deserialize(ref reader);
+        byte marker = reader.ReadByte();
+        return marker == 0 ? null : s_objectFormatter.Deserialize(ref reader);
     }
 }

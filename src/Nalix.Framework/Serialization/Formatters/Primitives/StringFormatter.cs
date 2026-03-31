@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
@@ -30,55 +32,40 @@ public sealed class StringFormatter : IFormatter<string>
     /// <exception cref="InvalidOperationException">Thrown when the target writer cannot expand and no formatter is available for the length prefix.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public unsafe void Serialize(ref DataWriter writer, string value)
+    public void Serialize(ref DataWriter writer, string value)
     {
         if (value == null)
         {
-            // 65535 biểu diễn null
-            FormatterProvider.Get<ushort>()
-                             .Serialize(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
         if (value.Length == 0)
         {
-            FormatterProvider.Get<ushort>()
-                             .Serialize(ref writer, 0);
+            writer.Write((ushort)0);
             return;
         }
 
-        // Tính trước số byte sẽ cần khi encode UTF8
         int byteCount = s_utf8.GetByteCount(value);
         if (byteCount > SerializerBounds.MaxString)
         {
             throw new SerializationFailureException("The string exceeds the allowed limit.");
         }
 
-        FormatterProvider.Get<ushort>()
-                         .Serialize(ref writer, (ushort)byteCount);
+        writer.Write((ushort)byteCount);
 
-        if (byteCount > 0)
+        writer.Expand(byteCount);
+        int bytesWritten = s_utf8.GetBytes(
+            value.AsSpan(),
+            writer.FreeBuffer[..byteCount]);
+
+        if (bytesWritten != byteCount)
         {
-            writer.Expand(byteCount);
-            ref byte destination = ref writer.GetFreeBufferReference();
-
-            fixed (char* src = value)
-            {
-                fixed (byte* dest = &destination)
-                {
-                    // Encode trực tiếp vào dest
-                    int bytesWritten = s_utf8.GetBytes(src, value.Length, dest, byteCount);
-
-                    if (bytesWritten != byteCount)
-                    {
-                        throw new SerializationFailureException(
-                            $"UTF8 encoding mismatch:  expected {byteCount} bytes, got {bytesWritten} bytes.");
-                    }
-                }
-            }
-
-            writer.Advance(byteCount);
+            throw new SerializationFailureException(
+                $"UTF8 encoding mismatch: expected {byteCount} bytes, got {bytesWritten} bytes.");
         }
+
+        writer.Advance(byteCount);
     }
 
     /// <summary>
@@ -92,10 +79,9 @@ public sealed class StringFormatter : IFormatter<string>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the string length prefix.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public unsafe string Deserialize(ref DataReader reader)
+    public string Deserialize(ref DataReader reader)
     {
-        ushort length = FormatterProvider.Get<ushort>()
-                                                .Deserialize(ref reader);
+        ushort length = reader.ReadUInt16();
 
         if (length == 0)
         {
@@ -112,13 +98,9 @@ public sealed class StringFormatter : IFormatter<string>
             throw new SerializationFailureException("String length out of range");
         }
 
-        string result;
         ref byte start = ref reader.GetSpanReference(length);
-
-        fixed (byte* ptr = &start)
-        {
-            result = s_utf8.GetString(ptr, length);
-        }
+        string result = s_utf8.GetString(
+            MemoryMarshal.CreateReadOnlySpan(ref start, length));
 
         reader.Advance(length);
         return result;

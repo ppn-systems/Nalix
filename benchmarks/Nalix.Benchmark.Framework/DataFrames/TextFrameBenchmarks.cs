@@ -7,7 +7,7 @@ using Nalix.Framework.DataFrames.TextFrames;
 namespace Nalix.Benchmark.Framework.DataFrames;
 
 [MemoryDiagnoser]
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
+[Config(typeof(BenchmarkConfig))]
 public class TextFrameBenchmarks
 {
     private Text256 _frame = null!;
@@ -40,7 +40,4 @@ public class TextFrameBenchmarks
 
     [Benchmark]
     public Text256 Deserialize() => Text256.Deserialize(_serialized);
-
-    [Benchmark]
-    public bool RegistryTryDeserialize() => _registry.TryDeserialize(_serialized, out _);
 }

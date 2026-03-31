@@ -1,0 +1,41 @@
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
+using Nalix.Framework.Serialization;
+
+namespace Nalix.Benchmark.Framework.Serialization;
+
+[SimpleJob(RuntimeMoniker.Net10_0, launchCount: 1, warmupCount: 5, iterationCount: 15)]
+[MemoryDiagnoser]
+[HardwareCounters(
+    BenchmarkDotNet.Diagnosers.HardwareCounter.CacheMisses,
+    BenchmarkDotNet.Diagnosers.HardwareCounter.BranchMispredictions)]
+[Orderer(BenchmarkDotNet.Order.SummaryOrderPolicy.FastestToSlowest)]
+[RankColumn]
+public class ArrayBenchmarks
+{
+    private int[] _array = null!;
+    private byte[] _bytes = null!;
+
+    [Params(16, 128, 1024)]
+    public int ItemCount { get; set; }
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        _array = new int[this.ItemCount];
+        for (int i = 0; i < _array.Length; i++)
+        {
+            _array[i] = i * 17;
+        }
+
+        _bytes = LiteSerializer.Serialize(_array);
+    }
+
+    [Benchmark(Baseline = true)]
+    public byte[] Serialize_Array()
+        => LiteSerializer.Serialize(_array);
+
+    [Benchmark]
+    public int[] Deserialize_Array()
+        => LiteSerializer.Deserialize<int[]>(_bytes, out _)!;
+}

@@ -9,8 +9,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Memory.Internal;

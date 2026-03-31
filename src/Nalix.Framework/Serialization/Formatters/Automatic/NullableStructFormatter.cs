@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Automatic;
@@ -23,6 +24,8 @@ internal sealed class NullableStructFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : struct
 {
+    private static readonly IFormatter<T> s_valueFormatter = FormatterProvider.Get<T>();
+
     private static string DebuggerDisplay => $"NullableStructFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -40,19 +43,12 @@ internal sealed class NullableStructFormatter<
     {
         if (!value.HasValue)
         {
-            writer.Expand(sizeof(byte));
-            FormatterProvider.Get<byte>()
-                             .Serialize(ref writer, 0); // 0 = null
-
+            writer.Write((byte)0);
             return;
         }
 
-        writer.Expand(sizeof(byte));
-        FormatterProvider.Get<byte>()
-                         .Serialize(ref writer, 1); // 1 = not null
-
-        FormatterProvider.Get<T>()
-                         .Serialize(ref writer, value.Value);
+        writer.Write((byte)1);
+        s_valueFormatter.Serialize(ref writer, value.Value);
     }
 
     /// <summary>
@@ -70,11 +66,7 @@ internal sealed class NullableStructFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
-        byte marker = FormatterProvider.Get<byte>()
-                                              .Deserialize(ref reader);
-
-        return marker == 0 ? null
-            : FormatterProvider.Get<T>()
-                               .Deserialize(ref reader);
+        byte marker = reader.ReadByte();
+        return marker == 0 ? null : s_valueFormatter.Deserialize(ref reader);
     }
 }

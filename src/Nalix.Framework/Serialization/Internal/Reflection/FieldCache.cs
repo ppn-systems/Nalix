@@ -3,16 +3,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Serialization;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Serialization.Internal.Reflection;
@@ -23,295 +21,209 @@ internal static partial class FieldCache<
         DynamicallyAccessedMemberTypes.PublicProperties |
         DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
 {
-    #region Static Fields
-
     private static readonly FieldSchema[] s_metadata;
     private static readonly SerializeLayout s_layout;
-    private static readonly Dictionary<string, int> s_fieldIndex;
+    private static readonly HashSet<string> s_ignoredProperties;
+    private static readonly Dictionary<Type, Dictionary<string, int>> s_explicitOrdersByDeclaringType;
 
-    private static readonly Dictionary<string, PropertyInfo> s_propertyCache;
-
-    #endregion Static Fields
-
-    #region Compiled Delegates Cache
-
-    /// <summary>
-    /// Store as object delegates, will be cast at runtime
-    /// </summary>
-    private static readonly Delegate[] s_getters;
-
-    private static readonly Delegate[] s_setters;
-
-    #endregion Compiled Delegates Cache
-
-    #region Static Constructor
-
-    [SuppressMessage("CodeQuality",
-        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [SuppressMessage("Trimming",
-        "IL2091:Target generic argument does not satisfy 'DynamicallyAccessedMembersAttribute' in target method or type. " +
-        "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
     static FieldCache()
     {
-        s_layout = GetSerializeLayout();
+        s_layout = GET_SERIALIZE_LAYOUT(typeof(T));
+        s_ignoredProperties = BUILD_IGNORED_PROPERTIES(typeof(T));
+        s_explicitOrdersByDeclaringType = s_layout == SerializeLayout.Explicit
+            ? BUILD_EXPLICIT_ORDER_MAPS(typeof(T))
+            : [];
+        s_metadata = DISCOVER_FIELDS(typeof(T), s_layout, s_ignoredProperties, s_explicitOrdersByDeclaringType);
 
-        s_propertyCache = new Dictionary<string, PropertyInfo>(
-            capacity: 32,
-            comparer: StringComparer.Ordinal
-        );
-
-        foreach (PropertyInfo p in typeof(T).GetProperties(
-            BindingFlags.Public |
-            BindingFlags.NonPublic |
-            BindingFlags.Instance))
-        {
-            s_propertyCache[p.Name] = p;
-        }
-
-        s_metadata = DiscoverFields<T>();
-        s_fieldIndex = BuildFieldIndex();
-
-        // Create compiled getters/setters for each field
         s_getters = new Delegate[s_metadata.Length];
         s_setters = new Delegate[s_metadata.Length];
 
         for (int i = 0; i < s_metadata.Length; i++)
         {
             FieldInfo field = s_metadata[i].FieldInfo;
+
             s_getters[i] = CreateGetter(field);
             s_setters[i] = CreateSetter(field);
         }
 
-        EnsureExplicitLayoutIsValid();
+        ENSURE_EXPLICIT_LAYOUT_IS_VALID();
     }
 
-    #endregion Static Constructor
-
-    #region Field Discovery
-
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static FieldSchema[] DiscoverFields<
-        [DynamicallyAccessedMembers(
-        DynamicallyAccessedMemberTypes.PublicFields |
-        DynamicallyAccessedMemberTypes.NonPublicFields)] TField>()
+    private static FieldSchema[] DISCOVER_FIELDS(
+        Type type,
+        SerializeLayout layout,
+        HashSet<string> ignoredProperties,
+        Dictionary<Type, Dictionary<string, int>> explicitOrdersByDeclaringType)
     {
-        Type type = typeof(TField);
-
-        List<FieldInfo> fields = [];
-        while (type != null && type != typeof(object))
-        {
-            fields.AddRange(type.GetFields(
-            BindingFlags.Public |
-            BindingFlags.NonPublic |
-            BindingFlags.Instance |
-            BindingFlags.DeclaredOnly));
-            type = type.BaseType!;
-        }
-
-        List<FieldSchema> includedFields = new(fields.Count);
+        List<FieldSchema> included = new(16);
         int sequentialOrder = 0;
 
-        foreach (FieldInfo field in fields)
+        for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
         {
-            if (ShouldIgnoreField(field))
-            {
-                continue;
-            }
+            FieldInfo[] declaredFields = current.GetFields(
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
-            int order;
-
-            if (s_layout is SerializeLayout.Explicit)
+            for (int i = 0; i < declaredFields.Length; i++)
             {
-                int? explicitOrder = GetExplicitOrder(field);
-                if (explicitOrder is null)
+                FieldInfo field = declaredFields[i];
+
+                if (SHOULD_IGNORE_FIELD(field, ignoredProperties))
                 {
                     continue;
                 }
-                order = explicitOrder.Value;
-            }
-            else
-            {
-                // Sequential: auto-increment order
-                order = sequentialOrder++;
-            }
 
-            FieldSchema metadata = new(
-                order,
-                field.Name,
-                field.FieldType.IsValueType,
-                field.FieldType,
-                field
-            );
-
-            includedFields.Add(metadata);
-        }
-
-        if (includedFields.Count == 0)
-        {
-            // Log warning or throw exception
-            Debug.WriteLine($"[FieldCache<{typeof(TField).Name}>] WARNING: Type {typeof(TField).Name} has no serializable fields.");
-            throw new InvalidOperationException($"Type {typeof(TField).Name} has no serializable fields.");
-        }
-
-        return s_layout is SerializeLayout.Explicit
-            ? [.. System.Linq.Enumerable.OrderBy(includedFields, f => f.Order)]
-            : [.. includedFields];
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Dictionary<string, int> BuildFieldIndex()
-    {
-        // Performance: StringComparer.Ordinal nhanh hơn default
-        Dictionary<string, int> index = new(
-            s_metadata.Length, StringComparer.Ordinal);
-
-        for (int i = 0; i < s_metadata.Length; i++)
-        {
-            index[s_metadata[i].Name] = i;
-        }
-
-        return index;
-    }
-
-    /// <summary>
-    /// Updated method to move the DynamicallyAccessedMembersAttribute to the parameter
-    /// </summary>
-    /// <param name="field"></param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [SuppressMessage("CodeQuality",
-        "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [SuppressMessage("Trimming",
-        "IL2090:'this' argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. " +
-        "The generic parameter of the source method or type does not have matching annotations.", Justification = "<Pending>")]
-    private static int? GetExplicitOrder(FieldInfo field)
-    {
-        Type? type = field.DeclaringType;
-        if (type is null)
-        {
-            return null;
-        }
-
-        foreach (PropertyInfo property in type.GetProperties(
-            BindingFlags.Public |
-            BindingFlags.Instance))
-        {
-            if (field.Name == property.Name || IsBackingFieldFor(field, property))
-            {
-                SerializeOrderAttribute? attr = property.GetCustomAttribute<SerializeOrderAttribute>();
-                if (attr is not null)
+                int? explicitOrder = layout == SerializeLayout.Explicit
+                    ? GET_EXPLICIT_ORDER(field, explicitOrdersByDeclaringType)
+                    : null;
+                if (layout == SerializeLayout.Explicit && explicitOrder is null)
                 {
-                    return attr.Order;
+                    continue;
+                }
+
+                included.Add(new FieldSchema(
+                    layout == SerializeLayout.Explicit ? explicitOrder!.Value : sequentialOrder++,
+                    field.Name,
+                    field.FieldType.IsValueType,
+                    field.FieldType,
+                    field));
+            }
+        }
+
+        if (layout == SerializeLayout.Explicit)
+        {
+            included.Sort(static (a, b) => a.Order.CompareTo(b.Order));
+        }
+
+        return [.. included];
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static HashSet<string> BUILD_IGNORED_PROPERTIES(Type type)
+    {
+        HashSet<string> set = new(StringComparer.Ordinal);
+        for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
+        {
+            PropertyInfo[] properties = current.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            for (int i = 0; i < properties.Length; i++)
+            {
+                PropertyInfo property = properties[i];
+                if (property.GetCustomAttribute<SerializeIgnoreAttribute>() != null)
+                {
+                    _ = set.Add(property.Name);
                 }
             }
         }
 
-        return null;
+        return set;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Dictionary<Type, Dictionary<string, int>> BUILD_EXPLICIT_ORDER_MAPS(Type type)
+    {
+        Dictionary<Type, Dictionary<string, int>> result = new();
+
+        for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
+        {
+            PropertyInfo[] properties = current.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            Dictionary<string, int> propertyOrders = new(StringComparer.Ordinal);
+
+            for (int i = 0; i < properties.Length; i++)
+            {
+                PropertyInfo property = properties[i];
+                SerializeOrderAttribute? order = property.GetCustomAttribute<SerializeOrderAttribute>();
+                if (order is null)
+                {
+                    continue;
+                }
+
+                propertyOrders[property.Name] = order.Order;
+            }
+
+            result[current] = propertyOrders;
+        }
+
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsBackingFieldFor(
-        FieldInfo field,
-        PropertyInfo property) => field.Name == $"<{property.Name}>k__BackingField";
-
-    #endregion Field Discovery
-
-    #region Domain Rules - Business Logic
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool ShouldIgnoreField(FieldInfo field)
+    private static bool SHOULD_IGNORE_FIELD(FieldInfo field, HashSet<string> ignoredProperties)
     {
-        // Rule 1: Skip backing fields nếu property có SerializeIgnoreAttribute
-        if (field.Name.StartsWith('<') && field.Name.Contains(">k__BackingField"))
+        // <PropertyName>k__BackingField
+        if (field.Name.Length > 2 && field.Name[0] == '<')
         {
-            string propertyName = field.Name[1..field.Name.IndexOf('>')];
-            if (s_propertyCache.TryGetValue(propertyName, out PropertyInfo? property))
+            int end = field.Name.IndexOf('>');
+            if (end > 1)
             {
-                // Nếu property bị ignore thì skip backing field
-                if (property.GetCustomAttribute<SerializeIgnoreAttribute>() is not null)
+                if (ignoredProperties.Contains(field.Name[1..end]))
                 {
                     return true;
                 }
             }
         }
-
-        // Rule 2: Skip fields có SerializeIgnoreAttribute
-        return field.GetCustomAttribute<SerializeIgnoreAttribute>() is not null;
-    }
-
-    #endregion Domain Rules - Business Logic
-
-    #region Layout Detection
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SerializeLayout GetSerializeLayout()
-    {
-        SerializePackableAttribute? packableAttr = CustomAttributeExtensions
-            .GetCustomAttribute<SerializePackableAttribute>(typeof(T));
-
-        return packableAttr?.SerializeLayout ?? SerializeLayout.Sequential;
+        return field.GetCustomAttribute<SerializeIgnoreAttribute>() != null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static SerializeLayout GetLayout() => s_layout;
+    private static SerializeLayout GET_SERIALIZE_LAYOUT(Type type)
+        => type.GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout ?? SerializeLayout.Sequential;
 
-    #endregion Layout Detection
-
-    #region Ensure - Fail Fast Strategy
-
-    [StackTraceHidden]
-    [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void EnsureExplicitLayoutIsValid()
+    private static int? GET_EXPLICIT_ORDER(FieldInfo field, Dictionary<Type, Dictionary<string, int>> explicitOrdersByDeclaringType)
+    {
+        Type? type = field.DeclaringType;
+        if (type is null || !explicitOrdersByDeclaringType.TryGetValue(type, out Dictionary<string, int>? propertyOrders))
+        {
+            return null;
+        }
+
+        if (field.Name.Length > 2 && field.Name[0] == '<')
+        {
+            int end = field.Name.IndexOf('>');
+            if (end > 1 && propertyOrders.TryGetValue(field.Name[1..end], out int backingFieldOrder))
+            {
+                return backingFieldOrder;
+            }
+        }
+
+        return propertyOrders.TryGetValue(field.Name, out int order)
+            ? order
+            : null;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ENSURE_EXPLICIT_LAYOUT_IS_VALID()
     {
         if (s_layout is not SerializeLayout.Explicit)
         {
             return;
         }
 
-        EnsureNoDuplicateOrders();
-        EnsureNoNegativeOrders();
+        ENSURE_NO_DUPLICATE_ORDERS();
+        ENSURE_NO_NEGATIVE_ORDERS();
     }
 
-    [StackTraceHidden]
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void EnsureNoDuplicateOrders()
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static void ENSURE_NO_DUPLICATE_ORDERS()
     {
-        IEnumerable<IGrouping<int, FieldSchema>> orderGroups = Enumerable.Where(
-            Enumerable.GroupBy(s_metadata, f => f.Order),
-            g => Enumerable.Count(g) > 1
-        );
-
-        if (Enumerable.Any(orderGroups))
+        for (int i = 1; i < s_metadata.Length; i++)
         {
-            string duplicates = string.Join(", ",
-                Enumerable.Select(orderGroups, g =>
-                    $"Order {g.Key}: [{string.Join(", ",
-                        Enumerable.Select(g, f => f.Name))}]"));
-
-            throw new InvalidOperationException(
-                $"Duplicate serialize orders in type '{typeof(T).Name}': {duplicates}");
+            if (s_metadata[i - 1].Order == s_metadata[i].Order)
+            {
+                throw new InvalidOperationException($"Duplicate serialize orders in {typeof(T).Name}");
+            }
         }
     }
 
-    [StackTraceHidden]
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void EnsureNoNegativeOrders()
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static void ENSURE_NO_NEGATIVE_ORDERS()
     {
-        IEnumerable<FieldSchema> negativeOrders = Enumerable
-            .Where(s_metadata, f => f.Order < 0);
-
-        if (Enumerable.Any(negativeOrders))
+        for (int i = 0; i < s_metadata.Length; i++)
         {
-            string negativeFields = string.Join(", ",
-                Enumerable.Select(negativeOrders, f => $"{f.Name}({f.Order})"));
-
-            throw new InvalidOperationException(
-                $"Negative serialize orders not allowed in type '{typeof(T).Name}': {negativeFields}");
+            if (s_metadata[i].Order < 0)
+            {
+                throw new InvalidOperationException($"Negative serialize order in {typeof(T).Name}");
+            }
         }
     }
-
-    #endregion Ensure - Fail Fast Strategy
 }

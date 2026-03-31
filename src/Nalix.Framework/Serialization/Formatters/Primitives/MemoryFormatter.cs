@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Extensions;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 
@@ -38,6 +39,7 @@ namespace Nalix.Framework.Serialization.Formatters.Primitives;
 internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
     where T : unmanaged
 {
+    private static readonly int s_elementSize = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
     private static string DebuggerDisplay => $"MemoryFormatter<{typeof(T).Name}>";
 
     // ------------------------------------------------------------------ //
@@ -59,16 +61,13 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
     public void Serialize(ref DataWriter writer, System.Memory<T> value)
     {
         int length = value.Length;
-        writer.Expand(sizeof(int));
-        FormatterProvider.Get<int>()
-                         .Serialize(ref writer, length);
+        writer.Write(length);
 
         if (length is 0)
         {
             return;
         }
 
-        // Zero-copy: reinterpret Memory<T> thành raw bytes
         System.ReadOnlySpan<byte> bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(value.Span);
 
         writer.Expand(bytes.Length);
@@ -92,8 +91,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Memory<T> Deserialize(ref DataReader reader)
     {
-        int length = FormatterProvider.Get<int>()
-                                               .Deserialize(ref reader);
+        int length = reader.ReadInt32();
 
         if (length <= 0)
         {
@@ -101,7 +99,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         }
 
         T[] array = System.GC.AllocateUninitializedArray<T>(length);
-        int byteCount = length * System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+        int byteCount = length * s_elementSize;
 
         ref byte src = ref reader.GetSpanReference(byteCount);
         ref T first = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(array);

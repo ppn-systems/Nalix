@@ -1,13 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal.Accessors;
-using Nalix.Framework.Serialization.Internal.Reflection;
+using Nalix.Framework.Serialization.Internal.Emit;
+using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization.Formatters.Automatic;
 
@@ -30,11 +27,6 @@ internal sealed class StructFormatter<
 
     private static string DebuggerDisplay => $"StructFormatter<{typeof(T).FullName}>";
 
-    /// <summary>
-    /// Array of cached field accessors for optimized serialization performance.
-    /// </summary>
-    private readonly FieldAccessor<T>[] _accessors;
-
     #endregion Core Fields
 
     #region Constructors
@@ -45,24 +37,7 @@ internal sealed class StructFormatter<
     /// <exception cref="SerializationFailureException">
     /// Thrown if initialization of property accessors fails.
     /// </exception>
-    public StructFormatter()
-    {
-        try
-        {
-            _accessors = StructFormatter<T>.CreateAccessors();
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[StructFormatter<{typeof(T).Name}>] " +
-                                           $"init-ok fields={_accessors.Length} layout={FieldCache<T>.GetLayout()}");
-        }
-        catch (Exception ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[StructFormatter<{typeof(T).Name}>] " +
-                                           $"init-fail msg={ex.Message}");
-
-            throw new SerializationFailureException($"Formatter initialization failed for {typeof(T).Name}", ex);
-        }
-    }
+    public StructFormatter() => TypeMetadata.RecursiveWarmupFields(typeof(T));
 
     #endregion Constructors
 
@@ -79,12 +54,7 @@ internal sealed class StructFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
-    {
-        for (int i = 0; i < _accessors.Length; i++)
-        {
-            _accessors[i].Serialize(ref writer, value);
-        }
-    }
+        => StructILCodec<T>.Serialize(ref writer, value);
 
     /// <summary>
     /// Deserializes an object from the provided binary reader.
@@ -97,44 +67,10 @@ internal sealed class StructFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
-    {
-        T obj = default;
-
-        for (int i = 0; i < _accessors.Length; i++)
-        {
-            _accessors[i].Deserialize(ref reader, ref obj); // ← ref obj
-        }
-
-        return obj;
-    }
+        => StructILCodec<T>.Deserialize(ref reader);
 
     #endregion Serialization
-
     #region Private Implementation
-
-    /// <summary>
-    /// Creates field accessors for the specified type.
-    /// </summary>
-    /// <returns>An array of field accessors.</returns>
-    [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static FieldAccessor<T>[] CreateAccessors()
-    {
-        ReadOnlySpan<FieldSchema> fields = FieldCache<T>.GetFields();
-        if (fields.Length is 0)
-        {
-            return [];
-        }
-
-        FieldAccessor<T>[] accessors = new FieldAccessor<T>[fields.Length];
-
-        for (int i = 0; i < fields.Length; i++)
-        {
-            accessors[i] = FieldAccessor<T>.Create(fields[i], i);
-        }
-
-        return accessors;
-    }
 
     #endregion Private Implementation
 }

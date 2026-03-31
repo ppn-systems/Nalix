@@ -2,30 +2,30 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Serialization;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
-
 namespace Nalix.Framework.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
-    [ThreadStatic]
-    private static HashSet<Type>? t_visitedTypes;
-
+    private static readonly MethodInfo s_isReferenceOrContainsReferencesMethod;
+    private static readonly MethodInfo s_unsafeSizeOfMethod;
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<bool>> s_isRefCache;
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<int>> s_sizeOfFnCache;
 
     static TypeMetadata()
     {
         _ = typeof(IFixedSizeSerializable);
+        s_isReferenceOrContainsReferencesMethod = typeof(RuntimeHelpers)
+            .GetMethod(nameof(RuntimeHelpers.IsReferenceOrContainsReferences))!;
+        s_unsafeSizeOfMethod = typeof(Unsafe).GetMethod(nameof(Unsafe.SizeOf), BindingFlags.Public | BindingFlags.Static)!;
 
         s_isRefCache = new();
         s_sizeOfFnCache = new();
@@ -38,15 +38,8 @@ internal static partial class TypeMetadata
     {
         Func<bool> fn = s_isRefCache.GetOrAdd(type, static t =>
         {
-            MethodInfo method = typeof(RuntimeHelpers)
-                .GetMethod(nameof(RuntimeHelpers.IsReferenceOrContainsReferences))!
-                .MakeGenericMethod(t);
-
-            System.Linq.Expressions.Expression<Func<bool>> call =
-                System.Linq.Expressions.Expression.Lambda<Func<bool>>(
-                    System.Linq.Expressions.Expression.Call(null, method));
-
-            return call.Compile();
+            MethodInfo method = s_isReferenceOrContainsReferencesMethod.MakeGenericMethod(t);
+            return method.CreateDelegate<Func<bool>>();
         });
 
         return fn();
@@ -59,15 +52,8 @@ internal static partial class TypeMetadata
     {
         Func<int> del = s_sizeOfFnCache.GetOrAdd(type, static t =>
         {
-            MethodInfo method = typeof(Unsafe)
-                .GetMethod("SizeOf")!
-                .MakeGenericMethod(t);
-
-            System.Linq.Expressions.Expression<Func<int>> call =
-                System.Linq.Expressions.Expression.Lambda<Func<int>>(
-                    System.Linq.Expressions.Expression.Call(null, method));
-
-            return call.Compile();
+            MethodInfo method = s_unsafeSizeOfMethod.MakeGenericMethod(t);
+            return method.CreateDelegate<Func<int>>();
         });
 
         return del();

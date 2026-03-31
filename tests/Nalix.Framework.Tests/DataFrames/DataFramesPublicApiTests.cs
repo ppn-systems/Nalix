@@ -2,8 +2,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using Nalix.Common.Networking.Packets;
@@ -16,6 +18,8 @@ using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.DataFrames.TextFrames;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
+using Nalix.Framework.Serialization;
+using Nalix.Framework.Serialization.Formatters.Cache;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames
@@ -100,6 +104,38 @@ namespace Nalix.Framework.Tests.DataFrames
             Assert.Equal(PacketPriority.NONE, frame.Priority);
             Assert.Equal(ProtocolType.NONE, frame.Protocol);
             Assert.Equal(PacketConstants.OpcodeDefault, frame.OpCode);
+        }
+
+        [Theory]
+        [InlineData(typeof(Control))]
+        [InlineData(typeof(Handshake))]
+        public static void CheckAllFieldsFormatter(Type modelType)
+        {
+            // Kéo formatter cho chính modelType (class gốc)
+            _ = typeof(FormatterProvider).GetMethod("Get")!.MakeGenericMethod(modelType).Invoke(null, null);
+
+            foreach (FieldInfo field in modelType!.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+            {
+                Type ft = field.FieldType;
+
+                // For each field, force cache fill!
+                _ = typeof(FormatterProvider).GetMethod("Get")!.MakeGenericMethod(ft).Invoke(null, null);
+
+                object? inst = typeof(FormatterCache<>).MakeGenericType(ft)
+                                 .GetField("Instance", BindingFlags.Public | BindingFlags.Static)!
+                                 .GetValue(null);
+
+                Debug.WriteLine(
+                    $"[BUG-SCAN] {modelType.Name}.{field.Name}: Type={ft}, " +
+                    (inst == null ?
+                        "❌ No formatter in cache!" :
+                        "✔️ " + inst.GetType()));
+                // Check enum type
+                if (ft.IsEnum && inst is not null && !inst.GetType().Name.Contains("EnumFormatter"))
+                {
+                    Debug.WriteLine($"❌ WARNING: Enum {ft} không dùng EnumFormatter mà là loại: {inst.GetType()}");
+                }
+            }
         }
 
         /// <summary>
@@ -240,6 +276,7 @@ namespace Nalix.Framework.Tests.DataFrames
         [Fact]
         public void TryDeserialize_RegisteredPacketBytes_ReturnsExpectedPacket()
         {
+            Debug.WriteLine(FormatterProvider.Get<Control>().GetType().FullName);
             // Arrange
             PacketRegistry registry = new(factory => _ = factory);
             Control packet = new();

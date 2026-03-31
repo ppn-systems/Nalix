@@ -101,6 +101,56 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ReadBoolean(this ref DataReader reader) => reader.ReadByte() != 0;
 
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static short ReadInt16(this ref DataReader reader)
+    {
+        ref byte ptr = ref reader.GetSpanReference(sizeof(short));
+        short value = Unsafe.ReadUnaligned<short>(ref ptr);
+        reader.Advance(sizeof(short));
+        return value;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static sbyte ReadSByte(this ref DataReader reader)
+    {
+        ref byte ptr = ref reader.GetSpanReference(sizeof(sbyte));
+        sbyte value = (sbyte)ptr;
+        reader.Advance(sizeof(sbyte));
+        return value;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static char ReadChar(this ref DataReader reader)
+    {
+        ref byte ptr = ref reader.GetSpanReference(sizeof(char));
+        char value = Unsafe.ReadUnaligned<char>(ref ptr);
+        reader.Advance(sizeof(char));
+        return value;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float ReadSingle(this ref DataReader reader)
+    {
+        ref byte ptr = ref reader.GetSpanReference(sizeof(float));
+        float value = Unsafe.ReadUnaligned<float>(ref ptr);
+        reader.Advance(sizeof(float));
+        return value;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static double ReadDouble(this ref DataReader reader)
+    {
+        ref byte ptr = ref reader.GetSpanReference(sizeof(double));
+        double value = Unsafe.ReadUnaligned<double>(ref ptr);
+        reader.Advance(sizeof(double));
+        return value;
+    }
+
     #endregion Primitive Types
 
     #region Enum Types

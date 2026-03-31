@@ -7,8 +7,8 @@ using System.Runtime.CompilerServices;
 using Nalix.Framework.LZ4.Encoders;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Memory.Internal;

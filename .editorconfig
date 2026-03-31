@@ -356,4 +356,6 @@ dotnet_diagnostic.CA1310.severity = warning   # Specify StringComparison
 
 dotnet_diagnostic.CA1825.severity = warning   # Avoid zero-length array allocations
 csharp_style_prefer_collection_expression = false:suggestion
+
 dotnet_diagnostic.IDE0301.severity = silent
+dotnet_diagnostic.IDE0001.severity = none

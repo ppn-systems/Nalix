@@ -3,7 +3,9 @@
 
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
@@ -21,22 +23,8 @@ internal sealed class EnumArrayFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T[]> where T : struct, System.Enum
 {
-    private static readonly int _elementSize;
+    private static readonly int s_elementSize = TypeMetadata.SizeOf<T>();
     private static string DebuggerDisplay => $"EnumArrayFormatter<{typeof(T).FullName}>";
-
-    static EnumArrayFormatter()
-    {
-        System.Type underlyingType = System.Enum.GetUnderlyingType(typeof(T));
-
-        _elementSize = underlyingType switch
-        {
-            System.Type t when t == typeof(byte) || t == typeof(sbyte) => 1,
-            System.Type t when t == typeof(short) || t == typeof(ushort) => 2,
-            System.Type t when t == typeof(int) || t == typeof(uint) => 4,
-            System.Type t when t == typeof(long) || t == typeof(ulong) => 8,
-            _ => throw new SerializationFailureException($"Unsupported enum underlying type: {underlyingType}")
-        };
-    }
 
     /// <summary>
     /// Serializes an array of enum values into the provided writer using their underlying primitive type.
@@ -52,22 +40,18 @@ internal sealed class EnumArrayFormatter<
     {
         if (value == null)
         {
-            writer.Expand(sizeof(ushort));
-            FormatterProvider.Get<ushort>()
-                             .Serialize(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
-        writer.Expand(sizeof(ushort));
-        FormatterProvider.Get<ushort>()
-                         .Serialize(ref writer, (ushort)value.Length);
+        writer.Write((ushort)value.Length);
 
         if (value.Length == 0)
         {
             return;
         }
 
-        int totalBytes = value.Length * _elementSize;
+        int totalBytes = value.Length * s_elementSize;
         writer.Expand(totalBytes);
 
         ref byte dstRef = ref writer.GetFreeBufferReference();
@@ -93,8 +77,7 @@ internal sealed class EnumArrayFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] Deserialize(ref DataReader reader)
     {
-        ushort length = FormatterProvider.Get<ushort>()
-                                                .Deserialize(ref reader);
+        ushort length = reader.ReadUInt16();
 
         if (length == 0)
         {
@@ -111,7 +94,7 @@ internal sealed class EnumArrayFormatter<
             throw new SerializationFailureException("Array length out of range");
         }
 
-        int totalBytes = length * _elementSize;
+        int totalBytes = length * s_elementSize;
 
 #if DEBUG
         if (reader.BytesRemaining < totalBytes)
@@ -121,7 +104,7 @@ internal sealed class EnumArrayFormatter<
         }
 #endif
 
-        T[] result = new T[length];
+        T[] result = System.GC.AllocateUninitializedArray<T>(length);
         ref byte src = ref reader.GetSpanReference(totalBytes);
         ref T dst = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(result);
 

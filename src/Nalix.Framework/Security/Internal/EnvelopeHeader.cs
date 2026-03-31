@@ -12,13 +12,13 @@
 // [7]     : nonceLen (1 byte)
 // [8..11] : seq (uint32 little-endian)
 
+using System.Runtime.CompilerServices;
 using Nalix.Common.Security;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
-
 namespace Nalix.Framework.Security.Internal;
 
 [System.Diagnostics.DebuggerNonUserCode]
@@ -69,7 +69,7 @@ internal readonly struct EnvelopeHeader
     /// <param name="dest"></param>
     /// <param name="header"></param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        MethodImplOptions.AggressiveOptimization)]
     internal static void Encode(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dest,
         [System.Diagnostics.CodeAnalysis.NotNull] EnvelopeHeader header)
@@ -93,7 +93,7 @@ internal readonly struct EnvelopeHeader
     /// <param name="src"></param>
     /// <param name="header"></param>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+        MethodImplOptions.AggressiveOptimization)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     internal static bool Decode(
         [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> src,

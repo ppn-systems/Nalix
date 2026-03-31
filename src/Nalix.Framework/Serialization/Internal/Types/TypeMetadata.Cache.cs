@@ -8,8 +8,8 @@ using System.Runtime.CompilerServices;
 using Nalix.Common.Serialization;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Shared.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Shared.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Serialization.Internal.Types;
