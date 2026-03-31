@@ -19,14 +19,6 @@ namespace Nalix.Framework.Serialization.Internal.Reflection;
 internal static partial class FieldCache<T>
 {
     /// <summary>
-    /// Gets the number of fields cached for the specified type.
-    /// </summary>
-    /// <returns>The count of cached fields.</returns>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetFieldCount() => s_metadata.Length;
-
-    /// <summary>
     /// Retrieves all cached field metadata as a span.
     /// </summary>
     /// <returns>A <see cref="ReadOnlySpan{T}"/> containing metadata for all fields.</returns>
@@ -34,12 +26,4 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FieldSchema[] GetFields() => s_metadata;
 
-    /// <summary>
-    /// Retrieves metadata for a field at the given index.
-    /// </summary>
-    /// <param name="index">The index of the field.</param>
-    /// <returns>The metadata for the specified field.</returns>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FieldSchema GetField(int index) => s_metadata[index];
 }

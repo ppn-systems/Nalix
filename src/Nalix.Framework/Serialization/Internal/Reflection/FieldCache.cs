@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -24,30 +23,17 @@ internal static partial class FieldCache<
 {
     private static readonly FieldSchema[] s_metadata;
     private static readonly SerializeLayout s_layout;
-    private static readonly string[] s_fieldNames;
     private static readonly HashSet<string> s_ignoredProperties;
+    private static readonly Dictionary<Type, Dictionary<string, int>> s_explicitOrdersByDeclaringType;
 
     static FieldCache()
     {
         s_layout = GET_SERIALIZE_LAYOUT(typeof(T));
         s_ignoredProperties = BUILD_IGNORED_PROPERTIES(typeof(T));
-        s_metadata = DISCOVER_FIELDS(typeof(T), s_layout, s_ignoredProperties);
-        s_fieldNames = new string[s_metadata.Length];
-
-        Debug.WriteLine($"[FieldCache<{typeof(T).Name}>] Created: s_metadata.Length = {s_metadata.Length}");
-
-        for (int i = 0; i < s_metadata.Length; i++)
-        {
-            if (s_metadata[i].FieldInfo == null)
-            {
-                Debug.WriteLine($"[FieldCache<{typeof(T).Name}>] ERROR: FieldSchema[{i}] ({s_metadata[i].Name}) has null FieldInfo!");
-            }
-        }
-
-        for (int i = 0; i < s_metadata.Length; i++)
-        {
-            s_fieldNames[i] = s_metadata[i].Name;
-        }
+        s_explicitOrdersByDeclaringType = s_layout == SerializeLayout.Explicit
+            ? BUILD_EXPLICIT_ORDER_MAPS(typeof(T))
+            : [];
+        s_metadata = DISCOVER_FIELDS(typeof(T), s_layout, s_ignoredProperties, s_explicitOrdersByDeclaringType);
 
         s_getters = new Delegate[s_metadata.Length];
         s_setters = new Delegate[s_metadata.Length];
@@ -64,49 +50,44 @@ internal static partial class FieldCache<
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static FieldSchema[] DISCOVER_FIELDS(Type type, SerializeLayout layout, HashSet<string> ignoredProperties)
+    private static FieldSchema[] DISCOVER_FIELDS(
+        Type type,
+        SerializeLayout layout,
+        HashSet<string> ignoredProperties,
+        Dictionary<Type, Dictionary<string, int>> explicitOrdersByDeclaringType)
     {
-        List<FieldInfo> allFields = new(16);
-        for (Type? t = type; t != null && t != typeof(object); t = t.BaseType)
-        {
-            allFields.AddRange(t.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly));
-        }
-
-        Debug.WriteLine($"[FieldCache<{typeof(T).Name}>] Discover fields for {type}: total={allFields.Count}");
-
-        List<FieldSchema> included = new(allFields.Count);
+        List<FieldSchema> included = new(16);
         int sequentialOrder = 0;
-        foreach (FieldInfo field in allFields)
+
+        for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
         {
-            if (field == null)
+            FieldInfo[] declaredFields = current.GetFields(
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+            for (int i = 0; i < declaredFields.Length; i++)
             {
-                Debug.WriteLine("[FieldCache] Ignored null FieldInfo!");
-                continue;
+                FieldInfo field = declaredFields[i];
+
+                if (SHOULD_IGNORE_FIELD(field, ignoredProperties))
+                {
+                    continue;
+                }
+
+                int? explicitOrder = layout == SerializeLayout.Explicit
+                    ? GET_EXPLICIT_ORDER(field, explicitOrdersByDeclaringType)
+                    : null;
+                if (layout == SerializeLayout.Explicit && explicitOrder is null)
+                {
+                    continue;
+                }
+
+                included.Add(new FieldSchema(
+                    layout == SerializeLayout.Explicit ? explicitOrder!.Value : sequentialOrder++,
+                    field.Name,
+                    field.FieldType.IsValueType,
+                    field.FieldType,
+                    field));
             }
-
-            if (SHOULD_IGNORE_FIELD(field, ignoredProperties))
-            {
-                Debug.WriteLine($"[FieldCache] Ignore field: {field.Name} ({field.FieldType.Name})");
-                continue;
-            }
-
-            int? explicitOrder = layout == SerializeLayout.Explicit ? GET_EXPLICIT_ORDER(field) : null;
-            if (layout == SerializeLayout.Explicit && explicitOrder is null)
-            {
-                Debug.WriteLine($"[FieldCache] Explicit order null for field: {field.Name}");
-                continue;
-            }
-
-            FieldSchema schema = new(
-                layout == SerializeLayout.Explicit ? explicitOrder!.Value : sequentialOrder++,
-                field.Name,
-                field.FieldType.IsValueType,
-                field.FieldType,
-                field
-            );
-            included.Add(schema);
-
-            Debug.WriteLine($"[FieldCache] Add field: {schema.Name} (Type={schema.FieldType.Name}, IsValueType={schema.IsValueType}, Order={schema.Order})");
         }
 
         if (layout == SerializeLayout.Explicit)
@@ -114,33 +95,55 @@ internal static partial class FieldCache<
             included.Sort(static (a, b) => a.Order.CompareTo(b.Order));
         }
 
-        FieldSchema[] arr = [.. included];
-        Debug.WriteLine($"[FieldCache<{typeof(T).Name}>] Included fields: {arr.Length}");
-
-#if DEBUG
-        for (int i = 0; i < arr.Length; i++)
-        {
-            FieldSchema f = arr[i];
-            Debug.WriteLine($"  [{i}] Name={f.Name}, FieldType={f.FieldType}, IsValueType={f.IsValueType}, FieldInfo-null={f.FieldInfo is null}, Order={f.Order}");
-        }
-#endif
-
-        return arr;
+        return [.. included];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static HashSet<string> BUILD_IGNORED_PROPERTIES(Type type)
     {
         HashSet<string> set = new(StringComparer.Ordinal);
-        foreach (PropertyInfo p in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
         {
-            if (p.GetCustomAttribute<SerializeIgnoreAttribute>() != null)
+            PropertyInfo[] properties = current.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            for (int i = 0; i < properties.Length; i++)
             {
-                _ = set.Add(p.Name);
+                PropertyInfo property = properties[i];
+                if (property.GetCustomAttribute<SerializeIgnoreAttribute>() != null)
+                {
+                    _ = set.Add(property.Name);
+                }
             }
         }
 
         return set;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Dictionary<Type, Dictionary<string, int>> BUILD_EXPLICIT_ORDER_MAPS(Type type)
+    {
+        Dictionary<Type, Dictionary<string, int>> result = new();
+
+        for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
+        {
+            PropertyInfo[] properties = current.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+            Dictionary<string, int> propertyOrders = new(StringComparer.Ordinal);
+
+            for (int i = 0; i < properties.Length; i++)
+            {
+                PropertyInfo property = properties[i];
+                SerializeOrderAttribute? order = property.GetCustomAttribute<SerializeOrderAttribute>();
+                if (order is null)
+                {
+                    continue;
+                }
+
+                propertyOrders[property.Name] = order.Order;
+            }
+
+            result[current] = propertyOrders;
+        }
+
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -166,23 +169,26 @@ internal static partial class FieldCache<
         => type.GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout ?? SerializeLayout.Sequential;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int? GET_EXPLICIT_ORDER(FieldInfo field)
+    private static int? GET_EXPLICIT_ORDER(FieldInfo field, Dictionary<Type, Dictionary<string, int>> explicitOrdersByDeclaringType)
     {
         Type? type = field.DeclaringType;
-        if (type == null)
+        if (type is null || !explicitOrdersByDeclaringType.TryGetValue(type, out Dictionary<string, int>? propertyOrders))
         {
             return null;
         }
 
-        foreach (PropertyInfo prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        if (field.Name.Length > 2 && field.Name[0] == '<')
         {
-            if (field.Name == prop.Name || field.Name == $"<{prop.Name}>k__BackingField")
+            int end = field.Name.IndexOf('>');
+            if (end > 1 && propertyOrders.TryGetValue(field.Name[1..end], out int backingFieldOrder))
             {
-                return prop.GetCustomAttribute<SerializeOrderAttribute>()?.Order;
+                return backingFieldOrder;
             }
         }
 
-        return null;
+        return propertyOrders.TryGetValue(field.Name, out int order)
+            ? order
+            : null;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -200,10 +206,9 @@ internal static partial class FieldCache<
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static void ENSURE_NO_DUPLICATE_ORDERS()
     {
-        HashSet<int> orderCounts = [];
-        for (int i = 0; i < s_metadata.Length; i++)
+        for (int i = 1; i < s_metadata.Length; i++)
         {
-            if (!orderCounts.Add(s_metadata[i].Order))
+            if (s_metadata[i - 1].Order == s_metadata[i].Order)
             {
                 throw new InvalidOperationException($"Duplicate serialize orders in {typeof(T).Name}");
             }

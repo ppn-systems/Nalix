@@ -2,15 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
@@ -54,42 +51,11 @@ internal static partial class TypeMetadata
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="type"/> is null.</exception>
     [Pure]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsUnmanaged(Type type)
-    {
-        t_visitedTypes ??= [];
-
-        if (!t_visitedTypes.Add(type))
-        {
-            return false;  // Circular reference detected
-        }
-
-        try
-        {
-            return type.IsValueType &&
-                   Marshal.SizeOf(type) > 0 &&
-                   Enumerable.All(type.GetFields(
-                   BindingFlags.Instance |
-                   BindingFlags.NonPublic |
-                   BindingFlags.Public), f => IsUnmanaged(f.FieldType));
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-        catch (NotSupportedException)
-        {
-            return false;
-        }
-        catch (TypeLoadException)
-        {
-            return false;
-        }
-        finally
-        {
-            _ = t_visitedTypes.Remove(type);
-        }
-    }
+        => type is not null &&
+           type.IsValueType &&
+           !IsReferenceOrContainsReferences(type);
 
     /// <summary>
     /// Determines whether the specified type is nullable.
@@ -131,34 +97,6 @@ internal static partial class TypeMetadata
 
         size = 0;
         return TypeKind.None;
-    }
-
-    /// <summary>
-    /// Determines whether a given type is an anonymous type.
-    /// </summary>
-    /// <param name="type">The type to check.</param>
-    /// <returns>True if the type is anonymous; otherwise, false.</returns>
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAnonymous(Type type)
-    {
-        // Anonymous types typically have no namespace
-        bool hasNoNamespace = type.Namespace == null;
-
-        // Anonymous types are usually sealed (cannot be inherited)
-        bool isSealed = type.IsSealed;
-
-        // Anonymous type names usually start with compiler-generated prefixes
-        bool nameIndicatesAnonymous =
-            type.Name.StartsWith("<>f__AnonymousType", StringComparison.Ordinal) ||
-            type.Name.StartsWith("<>__AnonType", StringComparison.Ordinal) ||
-            type.Name.StartsWith("VB$AnonymousType_", StringComparison.Ordinal); // For VB.NET
-
-        // Anonymous types are marked with CompilerGeneratedAttribute
-        bool isCompilerGenerated = type.IsDefined(
-            typeof(CompilerGeneratedAttribute), inherit: false);
-
-        return hasNoNamespace && isSealed && nameIndicatesAnonymous && isCompilerGenerated;
     }
 
     #region Private Methods
