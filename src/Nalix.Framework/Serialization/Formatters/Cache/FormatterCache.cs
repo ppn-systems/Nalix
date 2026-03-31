@@ -1,9 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+#if DEBUG
+using System.Runtime.CompilerServices;
 
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+#endif
 
 namespace Nalix.Framework.Serialization.Formatters.Cache;
 
@@ -21,5 +24,5 @@ internal static class FormatterCache<
     /// <summary>
     /// The cached formatter instance for the specified type <typeparamref name="T"/>.
     /// </summary>
-    public static IFormatter<T> Formatter = null!;
+    public static IFormatter<T> Instance = null!;
 }

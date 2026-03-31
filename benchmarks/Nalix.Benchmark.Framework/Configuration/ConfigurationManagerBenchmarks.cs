@@ -82,7 +82,7 @@ public class ConfigurationManagerBenchmarks
         File.WriteAllText(_iniPathB, "[Benchmark]\nKey=ValueB\n");
 
         // Trỏ manager về file A trước
-        _ = _manager.SetConfigFilePath(_iniPathA, autoReload: false);
+        _manager.SetConfigFilePath(_iniPathA, autoReload: false);
         _manager.ClearAll();
 
         // Warm up cache cho BenchConfigA và BenchConfigB (cache HIT path)
@@ -182,7 +182,7 @@ public class ConfigurationManagerBenchmarks
     /// </summary>
     [BenchmarkCategory("Reload")]
     [Benchmark(Description = "ReloadAll — 2 loaded containers (file I/O + write lock)")]
-    public bool ReloadAll()
+    public void ReloadAll()
         => _manager.ReloadAll();
 
     // -----------------------------------------------------------------------
@@ -197,7 +197,7 @@ public class ConfigurationManagerBenchmarks
     /// </summary>
     [BenchmarkCategory("SetPath")]
     [Benchmark(Description = "SetConfigFilePath — no reload (path swap only)")]
-    public bool SetConfigFilePath_NoReload()
+    public void SetConfigFilePath_NoReload()
         => _manager.SetConfigFilePath(_iniPathB, autoReload: false);
 
     /// <summary>
@@ -207,6 +207,6 @@ public class ConfigurationManagerBenchmarks
     /// </summary>
     [BenchmarkCategory("SetPath")]
     [Benchmark(Description = "SetConfigFilePath — with auto-reload (file I/O)")]
-    public bool SetConfigFilePath_WithReload()
+    public void SetConfigFilePath_WithReload()
         => _manager.SetConfigFilePath(_iniPathB, autoReload: true);
 }

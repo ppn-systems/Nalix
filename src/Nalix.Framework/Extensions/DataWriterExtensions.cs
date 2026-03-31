@@ -16,11 +16,17 @@ public static class DataWriterExtensions
 {
     #region Primitive Types
 
-    /// <summary>
-    /// Writes a <see cref="byte"/> to the buffer.
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Write(this ref DataWriter writer, sbyte value)
+    {
+        writer.Expand(sizeof(sbyte));
+        ref byte ptr = ref writer.GetFreeBufferReference();
+        Unsafe.WriteUnaligned(ref ptr, value);
+        writer.Advance(sizeof(sbyte));
+    }
+
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, byte value)
     {
@@ -30,11 +36,17 @@ public static class DataWriterExtensions
         writer.Advance(sizeof(byte));
     }
 
-    /// <summary>
-    /// Writes a <see cref="ushort"/> to the buffer.
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Write(this ref DataWriter writer, short value)
+    {
+        writer.Expand(sizeof(short));
+        ref byte ptr = ref writer.GetFreeBufferReference();
+        Unsafe.WriteUnaligned(ref ptr, value);
+        writer.Advance(sizeof(short));
+    }
+
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, ushort value)
     {
@@ -44,11 +56,7 @@ public static class DataWriterExtensions
         writer.Advance(sizeof(ushort));
     }
 
-    /// <summary>
-    /// Writes a <see cref="uint"/> to the buffer.
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, uint value)
     {
@@ -58,11 +66,7 @@ public static class DataWriterExtensions
         writer.Advance(sizeof(uint));
     }
 
-    /// <summary>
-    /// Writes a <see cref="int"/> to the buffer.
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, int value)
     {
@@ -72,11 +76,7 @@ public static class DataWriterExtensions
         writer.Advance(sizeof(int));
     }
 
-    /// <summary>
-    /// Writes a <see cref="long"/> to the buffer.
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, long value)
     {
@@ -86,11 +86,7 @@ public static class DataWriterExtensions
         writer.Advance(sizeof(long));
     }
 
-    /// <summary>
-    /// Writes a <see cref="ulong"/> to the buffer.
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, ulong value)
     {
@@ -100,13 +96,39 @@ public static class DataWriterExtensions
         writer.Advance(sizeof(ulong));
     }
 
-    /// <summary>
-    /// Writes a <see cref="bool"/> to the buffer.
-    /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(this ref DataWriter writer, bool value) => writer.Write((byte)(value ? 1 : 0));
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Write(this ref DataWriter writer, char value)
+    {
+        writer.Expand(sizeof(char));
+        ref byte ptr = ref writer.GetFreeBufferReference();
+        Unsafe.WriteUnaligned(ref ptr, value);
+        writer.Advance(sizeof(char));
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Write(this ref DataWriter writer, float value)
+    {
+        writer.Expand(sizeof(float));
+        ref byte ptr = ref writer.GetFreeBufferReference();
+        Unsafe.WriteUnaligned(ref ptr, value);
+        writer.Advance(sizeof(float));
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Write(this ref DataWriter writer, double value)
+    {
+        writer.Expand(sizeof(double));
+        ref byte ptr = ref writer.GetFreeBufferReference();
+        Unsafe.WriteUnaligned(ref ptr, value);
+        writer.Advance(sizeof(double));
+    }
 
     #endregion Primitive Types
 

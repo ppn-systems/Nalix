@@ -3,8 +3,10 @@
 
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Internal.Types;
+using System.Runtime.InteropServices;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
@@ -22,6 +24,7 @@ internal sealed class ArrayFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T[]> where T : unmanaged
 {
+    private static readonly int s_elementSize = TypeMetadata.SizeOf<T>();
     private static string DebuggerDisplay => $"ArrayFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -31,40 +34,32 @@ internal sealed class ArrayFormatter<
     /// <param name="value">The array to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public unsafe void Serialize(ref DataWriter writer, T[] value)
+    public void Serialize(ref DataWriter writer, T[] value)
     {
         if (value == null)
         {
-            // Convention: -1 indicates a null array
-            writer.Expand(sizeof(ushort));
-            FormatterProvider.Get<ushort>()
-                             .Serialize(ref writer, SerializerBounds.Null);
-
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
-        writer.Expand(sizeof(ushort));
-        FormatterProvider.Get<ushort>()
-                         .Serialize(ref writer, unchecked((ushort)value.Length));
+        writer.Write(unchecked((ushort)value.Length));
 
         if (value.Length == 0)
         {
             return;
         }
 
-        int totalBytes = value.Length * TypeMetadata.SizeOf<T>();
+        int totalBytes = value.Length * s_elementSize;
 
         writer.Expand(totalBytes);
         ref byte destination = ref writer.GetFreeBufferReference();
+        ref T source = ref MemoryMarshal.GetArrayDataReference(value);
+        ref byte sourceBytes = ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref source);
 
-        // Copy block memory
-        fixed (T* src = value)
-        {
-            fixed (byte* dst = &destination)
-            {
-                System.Buffer.MemoryCopy(src, dst, totalBytes, totalBytes);
-            }
-        }
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            ref destination,
+            ref sourceBytes,
+            (uint)totalBytes);
 
         writer.Advance(totalBytes);
     }
@@ -79,8 +74,7 @@ internal sealed class ArrayFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T[] Deserialize(ref DataReader reader)
     {
-        ushort length = FormatterProvider.Get<ushort>()
-                                                .Deserialize(ref reader);
+        ushort length = reader.ReadUInt16();
 
         if (length == 0)
         {
@@ -97,12 +91,12 @@ internal sealed class ArrayFormatter<
             throw new SerializationFailureException("Array length out of range");
         }
 
-        int total = length * TypeMetadata.SizeOf<T>();
+        int total = length * s_elementSize;
 
         ref byte src = ref reader.GetSpanReference(total);
 
-        T[] result = new T[length];
-        ref T dst = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(result);
+        T[] result = System.GC.AllocateUninitializedArray<T>(length);
+        ref T dst = ref MemoryMarshal.GetArrayDataReference(result);
 
         System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
             ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref dst),
