@@ -54,7 +54,7 @@ internal sealed class StructFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
-        => StructEmitter<T>.Serialize(ref writer, value);
+        => StructILCodec<T>.Serialize(ref writer, value);
 
     /// <summary>
     /// Deserializes an object from the provided binary reader.
@@ -67,7 +67,7 @@ internal sealed class StructFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
-        => StructEmitter<T>.Deserialize(ref reader);
+        => StructILCodec<T>.Deserialize(ref reader);
 
     #endregion Serialization
     #region Private Implementation

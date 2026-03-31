@@ -1,17 +1,13 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
-
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Internal.Reflection;
 
-namespace Nalix.Framework.Serialization.Internal.Emit;
-
 /// <summary>
-/// Optimized IL Emit serializer - SAFE + HIGH PERFORMANCE
+/// Fully unrolled, zero-overhead IL serializer for reference types (classes).
 /// </summary>
-internal static class StructEmitter<T> where T : struct
+internal static class ObjectILCodec<T> where T : class, new()
 {
     public static readonly SerializeDelegate Serialize;
     public static readonly DeserializeDelegate Deserialize;
@@ -19,39 +15,41 @@ internal static class StructEmitter<T> where T : struct
     public delegate void SerializeDelegate(ref DataWriter writer, T value);
     public delegate T DeserializeDelegate(ref DataReader reader);
 
-    // Cached per type
     private static readonly FieldSchema[] s_fields;
-    private static readonly MethodInfo?[] s_directReadMethods;
     private static readonly MethodInfo?[] s_directWriteMethods;
+    private static readonly MethodInfo?[] s_directReadMethods;
 
-    static StructEmitter()
+    static ObjectILCodec()
     {
         s_fields = FieldCache<T>.GetFields();
+
+        if (s_fields == null || s_fields.Length == 0)
+        {
+            throw new InvalidOperationException("No serializable fields found.");
+        }
 
         s_directWriteMethods = new MethodInfo?[s_fields.Length];
         s_directReadMethods = new MethodInfo?[s_fields.Length];
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            Type fieldType = s_fields[i].FieldType;
-
-            s_directReadMethods[i] = FieldILCodec.TryResolveReadMethod(fieldType);
-            s_directWriteMethods[i] = FieldILCodec.TryResolveWriteMethod(fieldType);
+            Type ft = s_fields[i].FieldType;
+            s_directReadMethods[i] = FieldILCodec.TryResolveReadMethod(ft);
+            s_directWriteMethods[i] = FieldILCodec.TryResolveWriteMethod(ft);
         }
 
         Serialize = GenerateSerialize();
         Deserialize = GenerateDeserialize();
     }
 
-    #region Direct Method Caching (called only once at startup)
-
-    #endregion
-
     private static SerializeDelegate GenerateSerialize()
     {
-        DynamicMethod dm = new($"StructSerialize_{typeof(T).Name}",
-            typeof(void), [typeof(DataWriter).MakeByRefType(), typeof(T)],
-            typeof(StructEmitter<T>).Module, skipVisibility: true);
+        DynamicMethod dm = new(
+            $"ObjectSerialize_{typeof(T).Name}",
+            typeof(void),
+            [typeof(DataWriter).MakeByRefType(), typeof(T)],
+            typeof(ObjectILCodec<T>).Module,
+            skipVisibility: true);
 
         ILGenerator il = dm.GetILGenerator();
 
@@ -66,22 +64,25 @@ internal static class StructEmitter<T> where T : struct
 
     private static DeserializeDelegate GenerateDeserialize()
     {
-        DynamicMethod dm = new($"StructDeserialize_{typeof(T).Name}",
-            typeof(T), [typeof(DataReader).MakeByRefType()],
-            typeof(StructEmitter<T>).Module, skipVisibility: true);
+        DynamicMethod dm = new(
+            $"ObjectDeserialize_{typeof(T).Name}",
+            typeof(T),
+            [typeof(DataReader).MakeByRefType()],
+            typeof(ObjectILCodec<T>).Module,
+            skipVisibility: true);
 
         ILGenerator il = dm.GetILGenerator();
         LocalBuilder obj = il.DeclareLocal(typeof(T));
 
-        il.Emit(OpCodes.Ldloca_S, obj);
-        il.Emit(OpCodes.Initobj, typeof(T));
+        il.Emit(OpCodes.Newobj, typeof(T).GetConstructor(Type.EmptyTypes)!);
+        il.Emit(OpCodes.Stloc, obj);
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            FieldILCodec.EmitReadFieldValue(il, s_fields[i], s_directReadMethods[i], obj);
+            FieldILCodec.EmitReadFieldRef(il, s_fields[i], s_directReadMethods[i], obj);
         }
 
-        il.Emit(OpCodes.Ldloc_0);
+        il.Emit(OpCodes.Ldloc, obj);
         il.Emit(OpCodes.Ret);
 
         return (DeserializeDelegate)dm.CreateDelegate(typeof(DeserializeDelegate));

@@ -53,7 +53,7 @@ internal sealed class ObjectFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T value)
-        => ObjectEmitter<T>.Serialize(ref writer, value);
+        => ObjectILCodec<T>.Serialize(ref writer, value);
 
     /// <summary>
     /// Deserializes an object from the provided binary reader.
@@ -66,7 +66,7 @@ internal sealed class ObjectFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader)
-        => ObjectEmitter<T>.Deserialize(ref reader);
+        => ObjectILCodec<T>.Deserialize(ref reader);
 
     #endregion Serialization
 }

@@ -372,6 +372,125 @@ public static class LiteSerializer
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public static int Deserialize<[
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(byte[] buffer, ref T value)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+
+        if (!UsesFormatterReader<T>())
+        {
+            return Deserialize<T>((ReadOnlySpan<byte>)buffer, ref value);
+        }
+
+        if (buffer.Length == 0)
+        {
+            throw new SerializationFailureException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.");
+        }
+
+        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        DataReader reader = new(buffer);
+        value = formatter.Deserialize(ref reader);
+        return reader.BytesRead;
+    }
+
+    /// <summary>
+    /// Deserializes an object from a byte array.
+    /// </summary>
+    /// <typeparam name="T">The type of object to deserialize.</typeparam>
+    /// <param name="buffer">The byte array containing serialized data.</param>
+    /// <param name="value">The number of bytes read during deserialization.</param>
+    /// <returns>The deserialized object.</returns>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
+    public static T Deserialize<[
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(byte[] buffer, out int value)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+
+        if (!UsesFormatterReader<T>())
+        {
+            return Deserialize<T>((ReadOnlySpan<byte>)buffer, out value);
+        }
+
+        if (buffer.Length == 0)
+        {
+            throw new SerializationFailureException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.");
+        }
+
+        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        DataReader reader = new(buffer);
+
+        T result = formatter.Deserialize(ref reader);
+        value = reader.BytesRead;
+        return result;
+    }
+
+    /// <summary>
+    /// Deserializes an object from a read-only memory buffer.
+    /// </summary>
+    /// <typeparam name="T">The type of object to deserialize.</typeparam>
+    /// <param name="buffer">The memory buffer containing serialized data.</param>
+    /// <param name="value">The reference to the object where deserialized data will be stored.</param>
+    /// <returns>The number of bytes read during deserialization.</returns>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    public static int Deserialize<[
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlyMemory<byte> buffer, ref T value)
+    {
+        if (!UsesFormatterReader<T>())
+        {
+            return Deserialize<T>(buffer.Span, ref value);
+        }
+
+        if (buffer.IsEmpty)
+        {
+            throw new SerializationFailureException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.");
+        }
+
+        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        DataReader reader = new(buffer);
+        value = formatter.Deserialize(ref reader);
+        return reader.BytesRead;
+    }
+
+    /// <summary>
+    /// Deserializes an object from a read-only memory buffer.
+    /// </summary>
+    /// <typeparam name="T">The type of object to deserialize.</typeparam>
+    /// <param name="buffer">The memory buffer containing serialized data.</param>
+    /// <param name="value">The number of bytes read during deserialization.</param>
+    /// <returns>The deserialized object.</returns>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
+    public static T Deserialize<[
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlyMemory<byte> buffer, out int value)
+    {
+        if (!UsesFormatterReader<T>())
+        {
+            return Deserialize<T>(buffer.Span, out value);
+        }
+
+        if (buffer.IsEmpty)
+        {
+            throw new SerializationFailureException($"Cannot deserialize type '{typeof(T)}' from an empty buffer.");
+        }
+
+        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        DataReader reader = new(buffer);
+
+        T result = formatter.Deserialize(ref reader);
+        value = reader.BytesRead;
+        return result;
+    }
+
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    public static int Deserialize<[
         DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> buffer, ref T value)
     {
         if (buffer.IsEmpty)
@@ -564,6 +683,12 @@ public static class LiteSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsEmptyArrayMarker(ReadOnlySpan<byte> buffer) =>
         buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == 0;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool UsesFormatterReader<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
+        => TypeMetadata.IsReferenceOrNullable<T>() &&
+           TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out _) is not TypeKind.UnmanagedSZArray;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> ResolveRootFormatter<

@@ -2,7 +2,6 @@ using System;
 using System.Globalization;
 using System.IO;
 using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Jobs;
 using Perfolizer.Horology;
@@ -23,10 +22,9 @@ public sealed class BenchmarkConfig : ManualConfig
         _ = this.AddJob(
              Job.ShortRun
                 .WithRuntime(CoreRuntime.Core10_0) // .NET 10
-                .WithStrategy(RunStrategy.Throughput)
                 .WithLaunchCount(1)
                 .WithWarmupCount(3)
-                .WithIterationCount(5)
+                .WithIterationCount(8)
                 .WithMinIterationTime(TimeInterval.FromMilliseconds(50))
                 .WithId("ShortRun"));
 
