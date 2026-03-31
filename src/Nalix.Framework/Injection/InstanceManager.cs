@@ -817,8 +817,18 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
 
         if (s_processMutexOwner && s_processMutex != null)
         {
-            try { s_processMutex.ReleaseMutex(); }
-            catch (Exception ex) { LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warning, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex)); }
+            try
+            {
+                s_processMutex.ReleaseMutex();
+            }
+            catch (AbandonedMutexException amex)
+            {
+                LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warning, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", amex));
+            }
+            catch (ApplicationException aex)
+            {
+                LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warning, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", aex));
+            }
             s_processMutex.Dispose();
             s_processMutex = null;
         }
