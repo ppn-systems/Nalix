@@ -25,6 +25,7 @@ internal sealed class NullableStructFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : struct
 {
     private static readonly IFormatter<T> s_valueFormatter = FormatterProvider.Get<T>();
+
     private static string DebuggerDisplay => $"NullableStructFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -66,8 +67,6 @@ internal sealed class NullableStructFormatter<
     public T? Deserialize(ref DataReader reader)
     {
         byte marker = BufferPrimitives.ReadByte(ref reader);
-
-        return marker == 0 ? null
-            : s_valueFormatter.Deserialize(ref reader);
+        return marker == 0 ? null : s_valueFormatter.Deserialize(ref reader);
     }
 }

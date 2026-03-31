@@ -25,6 +25,7 @@ internal sealed class NullableObjectFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : class, new()
 {
     private static readonly IFormatter<T> s_objectFormatter = FormatterProvider.GetComplex<T>();
+
     private static string DebuggerDisplay => $"NullableObjectFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -66,7 +67,6 @@ internal sealed class NullableObjectFormatter<
     public T? Deserialize(ref DataReader reader)
     {
         byte marker = BufferPrimitives.ReadByte(ref reader);
-        return marker == 0 ? null
-            : s_objectFormatter.Deserialize(ref reader);
+        return marker == 0 ? null : s_objectFormatter.Deserialize(ref reader);
     }
 }
