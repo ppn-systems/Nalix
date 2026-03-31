@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
@@ -35,7 +36,7 @@ internal sealed class EnumListFormatter<
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The list of enum values to serialize.</param>
     /// <exception cref="SerializationFailureException">
-    /// Thrown if the underlying type of the enum is not supported by the <see cref="EnumFormatter{T}"/>.
+    /// Thrown if the enum payload cannot be represented as a raw unmanaged block for <typeparamref name="T"/>.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -76,7 +77,7 @@ internal sealed class EnumListFormatter<
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized list of enum values, or null if the serialized data represents a null list.</returns>
     /// <exception cref="SerializationFailureException">
-    /// Thrown if the list length is out of range or if the underlying type of the enum is not supported by the <see cref="EnumFormatter{T}"/>.
+    /// Thrown if the list length is out of range or if the enum payload for <typeparamref name="T"/> is invalid.
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]

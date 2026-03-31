@@ -4,6 +4,7 @@
 using System;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Serialization.Internal;
 
 namespace Nalix.Framework.Serialization.Formatters.Collections;
 
@@ -54,22 +55,13 @@ internal sealed class DictionaryFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] TValue> : IFormatter<System.Collections.Generic.Dictionary<TKey, TValue>?> where TKey : notnull
 {
-    private static readonly IFormatter<int> s_countFormatter = FormatterProvider.Get<int>();
+    private static readonly IFormatter<TKey> s_keyFormatter = FormatterProvider.Get<TKey>();
+    private static readonly IFormatter<TValue> s_valueFormatter = FormatterProvider.Get<TValue>();
     /// <summary>
     /// Gets the debugger display string for this formatter.
     /// </summary>
     private static string DebuggerDisplay =>
         $"DictionaryFormatter<{typeof(TKey).Name}, {typeof(TValue).Name}>";
-
-    /// <summary>
-    /// Formatter used to serialize and deserialize dictionary keys.
-    /// </summary>
-    private readonly IFormatter<TKey> _keyFormatter;
-
-    /// <summary>
-    /// Formatter used to serialize and deserialize dictionary values.
-    /// </summary>
-    private readonly IFormatter<TValue> _valueFormatter;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DictionaryFormatter{TKey, TValue}"/> class.
@@ -100,9 +92,6 @@ internal sealed class DictionaryFormatter<
             throw new SerializationFailureException(
                 $"DictionaryFormatter: TKey='{keyType.Name}' is a class — only supports primitive, string, enum, or unmanaged struct as key.");
         }
-
-        _keyFormatter = FormatterProvider.Get<TKey>();
-        _valueFormatter = FormatterProvider.Get<TValue>();
     }
 
     // ------------------------------------------------------------------ //
@@ -133,14 +122,12 @@ internal sealed class DictionaryFormatter<
     {
         if (value is null)
         {
-            writer.Expand(sizeof(int));
-            s_countFormatter.Serialize(ref writer, -1);
+            BufferPrimitives.WriteInt32(ref writer, -1);
             return;
         }
 
         int count = value.Count;
-        writer.Expand(sizeof(int));
-        s_countFormatter.Serialize(ref writer, count);
+        BufferPrimitives.WriteInt32(ref writer, count);
 
         if (count is 0)
         {
@@ -149,8 +136,8 @@ internal sealed class DictionaryFormatter<
 
         foreach (System.Collections.Generic.KeyValuePair<TKey, TValue> kvp in value)
         {
-            _keyFormatter.Serialize(ref writer, kvp.Key);
-            _valueFormatter.Serialize(ref writer, kvp.Value);
+            s_keyFormatter.Serialize(ref writer, kvp.Key);
+            s_valueFormatter.Serialize(ref writer, kvp.Value);
         }
     }
 
@@ -186,7 +173,7 @@ internal sealed class DictionaryFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.Dictionary<TKey, TValue>? Deserialize(ref DataReader reader)
     {
-        int count = s_countFormatter.Deserialize(ref reader);
+        int count = BufferPrimitives.ReadInt32(ref reader);
 
         if (count == -1)
         {
@@ -202,8 +189,8 @@ internal sealed class DictionaryFormatter<
 
         for (int i = 0; i < count; i++)
         {
-            TKey key = _keyFormatter.Deserialize(ref reader);
-            dict[key] = _valueFormatter.Deserialize(ref reader);
+            TKey key = s_keyFormatter.Deserialize(ref reader);
+            dict[key] = s_valueFormatter.Deserialize(ref reader);
         }
 
         return dict;

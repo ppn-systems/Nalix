@@ -3,6 +3,7 @@
 
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Serialization.Internal;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 
@@ -22,6 +23,8 @@ internal sealed class NullableFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : struct
 {
+    private static readonly IFormatter<T> s_valueFormatter = FormatterProvider.Get<T>();
+
     #region Constants
 
     /// <summary>
@@ -51,14 +54,12 @@ internal sealed class NullableFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, T? value)
     {
-        // 0 = null, 1 = has value
-        writer.Expand(sizeof(byte));
-        FormatterProvider.Get<byte>()
-                         .Serialize(ref writer, value.HasValue ? HasValueFlag : NoValueFlag);
+        BufferPrimitives.WriteByte(
+            ref writer, value.HasValue ? HasValueFlag : NoValueFlag);
 
         if (value.HasValue)
         {
-            FormatterProvider.Get<T>().Serialize(ref writer, value.Value);
+            s_valueFormatter.Serialize(ref writer, value.Value);
         }
     }
 
@@ -74,9 +75,7 @@ internal sealed class NullableFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T? Deserialize(ref DataReader reader)
     {
-        byte hasValue = FormatterProvider
-            .Get<byte>()
-            .Deserialize(ref reader);
+        byte hasValue = BufferPrimitives.ReadByte(ref reader);
 
         if (hasValue == NoValueFlag)
         {
@@ -88,7 +87,7 @@ internal sealed class NullableFormatter<
         }
         else
         {
-            return (T?)FormatterProvider.Get<T>().Deserialize(ref reader);
+            return s_valueFormatter.Deserialize(ref reader);
         }
     }
 }
