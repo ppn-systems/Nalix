@@ -12,6 +12,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Formatters.Automatic;
+using Nalix.Framework.Serialization.Formatters.Cache;
 using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization;
@@ -583,40 +584,43 @@ public static class LiteSerializer
     private static IFormatter<T> ResolveRootFormatter<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
     {
-        if (typeof(T).IsClass && typeof(T) != typeof(string) && value is null)
+        if (RootFormatterCache<T>.ThrowsOnNull && value is null)
         {
             throw new SerializationFailureException(
                 $"Cannot serialize null reference type '{typeof(T).FullName}' without an explicit nullable wrapper.");
         }
 
-        IFormatter<T> formatter = FormatterProvider.Get<T>();
-        return ShouldBypassNullableRootFormatter(formatter)
-            ? FormatterProvider.GetComplex<T>()
-            : formatter;
+        return RootFormatterCache<T>.Formatter;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> ResolveRootFormatterForRead<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
-    {
-        IFormatter<T> formatter = FormatterProvider.Get<T>();
-        return ShouldBypassNullableRootFormatter(formatter)
-            ? FormatterProvider.GetComplex<T>()
-            : formatter;
-    }
+        => RootFormatterCache<T>.Formatter;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool ShouldBypassNullableRootFormatter<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(IFormatter<T> formatter)
+    private static class RootFormatterCache<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
     {
-        if (!typeof(T).IsClass || typeof(T) == typeof(string))
+        public static readonly bool ThrowsOnNull;
+        public static readonly IFormatter<T> Formatter;
+
+        static RootFormatterCache()
         {
-            return false;
-        }
+            IFormatter<T> formatter = FormatterProvider.Get<T>();
 
-        Type formatterType = formatter.GetType();
-        return formatterType.IsGenericType &&
-               formatterType.GetGenericTypeDefinition() == typeof(NullableObjectFormatter<>);
+            if (typeof(T).IsClass &&
+                typeof(T) != typeof(string) &&
+                formatter.GetType().IsGenericType &&
+                formatter.GetType().GetGenericTypeDefinition() == typeof(NullableObjectFormatter<>))
+            {
+                ThrowsOnNull = true;
+                Formatter = FormatterProvider.GetComplex<T>();
+                return;
+            }
+
+            ThrowsOnNull = false;
+            Formatter = formatter;
+        }
     }
 
     #endregion Private Methods

@@ -251,7 +251,21 @@ public static class FormatterProvider
     /// Type arguments to close the generic, e.g. <c>[typeof(int)]</c>.
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T> EmitCreate<T>(Type genericFormatterDef, params Type[] typeArgs)
+    private static IFormatter<T> EmitCreate<T>(Type genericFormatterDef, Type typeArg)
+    {
+        Type concrete = genericFormatterDef.MakeGenericType([typeArg]);
+        return (IFormatter<T>)GetOrAddFactory(concrete)();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> EmitCreate<T>(Type genericFormatterDef, Type typeArg1, Type typeArg2)
+    {
+        Type concrete = genericFormatterDef.MakeGenericType([typeArg1, typeArg2]);
+        return (IFormatter<T>)GetOrAddFactory(concrete)();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> EmitCreate<T>(Type genericFormatterDef, Type[] typeArgs)
     {
         Type concrete = genericFormatterDef.MakeGenericType(typeArgs);
         return (IFormatter<T>)GetOrAddFactory(concrete)();
