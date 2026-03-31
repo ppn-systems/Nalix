@@ -1,49 +1,63 @@
-name: "CodeQL Analysis"
+name: "Security: CodeQL Analysis"
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
   schedule:
-    - cron: '44 13 * * 2' # Every Tuesday at 13:44 UTC
+    - cron: "44 13 * * 2" # Every Tuesday at 13:44 UTC
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Gate: skip analysis when the PR is documentation-only
+  # ---------------------------------------------------------------------------
   check-label:
+    name: "Check: Documentation label"
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       is_document: ${{ steps.label_check.outputs.is_document }}
     steps:
-      - name: Check if PR has 'document' label
+      - name: Detect 'documentation' label on PR
         id: label_check
         uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = context.payload.pull_request?.number;
-
-            if (!prNumber) {
-              core.setOutput('hasDocsLabel', 'false');
-              return;
-            }
-
             const { data: labels } = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: prNumber
+              issue_number: context.payload.pull_request.number,
             });
+            const isDoc = labels.some(l => l.name === 'documentation');
+            core.info(`is_document = ${isDoc}`);
+            core.setOutput('is_document', isDoc ? 'true' : 'false');
 
-            const hasDocsLabel = labels.some(label => label.name === 'documentation');
-            core.setOutput('hasDocsLabel', hasDocsLabel ? 'true' : 'false');
-      - name: Debug output
-        run: echo "is_document=${{ steps.label_check.outputs.is_document }}"
-
+  # ---------------------------------------------------------------------------
+  # CodeQL: manual build mode for C#
+  # ---------------------------------------------------------------------------
   analyze:
-    name: Analyze C#
+    name: "Analyze: C# (CodeQL)"
     needs: check-label
-    if: github.event_name != 'pull_request' || needs.check-label.outputs.is_document != 'true'
+    # always() prevents skip when check-label is skipped (non-PR events)
+    if: |
+      always() &&
+      (github.event_name != 'pull_request' ||
+       needs.check-label.outputs.is_document != 'true')
+       
     runs-on: ubuntu-latest
-
     permissions:
       security-events: write
       packages: read
@@ -57,7 +71,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x' 
+          dotnet-version: "10.0.x"
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -65,33 +79,26 @@ jobs:
           languages: csharp
           build-mode: manual
 
-      - name: Create signing key file
-        run: |
-          echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
+      - name: Decode signing key
+        run: echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./src/Nalix.snk
 
-      # Build application code for CodeQL extraction.
-      - name: Restore src/
-        run: dotnet restore src/Nalix.sln
-
-      - name: Build src/ with CodeQL extraction
+      - name: Restore & build source
         run: |
+          dotnet restore src/Nalix.sln
           dotnet build src/Nalix.sln \
-            --configuration Debug \
+            --configuration Release \
             --no-restore \
             /p:UseSharedCompilation=false
 
-      # Build tests as well so CodeQL can see the full compilation graph.
-      - name: Restore tests/
-        run: dotnet restore tests/Nalix.Tests.sln
-
-      - name: Build tests/ with CodeQL extraction
+      - name: Restore & build tests
         run: |
+          dotnet restore tests/Nalix.Tests.sln
           dotnet build tests/Nalix.Tests.sln \
-            --configuration Debug \
+            --configuration Release \
             --no-restore \
             /p:UseSharedCompilation=false
 
-      - name: Perform CodeQL Analysis
+      - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:csharp"

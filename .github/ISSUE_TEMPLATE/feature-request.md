@@ -1,16 +1,14 @@
 ---
-
 name: Feature Request
 about: Suggest a new idea or enhancement for this project
-title: ''
-labels: 'feature-request'
-assignees: ''
-
+title: "[Feature] "
+labels: "feature"
+assignees: ""
 ---
 
-> [!IMPORTANT]  
-> **DO NOT USE ISSUES FOR QUESTIONS**.  
-> Please ensure this is a feature request. If you have a question, kindly refer to the discussions or contact support.
+> [!IMPORTANT]
+> **DO NOT USE ISSUES FOR QUESTIONS.**
+> If you have a question, please use [Discussions](../../discussions) instead.
 
 ---
 
@@ -20,35 +18,27 @@ assignees: ''
 
 ### Problem Description
 
-Describe the problem you're facing that leads to this feature request.  
-For example:  
-*I'm always frustrated when the system doesn't allow me to [...]*
+Describe the problem you are facing that leads to this feature request.
+
+> Example: *I'm always frustrated when the system doesn't allow me to [...]*
 
 ---
 
 ### Proposed Solution
 
-Provide a clear and concise description of what you would like to see happen.  
-What behavior would you like to see implemented? How would this feature solve the problem?
+Describe clearly what you would like to see implemented and how it would solve the problem.
 
 ---
 
 ### Alternatives Considered
 
-Explain any alternative solutions or features you’ve considered.  
-For example:  
-*I considered adding X feature, but it didn't work because [...]*
+List any alternative solutions or approaches you have considered and why they did not work.
 
 ---
 
 ### Additional Context
 
-Add any additional information, context, or screenshots about the feature request here.  
-For example:
-
-- Use cases or scenarios where this feature would be helpful.
-- Desired workflows or user experiences.
-- Mockups, diagrams, or links to similar features in other projects.
+Add any additional information, mockups, diagrams, or links to similar features in other projects.
 
 ---
 
