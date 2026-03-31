@@ -162,8 +162,17 @@ public sealed partial class PacketDispatchOptions<TPacket>
                   action: action,
                   options: new ControlDirectiveOptions(Flags: flags, SequenceId: context.Packet.SequenceId, Arg0: descriptor.OpCode)).ConfigureAwait(false);
         }
-        catch (Exception)
+        catch (Exception sendException)
         {
+            if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+            {
+                this.Logging.LogDebug(
+                    sendException,
+                    "[{ClassName}:{MethodName}] failed-to-send-fail-control opcode={OpCode}",
+                    nameof(PacketDispatchOptions<>),
+                    nameof(this.HandleDispatchExceptionAsync),
+                    descriptor.OpCode);
+            }
         }
     }
 
