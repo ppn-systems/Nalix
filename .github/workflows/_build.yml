@@ -6,6 +6,18 @@ permissions:
   pull-requests: write
 
 on:
+  push:
+    branches: ["master"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
+  pull_request:
+    branches: ["master"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
   workflow_call:
     inputs:
       os:

@@ -1,6 +1,9 @@
-## 📋 Summary
+# 📋 Summary
 
-Describe what this PR does and why. Link any related issues below.
+> Briefly describe the purpose of this PR and what it implements or fixes.  
+> *Example: This PR introduces a new user authentication feature, fixes a bug in the payment processing module, or refactors the database connection logic for better performance.*
+
+Briefly describe what this PR does and why.
 
 Closes #<!-- issue number -->
 
@@ -8,37 +11,46 @@ Closes #<!-- issue number -->
 
 ## 🔄 Type of Change
 
-- [ ] 🐛 Bug fix
-- [ ] 🚀 Feature / enhancement
-- [ ] ⚡ Performance improvement
-- [ ] 🔧 Refactor (no behavior change)
-- [ ] 📚 Documentation update
-- [ ] 🔒 Security fix
-- [ ] 🧪 Test addition / improvement
-- [ ] 🛠 Build / CI change
-
----
-
-## ✅ Checklist
-
-- [ ] My code follows the project's coding conventions
-- [ ] I have added or updated relevant tests
-- [ ] All existing tests pass locally
-- [ ] I have updated documentation where necessary
-- [ ] I have reviewed my own diff before requesting review
+* [ ] 🐛 Bug fix
+* [ ] 🚀 Feature / enhancement
+* [ ] ⚡ Performance improvement
+* [ ] 🔧 Refactor
+* [ ] 📚 Documentation update
+* [ ] 🔒 Security fix
+* [ ] 🧪 Tests
 
 ---
 
 ## 🧪 How to Test
 
-Describe the steps a reviewer should follow to verify this change works correctly.
+Describe steps to verify this PR:
 
-```csharp
-// Optional: minimal test snippet
-```
+1.
+2.
+3.
 
 ---
 
-## 📂 Additional Notes
+## 📸 Screenshots (if applicable)
 
-Add any context, screenshots, benchmarks, or breaking change notes here.
+Add screenshots or videos for UI changes.
+
+---
+
+## 📂 Additional Notes (Optional)
+
+* Breaking changes:
+* Dependencies:
+* Deployment notes:
+* Anything reviewers should know:
+
+---
+
+## ✅ Checklist
+
+* [ ] Code follows project style guidelines.
+* [ ] Tests cover all changes.
+* [ ] All tests pass locally.
+* [ ] Documentation updated (if applicable).
+* [ ] Self-reviewed my code.
+* [ ] No merge conflicts with the `master` branch.
