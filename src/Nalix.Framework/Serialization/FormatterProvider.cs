@@ -247,8 +247,8 @@ public static class FormatterProvider
     /// <param name="genericFormatterDef">
     /// Open generic formatter, e.g. <c>typeof(ArrayFormatter&lt;&gt;)</c>.
     /// </param>
-    /// <param name="typeArgs">
-    /// Type arguments to close the generic, e.g. <c>[typeof(int)]</c>.
+    /// <param name="typeArg">
+    /// Type argument used to close the generic, e.g. <c>typeof(int)</c>.
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> EmitCreate<T>(Type genericFormatterDef, Type typeArg)

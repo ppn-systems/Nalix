@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
@@ -12,7 +11,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Formatters.Automatic;
-using Nalix.Framework.Serialization.Formatters.Cache;
 using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization;
@@ -100,19 +98,12 @@ public static class LiteSerializer
         }
         else if (kind is TypeKind.FixedSizeSerializable)
         {
-            Debug.WriteLine(
-                $"Serializing fixed-size type {typeof(T).FullName} with size {size} bytes.");
-
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
             DataWriter writer = (size > 512) ? new(size) : new(512);
 
             try
             {
                 formatter.Serialize(ref writer, value);
-
-                Debug.WriteLine(
-                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
-
                 return writer.WrittenCount == 0 ? Array.Empty<byte>() : writer.ToArray();
             }
             finally
@@ -128,10 +119,6 @@ public static class LiteSerializer
             try
             {
                 formatter.Serialize(ref writer, value);
-
-                Debug.WriteLine(
-                    $"Serialized fixed-size type {typeof(T).FullName} into {writer.WrittenCount} bytes.");
-
                 return writer.ToArray();
             }
             finally
@@ -462,9 +449,7 @@ public static class LiteSerializer
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
         DataReader reader = new(buffer);
         value = formatter.Deserialize(ref reader);
-        return EqualityComparer<T?>.Default.Equals(value, default)
-            ? throw new SerializationFailureException($"Deserialization of type '{typeof(T)}' resulted in null value.")
-            : reader.BytesRead;
+        return reader.BytesRead;
     }
 
     /// <summary>

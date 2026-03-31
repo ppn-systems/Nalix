@@ -17,6 +17,8 @@ internal static class EmitFieldOps
         MethodInfo DeserializeMethod);
 
     private static readonly ConcurrentDictionary<Type, FormatterEmitMethods> s_formatterEmitMethods = new();
+    private static readonly ConcurrentDictionary<Type, MethodInfo> s_genericWriteMethods = new();
+    private static readonly ConcurrentDictionary<Type, MethodInfo> s_genericReadMethods = new();
     private static readonly MethodInfo s_writeByteMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(byte)])!;
     private static readonly MethodInfo s_writeBoolMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(bool)])!;
     private static readonly MethodInfo s_writeUInt16Method = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(ushort)])!;
@@ -186,10 +188,16 @@ internal static class EmitFieldOps
             return s_writeReadOnlySpanByteMethod;
         }
 
+        if (Nullable.GetUnderlyingType(fieldType) is not null)
+        {
+            return null;
+        }
+
         // === Generic Unmanaged (best fallback for all other primitives like short, float, double, char, enums, etc.) ===
         if (TypeMetadata.IsUnmanaged(fieldType))
         {
-            return s_writeUnmanagedMethod.MakeGenericMethod(fieldType);
+            return s_genericWriteMethods.GetOrAdd(
+                fieldType, static t => s_writeUnmanagedMethod.MakeGenericMethod(t));
         }
 
         return null;
@@ -240,10 +248,16 @@ internal static class EmitFieldOps
             return TryGetDirectReadMethod(Enum.GetUnderlyingType(fieldType));
         }
 
+        if (Nullable.GetUnderlyingType(fieldType) is not null)
+        {
+            return null;
+        }
+
         // Generic unmanaged fallback
         if (TypeMetadata.IsUnmanaged(fieldType))
         {
-            return s_readUnmanagedMethod.MakeGenericMethod(fieldType);
+            return s_genericReadMethods.GetOrAdd(
+                fieldType, static t => s_readUnmanagedMethod.MakeGenericMethod(t));
         }
 
         return null;
