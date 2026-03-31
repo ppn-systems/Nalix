@@ -143,6 +143,16 @@ public static class NLogixExtensions
         => LogFormattedMessage(logger, LogLevel.Error, default, format, args);
 
     /// <summary>
+    /// Logs an error-level message built from a composite format string.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="exception">The associated exception.</param>
+    /// <param name="format">The composite format string.</param>
+    /// <param name="args">The values used to format the message.</param>
+    public static void Error(this ILogger logger, Exception exception, string format, params object[] args)
+        => LogFormattedMessage(logger, LogLevel.Error, default, format, args, exception);
+
+    /// <summary>
     /// Logs an error-level message with an exception.
     /// </summary>
     /// <param name="logger">The logger instance.</param>
@@ -160,6 +170,16 @@ public static class NLogixExtensions
     /// <param name="args">The values used to format the message.</param>
     public static void Critical(this ILogger logger, string format, params object[] args)
         => LogFormattedMessage(logger, LogLevel.Critical, default, format, args);
+
+    /// <summary>
+    /// Logs an error-level message built from a composite format string.
+    /// </summary>
+    /// <param name="logger">The logger instance.</param>
+    /// <param name="exception">The associated exception.</param>
+    /// <param name="format">The composite format string.</param>
+    /// <param name="args">The values used to format the message.</param>
+    public static void Critical(this ILogger logger, Exception exception, string format, params object[] args)
+        => LogFormattedMessage(logger, LogLevel.Critical, default, format, args, exception);
 
     /// <summary>
     /// Logs a critical-level message with an optional <see cref="EventId"/>.
@@ -180,40 +200,7 @@ public static class NLogixExtensions
     public static void Critical(this ILogger logger, string message, Exception exception, EventId? eventId = null)
         => LogMessage(logger, LogLevel.Critical, eventId, message, exception);
 
-    /// <summary>
-    /// Compatibility alias for critical-level formatted logging.
-    /// </summary>
-    /// <param name="logger">The logger instance.</param>
-    /// <param name="format">The composite format string.</param>
-    /// <param name="args">The values used to format the message.</param>
-    public static void Fatal(this ILogger logger, string format, params object[] args)
-        => logger.Critical(format, args);
-
-    /// <summary>
-    /// Compatibility alias for critical-level logging with an optional <see cref="EventId"/>.
-    /// </summary>
-    /// <param name="logger">The logger instance.</param>
-    /// <param name="message">The rendered message to write.</param>
-    /// <param name="eventId">The optional event identifier.</param>
-    public static void Fatal(this ILogger logger, string message, EventId? eventId = null)
-        => logger.Critical(message, eventId);
-
-    /// <summary>
-    /// Compatibility alias for critical-level logging with an exception.
-    /// </summary>
-    /// <param name="logger">The logger instance.</param>
-    /// <param name="message">The rendered message to write.</param>
-    /// <param name="exception">The associated exception.</param>
-    /// <param name="eventId">The optional event identifier.</param>
-    public static void Fatal(this ILogger logger, string message, Exception exception, EventId? eventId = null)
-        => logger.Critical(message, exception, eventId);
-
-    private static void LogFormattedMessage(
-        ILogger logger,
-        LogLevel level,
-        EventId? eventId,
-        string format,
-        object[] args)
+    private static void LogFormattedMessage(ILogger logger, LogLevel level, EventId? eventId, string format, object[] args, Exception? exception = null)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(format);
@@ -225,15 +212,10 @@ public static class NLogixExtensions
         }
 
         string rendered = string.Format(CultureInfo.InvariantCulture, format, args);
-        LogMessageCore(logger, level, eventId, rendered, null);
+        LogMessageCore(logger, level, eventId, rendered, exception);
     }
 
-    private static void LogMessage(
-        ILogger logger,
-        LogLevel level,
-        EventId? eventId,
-        string message,
-        Exception? exception)
+    private static void LogMessage(ILogger logger, LogLevel level, EventId? eventId, string message, Exception? exception)
     {
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(message);
@@ -246,12 +228,7 @@ public static class NLogixExtensions
         LogMessageCore(logger, level, eventId, message, exception);
     }
 
-    private static void LogMessageCore(
-        ILogger logger,
-        LogLevel level,
-        EventId? eventId,
-        string message,
-        Exception? exception)
+    private static void LogMessageCore(ILogger logger, LogLevel level, EventId? eventId, string message, Exception? exception)
     {
         MessageLogState state = new(message);
 
