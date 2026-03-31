@@ -4,7 +4,7 @@
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 
@@ -21,8 +21,12 @@ internal sealed class UnsupportedReturnHandler<TPacket>(Type returnType) : IRetu
     {
         if (s_loggedTypes.TryAdd(returnType, true))
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"Unsupported return type: type={returnType.FullName}");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+            if (logger != null && logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning("Unsupported return type: type={Name}", returnType.FullName);
+            }
         }
 
         throw new InvalidOperationException($"Unsupported return type: type={returnType.FullName}.");

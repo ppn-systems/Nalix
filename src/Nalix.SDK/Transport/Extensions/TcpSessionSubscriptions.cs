@@ -6,9 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
 
 namespace Nalix.SDK.Transport.Extensions;
 
@@ -62,12 +60,6 @@ public static class TcpSessionSubscriptions
 
                 handler(t);
             }
-            catch (Exception ex)
-            {
-                // Swallow handler exceptions — must not fault FRAME_READER receive loop.
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[SDK.On<{typeof(TPacket).Name}>] handler-error: {ex.Message}", ex);
-            }
             finally
             {
                 // Guaranteed single disposal — this is the only Dispose call for the lease.
@@ -110,11 +102,6 @@ public static class TcpSessionSubscriptions
                 }
 
                 handler(p);
-            }
-            catch (Exception ex)
-            {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[SDK.On(predicate)] handler-error: {ex.Message}", ex);
             }
             finally
             {
@@ -177,12 +164,6 @@ public static class TcpSessionSubscriptions
                 client.OnMessageReceived -= Wrapper;
 
                 handler(t);
-            }
-            catch (Exception ex)
-            {
-                // Swallow — must not bubble up to FRAME_READER receive loop.
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[SDK.OnOnce<{typeof(TPacket).Name}>] handler-error: {ex.Message}", ex);
             }
             finally
             {

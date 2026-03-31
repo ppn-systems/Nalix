@@ -28,8 +28,8 @@ internal class AnsiColorFormatter : ILoggerFormatter
         string levelColor = AnsiColors.GetForLevel(message.LogLevel);
 
         Exception? ex = message.Exception;
+        bool hasEventId = message.EventId is not null;
         bool hasException = message.Exception is not null;
-        bool hasEventId = message.EventId != EventId.Empty;
 
         int exceptionLen = 0;
         if (ex != null)
@@ -47,7 +47,7 @@ internal class AnsiColorFormatter : ILoggerFormatter
         int len =
             AnsiColors.White.Length + 1 + timestamp.Length + 1 + // [timestamp] với màu
             AnsiColors.White.Length + 1 + 4 + 1 +                 // [LVL] với màu
-            (hasEventId ? AnsiColors.Cyan.Length + 1 + 5 + 1 + (message.EventId.Name?.Length ?? 0) + 1 + AnsiColors.DarkGray.Length : 0) + // [EventId]
+            (hasEventId ? AnsiColors.Cyan.Length + 1 + 5 + 1 + (message.EventId!.Value.Name?.Length ?? 0) + 1 + AnsiColors.DarkGray.Length : 0) + // [EventId]
             message.Message.Length + 3 +                        // Message + " - "
             exceptionLen
             + 32; // buffer dư
@@ -79,14 +79,14 @@ internal class AnsiColorFormatter : ILoggerFormatter
 
                 AnsiColors.Cyan.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.Cyan.Length;
                 span[pos++] = '[';
-                entry.EventId.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
+                _ = entry.EventId!.Value.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
                 pos += written;
 
-                if (!string.IsNullOrEmpty(entry.EventId.Name))
+                if (!string.IsNullOrEmpty(entry.EventId!.Value.Name))
                 {
                     span[pos++] = ':';
                     AnsiColors.DarkGray.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.DarkGray.Length;
-                    entry.EventId.Name.AsSpan().CopyTo(span[pos..]); pos += entry.EventId.Name.Length;
+                    entry.EventId!.Value.Name.AsSpan().CopyTo(span[pos..]); pos += entry.EventId!.Value.Name.Length;
                 }
                 span[pos++] = ']';
                 AnsiColors.White.AsSpan().CopyTo(span[pos..]); pos += AnsiColors.White.Length;
@@ -127,15 +127,15 @@ internal class AnsiColorFormatter : ILoggerFormatter
               .Append('[').Append(LogLevelShortNames.GetShortName(message.LogLevel)).Append(']')
               .Append(AnsiColors.White);
 
-        if (message.EventId != EventId.Empty)
+        if (message.EventId != null)
         {
             _ = sb.Append(' ')
-                  .Append(AnsiColors.Cyan).Append('[').Append(message.EventId.Id);
+                  .Append(AnsiColors.Cyan).Append('[').Append(message.EventId.Value.Id);
 
-            if (!string.IsNullOrEmpty(message.EventId.Name))
+            if (!string.IsNullOrEmpty(message.EventId.Value.Name))
             {
                 _ = sb.Append(':')
-                      .Append(AnsiColors.DarkGray).Append(message.EventId.Name);
+                      .Append(AnsiColors.DarkGray).Append(message.EventId.Value.Name);
             }
             _ = sb.Append(']')
                   .Append(AnsiColors.White);

@@ -7,8 +7,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Concurrency;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
@@ -79,18 +79,27 @@ public partial class TaskManager
                 continue;
             }
 
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
             if (_workers.TryRemove(st.Id, out _))
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(TaskManager)}] cleanup-remove-ok id={st.Id}");
+                if (logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    logger.LogDebug("[FW.TaskManager] cleanup-remove-ok id={Id}", st.Id);
+                }
                 try
                 {
                     st.Cts.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}] cleanup-cts-dispose-error id={st.Id} msg={ex.Message}");
+                    if (logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        logger.LogWarning(
+                            "[FW.TaskManager] cleanup-cts-dispose-error id={Id} msg={Message}",
+                            st.Id,
+                            ex.Message
+                        );
+                    }
                 }
             }
         }
@@ -103,6 +112,7 @@ public partial class TaskManager
         RecurringState s, Func<CancellationToken, ValueTask> work)
     {
         CancellationToken ct = s.CancellationTokenSource.Token;
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         // Initial jitter (unchanged semantics)
         if (s.Options.Jitter is { } j && j > TimeSpan.Zero)
@@ -174,8 +184,13 @@ public partial class TaskManager
                 {
                     if (!await s.Gate.WaitAsync(0, ct).ConfigureAwait(false))
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[FW.{nameof(TaskManager)}:Internal] gate-acquire-fail name={s.Name}");
+                        if (logger?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            logger.LogDebug(
+                                "[FW.TaskManager:Internal] gate-acquire-fail name={Name}",
+                                s.Name
+                            );
+                        }
                         next += step;
                         continue;
                     }
@@ -204,16 +219,29 @@ public partial class TaskManager
                 catch (OperationCanceledException oce)
                 {
                     s.MarkFailure();
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-timeout name={s.Name} msg={oce.Message}");
+                    if (logger?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        logger.LogError(
+                            "[FW.TaskManager:Internal] recurring-timeout name={Name} msg={Message}",
+                            s.Name,
+                            oce.Message
+                        );
+                    }
 
                     await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     s.MarkFailure();
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-error name={s.Name} msg={ex.Message}");
+
+                    if (logger?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        logger.LogError(
+                            "[FW.TaskManager:Internal] recurring-error name={Name} msg={Message}",
+                            s.Name,
+                            ex.Message
+                        );
+                    }
 
                     await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
@@ -227,8 +255,14 @@ public partial class TaskManager
                         }
                         catch (Exception ex)
                         {
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[FW.{nameof(TaskManager)}:Internal] gate-release-error name={s.Name} msg={ex.Message}");
+                            if (logger?.IsEnabled(LogLevel.Warning) == true)
+                            {
+                                logger.LogWarning(
+                                    "[FW.TaskManager:Internal] gate-release-error name={Name} msg={Message}",
+                                    s.Name,
+                                    ex.Message
+                                );
+                            }
                         }
                     }
                     next += step;
@@ -238,8 +272,14 @@ public partial class TaskManager
             catch (Exception ex)
             {
                 s.MarkFailure();
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-loop-error name={s.Name} msg={ex.Message}");
+                if (logger?.IsEnabled(LogLevel.Error) == true)
+                {
+                    logger.LogError(
+                        "[FW.TaskManager:Internal] recurring-loop-error name={Name} msg={Message}",
+                        s.Name,
+                        ex.Message
+                    );
+                }
 
                 await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
             }
@@ -305,8 +345,15 @@ public partial class TaskManager
             }
             catch (Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(TaskManager)}] retain-cts-dispose-error id={st.Id} msg={ex.Message}");
+                ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+                if (logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    logger.LogWarning(
+                        "[FW.TaskManager] retain-cts-dispose-error id={Id} msg={Message}",
+                        st.Id,
+                        ex.Message
+                    );
+                }
             }
 
             bool hasSameGroup = false;
@@ -325,13 +372,26 @@ public partial class TaskManager
                 {
                     g.SemaphoreSlim.Dispose();
 
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={st.Group}");
+                    ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+                    if (logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        logger.LogDebug(
+                            "[FW.TaskManager] group-gate-dispose-ok group={Group}",
+                            st.Group
+                        );
+                    }
                 }
                 catch (Exception ex)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Warn($"[FW.{nameof(TaskManager)}] gate-dispose-error-retain group={st.Group} msg={ex.Message}");
+                    ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+                    if (logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        logger.LogWarning(
+                            "[FW.TaskManager] gate-dispose-error-retain group={Group} msg={Message}",
+                            st.Group,
+                            ex.Message
+                        );
+                    }
                 }
             }
 
@@ -362,8 +422,15 @@ public partial class TaskManager
 
                 if (cpuUsage > threshHigh)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}% threshold={threshHigh:F1}%");
+                    ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+                    if (logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        logger.LogDebug(
+                            "[FW.TaskManager:Internal] cpu-high usage={CpuUsage:F1}% threshold={ThreshHigh:F1}%",
+                            cpuUsage,
+                            threshHigh
+                        );
+                    }
                 }
 
                 // --- Hysteresis: tích streak, chỉ hành động khi đủ N lần liên tiếp ---
@@ -406,8 +473,14 @@ public partial class TaskManager
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
             catch (Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(TaskManager)}:Internal] dynamic-adjustment-error ex={ex.Message}");
+                ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+                if (logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    logger.LogWarning(
+                        "[FW.TaskManager:Internal] dynamic-adjustment-error ex={Message}",
+                        ex.Message
+                    );
+                }
             }
         }
     }
@@ -508,24 +581,47 @@ public partial class TaskManager
                     if (!_globalConcurrencyGate.Wait(0))
                     {
                         // Không còn slot rảnh → revert về số đã thu hồi được thực tế
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[FW.TaskManager.Internal] concurrency-partial-retreat from={previousLimit} to={previousLimit - i}");
+                        ILogger? logger1 = InstanceManager.Instance.GetExistingInstance<ILogger>();
+                        if (logger1?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            logger1.LogDebug(
+                                "[FW.TaskManager.Internal] concurrency-partial-retreat from={PreviousLimit} to={NewLimit}",
+                                previousLimit,
+                                previousLimit - i
+                            );
+                        }
+
                         _currentConcurrencyLimit = previousLimit - i;
                         break;
                     }
                 }
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.LogDebug(
+                    "[FW.TaskManager.Internal] concurrency-limit-adjusted=[{PreviousLimit}->{CurrentConcurrencyLimit}]",
+                    previousLimit,
+                    _currentConcurrencyLimit
+                );
+            }
         }
         catch (Exception ex)
         {
             // Revert on error
             _currentConcurrencyLimit = previousLimit;
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[FW.TaskManager.Internal] failed-adjust-concurrency ex={ex.Message} from={previousLimit} to={newLimit}");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+            if (logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                logger.LogError(
+                    "[FW.TaskManager.Internal] failed-adjust-concurrency ex={Message} from={PreviousLimit} to={NewLimit}",
+                    ex.Message,
+                    previousLimit,
+                    newLimit
+                );
+            }
         }
     }
 }

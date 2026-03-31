@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
@@ -70,11 +70,23 @@ internal sealed class FRAME_READER(
         try
         {
             s = _getSocket();
-            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
+            if (_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                _logger.LogTrace(
+                    "[SDK.FRAME_READER] receive-loop starting; endpoint={Endpoint}",
+                    FORMAT_ENDPOINT(s)
+                );
+            }
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] receive-start-error", ex);
+            if (_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                _logger.LogError(
+                    ex,
+                    "[SDK.FRAME_READER] receive-start-error"
+                );
+            }
             _onError(ex);
             return;
         }
@@ -94,9 +106,15 @@ internal sealed class FRAME_READER(
 
                     if (totalLen < TcpSession.HeaderSize || totalLen > _options.MaxPacketSize)
                     {
-                        _logger?.Warn(
-                            $"[SDK.{nameof(FRAME_READER)}] invalid-packet-size totalLen={totalLen} " +
-                            $"max={_options.MaxPacketSize} endpoint={FORMAT_ENDPOINT(s)}");
+                        if (_logger?.IsEnabled(LogLevel.Warning) == true)
+                        {
+                            _logger.LogWarning(
+                                "[SDK.FRAME_READER] invalid-packet-size totalLen={TotalLen} max={MaxPacketSize} endpoint={Endpoint}",
+                                totalLen,
+                                _options.MaxPacketSize,
+                                FORMAT_ENDPOINT(s)
+                            );
+                        }
 
                         throw new SocketException((int)SocketError.ProtocolNotSupported);
                     }
@@ -147,15 +165,27 @@ internal sealed class FRAME_READER(
                 }
             }
 
-            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally");
+            if (_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                _logger.LogTrace("[SDK.FRAME_READER] receive-loop ending normally");
+            }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
-            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop cancelled");
+            if (_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                _logger.LogTrace("[SDK.FRAME_READER] receive-loop cancelled");
+            }
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] receive-loop faulted", ex);
+            if (_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                _logger.LogError(
+                    ex,
+                    "[SDK.FRAME_READER] receive-loop faulted"
+                );
+            }
             try { _onError(ex); } catch { }
         }
         finally
@@ -187,9 +217,13 @@ internal sealed class FRAME_READER(
 
             if (streamEvicted)
             {
-                _logger?.Warn(
-                    $"[SDK.{nameof(FRAME_READER)}] Fragment stream evicted " +
-                    $"stream={header.StreamId} — timeout or overflow");
+                if (_logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    _logger.LogWarning(
+                        "[SDK.FRAME_READER] Fragment stream evicted stream={StreamId} — timeout or overflow",
+                        header.StreamId
+                    );
+                }
             }
 
             if (assembled is not null)
@@ -199,7 +233,13 @@ internal sealed class FRAME_READER(
         }
         catch (Exception ex)
         {
-            _logger?.Warn($"[SDK.{nameof(FRAME_READER)}] Failed to process fragmented chunk", ex);
+            if (_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                _logger.LogWarning(
+                    "[SDK.FRAME_READER] Failed to process fragmented chunk ex={ExceptionMessage}",
+                    ex.Message
+                );
+            }
             chunkLease.Dispose();
         }
     }
@@ -210,8 +250,14 @@ internal sealed class FRAME_READER(
     /// </summary>
     private void PROCESS_NORMAL_FRAME(BufferLease lease)
     {
+        if (_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            _logger.LogDebug(
+                "[SDK.FRAME_READER] header-read length={Length}",
+                lease.Length
+            );
+        }
 
-        _logger?.Debug($"[SDK.{nameof(FRAME_READER)}] header-read length={lease.Length}");
         try
         {
             PacketFlags flags = lease.Span.ReadFlagsLE();
@@ -244,7 +290,14 @@ internal sealed class FRAME_READER(
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] Failed to process normal frame", ex);
+            if (_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                _logger.LogError(
+                    ex,
+                    "[SDK.FRAME_READER] Failed to process normal frame"
+                );
+            }
+
             lease.Dispose();
         }
     }

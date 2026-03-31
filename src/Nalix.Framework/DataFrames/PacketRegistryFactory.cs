@@ -9,7 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -516,7 +516,13 @@ public sealed class PacketRegistryFactory
 
     private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    private static void TRACE(string msg) => Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
+    private static void TRACE(string msg)
+    {
+        if (Logging?.IsEnabled(LogLevel.Trace) == true)
+        {
+            Logging.LogTrace("[SH.PacketRegistryFactory] {Message}", msg);
+        }
+    }
 
     #endregion Private Helpers
 
@@ -554,7 +560,10 @@ public sealed class PacketRegistryFactory
     {
         PacketFunctionTable<TPacket>.DeserializePtr = BIND_DESERIALIZE_PTR<TPacket>(miDeserialize);
 
-        Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
+        if (Logging?.IsEnabled(LogLevel.Trace) == true)
+        {
+            Logging.LogTrace("[SH.PacketRegistryFactory] bind type={Type} des=+", typeof(TPacket).Name);
+        }
     }
 
     #endregion Private: Binding Helpers

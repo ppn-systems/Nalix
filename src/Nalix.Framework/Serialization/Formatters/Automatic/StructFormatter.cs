@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
@@ -28,6 +28,7 @@ internal sealed class StructFormatter<
 {
     #region Core Fields
 
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static string DebuggerDisplay => $"StructFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -50,16 +51,20 @@ internal sealed class StructFormatter<
         try
         {
             _accessors = StructFormatter<T>.CreateAccessors();
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[StructFormatter<{typeof(T).Name}>] " +
-                                           $"init-ok fields={_accessors.Length} layout={FieldCache<T>.GetLayout()}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[StructFormatter<{Type}>] init-ok fields={Fields} layout={Layout}",
+                    typeof(T).Name, _accessors.Length, FieldCache<T>.GetLayout());
+            }
         }
         catch (Exception ex)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[StructFormatter<{typeof(T).Name}>] " +
-                                           $"init-fail msg={ex.Message}");
-
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex, "[StructFormatter<{Type}>] init-fail msg={Message}", typeof(T).Name, ex.Message);
+            }
             throw new SerializationFailureException($"Formatter initialization failed for {typeof(T).Name}", ex);
         }
     }

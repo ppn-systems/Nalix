@@ -8,7 +8,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.TextFrames;
@@ -36,10 +35,6 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         if (result is string data)
         {
             int byteCount = Encoding.UTF8.GetByteCount(data);
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(StringReturnHandler<>)}] " +
-                                           $"handle-string bytes={byteCount} candidates={UTF8_STRING.Candidates.Length}");
 
             // 1) Try to fit in a single packet (choose the smallest that fits).
             foreach (Candidate c in UTF8_STRING.Candidates)
@@ -105,10 +100,6 @@ internal sealed class StringReturnHandler<TPacket> : IReturnHandler<TPacket> whe
                 }
             }
         }
-
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[{nameof(StringReturnHandler<>)}] " +
-                                       $"unsupported-result type={result?.GetType().Name ?? "null"}");
     }
 }
 

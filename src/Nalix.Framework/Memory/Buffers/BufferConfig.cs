@@ -8,8 +8,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Injection;
 
@@ -21,6 +21,12 @@ namespace Nalix.Framework.Memory.Buffers;
 [IniComment("Buffer pool configuration — controls pool sizing, trimming, adaptive growth, and memory limits")]
 public sealed class BufferConfig : ConfigurationLoader
 {
+    #region Static
+
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+    #endregion Static
+
     #region Properties
 
     /// <summary>
@@ -156,8 +162,7 @@ public sealed class BufferConfig : ConfigurationLoader
 
         if (this.ExpandThresholdPercent >= this.ShrinkThresholdPercent)
         {
-            throw new ValidationException(
-                "ExpandThresholdPercent must be less than ShrinkThresholdPercent.");
+            throw new ValidationException("ExpandThresholdPercent must be less than ShrinkThresholdPercent.");
         }
 
         try
@@ -176,38 +181,32 @@ public sealed class BufferConfig : ConfigurationLoader
                     continue;
                 }
 
-                throw new ValidationException(
-                    $"BufferAllocations sizes must be strictly increasing (got {lastSize} then {size}).");
+                throw new ValidationException($"BufferAllocations sizes must be strictly increasing (got {lastSize} then {size}).");
             }
 
             if (totalRatio > 1.01)
             {
-                throw new ValidationException(
-                    $"Sum of buffer allocation ratios exceeds 1.0 ({totalRatio}).");
+                throw new ValidationException($"Sum of buffer allocation ratios exceeds 1.0 ({totalRatio}).");
             }
         }
         catch (Exception ex)
         {
-            throw new ValidationException(
-                $"Invalid BufferAllocations: {ex.Message}");
+            throw new ValidationException($"Invalid BufferAllocations: {ex.Message}");
         }
 
         if (this.MaxMemoryBytes > 0 && this.MaxMemoryPercentage > 0.90)
         {
-            throw new ValidationException(
-                "Cannot specify both MaxMemoryBytes and MaxMemoryPercentage > 0.90.");
+            throw new ValidationException("Cannot specify both MaxMemoryBytes and MaxMemoryPercentage > 0.90.");
         }
 
         if (this.AdaptiveGrowthFactor * this.MinimumIncrease > this.MaxBufferIncreaseLimit)
         {
-            throw new ValidationException(
-                "AdaptiveGrowthFactor * MinimumIncrease must be <= MaxBufferIncreaseLimit.");
+            throw new ValidationException("AdaptiveGrowthFactor * MinimumIncrease must be <= MaxBufferIncreaseLimit.");
         }
 
         if (this.AutoTuneOperationThreshold < this.TotalBuffers)
         {
-            throw new ValidationException(
-                "AutoTuneOperationThreshold should normally be >= TotalBuffers.");
+            throw new ValidationException("AutoTuneOperationThreshold should normally be >= TotalBuffers.");
         }
     }
 
@@ -242,9 +241,10 @@ public sealed class BufferConfig : ConfigurationLoader
                 catch (Exception ex) when (ex is FormatException or ArgumentException
                                                       or OverflowException or ArgumentOutOfRangeException)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[SH.{nameof(BufferConfig)}:Internal] " +
-                                                   $"alloc-parse-fail str='{bufferAllocationsString}' msg={ex.Message}");
+                    if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        s_logger.LogError(ex, "[SH.BufferConfig:Internal] alloc-parse-fail str='{String}' msg={Message}", bufferAllocationsString, ex.Message);
+                    }
 
                     throw new ArgumentException(
                         $"[{nameof(BufferConfig)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");

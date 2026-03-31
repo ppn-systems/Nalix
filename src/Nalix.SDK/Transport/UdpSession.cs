@@ -10,8 +10,8 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
@@ -283,9 +283,16 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             this.Options.Port = source.Options.Port;
         }
 
-        _logger?.Info(
-            $"[SDK.{nameof(UdpSession)}] Bound UDP auth context from {source.GetType().Name} " +
-            $"to {this.Options.Address}:{this.Options.Port} with session={sessionId}.");
+        if (_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            _logger.LogInformation(
+                "[SDK.{ClassName}] Bound UDP auth context from {SourceType} to {Address}:{Port} with session={SessionId}.",
+                nameof(UdpSession),
+                source.GetType().Name,
+                this.Options.Address,
+                this.Options.Port,
+                sessionId);
+        }
     }
 
     /// <inheritdoc/>
@@ -383,12 +390,22 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             {
                 lastEx = ex;
                 try { socket.Dispose(); } catch { }
-                _logger?.Warn($"[SDK.{nameof(UdpSession)}] Failed to connect to {address}:{effectivePort}: {ex.Message}", ex);
+                if (_logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    _logger.LogWarning(
+                        "[SDK.{ClassName}] Failed to connect to {Address}:{Port}: {Message}",
+                        nameof(UdpSession),
+                        address,
+                        effectivePort,
+                        ex.Message);
+                }
             }
         }
 
         _ = Interlocked.Exchange(ref _connected, 0);
-        throw new NetworkException($"[SDK.{nameof(UdpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx ?? new SocketException((int)SocketError.HostNotFound));
+
+        throw new NetworkException($"[SDK.{nameof(UdpSession)}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}",
+            lastEx ?? new SocketException((int)SocketError.HostNotFound));
     }
 
     /// <summary>
@@ -754,7 +771,14 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
                         }
                         catch (Exception ex)
                         {
-                            _logger?.Error($"[SDK.{nameof(UdpSession)}] Sync handler faulted: {ex.Message}", ex);
+                            if (_logger?.IsEnabled(LogLevel.Error) == true)
+                            {
+                                _logger.LogError(
+                                    ex,
+                                    "[SDK.{ClassName}] Sync handler faulted: {Message}",
+                                    nameof(UdpSession),
+                                    ex.Message);
+                            }
                         }
                         finally
                         {
@@ -785,7 +809,14 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(UdpSession)}] Async handler faulted: {ex.Message}", ex);
+            if (_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                _logger.LogError(
+                    ex,
+                    "[SDK.{ClassName}] Async handler faulted: {Message}",
+                    nameof(UdpSession),
+                    ex.Message);
+            }
         }
     }
 
@@ -905,7 +936,14 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
     private async Task ReconnectLoopAsync(Exception cause)
     {
-        _logger?.Warn($"[SDK.{nameof(UdpSession)}] Triggering reconnect after: {cause.Message}", cause);
+        if (_logger?.IsEnabled(LogLevel.Warning) == true)
+        {
+            _logger.LogWarning(
+                "[SDK.{ClassName}] Triggering reconnect after: {Message}",
+                nameof(UdpSession),
+                cause.Message);
+        }
+
         this.TearDownConnection();
 
         if (Volatile.Read(ref _disposed) == 1 || string.IsNullOrWhiteSpace(_host) || _port is null)
@@ -940,7 +978,14 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                _logger?.Warn($"[SDK.{nameof(UdpSession)}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
+                if (_logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    _logger.LogWarning(
+                        "[SDK.{ClassName}] Reconnect attempt {Attempt} failed: {Message}",
+                        nameof(UdpSession),
+                        attempt,
+                        ex.Message);
+                }
                 delay = Math.Min(max, delay * 2);
             }
         }

@@ -4,8 +4,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
@@ -83,7 +83,15 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         CancellationToken ct)
     {
 #if DEBUG
-        s_logger?.Debug($"[NW.PacketSender] Start SEND_CORE_ASYNC | Packet={packet.GetType().Name}, Length={packet.Length}, NeedEncrypt={needEncrypt}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.PacketSender] Start SEND_CORE_ASYNC | Packet={PacketType}, Length={PacketLength}, NeedEncrypt={NeedEncrypt}",
+                packet.GetType().Name,
+                packet.Length,
+                needEncrypt
+            );
+        }
 #endif
 
         // Serialize packet
@@ -96,14 +104,24 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             bool enableCompress = s_options.Enabled && written >= s_options.MinSizeToCompress;
 
 #if DEBUG
-            s_logger?.Debug($"[NW.PacketSender] Serialized: {written} bytes | Compress={enableCompress}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.PacketSender] Serialized: {WrittenBytes} bytes | Compress={EnableCompress}",
+                    written,
+                    enableCompress
+                );
+            }
 #endif
 
             // Case 1: No compress, no encrypt
             if (!enableCompress && !needEncrypt)
             {
 #if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Case 1: Plain Send");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug("[NW.PacketSender] Case 1: Plain Send");
+                }
 #endif
                 await context.Connection.TCP.SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
                 return;
@@ -113,7 +131,10 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             if (enableCompress && !needEncrypt)
             {
 #if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Case 2: Compress Only");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug("[NW.PacketSender] Case 2: Compress Only");
+                }
 #endif
 
                 int maxCompressedLength = FrameTransformer.GetMaxCompressedSize(written);
@@ -137,7 +158,10 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             if (!enableCompress && needEncrypt)
             {
 #if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Case 3: Encrypt Only");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug("[NW.PacketSender] Case 3: Encrypt Only");
+                }
 #endif
 
                 int maxCipherLength = FrameTransformer.GetMaxCiphertextSize(
@@ -168,7 +192,10 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             if (enableCompress && needEncrypt)
             {
 #if DEBUG
-                s_logger?.Debug("[NW.PacketSender] Case 4: Compress + Encrypt");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug("[NW.PacketSender] Case 4: Compress + Encrypt");
+                }
 #endif
 
                 int maxCompressedLength = FrameTransformer.GetMaxCompressedSize(written);
@@ -209,7 +236,10 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             }
 
 #if DEBUG
-            s_logger?.Debug("[NW.PacketSender] ERROR: Unexpected state reached!");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug("[NW.PacketSender] ERROR: Unexpected state reached!");
+            }
 #endif
 
             throw new InternalErrorException("Unexpected state in packet sending logic.");

@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
@@ -154,7 +154,12 @@ internal static class AsyncCallback
         if (callback is null)
         {
 #if DEBUG
-            s_logger?.Trace($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-null skipping");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[NW.AsyncCallback:Invoke] callback-null skipping"
+                );
+            }
 #endif
             return false;
         }
@@ -165,7 +170,15 @@ internal static class AsyncCallback
         if (globalPending >= s_opts.MaxPendingNormalCallbacks)
         {
             Interlocked.Increment(ref s_droppedCallbacks);
-            s_logger?.Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={args.NetworkEndpoint}");
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    "[NW.AsyncCallback:Invoke] global-backpressure pending={GlobalPending} dropped={DroppedCallbacks} ip={NetworkEndpoint}",
+                    globalPending,
+                    s_droppedCallbacks,
+                    args.NetworkEndpoint
+                );
+            }
             return false;
         }
 
@@ -177,7 +190,15 @@ internal static class AsyncCallback
             if (ipPending >= s_opts.MaxPendingPerIp)
             {
                 Interlocked.Increment(ref s_droppedCallbacks);
-                s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={args.NetworkEndpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
+                if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    s_logger.LogWarning(
+                        "[NW.AsyncCallback:Invoke] per-ip-backpressure ip={NetworkEndpoint} pending={IpPending} max={MaxPendingPerIp}",
+                        args.NetworkEndpoint,
+                        ipPending,
+                        s_opts.MaxPendingPerIp
+                    );
+                }
                 return false;
             }
 
@@ -193,7 +214,14 @@ internal static class AsyncCallback
         int warnThreshold = s_opts.CallbackWarningThreshold;
         if (warnThreshold > 0 && globalPending >= warnThreshold && globalPending % 1_000 == 0)
         {
-            s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
+            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                s_logger.LogWarning(
+                    "[NW.AsyncCallback:Invoke] high-backpressure pending={GlobalPending} max={MaxPendingNormalCallbacks}",
+                    globalPending,
+                    s_opts.MaxPendingNormalCallbacks
+                );
+            }
         }
 
         Interlocked.Increment(ref s_pendingNormal);
@@ -278,7 +306,13 @@ internal static class AsyncCallback
             }
 
             _ = Interlocked.Increment(ref s_droppedCallbacks);
-            s_logger?.Error($"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={args.NetworkEndpoint}");
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    "[NW.AsyncCallback] failed-queue-work-item ip={NetworkEndpoint}",
+                    args.NetworkEndpoint
+                );
+            }
 
             wrapper.Dispose();
 
@@ -297,7 +331,13 @@ internal static class AsyncCallback
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex,
+                    "[NW.AsyncCallback:Invoke] callback-error"
+                );
+            }
         }
         finally
         {

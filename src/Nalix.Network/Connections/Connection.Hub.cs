@@ -11,8 +11,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -147,7 +147,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         if (!shard.TryAdd(connectionKey, connection))
         {
-            s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.ConnectionHub:RegisterConnection] register-dup id={ID}",
+                    connection.ID
+                );
+            }
             throw new InternalErrorException($"Connection '{connection.ID}' is already registered.");
         }
 
@@ -155,11 +161,25 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _ = Interlocked.Increment(ref _count);
         _anonymousQueue.Enqueue(connectionKey);
 
-        s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace(
+                "[NW.ConnectionHub:RegisterConnection] register id={ID} total={Count}",
+                connection.ID,
+                _count
+            );
+        }
 
         if (_options.IsEnableLatency)
         {
-            s_logger?.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[PERF.NW.RegisterConnection] id={ID}, latency={Latency:F3} ms",
+                    connection.ID,
+                    scope.GetElapsedMilliseconds()
+                );
+            }
         }
     }
 
@@ -188,7 +208,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         if (!shard.TryRemove(connectionKey, out IConnection? existing))
         {
-            s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.ConnectionHub:UnregisterConnection] unregister-miss id={ID}",
+                    connection.ID
+                );
+            }
             throw new InternalErrorException($"Connection '{connection.ID}' is not registered.");
         }
 
@@ -197,13 +223,27 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         _ = Interlocked.Decrement(ref _count);
 
-        s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={connection.ID} total={_count}");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace(
+                "[NW.ConnectionHub:UnregisterConnection] unregister id={ID} total={Count}",
+                connection.ID,
+                _count
+            );
+        }
 
         ConnectionUnregistered?.Invoke(removedConnection);
 
         if (_options.IsEnableLatency)
         {
-            s_logger?.Info($"[PERF.NW.UnregisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[PERF.NW.UnregisterConnection] id={ID}, latency={Latency:F3} ms",
+                    connection.ID,
+                    scope.GetElapsedMilliseconds()
+                );
+            }
         }
     }
 
@@ -324,7 +364,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         IReadOnlyCollection<IConnection> connections = this.ListConnections();
         if (connections is null || connections.Count == 0)
         {
-            s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[NW.ConnectionHub:BroadcastAsync] broadcast-skip total=0"
+                );
+            }
 
             return;
         }
@@ -369,7 +414,14 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                             }
                             catch (Exception ex)
                             {
-                                s_logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] send-failure id={partition.Current.ID}", ex);
+                                if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                                {
+                                    s_logger.LogError(
+                                        ex,
+                                        "[NW.ConnectionHub:BroadcastAsync] send-failure id={ID}",
+                                        partition.Current.ID
+                                    );
+                                }
                             }
                         }
                     }
@@ -384,7 +436,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             if (_options.IsEnableLatency)
             {
-                s_logger?.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
+                if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    s_logger.LogInformation(
+                        "[PERF.NW.BroadcastAsync] send latency={Latency:F3} ms",
+                        scope.GetElapsedMilliseconds()
+                    );
+                }
             }
         }
     }
@@ -451,7 +509,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
         catch (OperationCanceledException)
         {
-            s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastWhereAsync)}] broadcast-cancel");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[NW.ConnectionHub:BroadcastWhereAsync] broadcast-cancel"
+                );
+            }
         }
         finally
         {
@@ -472,7 +535,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         if (_disposed)
         {
-            s_logger?.Warn($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] called on disposed instance.");
+            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                s_logger.LogWarning(
+                    "[NW.ConnectionHub:ForceClose] called on disposed instance."
+                );
+            }
 
             return 0;
         }
@@ -498,14 +566,28 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                 }
                 catch (Exception ex)
                 {
-                    s_logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn.ID}", ex);
+                    if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                    {
+                        s_logger.LogError(
+                            ex,
+                            "[NW.ConnectionHub:ForceClose] disconnect failed id={ID}",
+                            conn.ID
+                        );
+                    }
                 }
             }
         }
 
         if (closedCount > 0)
         {
-            s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] closed={closedCount} ip={targetAddress}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[NW.ConnectionHub:ForceClose] closed={ClosedCount} ip={TargetAddress}",
+                    closedCount,
+                    targetAddress
+                );
+            }
         }
 
         return closedCount;
@@ -538,7 +620,14 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             }
             catch (Exception ex)
             {
-                s_logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-error id={connection.ID}", ex);
+                if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                {
+                    s_logger.LogError(
+                        ex,
+                        "[NW.ConnectionHub:CloseAllConnections] disconnect-error id={ID}",
+                        connection.ID
+                    );
+                }
             }
         });
 
@@ -550,7 +639,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _anonymousQueue.Clear();
         _ = Interlocked.Exchange(ref _count, 0);
 
-        s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Count}");
+        if (s_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            s_logger.LogInformation(
+                "[NW.ConnectionHub:CloseAllConnections] disconnect-all total={TotalCount}",
+                connections.Count
+            );
+        }
     }
 
     /// <summary>
@@ -764,7 +859,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         this.CloseAllConnections("disposed");
         _disposed = true;
 
-        s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
+        if (s_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            s_logger.LogInformation(
+                "[NW.ConnectionHub:Dispose] disposed"
+            );
+        }
     }
 
     #endregion APIs
@@ -802,7 +902,14 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [StackTraceHidden]
     private void HandleConnectionLimit(IConnection newConnection)
     {
-        s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] connection-limit-reached policy={_options.DropPolicy} max={_options.MaxConnections}");
+        if (s_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            s_logger.LogInformation(
+                "[NW.ConnectionHub:HandleConnectionLimit] connection-limit-reached policy={DropPolicy} max={MaxConnections}",
+                _options.DropPolicy,
+                _options.MaxConnections
+            );
+        }
 
         switch (_options.DropPolicy)
         {
@@ -821,7 +928,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
                     if (shard.TryGetValue(oldestId, out IConnection? oldestConn) && oldestConn is not null)
                     {
-                        s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
+                        if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                        {
+                            s_logger.LogInformation(
+                                "[NW.ConnectionHub:HandleConnectionLimit] evicting-anonymous id={ID}",
+                                oldestConn.ID
+                            );
+                        }
                         this.NotifyCapacityLimit(newConnection, "evict-oldest");
 
                         oldestConn.Disconnect("evicted to make room for new connection");
@@ -829,7 +942,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                     }
                 }
 
-                s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
+                if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    s_logger.LogInformation(
+                        "[NW.ConnectionHub:HandleConnectionLimit] no-anonymous-to-evict, rejecting-new"
+                    );
+                }
                 this.NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
 
                 newConnection.Disconnect("connection limit reached, no anonymous connections to evict");

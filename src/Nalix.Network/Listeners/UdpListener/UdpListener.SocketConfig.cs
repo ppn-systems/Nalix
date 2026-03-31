@@ -6,8 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
-using Nalix.Framework.Injection;
+using Microsoft.Extensions.Logging;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -32,8 +31,16 @@ public abstract partial class UdpListenerBase
 
         this.ConfigureHighPerformanceSocket(_udpClient.Client);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] init-ok port={_port} reuse={s_config.ReuseAddress} buf={s_config.BufferSize}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}:{MethodName}] init-ok port={Port} reuse={ReuseAddress} buf={BufferSize}",
+                nameof(UdpListenerBase),
+                nameof(Initialize),
+                _port,
+                s_config.ReuseAddress,
+                s_config.BufferSize);
+        }
     }
 
     /// <summary>

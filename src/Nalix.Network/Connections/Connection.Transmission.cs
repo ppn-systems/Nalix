@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
@@ -46,7 +47,14 @@ public sealed partial class Connection
         _ = Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args);
 
 #if DEBUG
-        s_logger.Debug($"[NW.{nameof(SocketConnection)}:{this.InjectIncoming}] inject-bytes len={lease.Length}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}:{MethodName}] inject-bytes len={Length}",
+                nameof(SocketConnection),
+                nameof(this.InjectIncoming),
+                lease.Length);
+        }
 #endif
     }
 

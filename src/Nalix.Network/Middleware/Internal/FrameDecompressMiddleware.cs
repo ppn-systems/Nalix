@@ -11,10 +11,11 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
+using Microsoft.Extensions.Logging;
+
 
 #if DEBUG
 using Nalix.Framework.Injection;
-using Nalix.Common.Diagnostics;
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
@@ -29,6 +30,8 @@ namespace Nalix.Network.Middleware.Internal;
 [MiddlewareOrder(50)]
 internal class FrameDecompressMiddleware : INetworkBufferMiddleware
 {
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     /// <inheritdoc />
     public async Task<IBufferLease?> InvokeAsync(
         IBufferLease lease, IConnection connection,
@@ -36,8 +39,14 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
     {
 #if DEBUG
         string debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[DECOMPRESS][{debugId}] Start - Flags={lease.Span.ReadFlagsLE()} LeaseLen={lease.Length}");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace(
+                "[DECOMPRESS][{DebugId}] Start - Flags={Flags} LeaseLen={LeaseLen}",
+                debugId,
+                lease.Span.ReadFlagsLE(),
+                lease.Length);
+        }
 #endif
 
         if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.COMPRESSED))
@@ -45,8 +54,13 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
             BufferLease dest = BufferLease.Rent(FrameTransformer.GetDecompressedLength(lease.Span[FrameTransformer.Offset..]));
 
 #if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[DECOMPRESS][{debugId}] Alloc decompress lease: DecompressLen={dest.Length}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[DECOMPRESS][{DebugId}] Alloc decompress lease: DecompressLen={DecompressLen}",
+                    debugId,
+                    dest.Length);
+            }
 #endif
 
             try
@@ -58,13 +72,25 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
                      .RemoveFlag(PacketFlags.COMPRESSED));
 
 #if DEBUG
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[DECOMPRESS][{debugId}] Decompression success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
+                if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                {
+                    s_logger.LogTrace(
+                        "[DECOMPRESS][{DebugId}] Decompression success! FlagsAfter={FlagsAfter} DestLen={DestLen}",
+                        debugId,
+                        dest.Span.ReadFlagsLE(),
+                        dest.Length);
+                }
 
                 int sampleLen = Math.Min(16, dest.Length);
                 string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[DECOMPRESS][{debugId}] Decompressed buffer sample: {hexSample}");
+
+                if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                {
+                    s_logger.LogTrace(
+                        "[DECOMPRESS][{DebugId}] Decompressed buffer sample: {HexSample}",
+                        debugId,
+                        hexSample);
+                }
 #endif
 
                 return await next(dest, ct).ConfigureAwait(false);
@@ -78,8 +104,13 @@ internal class FrameDecompressMiddleware : INetworkBufferMiddleware
         else
         {
 #if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[DECOMPRESS][{debugId}] Bypass decompress (flags do not match). LeaseLen={lease.Length}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[DECOMPRESS][{DebugId}] Bypass decompress (flags do not match). LeaseLen={LeaseLen}",
+                    debugId,
+                    lease.Length);
+            }
 #endif
 
             return await next(lease, ct).ConfigureAwait(false);

@@ -1,10 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
 using Nalix.Logging;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Sinks;
@@ -28,6 +29,9 @@ internal class Program
         // rely on ILogger being available from the shared container.
         ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
         InstanceManager.Instance.Register(NLogix.Host.Instance);
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                       .LogError($"Error handling command");
 
         // Packet handlers are discovered through the registry, so the sample
         // registers one up front before any protocol starts processing packets.
@@ -56,7 +60,7 @@ internal class Program
             // Route handler failures through the shared logger instead of crashing the sample.
             _ = dispatchOptions.WithErrorHandling((exception, command) =>
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                       .Error($"Error handling command: {command}", exception));
+                                       .LogError($"Error handling command: {command}", exception));
 
             // Register the object that contains the packet handler methods.
             _ = dispatchOptions.WithHandler(() => new PacketCommandHandler());
@@ -71,7 +75,7 @@ internal class Program
         channel.Activate();
 
         // Print a small runtime report so the user can confirm the listener is alive.
-        Console.WriteLine(listener.GenerateReport());
+        Console.WriteLine(InstanceManager.Instance.GetOrCreateInstance<TaskManager>().GenerateReport());
         _ = Console.ReadLine();
     }
 }

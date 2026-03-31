@@ -12,8 +12,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.Buffers;
@@ -462,8 +462,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (_config.EnableAnalytics)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[{nameof(BufferPoolManager)}:Internal] rent-fast minimumLength={size}");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+            if (logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                logger.LogTrace("[BufferPoolManager:Internal] rent-fast minimumLength={Length}", size);
+            }
         }
 
         this.CACHE_SUITABLE_POOL_SIZE(size, buffer.Length);
@@ -498,16 +502,23 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private byte[] HANDLE_RENT_FAILURE(int size, ArgumentException ex)
     {
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
         if (_config.FallbackToArrayPool)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
+            if (logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                logger.LogWarning("[SH.BufferPoolManager:Internal] fallback minimumLength={Length} msg={Message}", size, ex.Message);
+            }
 
             return _fallbackArrayPool.Rent(size);
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Error($"[SH.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}", ex);
+        if (logger?.IsEnabled(LogLevel.Error) == true)
+        {
+            logger.LogError(ex, "[SH.BufferPoolManager:Internal] rent-fail minimumLength={Length} msg={Message}", size, ex.Message);
+        }
+
         throw ex;
     }
 
@@ -523,8 +534,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (_config.EnableAnalytics)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] return minimumLength={buffer.Length}");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+            if (logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                logger.LogTrace("[SH.BufferPoolManager:Internal] return minimumLength={Length}", buffer.Length);
+            }
         }
     }
 
@@ -547,14 +562,18 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             }
 
             _fallbackArrayPool.Return(buffer, clearArray: false);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[SH.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.LogDebug("[SH.BufferPoolManager:Internal] return-fallback minimumLength={Length}", buffer.Length);
+            }
 
             return;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] return-fail minimumLength={buffer.Length} msg={ex.Message}");
+        if (logger?.IsEnabled(LogLevel.Warning) == true)
+        {
+            logger.LogWarning("[SH.BufferPoolManager:Internal] return-fail minimumLength={Length} msg={Message}", buffer.Length, ex.Message);
+        }
     }
 
     #endregion Private: Rent / Return helpers
@@ -577,23 +596,33 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
         _isInitialized = true;
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                      $"init-ok total={_config.TotalBuffers} pools={_bufferAllocations.Length} min={this.MinBufferSize} max={this.MaxBufferSize}");
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        if (logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            logger.LogInformation(
+                "[SH.BufferPoolManager:Internal] init-ok total={Total} pools={Pools} min={Min} max={Max}",
+                _config.TotalBuffers, _bufferAllocations.Length, this.MinBufferSize, this.MaxBufferSize
+            );
+        }
     }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void TRIM_EXCESS_BUFFERS(object? _)
     {
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
         int cycle = Interlocked.Increment(ref _trimCycleCount);
         bool deepTrim = this.SHOULD_RUN_DEEP_TRIM(cycle);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-run deep={deepTrim}");
+        if (logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            logger.LogTrace("[SH.BufferPoolManager:Internal] trim-run deep={DeepTrim}", deepTrim);
+        }
 
         // Compute memory budget once per cycle (cache it)
-        (long targetBudget, long currentUsage, bool overBudget) = this.COMPUTE_MEMORY_BUDGET();
+        (long _, long _, bool overBudget) = this.COMPUTE_MEMORY_BUDGET();
 
         foreach (BufferPoolShared pool in _poolManager.GetAllPools())
         {
@@ -747,10 +776,15 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[info.BufferSize] = metrics;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                       $"trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}% " +
-                                       $"remain={info.TotalBuffers - shrinkStep}");
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        if (logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            logger.LogTrace(
+                "[SH.BufferPoolManager:Internal] trim-shrink minimumLength={BufferSize} step={ShrinkStep} usage={Usage:F2}% remain={Remain}",
+                info.BufferSize, shrinkStep, usage, info.TotalBuffers - shrinkStep
+            );
+        }
     }
 
     #endregion Private: Allocation & Trimming
@@ -799,8 +833,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[poolInfo.BufferSize] = m;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={latest.BufferSize} by={buffersToShrink}");
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        if (logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            logger.LogTrace("[SH.BufferPoolManager:Internal] shrink minimumLength={BufferSize} by={BuffersToShrink}", latest.BufferSize, buffersToShrink);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -846,8 +883,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (this.IS_OVER_MEMORY_BUDGET())
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SH.{nameof(BufferPoolManager)}:Internal] skip-increase minimumLength={poolInfo.BufferSize} over budget");
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+            if (logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                logger.LogWarning("[SH.BufferPoolManager:Internal] skip-increase minimumLength={BufferSize} over budget", poolInfo.BufferSize);
+            }
             return;
         }
 
@@ -865,9 +906,15 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[poolInfo.BufferSize] = metrics;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                       $"increase minimumLength={poolInfo.BufferSize} by={increaseStep} usage={usage:F2}% miss={missRatio:F2}%");
+        ILogger? logger1 = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        if (logger1?.IsEnabled(LogLevel.Trace) == true)
+        {
+            logger1.LogTrace(
+                "[SH.BufferPoolManager:Internal] increase minimumLength={BufferSize} by={IncreaseStep} usage={Usage:F2}% miss={MissRatio:F2}%",
+                poolInfo.BufferSize, increaseStep, usage, missRatio
+            );
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -998,8 +1045,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                                     .CleanupJobId(RecurringName, this.GetHashCode()));
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(BufferPoolManager)}:{nameof(Dispose)}] disposed");
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        if (logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            logger.LogInformation("[SH.BufferPoolManager:Dispose] disposed");
+        }
 
         GC.SuppressFinalize(this);
     }

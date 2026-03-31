@@ -5,6 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -84,7 +85,16 @@ public abstract partial class TcpListenerBase
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
         {
-            s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] process-channel-unavailable remote={connection?.NetworkEndpoint} port={_port}");
+            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                s_logger.LogWarning(
+                    "[NW.{ClassName}:{MethodName}] process-channel-unavailable remote={RemoteEndPoint} port={Port}",
+                    nameof(TcpListenerBase),
+                    nameof(DISPATCH_CONNECTION),
+                    connection?.NetworkEndpoint,
+                    _port);
+            }
+
             ArgumentNullException.ThrowIfNull(connection);
             connection.Close();
             return;
@@ -92,14 +102,31 @@ public abstract partial class TcpListenerBase
 
         if (processChannel.Writer.TryWrite(connection))
         {
-            s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] queued remote={connection?.NetworkEndpoint} port={_port}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[NW.{ClassName}:{MethodName}] queued remote={RemoteEndPoint} port={Port}",
+                    nameof(TcpListenerBase),
+                    nameof(DISPATCH_CONNECTION),
+                    connection?.NetworkEndpoint,
+                    _port);
+            }
+
             return;
         }
 
         // Channel full → DDoS backpressure: drop the new connection immediately.
         // Existing legitimate connections already in the channel are unaffected.
         this.Metrics.RECORD_REJECTED();
-        s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] channel-full remote={connection?.NetworkEndpoint} port={_port} — dropped");
+        if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+        {
+            s_logger.LogWarning(
+                "[NW.{ClassName}:{MethodName}] channel-full remote={RemoteEndPoint} port={Port} — dropped",
+                nameof(TcpListenerBase),
+                nameof(DISPATCH_CONNECTION),
+                connection?.NetworkEndpoint,
+                _port);
+        }
 
         ArgumentNullException.ThrowIfNull(connection);
         connection.Close();
@@ -111,8 +138,15 @@ public abstract partial class TcpListenerBase
 
     private void PROCESS_CHANNEL_LOOP(CancellationToken cancellationToken)
     {
-        s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
-                        $"thread-started port={_port} priority={Thread.CurrentThread.Priority}");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace(
+                "[NW.{ClassName}:{MethodName}] thread-started port={Port} priority={Priority}",
+                nameof(TcpListenerBase),
+                nameof(PROCESS_CHANNEL_LOOP),
+                _port,
+                Thread.CurrentThread.Priority);
+        }
 
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
@@ -174,7 +208,14 @@ public abstract partial class TcpListenerBase
             this.INVOKE_PROCESS(connection);
         }
 
-        s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] thread-exited port={_port}");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace(
+                "[NW.{ClassName}:{MethodName}] thread-exited port={Port}",
+                nameof(TcpListenerBase),
+                nameof(PROCESS_CHANNEL_LOOP),
+                _port);
+        }
     }
 
     /// <summary>
@@ -193,7 +234,17 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] error remote={connection?.NetworkEndpoint} port={_port}", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex,
+                    "[NW.{ClassName}:{MethodName}] error remote={RemoteEndPoint} port={Port}",
+                    nameof(TcpListenerBase),
+                    nameof(INVOKE_PROCESS),
+                    connection?.NetworkEndpoint,
+                    _port);
+            }
+
             ArgumentNullException.ThrowIfNull(connection);
             connection.Close();
         }

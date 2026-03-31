@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace Nalix.Network.Protocols;
 
@@ -46,7 +47,13 @@ public abstract partial class Protocol
     {
         this.Dispose(true);
 
-        s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace(
+                "[NW.{ClassName}:{MethodName}] disposed",
+                nameof(Protocol),
+                nameof(Dispose));
+        }
 
         GC.SuppressFinalize(this);
     }

@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
@@ -28,6 +28,8 @@ public abstract partial class UdpListenerBase
     #endregion Constants
 
     #region Fields
+
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private static readonly NetworkSocketOptions s_config;
 
@@ -93,8 +95,13 @@ public abstract partial class UdpListenerBase
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
                            .IsTimeSyncEnabled = value;
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(UdpListenerBase)}] timesync={value}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[{ClassName}] timesync={Value}",
+                    nameof(UdpListenerBase),
+                    value);
+            }
         }
     }
 
@@ -128,8 +135,14 @@ public abstract partial class UdpListenerBase
         InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
                        .TimeSynchronized += this.SynchronizeTime;
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}] created port={Port} protocol={ProtocolName}",
+                nameof(UdpListenerBase),
+                _port,
+                protocol.GetType().Name);
+        }
     }
 
 
@@ -185,8 +198,13 @@ public abstract partial class UdpListenerBase
             _lock.Dispose();
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed");
+        if (s_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            s_logger.LogInformation(
+                "[NW.{ClassName}:{MethodName}] disposed",
+                nameof(UdpListenerBase),
+                nameof(Dispose));
+        }
     }
 
     #endregion IDisposable

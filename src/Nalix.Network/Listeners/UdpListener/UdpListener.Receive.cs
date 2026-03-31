@@ -8,7 +8,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Identifiers;
@@ -86,11 +86,18 @@ public abstract partial class UdpListenerBase
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _ = Interlocked.Increment(ref _recvErrors);
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ReceiveDatagramsAsync)}] recv-error port={_port}", ex);
+                if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                {
+                    s_logger.LogError(
+                        ex,
+                        "[NW.{ClassName}:{MethodName}] recv-error port={Port}",
+                        nameof(UdpListenerBase),
+                        nameof(ReceiveDatagramsAsync),
+                        _port);
+                }
 
                 await Task.Delay(50, cancellationToken)
-                                                 .ConfigureAwait(false);
+                          .ConfigureAwait(false);
             }
         }
     }
@@ -108,8 +115,16 @@ public abstract partial class UdpListenerBase
     {
         if (result.Buffer.Length < PacketConstants.HeaderSize + AuthenticationMetadataSize)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] short-packet len={result.Buffer.Length} from={result.RemoteEndPoint}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.{ClassName}:{MethodName}] short-packet len={Length} from={RemoteEndPoint}",
+                    nameof(UdpListenerBase),
+                    nameof(ProcessDatagram),
+                    result.Buffer.Length,
+                    result.RemoteEndPoint);
+            }
+
             return;
         }
 
@@ -130,16 +145,30 @@ public abstract partial class UdpListenerBase
         if (hub is null)
         {
             _ = Interlocked.Increment(ref _dropShort);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] [{nameof(ConnectionHub)}] null");
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    "[NW.{ClassName}:{MethodName}] [{HubName}] null",
+                    nameof(UdpListenerBase),
+                    nameof(ProcessDatagram),
+                    nameof(ConnectionHub));
+
+            }
             return;
         }
 
         if (hub.GetConnection(identifier) is not Connection connection)
         {
             _ = Interlocked.Increment(ref _dropUnknown);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unknown-packet from={result.RemoteEndPoint}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.{ClassName}:{MethodName}] unknown-packet from={RemoteEndPoint}",
+                    nameof(UdpListenerBase),
+                    nameof(ProcessDatagram),
+                    result.RemoteEndPoint);
+            }
+
             return;
         }
 
@@ -148,16 +177,31 @@ public abstract partial class UdpListenerBase
         if (!ValidateAuthenticationToken(connection, result.RemoteEndPoint, lease.Span, idBytes, timestamp, nonce, tagBytes))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] auth-fail id={connection.ID} from={result.RemoteEndPoint}");
+            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                s_logger.LogWarning(
+                    "[NW.{ClassName}:{MethodName}] auth-fail id={ConnectionId} from={RemoteEndPoint}",
+                    nameof(UdpListenerBase),
+                    nameof(ProcessDatagram),
+                    connection.ID,
+                    result.RemoteEndPoint);
+            }
+
             return;
         }
 
         if (!this.IsAuthenticated(connection, result))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] unauth from={result.RemoteEndPoint}");
+            if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                s_logger.LogWarning(
+                    "[NW.{ClassName}:{MethodName}] unauth from={RemoteEndPoint}",
+                    nameof(UdpListenerBase),
+                    nameof(ProcessDatagram),
+                    result.RemoteEndPoint);
+            }
+
             return;
         }
 
@@ -166,8 +210,15 @@ public abstract partial class UdpListenerBase
 
         connection.InjectIncoming(lease);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] inject id={connection.ID} size={lease.Length}");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace(
+                "[NW.{ClassName}:{MethodName}] inject id={ConnectionId} size={Size}",
+                nameof(UdpListenerBase),
+                nameof(ProcessDatagram),
+                connection.ID,
+                lease.Length);
+        }
     }
 
     private static bool ValidateAuthenticationToken(

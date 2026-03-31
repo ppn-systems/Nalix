@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace Nalix.Common.Diagnostics;
 
@@ -22,7 +23,7 @@ namespace Nalix.Common.Diagnostics;
 /// </param>
 public readonly struct LogEntry(
     LogLevel level,
-    EventId eventId,
+    EventId? eventId,
     string message,
     Exception? exception = null)
 {
@@ -34,7 +35,7 @@ public readonly struct LogEntry(
     /// <summary>
     /// Gets the identifier associated with the event that produced the log entry.
     /// </summary>
-    public readonly EventId EventId { get; } = eventId;
+    public readonly EventId? EventId { get; } = eventId;
 
     /// <summary>
     /// Gets the content of the log message.

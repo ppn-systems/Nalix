@@ -4,9 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Contracts;
-using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Engine;
 
@@ -45,41 +43,4 @@ public sealed partial class NLogix : NLogixEngine, ILogger
     }
 
     #endregion Constructors
-
-    #region Private Methods
-
-    /// <summary>
-    /// Sanitize log message to prevent log forging
-    /// Removes potentially dangerous characters (e.g., newlines or control characters)
-    /// </summary>
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string SanitizeLogMessage(string? message)
-    {
-        if (string.IsNullOrEmpty(message))
-        {
-            return string.Empty;
-        }
-
-        // Chỉ allocate nếu thực sự có ký tự cần xóa
-        if (MemoryExtensions.IndexOfAny(MemoryExtensions.AsSpan(message), '\n', '\r') < 0)
-        {
-            return message; // fast path: không cần sanitize
-        }
-
-        return message.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ");
-    }
-
-    /// <summary>
-    /// Writes a log entry with the specified level, event ProtocolType, message, and optional exception.
-    /// </summary>
-    [Pure]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void WriteLog(
-        LogLevel level,
-        EventId eventId,
-        string message,
-        Exception? exception = null) => this.Publish(level, eventId, message, exception);
-
-    #endregion Private Methods
 }

@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using Nalix.Common.Diagnostics;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Formatters;
@@ -81,14 +80,6 @@ public sealed class BatchConsoleLogTarget : ILoggerTarget, IDisposable
 #endif
         }
     }
-
-    /// <summary>
-    /// Asynchronously writes a single <see cref="LogEntry"/> to the console log buffer.
-    /// The entry will be batched and written to the console according to the configured batch options.
-    /// </summary>
-    /// <param name="entry">The log entry to write.</param>
-    /// <returns>A <see cref="ValueTask"/> representing the asynchronous write operation.</returns>
-    public ValueTask WriteAsync(LogEntry entry) => _provider.WriteAsync(entry);
 
     #endregion API
 

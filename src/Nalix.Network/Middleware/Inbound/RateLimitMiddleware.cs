@@ -5,7 +5,7 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -76,7 +76,12 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         catch (ObjectDisposedException)
         {
             // If the limiter has been disposed (e.g., during shutdown), allow the packet to proceed
-            _logger?.Debug($"[NW.{nameof(RateLimitMiddleware)}:Invoke] rate-limiter-disposed request-allowed");
+            if (_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                _logger.LogDebug(
+                    "[NW.RateLimitMiddleware:Invoke] rate-limiter-disposed request-allowed"
+                );
+            }
 
             await next(context.CancellationToken).ConfigureAwait(false);
             return;

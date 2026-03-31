@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration.Binding;
@@ -92,7 +93,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     public NLogixOptions()
     {
         this.Publisher = null;
-        this.MinLevel = LogLevel.Info;
+        this.MinLevel = LogLevel.Information;
         this.FileOptions = new FileLogOptions();
 
         this.UseUtcTimestamp = true;

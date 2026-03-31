@@ -4,7 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Random.Core;
 
@@ -46,8 +46,12 @@ public static class Csprng
             s_f = OsRandom.Fill;
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.Csprng] init using {(s_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        if (logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            logger.LogInformation("[FW.Csprng] init using {CSPRNGType}", s_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM");
+        }
     }
 
     #endregion Constructor

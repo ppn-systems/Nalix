@@ -8,6 +8,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -46,19 +47,40 @@ public abstract partial class TcpListenerBase
 
                 IPEndPoint epV6Any = new(IPAddress.IPv6Any, _port);
 
-                s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug(
+                        "[NW.{ClassName}:{MethodName}] config-bind {Endpoint}",
+                        nameof(TcpListenerBase),
+                        nameof(Initialize),
+                        epV6Any);
+                }
 
                 sock.Bind(epV6Any);
                 sock.Listen(s_config.Backlog);
 
                 _listener = sock;
-                s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug(
+                        "[NW.{ClassName}:{MethodName}] config-listen {LocalEndPoint}.dual",
+                        nameof(TcpListenerBase),
+                        nameof(Initialize),
+                        _listener.LocalEndPoint);
+                }
 
                 return;
             }
             catch (Exception ex)
             {
-                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
+                if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    s_logger.LogWarning(
+                        "[NW.{ClassName}:{MethodName}] failed-bind ex={ErrorMessage}",
+                        nameof(TcpListenerBase),
+                        nameof(Initialize),
+                        ex.Message);
+                }
 
                 // Clean up the half-initialized IPv6 socket before falling back
                 try
@@ -96,12 +118,26 @@ public abstract partial class TcpListenerBase
 
         IPEndPoint epV4Any = new(IPAddress.Any, _port);
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}:{MethodName}] config-bind {Endpoint}.v4",
+                nameof(TcpListenerBase),
+                nameof(Initialize),
+                epV4Any);
+        }
 
         _listener.Bind(epV4Any);
         _listener.Listen(s_config.Backlog);
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.{ClassName}:{MethodName}] config-listen {LocalEndPoint}",
+                nameof(TcpListenerBase),
+                nameof(Initialize),
+                _listener.LocalEndPoint);
+        }
     }
 
     /// <summary>

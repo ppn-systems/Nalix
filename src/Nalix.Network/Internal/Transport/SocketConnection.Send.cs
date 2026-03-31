@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.Chunks;
@@ -57,8 +58,15 @@ internal sealed partial class SocketConnection
             try
             {
 #if DEBUG
-                s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                $"stackalloc len={data.Length} ep={_socket.RemoteEndPoint}");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug(
+                        "[NW.{ClassName}:{MethodName}] stackalloc len={Length} ep={EndPoint}",
+                        nameof(SocketConnection),
+                        nameof(Send),
+                        data.Length,
+                        _socket.RemoteEndPoint);
+                }
 #endif
                 Span<byte> frameS = stackalloc byte[totalLength];
                 WRITE_FRAME_HEADER(frameS, (ushort)totalLength, data);
@@ -67,8 +75,16 @@ internal sealed partial class SocketConnection
                 if (s_logger is not null)
                 {
                     Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
-                    s_logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                   $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} ep={_socket.RemoteEndPoint}");
+                    if (s_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        s_logger.LogDebug(
+                            "[NW.{ClassName}:{MethodName}] sending frame totalLen={TotalLength} payload={Payload} ep={EndPoint}",
+                            nameof(SocketConnection),
+                            nameof(Send),
+                            totalLength,
+                            FORMAT_FRAME_FOR_LOG(payloadSpan),
+                            _socket.RemoteEndPoint);
+                    }
                 }
 #endif
 
@@ -79,8 +95,14 @@ internal sealed partial class SocketConnection
                     if (n == 0)
                     {
 #if DEBUG
-                        s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                        $"stackalloc peer-closed ep={_socket.RemoteEndPoint}");
+                        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            s_logger.LogDebug(
+                                "[NW.{ClassName}:{MethodName}] stackalloc peer-closed ep={EndPoint}",
+                                nameof(SocketConnection),
+                                nameof(Send),
+                                _socket.RemoteEndPoint);
+                        }
 #endif
                         this.CANCEL_RECEIVE_ONCE();
                         this.INVOKE_CLOSE_ONCE();
@@ -97,8 +119,15 @@ internal sealed partial class SocketConnection
             }
             catch (Exception ex)
             {
-                s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                $"stackalloc-error ep={_socket.RemoteEndPoint}", ex);
+                if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                {
+                    s_logger.LogError(
+                        ex,
+                        "[NW.{ClassName}:{MethodName}] stackalloc-error ep={EndPoint}",
+                        nameof(SocketConnection),
+                        nameof(Send),
+                        _socket.RemoteEndPoint);
+                }
                 throw;
             }
         }
@@ -108,8 +137,15 @@ internal sealed partial class SocketConnection
         try
         {
 #if DEBUG
-            s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                            $"pooled len={data.Length} ep={_socket.RemoteEndPoint}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.{ClassName}:{MethodName}] pooled len={Length} ep={EndPoint}",
+                    nameof(SocketConnection),
+                    nameof(Send),
+                    data.Length,
+                    _socket.RemoteEndPoint);
+            }
 #endif
             BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength);
             data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
@@ -118,9 +154,16 @@ internal sealed partial class SocketConnection
             if (s_logger is not null)
             {
                 Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
-                s_logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                               $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
-                               $"ep={_socket.RemoteEndPoint}");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug(
+                        "[NW.{ClassName}:{MethodName}] sending frame totalLen={TotalLength} payload={Payload} ep={EndPoint}",
+                        nameof(SocketConnection),
+                        nameof(Send),
+                        totalLength,
+                        FORMAT_FRAME_FOR_LOG(payloadSpan),
+                        _socket.RemoteEndPoint);
+                }
             }
 #endif
 
@@ -132,8 +175,14 @@ internal sealed partial class SocketConnection
                 if (n == 0)
                 {
 #if DEBUG
-                    s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                    $"pooled peer-closed ep={_socket.RemoteEndPoint}");
+                    if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        s_logger.LogDebug(
+                            "[NW.{ClassName}:{MethodName}] pooled peer-closed ep={EndPoint}",
+                            nameof(SocketConnection),
+                            nameof(Send),
+                            _socket.RemoteEndPoint);
+                    }
 #endif
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
@@ -147,8 +196,15 @@ internal sealed partial class SocketConnection
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                            $"pooled-error ep={_socket.RemoteEndPoint}", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex,
+                    "[NW.{ClassName}:{MethodName}] pooled-error ep={EndPoint}",
+                    nameof(SocketConnection),
+                    nameof(Send),
+                    _socket.RemoteEndPoint);
+            }
             throw;
         }
         finally
@@ -195,8 +251,16 @@ internal sealed partial class SocketConnection
         try
         {
 #if DEBUG
-            s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                            $"len={data.Length} ep={_socket.RemoteEndPoint}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.{ClassName}:{MethodName}] len={DataLength} ep={EndPoint}",
+                    nameof(SocketConnection),
+                    nameof(SendAsync),
+                    data.Length,
+                    _socket.RemoteEndPoint
+                );
+            }
 #endif
             WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength, data.Span);
 
@@ -204,9 +268,16 @@ internal sealed partial class SocketConnection
             if (s_logger is not null)
             {
                 ReadOnlySpan<byte> payloadSpan = data.Span;
-                s_logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                               $"sending async frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
-                               $"ep={_socket.RemoteEndPoint}");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug(
+                        "[NW.{ClassName}:{MethodName}] sending async frame totalLen={TotalLength} payload={Payload} ep={EndPoint}",
+                        nameof(SocketConnection),
+                        nameof(SendAsync),
+                        totalLength,
+                        FORMAT_FRAME_FOR_LOG(payloadSpan),
+                        _socket.RemoteEndPoint);
+                }
             }
 #endif
 
@@ -220,8 +291,14 @@ internal sealed partial class SocketConnection
                 if (n == 0)
                 {
 #if DEBUG
-                    s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                                    $"peer-closed ep={_socket.RemoteEndPoint}");
+                    if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        s_logger.LogDebug(
+                            "[NW.{ClassName}:{MethodName}] peer-closed ep={EndPoint}",
+                            nameof(SocketConnection),
+                            nameof(SendAsync),
+                            _socket.RemoteEndPoint);
+                    }
 #endif
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
@@ -235,8 +312,15 @@ internal sealed partial class SocketConnection
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                            $"error ep={_socket.RemoteEndPoint}", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex,
+                    "[NW.{ClassName}:{MethodName}] error ep={EndPoint}",
+                    nameof(SocketConnection),
+                    nameof(SendAsync),
+                    _socket.RemoteEndPoint);
+            }
             throw;
         }
         finally

@@ -11,7 +11,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -173,8 +173,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         _cachedArgs = args ?? throw new ArgumentNullException(nameof(args));
 
 #if DEBUG
-        s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SetCallback)}] " +
-                        $"configured ep={_socket.RemoteEndPoint}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.SocketConnection:SetCallback] configured ep={RemoteEndPoint}",
+                _socket.RemoteEndPoint
+            );
+        }
 #endif
     }
 
@@ -202,8 +207,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         if (Volatile.Read(ref _disposed) != 0)
         {
 #if DEBUG
-            s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] " +
-                            $"skip — already disposed ep={_socket.RemoteEndPoint}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.SocketConnection:BeginReceive] skip — already disposed ep={RemoteEndPoint}",
+                    _socket.RemoteEndPoint
+                );
+            }
 #endif
             return;
         }
@@ -212,8 +222,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         if (Interlocked.CompareExchange(ref _receiveStarted, 1, 0) != 0)
         {
 #if DEBUG
-            s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] " +
-                            $"skip — already started ep={_socket.RemoteEndPoint}");
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.LogDebug(
+                    "[NW.SocketConnection:BeginReceive] skip — already started ep={RemoteEndPoint}",
+                    _socket.RemoteEndPoint
+                );
+            }
 #endif
             return;
         }
@@ -224,8 +239,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         _recvCtx.EnsureArgsBound();
 
 #if DEBUG
-        s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] " +
-                        $"saea-receive-loop started ep={_socket.RemoteEndPoint}");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.SocketConnection:BeginReceive] saea-receive-loop started ep={RemoteEndPoint}",
+                _socket.RemoteEndPoint
+            );
+        }
 #endif
 
         CancellationTokenSource linked =
@@ -238,7 +258,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
             if (t.IsFaulted)
             {
-                l?.Error($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] saea-receive-loop faulted", t.Exception!);
+                if (l?.IsEnabled(LogLevel.Error) == true)
+                {
+                    l.LogError(
+                        t.Exception,
+                        "[NW.SocketConnection:BeginReceive] saea-receive-loop faulted"
+                    );
+                }
             }
 
             link.Dispose();
@@ -309,9 +335,16 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 #if DEBUG
             if (read == 0 && n < count)
             {
-                s_logger?.Debug(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_EXACTLY_ASYNC)}] " +
-                    $"partial recv: got={n}, need={count}, offset={offset}, ep={_socket.RemoteEndPoint}");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug(
+                        "[NW.SocketConnection:SAEA_RECEIVE_EXACTLY_ASYNC] partial recv: got={ReadCount}, need={NeedCount}, offset={Offset}, ep={RemoteEndPoint}",
+                        n,
+                        count,
+                        offset,
+                        _socket.RemoteEndPoint
+                    );
+                }
             }
 #endif
             read += n;
@@ -346,17 +379,27 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                                               .AsSpan(_buffer, 0, HeaderSize));
 
 #if DEBUG
-                s_logger?.Trace(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"recv-header size(le)={size} ep={_sender?.NetworkEndpoint.Address}");
+                if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                {
+                    s_logger.LogTrace(
+                        "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] recv-header size(le)={HeaderSize} ep={Address}",
+                        size,
+                        _sender?.NetworkEndpoint.Address
+                    );
+                }
 #endif
 
                 if (!IS_VALID_PACKET_SIZE(size))
                 {
 #if DEBUG
-                    s_logger?.Debug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"invalid-size={size} ep={_sender?.NetworkEndpoint.Address}");
+                    if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        s_logger.LogDebug(
+                            "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] invalid-size={Size} ep={Address}",
+                            size,
+                            _sender?.NetworkEndpoint.Address
+                        );
+                    }
 #endif
                     throw new SocketException(
                         (int)SocketError.ProtocolNotSupported);
@@ -366,9 +409,15 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                 if (size > _buffer.Length)
                 {
 #if DEBUG
-                    s_logger?.Debug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"grow-buffer old={_buffer.Length} new={size} ep={_sender?.NetworkEndpoint.Address}");
+                    if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        s_logger.LogDebug(
+                            "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] grow-buffer old={OldLength} new={NewLength} ep={Address}",
+                            _buffer.Length,
+                            size,
+                            _sender?.NetworkEndpoint.Address
+                        );
+                    }
 #endif
                     byte[] oldBuf = _buffer;
                     byte[] newBuf = BufferLease.ByteArrayPool.Rent(size);
@@ -391,9 +440,15 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                 await this.SAEA_RECEIVE_EXACTLY_ASYNC(HeaderSize, payload, token).ConfigureAwait(false);
 
 #if DEBUG
-                s_logger?.Debug(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"recv-frame size={size} payload={payload} ep={_sender?.NetworkEndpoint.Address}");
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.LogDebug(
+                        "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] recv-frame size={FrameSize} payload={Payload} ep={Address}",
+                        size,
+                        payload,
+                        _sender?.NetworkEndpoint.Address
+                    );
+                }
 #endif
                 // ── Step 3.5: periodic eviction of stale fragment streams ───────
                 if ((++_packetCount & (FragmentAssembler.EvictInterval - 1)) == 0)
@@ -402,10 +457,14 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                     if (evicted > 0)
                     {
                         Interlocked.Add(ref _openFragmentStreams, -evicted);
-                        s_logger?.Warn(
-                            $"[NW.{nameof(SocketConnection)}] " +
-                            $"evicted {evicted} stale fragment stream(s) " +
-                            $"ep={_sender?.NetworkEndpoint.Address}");
+                        if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+                        {
+                            s_logger.LogWarning(
+                                "[NW.SocketConnection] evicted {EvictedCount} stale fragment stream(s) ep={Address}",
+                                evicted,
+                                _sender?.NetworkEndpoint.Address
+                            );
+                        }
                     }
                 }
 
@@ -420,10 +479,15 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                 {
                     Interlocked.Decrement(ref _pendingProcessCallbacks);
 
-                    s_logger?.Warn(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"per-conn-throttle pending={pending} max={s_opts.MaxPerConnectionPendingPackets} " +
-                        $"ep={_sender?.NetworkEndpoint.Address} — packet dropped");
+                    if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        s_logger.LogWarning(
+                            "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] per-conn-throttle pending={PendingCount} max={MaxPendingPackets} ep={Address} — packet dropped",
+                            pending,
+                            s_opts.MaxPerConnectionPendingPackets,
+                            _sender?.NetworkEndpoint.Address
+                        );
+                    }
 
                     // Return buffer to pool — rent a fresh one for next receive.
                     byte[]? dropped = Interlocked.Exchange(ref _buffer, null!);
@@ -458,8 +522,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                             if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
                             {
                                 Interlocked.Decrement(ref _openFragmentStreams);
-                                s_logger?.Trace($"[[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                                                $"fragment-stream-limit open={openStreams} — stream dropped");
+                                if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                                {
+                                    s_logger.LogTrace(
+                                        "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] fragment-stream-limit open={OpenStreams} — stream dropped",
+                                        openStreams
+                                    );
+                                }
 
                                 Interlocked.Decrement(ref _pendingProcessCallbacks);
                                 lease.Dispose();
@@ -471,10 +540,18 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                         }
 
 #if DEBUG
-                        s_logger?.Debug(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                            $"recv-fragment stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
-                            $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_sender?.NetworkEndpoint.Address}");
+                        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            s_logger.LogDebug(
+                                "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] recv-fragment stream={StreamId} chunk={ChunkIndex}/{TotalChunks} isLast={IsLast} bodyLen={BodyLength} ep={Address}",
+                                header.StreamId,
+                                header.ChunkIndex,
+                                header.TotalChunks,
+                                header.IsLast,
+                                chunkBody.Length,
+                                _sender?.NetworkEndpoint.Address
+                            );
+                        }
 #endif
 
                         BufferLease? assembled = _fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
@@ -485,10 +562,15 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                             args.Initialize(assembled, _cachedArgs.Connection);
                             AsyncCallback.Invoke(_callbackProcess, _sender, args);
 #if DEBUG
-                            s_logger?.Debug(
-                                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                                $"fragment-assembled stream={header.StreamId} totalLen={assembled.Length} " +
-                                $"ep={_sender?.NetworkEndpoint.Address}");
+                            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                            {
+                                s_logger.LogDebug(
+                                    "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] fragment-assembled stream={StreamId} totalLen={TotalLength} ep={Address}",
+                                    header.StreamId,
+                                    assembled.Length,
+                                    _sender?.NetworkEndpoint.Address
+                                );
+                            }
 #endif
                             // If this was the last chunk, the assembler has no more use for the stream and can release it.
                             Interlocked.Decrement(ref _openFragmentStreams);
@@ -506,9 +588,15 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
                         lease.Dispose();
 #if DEBUG
-                        s_logger?.Debug(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                            $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address}");
+                        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            s_logger.LogDebug(
+                                "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] handoff-to-cache payload={Payload} pending={PendingCount} ep={Address}",
+                                payload,
+                                pending,
+                                _sender?.NetworkEndpoint.Address
+                            );
+                        }
 #endif
                     }
                     else
@@ -517,9 +605,16 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                         args.Initialize(lease, _cachedArgs.Connection);
                         bool queued = AsyncCallback.Invoke(_callbackProcess, _sender, args);
 #if DEBUG
-                        s_logger?.Debug(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                            $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address} callback-queued={queued}");
+                        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            s_logger.LogDebug(
+                                "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] handoff-to-cache payload={Payload} pending={PendingCount} ep={Address} callback-queued={CallbackQueued}",
+                                payload,
+                                pending,
+                                _sender?.NetworkEndpoint.Address,
+                                queued
+                            );
+                        }
 #endif
                     }
                 }
@@ -535,22 +630,35 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         }
         catch (Exception ex) when (IS_BENIGN_DISCONNECT(ex))
         {
-            s_logger?.Trace(
-                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                $"ended (peer closed/shutdown) ep={_sender?.NetworkEndpoint.Address}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] ended (peer closed/shutdown) ep={Address}",
+                    _sender?.NetworkEndpoint.Address
+                );
+            }
         }
         catch (OperationCanceledException)
         {
-            s_logger?.Trace(
-                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                $"cancelled ep={_sender?.NetworkEndpoint.Address}");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.LogTrace(
+                    "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] cancelled ep={Address}",
+                    _sender?.NetworkEndpoint.Address
+                );
+            }
         }
         catch (Exception ex)
         {
             Exception e = (ex as AggregateException)?.Flatten() ?? ex;
-            s_logger?.Error(
-                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                $"faulted ep={_sender?.NetworkEndpoint.Address}", e);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    e,
+                    "[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] faulted ep={Address}",
+                    _sender?.NetworkEndpoint.Address
+                );
+            }
         }
         finally
         {
@@ -615,9 +723,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         }
 
 #if DEBUG
-        s_logger?.Trace(
-            $"[NW.{nameof(SocketConnection)}:{nameof(Dispose)}] " +
-            $"disposed ep={FORMAT_ENDPOINT(_socket)}");
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.LogTrace(
+                "[NW.SocketConnection:Dispose] disposed ep={Endpoint}",
+                FORMAT_ENDPOINT(_socket)
+            );
+        }
 #endif
     }
 

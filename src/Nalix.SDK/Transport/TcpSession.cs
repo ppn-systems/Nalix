@@ -7,8 +7,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Concurrency;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
@@ -107,7 +107,10 @@ public sealed class TcpSession : TcpSessionBase
 
             this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
             this.Options.Validate();
-            this.Logger?.Info($"[SDK.{this.GetType().Name}] TransportOptions loaded and validated");
+            if (this.Logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                this.Logger.LogInformation("[SDK.{ClassName}] TransportOptions loaded and validated", this.GetType().Name);
+            }
         }
         catch (Exception ex)
         {
@@ -133,7 +136,10 @@ public sealed class TcpSession : TcpSessionBase
         this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Options.Validate();
-        this.Logger?.Info($"[SDK.{this.GetType().Name}] TransportOptions loaded and validated");
+        if (this.Logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            this.Logger.LogInformation("[SDK.{ClassName}] TransportOptions loaded and validated", this.GetType().Name);
+        }
     }
 
     /// <summary>
@@ -205,13 +211,19 @@ public sealed class TcpSession : TcpSessionBase
             string.Equals(_host, effectiveHost, StringComparison.OrdinalIgnoreCase) &&
             _port == effectivePort)
         {
-            this.Logger?.Debug($"[SDK.{this.GetType().Name}] Already connected to {effectiveHost}:{effectivePort}.");
+            if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                this.Logger.LogDebug("[SDK.{ClassName}] Already connected to {Host}:{Port}.", this.GetType().Name, effectiveHost, effectivePort);
+            }
             return;
         }
 
         if (this.IsConnected)
         {
-            this.Logger?.Debug($"[SDK.{this.GetType().Name}] Cleaning up existing connection.");
+            if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                this.Logger.LogDebug("[SDK.{ClassName}] Cleaning up existing connection.", this.GetType().Name);
+            }
             this.TearDownConnection();
         }
 
@@ -269,7 +281,10 @@ public sealed class TcpSession : TcpSessionBase
                 }
                 else
                 {
-                    this.Logger?.Info($"[SDK.{this.GetType().Name}] Connected to {effectiveHost}:{effectivePort}.");
+                    if (this.Logger?.IsEnabled(LogLevel.Information) == true)
+                    {
+                        this.Logger.LogInformation("[SDK.{ClassName}] Connected to {Host}:{Port}.", this.GetType().Name, effectiveHost, effectivePort);
+                    }
                     this.RaiseConnected();
                 }
 
@@ -281,7 +296,10 @@ public sealed class TcpSession : TcpSessionBase
             catch (Exception ex)
             {
                 lastEx = ex;
-                this.Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to connect to {addr}:{effectivePort}: {ex.Message}", ex);
+                if (this.Logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    this.Logger.LogWarning("[SDK.{ClassName}] Failed to connect to {Address}:{Port}: {Message}", this.GetType().Name, addr, effectivePort, ex.Message);
+                }
                 try { s.Dispose(); } catch { }
             }
             finally
@@ -291,7 +309,10 @@ public sealed class TcpSession : TcpSessionBase
         }
 
         this.SetState(TcpSessionState.Disconnected);
-        throw new NetworkException($"[SDK.{this.GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}", lastEx ?? new SocketException((int)SocketError.HostNotFound));
+
+        throw new NetworkException(
+            $"[SDK.{this.GetType().Name}] Could not connect to {effectiveHost}:{effectivePort}; last error: {lastEx?.Message}",
+            lastEx ?? new SocketException((int)SocketError.HostNotFound));
     }
 
     #endregion APIs
@@ -306,7 +327,10 @@ public sealed class TcpSession : TcpSessionBase
         Sender = new FRAME_SENDER(this.RequireConnectedSocket, this.Options, this.ReportBytesSent, this.HandleSendError, this.Logger);
         Receiver = new FRAME_READER(this.RequireConnectedSocket, this.Options, this.HandleReceiveMessage, this.HandleReceiveError, this.ReportBytesReceived, this.Logger);
 
-        this.Logger?.Debug($"[SDK.{this.GetType().Name}] Frame helpers created");
+        if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            this.Logger.LogDebug("[SDK.{ClassName}] Frame helpers created", this.GetType().Name);
+        }
     }
 
     /// <summary>
@@ -328,7 +352,10 @@ public sealed class TcpSession : TcpSessionBase
                 work: async (_, workerCt) =>
                 {
                     CancellationToken effective = workerCt.CanBeCanceled ? workerCt : loopToken;
-                    this.Logger?.Info($"[SDK.{this.GetType().Name}] Receive worker started");
+                    if (this.Logger?.IsEnabled(LogLevel.Information) == true)
+                    {
+                        this.Logger.LogInformation("[SDK.{ClassName}] Receive worker started", this.GetType().Name);
+                    }
                     await Receiver.ReceiveLoopAsync(effective).ConfigureAwait(false);
                 },
                 options: new WorkerOptions { CancellationToken = loopToken }
@@ -336,7 +363,10 @@ public sealed class TcpSession : TcpSessionBase
         }
         catch (Exception ex)
         {
-            this.Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to schedule receive worker: {ex.Message}, falling back to Task.Run", ex);
+            if (this.Logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                this.Logger.LogWarning("[SDK.{ClassName}] Failed to schedule receive worker: {Message}, falling back to Task.Run", this.GetType().Name, ex.Message);
+            }
             _ = Task.Run(() => Receiver.ReceiveLoopAsync(loopToken), loopToken);
         }
 
@@ -363,7 +393,10 @@ public sealed class TcpSession : TcpSessionBase
     /// <inheritdoc/>
     protected override void HandleSendError(Exception ex)
     {
-        this.Logger?.Warn($"[SDK.{this.GetType().Name}] Send error: {ex.Message}", ex);
+        if (this.Logger?.IsEnabled(LogLevel.Warning) == true)
+        {
+            this.Logger.LogWarning("[SDK.{ClassName}] Send error: {Message}", this.GetType().Name, ex.Message);
+        }
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
@@ -371,7 +404,10 @@ public sealed class TcpSession : TcpSessionBase
     /// <inheritdoc/>
     protected override void HandleReceiveError(Exception ex)
     {
-        this.Logger?.Warn($"[SDK.{this.GetType().Name}] Receive error: {ex.Message}", ex);
+        if (this.Logger?.IsEnabled(LogLevel.Warning) == true)
+        {
+            this.Logger.LogWarning("[SDK.{ClassName}] Receive error: {Message}", this.GetType().Name, ex.Message);
+        }
         this.RaiseError(ex);
         this.TriggerReconnect(ex);
     }
@@ -380,12 +416,18 @@ public sealed class TcpSession : TcpSessionBase
     {
         if (Interlocked.CompareExchange(ref _reconnecting, 1, 0) == 0)
         {
-            this.Logger?.Info($"[SDK.{this.GetType().Name}] Triggering auto-reconnect after error: {ex.Message}");
+            if (this.Logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                this.Logger.LogInformation("[SDK.{ClassName}] Triggering auto-reconnect after error: {Message}", this.GetType().Name, ex.Message);
+            }
             _ = this.HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
         }
         else
         {
-            this.Logger?.Trace($"[SDK.{this.GetType().Name}] Reconnect already in progress, skipping.");
+            if (this.Logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                this.Logger.LogTrace("[SDK.{ClassName}] Reconnect already in progress, skipping.", this.GetType().Name);
+            }
         }
     }
 
@@ -405,11 +447,17 @@ public sealed class TcpSession : TcpSessionBase
                                             .CancelWorker(_receiveHandle.Id);
 
                     _receiveHandle = null;
-                    this.Logger?.Debug($"[SDK.{this.GetType().Name}] Receive worker cancelled");
+                    if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        this.Logger.LogDebug("[SDK.{ClassName}] Receive worker cancelled", this.GetType().Name);
+                    }
                 }
                 catch
                 {
-                    this.Logger?.Warn($"[SDK.{this.GetType().Name}] Failed to cancel receive worker for {_host}:{_port}");
+                    if (this.Logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        this.Logger.LogWarning("[SDK.{ClassName}] Failed to cancel receive worker for {Host}:{Port}", this.GetType().Name, _host, _port);
+                    }
                 }
             }
 
@@ -419,12 +467,18 @@ public sealed class TcpSession : TcpSessionBase
         }
         catch (Exception ex)
         {
-            this.Logger?.Warn($"[SDK.{this.GetType().Name}] Exception during TearDownConnection: {ex.Message}", ex);
+            if (this.Logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                this.Logger.LogWarning("[SDK.{ClassName}] Exception during TearDownConnection: {Message}", this.GetType().Name, ex.Message);
+            }
         }
 
         if (wasConnected)
         {
-            this.Logger?.Info($"[SDK.{this.GetType().Name}] Disconnected");
+            if (this.Logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                this.Logger.LogInformation("[SDK.{ClassName}] Disconnected", this.GetType().Name);
+            }
             this.RaiseDisconnected(new SocketException((int)SocketError.NotConnected));
         }
     }
@@ -435,7 +489,10 @@ public sealed class TcpSession : TcpSessionBase
 
     private async Task HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(Exception cause)
     {
-        this.Logger?.Debug($"[SDK.{this.GetType().Name}] ReconnectAsync triggered after: {cause.Message}");
+        if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            this.Logger.LogDebug("[SDK.{ClassName}] ReconnectAsync triggered after: {Message}", this.GetType().Name, cause.Message);
+        }
         this.TearDownConnection();
 
         if (!this.Options.ReconnectEnabled || Volatile.Read(ref _disposed) == 1)
@@ -480,7 +537,12 @@ public sealed class TcpSession : TcpSessionBase
             try
             {
                 await this.ConnectAsync(_host, _port, reconnectCts.Token).ConfigureAwait(false);
-                this.Logger?.Info($"[SDK.{this.GetType().Name}] Reconnected to {_host}:{_port} after {attempt} attempt(s).");
+                if (this.Logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    this.Logger.LogInformation(
+                        "[SDK.{ClassName}] Reconnected to {Host}:{Port} after {Attempt} attempt(s).",
+                        this.GetType().Name, _host, _port, attempt);
+                }
                 this.RaiseReconnected(attempt);
                 return;
             }
@@ -490,12 +552,23 @@ public sealed class TcpSession : TcpSessionBase
             }
             catch (Exception ex)
             {
-                this.Logger?.Warn($"[SDK.{this.GetType().Name}] Reconnect attempt {attempt} failed: {ex.Message}", ex);
+                if (this.Logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    this.Logger.LogWarning(
+                        "[SDK.{ClassName}] Reconnect attempt {Attempt} failed: {Message}",
+                        this.GetType().Name, attempt, ex.Message);
+                }
                 delay = Math.Min(max, delay * 2);
             }
         }
 
-        this.Logger?.Error($"[SDK.{this.GetType().Name}] Reconnect exhausted after {attempt} attempt(s).");
+        if (this.Logger?.IsEnabled(LogLevel.Error) == true)
+        {
+            this.Logger.LogError(
+                "[SDK.{ClassName}] Reconnect exhausted after {Attempt} attempt(s).",
+                this.GetType().Name, attempt);
+        }
+
         _ = Interlocked.Exchange(ref _reconnecting, 0);
         this.SetState(TcpSessionState.Disconnected);
     }
@@ -567,7 +640,12 @@ public sealed class TcpSession : TcpSessionBase
             }
             catch (Exception ex)
             {
-                _session.Logger?.Warn($"[SDK.SessionMonitor] Failed to schedule '{name}' via TaskManager, falling back to Task.Run: {ex.Message}");
+                if (_session.Logger?.IsEnabled(LogLevel.Warning) == true)
+                {
+                    _session.Logger.LogWarning(
+                        "[SDK.SessionMonitor] Failed to schedule '{Name}' via TaskManager, falling back to Task.Run: {Message}",
+                        name, ex.Message);
+                }
                 _ = Task.Run(async () => await work(new InlineWorkerContext(name), token).ConfigureAwait(false), token);
                 return null;
             }
@@ -608,7 +686,12 @@ public sealed class TcpSession : TcpSessionBase
                 }
                 catch (Exception ex)
                 {
-                    _session.Logger?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(RateSamplerLoopAsync)}] sampler-error: {ex.Message}");
+                    if (_session.Logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        _session.Logger.LogWarning(
+                            "[SDK.{ClassName}.{MethodName}] sampler-error: {Message}",
+                            nameof(TcpSession), nameof(RateSamplerLoopAsync), ex.Message);
+                    }
                 }
             }
         }
@@ -647,7 +730,12 @@ public sealed class TcpSession : TcpSessionBase
             // KeepAliveIntervalMillis = 0 nghĩa là heartbeat bị disabled.
             if (intervalMs <= 0)
             {
-                _session.Logger?.Debug($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] Heartbeat disabled (KeepAliveIntervalMillis=0).");
+                if (_session.Logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    _session.Logger.LogDebug(
+                        "[SDK.{ClassName}.{MethodName}] Heartbeat disabled (KeepAliveIntervalMillis=0).",
+                        nameof(TcpSession), nameof(HeartbeatLoopAsync));
+                }
                 return;
             }
 
@@ -676,7 +764,12 @@ public sealed class TcpSession : TcpSessionBase
                 }
                 catch (Exception ex)
                 {
-                    _session.Logger?.Warn($"[SDK.{nameof(TcpSession)}.{nameof(HeartbeatLoopAsync)}] heartbeat-error: {ex.Message}");
+                    if (_session.Logger?.IsEnabled(LogLevel.Warning) == true)
+                    {
+                        _session.Logger.LogWarning(
+                            "[SDK.{ClassName}.{MethodName}] heartbeat-error: {Message}",
+                            nameof(TcpSession), nameof(HeartbeatLoopAsync), ex.Message);
+                    }
                     _ = _session.HANDLE_DISCONNECT_AND_RECONNECT_ASYNC(ex);
                     break;
                 }

@@ -5,11 +5,9 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Contracts;
-using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration;
 using Nalix.Logging.Configuration;
@@ -33,13 +31,9 @@ public abstract class NLogixEngine : IDisposable
     private LogLevel _minLevel;
     private int _isDisposed;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CompositeFormat> s_formatCache;
-
     #endregion Fields
 
     #region Constructors
-
-    static NLogixEngine() => s_formatCache = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NLogixEngine"/> class.
@@ -93,7 +87,7 @@ public abstract class NLogixEngine : IDisposable
 
         LogLevel newLevel = _logOptions.MinLevel;
         _ = Interlocked.Exchange(ref Unsafe
-                                    .As<LogLevel, int>(ref _minLevel), (int)newLevel);
+                       .As<LogLevel, int>(ref _minLevel), (int)newLevel);
     }
 
     /// <summary>
@@ -102,7 +96,41 @@ public abstract class NLogixEngine : IDisposable
     /// <param name="level">The log level to check.</param>
     /// <returns><c>true</c> if the log level is enabled for logging.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool IsLevelEnabled(LogLevel level) => level >= _minLevel;
+    public bool IsEnabled(LogLevel level) => level >= _minLevel;
+
+    /// <inheritdoc/>
+    public virtual IDisposable? BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
+
+    /// <inheritdoc/>
+    public virtual void Log<TState>(
+        LogLevel logLevel,
+        EventId eventId,
+        TState state,
+        Exception? exception,
+        Func<TState, Exception?, string> formatter)
+    {
+        if (state == null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+
+        ArgumentNullException.ThrowIfNull(formatter);
+
+        string message = formatter(state, exception);
+        if (string.IsNullOrEmpty(message) && exception == null)
+        {
+            return;
+        }
+
+        this.Publish(logLevel, eventId, message, exception);
+    }
+
+    private sealed class NullScope : IDisposable
+    {
+        public static readonly NullScope Instance = new();
+        private NullScope() { }
+        public void Dispose() { }
+    }
 
     /// <summary>
     /// Creates and publishes a log entry if the log level is enabled.
@@ -116,39 +144,15 @@ public abstract class NLogixEngine : IDisposable
         "Reliability", "CA2012:Use ValueTasks correctly", Justification = "<Pending>")]
     [SuppressMessage(
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    protected void Publish(
-        LogLevel level,
-        EventId eventId,
-        string message,
-        [MaybeNull] Exception? error = null)
+    protected void Publish(LogLevel level, EventId? eventId, string message, Exception? error = null)
     {
-        if (_isDisposed != 0 || !this.IsLevelEnabled(level))
+        if (_isDisposed != 0)
         {
             return;
         }
 
         LogEntry entry = new(level, eventId, message, error);
         _distributor.Publish(entry);
-    }
-
-    /// <summary>
-    /// Creates and publishes a log entry with a formatted message if the log level is enabled.
-    /// </summary>
-    /// <param name="level">The severity level of the log entry.</param>
-    /// <param name="eventId">The event identifier associated with the log entry.</param>
-    /// <param name="format">The message format string with placeholders.</param>
-    /// <param name="args">The argument values for the format string.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    protected void Publish(LogLevel level, EventId eventId, string format, params object[] args)
-    {
-        // Skip expensive string formatting if the log level is disabled
-        if (_isDisposed != 0 || !this.IsLevelEnabled(level))
-        {
-            return;
-        }
-
-        // Format the message only if we're going to use it
-        this.Publish(level, eventId, FormatMessage(format, args));
     }
 
     /// <summary>
@@ -183,107 +187,4 @@ public abstract class NLogixEngine : IDisposable
     }
 
     #endregion Disposable
-
-    #region Private Methods
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string FormatMessage(string format, object[]? args)
-    {
-        if (string.IsNullOrEmpty(format) || args == null || args.Length == 0)
-        {
-            return format;
-        }
-
-        // Fast path: single argument with "{0}" or "{0:...}" pattern.
-        if (args.Length == 1 && TryParseSimplePlaceholder(format, out ReadOnlySpan<char> innerFormat))
-        {
-            object arg = args[0];
-
-            // ISpanFormattable first (DateTime, numeric types, etc. in .NET 7/8)
-            if (arg is ISpanFormattable spanFormattable)
-            {
-                // Heuristic max length. If not enough, grow on-demand.
-                Span<char> initial = stackalloc char[64];
-                CultureInfo provider = CultureInfo.CurrentCulture;
-
-                if (spanFormattable.TryFormat(initial, out int written, innerFormat, provider))
-                {
-                    return new string(initial[..written]);
-                }
-
-                // Rerun with rented buffer if initial stack is not enough
-                int size = 128;
-                do
-                {
-                    char[] rented = System.Buffers.ArrayPool<char>.Shared.Rent(size);
-                    try
-                    {
-                        if (spanFormattable.TryFormat(rented, out written, innerFormat, provider))
-                        {
-                            return new string(rented, 0, written);
-                        }
-                    }
-                    finally
-                    {
-                        System.Buffers.ArrayPool<char>.Shared.Return(rented);
-                    }
-                    size <<= 1;
-                }
-                while (size <= 1024 * 64);
-            }
-
-            // IFormattable fallback (boxed types or custom formattables)
-            if (arg is IFormattable formattable)
-            {
-                return formattable.ToString(innerFormat.ToString(), CultureInfo.CurrentCulture) ?? string.Empty;
-            }
-
-            // Generic fallback
-            return arg?.ToString() ?? string.Empty;
-        }
-
-        // General path: cached CompositeFormat to avoid reparsing the format string
-        CompositeFormat composite = s_formatCache.GetOrAdd(format, static f => CompositeFormat.Parse(f));
-        return string.Format(CultureInfo.CurrentCulture, composite, args);
-    }
-
-    /// <summary>
-    /// Detects if 'format' is exactly "{0}" or "{0:...}" (no extra text),
-    /// and extracts the inner format (after ':') if present.
-    /// Returns true when pattern matches.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TryParseSimplePlaceholder(string format, out ReadOnlySpan<char> innerFormat)
-    {
-        innerFormat = default;
-
-        // Quick checks: must start with '{' and end with '}'
-        if (format.Length < 3 || format[0] != '{' || format[^1] != '}')
-        {
-            return false;
-        }
-
-        // Allowed forms:
-        // "{0}"                  -> innerFormat = default
-        // "{0:formatString}"     -> innerFormat = "formatString"
-        // No alignment, no index other than 0, no extra text around.
-        // We'll parse a minimal subset to stay fast.
-        ReadOnlySpan<char> span = format.AsSpan(1, format.Length - 2); // inside braces
-                                                                       // Now span should be "0" or "0:...".
-        if (span.Length == 1 && span[0] == '0')
-        {
-            return true;
-        }
-
-        if (span.Length > 2 && span[0] == '0' && span[1] == ':')
-        {
-            innerFormat = span[2..];
-            return true;
-        }
-
-        return false;
-    }
-
-    #endregion Private Methods
 }

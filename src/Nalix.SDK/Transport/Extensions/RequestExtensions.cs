@@ -5,10 +5,8 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
 using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
 
@@ -235,12 +233,6 @@ public static class RequestExtensions
                         : client.SendAsync(request, token),
                     ct).ConfigureAwait(false);
 
-                if (attempt > 1)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Info($"[SDK.RequestAsync<{typeof(TResponse).Name}>] Succeeded on attempt {attempt}/{totalAttempts}.");
-                }
-
                 return result;
             }
             catch (TimeoutException tex) when (attempt < totalAttempts)
@@ -248,8 +240,8 @@ public static class RequestExtensions
                 // Only TimeoutException is retryable.
                 // OperationCanceledException, InvalidOperationException, etc. propagate immediately.
                 lastException = tex;
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[SDK.RequestAsync<{typeof(TResponse).Name}>] Attempt {attempt}/{totalAttempts} timed out, retrying...");
+                //InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                //                        .Warn($"[SDK.RequestAsync<{typeof(TResponse).Name}>] Attempt {attempt}/{totalAttempts} timed out, retrying...");
             }
         }
 

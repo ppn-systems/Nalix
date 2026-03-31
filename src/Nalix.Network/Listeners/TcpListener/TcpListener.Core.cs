@@ -7,10 +7,10 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
-using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -83,7 +83,13 @@ public abstract partial class TcpListenerBase : IListener
 
             InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled = value;
 
-            s_logger?.Info($"[NW.{nameof(TcpListenerBase)}] timesync={value}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[NW.TcpListenerBase] timesync={TimeSyncValue}",
+                    value
+                );
+            }
         }
     }
 
@@ -158,8 +164,14 @@ public abstract partial class TcpListenerBase : IListener
 
             ThreadPool.GetMinThreads(out int afterWorker, out int afterIOCP);
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[NW.{nameof(TcpListenerBase)}] set-min-threads worker={afterWorker} iocp={afterIOCP}");
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.LogInformation(
+                    "[NW.TcpListenerBase] set-min-threads worker={WorkerCount} iocp={IOCPCount}",
+                    afterWorker,
+                    afterIOCP
+                );
+            }
         }
     }
 
@@ -209,13 +221,25 @@ public abstract partial class TcpListenerBase : IListener
 
                 _ = Interlocked.Exchange(ref self._state, (int)ListenerState.STOPPED);
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Info($"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] stopped port={self._port}");
+                if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    s_logger.LogInformation(
+                        "[NW.TcpListenerBase:SCHEDULE_STOP] stopped port={Port}",
+                        self._port
+                    );
+                }
             }
             catch (Exception ex)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] stop-error port={self._port} ex={ex.Message}");
+                if (s_logger?.IsEnabled(LogLevel.Error) == true)
+                {
+                    s_logger.LogError(
+                        ex,
+                        "[NW.TcpListenerBase:SCHEDULE_STOP] stop-error port={Port} ex={ErrorMessage}",
+                        self._port,
+                        ex.Message
+                    );
+                }
             }
             finally
             {
@@ -296,7 +320,12 @@ public abstract partial class TcpListenerBase : IListener
             _lock.Dispose();
         }
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
+        if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            s_logger.LogDebug(
+                "[NW.TcpListenerBase:Dispose] disposed"
+            );
+        }
     }
 
     #endregion IDispose

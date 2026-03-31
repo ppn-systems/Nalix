@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
@@ -273,7 +274,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
                 }
                 catch (Exception ex)
                 {
-                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warn,
+                    LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warning,
                         $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] publish-slot-fail iface={itf.Name}", ex));
                 }
             }
@@ -529,7 +530,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
                 LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-ok type={type.Name}"));
             }
 
-            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] removed type={type.Name}"));
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] removed type={type.Name}"));
         }
 
         // Also remove any signature instances whose target type matches
@@ -565,7 +566,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
 
         if (!removedAny)
         {
-            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] notfound type={type.Name}"));
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] notfound type={type.Name}"));
             return false;
         }
 
@@ -665,7 +666,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         s_tsLastKey = default;
         s_tsLastValue = null;
 
-        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] cleared"));
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] cleared"));
     }
 
     #endregion Public API
@@ -817,12 +818,12 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         if (s_processMutexOwner && s_processMutex != null)
         {
             try { s_processMutex.ReleaseMutex(); }
-            catch (Exception ex) { LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warn, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex)); }
+            catch (Exception ex) { LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Warning, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex)); }
             s_processMutex.Dispose();
             s_processMutex = null;
         }
 
-        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] disposed"));
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] disposed"));
     }
 
     #endregion IDisposable
@@ -876,7 +877,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             _ = _disposables.TryAdd(disp, 0);
         }
 
-        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(CREATE_OR_GET_SIGNATURE_INSTANCE)}] created signature type={type.Name}"));
+        LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(CREATE_OR_GET_SIGNATURE_INSTANCE)}] created signature type={type.Name}"));
 
         TRY_PUBLISH_SLOT_BY_TYPE(type, created);
 
@@ -977,7 +978,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
                 _ = _disposables.TryAdd(d, 0);
             }
 
-            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Info, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] created type={type.Name}"));
+            LogEvent?.Invoke(this, new LogEventArgs(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] created type={type.Name}"));
 
             return _instanceCache.GetOrAdd(key, instance);
         }

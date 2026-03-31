@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 
 namespace Nalix.Network.Protocols;
@@ -50,14 +51,30 @@ public abstract partial class Protocol : IProtocol
             {
                 args.Connection.Disconnect();
 
-                s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
+                if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+                {
+                    s_logger.LogTrace(
+                        "[NW.{ClassName}:{MethodName}] disconnect id={ConnectionId}",
+                        nameof(Protocol),
+                        nameof(PostProcessMessage),
+                        args.Connection.ID
+                    );
+                }
             }
         }
         catch (Exception ex)
         {
             _ = Interlocked.Increment(ref _totalErrors);
 
-            s_logger?.Error($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
+            if (s_logger?.IsEnabled(LogLevel.Error) == true)
+            {
+                s_logger.LogError(
+                    ex,
+                    "[NW.{ClassName}:{MethodName}] post-fail id={ConnectionId}",
+                    nameof(Protocol),
+                    nameof(PostProcessMessage),
+                    args.Connection.ID);
+            }
 
             // Notify protocol-level error handler
             this.OnConnectionError(args.Connection, ex);
@@ -76,6 +93,13 @@ public abstract partial class Protocol : IProtocol
     {
         _ = Interlocked.Exchange(ref _accepting, isEnabled ? 1 : 0);
 
-        s_logger?.Info($"[NW.{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
+        if (s_logger?.IsEnabled(LogLevel.Information) == true)
+        {
+            s_logger.LogInformation(
+                "[NW.{ClassName}:{MethodName}] accepting={AcceptingStatus}",
+                nameof(Protocol),
+                nameof(SetConnectionAcceptance),
+                isEnabled ? "enabled" : "disabled");
+        }
     }
 }
