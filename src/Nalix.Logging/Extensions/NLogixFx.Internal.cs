@@ -3,8 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
-
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace Nalix.Logging.Extensions;
 
@@ -31,7 +30,7 @@ public static partial class NLogixFx
             message, sourceName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
-        Publisher.Publish(new LogEntry(level, EventId.Empty, fullMessage, null));
+        Publisher.Publish(DateTime.UtcNow, level, default, fullMessage, null);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

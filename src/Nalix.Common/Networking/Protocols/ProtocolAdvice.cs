@@ -7,7 +7,6 @@ namespace Nalix.Common.Networking.Protocols;
 /// High-level client actions suggested by the server for a given reason.
 /// Clients should treat these as hints to guide behavior.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "<Pending>")]
 public enum ProtocolAdvice : byte
 {
     /// <summary>

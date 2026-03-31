@@ -11,9 +11,9 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
+using Microsoft.Extensions.Logging;
 
 #if DEBUG
-using Nalix.Common.Diagnostics;
 using Nalix.Framework.Injection;
 using System.Runtime.CompilerServices;
 

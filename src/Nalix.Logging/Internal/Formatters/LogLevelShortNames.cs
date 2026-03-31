@@ -5,7 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Logging.Tests")]
@@ -26,7 +26,7 @@ internal static class LogLevelShortNames
     /// <summary>
     /// Constants for optimized memory layout
     /// </summary>
-    private const int MaxLogLevels = 8;
+    private const int MaxLogLevels = 7;
 
     private const int LogLevelLength = 4;
     /// <summary>
@@ -44,14 +44,13 @@ internal static class LogLevelShortNames
     /// </summary>
     private static ReadOnlySpan<char> LogLevelChars =>
     [
-        'N', 'O', 'N', 'E', '\0', // LogLevel.NONE        (0)
-        'M', 'E', 'T', 'A', '\0', // LogLevel.Meta        (1)
-        'T', 'R', 'C', 'E', '\0', // LogLevel.Trace       (2)
-        'D', 'B', 'U', 'G', '\0', // LogLevel.Debug       (3)
-        'I', 'N', 'F', 'O', '\0', // LogLevel.Information (4)
-        'W', 'A', 'R', 'N', '\0', // LogLevel.Warning     (5)
-        'E', 'R', 'R', 'O', '\0', // LogLevel.ERROR       (6)
-        'C', 'R', 'I', 'T', '\0'  // LogLevel.Critical    (7)
+        'T', 'R', 'C', 'E', '\0', // LogLevel.Trace       (0)
+        'D', 'B', 'U', 'G', '\0', // LogLevel.Debug       (1)
+        'I', 'N', 'F', 'O', '\0', // LogLevel.Information (2)
+        'W', 'A', 'R', 'N', '\0', // LogLevel.Warning     (3)
+        'E', 'R', 'R', 'O', '\0', // LogLevel.Error       (4)
+        'C', 'R', 'I', 'T', '\0', // LogLevel.Critical    (5)
+        'N', 'O', 'N', 'E', '\0', // LogLevel.NONE        (6)
     ];
 
     #endregion Fields
@@ -65,7 +64,7 @@ internal static class LogLevelShortNames
         if ((byte)logLevel >= MaxLogLevels)
         {
             // Fall back to the string representation for unknown levels
-            return MemoryExtensions.AsSpan(logLevel.ToString().ToUpperInvariant());
+            return "NONE";
         }
 
         // Get the pre-computed span for this log level

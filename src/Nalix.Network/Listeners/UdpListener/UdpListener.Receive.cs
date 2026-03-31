@@ -8,7 +8,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Identifiers;

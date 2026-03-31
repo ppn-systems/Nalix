@@ -2,14 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Logging;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames;
@@ -62,7 +60,6 @@ public sealed class PacketRegistryTests : IDisposable
     [Fact]
     public void ControlSerializeThenDeserializeReturnsSamePacket()
     {
-        InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
         // Arrange
         Control original = new();
         original.Initialize(

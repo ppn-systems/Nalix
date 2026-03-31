@@ -6,8 +6,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.Logging.Configuration;
@@ -38,7 +38,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// Gets or sets the log distributor responsible for publishing log messages to targets.
     /// </summary>
     [ConfiguredIgnore]
-    private ILogDistributor? Publisher { get; set; }
+    private INLogixDistributor? Publisher { get; set; }
 
     /// <summary>
     /// Gets the file logger configuration options.
@@ -92,7 +92,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     public NLogixOptions()
     {
         this.Publisher = null;
-        this.MinLevel = LogLevel.Info;
+        this.MinLevel = LogLevel.Information;
         this.FileOptions = new FileLogOptions();
 
         this.UseUtcTimestamp = true;
@@ -110,7 +110,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Sets the log distributor for publishing log messages.
     /// </summary>
-    public NLogixOptions SetPublisher(ILogDistributor publisher)
+    public NLogixOptions SetPublisher(INLogixDistributor publisher)
     {
         ArgumentNullException.ThrowIfNull(publisher);
         ObjectDisposedException.ThrowIf(Interlocked
@@ -146,7 +146,7 @@ public sealed class NLogixOptions : ConfigurationLoader, IDisposable
     /// Adds a logging target to receive log entries.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions RegisterTarget(ILoggerTarget target)
+    public NLogixOptions RegisterTarget(INLogixTarget target)
     {
         ArgumentNullException.ThrowIfNull(target);
         ObjectDisposedException.ThrowIf(Interlocked

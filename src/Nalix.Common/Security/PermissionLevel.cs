@@ -7,7 +7,6 @@ namespace Nalix.Common.Security;
 /// Specifies the authority levels of users in the system.
 /// Each level determines the scope of access and control.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1707:Identifiers should not contain underscores", Justification = "<Pending>")]
 public enum PermissionLevel : byte
 {
     /// <summary>

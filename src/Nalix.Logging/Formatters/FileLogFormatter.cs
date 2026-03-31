@@ -1,138 +1,111 @@
 using System;
 using System.Globalization;
 using System.Text;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Logging.Internal.Formatters;
 using Nalix.Logging.Internal.Pooling;
 
 namespace Nalix.Logging.Formatters;
 
 /// <inheritdoc/>
-public sealed class FileLogFormatter : ILoggerFormatter
+public sealed class FileLogFormatter : INLogixFormatter
 {
     private const string TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff";
 
-    /// <summary>
-    /// Formats a <see cref="LogEntry"/> into a plain log string suitable for file output, 
-    /// including timestamp, event ID, log level, message, and exception details (if any).
-    /// Uses <c>string.Create</c> for high-performance zero-allocation formatting.
-    /// </summary>
-    /// <param name="message">
-    ///     The <see cref="LogEntry"/> containing log data to be formatted.
-    /// </param>
-    /// <returns>
-    ///     A formatted string including timestamp, optional event ID, log level, message, and exception details.
-    ///     The format is: <c>[timestamp] [EventId] [Level] Message - Exception: ...</c>
-    /// </returns>
-    /// <example>
-    /// <code>
-    /// var formatter = new FileLogFormatter();
-    /// var log = formatter.Format(
-    ///     new LogEntry(
-    ///         DateTime.UtcNow,
-    ///         LogLevel.Information,
-    ///         new EventId(100, "Startup"),
-    ///         "Application started",
-    ///         null));
-    /// // Output: [2026-03-30 18:20:15.390] [100] [INFO] Application started
-    /// </code>
-    /// </example>
-    public string Format(LogEntry message)
+    /// <inheritdoc/>
+    public string Format(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception)
     {
-        string timestamp = TimestampCache.GetFormattedTimestamp(message.Timestamp, TimestampFormat);
+        ArgumentNullException.ThrowIfNull(message);
 
-        bool hasEventId = message.EventId != EventId.Empty;
-        bool hasException = message.Exception is not null;
+        string timestamp = TimestampCache.GetFormattedTimestamp(timestampUtc, TimestampFormat);
+        bool hasEventId = eventId != default;
+        bool hasException = exception is not null;
 
         return string.Create(
-            timestamp.Length + message.Message.Length + 64,
-            (message, timestamp, hasEventId, hasException),
+            timestamp.Length + message.Length + 64 + (exception?.ToString().Length ?? 0),
+            (timestamp, logLevel, eventId, message, exception, hasEventId, hasException),
             (span, state) =>
             {
-                (LogEntry entry, string? ts, bool eventIdFlag, bool exFlag) = state;
+                (string ts, LogLevel level, EventId evt, string msg, Exception? ex, bool hasEvt, bool hasEx) = state;
 
                 int pos = 0;
-
-                // [timestamp]
                 span[pos++] = '[';
                 ts.AsSpan().CopyTo(span[pos..]);
                 pos += ts.Length;
                 span[pos++] = ']';
                 span[pos++] = ' ';
 
-                // [EventId]
-                if (eventIdFlag)
+                if (hasEvt)
                 {
                     span[pos++] = '[';
-                    _ = entry.EventId.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
+                    _ = evt.Id.TryFormat(span[pos..], out int written, provider: CultureInfo.InvariantCulture);
                     pos += written;
                     span[pos++] = ']';
                     span[pos++] = ' ';
                 }
 
-                // [LogLevel]
                 span[pos++] = '[';
-                ReadOnlySpan<char> levelSpan = LogLevelShortNames.GetShortName(entry.LogLevel);
+                ReadOnlySpan<char> levelSpan = LogLevelShortNames.GetShortName(level);
                 levelSpan.CopyTo(span[pos..]);
                 pos += levelSpan.Length;
                 span[pos++] = ']';
                 span[pos++] = ' ';
 
-                // Message
-                entry.Message.AsSpan().CopyTo(span[pos..]);
-                pos += entry.Message.Length;
+                msg.AsSpan().CopyTo(span[pos..]);
+                pos += msg.Length;
 
-                // Exception
-                if (exFlag && entry.Exception is not null)
+                if (hasEx && ex is not null)
                 {
                     const string prefix = " - Exception: ";
                     prefix.AsSpan().CopyTo(span[pos..]);
                     pos += prefix.Length;
 
-                    string exStr = entry.Exception.ToString();
+                    string exStr = ex.ToString();
                     exStr.AsSpan().CopyTo(span[pos..]);
                 }
             });
     }
 
     /// <inheritdoc/>
-    public void Format(LogEntry message, StringBuilder sb)
+    public void Format(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception,
+        StringBuilder sb)
     {
+        ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(sb);
 
-        bool hasEventId = message.EventId != EventId.Empty;
-        bool hasException = message.Exception is not null;
-
-        // [timestamp]
         _ = sb.Append('[')
-              .Append(TimestampCache.GetFormattedTimestamp(message.Timestamp, TimestampFormat))
+              .Append(TimestampCache.GetFormattedTimestamp(timestampUtc, TimestampFormat))
               .Append(']')
               .Append(' ');
 
-        // [EventId]
-        if (hasEventId)
+        if (eventId != default)
         {
             _ = sb.Append('[')
-                  .Append(message.EventId.Id)
+                  .Append(eventId.Id)
                   .Append(']')
                   .Append(' ');
         }
 
-        // [LogLevel]
         _ = sb.Append('[')
-              .Append(LogLevelShortNames
-              .GetShortName(message.LogLevel))
+              .Append(LogLevelShortNames.GetShortName(logLevel))
               .Append(']')
-              .Append(' ');
+              .Append(' ')
+              .Append(message);
 
-        // Message
-        _ = sb.Append(message.Message);
-
-        // Exception
-        if (hasException && message.Exception is not null)
+        if (exception is not null)
         {
             _ = sb.Append(" - Exception: ")
-                  .Append(message.Exception);
+                  .Append(exception);
         }
     }
 }

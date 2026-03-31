@@ -7,7 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
@@ -365,7 +365,6 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     }
 
     /// <inheritdoc/>
-    [SuppressMessage("Usage", "CA2201:Do not raise reserved exception types", Justification = "<Pending>")]
     protected override void TearDownConnection()
     {
         bool wasConnected = this.IsConnected;

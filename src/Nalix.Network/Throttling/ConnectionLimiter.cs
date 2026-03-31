@@ -12,8 +12,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -39,7 +39,7 @@ namespace Nalix.Network.Throttling;
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportable
+public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportable, IWithLogging<ConnectionLimiter>
 {
     #region Constants
 
@@ -57,7 +57,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     private readonly TimeSpan _inactivityThreshold;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
 
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private ILogger? _logger;
 
     private int _disposed;
 
@@ -100,10 +100,12 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         this.INITIALIZE_METRICS();
         this.SCHEDULE_CLEANUP_JOB();
 
-        s_logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] init " +
-                       $"maxPerEndpoint={_maxPerEndpoint} " +
-                       $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
-                       $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] init " +
+                      $"maxPerEndpoint={_maxPerEndpoint} " +
+                      $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
+                      $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
     }
 
     /// <summary>Initializes a new <see cref="ConnectionLimiter"/> using global configuration.</summary>
@@ -112,6 +114,18 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
     #endregion Constructors
 
     #region Public API
+
+    /// <summary>
+    /// Assigns a logger instance used by the limiter for diagnostic output.
+    /// </summary>
+    /// <param name="logger">The logger to use for subsequent diagnostics.</param>
+    /// <returns>The current <see cref="ConnectionLimiter"/> instance.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ConnectionLimiter WithLogging(ILogger logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        return this;
+    }
 
     /// <summary>
     /// Attempts to acquire a connection slot for the given endpoint.
@@ -150,7 +164,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
                 {
                     string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
-                    s_logger?.Info(
+                    _logger?.Info(
                         $"[NW.{nameof(ConnectionLimiter)}] reject endpoint={endPoint} " +
                         $"current={result.CurrentConnections} limit={_maxPerEndpoint}{suffix}");
                 }
@@ -158,7 +172,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         }
         else
         {
-            s_logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] allow endpoint={endPoint} current={result.CurrentConnections} limit={_maxPerEndpoint}");
+            _logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] allow endpoint={endPoint} current={result.CurrentConnections} limit={_maxPerEndpoint}");
         }
 
         return result.Allowed;
@@ -180,13 +194,13 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
         if (args?.Connection?.NetworkEndpoint is null)
         {
-            s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-null args/connection/endpoint");
+            _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-null args/connection/endpoint");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(args.Connection.NetworkEndpoint.Address))
         {
-            s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-empty-address");
+            _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}:Internal] received-empty-address");
             return;
         }
 
@@ -210,7 +224,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
             {
                 string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
-                s_logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] closed endpoint={key.Address}{suffix}");
+                _logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] closed endpoint={key.Address}{suffix}");
             }
         }
     }
@@ -350,7 +364,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
                     }
                 );
 
-                s_logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
+                _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
 
                 return new ConnectionAllowResult
                 {
@@ -453,7 +467,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
                 {
                     entry.RecentConnectionTimestamps.Clear();
 
-                    s_logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleared-queue ip={key.Address} reason=oversized");
+                    _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleared-queue ip={key.Address} reason=oversized");
                 }
             }
         }
@@ -488,13 +502,13 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
         if (suppressed > 0)
         {
-            s_logger?.Warn(
+            _logger?.Warn(
                 $"[NW.{nameof(ConnectionLimiter)}] DDoS-detected ip={key.Address} " +
                 $"(+{suppressed} suppressed-in-last={_config.DDoSLogSuppressWindow.TotalSeconds:F0}s)");
         }
         else
         {
-            s_logger?.Warn(
+            _logger?.Warn(
                 $"[NW.{nameof(ConnectionLimiter)}] DDoS-detected ip={key.Address}");
         }
     }
@@ -561,7 +575,7 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
         {
             string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
-            s_logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] banned-reject ip={key.Address} " +
+            _logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] banned-reject ip={key.Address} " +
                            $"until={bannedUntil:HH:mm:ss}{suffix}");
         }
     }
@@ -768,12 +782,12 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
             if (removed > 0)
             {
-                s_logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed} remaining={_map.Count}");
+                _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}] cleanup scanned={scanned} removed={removed} remaining={_map.Count}");
             }
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
-            s_logger?.Error($"[NW.{nameof(ConnectionLimiter)}] cleanup-error", ex);
+            _logger?.Error($"[NW.{nameof(ConnectionLimiter)}] cleanup-error", ex);
         }
     }
 
@@ -874,11 +888,11 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
 
             _map.Clear();
 
-            s_logger?.Debug($"[NW.{nameof(ConnectionLimiter)}:{nameof(Dispose)}] disposed");
+            _logger?.Debug($"[NW.{nameof(ConnectionLimiter)}:{nameof(Dispose)}] disposed");
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(ConnectionLimiter)}:{nameof(Dispose)}] dispose-error msg={ex.Message}");
+            _logger?.Error($"[NW.{nameof(ConnectionLimiter)}:{nameof(Dispose)}] dispose-error msg={ex.Message}");
         }
 
         GC.SuppressFinalize(this);

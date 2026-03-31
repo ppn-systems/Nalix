@@ -9,12 +9,11 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Diagnostics;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
 using Nalix.Network.Routing;
 
@@ -39,7 +38,7 @@ namespace Nalix.Network.Throttling;
 /// </remarks>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed class PolicyRateLimiter : IReportable, IDisposable
+public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<PolicyRateLimiter>
 {
     #region Constants
 
@@ -59,8 +58,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     private static readonly int[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
     private static readonly double[] s_burstTiers = [0.1, 0.2, 0.5, 1, 2, 4, 8, 16, 32, 64];
 
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
     private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
+    private ILogger? _logger;
 
     #endregion Fields
 
@@ -68,6 +67,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
     private sealed class Entry : IDisposable
     {
+        private readonly ILogger? _logger;
         private long _lastUsedUtcTicks;
         private int _activeUsers;
         private int _disposed;
@@ -78,9 +78,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         public long LastUsedUtcTicks =>
             Interlocked.Read(ref _lastUsedUtcTicks);
 
-        public Entry(TokenBucketLimiter limiter)
+        public Entry(TokenBucketLimiter limiter, ILogger? logger = null)
         {
             this.Limiter = limiter ?? throw new ArgumentNullException(nameof(limiter));
+            _logger = logger;
             _activeUsers = 0;
             _disposed = 0;
             this.Touch();
@@ -118,7 +119,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             if (newCount <= 0)
             {
                 _ = Interlocked.Decrement(ref _activeUsers);
-                s_logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
+                _logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
                 return false;
             }
 
@@ -132,7 +133,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
             if (remaining < 0)
             {
-                s_logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
+                _logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
                 _ = Interlocked.Exchange(ref _activeUsers, 0);
                 _idleSignal.Set();
                 return;
@@ -176,7 +177,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             }
             catch (Exception ex)
             {
-                s_logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] disposal-error", ex);
+                _logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] disposal-error", ex);
             }
 
             _idleSignal.Dispose();
@@ -239,15 +240,25 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     /// </remarks>
     public PolicyRateLimiter()
     {
-        _checkCounter = 0;
         _disposed = 0;
-
-        s_logger?.Debug($"[NW.{nameof(PolicyRateLimiter)}] initialized");
+        _checkCounter = 0;
     }
 
     #endregion Constructor
 
     #region Public API
+
+    /// <summary>
+    /// Assigns a logger instance used by the limiter for diagnostic output.
+    /// </summary>
+    /// <param name="logger">The logger to use for subsequent diagnostics.</param>
+    /// <returns>The current <see cref="PolicyRateLimiter"/> instance.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public PolicyRateLimiter WithLogging(ILogger logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        return this;
+    }
 
     /// <summary>
     /// Performs a rate limit check for the specified operation code and packet context.
@@ -280,7 +291,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         ArgumentNullException.ThrowIfNull(context);
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
 
-        CheckResult validationResult = VALIDATE_RATE_LIMIT_ATTRIBUTE(context);
+        CheckResult validationResult = this.VALIDATE_RATE_LIMIT_ATTRIBUTE(context);
         if (!validationResult.Success)
         {
             return validationResult.Decision;
@@ -414,7 +425,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
                     }
                     catch (Exception ex)
                     {
-                        s_logger?.Error(
+                        _logger?.Error(
                             $"[NW.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] " +
                             $"disposal-error policy={policy}", ex);
                     }
@@ -432,7 +443,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
             _limiters.Clear();
         }
 
-        s_logger?.Info($"[NW.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] disposed={disposedCount}/{totalCount}");
+        _logger?.Info($"[NW.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] disposed={disposedCount}/{totalCount}");
 
         GC.SuppressFinalize(this);
     }
@@ -442,7 +453,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     #region Validation
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static CheckResult VALIDATE_RATE_LIMIT_ATTRIBUTE(PacketContext<IPacket> context)
+    private CheckResult VALIDATE_RATE_LIMIT_ATTRIBUTE(PacketContext<IPacket> context)
     {
         PacketRateLimitAttribute? rl = context.Attributes.RateLimit;
 
@@ -466,7 +477,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         if (rl.Burst <= 0)
         {
-            s_logger?.Warn($"[NW.{nameof(PolicyRateLimiter)}] invalid-burst burst={rl.Burst}");
+            _logger?.Warn($"[NW.{nameof(PolicyRateLimiter)}] invalid-burst burst={rl.Burst}");
 
             return new CheckResult
             {
@@ -545,7 +556,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     {
         if (context.Connection?.NetworkEndpoint is null)
         {
-            s_logger?.Warn($"[NW.{nameof(PolicyRateLimiter)}] missing-endpoint opCode={opCode}");
+            _logger?.Warn($"[NW.{nameof(PolicyRateLimiter)}] missing-endpoint opCode={opCode}");
 
             return new CheckResult
             {
@@ -625,7 +636,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         {
             reused.Touch();
 
-            s_logger?.Debug($"[NW.{nameof(PolicyRateLimiter)}] reusing-policy wanted=({wanted.Rps},{wanted.Burst}) closest=({closest.Rps},{closest.Burst})");
+            _logger?.Debug($"[NW.{nameof(PolicyRateLimiter)}] reusing-policy wanted=({wanted.Rps},{wanted.Burst}) closest=({closest.Rps},{closest.Burst})");
 
             return reused;
         }
@@ -666,13 +677,19 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     private Entry CREATE_NEW_LIMITER_ENTRY(Policy policy)
     {
         TokenBucketOptions options = CREATE_OPTIONS_FOR_POLICY(policy);
-        Entry newEntry = new(new TokenBucketLimiter(options));
+        TokenBucketLimiter limiter = new(options);
+        if (_logger is not null)
+        {
+            _ = limiter.WithLogging(_logger);
+        }
+
+        Entry newEntry = new(limiter, _logger);
 
         Entry actualEntry = _limiters.GetOrAdd(policy, newEntry);
 
         if (ReferenceEquals(actualEntry, newEntry))
         {
-            s_logger?.Info($"[NW.{nameof(PolicyRateLimiter)}] created-policy-limiter rps={policy.Rps} burst={policy.Burst} total={_limiters.Count}");
+            _logger?.Info($"[NW.{nameof(PolicyRateLimiter)}] created-policy-limiter rps={policy.Rps} burst={policy.Burst} total={_limiters.Count}");
         }
         else
         {
@@ -757,7 +774,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         if (evictedCount > 0)
         {
-            s_logger?.Debug(
+            _logger?.Debug(
                 $"[NW.{nameof(PolicyRateLimiter)}] evicted-stale-policies " +
                 $"count={evictedCount} remaining={_limiters.Count}");
         }
