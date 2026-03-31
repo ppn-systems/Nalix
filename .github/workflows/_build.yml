@@ -1,5 +1,10 @@
 name: "Template: Build & Test"
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 on:
   workflow_call:
     inputs:
@@ -66,7 +71,7 @@ jobs:
       - name: Set environment variables
         shell: bash
         run: |
-          echo "TEST_RESULTS_DIR=${{ github.workspace }}/artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
+          echo "TEST_RESULTS_DIR=artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -84,6 +89,10 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
+
+      - name: Decode signing key
+        shell: bash
+        run: echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
 
       - name: Restore source projects
         shell: bash
@@ -121,7 +130,8 @@ jobs:
                 --configuration Release \
                 --no-restore \
                 --logger "trx;LogFileName=${name}-${{ runner.os }}.trx" \
-                --results-directory "$TEST_RESULTS_DIR"
+                --results-directory "$TEST_RESULTS_DIR" \
+                --verbosity normal
             fi
           done
 

@@ -16,6 +16,8 @@ This repository is the **Nalix** ecosystem. Generated code, docs, and refactors 
   - `Nalix.Logging`
   - `Nalix.Network`
   - `Nalix.SDK`
+  - `Nalix.Analyzers`
+  - `Nalix.Analyzers.CodeFixes`
 
 > Do not refer to `Nalix.Shared` — that name is outdated.
 

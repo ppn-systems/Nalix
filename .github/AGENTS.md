@@ -168,7 +168,7 @@ Workflows in `.github/workflows/`:
 - Do not add projects or references outside the dependency graph above
 - Do not use `Nalix.Shared` (removed)
 - Do not disable nullable, warnings, or XML doc generation in `.csproj` files
-- Do not commit secrets, keys, or `.snk` files (signing key is injected by CI via `secrets.SIGNING_KEY`)
+- Do not commit `.snk` files — the signing key `Nalix.snk` is injected by CI: `echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk`. Without this step the build will fail with `CS7027`.
 - Do not suggest `Debug` configuration in CI context — all CI builds use `Release`
 - Do not introduce `Thread.Sleep`, `Task.Delay` in production code without explicit justification
 - Do not use `dynamic` or suppress nullability warnings without a comment explaining why
