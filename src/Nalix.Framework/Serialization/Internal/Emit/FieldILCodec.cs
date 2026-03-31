@@ -33,6 +33,11 @@ internal static class FieldILCodec
     private static readonly MethodInfo s_writeUInt64Method = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(ulong)])!;
     private static readonly MethodInfo s_writeInt32Method = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(int)])!;
     private static readonly MethodInfo s_writeInt64Method = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(long)])!;
+    private static readonly MethodInfo s_writeSByteMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(sbyte)])!;
+    private static readonly MethodInfo s_writeInt16Method = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(short)])!;
+    private static readonly MethodInfo s_writeCharMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(char)])!;
+    private static readonly MethodInfo s_writeSingleMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(float)])!;
+    private static readonly MethodInfo s_writeDoubleMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(double)])!;
     private static readonly MethodInfo s_writeReadOnlySpanByteMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(ReadOnlySpan<byte>)])!;
     private static readonly MethodInfo s_writeUnmanagedMethod = typeof(DataWriterExtensions).GetMethod("WriteUnmanaged", BindingFlags.Public | BindingFlags.Static)!;
 
@@ -44,6 +49,11 @@ internal static class FieldILCodec
     private static readonly MethodInfo s_readUInt64Method = typeof(DataReaderExtensions).GetMethod("ReadUInt64", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readInt32Method = typeof(DataReaderExtensions).GetMethod("ReadInt32", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readInt64Method = typeof(DataReaderExtensions).GetMethod("ReadInt64", [typeof(DataReader).MakeByRefType()])!;
+    private static readonly MethodInfo s_readSByteMethod = typeof(DataReaderExtensions).GetMethod("ReadSByte", [typeof(DataReader).MakeByRefType()])!;
+    private static readonly MethodInfo s_readInt16Method = typeof(DataReaderExtensions).GetMethod("ReadInt16", [typeof(DataReader).MakeByRefType()])!;
+    private static readonly MethodInfo s_readCharMethod = typeof(DataReaderExtensions).GetMethod("ReadChar", [typeof(DataReader).MakeByRefType()])!;
+    private static readonly MethodInfo s_readSingleMethod = typeof(DataReaderExtensions).GetMethod("ReadSingle", [typeof(DataReader).MakeByRefType()])!;
+    private static readonly MethodInfo s_readDoubleMethod = typeof(DataReaderExtensions).GetMethod("ReadDouble", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readUnmanagedMethod = typeof(DataReaderExtensions).GetMethod("ReadUnmanaged", BindingFlags.Public | BindingFlags.Static)!;
 
     #endregion Static Fields
@@ -128,19 +138,19 @@ internal static class FieldILCodec
             return s_writeBoolMethod;
         }
 
+        if (fieldType == typeof(sbyte))
+        {
+            return s_writeSByteMethod;
+        }
+
+        if (fieldType == typeof(short))
+        {
+            return s_writeInt16Method;
+        }
+
         if (fieldType == typeof(ushort))
         {
             return s_writeUInt16Method;
-        }
-
-        if (fieldType == typeof(uint))
-        {
-            return s_writeUInt32Method;
-        }
-
-        if (fieldType == typeof(ulong))
-        {
-            return s_writeUInt64Method;
         }
 
         if (fieldType == typeof(int))
@@ -148,9 +158,34 @@ internal static class FieldILCodec
             return s_writeInt32Method;
         }
 
+        if (fieldType == typeof(uint))
+        {
+            return s_writeUInt32Method;
+        }
+
         if (fieldType == typeof(long))
         {
             return s_writeInt64Method;
+        }
+
+        if (fieldType == typeof(ulong))
+        {
+            return s_writeUInt64Method;
+        }
+
+        if (fieldType == typeof(float))
+        {
+            return s_writeSingleMethod;
+        }
+
+        if (fieldType == typeof(double))
+        {
+            return s_writeDoubleMethod;
+        }
+
+        if (fieldType == typeof(char))
+        {
+            return s_writeCharMethod;
         }
 
         if (fieldType.IsEnum)
@@ -197,19 +232,19 @@ internal static class FieldILCodec
             return s_readBooleanMethod;
         }
 
+        if (fieldType == typeof(sbyte))
+        {
+            return s_readSByteMethod;
+        }
+
+        if (fieldType == typeof(short))
+        {
+            return s_readInt16Method;
+        }
+
         if (fieldType == typeof(ushort))
         {
             return s_readUInt16Method;
-        }
-
-        if (fieldType == typeof(uint))
-        {
-            return s_readUInt32Method;
-        }
-
-        if (fieldType == typeof(ulong))
-        {
-            return s_readUInt64Method;
         }
 
         if (fieldType == typeof(int))
@@ -217,9 +252,34 @@ internal static class FieldILCodec
             return s_readInt32Method;
         }
 
+        if (fieldType == typeof(uint))
+        {
+            return s_readUInt32Method;
+        }
+
         if (fieldType == typeof(long))
         {
             return s_readInt64Method;
+        }
+
+        if (fieldType == typeof(ulong))
+        {
+            return s_readUInt64Method;
+        }
+
+        if (fieldType == typeof(float))
+        {
+            return s_readSingleMethod;
+        }
+
+        if (fieldType == typeof(double))
+        {
+            return s_readDoubleMethod;
+        }
+
+        if (fieldType == typeof(char))
+        {
+            return s_readCharMethod;
         }
 
         if (fieldType.IsEnum)
