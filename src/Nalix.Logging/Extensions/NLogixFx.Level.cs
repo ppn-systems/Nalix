@@ -3,8 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
-
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace Nalix.Logging.Extensions;
 
@@ -164,7 +163,7 @@ public static partial class NLogixFx
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Warn, message, source, extendedData,
+            LogLevel.Warning, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -185,7 +184,7 @@ public static partial class NLogixFx
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Warn, message, source?.FullName, extendedData,
+            LogLevel.Warning, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -206,7 +205,7 @@ public static partial class NLogixFx
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Warn, message, source, extendedData,
+            LogLevel.Warning, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     #endregion Warning Methods
@@ -298,7 +297,7 @@ public static partial class NLogixFx
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Info, message, source, extendedData,
+            LogLevel.Information, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -319,7 +318,7 @@ public static partial class NLogixFx
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Info, message, source?.FullName, extendedData,
+            LogLevel.Information, message, source?.FullName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     /// <summary>
@@ -340,7 +339,7 @@ public static partial class NLogixFx
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
         => PUBLISH_LOG_ENTRY(
-            LogLevel.Info, message, source, extendedData,
+            LogLevel.Information, message, source, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
     #endregion Info Methods
