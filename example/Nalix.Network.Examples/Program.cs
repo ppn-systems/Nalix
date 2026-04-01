@@ -7,6 +7,7 @@ using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Logging;
 using Nalix.Logging.Options;
@@ -18,7 +19,6 @@ using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Hosting;
 using Nalix.Network.Options;
-using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Options;
 
 internal class Program
@@ -63,6 +63,12 @@ internal class Program
             .Configure<DispatchOptions>(options =>
             {
                 options.MaxPerConnectionQueue = 0;
+            })
+            .Configure<ObjectPoolConfig>(options =>
+            {
+                options.EnableDiagnostics = true;
+                options.CaptureStackTraces = true;
+                options.EnableLeakDetection = true;
             })
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
             .AddPacket<Handshake>()
