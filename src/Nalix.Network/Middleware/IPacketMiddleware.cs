@@ -22,7 +22,7 @@ public interface IPacketMiddleware<TPacket> where TPacket : IPacket
     /// </summary>
     /// <param name="context">Encapsulates the packet and its connection metadata.</param>
     /// <param name="next">Delegate to call the next middleware in the sequence.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <returns>A value task representing the asynchronous operation.</returns>
     [SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
-    Task InvokeAsync(PacketContext<TPacket> context, Func<CancellationToken, Task> next);
+    ValueTask InvokeAsync(PacketContext<TPacket> context, Func<CancellationToken, ValueTask> next);
 }

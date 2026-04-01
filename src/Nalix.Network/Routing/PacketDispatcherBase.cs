@@ -4,10 +4,12 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
+using Nalix.Network.Internal.Routing;
 
 namespace Nalix.Network.Routing;
 
@@ -79,30 +81,6 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     #region Protected Methods
 
     /// <summary>
-    /// Executes the registered packet handler asynchronously using the provided packet and connection context.
-    /// </summary>
-    /// <param name="packet">
-    /// The deserialized packet instance containing the data to be handled. Assumed to be already validated and routed.
-    /// </param>
-    /// <param name="connection">
-    /// The connection instance representing the client that sent the packet.
-    /// </param>
-    /// <param name="handler">
-    /// A delegate that processes the packet. This delegate should implement the packet-specific logic,
-    /// such as validation, response preparation, or triggering related workflows.
-    /// </param>
-    /// <returns>
-    /// A <see cref="ValueTask"/> that represents the asynchronous execution of the handler logic.
-    /// </returns>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    protected async ValueTask ExecuteHandlerAsync(TPacket packet, IConnection connection, Func<TPacket, IConnection, Task> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler, nameof(handler));
-
-        await handler(packet, connection).ConfigureAwait(false);
-    }
-
-    /// <summary>
     /// Asynchronously processes a single incoming packet by resolving and executing the appropriate handler.
     /// </summary>
     /// <param name="packet">
@@ -110,6 +88,9 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// </param>
     /// <param name="connection">
     /// The connection from which the packet was received.
+    /// </param>
+    /// <param name="token">
+    /// A cancellation token used to abort packet dispatch.
     /// </param>
     /// <returns>
     /// A task that represents the asynchronous operation of handling the packet.
@@ -119,29 +100,57 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// If a handler is found, it is invoked asynchronously. Exceptions are caught and logged.
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected async Task ExecutePacketHandlerAsync(
+    protected ValueTask ExecutePacketHandlerAsync(
         TPacket packet,
-        IConnection connection)
+        IConnection connection,
+        CancellationToken token = default)
     {
         if (this.Options.TryResolveHandler(
             packet.OpCode,
-            out Func<TPacket, IConnection, Task> handler))
+            out PacketHandler<TPacket> handler))
         {
-            this.Logging?.Trace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handle opcode={packet.OpCode}");
-            try
+            if (this.Logging?.IsEnabled(LogLevel.Trace) == true)
             {
-                await this.ExecuteHandlerAsync(packet, connection, handler)
-                          .ConfigureAwait(false);
+                this.Logging.Trace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handle opcode={packet.OpCode}");
             }
-            catch (Exception ex)
+            ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, token);
+            if (pending.IsCompletedSuccessfully)
             {
-                this.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] handler-error opcode={packet.OpCode}", ex);
+                try
+                {
+                    pending.GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    this.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={packet.OpCode}", ex);
+                }
+
+                return ValueTask.CompletedTask;
             }
 
-            return;
+            return AwaitHandlerAsync(this, pending, packet.OpCode);
+
+            static async ValueTask AwaitHandlerAsync(
+                PacketDispatcherBase<TPacket> owner,
+                ValueTask operation,
+                ushort opCode)
+            {
+                try
+                {
+                    await operation.ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    owner.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={opCode}", ex);
+                }
+            }
         }
 
-        this.Logging?.Warn($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecuteHandlerAsync)}] no-handler opcode={packet.OpCode}");
+        if (this.Logging?.IsEnabled(LogLevel.Warning) == true)
+        {
+            this.Logging.Warn($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] no-handler opcode={packet.OpCode}");
+        }
+        return ValueTask.CompletedTask;
     }
 
     #endregion Protected Methods
