@@ -104,14 +104,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         static async ValueTask<object> AwaitHandlerResultAsync(ValueTask<object> pending, CancellationToken token)
         {
-            if (token.IsCancellationRequested)
-            {
-                token.ThrowIfCancellationRequested();
-            }
+            token.ThrowIfCancellationRequested();
 
             if (pending.IsCompletedSuccessfully)
             {
                 return pending.Result;
+            }
+
+            if (token.CanBeCanceled)
+            {
+                return await pending.AsTask().WaitAsync(token).ConfigureAwait(false);
             }
 
             return await pending.ConfigureAwait(false);
@@ -119,14 +121,17 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         static async ValueTask AwaitReturnAsync(ValueTask pending, CancellationToken token)
         {
-            if (token.IsCancellationRequested)
-            {
-                token.ThrowIfCancellationRequested();
-            }
+            token.ThrowIfCancellationRequested();
 
             if (pending.IsCompletedSuccessfully)
             {
                 pending.GetAwaiter().GetResult();
+                return;
+            }
+
+            if (token.CanBeCanceled)
+            {
+                await pending.AsTask().WaitAsync(token).ConfigureAwait(false);
                 return;
             }
 
