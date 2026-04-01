@@ -1179,10 +1179,5 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 /// <param name="maxConnections">Configured maximum connection count.</param>
 /// <param name="triggeredConnectionId">Identifier for the incoming connection that triggered the limit.</param>
 /// <param name="reason">Reason token that describes the applied action.</param>
-public delegate void CapacityLimitReachedHandler(
-    DropPolicy dropPolicy,
-    int currentConnections,
-    int maxConnections,
-    ISnowflake? triggeredConnectionId,
-    string reason);
+public delegate void CapacityLimitReachedHandler(DropPolicy dropPolicy, int currentConnections, int maxConnections, ISnowflake? triggeredConnectionId, string reason);
 
