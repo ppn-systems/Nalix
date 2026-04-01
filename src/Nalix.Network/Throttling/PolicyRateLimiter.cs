@@ -154,9 +154,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             }
 
             long lastTicks = Interlocked.Read(ref _lastUsedUtcTicks);
-            double ageSec = TimeSpan.FromTicks(nowTicks - lastTicks).TotalSeconds;
-
-            return ageSec > ttlSeconds;
+            long ttlTicks = (long)ttlSeconds * TimeSpan.TicksPerSecond;
+            return nowTicks - lastTicks > ttlTicks;
         }
 
         public void Dispose()
@@ -191,24 +190,17 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         private readonly ushort _op = op;
         private readonly INetworkEndpoint _inner = inner ?? throw new ArgumentNullException(nameof(inner));
 
-        public string Address => $"op:{_op:X4}|ep:{_inner.Address}";
+        // Hot-path: avoid per-evaluation string allocation.
+        public string Address => _inner.Address;
 
         public override int GetHashCode()
         {
-            unchecked
-            {
-                int hash = 17;
-                hash = (hash * 31) + _op.GetHashCode();
-                hash = (hash * 31) + (_inner?.GetHashCode() ?? 0);
-                return hash;
-            }
+            return HashCode.Combine(_op, _inner);
         }
 
         public bool Equals(RateLimitSubject other)
         {
-            return _op == other._op &&
-                   (ReferenceEquals(_inner, other._inner) ||
-                    (_inner?.Equals(other._inner) ?? (other._inner is null)));
+            return _op == other._op && _inner.Equals(other._inner);
         }
 
         public override bool Equals(object? obj) => obj is RateLimitSubject other && this.Equals(other);
@@ -219,7 +211,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         public static bool operator !=(RateLimitSubject left, RateLimitSubject right)
             => !left.Equals(right);
 
-        public override string ToString() => this.Address;
+        public override string ToString() => $"op:{_op:X4}|ep:{_inner.Address}";
     }
 
     private readonly struct CheckResult

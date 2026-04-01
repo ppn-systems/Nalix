@@ -161,7 +161,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Touch()
         {
-            long nowTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            long nowTicks = DateTime.UtcNow.Ticks;
             _ = Interlocked.Exchange(ref _lastUsedUtcTicks, nowTicks);
         }
 
@@ -262,28 +262,19 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 return true;
             }
 
-            // Spin-loop CAS for atomic check-and-increment
-            while (true)
+            int next = Interlocked.Increment(ref _queueCount);
+            if (next <= this.QueueMax)
             {
-                int current = Volatile.Read(ref _queueCount);
-
-                if (current >= this.QueueMax)
-                {
-                    return false;
-                }
-
-                int original = Interlocked.CompareExchange(
-                    ref _queueCount,
-                    current + 1,
-                    current);
-
-                if (original == current)
-                {
-                    return true; // Success
-                }
-
-                Thread.SpinWait(1);
+                return true;
             }
+
+            int remaining = Interlocked.Decrement(ref _queueCount);
+            if (remaining < 0)
+            {
+                _ = Interlocked.Exchange(ref _queueCount, 0);
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -439,6 +430,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             return false;
         }
 
+        bool leaseGranted = false;
         try
         {
             if (entry.Sem.Wait(0))
@@ -447,6 +439,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 _ = Interlocked.Increment(ref _totalAcquired);
 
                 lease = new Lease(entry.Sem, entry);
+                leaseGranted = true;
                 return true;
             }
 
@@ -469,7 +462,10 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         }
         finally
         {
-            entry.Release();
+            if (!leaseGranted)
+            {
+                entry.Release();
+            }
         }
     }
 
@@ -484,13 +480,14 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public async ValueTask<Lease> EnterAsync(ushort opcode, PacketConcurrencyLimitAttribute attr, CancellationToken ct = default)
     {
+        if (this.IS_CIRCUIT_OPEN())
+        {
+            _ = Interlocked.Increment(ref _circuitBreakerTrips);
+            throw new ConcurrencyFailureException(
+                $"Circuit breaker is open for opcode {opcode:X4}");
+        }
+
         VALIDATE_ATTRIBUTE(attr);
-
-        using CancellationTokenSource timeoutCts = new();
-        timeoutCts.CancelAfter(_timeout);
-
-        using CancellationTokenSource linkedCts =
-            CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
         Entry entry = this.GET_OR_CREATE_ENTRY(opcode, attr);
 
@@ -505,7 +502,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             // No queue: immediate attempt only
             if (!entry.Queue)
             {
-                if (!entry.Sem.Wait(0, linkedCts.Token))
+                if (!entry.Sem.Wait(0, ct))
                 {
                     _ = Interlocked.Increment(ref _totalRejected);
                     throw new ConcurrencyFailureException(
@@ -519,13 +516,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             }
 
             // Queue enabled
-            return await this.ENTER_WITH_QUEUE_ASYNC(entry, opcode, linkedCts.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
-        {
-            _ = Interlocked.Increment(ref _totalRejected);
-            throw new TimeoutException(
-                $"Concurrency gate timeout after {_timeout.TotalSeconds}s for opcode {opcode:X4}");
+            return await this.ENTER_WITH_QUEUE_ASYNC(entry, opcode, _timeout, ct).ConfigureAwait(false);
         }
         catch
         {
@@ -822,6 +813,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     private async ValueTask<Lease> ENTER_WITH_QUEUE_ASYNC(
         Entry entry,
         ushort opcode,
+        TimeSpan timeout,
         CancellationToken ct)
     {
         if (!entry.TryIncrementQueue())
@@ -836,7 +828,13 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
 
         try
         {
-            await entry.Sem.WaitAsync(ct).ConfigureAwait(false);
+            bool acquired = await entry.Sem.WaitAsync(timeout, ct).ConfigureAwait(false);
+            if (!acquired)
+            {
+                _ = Interlocked.Increment(ref _totalRejected);
+                throw new TimeoutException(
+                    $"Concurrency gate timeout after {timeout.TotalSeconds}s for opcode {opcode:X4}");
+            }
 
             entry.Touch();
             _ = Interlocked.Increment(ref _totalAcquired);
