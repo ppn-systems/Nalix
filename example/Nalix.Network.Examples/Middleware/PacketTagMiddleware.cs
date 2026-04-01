@@ -19,7 +19,7 @@ public sealed class PacketTagMiddleware : IPacketMiddleware<IPacket>
     /// <summary>
     /// Executes the middleware stage.
     /// </summary>
-    public async Task InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, Task> next)
+    public async ValueTask InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
         if (!context.Attributes.CustomAttributes.TryGetValue(typeof(PacketTagAttribute), out Attribute? attribute) ||
             attribute is not PacketTagAttribute tagAttribute)

@@ -32,8 +32,14 @@ Designed for modern .NET 9, it follows SOLID and Domain-Driven Design (DDD) prin
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll"
+			  Pack="true"
+			  PackagePath="analyzers/dotnet/cs"
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
 
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll"
+			  Pack="true"
+			  PackagePath="analyzers/dotnet/cs"
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
 	</ItemGroup>
 </Project>
