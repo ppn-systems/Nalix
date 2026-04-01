@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
@@ -11,7 +12,6 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Microsoft.Extensions.Logging;
 
 #if DEBUG
 using Nalix.Framework.Injection;
@@ -24,65 +24,69 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Network.Middleware.Internal;
 
 /// <summary>
-/// Middleware that decompresses the buffer payload using LZ4 or similar algorithms.
+/// Middleware that decompresses packet payloads when <see cref="PacketFlags.COMPRESSED"/> is set.
 /// </summary>
 [MiddlewareOrder(50)]
 internal class FrameDecompressMiddleware : INetworkBufferMiddleware
 {
     /// <inheritdoc />
-    public async Task<IBufferLease?> InvokeAsync(
-        IBufferLease lease, IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next, CancellationToken ct)
+    public ValueTask<IBufferLease?> InvokeAsync(IBufferLease lease, IConnection connection, CancellationToken ct)
     {
-#if DEBUG
-        string debugId = $"{connection?.NetworkEndpoint}/{connection?.ID.ToString() ?? "?"}/leasePtr=0x{lease.GetHashCode():X8}";
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[DECOMPRESS][{debugId}] Start - Flags={lease.Span.ReadFlagsLE()} LeaseLen={lease.Length}");
-#endif
-
-        if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.COMPRESSED))
+        if (lease is null || connection is null)
         {
-            BufferLease dest = BufferLease.Rent(FrameTransformer.GetDecompressedLength(lease.Span[FrameTransformer.Offset..]));
-
-#if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[DECOMPRESS][{debugId}] Alloc decompress lease: DecompressLen={dest.Length}");
-#endif
-
-            try
-            {
-                FrameTransformer.Decompress(lease, dest);
-
-                dest.Span.WriteFlagsLE(dest.Span
-                     .ReadFlagsLE()
-                     .RemoveFlag(PacketFlags.COMPRESSED));
-
-#if DEBUG
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[DECOMPRESS][{debugId}] Decompression success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
-
-                int sampleLen = Math.Min(16, dest.Length);
-                string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[DECOMPRESS][{debugId}] Decompressed buffer sample: {hexSample}");
-#endif
-
-                return await next(dest, ct).ConfigureAwait(false);
-            }
-            catch
-            {
-                dest.Dispose();
-                throw;
-            }
+            return ValueTask.FromResult<IBufferLease?>(null);
         }
-        else
+
+        if ((uint)lease.Length <= (int)PacketHeaderOffset.Flags)
+        {
+            return ValueTask.FromResult<IBufferLease?>(null);
+        }
+
+        PacketFlags flags = lease.Span.ReadFlagsLE();
+
+#if DEBUG
+        string debugId = $"{connection.NetworkEndpoint}/{connection.ID}/leasePtr=0x{lease.GetHashCode():X8}";
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[DECOMPRESS][{debugId}] Start - Flags={flags} LeaseLen={lease.Length}");
+#endif
+
+        if (!flags.HasFlag(PacketFlags.COMPRESSED))
         {
 #if DEBUG
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[DECOMPRESS][{debugId}] Bypass decompress (flags do not match). LeaseLen={lease.Length}");
 #endif
+            return ValueTask.FromResult<IBufferLease?>(lease);
+        }
 
-            return await next(lease, ct).ConfigureAwait(false);
+        BufferLease dest = BufferLease.Rent(FrameTransformer.GetDecompressedLength(lease.Span[FrameTransformer.Offset..]));
+
+#if DEBUG
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[DECOMPRESS][{debugId}] Alloc decompress lease: DecompressLen={dest.Length}");
+#endif
+
+        try
+        {
+            FrameTransformer.Decompress(lease, dest);
+            dest.Span.WriteFlagsLE(flags.RemoveFlag(PacketFlags.COMPRESSED));
+
+#if DEBUG
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[DECOMPRESS][{debugId}] Decompression success! FlagsAfter={dest.Span.ReadFlagsLE()} DestLen={dest.Length}");
+
+            int sampleLen = Math.Min(16, dest.Length);
+            string hexSample = BitConverter.ToString(dest.Span[..sampleLen].ToArray());
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[DECOMPRESS][{debugId}] Decompressed buffer sample: {hexSample}");
+#endif
+
+            return ValueTask.FromResult<IBufferLease?>(dest);
+        }
+        catch
+        {
+            dest.Dispose();
+            throw;
         }
     }
 }

@@ -13,55 +13,37 @@ using Nalix.Common.Networking;
 namespace Nalix.Network.Middleware;
 
 /// <summary>
-/// Represents a network buffer middleware pipeline that executes middleware
-/// in order defined by <see cref="MiddlewareOrderAttribute"/>.
+/// Executes network buffer middleware in a deterministic, low-allocation sequence.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Middleware are registered via <see cref="Use"/> and executed sequentially
-/// when <see cref="ExecuteAsync"/> is invoked.
+/// Ownership rules:
 /// </para>
-/// <para>
-/// The execution order is determined solely by <see cref="MiddlewareOrderAttribute"/>.
-/// Middleware with lower order values run earlier in the pipeline.
-/// </para>
-/// <para>
-/// The pipeline is thread-safe for registration and execution. A snapshot of the
-/// middleware list is created per execution to avoid holding locks during invocation.
-/// </para>
-/// <para>
-/// Middleware are composed into a delegate chain (similar to ASP.NET Core),
-/// where each component is responsible for invoking the next delegate.
-/// </para>
+/// <list type="bullet">
+/// <item><description>The pipeline owns the currently active lease while executing.</description></item>
+/// <item><description>When middleware returns a replacement lease, the previous lease is disposed immediately.</description></item>
+/// <item><description>When middleware returns <see langword="null"/>, the active lease is disposed and execution stops.</description></item>
+/// </list>
 /// </remarks>
-public class NetworkBufferMiddlewarePipeline
+public sealed class NetworkBufferMiddlewarePipeline
 {
     #region Fields
 
     private readonly Lock _lock = new();
-    private readonly List<MiddlewareEntry> _middlewares = [];
+    private readonly List<MiddlewareEntry> _entries = [];
     private readonly HashSet<INetworkBufferMiddleware> _registered = [];
 
     private volatile bool _isSorted;
+    private INetworkBufferMiddleware[] _snapshot = [];
 
     #endregion Fields
 
-    #region Public Methods
+    #region APIs
 
     /// <summary>
-    /// Registers a middleware instance in the pipeline.
+    /// Registers a middleware instance.
     /// </summary>
-    /// <param name="middleware">The middleware to register.</param>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown if <paramref name="middleware"/> is <see langword="null"/>.
-    /// </exception>
-    /// <exception cref="InternalErrorException">
-    /// Thrown if the middleware has already been registered.
-    /// </exception>
-    /// <remarks>
-    /// The execution order is determined by <see cref="MiddlewareOrderAttribute"/>.
-    /// If no attribute is defined, the default order is <c>0</c>.
-    /// </remarks>
+    /// <param name="middleware">Middleware instance.</param>
     public void Use(INetworkBufferMiddleware middleware)
     {
         ArgumentNullException.ThrowIfNull(middleware);
@@ -76,108 +58,167 @@ public class NetworkBufferMiddlewarePipeline
 
             int order = 0;
             if (Attribute.GetCustomAttribute(middleware.GetType(), typeof(MiddlewareOrderAttribute))
-                is MiddlewareOrderAttribute orderAttr)
+                is MiddlewareOrderAttribute orderAttribute)
             {
-                order = orderAttr.Order;
+                order = orderAttribute.Order;
             }
-            _middlewares.Add(new MiddlewareEntry(middleware, order));
+
+            _entries.Add(new MiddlewareEntry(middleware, order));
             _isSorted = false;
+            this.REBUILD_SNAPSHOT_UNSAFE();
         }
     }
 
     /// <summary>
-    /// Removes all middleware from the pipeline.
+    /// Clears all middleware registrations.
     /// </summary>
-    /// <remarks>
-    /// This operation is thread-safe and resets the pipeline to an empty state.
-    /// </remarks>
     public void Clear()
     {
         lock (_lock)
         {
-            _middlewares.Clear();
+            _entries.Clear();
             _registered.Clear();
-            _isSorted = false;
+            _isSorted = true;
+            Volatile.Write(ref _snapshot, []);
         }
     }
 
     /// <summary>
-    /// Executes the middleware pipeline for the specified buffer and connection.
+    /// Executes middleware over the provided lease.
     /// </summary>
-    /// <param name="buffer">The input buffer to process.</param>
-    /// <param name="connection">The connection associated with the buffer.</param>
-    /// <param name="ct">A token used to observe cancellation requests.</param>
-    /// <returns>
-    /// A task that resolves to the processed <see cref="IBufferLease"/>, or
-    /// <see langword="null"/> if processing is short-circuited.
-    /// </returns>
-    /// <remarks>
-    /// <para>
-    /// A snapshot of the registered middleware is taken at the start of execution,
-    /// ensuring consistent behavior without holding locks during invocation.
-    /// </para>
-    /// <para>
-    /// Middleware are executed in order, each receiving a delegate to invoke the next
-    /// component in the pipeline.
-    /// </para>
-    /// <para>
-    /// If a middleware does not invoke the next delegate or returns <see langword="null"/>,
-    /// the pipeline execution is terminated early.
-    /// </para>
-    /// </remarks>
-    public Task<IBufferLease?> ExecuteAsync(
-        IBufferLease buffer,
-        IConnection connection,
-        CancellationToken ct = default)
+    /// <param name="buffer">Incoming lease.</param>
+    /// <param name="connection">Owning connection.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The transformed lease, or <see langword="null"/> if dropped.</returns>
+    public ValueTask<IBufferLease?> ExecuteAsync(IBufferLease buffer, IConnection connection, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(buffer);
-        ArgumentNullException.ThrowIfNull(connection);
-
-        List<MiddlewareEntry> snapshot;
-
-        lock (_lock)
+        if (buffer is null || connection is null)
         {
-            this.ENSURE_SORTED();
-            snapshot = [.. _middlewares];
+            buffer?.Dispose();
+            return ValueTask.FromResult<IBufferLease?>(null);
         }
 
-        Func<IBufferLease, CancellationToken,
-            Task<IBufferLease?>> next = (buf, _) => Task.FromResult<IBufferLease?>(buf);
-
-        for (int i = snapshot.Count - 1; i >= 0; i--)
+        INetworkBufferMiddleware[] middleware = Volatile.Read(ref _snapshot);
+        if (middleware.Length == 0)
         {
-            MiddlewareEntry current = snapshot[i];
-            INetworkBufferMiddleware middleware = current.Middleware
-                ?? throw new InternalErrorException("Registered middleware cannot be null.");
-            Func<IBufferLease, CancellationToken, Task<IBufferLease?>> localNext = next;
-            next = CreateNext(middleware, connection, localNext);
+            return ValueTask.FromResult<IBufferLease?>(buffer);
         }
 
-        return next(buffer, ct);
+        return ExecuteAsync(middleware, buffer, connection, ct);
     }
 
-    #endregion Public Methods
+    #endregion APIs
 
     #region Private Methods
 
-    private void ENSURE_SORTED()
+    private static ValueTask<IBufferLease?> ExecuteAsync(INetworkBufferMiddleware[] middleware, IBufferLease current, IConnection connection, CancellationToken token)
+    {
+        try
+        {
+            for (int i = 0; i < middleware.Length; i++)
+            {
+                ValueTask<IBufferLease?> pending = middleware[i].InvokeAsync(current, connection, token);
+                if (!pending.IsCompletedSuccessfully)
+                {
+                    return ExecuteAsync(middleware, i, current, connection, token, pending);
+                }
+
+                IBufferLease? next = pending.Result;
+                if (next is null)
+                {
+                    current.Dispose();
+                    return ValueTask.FromResult<IBufferLease?>(null);
+                }
+
+                if (!ReferenceEquals(next, current))
+                {
+                    current.Dispose();
+                    current = next;
+                }
+            }
+
+            return ValueTask.FromResult<IBufferLease?>(current);
+        }
+        catch
+        {
+            current.Dispose();
+            throw;
+        }
+    }
+
+    private static async ValueTask<IBufferLease?> ExecuteAsync(
+        INetworkBufferMiddleware[] middleware,
+        int index,
+        IBufferLease current,
+        IConnection connection,
+        CancellationToken token,
+        ValueTask<IBufferLease?> firstPending)
+    {
+        try
+        {
+            IBufferLease? next = await firstPending.ConfigureAwait(false);
+            if (next is null)
+            {
+                current.Dispose();
+                return null;
+            }
+
+            if (!ReferenceEquals(next, current))
+            {
+                current.Dispose();
+                current = next;
+            }
+
+            for (int i = index + 1; i < middleware.Length; i++)
+            {
+                next = await middleware[i].InvokeAsync(current, connection, token).ConfigureAwait(false);
+                if (next is null)
+                {
+                    current.Dispose();
+                    return null;
+                }
+
+                if (!ReferenceEquals(next, current))
+                {
+                    current.Dispose();
+                    current = next;
+                }
+            }
+
+            return current;
+        }
+        catch
+        {
+            current.Dispose();
+            throw;
+        }
+    }
+
+    private void REBUILD_SNAPSHOT_UNSAFE()
+    {
+        this.ENSURE_SORTED_UNSAFE();
+
+        INetworkBufferMiddleware[] arr = new INetworkBufferMiddleware[_entries.Count];
+        for (int i = 0; i < _entries.Count; i++)
+        {
+            arr[i] = _entries[i].Middleware;
+        }
+
+        Volatile.Write(ref _snapshot, arr);
+    }
+
+    private void ENSURE_SORTED_UNSAFE()
     {
         if (_isSorted)
         {
             return;
         }
 
-        _middlewares.Sort((a, b) => a.Order.CompareTo(b.Order));
+        _entries.Sort(static (a, b) => a.Order.CompareTo(b.Order));
         _isSorted = true;
     }
 
-    private static Func<IBufferLease, CancellationToken, Task<IBufferLease?>> CreateNext(
-        INetworkBufferMiddleware middleware,
-        IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next)
-        => async (buffer, token) => await middleware.InvokeAsync(buffer, connection, next, token).ConfigureAwait(false);
-
-    private record MiddlewareEntry(INetworkBufferMiddleware Middleware, int Order);
+    private readonly record struct MiddlewareEntry(INetworkBufferMiddleware Middleware, int Order);
 
     #endregion Private Methods
 }
