@@ -1014,8 +1014,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             Array.Clear(tasks, 0, taskCount);
             Array.Clear(owners, 0, taskCount);
-            System.Buffers.ArrayPool<Task>.Shared.Return(tasks, clearArray: false);
-            s_connectionPool.Return(owners, clearArray: false);
+            System.Buffers.ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
+            s_connectionPool.Return(owners, clearArray: true);
         }
     }
 
