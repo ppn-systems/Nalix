@@ -85,7 +85,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Raised when a limit is reached (e.g., max connections) and a connection is rejected.
     /// </summary>
-    public event CapacityLimitReachedHandler? CapacityLimitReached;
+    public event EventHandler<ConnectionHubEventArgs>? CapacityLimitReached;
 
     #endregion Properties
 
