@@ -1,4 +1,4 @@
-# ![Icon](https://raw.githubusercontent.com/ppn-systems/Nalix/refs/heads/master/assets/Nalix.ico) **Nalix**
+# ![Icon](https://raw.githubusercontent.com/ppn-systems/Nalix/refs/heads/master/docs/assets/nalix.ico) **Nalix**
 
 ![.NET](https://img.shields.io/badge/.NET-10.0-blueviolet?logo=dotnet&logoColor=white)
 

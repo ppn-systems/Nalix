@@ -1,0 +1,80 @@
+name: "Publish: NuGet"
+
+# Chỉ chạy khi push tag có dạng v* (ví dụ: v1.0.0, v2.3.1)
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write # Cần thiết để push lên GitHub Packages
+
+jobs:
+  publish:
+    name: "Publish NuGet (tag only)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Extract version from tag
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_ENV"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Decode signing key
+        shell: bash
+        run: echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore /p:Version=${{ env.VERSION }}
+
+      - name: Pack
+        run: dotnet pack --configuration Release --no-build --output ./out /p:Version=${{ env.VERSION }}
+
+      - name: Verify package exists
+        shell: bash
+        run: |
+          count=$(ls ./out/*.nupkg 2>/dev/null | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "❌ No .nupkg files found in ./out" && exit 1
+          fi
+          echo "✅ Found $count package(s):"
+          ls ./out/*.nupkg
+
+      # -----------------------------------------------------------------------
+      # Push to NuGet.org
+      # -----------------------------------------------------------------------
+      - name: Push to NuGet.org
+        run: |
+          dotnet nuget push ./out/*.nupkg \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      # -----------------------------------------------------------------------
+      # Push to GitHub Packages
+      # -----------------------------------------------------------------------
+      - name: Push to GitHub Packages
+        run: |
+          dotnet nuget push ./out/*.nupkg \
+            --api-key "${{ secrets.GITHUB_TOKEN }}" \
+            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            --skip-duplicate

@@ -9,12 +9,6 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
 
-		<!-- Versions -->
-		<Version>12.0.1</Version>
-		<FileVersion>12.0.1.0</FileVersion>
-		<PackageVersion>12.0.1</PackageVersion>
-		<InformationalVersion>12.0.1+$(SourceRevisionId)</InformationalVersion>
-
 		<Description><![CDATA[
 Nalix.Network is the high-performance, modular networking runtime for the Nalix ecosystem. It provides TCP and UDP listener frameworks, connection hubs, middleware pipelines, protocol lifecycle management, and adaptive throttling for large-scale distributed systems.
 
