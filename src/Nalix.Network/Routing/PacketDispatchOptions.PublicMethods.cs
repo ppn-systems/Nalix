@@ -11,12 +11,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Internal.Compilation;
 using Nalix.Network.Internal.Results;
 using Nalix.Network.Internal.Routing;
-using Nalix.Network.Middleware;
 
 namespace Nalix.Network.Routing;
 

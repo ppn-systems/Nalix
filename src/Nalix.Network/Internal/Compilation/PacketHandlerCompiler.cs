@@ -332,9 +332,9 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             {
                 throw new InternalErrorException(
                     $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                    $"parameter type PacketContext<{declaredT.Name}> does not match " +
+                    $"parameter type IPacketContext<{declaredT.Name}> does not match " +
                     $"the dispatcher's TPacket={typeof(TPacket).Name}. " +
-                    $"Declare the parameter as PacketContext<{typeof(TPacket).Name}> " +
+                    $"Declare the parameter as IPacketContext<{typeof(TPacket).Name}> " +
                     $"and cast context.Packet to {declaredT.Name} inside the method body: " +
                     $"var pkt = ({declaredT.Name})context.Packet;");
             }
@@ -348,7 +348,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     ? SignatureKind.ContextWithToken
                     : throw new InternalErrorException(
                             $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                            "when the first parameter is PacketContext<TPacket>, " +
+                            "when the first parameter is IPacketContext<TPacket>, " +
                             "the only valid second parameter is CancellationToken. " +
                             $"Found {parms.Length} parameter(s).");
             }
@@ -393,8 +393,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 "Supported forms: " +
                 "(TPacket, IConnection), " +
                 "(TPacket, IConnection, CancellationToken), " +
-                "(PacketContext<T>), " +
-                "(PacketContext<T>, CancellationToken).");
+                "(IPacketContext<T>), " +
+                "(IPacketContext<T>, CancellationToken).");
         }
     }
 
