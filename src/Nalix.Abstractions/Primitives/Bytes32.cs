@@ -5,8 +5,10 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+#if NET8_0_OR_GREATER
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+#endif
 using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Abstractions.Primitives;
@@ -15,7 +17,9 @@ namespace Nalix.Abstractions.Primitives;
 /// Represents a fixed-size 256-bit buffer (32 bytes).
 /// Used for storing cryptographic hashes, proofs, or signatures.
 /// </summary>
+#if NET8_0_OR_GREATER
 [SkipLocalsInit]
+#endif
 [DebuggerDisplay("{ToString()}")]
 [StructLayout(LayoutKind.Explicit)]
 [SerializePackable(SerializeLayout.Explicit)]
@@ -121,7 +125,20 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
     /// <summary>
     /// Returns a hexadecimal string representation of the 256-bit buffer.
     /// </summary>
-    public override readonly string ToString() => Convert.ToHexString(this.AsSpan());
+    public override readonly string ToString()
+    {
+        ReadOnlySpan<byte> span = this.AsSpan();
+        if (span.IsEmpty)
+        {
+            return string.Empty;
+        }
+
+#if NET10_0_OR_GREATER
+        return Convert.ToHexString(span);
+#else
+        return TO_HEX_STRING_STANDARD_21(span);
+#endif
+    }
 
     /// <summary>
     /// Gets a 256-bit buffer with all bits set to zero.
@@ -138,8 +155,22 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
             return Zero;
         }
 
-        byte[] bytes = Convert.FromHexString(hex);
+#if NET10_0_OR_GREATER
+        return new Bytes32(Convert.FromHexString(hex));
+#else
+        if (hex.Length != 64)
+        {
+            throw new FormatException("The hex string must be 64 characters long.");
+        }
+
+        Span<byte> bytes = stackalloc byte[32];
+        for (int i = 0; i < 32; i++)
+        {
+            // Chuyển đổi từng cặp ký tự Hex thành 1 byte
+            bytes[i] = (byte)((GET_HEX_VAL_STANDARD_21(hex[i << 1]) << 4) + GET_HEX_VAL_STANDARD_21(hex[(i << 1) + 1]));
+        }
         return new Bytes32(bytes);
+#endif
     }
 
     /// <summary>
@@ -152,6 +183,7 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         get
         {
+#if NET10_0_OR_GREATER
             ref byte a = ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in _v1));
 
             if (Avx2.IsSupported)
@@ -167,6 +199,7 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
                 Vector128<byte> v2 = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref a, 16));
                 return Sse41.TestZ(Sse2.Or(v1, v2), Sse2.Or(v1, v2));
             }
+#endif
 
             return (_v1 | _v2 | _v3 | _v4) == 0;
         }
@@ -180,6 +213,7 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public readonly bool Equals(Bytes32 other)
     {
+#if NET10_0_OR_GREATER
         ref byte a = ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in _v1));
         ref byte b = ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in other._v1));
 
@@ -203,6 +237,7 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
             Vector128<byte> res = Sse2.Or(x1, x2);
             return Sse41.TestZ(res, res);
         }
+#endif
 
         // constant-time scalar fallback
         ulong res_scalar = (_v1 ^ other._v1)
@@ -242,4 +277,32 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Bytes32 left, Bytes32 right) => !left.Equals(right);
+
+#if !NET10_0_OR_GREATER
+    private static string TO_HEX_STRING_STANDARD_21(ReadOnlySpan<byte> bytes)
+    {
+        Span<char> result = stackalloc char[bytes.Length * 2];
+        FILL_HEX_STANDARD_21(bytes, result);
+        return new string(result);
+    }
+
+    private static void FILL_HEX_STANDARD_21(ReadOnlySpan<byte> bytes, Span<char> dest)
+    {
+        const string hex = "0123456789ABCDEF";
+
+        int di = 0;
+        for (int i = 0; i < bytes.Length; i++)
+        {
+            byte b = bytes[i];
+            dest[di++] = hex[b >> 4];
+            dest[di++] = hex[b & 0xF];
+        }
+    }
+
+    private static int GET_HEX_VAL_STANDARD_21(char hex)
+    {
+        int val = hex;
+        return val - (val < 58 ? 48 : (val < 91 ? 55 : 87));
+    }
+#endif
 }

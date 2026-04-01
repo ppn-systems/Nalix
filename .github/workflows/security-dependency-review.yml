@@ -124,5 +124,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: nuget-vulnerability-audit
-          path: artifacts/security
+          path: ${{ github.workspace }}/artifacts/security
           if-no-files-found: warn
+          compression-level: 0

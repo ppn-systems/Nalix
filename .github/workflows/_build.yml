@@ -151,16 +151,18 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ runner.os }}
-          path: ${{ env.TEST_RESULTS_DIR }}
+          path: ${{ github.workspace }}/${{ env.TEST_RESULTS_DIR }}
           if-no-files-found: warn
+          compression-level: 0
 
       - name: Upload coverage report
         if: always() && steps.coverage_files.outputs.found == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report-${{ runner.os }}
-          path: ${{ env.COVERAGE_REPORT_DIR }}
+          path: ${{ github.workspace }}/${{ env.COVERAGE_REPORT_DIR }}
           if-no-files-found: warn
+          compression-level: 0
 
       - name: Publish trimmed self-contained smoke test
         if: inputs.os == 'ubuntu-latest'
@@ -174,7 +176,9 @@ jobs:
 
       - name: Upload publish artifact
         if: inputs.deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: publish-${{ runner.os }}
-          path: ./publish
+          path: ${{ github.workspace }}/publish
+          if-no-files-found: warn
+          compression-level: 0

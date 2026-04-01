@@ -24,7 +24,11 @@ public sealed class IniCommentAttribute : Attribute
     /// </param>
     public IniCommentAttribute(string comment)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(comment, nameof(comment));
+        if (string.IsNullOrWhiteSpace(comment))
+        {
+            throw new ArgumentException("Comment cannot be null or white space.", nameof(comment));
+        }
+
         this.Comment = comment;
     }
 }

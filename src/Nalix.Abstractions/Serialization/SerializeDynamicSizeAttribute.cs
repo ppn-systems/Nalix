@@ -14,7 +14,7 @@ namespace Nalix.Abstractions.Serialization;
 public sealed class SerializeDynamicSizeAttribute(int size) : Attribute
 {
     /// <summary>Gets the size hint, in bytes, used for buffer preallocation.</summary>
-    public int Size { get; init; } = size;
+    public int Size { get; set; } = size;
 
     /// <summary>Initializes a new instance with a default size hint.</summary>
     public SerializeDynamicSizeAttribute()

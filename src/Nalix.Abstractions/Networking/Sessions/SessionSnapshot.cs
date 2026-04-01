@@ -14,17 +14,17 @@ public sealed class SessionSnapshot
     /// <summary>
     /// Gets or sets the snapshot token.
     /// </summary>
-    public ulong SessionToken { get; init; }
+    public ulong SessionToken { get; set; }
 
     /// <summary>
     /// Gets or sets the creation timestamp in Unix milliseconds.
     /// </summary>
-    public long CreatedAtUnixMilliseconds { get; init; }
+    public long CreatedAtUnixMilliseconds { get; set; }
 
     /// <summary>
     /// Gets or sets the expiration timestamp in Unix milliseconds.
     /// </summary>
-    public long ExpiresAtUnixMilliseconds { get; init; }
+    public long ExpiresAtUnixMilliseconds { get; set; }
 
     /// <summary>
     /// Gets or sets the symmetric secret to restore on resume.
@@ -34,12 +34,12 @@ public sealed class SessionSnapshot
     /// <summary>
     /// Gets or sets the negotiated cipher suite.
     /// </summary>
-    public CipherSuiteType Algorithm { get; init; }
+    public CipherSuiteType Algorithm { get; set; }
 
     /// <summary>
     /// Gets or sets the permission level restored on resume.
     /// </summary>
-    public PermissionLevel Level { get; init; }
+    public PermissionLevel Level { get; set; }
 
     /// <summary>
     /// Gets or sets the whitelisted connection attributes copied during resume.
