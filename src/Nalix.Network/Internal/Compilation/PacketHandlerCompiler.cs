@@ -23,7 +23,6 @@ using Nalix.Framework.Injection;
 using Nalix.Network.Internal.Results;
 using Nalix.Network.Internal.Routing;
 using Nalix.Network.Routing;
-using Nalix.Network.Routing.Metadata;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]

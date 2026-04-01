@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing.Metadata;
 
 namespace Nalix.Network.Routing;
 

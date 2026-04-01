@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Internal.Results;
 using Nalix.Network.Routing;
-using Nalix.Network.Routing.Metadata;
 
 namespace Nalix.Network.Internal.Routing;
 
