@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -23,7 +24,7 @@ namespace Nalix.Network.Routing;
 /// <typeparam name="TPacket">The type of packet being dispatched.</typeparam>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket
+public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<PacketDispatchOptions<TPacket>> where TPacket : IPacket
 {
     #region Fields
 
@@ -60,8 +61,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
         this.NetworkPipeline = new NetworkBufferMiddlewarePipeline();
 
         // Add default network middleware for frame processing. You can customize this pipeline as needed.
-        this.NetworkPipeline.Use(new FrameDecryptionMiddleware());
-        this.NetworkPipeline.Use(new FrameDecompressMiddleware());
+        this.NetworkPipeline.Use(new DecryptMiddleware());
+        this.NetworkPipeline.Use(new DecompressMiddleware());
     }
 
     #endregion Fields

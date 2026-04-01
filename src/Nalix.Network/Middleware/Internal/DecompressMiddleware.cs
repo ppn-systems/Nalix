@@ -27,7 +27,7 @@ namespace Nalix.Network.Middleware.Internal;
 /// Middleware that decompresses packet payloads when <see cref="PacketFlags.COMPRESSED"/> is set.
 /// </summary>
 [MiddlewareOrder(50)]
-internal class FrameDecompressMiddleware : INetworkBufferMiddleware
+internal class DecompressMiddleware : INetworkBufferMiddleware
 {
     /// <inheritdoc />
     public ValueTask<IBufferLease?> InvokeAsync(IBufferLease lease, IConnection connection, CancellationToken ct)

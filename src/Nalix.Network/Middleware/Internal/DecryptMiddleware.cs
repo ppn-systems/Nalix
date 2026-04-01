@@ -24,7 +24,7 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Network.Middleware.Internal;
 
 [MiddlewareOrder(-50)]
-internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
+internal class DecryptMiddleware : INetworkBufferMiddleware
 {
     public ValueTask<IBufferLease?> InvokeAsync(IBufferLease lease, IConnection connection, CancellationToken ct)
     {

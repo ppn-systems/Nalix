@@ -21,7 +21,7 @@ using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
 using Nalix.Network.Routing;
 
-namespace Nalix.Network.Internal.Channels;
+namespace Nalix.Network.Internal.Routing;
 
 /// <summary>
 /// Cache-line padded 64-bit counter used to reduce false sharing on hot atomic counters.
@@ -43,389 +43,24 @@ internal struct CacheLinePaddedLong
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where TPacket : IPacket
 {
+    #region Constants
+
     private const int LowestPriorityIndex = (int)PacketPriority.NONE;
     private const int HighestPriorityIndex = (int)PacketPriority.URGENT;
     private const int PriorityLevels = HighestPriorityIndex + 1;
     private const int PriorityOffset = (int)PacketHeaderOffset.Priority;
 
-    private sealed class Node(IConnection connection, ConnectionState state, Node? next)
-    {
-        public readonly IConnection Connection = connection;
-        public readonly ConnectionState State = state;
-        public readonly Node? Next = next;
-        public int Removed;
-    }
+    #endregion Constants
 
-    private sealed class UnboundedQueue
-    {
-        private readonly Channel<IBufferLease> _channel = Channel.CreateUnbounded<IBufferLease>(
-            new UnboundedChannelOptions
-            {
-                AllowSynchronousContinuations = false,
-                SingleReader = false,
-                SingleWriter = false
-            });
+    #region Fields
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryEnqueue(IBufferLease lease) => _channel.Writer.TryWrite(lease);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryDequeue([NotNullWhen(true)] out IBufferLease lease) => _channel.Reader.TryRead(out lease!);
-    }
-
-    private sealed class MpmcRing
-    {
-        private struct Slot
-        {
-            public long Sequence;
-            public IBufferLease? Item;
-        }
-
-        private readonly Slot[] _slots;
-        private readonly int _mask;
-        private CacheLinePaddedLong _enqueuePos;
-        private CacheLinePaddedLong _dequeuePos;
-
-        public MpmcRing(int capacity)
-        {
-            capacity = RoundUpToPowerOf2(Math.Max(2, capacity));
-            _slots = new Slot[capacity];
-            _mask = capacity - 1;
-
-            for (int i = 0; i < capacity; i++)
-            {
-                _slots[i].Sequence = i;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryEnqueue(IBufferLease lease)
-        {
-            SpinWait spin = default;
-
-            while (true)
-            {
-                long pos = Volatile.Read(ref _enqueuePos.Value);
-                ref Slot slot = ref _slots[(int)(pos & _mask)];
-                long seq = Volatile.Read(ref slot.Sequence);
-                long diff = seq - pos;
-
-                if (diff == 0)
-                {
-                    if (Interlocked.CompareExchange(ref _enqueuePos.Value, pos + 1, pos) == pos)
-                    {
-                        slot.Item = lease;
-                        Volatile.Write(ref slot.Sequence, pos + 1);
-                        return true;
-                    }
-
-                    continue;
-                }
-
-                if (diff < 0)
-                {
-                    return false;
-                }
-
-                spin.SpinOnce();
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryDequeue([NotNullWhen(true)] out IBufferLease lease)
-        {
-            SpinWait spin = default;
-
-            while (true)
-            {
-                long pos = Volatile.Read(ref _dequeuePos.Value);
-                ref Slot slot = ref _slots[(int)(pos & _mask)];
-                long seq = Volatile.Read(ref slot.Sequence);
-                long diff = seq - (pos + 1);
-
-                if (diff == 0)
-                {
-                    if (Interlocked.CompareExchange(ref _dequeuePos.Value, pos + 1, pos) == pos)
-                    {
-                        IBufferLease? item = slot.Item;
-                        slot.Item = null;
-                        Volatile.Write(ref slot.Sequence, pos + _slots.Length);
-
-                        if (item is null)
-                        {
-                            lease = null!;
-                            return false;
-                        }
-
-                        lease = item;
-                        return true;
-                    }
-
-                    continue;
-                }
-
-                if (diff < 0)
-                {
-                    lease = null!;
-                    return false;
-                }
-
-                spin.SpinOnce();
-            }
-        }
-    }
-
-    private sealed class ConnectionState
-    {
-        private readonly IConnection _connection;
-        private readonly bool _boundedMode;
-        private readonly int _boundedCapacity;
-
-        private readonly MpmcRing?[] _boundedQueues = new MpmcRing[PriorityLevels];
-        private readonly UnboundedQueue?[] _unboundedQueues = new UnboundedQueue[PriorityLevels];
-        private readonly int[] _priorityCounts = new int[PriorityLevels];
-
-        private int _readyFlag;
-        private int _activeFlag;
-        private int _nonEmptyMask;
-        private int _totalCount;
-
-        public ConnectionState(IConnection connection, bool boundedMode, int boundedCapacity)
-        {
-            _connection = connection;
-            _boundedMode = boundedMode;
-            _boundedCapacity = boundedCapacity;
-            _activeFlag = 1;
-        }
-
-        public IConnection Connection => _connection;
-
-        public int TotalCount => Volatile.Read(ref _totalCount);
-
-        public int NonEmptyMask => Volatile.Read(ref _nonEmptyMask);
-
-        public bool IsActive => Volatile.Read(ref _activeFlag) == 1;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public void Reactivate() => _ = Interlocked.Exchange(ref _activeFlag, 1);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryDeactivate() => Interlocked.Exchange(ref _activeFlag, 0) == 1;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryMarkReady() => this.IsActive && Interlocked.CompareExchange(ref _readyFlag, 1, 0) == 0;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryReleaseReady() => Interlocked.Exchange(ref _readyFlag, 0) == 1;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public int ReadPriorityCount(int priority) => Volatile.Read(ref _priorityCounts[priority]);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public int GetHighestPriority()
-        {
-            int mask = Volatile.Read(ref _nonEmptyMask);
-            return mask == 0 ? -1 : 31 - BitOperations.LeadingZeroCount((uint)mask);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryEnqueue(int priority, IBufferLease lease)
-        {
-            if (_boundedMode)
-            {
-                return this.GetOrCreateBoundedQueue(priority).TryEnqueue(lease);
-            }
-
-            return this.GetOrCreateUnboundedQueue(priority).TryEnqueue(lease);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryDequeue(int priority, [NotNullWhen(true)] out IBufferLease lease)
-        {
-            if (_boundedMode)
-            {
-                MpmcRing? queue = Volatile.Read(ref _boundedQueues[priority]);
-                if (queue is not null && queue.TryDequeue(out lease))
-                {
-                    return true;
-                }
-
-                lease = null!;
-                return false;
-            }
-
-            UnboundedQueue? unbounded = Volatile.Read(ref _unboundedQueues[priority]);
-            if (unbounded is not null && unbounded.TryDequeue(out lease))
-            {
-                return true;
-            }
-
-            lease = null!;
-            return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public bool TryDequeueAny([NotNullWhen(true)] out IBufferLease lease, out int priority)
-        {
-            for (int p = LowestPriorityIndex; p <= HighestPriorityIndex; p++)
-            {
-                if (this.TryDequeue(p, out lease))
-                {
-                    priority = p;
-                    return true;
-                }
-            }
-
-            lease = null!;
-            priority = -1;
-            return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public int OnEnqueued(int priority)
-        {
-            int next = Interlocked.Increment(ref _priorityCounts[priority]);
-            if (next == 1)
-            {
-                this.SetPriorityBit(priority);
-            }
-
-            return Interlocked.Increment(ref _totalCount);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public int OnDequeued(int priority)
-        {
-            int next = Interlocked.Decrement(ref _priorityCounts[priority]);
-            if (next <= 0)
-            {
-                if (next < 0)
-                {
-                    _ = Interlocked.Exchange(ref _priorityCounts[priority], 0);
-                }
-
-                this.ClearPriorityBit(priority);
-            }
-
-            int remaining = Interlocked.Decrement(ref _totalCount);
-            if (remaining >= 0)
-            {
-                return remaining;
-            }
-
-            _ = Interlocked.Exchange(ref _totalCount, 0);
-            return 0;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        public void ClearPriorityBitIfEmpty(int priority)
-        {
-            if (this.ReadPriorityCount(priority) <= 0)
-            {
-                this.ClearPriorityBit(priority);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-        public int DrainAndDisposeAll()
-        {
-            int drained = 0;
-
-            while (this.TryDequeueAny(out IBufferLease? lease, out int priority))
-            {
-                lease.Dispose();
-                _ = this.OnDequeued(priority);
-                drained++;
-            }
-
-            for (int i = 0; i < _priorityCounts.Length; i++)
-            {
-                _ = Interlocked.Exchange(ref _priorityCounts[i], 0);
-            }
-
-            _ = Interlocked.Exchange(ref _totalCount, 0);
-            _ = Interlocked.Exchange(ref _nonEmptyMask, 0);
-            _ = Interlocked.Exchange(ref _readyFlag, 0);
-
-            return drained;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private MpmcRing GetOrCreateBoundedQueue(int priority)
-        {
-            MpmcRing? current = Volatile.Read(ref _boundedQueues[priority]);
-            if (current is not null)
-            {
-                return current;
-            }
-
-            MpmcRing created = new(_boundedCapacity);
-            MpmcRing? prior = Interlocked.CompareExchange(ref _boundedQueues[priority], created, null);
-            return prior ?? created;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private UnboundedQueue GetOrCreateUnboundedQueue(int priority)
-        {
-            UnboundedQueue? current = Volatile.Read(ref _unboundedQueues[priority]);
-            if (current is not null)
-            {
-                return current;
-            }
-
-            UnboundedQueue created = new();
-            UnboundedQueue? prior = Interlocked.CompareExchange(ref _unboundedQueues[priority], created, null);
-            return prior ?? created;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private void SetPriorityBit(int priority)
-        {
-            int bit = 1 << priority;
-
-            while (true)
-            {
-                int mask = Volatile.Read(ref _nonEmptyMask);
-                if ((mask & bit) != 0)
-                {
-                    return;
-                }
-
-                if (Interlocked.CompareExchange(ref _nonEmptyMask, mask | bit, mask) == mask)
-                {
-                    return;
-                }
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private void ClearPriorityBit(int priority)
-        {
-            int bit = 1 << priority;
-            int clearMask = ~bit;
-
-            while (true)
-            {
-                int mask = Volatile.Read(ref _nonEmptyMask);
-                if ((mask & bit) == 0)
-                {
-                    return;
-                }
-
-                if (Interlocked.CompareExchange(ref _nonEmptyMask, mask & clearMask, mask) == mask)
-                {
-                    return;
-                }
-            }
-        }
-    }
-
-    private readonly DispatchOptions _options;
     private readonly DropPolicy _dropPolicy;
+    private readonly DispatchOptions _options;
+
+    private readonly long _blockTimeoutTicks;
     private readonly int _maxPerConnectionQueue;
     private readonly bool _boundedPerPriorityMode;
     private readonly int _boundedPerPriorityCapacity;
-    private readonly long _blockTimeoutTicks;
 
     private readonly Channel<ConnectionState>[] _readyByPrio;
     private readonly int[] _readyEntriesByPrio;
@@ -436,6 +71,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     private int _activeConnections;
     private int _readyConnections;
     private CacheLinePaddedLong _packetCount;
+
+    #endregion Fields
+
+    #region Properties
 
     /// <summary>
     /// Gets the total queued packet count across all connections.
@@ -499,6 +138,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         }
     }
 
+    #endregion Properties
+
+    #region Constructors
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DispatchChannel{TPacket}"/> class.
     /// </summary>
@@ -536,6 +179,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
                        .ConnectionUnregistered += this.OnUnregistered;
     }
+
+    #endregion Constructors
+
+    #region APIs
 
     /// <summary>
     /// Attempts to dequeue one packet, preferring higher priorities first.
@@ -603,6 +250,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// <param name="raw">The packet lease to enqueue.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Push(IConnection connection, IBufferLease raw) => _ = this.PushCore(connection, raw);
+
+    #endregion APIs
+
+    #region Internal Methods
 
     /// <summary>
     /// Enqueues a packet and reports whether a new ready entry was generated.
@@ -678,6 +329,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
         return true;
     }
+
+    #endregion Internal Methods
+
+    #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private bool EnsureCapacity(ConnectionState state)
@@ -768,10 +423,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static bool TryDequeueHighest(
-        ConnectionState state,
-        [NotNullWhen(true)] out IBufferLease raw,
-        out int dequeuedFrom)
+    private static bool TryDequeueHighest(ConnectionState state, [NotNullWhen(true)] out IBufferLease raw, out int dequeuedFrom)
     {
         int mask = state.NonEmptyMask;
 
@@ -1019,5 +671,405 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
             _ = Interlocked.Exchange(ref value, 0);
         }
     }
-}
 
+    #endregion Private Methods
+
+    #region Nested Types
+
+    private sealed class Node(IConnection connection, ConnectionState state, Node? next)
+    {
+        public int Removed;
+
+        public readonly Node? Next = next;
+        public readonly ConnectionState State = state;
+        public readonly IConnection Connection = connection;
+    }
+
+    private sealed class UnboundedQueue
+    {
+        private readonly Channel<IBufferLease> _channel = Channel.CreateUnbounded<IBufferLease>(
+            new UnboundedChannelOptions
+            {
+                SingleReader = false,
+                SingleWriter = false,
+                AllowSynchronousContinuations = false
+            });
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryEnqueue(IBufferLease lease) => _channel.Writer.TryWrite(lease);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryDequeue([NotNullWhen(true)] out IBufferLease lease) => _channel.Reader.TryRead(out lease!);
+    }
+
+    private sealed class MpmcRing
+    {
+        private struct Slot
+        {
+            public long Sequence;
+            public IBufferLease? Item;
+        }
+
+        private readonly Slot[] _slots;
+        private readonly int _mask;
+        private CacheLinePaddedLong _enqueuePos;
+        private CacheLinePaddedLong _dequeuePos;
+
+        public MpmcRing(int capacity)
+        {
+            capacity = RoundUpToPowerOf2(Math.Max(2, capacity));
+            _slots = new Slot[capacity];
+            _mask = capacity - 1;
+
+            for (int i = 0; i < capacity; i++)
+            {
+                _slots[i].Sequence = i;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryEnqueue(IBufferLease lease)
+        {
+            SpinWait spin = default;
+
+            while (true)
+            {
+                long pos = Volatile.Read(ref _enqueuePos.Value);
+                ref Slot slot = ref _slots[(int)(pos & _mask)];
+                long seq = Volatile.Read(ref slot.Sequence);
+                long diff = seq - pos;
+
+                if (diff == 0)
+                {
+                    if (Interlocked.CompareExchange(ref _enqueuePos.Value, pos + 1, pos) == pos)
+                    {
+                        slot.Item = lease;
+                        Volatile.Write(ref slot.Sequence, pos + 1);
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                if (diff < 0)
+                {
+                    return false;
+                }
+
+                spin.SpinOnce();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryDequeue([NotNullWhen(true)] out IBufferLease lease)
+        {
+            SpinWait spin = default;
+
+            while (true)
+            {
+                long pos = Volatile.Read(ref _dequeuePos.Value);
+                ref Slot slot = ref _slots[(int)(pos & _mask)];
+                long seq = Volatile.Read(ref slot.Sequence);
+                long diff = seq - (pos + 1);
+
+                if (diff == 0)
+                {
+                    if (Interlocked.CompareExchange(ref _dequeuePos.Value, pos + 1, pos) == pos)
+                    {
+                        IBufferLease? item = slot.Item;
+                        slot.Item = null;
+                        Volatile.Write(ref slot.Sequence, pos + _slots.Length);
+
+                        if (item is null)
+                        {
+                            lease = null!;
+                            return false;
+                        }
+
+                        lease = item;
+                        return true;
+                    }
+
+                    continue;
+                }
+
+                if (diff < 0)
+                {
+                    lease = null!;
+                    return false;
+                }
+
+                spin.SpinOnce();
+            }
+        }
+    }
+
+    private sealed class ConnectionState
+    {
+        #region Fields
+
+        private readonly bool _boundedMode;
+        private readonly int _boundedCapacity;
+        private readonly IConnection _connection;
+
+        private readonly MpmcRing?[] _boundedQueues = new MpmcRing[PriorityLevels];
+        private readonly UnboundedQueue?[] _unboundedQueues = new UnboundedQueue[PriorityLevels];
+        private readonly int[] _priorityCounts = new int[PriorityLevels];
+
+        private int _readyFlag;
+        private int _activeFlag;
+        private int _nonEmptyMask;
+        private int _totalCount;
+
+        #endregion Fields
+
+        #region Constructor
+
+        public ConnectionState(IConnection connection, bool boundedMode, int boundedCapacity)
+        {
+            _activeFlag = 1;
+
+            _connection = connection;
+            _boundedMode = boundedMode;
+            _boundedCapacity = boundedCapacity;
+        }
+
+        #endregion Constructor
+
+        #region Properties
+
+        public IConnection Connection => _connection;
+
+        public int TotalCount => Volatile.Read(ref _totalCount);
+
+        public int NonEmptyMask => Volatile.Read(ref _nonEmptyMask);
+
+        public bool IsActive => Volatile.Read(ref _activeFlag) == 1;
+
+        #endregion Properties
+
+        #region APIs
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public void Reactivate() => _ = Interlocked.Exchange(ref _activeFlag, 1);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryDeactivate() => Interlocked.Exchange(ref _activeFlag, 0) == 1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryMarkReady() => this.IsActive && Interlocked.CompareExchange(ref _readyFlag, 1, 0) == 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryReleaseReady() => Interlocked.Exchange(ref _readyFlag, 0) == 1;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public int ReadPriorityCount(int priority) => Volatile.Read(ref _priorityCounts[priority]);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public int GetHighestPriority()
+        {
+            int mask = Volatile.Read(ref _nonEmptyMask);
+            return mask == 0 ? -1 : 31 - BitOperations.LeadingZeroCount((uint)mask);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryEnqueue(int priority, IBufferLease lease)
+        {
+            if (_boundedMode)
+            {
+                return this.GetOrCreateBoundedQueue(priority).TryEnqueue(lease);
+            }
+
+            return this.GetOrCreateUnboundedQueue(priority).TryEnqueue(lease);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryDequeue(int priority, [NotNullWhen(true)] out IBufferLease lease)
+        {
+            if (_boundedMode)
+            {
+                MpmcRing? queue = Volatile.Read(ref _boundedQueues[priority]);
+                if (queue is not null && queue.TryDequeue(out lease))
+                {
+                    return true;
+                }
+
+                lease = null!;
+                return false;
+            }
+
+            UnboundedQueue? unbounded = Volatile.Read(ref _unboundedQueues[priority]);
+            if (unbounded is not null && unbounded.TryDequeue(out lease))
+            {
+                return true;
+            }
+
+            lease = null!;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryDequeueAny([NotNullWhen(true)] out IBufferLease lease, out int priority)
+        {
+            for (int p = LowestPriorityIndex; p <= HighestPriorityIndex; p++)
+            {
+                if (this.TryDequeue(p, out lease))
+                {
+                    priority = p;
+                    return true;
+                }
+            }
+
+            lease = null!;
+            priority = -1;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public int OnEnqueued(int priority)
+        {
+            int next = Interlocked.Increment(ref _priorityCounts[priority]);
+            if (next == 1)
+            {
+                this.SetPriorityBit(priority);
+            }
+
+            return Interlocked.Increment(ref _totalCount);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public int OnDequeued(int priority)
+        {
+            int next = Interlocked.Decrement(ref _priorityCounts[priority]);
+            if (next <= 0)
+            {
+                if (next < 0)
+                {
+                    _ = Interlocked.Exchange(ref _priorityCounts[priority], 0);
+                }
+
+                this.ClearPriorityBit(priority);
+            }
+
+            int remaining = Interlocked.Decrement(ref _totalCount);
+            if (remaining >= 0)
+            {
+                return remaining;
+            }
+
+            _ = Interlocked.Exchange(ref _totalCount, 0);
+            return 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public void ClearPriorityBitIfEmpty(int priority)
+        {
+            if (this.ReadPriorityCount(priority) <= 0)
+            {
+                this.ClearPriorityBit(priority);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+        public int DrainAndDisposeAll()
+        {
+            int drained = 0;
+
+            while (this.TryDequeueAny(out IBufferLease? lease, out int priority))
+            {
+                lease.Dispose();
+                _ = this.OnDequeued(priority);
+                drained++;
+            }
+
+            for (int i = 0; i < _priorityCounts.Length; i++)
+            {
+                _ = Interlocked.Exchange(ref _priorityCounts[i], 0);
+            }
+
+            _ = Interlocked.Exchange(ref _totalCount, 0);
+            _ = Interlocked.Exchange(ref _nonEmptyMask, 0);
+            _ = Interlocked.Exchange(ref _readyFlag, 0);
+
+            return drained;
+        }
+
+        #endregion APIs
+
+        #region Private Methods
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private MpmcRing GetOrCreateBoundedQueue(int priority)
+        {
+            MpmcRing? current = Volatile.Read(ref _boundedQueues[priority]);
+            if (current is not null)
+            {
+                return current;
+            }
+
+            MpmcRing created = new(_boundedCapacity);
+            MpmcRing? prior = Interlocked.CompareExchange(ref _boundedQueues[priority], created, null);
+            return prior ?? created;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private UnboundedQueue GetOrCreateUnboundedQueue(int priority)
+        {
+            UnboundedQueue? current = Volatile.Read(ref _unboundedQueues[priority]);
+            if (current is not null)
+            {
+                return current;
+            }
+
+            UnboundedQueue created = new();
+            UnboundedQueue? prior = Interlocked.CompareExchange(ref _unboundedQueues[priority], created, null);
+            return prior ?? created;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private void SetPriorityBit(int priority)
+        {
+            int bit = 1 << priority;
+
+            while (true)
+            {
+                int mask = Volatile.Read(ref _nonEmptyMask);
+                if ((mask & bit) != 0)
+                {
+                    return;
+                }
+
+                if (Interlocked.CompareExchange(ref _nonEmptyMask, mask | bit, mask) == mask)
+                {
+                    return;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private void ClearPriorityBit(int priority)
+        {
+            int bit = 1 << priority;
+            int clearMask = ~bit;
+
+            while (true)
+            {
+                int mask = Volatile.Read(ref _nonEmptyMask);
+                if ((mask & bit) == 0)
+                {
+                    return;
+                }
+
+                if (Interlocked.CompareExchange(ref _nonEmptyMask, mask & clearMask, mask) == mask)
+                {
+                    return;
+                }
+            }
+        }
+
+        #endregion Private Methods
+    }
+
+    #endregion Nested Types
+
+}

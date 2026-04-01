@@ -21,8 +21,8 @@ using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Internal.Channels;
 using Nalix.Network.Internal.Constants;
+using Nalix.Network.Internal.Routing;
 
 namespace Nalix.Network.Routing;
 
