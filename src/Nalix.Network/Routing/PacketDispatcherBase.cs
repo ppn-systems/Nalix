@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing.Metadata;
+using Nalix.Network.Internal.Routing;
 
 namespace Nalix.Network.Routing;
 

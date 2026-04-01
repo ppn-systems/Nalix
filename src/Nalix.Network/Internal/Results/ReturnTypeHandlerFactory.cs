@@ -8,13 +8,13 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing.Results.Memory;
-using Nalix.Network.Routing.Results.Packet;
-using Nalix.Network.Routing.Results.Primitives;
-using Nalix.Network.Routing.Results.Task;
-using Nalix.Network.Routing.Results.Void;
+using Nalix.Network.Internal.Results.Memory;
+using Nalix.Network.Internal.Results.Packet;
+using Nalix.Network.Internal.Results.Primitives;
+using Nalix.Network.Internal.Results.Task;
+using Nalix.Network.Internal.Results.Void;
 
-namespace Nalix.Network.Routing.Results;
+namespace Nalix.Network.Internal.Results;
 
 /// <summary>
 /// A zero-allocation factory responsible for returning the appropriate

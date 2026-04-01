@@ -10,9 +10,9 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Routing;
 using Nalix.Network.Middleware;
 using Nalix.Network.Middleware.Internal;
-using Nalix.Network.Routing.Metadata;
 
 namespace Nalix.Network.Routing;
 

@@ -13,7 +13,7 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
-using Nalix.Network.Routing.Results.Primitives;
+using Nalix.Network.Internal.Results.Primitives;
 
 namespace Nalix.Network.Internal.Transport;
 

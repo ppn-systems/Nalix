@@ -20,9 +20,10 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
+using Nalix.Network.Internal.Results;
+using Nalix.Network.Internal.Routing;
 using Nalix.Network.Routing;
 using Nalix.Network.Routing.Metadata;
-using Nalix.Network.Routing.Results;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
