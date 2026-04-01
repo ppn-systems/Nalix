@@ -6,13 +6,13 @@ using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Options;
+using Nalix.Codec.Transforms;
 using Nalix.Environment.Configuration;
 using Nalix.SDK.Options;
-using Nalix.Abstractions;
-using Nalix.Codec.Transforms;
 
 namespace Nalix.SDK.Transport.Internal;
 

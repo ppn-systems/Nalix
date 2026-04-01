@@ -9,11 +9,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Environment.Random;
+using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
-using Nalix.Environment.Time;
 
 namespace Nalix.Framework.Tasks;
 
@@ -93,7 +94,7 @@ public partial class TaskManager
                 {
                     st.Cts.Dispose();
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                     {
@@ -169,15 +170,15 @@ public partial class TaskManager
 
                     if (worker is null)
                     {
-                        _ = _globalConcurrencyGate.Release();
+                        this.RELEASE_GLOBAL_GATE();
                         continue;
                     }
 
                     this.START_WORKER_EXECUTION(worker);
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    _ = _globalConcurrencyGate.Release();
+                    this.RELEASE_GLOBAL_GATE();
 
                     if (worker is not null)
                     {
@@ -196,7 +197,7 @@ public partial class TaskManager
             {
                 break;
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                 {
@@ -265,7 +266,7 @@ public partial class TaskManager
                         _ = source.TrySetResult();
                     }, tcs, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     _ = tcs.TrySetException(ex);
                 }
@@ -321,7 +322,8 @@ public partial class TaskManager
                         {
                             cts.Dispose();
                         }
-                        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                        catch (ObjectDisposedException) { }
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
                             if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } loggerDispose && loggerDispose.IsEnabled(LogLevel.Warning))
                             {
@@ -380,7 +382,7 @@ public partial class TaskManager
         {
             wasCancelled = true;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             failure = ex;
             _ = Interlocked.Increment(ref _workerErrorCount);
@@ -412,7 +414,7 @@ public partial class TaskManager
                     concreteOptions?.OnFailed?.Invoke(st, failure);
                 }
             }
-            catch (Exception cbex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(cbex))
+            catch (Exception cbex) when (ExceptionClassifier.IsNonFatal(cbex))
             {
                 _ = Interlocked.Increment(ref _workerErrorCount);
 
@@ -428,7 +430,7 @@ public partial class TaskManager
                 {
                     _ = gate.SemaphoreSlim.Release();
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     _ = Interlocked.Increment(ref _workerErrorCount);
 
@@ -469,7 +471,7 @@ public partial class TaskManager
             }
 
             this.RETAIN_OR_REMOVE(st);
-            _ = _globalConcurrencyGate.Release();
+            this.RELEASE_GLOBAL_GATE();
         }
     }
 
@@ -590,7 +592,7 @@ public partial class TaskManager
 
                     await this.RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     s.MarkFailure();
                     if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
@@ -615,7 +617,7 @@ public partial class TaskManager
                         {
                             _ = s.Gate.Release();
                         }
-                        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
                             if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                             {
@@ -627,7 +629,7 @@ public partial class TaskManager
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 s.MarkFailure();
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
@@ -681,6 +683,25 @@ public partial class TaskManager
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void RELEASE_GLOBAL_GATE()
+    {
+        // Check if we need to 'steal' this permit to satisfy a pending limit reduction
+        int def = Volatile.Read(ref _concurrencyDeficiency);
+        while (def > 0)
+        {
+            if (Interlocked.CompareExchange(ref _concurrencyDeficiency, def - 1, def) == def)
+            {
+                // Permit consumed by the deficiency, don't release to semaphore
+                return;
+            }
+            def = Volatile.Read(ref _concurrencyDeficiency);
+        }
+
+        // No deficiency, return the permit to the global pool
+        _ = _globalConcurrencyGate.Release();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void TRACE(string message)
     {
         if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Trace))
@@ -702,7 +723,8 @@ public partial class TaskManager
             {
                 st.Cts.Dispose();
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (ObjectDisposedException) { }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                 {
@@ -734,7 +756,7 @@ public partial class TaskManager
                 gate.SemaphoreSlim.Dispose();
                 this.TRACE($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={group}");
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                 {
@@ -808,7 +830,7 @@ public partial class TaskManager
                 await Task.Delay(options.ObservingInterval, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                 {
@@ -875,24 +897,9 @@ public partial class TaskManager
         double processorCount = System.Environment.ProcessorCount;
 
         // cpuDelta / wallDelta = tỷ lệ sử dụng trên 1 core -> nhân processorCount -> % trên toàn bộ core
-        double cpuUsagePercent = cpuDelta / (double)wallDelta * processorCount * 100.0;
+        double cpuUsagePercent = cpuDelta / (double)wallDelta / processorCount * 100.0;
 
         return Math.Min(cpuUsagePercent, processorCount * 100.0);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int COUNT_RUNNING_THREADS(Process proc)
-    {
-        int running = 0;
-        foreach (ProcessThread thread in proc.Threads)
-        {
-            if (thread.ThreadState == System.Diagnostics.ThreadState.Running)
-            {
-                running++;
-            }
-        }
-
-        return running;
     }
 
     [StackTraceHidden]
@@ -917,30 +924,42 @@ public partial class TaskManager
         {
             if (delta > 0)
             {
-                // Tăng capacity: release thêm slot vào semaphore
-                _ = _globalConcurrencyGate.Release(delta);
+                // Tăng capacity: ưu tiên bù đắp deficiency trước, sau đó mới release vào semaphore
+                int toRelease = delta;
+                int def = Volatile.Read(ref _concurrencyDeficiency);
+                while (def > 0 && toRelease > 0)
+                {
+                    int consumed = Math.Min(def, toRelease);
+                    if (Interlocked.CompareExchange(ref _concurrencyDeficiency, def - consumed, def) == def)
+                    {
+                        toRelease -= consumed;
+                    }
+                    def = Volatile.Read(ref _concurrencyDeficiency);
+                }
+
+                if (toRelease > 0)
+                {
+                    _ = _globalConcurrencyGate.Release(toRelease);
+                }
             }
             else if (delta < 0)
             {
                 // Giảm capacity: thu hồi slot bằng Wait(0) non-blocking
-                // Nếu slot đang bị giữ (worker đang chạy), chấp nhận revert một phần
-                // thay vì block — tránh deadlock
-                int i;
-                for (i = 0; i < -delta; i++)
+                // Nếu slot đang bị giữ (worker đang chạy), tăng deficiency để 'trộm' slot ngay khi nó được release
+                int toSteal = -delta;
+                for (int i = 0; i < toSteal; i++)
                 {
                     if (!_globalConcurrencyGate.Wait(0))
                     {
-                        // Không còn slot rảnh -> revert về số đã thu hồi được thực tế
-                        this.TRACE($"[FW.TaskManager.Internal] concurrency-partial-retreat from={previousLimit} to={previousLimit - i}");
-                        _currentConcurrencyLimit = previousLimit - i;
-                        break;
+                        // Không thể trộm ngay -> đánh dấu nợ (deficiency)
+                        _ = Interlocked.Increment(ref _concurrencyDeficiency);
                     }
                 }
             }
 
-            this.TRACE($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
+            this.TRACE($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}] def={_concurrencyDeficiency}");
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // Revert on error
             _currentConcurrencyLimit = previousLimit;

@@ -60,6 +60,7 @@ public sealed partial class TaskManager : ITaskManager
 
     private volatile bool _disposed;
     private volatile int _currentConcurrencyLimit;
+    private int _concurrencyDeficiency;
 
     #endregion Fields
 
@@ -402,6 +403,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 st.Cts.Dispose();
             }
+            catch (ObjectDisposedException) { } // Ignore if already disposed
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (logger != null && logger.IsEnabled(LogLevel.Debug))
@@ -463,11 +465,13 @@ public sealed partial class TaskManager : ITaskManager
 
         Task? t = st.Task;
         ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
         if (t is not null)
         {
             _ = t.ContinueWith(_ =>
             {
                 try { st.CancellationTokenSource.Dispose(); }
+                catch (ObjectDisposedException) { }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (logger != null && logger.IsEnabled(LogLevel.Debug))
@@ -476,6 +480,7 @@ public sealed partial class TaskManager : ITaskManager
                     }
                 }
                 try { st.Gate.Dispose(); }
+                catch (ObjectDisposedException) { }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (logger != null && logger.IsEnabled(LogLevel.Debug))
@@ -692,9 +697,15 @@ public sealed partial class TaskManager : ITaskManager
             Process proc = Process.GetCurrentProcess();
             proc.Refresh();
 
+            ThreadPool.GetMaxThreads(out int maxWorkerThreads, out int _);
+            ThreadPool.GetAvailableThreads(out int availableWorkerThreads, out int _);
+
+            int activeWorkerThreads = maxWorkerThreads - availableWorkerThreads;
+
             _ = sb.AppendLine("Process Health:");
             _ = sb.AppendLine("---------------------------------------------------------------------");
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Threads                           : {proc.Threads.Count} (running: {COUNT_RUNNING_THREADS(proc)})");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Threads                           : {ThreadPool.ThreadCount} (running: {activeWorkerThreads})");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Completed Work Items              : {ThreadPool.CompletedWorkItemCount:N0}");
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Handles                           : {proc.HandleCount:N0}");
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GC Collections                    : Gen0={GC.CollectionCount(0):N0} | Gen1={GC.CollectionCount(1):N0} | Gen2={GC.CollectionCount(2):N0}");
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Managed Heap                      : {GC.GetTotalMemory(false) / 1048576:N0} MB");
@@ -895,10 +906,16 @@ public sealed partial class TaskManager : ITaskManager
                 ["VirtualMB"] = proc.VirtualMemorySize64 / (1024 * 1024)
             };
 
+            ThreadPool.GetMaxThreads(out int maxWorkerThreads, out int _);
+            ThreadPool.GetAvailableThreads(out int availableWorkerThreads, out int _);
+
+            int activeWorkerThreads = maxWorkerThreads - availableWorkerThreads;
+
             data["Process"] = new Dictionary<string, object>(8, StringComparer.Ordinal)
             {
-                ["Threads"] = proc.Threads.Count,
-                ["ThreadsRunning"] = COUNT_RUNNING_THREADS(proc),
+                ["Threads"] = ThreadPool.ThreadCount,
+                ["CompletedWorkItems"] = ThreadPool.CompletedWorkItemCount,
+                ["ThreadsRunning"] = activeWorkerThreads,
                 ["Handles"] = proc.HandleCount,
                 ["GCGen0"] = GC.CollectionCount(0),
                 ["GCGen1"] = GC.CollectionCount(1),

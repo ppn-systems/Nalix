@@ -44,6 +44,7 @@ internal sealed class SlabBucket : IDisposable
     private readonly Lock _slabLock;
     private readonly SlabBucketRing _freeRing;
     private readonly ThreadLocal<ThreadLocalCache> _threadCache;
+    private readonly ConditionalWeakTable<byte[], object?> _ownedBuffers = new();
 
     private int _totalBuffers;
     private int _rentedCount;
@@ -53,6 +54,7 @@ internal sealed class SlabBucket : IDisposable
     private int _shrinks;
     private bool _disposed;
     private int _isOptimizing;
+    private int _pendingShrinkCount;
 
     /// <summary>
     /// Occurs when the bucket needs to resize (expand or shrink).
@@ -185,7 +187,20 @@ internal sealed class SlabBucket : IDisposable
             return;
         }
 
+        // Ownership check to prevent memory poisoning with non-pinned arrays.
+        // POH objects are always in Gen 2 (or higher in future runtimes).
+        if (GC.GetGeneration(array) < 2 || !_ownedBuffers.TryGetValue(array, out _))
+        {
+            return;
+        }
+
         _ = Interlocked.Decrement(ref _rentedCount);
+
+        // Deferred shrink: if we have pending shrinks, drop this buffer instead of caching/returning it.
+        if (Volatile.Read(ref _pendingShrinkCount) > 0 && this.TRY_DEFERRED_SHRINK())
+        {
+            return;
+        }
 
         ThreadLocalCache cache = _threadCache.Value!;
         if (cache.Count < _cacheDepth)
@@ -196,6 +211,23 @@ internal sealed class SlabBucket : IDisposable
 
         this.DrainCacheToRing(cache);
         cache.Cache[cache.Count++] = array;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool TRY_DEFERRED_SHRINK()
+    {
+        int pending = Volatile.Read(ref _pendingShrinkCount);
+        while (pending > 0)
+        {
+            if (Interlocked.CompareExchange(ref _pendingShrinkCount, pending - 1, pending) == pending)
+            {
+                _ = Interlocked.Decrement(ref _totalBuffers);
+                _ = Interlocked.Increment(ref _shrinks);
+                return true;
+            }
+            pending = Volatile.Read(ref _pendingShrinkCount);
+        }
+        return false;
     }
 
     /// <summary>Increases capacity by adding more standalone arrays.</summary>
@@ -210,6 +242,9 @@ internal sealed class SlabBucket : IDisposable
 
         try
         {
+            // Cancel any pending shrinks if we are expanding
+            _ = Interlocked.Exchange(ref _pendingShrinkCount, 0);
+
             this.AllocateAndEnqueue(additionalCapacity);
             _ = Interlocked.Increment(ref _expands);
         }
@@ -241,9 +276,9 @@ internal sealed class SlabBucket : IDisposable
 
             int removed = 0;
             int ringCount = _freeRing.Count;
-            int target = Math.Min(canRemove, ringCount);
+            int immediateTarget = Math.Min(canRemove, ringCount);
 
-            for (int i = 0; i < target; i++)
+            for (int i = 0; i < immediateTarget; i++)
             {
                 if (_freeRing.TryDequeue(out _))
                 {
@@ -259,6 +294,13 @@ internal sealed class SlabBucket : IDisposable
             {
                 _ = Interlocked.Add(ref _totalBuffers, -removed);
                 _ = Interlocked.Increment(ref _shrinks);
+            }
+
+            // Queue remaining for deferred shrink as buffers are returned
+            int remaining = canRemove - removed;
+            if (remaining > 0)
+            {
+                _ = Interlocked.Add(ref _pendingShrinkCount, remaining);
             }
         }
         finally
@@ -295,6 +337,7 @@ internal sealed class SlabBucket : IDisposable
                 // Single pinned allocation — the entire point of standalone slab-based pooling.
                 // The array lives on the Pinned Object Heap and stays pinned for its lifetime.
                 byte[] array = GC.AllocateArray<byte>(_segmentSize, pinned: true);
+                _ownedBuffers.Add(array, null);
 
                 if (_freeRing.TryEnqueue(array))
                 {
@@ -312,7 +355,7 @@ internal sealed class SlabBucket : IDisposable
     /// <summary>Drains the current thread's cache to the shared ring.</summary>
     private void DrainCacheToRing(ThreadLocalCache cache)
     {
-        int toMove = cache.Count / 2;
+        int toMove = Math.Max(1, cache.Count / 2);
 
         // Ensure the ring can hold the new buffers to prevent loss.
         _freeRing.EnsureCapacity(_freeRing.Count + toMove);
@@ -322,6 +365,13 @@ internal sealed class SlabBucket : IDisposable
             byte[]? arr = cache.Cache[i];
             if (arr != null)
             {
+                // Also check for deferred shrink here
+                if (Volatile.Read(ref _pendingShrinkCount) > 0 && this.TRY_DEFERRED_SHRINK())
+                {
+                    cache.Cache[i] = null;
+                    continue;
+                }
+
                 _ = _freeRing.TryEnqueue(arr);
             }
         }

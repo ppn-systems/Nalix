@@ -9,6 +9,11 @@ namespace Nalix.Abstractions.Networking;
 public static class ConnectionAttributes
 {
     /// <summary>
+    /// Key for the connection hub that owns this connection.
+    /// </summary>
+    public const string OwnerHub = "nalix.owner_hub";
+
+    /// <summary>
     /// Key for the handshake context state stored during the negotiation process.
     /// </summary>
     public const string HandshakeState = "nalix.handshake.state";

@@ -69,7 +69,7 @@ public interface ISnowflake
     /// Converts this <see cref="ISnowflake"/> to an 8-byte array.
     /// </summary>
     /// <remarks>
-    /// The layout is little-endian: [0-3]=Value, [4-5]=MachineId, [6]=Type, [7]=0.
+    /// The layout is little-endian (8 bytes total): [0-2]=MachineId/Sequence, [3-6]=Timestamp, [7]=Type.
     /// Use <see cref="TryWriteBytes(Span{byte})"/> when you already have a buffer.
     /// </remarks>
     /// <returns>A new 8-byte array containing the serialized identifier.</returns>

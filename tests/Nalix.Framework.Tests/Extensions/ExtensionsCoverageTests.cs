@@ -146,10 +146,12 @@ public sealed class ExtensionsCoverageTests
     [Fact]
     public async Task WithTimeoutWhenValueTypeTaskDoesNotCompleteReturnsDefaultValue()
     {
-        Task<int> task = Task.Delay(1000).ContinueWith(_ => 7, TaskScheduler.Default);
+        // Increase delay to 5s to ensure timeout (50ms) always wins even on slow runners
+        Task<int> task = Task.Delay(5000).ContinueWith(_ => 7, TaskScheduler.Default);
 
         int? result = await task.WithTimeout(50);
 
+        // For value types in unconstrained generics, default is 0, not null
         Assert.Equal(0, result);
     }
 

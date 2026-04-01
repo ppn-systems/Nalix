@@ -212,18 +212,18 @@ public sealed class ObjectPoolManager : IObjectPoolManager
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
 
         // Try to get from pool
-        T? result = pool.Get<T>();
-
-        if (!EqualityComparer<T>.Default.Equals(result, default))
+        T? result;
+        if (pool.AvailableCountByType(type) > 0)
         {
             // Hit from pool
+            result = pool.Get<T>();
             _ = Interlocked.Increment(ref _totalCacheHits);
             _ = Interlocked.Increment(ref metrics.CacheHits);
         }
         else
         {
-            // Miss: create new instance rather than calling pool.Get again
-            result = new T();
+            // Miss: create new instance (ObjectPool.Get will do this anyway, but we account it as a miss)
+            result = pool.Get<T>();
             _ = Interlocked.Increment(ref _totalCacheMisses);
             _ = Interlocked.Increment(ref _totalCreated);
             _ = Interlocked.Increment(ref metrics.CacheMisses);

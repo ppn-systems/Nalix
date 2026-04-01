@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Sessions;
@@ -85,4 +86,3 @@ public interface IConnectionHub : IReportable, IDisposable
     /// <returns>An enumerable collection of all active <see cref="IConnection"/> instances.</returns>
     IReadOnlyCollection<IConnection> ListConnections();
 }
-
