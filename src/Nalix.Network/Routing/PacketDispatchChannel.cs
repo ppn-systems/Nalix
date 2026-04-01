@@ -5,10 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
@@ -22,34 +22,13 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Constants;
-using Nalix.Network.Routing.Channel;
+using Nalix.Network.Internal.Routing;
 
 namespace Nalix.Network.Routing;
 
 /// <summary>
-/// Represents an ultra-high performance lease dispatcher designed for asynchronous, queue-based processing
-/// with dependency injection (DI) support and flexible lease handling via reflection-based routing.
+/// High-performance packet dispatch channel with coalesced wake-up signaling.
 /// </summary>
-/// <remarks>
-/// <para>
-/// This dispatcher works by queuing incoming packets and processing them in a background loop. Packet handling
-/// is done asynchronously using handlers resolved via lease command IDs.
-/// </para>
-/// <para>
-/// It is suitable for high-throughput systems such as custom RELIABLE servers, IoT message brokers, or game servers
-/// where latency, memory pressure, and throughput are critical.
-/// </para>
-/// </remarks>
-/// <example>
-/// Example usage:
-/// <code>
-/// var dispatcher = new PacketDispatchChannel`Packet`(opts => {
-///     opts.WithHandler(...);
-/// });
-/// ...
-/// dispatcher.HandlePacket(data, connection);
-/// </code>
-/// </example>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("Running={_running}, Pending={_dispatch.TotalPackets}")]
@@ -60,11 +39,17 @@ public sealed class PacketDispatchChannel
 
     private readonly IPacketRegistry _catalog;
     private readonly DispatchChannel<IPacket> _dispatch;
-    private readonly SemaphoreSlim _semaphore = new(0);
+    private readonly Channel<byte> _wakeChannel;
+    private readonly int _maxDrainPerWake;
 
     private int _running;
     private int _activeLoops;
     private int _dispatchLoops;
+    private int _wakeRequested;
+
+    private long _wakeSignals;
+    private long _wakeReadSignals;
+
     private IWorkerHandle[] _workerHandle = [];
     private CancellationTokenSource? _cts;
     private CancellationTokenSource? _linkedCts;
@@ -74,19 +59,25 @@ public sealed class PacketDispatchChannel
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PacketDispatchChannel"/> class
-    /// with custom configuration options.
+    /// Initializes a new instance of the <see cref="PacketDispatchChannel"/> class.
     /// </summary>
-    /// <param name="options">A delegate used to configure dispatcher options</param>
+    /// <param name="options">Option builder.</param>
     public PacketDispatchChannel(Action<PacketDispatchOptions<IPacket>> options) : base(options)
     {
-        _dispatch = new DispatchChannel<IPacket>();
         _catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
                    ?? throw new InternalErrorException(
-                       $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager. Make sure to build and register IPacketRegistry before starting dispatcher.");
+                       $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager.");
 
-        // Push any additional initialization here if needed
-        this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}] init");
+        _dispatch = new DispatchChannel<IPacket>();
+        _wakeChannel = Channel.CreateUnbounded<byte>(
+            new UnboundedChannelOptions
+            {
+                AllowSynchronousContinuations = false,
+                SingleReader = false,
+                SingleWriter = false
+            });
+
+        _maxDrainPerWake = Math.Clamp(Environment.ProcessorCount * 8, 64, 2048);
     }
 
     #endregion Constructors
@@ -94,16 +85,15 @@ public sealed class PacketDispatchChannel
     #region Public Methods
 
     /// <summary>
-    /// Starts the lease processing loop
+    /// Starts background dispatch workers.
     /// </summary>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">External cancellation token.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public void Activate(CancellationToken cancellationToken = default)
     {
         if (Interlocked.CompareExchange(ref _running, 1, 0) != 0)
         {
-            this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{this.Activate}] already-running");
             return;
         }
 
@@ -114,7 +104,6 @@ public sealed class PacketDispatchChannel
         _cts = new CancellationTokenSource();
 
         CancellationToken linkedToken;
-
         if (cancellationToken.CanBeCanceled)
         {
             _linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
@@ -125,11 +114,14 @@ public sealed class PacketDispatchChannel
             linkedToken = _cts.Token;
         }
 
+        _ = Interlocked.Exchange(ref _wakeRequested, 0);
+        _ = Interlocked.Exchange(ref _wakeSignals, 0);
+        _ = Interlocked.Exchange(ref _wakeReadSignals, 0);
+        _ = this.DrainWakeSignals();
+
         Volatile.Write(ref _activeLoops, 0);
 
-        // Decide how many parallel dispatch loops to start.
-        // Rule of thumb: cores/2, clamped to [1..12]
-        _dispatchLoops = this.Options.DispatchLoopCount ?? Math.Clamp(Environment.ProcessorCount / 2, 1, 12);
+        _dispatchLoops = this.Options.DispatchLoopCount ?? Math.Clamp(Environment.ProcessorCount, 1, 64);
         _workerHandle = new IWorkerHandle[_dispatchLoops];
 
         for (int i = 0; i < _dispatchLoops; i++)
@@ -146,17 +138,16 @@ public sealed class PacketDispatchChannel
                     CancellationToken = linkedToken,
                     RetainFor = TimeSpan.Zero,
                     Tag = NetworkTags.Net
-                }
-            );
+                });
         }
 
-        this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{this.Activate}] start");
+        this.RequestWake();
     }
 
     /// <summary>
-    /// Stops the lease processing loop
+    /// Stops dispatch workers.
     /// </summary>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">Unused optional token for compatibility.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
@@ -184,26 +175,16 @@ public sealed class PacketDispatchChannel
             if (localCts is { IsCancellationRequested: false })
             {
                 localCts.Cancel();
-                this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{this.Deactivate}] stop");
             }
 
-            try
+            int wakeCount = Math.Max(_dispatchLoops, 1);
+            for (int i = 0; i < wakeCount; i++)
             {
-                int releases = Math.Max(_dispatchLoops, 1);
-                for (int i = 0; i < releases; i++)
-                {
-                    _ = _semaphore.Release();
-                }
+                _ = _wakeChannel.Writer.TryWrite(0);
             }
-            catch { /* ignore over-release */ }
         }
-        catch (ObjectDisposedException)
+        catch (Exception)
         {
-            this.Logging?.Warn($"[{nameof(PacketDispatchChannel)}:{this.Deactivate}] stop-on-disposed-cts");
-        }
-        catch (Exception ex)
-        {
-            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{this.Deactivate}] stop-error", ex);
         }
         finally
         {
@@ -216,55 +197,55 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void HandlePacket(IBufferLease packet, IConnection connection)
     {
-        ArgumentNullException.ThrowIfNull(packet, nameof(packet));
-        ArgumentNullException.ThrowIfNull(connection, nameof(connection));
-
-        if (packet is null || packet.Length <= 0)
+        if (packet is null || connection is null)
         {
-            this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(HandlePacket)}] empty-payload ep={connection.NetworkEndpoint}");
             packet?.Dispose();
-
             return;
         }
 
-        // Enqueue lease into the priority-aware channel (per-connection).
-        _dispatch.Push(connection, packet);
+        if (packet.Length <= 0)
+        {
+            packet.Dispose();
+            return;
+        }
 
-        // Signal the worker that an item is available.
-        _ = _semaphore.Release();
+        if (_dispatch.PushCore(connection, packet))
+        {
+            this.RequestWake();
+        }
     }
 
     /// <inheritdoc />
-    // If you want typed fast-path, you can implement a separate typed channel.
-    // For now, process immediately to avoid mixing typed/lease queues.
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void HandlePacket(IPacket packet, IConnection connection) => this.ExecutePacketHandlerAsync(packet, connection).Await();
+    public void HandlePacket(IPacket packet, IConnection connection)
+        => this.ExecutePacketHandlerAsync(packet, connection).Await();
 
     #endregion Public Methods
 
     #region IReportable
 
     /// <summary>
-    /// Generates a human-readable diagnostic report for the PacketDispatchChannel.
+    /// Generates a human-readable diagnostic report.
     /// </summary>
-    /// <returns>A formatted report string.</returns>
+    /// <returns>Formatted report.</returns>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public string GenerateReport()
     {
         StringBuilder sb = new(2048);
-
-        // Header
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Running           : {(Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DispatchLoops     : {_dispatchLoops}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Running              : {(Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DispatchLoops        : {_dispatchLoops}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"WakeSignals          : {Interlocked.Read(ref _wakeSignals)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"WakeReads            : {Interlocked.Read(ref _wakeReadSignals)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"WakeRequested        : {Volatile.Read(ref _wakeRequested)}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Channel Statistics:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Packets     : {_dispatch.TotalPackets}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections : {_dispatch.TotalConnections}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Ready Connections : {_dispatch.ReadyConnections}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Packets        : {_dispatch.TotalPackets}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {_dispatch.TotalConnections}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Ready Connections    : {_dispatch.ReadyConnections}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Pending by Priority:");
@@ -277,46 +258,27 @@ public sealed class PacketDispatchChannel
         }
 
         _ = sb.AppendLine();
-
         _ = sb.AppendLine("Top Connections by Pending Packets:");
         _ = sb.AppendLine("EndPoint              | Pending");
         _ = sb.AppendLine("----------------------|----------");
-        foreach (KeyValuePair<IConnection, int> kv in _dispatch.PendingPerConnection.OrderByDescending(x => x.Value).Take(10))
+
+        List<KeyValuePair<IConnection, int>> ranked = [.. _dispatch.PendingPerConnection];
+        ranked.Sort(static (a, b) => b.Value.CompareTo(a.Value));
+
+        int top = Math.Min(10, ranked.Count);
+        for (int i = 0; i < top; i++)
         {
+            KeyValuePair<IConnection, int> kv = ranked[i];
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kv.Key.NetworkEndpoint,-22}| {kv.Value,6}");
         }
-
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("---------------------------------------------------------------------");
-        _ = sb.AppendLine("Resources / Metrics:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Semaphore.CurrentCount: {_semaphore.CurrentCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CTS.Cancelled         : {_cts?.IsCancellationRequested ?? false}");
-        _ = sb.AppendLine();
-
-        _ = sb.AppendLine("---------------------------------------------------------------------");
-        _ = sb.AppendLine("Packet Registry:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Registry Type         : {_catalog.GetType().Name}");
-        _ = sb.AppendLine();
-
-        // Optionally list registered handlers if available in _catalog
-        // sb.AppendLine("Registered handlers   : ...");
-
-        _ = sb.AppendLine("---------------------------------------------------------------------");
-        _ = sb.AppendLine("Quick Notes:");
-        _ = sb.AppendLine("• TotalPackets        = total packets pending for processing");
-        _ = sb.AppendLine("• ReadyConnections    = number of connections with packets ready for processing");
-        _ = sb.AppendLine("• PendingPerPriority  = number of ready connections by priority");
-        _ = sb.AppendLine("• Top Connections     = endpoints with the most pending packets");
-        _ = sb.AppendLine("• Resources/Memory    = system resource statistics");
-        _ = sb.AppendLine();
 
         return sb.ToString();
     }
 
     /// <summary>
-    /// Generates a key-value diagnostic summary of the dispatcher state and per-channel statistics.
+    /// Generates a key-value diagnostic snapshot.
     /// </summary>
+    /// <returns>Diagnostic dictionary.</returns>
     public IDictionary<string, object> GenerateReportData()
     {
         Dictionary<string, object> report = new()
@@ -327,148 +289,104 @@ public sealed class PacketDispatchChannel
             ["TotalPackets"] = _dispatch.TotalPackets,
             ["TotalConnections"] = _dispatch.TotalConnections,
             ["ReadyConnections"] = _dispatch.ReadyConnections,
-            ["Semaphore.CurrentCount"] = _semaphore.CurrentCount,
-            ["CTS.Cancelled"] = _cts?.IsCancellationRequested ?? false,
+            ["WakeSignals"] = Interlocked.Read(ref _wakeSignals),
+            ["WakeReads"] = Interlocked.Read(ref _wakeReadSignals),
+            ["WakeRequested"] = Volatile.Read(ref _wakeRequested),
             ["PacketRegistryType"] = _catalog.GetType().Name
         };
 
-        // Pending by priority
         int[] priorities = _dispatch.PendingPerPriority;
         Dictionary<string, int> pendingPerPriority = new(priorities.Length);
         for (int p = priorities.Length - 1; p >= 0; p--)
         {
             pendingPerPriority[GetPriorityName(p)] = priorities[p];
         }
+
         report["PendingPerPriority"] = pendingPerPriority;
 
-        // Top connections by pending packets
-        report["PendingByConnection"] = _dispatch.PendingPerConnection
-            .OrderByDescending(x => x.Value)
-            .Take(10)
-            .Select(kv => new Dictionary<string, object>
+        List<KeyValuePair<IConnection, int>> ranked = [.. _dispatch.PendingPerConnection];
+        ranked.Sort(static (a, b) => b.Value.CompareTo(a.Value));
+
+        int top = Math.Min(10, ranked.Count);
+        List<Dictionary<string, object>> topConnections = new(top);
+        for (int i = 0; i < top; i++)
+        {
+            KeyValuePair<IConnection, int> kv = ranked[i];
+            topConnections.Add(new Dictionary<string, object>
             {
                 ["EndPoint"] = kv.Key.NetworkEndpoint.Address,
                 ["Pending"] = kv.Value
-            })
-            .ToList();
+            });
+        }
 
+        report["PendingByConnection"] = topConnections;
         return report;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string GetPriorityName(int index)
     {
-        try
-        {
-            return Enum.GetName(typeof(PacketPriority), index) ?? index.ToString(CultureInfo.InvariantCulture);
-        }
-        catch
-        {
-            return index.ToString(CultureInfo.InvariantCulture);
-        }
+        string? value = Enum.GetName(typeof(PacketPriority), index);
+        return value ?? index.ToString(CultureInfo.InvariantCulture);
     }
 
     #endregion IReportable
 
     #region Private Methods
 
-    /// <summary>
-    /// Continuously processes packets from the queue
-    /// </summary>
-    /// <param name="ctx"></param>
-    /// <param name="ct"></param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private async Task RunLoop(IWorkerContext ctx, CancellationToken ct)
     {
-        TimeSpan heartbeatInterval = TimeSpan.FromSeconds(1);
-
         try
         {
             while (Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
             {
                 ctx.Beat();
 
-                bool signaled = await _semaphore.WaitAsync(heartbeatInterval, ct).ConfigureAwait(false);
-                if (!signaled)
+                if (!await _wakeChannel.Reader.WaitToReadAsync(ct).ConfigureAwait(false))
                 {
                     continue;
                 }
 
-                // Pull from channel (priority-aware)
-                if (!_dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
+                int wakes = this.DrainWakeSignals();
+                if (wakes > 0)
                 {
-                    if (!_dispatch.HasPacket)
+                    _ = Interlocked.Add(ref _wakeReadSignals, wakes);
+                }
+
+                _ = Interlocked.Exchange(ref _wakeRequested, 0);
+
+                int processed = 0;
+                while (processed < _maxDrainPerWake &&
+                       _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
+                {
+                    ValueTask pending = this.ProcessOneAsync(connection, lease, ct);
+                    if (pending.IsCompletedSuccessfully)
                     {
-                        continue;
+                        pending.GetAwaiter().GetResult();
+                    }
+                    else
+                    {
+                        await pending.ConfigureAwait(false);
                     }
 
-                    this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] pull-empty");
-                    lease?.Dispose();
-                    lease = null;
-                    continue;
+                    processed++;
                 }
 
-                try
+                if (processed > 0)
                 {
-                    IBufferLease? afterMw = await this.Options.NetworkPipeline.ExecuteAsync(lease, connection, ct).ConfigureAwait(false);
-
-                    if (afterMw is null)
-                    {
-                        this.Logging?.Debug($"[PacketDispatchChannel:RunLoop] middleware-reject ep={connection.NetworkEndpoint}");
-                        lease.Dispose();
-                        lease = null;
-                        continue;
-                    }
-
-                    if (afterMw != lease)
-                    {
-                        lease.Dispose();
-                        lease = afterMw;
-                    }
+                    ctx.Advance(processed);
                 }
-                catch (Exception ex)
+
+                if (_dispatch.HasPacket)
                 {
-                    connection.IncrementErrorCount();
-                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] buffer-middleware-error ep={connection.NetworkEndpoint} leaseLen={lease?.Length}", ex);
-
-                    lease?.Dispose();
-                    lease = null;
-                    continue;
+                    this.RequestWake();
                 }
-
-                try
-                {
-                    // Deserialize packet
-                    IPacket packet = _catalog.Deserialize(lease.Span);
-
-                    await this.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false);
-                }
-                catch (InvalidOperationException)
-                {
-                    connection.IncrementErrorCount();
-                    this.Logging?.Trace($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-invalid ep={connection.NetworkEndpoint} len={lease.Length}");
-                }
-                catch (Exception ex)
-                {
-                    connection.IncrementErrorCount();
-                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] handle-error ep={connection.NetworkEndpoint}", ex);
-                }
-                finally
-                {
-                    int len = lease.Length;
-                    string head = Convert.ToHexString(lease.Span[..Math.Min(16, len)]);
-                    this.Logging?.Debug($"[{nameof(PacketDispatchChannel)}:{nameof(RunLoop)}] deserialize-none ep={connection.NetworkEndpoint} len={len} head={head}");
-
-                    lease?.Dispose();
-                    lease = null;
-                }
-
-                ctx.Advance(1);
             }
         }
         catch (OperationCanceledException)
         {
-            // NONE cancellation, no need to log
         }
         catch (Exception ex)
         {
@@ -483,21 +401,186 @@ public sealed class PacketDispatchChannel
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private ValueTask ProcessOneAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
+    {
+        ValueTask<IBufferLease?> pipelinePending = this.Options.NetworkPipeline.ExecuteAsync(lease, connection, ct);
+        if (pipelinePending.IsCompletedSuccessfully)
+        {
+            IBufferLease? effectiveLease;
+            try
+            {
+                effectiveLease = pipelinePending.Result;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                return ValueTask.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                connection.IncrementErrorCount();
+                this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] pipeline-error ep={connection.NetworkEndpoint}", ex);
+                return ValueTask.CompletedTask;
+            }
+
+            if (effectiveLease is null)
+            {
+                return ValueTask.CompletedTask;
+            }
+
+            return this.ProcessResolvedLease(connection, effectiveLease, ct);
+        }
+
+        return AwaitPipelineAsync(this, connection, ct, pipelinePending);
+
+        static async ValueTask AwaitPipelineAsync(
+            PacketDispatchChannel owner,
+            IConnection connection,
+            CancellationToken ct,
+            ValueTask<IBufferLease?> pending)
+        {
+            IBufferLease? effectiveLease = null;
+            try
+            {
+                effectiveLease = await pending.ConfigureAwait(false);
+                if (effectiveLease is null)
+                {
+                    return;
+                }
+
+                await owner.ProcessResolvedLease(connection, effectiveLease, ct).ConfigureAwait(false);
+                effectiveLease = null;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+            }
+            catch (Exception ex)
+            {
+                connection.IncrementErrorCount();
+                owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] pipeline-error ep={connection.NetworkEndpoint}", ex);
+            }
+            finally
+            {
+                effectiveLease?.Dispose();
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private ValueTask ProcessResolvedLease(IConnection connection, IBufferLease lease, CancellationToken ct)
+    {
+        try
+        {
+            if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
+            {
+                connection.IncrementErrorCount();
+                lease.Dispose();
+                return ValueTask.CompletedTask;
+            }
+
+            ValueTask dispatchPending = this.ExecutePacketHandlerAsync(packet, connection, ct);
+            if (dispatchPending.IsCompletedSuccessfully)
+            {
+                try
+                {
+                    dispatchPending.GetAwaiter().GetResult();
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                }
+                catch (Exception ex)
+                {
+                    connection.IncrementErrorCount();
+                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+                }
+                finally
+                {
+                    lease.Dispose();
+                }
+
+                return ValueTask.CompletedTask;
+            }
+
+            return AwaitDispatchAsync(this, connection, lease, dispatchPending, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            lease.Dispose();
+            return ValueTask.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            connection.IncrementErrorCount();
+            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+            lease.Dispose();
+            return ValueTask.CompletedTask;
+        }
+
+        static async ValueTask AwaitDispatchAsync(
+            PacketDispatchChannel owner,
+            IConnection connection,
+            IBufferLease lease,
+            ValueTask pending,
+            CancellationToken ct)
+        {
+            try
+            {
+                await pending.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+            }
+            catch (Exception ex)
+            {
+                connection.IncrementErrorCount();
+                owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ProcessOneAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+            }
+            finally
+            {
+                lease.Dispose();
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void RequestWake()
+    {
+        if (Interlocked.Exchange(ref _wakeRequested, 1) != 0)
+        {
+            return;
+        }
+
+        if (_wakeChannel.Writer.TryWrite(0))
+        {
+            _ = Interlocked.Increment(ref _wakeSignals);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int DrainWakeSignals()
+    {
+        int drained = 0;
+        while (_wakeChannel.Reader.TryRead(out _))
+        {
+            drained++;
+        }
+
+        return drained;
+    }
+
     #endregion Private Methods
 
     #region IDisposable
 
     /// <summary>
-    /// Releases resources used by the dispatcher
+    /// Releases dispatcher resources.
     /// </summary>
     [DebuggerNonUserCode]
     public void Dispose()
     {
         this.Deactivate();
-
         _linkedCts?.Dispose();
         _cts?.Dispose();
-        _semaphore.Dispose();
     }
 
     #endregion IDisposable

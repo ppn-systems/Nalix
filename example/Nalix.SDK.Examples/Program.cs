@@ -4,16 +4,16 @@
 
 
 
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
+using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Random;
 using Nalix.Logging;
 using Nalix.Logging.Configuration;
 using Nalix.Logging.Sinks;
-using Nalix.SDK.Examples;
 using Nalix.SDK.Transport;
 
 internal class Program
@@ -31,12 +31,17 @@ internal class Program
         TcpSession client = new();
         await client.ConnectAsync("127.0.0.1", 12345).ConfigureAwait(true);
 
-        _ = await client.PerformAuthenticatedHandshakeAsync(
-            clientIdentityProvider: () => "demo-client",
-            ed25519KeyProvider: () => (
-                PrivateKey: Csprng.GetBytes(32),
-                PublicKey: Csprng.GetBytes(32)),
-            validateServerPublicKey: serverKey => serverKey.Length == AuthenticatedHandshakeExtensions.X25519PublicKeyLength).ConfigureAwait(true);
+        Handshake hand = new()
+        {
+            Data = Csprng.GetBytes(30002)
+        };
+        byte[] bytes = hand.Serialize();
+
+        for (int i = 0; i < 1000; i++)
+        {
+            await client.SendAsync(bytes).ConfigureAwait(false);
+        }
+
 
         await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
     }

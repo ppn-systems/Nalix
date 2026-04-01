@@ -44,7 +44,11 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// </summary>
     private readonly ConcurrentQueue<UInt56> _anonymousQueue;
 
+    private readonly bool _trackEvictionQueue;
+    private readonly int _maxConnections;
     private readonly int _shardCount;
+    private readonly int _shardMask;
+    private readonly bool _isPowerOfTwoShardCount;
     private readonly ConcurrentDictionary<UInt56, IConnection>[] _shards;
 
     private readonly ConnectionHubOptions _options;
@@ -54,10 +58,10 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Connections statistics for monitoring
     /// </summary>
-    private volatile int _count;
+    private int _count;
     private volatile bool _disposed;
-    private volatile int _evictedConnections;
-    private volatile int _rejectedConnections;
+    private int _evictedConnections;
+    private int _rejectedConnections;
 
     /// <summary>
     /// Outbound-allocated collections for bulk operations
@@ -71,7 +75,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Gets the current number of active connections.
     /// </summary>
-    public int Count => _count;
+    public int Count => Volatile.Read(ref _count);
 
     /// <summary>
     /// Raised after a connection is successfully unregistered.
@@ -81,7 +85,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Raised when a limit is reached (e.g., max connections) and a connection is rejected.
     /// </summary>
-    public event EventHandler<ConnectionHubEventArgs>? CapacityLimitReached;
+    public event CapacityLimitReachedHandler? CapacityLimitReached;
 
     #endregion Properties
 
@@ -100,13 +104,23 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _options.Validate();
 
+        _maxConnections = _options.MaxConnections;
         _shardCount = Math.Max(1, _options.ShardCount);
+        _isPowerOfTwoShardCount = (_shardCount & (_shardCount - 1)) == 0;
+        _shardMask = _shardCount - 1;
+        _trackEvictionQueue = _maxConnections > 0 && _options.DropPolicy == DropPolicy.DropOldest;
         _anonymousQueue = new ConcurrentQueue<UInt56>();
         _shards = new ConcurrentDictionary<UInt56, IConnection>[_shardCount];
 
+        int perShardCapacity = _maxConnections > 0
+            ? Math.Max(4, (_maxConnections + _shardCount - 1) / _shardCount)
+            : 31;
+
         for (int i = 0; i < _shardCount; i++)
         {
-            _shards[i] = new ConcurrentDictionary<UInt56, IConnection>();
+            _shards[i] = new ConcurrentDictionary<UInt56, IConnection>(
+                concurrencyLevel: Environment.ProcessorCount,
+                capacity: perShardCapacity);
         }
     }
 
@@ -125,42 +139,29 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     {
         ArgumentNullException.ThrowIfNull(connection);
 
-        ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionHub));
-
-        if (_options.MaxConnections > 0 && _count >= _options.MaxConnections)
+        RegisterResult result = this.TryRegisterCore(connection);
+        if (result == RegisterResult.Success)
         {
-            this.HandleConnectionLimit(connection);
-            throw new InternalErrorException(
-                $"Connection hub capacity reached. Maximum connections: {_options.MaxConnections}.");
+            return;
         }
 
-        TimingScope scope = default;
+        ObjectDisposedException.ThrowIf(result == RegisterResult.Disposed, nameof(ConnectionHub));
 
-        if (_options.IsEnableLatency)
+        if (result == RegisterResult.Duplicate)
         {
-            scope = TimingScope.Start();
-        }
-
-        UInt56 connectionKey = connection.ID.ToUInt56();
-        int shardIndex = this.GetShardIndex(connectionKey);
-        ConcurrentDictionary<UInt56, IConnection> shard = _shards[shardIndex];
-
-        if (!shard.TryAdd(connectionKey, connection))
-        {
-            s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
             throw new InternalErrorException($"Connection '{connection.ID}' is already registered.");
         }
 
-        connection.OnCloseEvent += this.OnClientDisconnected;
-        _ = Interlocked.Increment(ref _count);
-        _anonymousQueue.Enqueue(connectionKey);
+        throw new InternalErrorException(
+            $"Connection hub capacity reached. Maximum connections: {_maxConnections}.");
+    }
 
-        s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_count}");
-
-        if (_options.IsEnableLatency)
-        {
-            s_logger?.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
-        }
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public bool TryRegisterConnection(IConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        return this.TryRegisterCore(connection) == RegisterResult.Success;
     }
 
     /// <inheritdoc />
@@ -172,39 +173,15 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     public void UnregisterConnection(IConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
+        _ = this.TryUnregisterCore(connection);
+    }
 
-        ObjectDisposedException.ThrowIf(_disposed, nameof(ConnectionHub));
-
-        TimingScope scope = default;
-
-        if (_options.IsEnableLatency)
-        {
-            scope = TimingScope.Start();
-        }
-
-        UInt56 connectionKey = connection.ID.ToUInt56();
-        int shardIndex = this.GetShardIndex(connectionKey);
-        ConcurrentDictionary<UInt56, IConnection> shard = _shards[shardIndex];
-
-        if (!shard.TryRemove(connectionKey, out IConnection? existing))
-        {
-            s_logger?.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
-            throw new InternalErrorException($"Connection '{connection.ID}' is not registered.");
-        }
-
-        IConnection removedConnection = existing ?? connection;
-        removedConnection.OnCloseEvent -= this.OnClientDisconnected;
-
-        _ = Interlocked.Decrement(ref _count);
-
-        s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={connection.ID} total={_count}");
-
-        ConnectionUnregistered?.Invoke(removedConnection);
-
-        if (_options.IsEnableLatency)
-        {
-            s_logger?.Info($"[PERF.NW.UnregisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
-        }
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public bool TryUnregisterConnection(IConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        return this.TryUnregisterCore(connection);
     }
 
     /// <inheritdoc />
@@ -247,52 +224,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public IReadOnlyCollection<IConnection> ListConnections()
     {
-        if (_disposed || _count == 0)
+        if (_disposed || Volatile.Read(ref _count) == 0)
         {
             return Array.Empty<IConnection>();
         }
 
-        if (_count < 10000)
-        {
-            List<IConnection> connections = [];
-
-            foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
-            {
-                connections.AddRange(shard.Values);
-            }
-
-            return connections.AsReadOnly();
-        }
-
-        int estimatedCount = _count;
-        IConnection[] buffer = s_connectionPool.Rent(estimatedCount);
-
-        try
-        {
-            int index = 0;
-
-            foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
-            {
-                foreach (IConnection connection in shard.Values)
-                {
-                    if (index >= buffer.Length)
-                    {
-                        break;
-                    }
-
-                    buffer[index++] = connection;
-                }
-            }
-
-            IConnection[] result = new IConnection[index];
-            Array.Copy(buffer, result, index);
-
-            return result;
-        }
-        finally
-        {
-            s_connectionPool.Return(buffer, clearArray: true);
-        }
+        return this.CaptureConnectionSnapshot();
     }
 
     /// <summary>
@@ -321,68 +258,51 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        IReadOnlyCollection<IConnection> connections = this.ListConnections();
-        if (connections is null || connections.Count == 0)
+        IConnection[] connections = this.CaptureConnectionSnapshot();
+        if (connections.Length == 0)
         {
-            s_logger?.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
+            }
 
             return;
         }
 
-        // Use batching if configured
+        bool measureLatency = _options.IsEnableLatency && s_logger?.IsEnabled(LogLevel.Information) == true;
+        TimingScope scope = measureLatency ? TimingScope.Start() : default;
+
         if (_options.BroadcastBatchSize > 0)
         {
-            await this.BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
-                      .ConfigureAwait(false);
+            try
+            {
+                await this.BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
+                          .ConfigureAwait(false);
+            }
+            finally
+            {
+                if (measureLatency)
+                {
+                    s_logger?.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
+                }
+            }
 
             return;
-        }
-
-        TimingScope scope = default;
-
-        if (_options.IsEnableLatency)
-        {
-            scope = TimingScope.Start();
-        }
-
-        OrderablePartitioner<IConnection> partitioner = Partitioner.Create(
-            connections, EnumerablePartitionerOptions.NoBuffering);
-
-        List<Task> tasks = [];
-        foreach (IEnumerator<IConnection> partition in partitioner.GetPartitions(_shardCount))
-        {
-            tasks.Add(
-                Task.Run(async () =>
-                {
-                    using (partition)
-                    {
-                        while (partition.MoveNext())
-                        {
-                            if (cancellationToken.IsCancellationRequested)
-                            {
-                                break;
-                            }
-
-                            try
-                            {
-                                await sendFunc(partition.Current, message).ConfigureAwait(false);
-                            }
-                            catch (Exception ex)
-                            {
-                                s_logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] send-failure id={partition.Current.ID}", ex);
-                            }
-                        }
-                    }
-                }, cancellationToken));
         }
 
         try
         {
-            await Task.WhenAll(tasks).ConfigureAwait(false);
+            await this.BroadcastCoreAsync(
+                connections,
+                message,
+                sendFunc,
+                predicate: null,
+                cancellationToken,
+                nameof(BroadcastAsync)).ConfigureAwait(false);
         }
         finally
         {
-            if (_options.IsEnableLatency)
+            if (measureLatency)
             {
                 s_logger?.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
             }
@@ -411,52 +331,19 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        List<IConnection> filteredConnections = [];
-
-        foreach (ConcurrentDictionary<UInt56, IConnection> shared in _shards)
-        {
-            foreach (IConnection connection in shared.Values)
-            {
-                if (predicate(connection))
-                {
-                    filteredConnections.Add(connection);
-                }
-            }
-        }
-
-        if (filteredConnections.Count == 0)
+        IConnection[] connections = this.CaptureConnectionSnapshot();
+        if (connections.Length == 0)
         {
             return;
         }
 
-        Task[] tasks =
-            System.Buffers.ArrayPool<Task>.Shared.Rent(filteredConnections.Count);
-
-        try
-        {
-            int index = 0;
-            foreach (IConnection connection in filteredConnections)
-            {
-                if (cancellation.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                tasks[index++] = sendFunc(connection, message);
-            }
-
-            await Task.WhenAll(MemoryExtensions
-                                             .AsSpan(tasks, 0, index))
-                                             .ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastWhereAsync)}] broadcast-cancel");
-        }
-        finally
-        {
-            System.Buffers.ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
-        }
+        await this.BroadcastCoreAsync(
+            connections,
+            message,
+            sendFunc,
+            predicate,
+            cancellation,
+            nameof(BroadcastWhereAsync)).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -523,7 +410,12 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        IReadOnlyCollection<IConnection> connections = this.ListConnections();
+        IConnection[] connections = this.CaptureConnectionSnapshot();
+
+        foreach (IConnection connection in connections)
+        {
+            connection.OnCloseEvent -= this.OnClientDisconnected;
+        }
 
         ParallelOptions parallelOptions = new()
         {
@@ -550,7 +442,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _anonymousQueue.Clear();
         _ = Interlocked.Exchange(ref _count, 0);
 
-        s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Count}");
+        s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Length}");
     }
 
     /// <summary>
@@ -569,12 +461,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         Dictionary<string, int> statusCounts = new(StringComparer.OrdinalIgnoreCase);
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {_count}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Evicted Connections  : {_evictedConnections}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Rejected Connections : {_rejectedConnections}");
+        int total = Volatile.Read(ref _count);
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {total}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Evicted Connections  : {Volatile.Read(ref _evictedConnections)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Rejected Connections : {Volatile.Read(ref _rejectedConnections)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Shard Count          : {_shardCount}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Queue Depth: {_anonymousQueue.Count}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connections      : {(_options.MaxConnections < 0 ? "Unlimited" : _options.MaxConnections.ToString(CultureInfo.InvariantCulture))}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connections      : {(_maxConnections < 0 ? "Unlimited" : _maxConnections.ToString(CultureInfo.InvariantCulture))}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {_options.DropPolicy}");
 
         foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
@@ -607,7 +500,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Sent   : {sumBytesSent:N0}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Uptime     : {(_count > 0 ? sumUptime / _count : 0)}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Uptime     : {(total > 0 ? sumUptime / total : 0)}s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connection Time: {maxUptime}s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Min Connection Time: {(minUptime == long.MaxValue ? 0 : minUptime)}s");
 
@@ -674,15 +567,16 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// </summary>
     public IDictionary<string, object> GenerateReportData()
     {
+        int total = Volatile.Read(ref _count);
         Dictionary<string, object> report = new()
         {
             ["UtcNow"] = DateTime.UtcNow,
-            ["TotalConnections"] = _count,
-            ["EvictedConnections"] = _evictedConnections,
-            ["RejectedConnections"] = _rejectedConnections,
+            ["TotalConnections"] = total,
+            ["EvictedConnections"] = Volatile.Read(ref _evictedConnections),
+            ["RejectedConnections"] = Volatile.Read(ref _rejectedConnections),
             ["ShardCount"] = _shardCount,
             ["AnonymousQueueDepth"] = _anonymousQueue.Count,
-            ["MaxConnections"] = _options.MaxConnections,
+            ["MaxConnections"] = _maxConnections,
             ["DropPolicy"] = _options.DropPolicy.ToString(),
         };
 
@@ -738,7 +632,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             }
         }
         report["TotalBytesSent"] = sumBytesSent;
-        report["AverageUptimeSeconds"] = _count > 0 ? (sumUptime / _count) : 0;
+        report["AverageUptimeSeconds"] = total > 0 ? (sumUptime / total) : 0;
         report["MaxConnectionTime"] = maxUptime;
         report["MinConnectionTime"] = minUptime == long.MaxValue ? 0 : minUptime;
 
@@ -772,7 +666,11 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int GetShardIndex(UInt56 id) => (id.GetHashCode() & 0x7FFFFFFF) % _shardCount;
+    private int GetShardIndex(UInt56 id)
+    {
+        int hash = id.GetHashCode() & int.MaxValue;
+        return _isPowerOfTwoShardCount ? (hash & _shardMask) : (hash % _shardCount);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ConcurrentDictionary<UInt56, IConnection> GetShard(UInt56 id)
@@ -781,166 +679,505 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         return _shards[index];
     }
 
-    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private RegisterResult TryRegisterCore(IConnection connection)
+    {
+        if (_disposed)
+        {
+            return RegisterResult.Disposed;
+        }
+
+        bool measureLatency = _options.IsEnableLatency && s_logger?.IsEnabled(LogLevel.Information) == true;
+        TimingScope scope = measureLatency ? TimingScope.Start() : default;
+
+        UInt56 connectionKey = connection.ID.ToUInt56();
+        if (!this.TryReserveCapacitySlot(connection, out RegisterResult failure))
+        {
+            return failure;
+        }
+
+        connection.OnCloseEvent += this.OnClientDisconnected;
+
+        bool added = false;
+        try
+        {
+            ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(connectionKey);
+            if (!shard.TryAdd(connectionKey, connection))
+            {
+                if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    s_logger.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
+                }
+
+                return RegisterResult.Duplicate;
+            }
+
+            added = true;
+            if (_trackEvictionQueue)
+            {
+                _anonymousQueue.Enqueue(connectionKey);
+            }
+
+            if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={Volatile.Read(ref _count)}");
+            }
+
+            if (measureLatency)
+            {
+                s_logger?.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            }
+
+            return RegisterResult.Success;
+        }
+        finally
+        {
+            if (!added)
+            {
+                connection.OnCloseEvent -= this.OnClientDisconnected;
+                _ = Interlocked.Decrement(ref _count);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private bool TryUnregisterCore(IConnection connection)
+    {
+        UInt56 connectionKey = connection.ID.ToUInt56();
+        ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(connectionKey);
+        if (!shard.TryRemove(connectionKey, out IConnection? existing))
+        {
+            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                s_logger.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
+            }
+
+            return false;
+        }
+
+        bool measureLatency = _options.IsEnableLatency && s_logger?.IsEnabled(LogLevel.Information) == true;
+        TimingScope scope = measureLatency ? TimingScope.Start() : default;
+
+        IConnection removedConnection = existing ?? connection;
+        removedConnection.OnCloseEvent -= this.OnClientDisconnected;
+        _ = Interlocked.Decrement(ref _count);
+
+        if (s_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            s_logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={removedConnection.ID} total={Volatile.Read(ref _count)}");
+        }
+
+        ConnectionUnregistered?.Invoke(removedConnection);
+
+        if (measureLatency)
+        {
+            s_logger?.Info($"[PERF.NW.UnregisterConnection] id={removedConnection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+        }
+
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private bool TryReserveCapacitySlot(IConnection incomingConnection, out RegisterResult failure)
+    {
+        failure = RegisterResult.Success;
+
+        if (_maxConnections <= 0)
+        {
+            _ = Interlocked.Increment(ref _count);
+            return true;
+        }
+
+        SpinWait spinner = default;
+
+        while (true)
+        {
+            if (_disposed)
+            {
+                failure = RegisterResult.Disposed;
+                return false;
+            }
+
+            int current = Volatile.Read(ref _count);
+            if (current < _maxConnections)
+            {
+                if (Interlocked.CompareExchange(ref _count, current + 1, current) == current)
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
+            switch (_options.DropPolicy)
+            {
+                case DropPolicy.DropOldest:
+                    if (this.TryEvictOldestConnection(incomingConnection))
+                    {
+                        continue;
+                    }
+
+                    this.RejectIncomingConnection(incomingConnection, "evict-oldest-no-candidate");
+                    failure = RegisterResult.CapacityLimitReached;
+                    return false;
+
+                case DropPolicy.Block:
+                    spinner.SpinOnce();
+                    if (spinner.Count > 12)
+                    {
+                        _ = Thread.Yield();
+                    }
+
+                    continue;
+
+                case DropPolicy.DropNewest:
+                    this.RejectIncomingConnection(incomingConnection, "drop-newest");
+                    failure = RegisterResult.CapacityLimitReached;
+                    return false;
+
+                case DropPolicy.Coalesce:
+                    this.RejectIncomingConnection(incomingConnection, "coalesce-not-supported");
+                    failure = RegisterResult.CapacityLimitReached;
+                    return false;
+
+                default:
+                    this.RejectIncomingConnection(incomingConnection, "capacity-limit");
+                    failure = RegisterResult.CapacityLimitReached;
+                    return false;
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private bool TryEvictOldestConnection(IConnection incomingConnection)
+    {
+        while (_anonymousQueue.TryDequeue(out UInt56 oldestId))
+        {
+            ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(oldestId);
+            if (!shard.TryRemove(oldestId, out IConnection? evictedConnection) || evictedConnection is null)
+            {
+                continue;
+            }
+
+            evictedConnection.OnCloseEvent -= this.OnClientDisconnected;
+
+            _ = Interlocked.Decrement(ref _count);
+            _ = Interlocked.Increment(ref _evictedConnections);
+
+            this.NotifyCapacityLimit(incomingConnection, "evict-oldest");
+            ConnectionUnregistered?.Invoke(evictedConnection);
+
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
+            {
+                s_logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evicted id={evictedConnection.ID}");
+            }
+
+            try
+            {
+                evictedConnection.Disconnect("evicted to make room for new connection");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evict-disconnect-failed id={evictedConnection.ID}", ex);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private void RejectIncomingConnection(IConnection incomingConnection, string reason)
+    {
+        _ = Interlocked.Increment(ref _rejectedConnections);
+        this.NotifyCapacityLimit(incomingConnection, reason);
+
+        try
+        {
+            incomingConnection.Disconnect("connection limit reached");
+        }
+        catch (Exception ex)
+        {
+            s_logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(RejectIncomingConnection)}] reject-disconnect-failed id={incomingConnection.ID}", ex);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private IConnection[] CaptureConnectionSnapshot()
+    {
+        int estimatedCount = Math.Max(4, Volatile.Read(ref _count));
+        IConnection[] buffer = s_connectionPool.Rent(estimatedCount);
+
+        try
+        {
+            int index = 0;
+
+            foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+            {
+                foreach (IConnection connection in shard.Values)
+                {
+                    if (index == buffer.Length)
+                    {
+                        IConnection[] grown = s_connectionPool.Rent(buffer.Length << 1);
+                        Array.Copy(buffer, grown, index);
+                        s_connectionPool.Return(buffer, clearArray: true);
+                        buffer = grown;
+                    }
+
+                    buffer[index++] = connection;
+                }
+            }
+
+            if (index == 0)
+            {
+                return Array.Empty<IConnection>();
+            }
+
+            IConnection[] snapshot = new IConnection[index];
+            Array.Copy(buffer, snapshot, index);
+            return snapshot;
+        }
+        finally
+        {
+            s_connectionPool.Return(buffer, clearArray: true);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private async Task BroadcastCoreAsync<T>(
+        IConnection[] connections,
+        T message,
+        Func<IConnection, T, Task> sendFunc,
+        Func<IConnection, bool>? predicate,
+        CancellationToken cancellationToken,
+        string operationName) where T : class
+    {
+        Task[] tasks = System.Buffers.ArrayPool<Task>.Shared.Rent(connections.Length);
+        IConnection[] owners = s_connectionPool.Rent(connections.Length);
+
+        int taskCount = 0;
+
+        try
+        {
+            for (int i = 0; i < connections.Length; i++)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                IConnection connection = connections[i];
+                if (predicate is not null && !predicate(connection))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    Task sendTask = sendFunc(connection, message);
+                    if (!sendTask.IsCompletedSuccessfully)
+                    {
+                        tasks[taskCount] = sendTask;
+                        owners[taskCount] = connection;
+                        taskCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    s_logger?.Error($"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={connection.ID}", ex);
+                }
+            }
+
+            if (taskCount == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                await Task.WhenAll(MemoryExtensions.AsSpan(tasks, 0, taskCount)).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                if (s_logger?.IsEnabled(LogLevel.Information) == true)
+                {
+                    s_logger.Info($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
+                }
+            }
+            catch
+            {
+                this.LogBroadcastFailures(tasks, owners, taskCount, operationName);
+            }
+        }
+        finally
+        {
+            Array.Clear(tasks, 0, taskCount);
+            Array.Clear(owners, 0, taskCount);
+            System.Buffers.ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
+            s_connectionPool.Return(owners, clearArray: true);
+        }
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void OnClientDisconnected(
-        object? sender,
-        IConnectEventArgs args)
+    private void LogBroadcastFailures(
+        Task[] tasks,
+        IConnection[] owners,
+        int taskCount,
+        string operationName)
+    {
+        for (int i = 0; i < taskCount; i++)
+        {
+            Task task = tasks[i];
+            if (!task.IsFaulted)
+            {
+                continue;
+            }
+
+            Exception? exception = task.Exception?.GetBaseException();
+            if (exception is null)
+            {
+                continue;
+            }
+
+            IConnection owner = owners[i];
+            s_logger?.Error($"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={owner.ID}", exception);
+        }
+    }
+
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private async Task BroadcastBatchedAsync<T>(
+        IConnection[] connections,
+        T message,
+        Func<IConnection, T, Task> sendFunc,
+        CancellationToken cancellationToken) where T : class
+    {
+        int batchSize = Math.Max(1, _options.BroadcastBatchSize);
+        Task[] tasks = System.Buffers.ArrayPool<Task>.Shared.Rent(batchSize);
+        IConnection[] owners = s_connectionPool.Rent(batchSize);
+        int taskCount = 0;
+
+        try
+        {
+            for (int i = 0; i < connections.Length; i++)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                IConnection connection = connections[i];
+
+                try
+                {
+                    Task sendTask = sendFunc(connection, message);
+                    if (!sendTask.IsCompletedSuccessfully)
+                    {
+                        tasks[taskCount] = sendTask;
+                        owners[taskCount] = connection;
+                        taskCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    s_logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastBatchedAsync)}] send-failure id={connection.ID}", ex);
+                }
+
+                if (taskCount < batchSize)
+                {
+                    continue;
+                }
+
+                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken, nameof(BroadcastBatchedAsync))
+                          .ConfigureAwait(false);
+                Array.Clear(tasks, 0, taskCount);
+                Array.Clear(owners, 0, taskCount);
+                taskCount = 0;
+            }
+
+            if (taskCount > 0)
+            {
+                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken, nameof(BroadcastBatchedAsync))
+                          .ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            Array.Clear(tasks, 0, taskCount);
+            Array.Clear(owners, 0, taskCount);
+            System.Buffers.ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
+            s_connectionPool.Return(owners, clearArray: true);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private async Task AwaitBatchAsync(
+        Task[] tasks,
+        IConnection[] owners,
+        int taskCount,
+        CancellationToken cancellationToken,
+        string operationName)
     {
         try
         {
-            this.UnregisterConnection(args.Connection);
+            await Task.WhenAll(MemoryExtensions.AsSpan(tasks, 0, taskCount)).ConfigureAwait(false);
         }
-        catch (ObjectDisposedException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-        }
-        catch (InvalidOperationException)
-        {
-        }
-    }
-
-    [StackTraceHidden]
-    private void HandleConnectionLimit(IConnection newConnection)
-    {
-        s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] connection-limit-reached policy={_options.DropPolicy} max={_options.MaxConnections}");
-
-        switch (_options.DropPolicy)
-        {
-            case DropPolicy.DropNewest:
-                this.NotifyCapacityLimit(newConnection, "drop-newest");
-                newConnection.Disconnect("connection limit reached");
-                _ = Interlocked.Increment(ref _rejectedConnections);
-                break;
-
-
-            case DropPolicy.DropOldest:
-                while (_anonymousQueue.TryDequeue(out UInt56 oldestId))
-                {
-                    int shardIndex = this.GetShardIndex(oldestId);
-                    ConcurrentDictionary<UInt56, IConnection> shard = _shards[shardIndex];
-
-                    if (shard.TryGetValue(oldestId, out IConnection? oldestConn) && oldestConn is not null)
-                    {
-                        s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] evicting-anonymous id={oldestConn.ID}");
-                        this.NotifyCapacityLimit(newConnection, "evict-oldest");
-
-                        oldestConn.Disconnect("evicted to make room for new connection");
-                        return;
-                    }
-                }
-
-                s_logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(HandleConnectionLimit)}] no-anonymous-to-evict, rejecting-new");
-                this.NotifyCapacityLimit(newConnection, "evict-oldest-no-anonymous");
-
-                newConnection.Disconnect("connection limit reached, no anonymous connections to evict");
-                _ = Interlocked.Increment(ref _evictedConnections);
-                break;
-
-
-            case DropPolicy.Block:
-                break;
-            case DropPolicy.Coalesce:
-                break;
-            default:
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Broadcasts a message using batching to reduce memory pressure.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="connections"></param>
-    /// <param name="message"></param>
-    /// <param name="sendFunc"></param>
-    /// <param name="cancellationToken"></param>
-    [StackTraceHidden]
-    private async Task BroadcastBatchedAsync<T>(
-        IReadOnlyCollection<IConnection> connections, T message,
-        Func<IConnection, T, Task> sendFunc, CancellationToken cancellationToken) where T : class
-    {
-        int batchSize = _options.BroadcastBatchSize;
-        List<Task> currentBatch = new(batchSize);
-
-        foreach (IConnection connection in connections)
-        {
-            if (cancellationToken.IsCancellationRequested)
+            if (s_logger?.IsEnabled(LogLevel.Information) == true)
             {
-                break;
-            }
-
-            currentBatch.Add(sendFunc(connection, message));
-
-            if (currentBatch.Count >= batchSize)
-            {
-                await Task.WhenAll(currentBatch).ConfigureAwait(false);
-                currentBatch.Clear();
+                s_logger.Info($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
             }
         }
-
-        // Send remaining batch
-        if (currentBatch.Count > 0)
+        catch
         {
-            await Task.WhenAll(currentBatch).ConfigureAwait(false);
+            this.LogBroadcastFailures(tasks, owners, taskCount, operationName);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void NotifyCapacityLimit(IConnection newConnection, string reason)
+    private void NotifyCapacityLimit(IConnection? newConnection, string reason)
     {
-        ConnectionHubEventArgs args = new(
-            dropPolicy: _options.DropPolicy,
-            currentConnections: _count,
-            maxConnections: _options.MaxConnections,
-            triggeredConnectionId: newConnection?.ID,
-            reason: reason ?? string.Empty);
+        CapacityLimitReachedHandler? handler = CapacityLimitReached;
+        handler?.Invoke(
+            _options.DropPolicy,
+            Volatile.Read(ref _count),
+            _maxConnections,
+            newConnection?.ID,
+            reason ?? string.Empty);
+    }
 
-        CapacityLimitReached?.Invoke(this, args);
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void OnClientDisconnected(object? sender, IConnectEventArgs args)
+    {
+        if (args is null)
+        {
+            return;
+        }
+
+        _ = this.TryUnregisterCore(args.Connection);
+    }
+
+    private enum RegisterResult : byte
+    {
+        Success = 0,
+        Disposed = 1,
+        Duplicate = 2,
+        CapacityLimitReached = 3
     }
 
     #endregion Private Methods
 }
 
 /// <summary>
-/// Event arguments raised when a capacity limit is hit.
+/// Delegate raised when the connection hub reaches capacity and applies a drop policy.
 /// </summary>
-/// <param name="dropPolicy"></param>
-/// <param name="currentConnections"></param>
-/// <param name="maxConnections"></param>
-/// <param name="triggeredConnectionId"></param>
-/// <param name="reason"></param>
-/// <remarks>
-/// Initializes a new instance of the <see cref="ConnectionHubEventArgs"/> class.
-/// </remarks>
-public sealed class ConnectionHubEventArgs(
-    DropPolicy dropPolicy,
-    int currentConnections,
-    int maxConnections,
-    ISnowflake? triggeredConnectionId,
-    string reason) : EventArgs
-{
-    /// <summary>
-    /// Gets the active drop policy when the limit fired.
-    /// </summary>
-    public DropPolicy DropPolicy { get; } = dropPolicy;
+/// <param name="dropPolicy">The active drop policy at the time the event fires.</param>
+/// <param name="currentConnections">Current active connection count.</param>
+/// <param name="maxConnections">Configured maximum connection count.</param>
+/// <param name="triggeredConnectionId">Identifier for the incoming connection that triggered the limit.</param>
+/// <param name="reason">Reason token that describes the applied action.</param>
+public delegate void CapacityLimitReachedHandler(DropPolicy dropPolicy, int currentConnections, int maxConnections, ISnowflake? triggeredConnectionId, string reason);
 
-    /// <summary>
-    /// Gets the number of registered connections when the limit was reached.
-    /// </summary>
-    public int CurrentConnections { get; } = currentConnections;
-
-    /// <summary>
-    /// Gets the configured maximum number of connections.
-    /// </summary>
-    public int MaxConnections { get; } = maxConnections;
-
-    /// <summary>
-    /// Gets the connection that triggered the limit (may be null if not available).
-    /// </summary>
-    public ISnowflake? TriggeredConnectionId { get; } = triggeredConnectionId;
-
-    /// <summary>
-    /// Gets the textual reason for the limit notification.
-    /// </summary>
-    public string Reason { get; } = reason ?? string.Empty;
-}

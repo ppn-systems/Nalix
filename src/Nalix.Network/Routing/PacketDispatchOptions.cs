@@ -2,16 +2,18 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Routing;
 using Nalix.Network.Middleware;
 using Nalix.Network.Middleware.Internal;
-using Nalix.Network.Routing.Metadata;
 
 namespace Nalix.Network.Routing;
 
@@ -22,29 +24,15 @@ namespace Nalix.Network.Routing;
 /// <typeparam name="TPacket">The type of packet being dispatched.</typeparam>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket
+public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<PacketDispatchOptions<TPacket>> where TPacket : IPacket
 {
     #region Fields
 
     private readonly MiddlewarePipeline<TPacket> _pipeline;
-    private readonly Dictionary<ushort, PacketHandler<TPacket>> _handlerCache;
-
-    /// <summary>
-    /// Maps each registered opCode to the concrete packet type expected by its handler method.
-    /// Populated automatically by <see cref="WithHandler{TController}(Func{TController})"/>.
-    /// Used at dispatch time to validate that the deserialized packet's runtime type matches
-    /// what the handler was compiled against — catching mismatches early with a clear error
-    /// instead of a silent <see cref="InvalidCastException"/> inside the expression tree.
-    /// </summary>
-    /// <remarks>
-    /// Key   = opCode (UInt16)<br/>
-    /// Value = concrete <see cref="Type"/> that implements <typeparamref name="TPacket"/>,
-    ///         e.g. <c>typeof(LoginPacket)</c>. The value is the first parameter type of the
-    ///         handler method as reflected by <see cref="ParameterInfo"/>.
-    ///         For context-style handlers (<c>PacketContext&lt;TPacket&gt;</c>) the entry is
-    ///         <see langword="null"/> — no concrete-type check is needed there.
-    /// </remarks>
-    private readonly Dictionary<ushort, Type?> _packetTypeMap;
+    private readonly PacketHandler<TPacket>[] _handlerTable;
+    private readonly byte[] _handlerFlags;
+    private readonly ObjectPoolManager _objectPool;
+    private int _handlerCount;
 
     /// <summary>
     /// Network buffer middleware pipeline for processing raw byte buffers before packet transformation.
@@ -65,15 +53,16 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// </summary>
     public PacketDispatchOptions()
     {
-        _handlerCache = [];
-        _packetTypeMap = [];
+        _handlerTable = new PacketHandler<TPacket>[ushort.MaxValue + 1];
+        _handlerFlags = new byte[ushort.MaxValue + 1];
         _pipeline = new MiddlewarePipeline<TPacket>();
+        _objectPool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
         this.NetworkPipeline = new NetworkBufferMiddlewarePipeline();
 
         // Add default network middleware for frame processing. You can customize this pipeline as needed.
-        this.NetworkPipeline.Use(new FrameDecryptionMiddleware());
-        this.NetworkPipeline.Use(new FrameDecompressMiddleware());
+        this.NetworkPipeline.Use(new DecryptMiddleware());
+        this.NetworkPipeline.Use(new DecompressMiddleware());
     }
 
     #endregion Fields
@@ -91,6 +80,8 @@ public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPack
     /// When <see langword="null"/>, the dispatcher chooses <c>Math.Clamp(Environment.ProcessorCount / 2, 1, 12)</c>.
     /// </summary>
     public int? DispatchLoopCount { get; private set; }
+
+    internal int RegisteredHandlerCount => Volatile.Read(ref _handlerCount);
 
     #endregion Properties
 }

@@ -24,15 +24,14 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Network.Middleware.Internal;
 
 [MiddlewareOrder(-50)]
-internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
+internal class DecryptMiddleware : INetworkBufferMiddleware
 {
-    public async Task<IBufferLease?> InvokeAsync(
-        IBufferLease lease, IConnection connection,
-        Func<IBufferLease, CancellationToken, Task<IBufferLease?>> next, CancellationToken ct)
+    public ValueTask<IBufferLease?> InvokeAsync(IBufferLease lease, IConnection connection, CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(lease);
-        ArgumentNullException.ThrowIfNull(connection);
-        ArgumentNullException.ThrowIfNull(next);
+        if (lease is null || connection is null)
+        {
+            return ValueTask.FromResult<IBufferLease?>(null);
+        }
 
         IConnection safeConnection = connection;
 
@@ -42,11 +41,17 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
                                 .Trace($"[DECRYPT][{debugId}] Start - Flags={lease.Span.ReadFlagsLE()} LeaseLen={lease.Length}");
 #endif
 
-        if (lease.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED))
+        if ((uint)lease.Length <= (int)PacketHeaderOffset.Flags)
+        {
+            return ValueTask.FromResult<IBufferLease?>(null);
+        }
+
+        PacketFlags flags = lease.Span.ReadFlagsLE();
+        if (flags.HasFlag(PacketFlags.ENCRYPTED))
         {
             if (safeConnection.Secret is not { } secret)
             {
-                return null;
+                return ValueTask.FromResult<IBufferLease?>(null);
             }
 
             BufferLease dest;
@@ -64,16 +69,14 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[DECRYPT][{debugId}] Failed to get plaintext length.");
 #endif
-                return null;
+                return ValueTask.FromResult<IBufferLease?>(null);
             }
 
             try
             {
                 FrameTransformer.Decrypt(lease, dest, secret);
 
-                dest.Span.WriteFlagsLE(lease.Span
-                         .ReadFlagsLE()
-                         .RemoveFlag(PacketFlags.ENCRYPTED));
+                dest.Span.WriteFlagsLE(flags.RemoveFlag(PacketFlags.ENCRYPTED));
 
 #if DEBUG
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -85,7 +88,7 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
                                         .Trace($"[DECRYPT][{debugId}] Decrypted buffer sample: {hexSample}");
 #endif
 
-                return await next(dest, ct).ConfigureAwait(false);
+                return ValueTask.FromResult<IBufferLease?>(dest);
             }
             catch
             {
@@ -93,14 +96,11 @@ internal class FrameDecryptionMiddleware : INetworkBufferMiddleware
                 throw;
             }
         }
-        else
-        {
-#if DEBUG
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[DECRYPT][{debugId}] Bypass decryption (flags do not match). LeaseLen={lease.Length}");
-#endif
 
-            return await next(lease, ct).ConfigureAwait(false);
-        }
+#if DEBUG
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[DECRYPT][{debugId}] Bypass decryption (flags do not match). LeaseLen={lease.Length}");
+#endif
+        return ValueTask.FromResult<IBufferLease?>(lease);
     }
 }

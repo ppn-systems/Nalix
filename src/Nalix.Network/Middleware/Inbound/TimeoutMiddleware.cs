@@ -22,7 +22,7 @@ namespace Nalix.Network.Middleware.Inbound;
 public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 {
     /// <inheritdoc/>
-    public async Task InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, Task> next)
+    public async ValueTask InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(context);
@@ -34,26 +34,19 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        CancellationToken tokenToUse;
-        using CancellationTokenSource timeoutCts = new(timeout);
+        using CancellationTokenSource timeoutCts = context.CancellationToken.CanBeCanceled
+            ? CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken)
+            : new CancellationTokenSource();
 
-        if (timeout > 10_000 && context.CancellationToken.CanBeCanceled)
-        {
-            using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, timeoutCts.Token);
-            tokenToUse = linkedCts.Token;
-            await ExecuteHandlerAsync(timeout, context, next, tokenToUse).ConfigureAwait(false);
-        }
-        else
-        {
-            tokenToUse = timeoutCts.Token;
-            await ExecuteHandlerAsync(timeout, context, next, tokenToUse).ConfigureAwait(false);
-        }
+        timeoutCts.CancelAfter(timeout);
+        CancellationToken tokenToUse = timeoutCts.Token;
+        await ExecuteHandlerAsync(timeout, context, next, tokenToUse).ConfigureAwait(false);
     }
 
-    private static async Task ExecuteHandlerAsync(
+    private static async ValueTask ExecuteHandlerAsync(
         int timeout,
         PacketContext<IPacket> context,
-        Func<CancellationToken, Task> next,
+        Func<CancellationToken, ValueTask> next,
         CancellationToken token)
     {
         try

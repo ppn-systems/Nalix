@@ -4,8 +4,9 @@
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.Network.Routing;
 
-namespace Nalix.Network.Routing.Results.Task;
+namespace Nalix.Network.Internal.Results.Task;
 
 /// <inheritdoc/>
 [EditorBrowsable(EditorBrowsableState.Never)]

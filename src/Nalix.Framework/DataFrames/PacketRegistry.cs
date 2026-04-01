@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Extensions;
@@ -98,6 +99,11 @@ public sealed class PacketRegistry : IPacketRegistry
     /// <exception cref="ArgumentException">Thrown when a registered deserializer attempts to read a malformed packet header.</exception>
     public IPacket Deserialize(ReadOnlySpan<byte> raw)
     {
+        if (this.TryDeserialize(raw, out IPacket? packet))
+        {
+            return packet;
+        }
+
         if (raw.Length < PacketConstants.HeaderSize)
         {
             throw new ArgumentException(
@@ -115,6 +121,27 @@ public sealed class PacketRegistry : IPacketRegistry
         }
 
         return deserializer(raw);
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
+    {
+        if (raw.Length < PacketConstants.HeaderSize)
+        {
+            packet = null;
+            return false;
+        }
+
+        uint magic = raw.ReadMagicNumberLE();
+        if (!_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer) || deserializer is null)
+        {
+            packet = null;
+            return false;
+        }
+
+        packet = deserializer(raw);
+        return packet is not null;
     }
 
     #endregion Public API

@@ -14,13 +14,13 @@ public static class PacketMetadataProviders
     private static readonly List<IPacketMetadataProvider> s_providers = [];
 
     /// <summary>
+    /// Gets the registered metadata providers.
+    /// </summary>
+    internal static IReadOnlyList<IPacketMetadataProvider> Providers => s_providers;
+
+    /// <summary>
     /// Registers a new <see cref="IPacketMetadataProvider"/> instance.
     /// </summary>
     /// <param name="provider">The provider to register.</param>
     public static void Register(IPacketMetadataProvider provider) => s_providers.Add(provider);
-
-    /// <summary>
-    /// Gets the registered metadata providers.
-    /// </summary>
-    internal static IReadOnlyList<IPacketMetadataProvider> Providers => s_providers;
 }

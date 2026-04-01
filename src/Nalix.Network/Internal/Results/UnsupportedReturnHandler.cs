@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
+using Nalix.Network.Routing;
 
-namespace Nalix.Network.Routing.Results;
+namespace Nalix.Network.Internal.Results;
 
 /// <inheritdoc/>
 [EditorBrowsable(EditorBrowsableState.Never)]

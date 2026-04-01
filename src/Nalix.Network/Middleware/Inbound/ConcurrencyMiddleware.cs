@@ -37,7 +37,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
     /// <param name="context">The packet context containing the packet and connection information.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, Task> next)
+    public async ValueTask InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(context);

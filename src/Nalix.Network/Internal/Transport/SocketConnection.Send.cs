@@ -98,8 +98,18 @@ internal sealed partial class SocketConnection
             }
             catch (Exception ex)
             {
-                s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                $"stackalloc-error ep={_socket.RemoteEndPoint}", ex);
+                if (IS_BENIGN_DISCONNECT(ex))
+                {
+#if DEBUG
+                    s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                                    $"stackalloc-benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
+#endif
+                }
+                else
+                {
+                    s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                                    $"stackalloc-error ep={FORMAT_ENDPOINT(_socket)}", ex);
+                }
                 throw;
             }
         }
@@ -148,8 +158,18 @@ internal sealed partial class SocketConnection
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                            $"pooled-error ep={_socket.RemoteEndPoint}", ex);
+            if (IS_BENIGN_DISCONNECT(ex))
+            {
+#if DEBUG
+                s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                                $"pooled-benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
+#endif
+            }
+            else
+            {
+                s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                                $"pooled-error ep={FORMAT_ENDPOINT(_socket)}", ex);
+            }
             throw;
         }
         finally
@@ -236,8 +256,18 @@ internal sealed partial class SocketConnection
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                            $"error ep={_socket.RemoteEndPoint}", ex);
+            if (IS_BENIGN_DISCONNECT(ex))
+            {
+#if DEBUG
+                s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
+                                $"benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
+#endif
+            }
+            else
+            {
+                s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
+                                $"error ep={FORMAT_ENDPOINT(_socket)}", ex);
+            }
             throw;
         }
         finally

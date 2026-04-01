@@ -7,16 +7,16 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Compilation;
+using Nalix.Network.Internal.Results;
+using Nalix.Network.Internal.Routing;
 using Nalix.Network.Middleware;
-using Nalix.Network.Routing.Metadata;
 
 namespace Nalix.Network.Routing;
 
@@ -227,32 +227,36 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketControllerAttribute controllerAttr = CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
             ?? throw new InternalErrorException($"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
 
-        PacketHandler<TPacket>[] handlerDescriptors = PacketHandlerCompiler<TController, TPacket>.CompileHandlers(factory);
+        PacketHandler<TPacket>[] compiledHandlers = PacketHandlerCompiler<TController, TPacket>.CompileHandlers(factory);
 
         Type contextType = typeof(PacketContext<TPacket>);
 
-        foreach (PacketHandler<TPacket> descriptor in handlerDescriptors)
+        for (int i = 0; i < compiledHandlers.Length; i++)
         {
-            if (_handlerCache.ContainsKey(descriptor.OpCode))
+            PacketHandler<TPacket> descriptor = compiledHandlers[i];
+            int index = descriptor.OpCode;
+
+            if (Volatile.Read(ref _handlerFlags[index]) != 0)
             {
                 throw new InternalErrorException($"OpCode '{descriptor.OpCode}' has already been registered.");
             }
 
-            _handlerCache[descriptor.OpCode] = descriptor;
-
-            // ------------------------------------------------------------------
-            // Resolve the concrete packet type this handler method actually
-            // accepts, so dispatch can validate at runtime rather than crashing
-            // inside a compiled expression.
-            //
-            // Rules:
-            //   • Context-style  (PacketContext<TPacket>[, CT])  → store null
-            //     (no concrete-type check; the packet is accessed via context.Packet)
-            //   • Legacy-style   (SomePacket, IConnection[, CT]) → store SomePacket's Type
-            //     even when SomePacket *is* the TPacket interface itself.
-            // ------------------------------------------------------------------
             Type? concretePacketType = ResolveConcretePacketType(descriptor.MethodInfo, contextType);
-            _packetTypeMap[descriptor.OpCode] = concretePacketType;
+            IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.ResolveHandler(descriptor.ReturnType);
+
+            PacketHandler<TPacket> runtimeHandler = new(
+                descriptor.OpCode,
+                descriptor.Metadata,
+                descriptor.Instance,
+                descriptor.MethodInfo,
+                descriptor.ReturnType,
+                descriptor.Invoker,
+                concretePacketType,
+                returnHandler);
+
+            _handlerTable[index] = runtimeHandler;
+            Volatile.Write(ref _handlerFlags[index], 1);
+            _ = Interlocked.Increment(ref _handlerCount);
 
             if (concretePacketType is not null && concretePacketType != typeof(TPacket))
             {
@@ -263,48 +267,88 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         this.Logging?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
-                           $"reg-handlers count={handlerDescriptors.Length} controller={controllerType.Name}");
+                           $"reg-handlers count={compiledHandlers.Length} controller={controllerType.Name}");
 
         return this;
     }
 
     /// <summary>
-    /// Attempts to resolve a registered packet handler delegate for the specified opcode.
+    /// Attempts to resolve a registered packet handler descriptor for the specified opcode.
     /// </summary>
     /// <param name="opCode">The opcode of the packet handler to resolve.</param>
     /// <param name="handler">
-    /// When this method returns, contains the delegate associated with the specified opcode,
-    /// if the opcode is found; otherwise, <see langword="null"/>.
+    /// When this method returns, contains the cached handler descriptor associated with
+    /// <paramref name="opCode"/>.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if a handler delegate was found for the specified opcode; otherwise, <see langword="false"/>.
+    /// <see langword="true"/> if a handler descriptor was found; otherwise <see langword="false"/>.
     /// </returns>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool TryResolveHandler(ushort opCode, [NotNullWhen(true)] out Func<TPacket, IConnection, Task> handler)
+    internal bool TryResolveHandler(ushort opCode, out PacketHandler<TPacket> handler)
     {
-        if (_handlerCache.TryGetValue(opCode, out PacketHandler<TPacket> descriptor))
+        if (Volatile.Read(ref _handlerFlags[opCode]) != 0)
         {
-            handler = async (packet, connection) =>
-            {
-                PacketContext<TPacket> context = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                                         .Get<PacketContext<TPacket>>();
-                try
-                {
-                    context.Initialize(packet, connection, descriptor.Metadata);
-                    await this.ExecuteHandlerAsync(descriptor, context)
-                              .ConfigureAwait(false);
-                }
-                finally
-                {
-                    context.Return();
-                }
-            };
-
+            handler = _handlerTable[opCode];
             return true;
         }
 
-        handler = null!;
+        handler = default;
         return false;
+    }
+
+    /// <summary>
+    /// Executes a resolved handler with a pooled packet context.
+    /// </summary>
+    /// <param name="descriptor">Resolved handler descriptor.</param>
+    /// <param name="packet">Incoming packet.</param>
+    /// <param name="connection">Source connection.</param>
+    /// <param name="token">Cancellation token for dispatch.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    internal ValueTask ExecuteResolvedHandlerAsync(
+        in PacketHandler<TPacket> descriptor,
+        TPacket packet,
+        IConnection connection,
+        CancellationToken token = default)
+    {
+        PacketContext<TPacket> context = _objectPool.Get<PacketContext<TPacket>>();
+        try
+        {
+            context.Initialize(packet, connection, descriptor.Metadata, token);
+        }
+        catch
+        {
+            context.Return();
+            throw;
+        }
+
+        ValueTask pending = this.ExecuteHandlerAsync(descriptor, context);
+        if (pending.IsCompletedSuccessfully)
+        {
+            try
+            {
+                pending.GetAwaiter().GetResult();
+            }
+            finally
+            {
+                context.Return();
+            }
+
+            return ValueTask.CompletedTask;
+        }
+
+        return AwaitAndReturnAsync(pending, context);
+
+        static async ValueTask AwaitAndReturnAsync(ValueTask operation, PacketContext<TPacket> pooledContext)
+        {
+            try
+            {
+                await operation.ConfigureAwait(false);
+            }
+            finally
+            {
+                pooledContext.Return();
+            }
+        }
     }
 }

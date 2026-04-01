@@ -13,7 +13,6 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Configurations;
-using Nalix.Network.Routing.Metadata;
 
 namespace Nalix.Network.Routing;
 

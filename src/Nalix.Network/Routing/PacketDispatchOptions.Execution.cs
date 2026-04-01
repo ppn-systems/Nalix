@@ -3,7 +3,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Net.Sockets;
@@ -16,8 +15,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Network.Connections;
-using Nalix.Network.Routing.Metadata;
-using Nalix.Network.Routing.Results;
+using Nalix.Network.Internal.Routing;
 
 namespace Nalix.Network.Routing;
 
@@ -27,43 +25,24 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private async ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
     {
-        // ------------------------------------------------------------------
-        // Concrete-type guard — fast path: only active for legacy-style handlers
-        // whose first parameter is a concrete type (e.g. LoginPacket) rather
-        // than the TPacket interface itself.
-        //
-        // Why this matters:
-        //   When TPacket = IPacket (the common case in PacketDispatchChannel),
-        //   the expression tree compiled by HandlerCompiler contains an
-        //   Expression.Convert(packetExpr, concreteType).
-        //   If the packet deserialized from the wire is *not* an instance of
-        //   that concrete type, the expression tree throws InvalidCastException
-        //   with a message that gives no hint about which handler or opCode
-        //   caused the failure.
-        //
-        //   This check fires *before* the expression tree runs, logs an
-        //   actionable warning, and sends a FAIL frame to the client — all
-        //   in O(1) time via a single dictionary lookup that was already done
-        //   in the caller (TryGetExpectedPacketType).
-        //
-        // Performance:
-        //   TryGetExpectedPacketType is AggressiveInlining + a Dictionary
-        //   lookup (one hash + one reference compare). The IsInstanceOfType
-        //   call is also ~1ns for sealed/concrete types. Total overhead on the
-        //   happy path (type matches) is negligible compared to async machinery.
-        // ------------------------------------------------------------------
-        if (this.TryGetExpectedPacketType(descriptor.OpCode, out Type expectedType)
-            && !expectedType.IsInstanceOfType(context.Packet))
+        Type? expectedType = descriptor.ExpectedPacketType;
+        if (expectedType is not null && !expectedType.IsInstanceOfType(context.Packet))
         {
             Type? actualType = context.Packet?.GetType();
-            IPacket packet = context.Packet ?? throw new InternalErrorException("Packet context contains a null packet.");
+            IPacket? packet = context.Packet;
+            if (packet is null)
+            {
+                return;
+            }
 
             this.Logging?.Warn(
                 $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
                 $"type-mismatch opcode=0x{descriptor.OpCode:X4} " +
                 $"expected={expectedType.Name} actual={actualType?.Name ?? "null"} — skipping handler");
 
-            await context.Connection.SendAsync(
+            await this.TrySendControlAsync(
+                context,
+                descriptor.OpCode,
                 controlType: ControlType.FAIL,
                 reason: ProtocolReason.REQUEST_INVALID,
                 action: ProtocolAdvice.FIX_AND_RETRY,
@@ -77,14 +56,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
         if (!_pipeline.IsEmpty)
         {
             await _pipeline.ExecuteAsync(context, InvokeHandlerAsync, context.CancellationToken)
-                                .ConfigureAwait(false);
+                           .ConfigureAwait(false);
         }
         else
         {
             await InvokeHandlerAsync(context.CancellationToken).ConfigureAwait(false);
         }
 
-        async Task InvokeHandlerAsync(CancellationToken ct = default)
+        async ValueTask InvokeHandlerAsync(CancellationToken ct = default)
         {
             try
             {
@@ -92,29 +71,25 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
                 if (!descriptor.CanExecute(context))
                 {
-                    await context.Connection.SendAsync(
+                    await this.TrySendControlAsync(
+                        context,
+                        descriptor.OpCode,
                         controlType: ControlType.FAIL,
                         reason: ProtocolReason.RATE_LIMITED,
                         action: ProtocolAdvice.RETRY,
-                        options: new ControlDirectiveOptions(Flags: ControlFlags.IS_TRANSIENT, SequenceId: context.Packet.SequenceId, Arg0: descriptor.OpCode)).ConfigureAwait(false);
+                        options: new ControlDirectiveOptions(
+                            Flags: ControlFlags.IS_TRANSIENT,
+                            SequenceId: context.Packet.SequenceId,
+                            Arg0: descriptor.OpCode)).ConfigureAwait(false);
 
                     return;
                 }
 
-                // Execute the handler and await the ValueTask once
-                object result = await descriptor.ExecuteAsync(context)
-                                                       .AsTask()
-                                                       .WaitAsync(ct)
-                                                       .ConfigureAwait(false);
+                object result = await AwaitHandlerResultAsync(descriptor.ExecuteAsync(context), ct).ConfigureAwait(false);
 
-                // Handle the result
                 if (!context.SkipOutbound)
                 {
-                    IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.ResolveHandler(descriptor.ReturnType);
-                    await returnHandler.HandleAsync(result, context)
-                                       .AsTask()
-                                       .WaitAsync(ct)
-                                       .ConfigureAwait(false);
+                    await AwaitReturnAsync(descriptor.ReturnHandler.HandleAsync(result, context), ct).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -126,6 +101,42 @@ public sealed partial class PacketDispatchOptions<TPacket>
                           .ConfigureAwait(false);
             }
         }
+
+        static async ValueTask<object> AwaitHandlerResultAsync(ValueTask<object> pending, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+
+            if (pending.IsCompletedSuccessfully)
+            {
+                return pending.Result;
+            }
+
+            if (token.CanBeCanceled)
+            {
+                return await pending.AsTask().WaitAsync(token).ConfigureAwait(false);
+            }
+
+            return await pending.ConfigureAwait(false);
+        }
+
+        static async ValueTask AwaitReturnAsync(ValueTask pending, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+
+            if (pending.IsCompletedSuccessfully)
+            {
+                pending.GetAwaiter().GetResult();
+                return;
+            }
+
+            if (token.CanBeCanceled)
+            {
+                await pending.AsTask().WaitAsync(token).ConfigureAwait(false);
+                return;
+            }
+
+            await pending.ConfigureAwait(false);
+        }
     }
 
     [StackTraceHidden]
@@ -134,18 +145,41 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context, Exception exception)
     {
-        this.Logging?.Error($"[{nameof(PacketDispatchOptions<>)}:{this.HandleDispatchExceptionAsync}] " +
-                            $"handler-failed opcode={descriptor.OpCode}", exception);
+        bool teardownException = IsConnectionTeardownException(exception);
+        if (teardownException)
+        {
+            if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+            {
+                this.Logging.Debug(
+                    $"[{nameof(PacketDispatchOptions<>)}:{nameof(HandleDispatchExceptionAsync)}] " +
+                    $"teardown-suppressed opcode={descriptor.OpCode} ex={exception.GetType().Name}");
+            }
+        }
+        else
+        {
+            this.Logging?.Error($"[{nameof(PacketDispatchOptions<>)}:{nameof(HandleDispatchExceptionAsync)}] " +
+                                $"handler-failed opcode={descriptor.OpCode}", exception);
+        }
+
+        if (teardownException)
+        {
+            return;
+        }
 
         _errorHandler?.Invoke(exception, descriptor.OpCode);
 
         (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) = MapExceptionToProtocol(exception);
 
-        await context.Connection.SendAsync(
-              controlType: ControlType.FAIL,
-              reason: reason,
-              action: action,
-              options: new ControlDirectiveOptions(Flags: flags, SequenceId: context.Packet.SequenceId, Arg0: descriptor.OpCode)).ConfigureAwait(false);
+        await this.TrySendControlAsync(
+            context,
+            descriptor.OpCode,
+            controlType: ControlType.FAIL,
+            reason: reason,
+            action: action,
+            options: new ControlDirectiveOptions(
+                Flags: flags,
+                SequenceId: context.Packet.SequenceId,
+                Arg0: descriptor.OpCode)).ConfigureAwait(false);
     }
 
     [Pure]
@@ -159,31 +193,72 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static T ThrowIfNull<T>(T value, string param) where T : class => value ?? throw new ArgumentNullException(param);
 
-
-    /// <summary>
-    /// Tries to retrieve the concrete packet type registered for the given opcode.
-    /// Returns <see langword="null"/> for context-style handlers or when no mapping exists.
-    /// </summary>
-    /// <param name="opCode"></param>
-    /// <param name="expectedType"></param>
-    /// <remarks>
-    /// Hot path — called once per dispatch. The dictionary lookup is O(1) with a small constant.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private bool TryGetExpectedPacketType(
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private async ValueTask TrySendControlAsync(
+        PacketContext<TPacket> context,
         ushort opCode,
-        [NotNullWhen(true)] out Type expectedType)
+        ControlType controlType,
+        ProtocolReason reason,
+        ProtocolAdvice action,
+        ControlDirectiveOptions options)
     {
-        if (_packetTypeMap.TryGetValue(opCode, out Type? mappedType)
-            && mappedType is not null)
+        try
         {
-            expectedType = mappedType;
+            await context.Connection.SendAsync(
+                controlType: controlType,
+                reason: reason,
+                action: action,
+                options: options).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (IsConnectionTeardownException(ex))
+        {
+            if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+            {
+                this.Logging.Debug(
+                    $"[{nameof(PacketDispatchOptions<>)}:{nameof(TrySendControlAsync)}] " +
+                    $"control-send-skipped opcode={opCode} reason={reason} ex={ex.GetType().Name}");
+            }
+        }
+    }
+
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static bool IsConnectionTeardownException(Exception ex)
+    {
+        if (ex is OperationCanceledException or ObjectDisposedException)
+        {
             return true;
         }
 
-        expectedType = null!;
-        return false;
+        if (ex is IOException io && io.InnerException is SocketException ioeSocket)
+        {
+            return IsTeardownSocketError(ioeSocket.SocketErrorCode);
+        }
+
+        if (ex is SocketException socketEx)
+        {
+            return IsTeardownSocketError(socketEx.SocketErrorCode);
+        }
+
+        Exception? inner = ex.InnerException;
+        if (inner is null)
+        {
+            return false;
+        }
+
+        return IsConnectionTeardownException(inner);
     }
+
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static bool IsTeardownSocketError(SocketError errorCode)
+        => errorCode is SocketError.OperationAborted
+        or SocketError.Interrupted
+        or SocketError.ConnectionAborted
+        or SocketError.ConnectionReset
+        or SocketError.NotConnected
+        or SocketError.Shutdown;
+
 
     /// <summary>
     /// Inspects a handler <paramref name="method"/>'s parameter list and returns the

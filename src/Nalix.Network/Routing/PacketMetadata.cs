@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Common.Networking.Packets;
 
-namespace Nalix.Network.Routing.Metadata;
+namespace Nalix.Network.Routing;
 
 /// <summary>
 /// Represents a fully attributed packet descriptor used to define behavior and metadata

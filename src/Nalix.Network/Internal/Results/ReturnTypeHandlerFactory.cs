@@ -8,13 +8,13 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing.Results.Memory;
-using Nalix.Network.Routing.Results.Packet;
-using Nalix.Network.Routing.Results.Primitives;
-using Nalix.Network.Routing.Results.Task;
-using Nalix.Network.Routing.Results.Void;
+using Nalix.Network.Internal.Results.Memory;
+using Nalix.Network.Internal.Results.Packet;
+using Nalix.Network.Internal.Results.Primitives;
+using Nalix.Network.Internal.Results.Task;
+using Nalix.Network.Internal.Results.Void;
 
-namespace Nalix.Network.Routing.Results;
+namespace Nalix.Network.Internal.Results;
 
 /// <summary>
 /// A zero-allocation factory responsible for returning the appropriate
@@ -27,6 +27,7 @@ namespace Nalix.Network.Routing.Results;
 internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 {
     private static readonly System.Collections.Frozen.FrozenDictionary<Type, IReturnHandler<TPacket>> s_handlers;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, IReturnHandler<TPacket>> s_dynamicHandlers = new();
 
     static ReturnTypeHandlerFactory()
     {
@@ -52,27 +53,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
             return handler;
         }
 
-        // Handle generic Task<T> and ValueTask<T>
-        if (returnType.IsGenericType)
-        {
-            Type genericArg = returnType.GetGenericArguments()[0];
-            Type genericType = returnType.GetGenericTypeDefinition();
-
-            if (genericType == typeof(Task<>))
-            {
-                IReturnHandler<TPacket> innerHandler = ResolveHandler(genericArg);
-                return CreateTaskWrapperHandler(innerHandler, genericArg);
-            }
-
-            if (genericType == typeof(ValueTask<>))
-            {
-                IReturnHandler<TPacket> innerHandler = ResolveHandler(genericArg);
-                return CreateValueTaskWrapperHandler(innerHandler, genericArg);
-            }
-        }
-
-        // Fallback cho unsupported types
-        return new UnsupportedReturnHandler<TPacket>(returnType);
+        return s_dynamicHandlers.GetOrAdd(returnType, static type => CreateDynamicHandler(type));
     }
 
     /// <summary>
@@ -110,5 +91,29 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         Type handlerType = typeof(ValueTaskReturnHandler<,>).MakeGenericType(typeof(TPacket), resultType);
         return (IReturnHandler<TPacket>)(Activator.CreateInstance(handlerType, innerHandler)
             ?? throw new InternalErrorException($"Failed to create return handler for '{handlerType.FullName}'."));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static IReturnHandler<TPacket> CreateDynamicHandler(Type returnType)
+    {
+        if (returnType.IsGenericType)
+        {
+            Type genericArg = returnType.GetGenericArguments()[0];
+            Type genericType = returnType.GetGenericTypeDefinition();
+
+            if (genericType == typeof(Task<>))
+            {
+                IReturnHandler<TPacket> innerHandler = ResolveHandler(genericArg);
+                return CreateTaskWrapperHandler(innerHandler, genericArg);
+            }
+
+            if (genericType == typeof(ValueTask<>))
+            {
+                IReturnHandler<TPacket> innerHandler = ResolveHandler(genericArg);
+                return CreateValueTaskWrapperHandler(innerHandler, genericArg);
+            }
+        }
+
+        return new UnsupportedReturnHandler<TPacket>(returnType);
     }
 }

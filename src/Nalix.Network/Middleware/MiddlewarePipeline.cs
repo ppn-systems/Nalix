@@ -2,38 +2,26 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Routing;
 
 namespace Nalix.Network.Middleware;
 
 /// <summary>
-/// Represents a thread-safe middleware pipeline responsible for processing
-/// packets through inbound and outbound stages with configurable error handling.
+/// Represents a thread-safe middleware pipeline responsible for processing packets
+/// through inbound and outbound stages with configurable error handling.
 /// </summary>
-/// <typeparam name="TPacket">
-/// The packet type being processed by the middleware pipeline.
-/// </typeparam>
-/// <remarks>
-/// <para>
-/// The pipeline supports three execution stages:
-/// <list type="bullet">
-/// <item><description><b>Inbound</b>: Executed before the main packet handler.</description></item>
-/// <item><description><b>Outbound</b>: Executed after the handler, in reverse order.</description></item>
-/// <item><description><b>OutboundAlways</b>: Executed after the handler regardless of cancellation or errors.</description></item>
-/// </list>
-/// </para>
-/// <para>
-/// Middleware ordering is controlled via attributes and cached for performance.
-/// The pipeline creates immutable execution snapshots to avoid locking during execution.
-/// </para>
-/// </remarks>
-internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
+/// <typeparam name="TPacket">The packet type being processed by the pipeline.</typeparam>
+internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
 {
     #region Fields
 
@@ -43,165 +31,49 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
     private readonly List<MiddlewareEntry> _outboundAlways = [];
     private readonly HashSet<IPacketMiddleware<TPacket>> _registeredMiddlewares = [];
 
-    private volatile bool _isSorted;
+    private bool _isSorted;
     private bool _continueOnError;
-    private Action<Exception, Type>? _errorHandler;
 
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, MiddlewareMetadata>
-        s_metadataCache = new();
+    private Action<Exception, Type>? _errorHandler;
+    private PipelineSnapshot _snapshot = PipelineSnapshot.Empty;
+
+    private static readonly Func<CancellationToken, ValueTask> s_noopFinal = static _ => ValueTask.CompletedTask;
+
+    private static readonly ConcurrentDictionary<Type, MiddlewareMetadata> s_metadataCache = new();
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     #endregion Fields
 
-    #region Properties
+    #region APIs
 
     /// <summary>
-    /// Gets a value indicating whether the pipeline contains no registered middleware.
+    /// Gets a value indicating whether the pipeline has no middleware in any stage.
     /// </summary>
-    /// <value>
-    /// <see langword="true"/> if no inbound or outbound middleware is registered;
-    /// otherwise, <see langword="false"/>.
-    /// </value>
-    public bool IsEmpty
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return _inbound.Count == 0 && _outbound.Count == 0 && _outboundAlways.Count == 0;
-            }
-        }
-    }
-
-    #endregion Properties
-
-    #region Public Methods
+    public bool IsEmpty => Volatile.Read(ref _snapshot).IsEmpty;
 
     /// <summary>
-    /// Configures how the pipeline handles exceptions thrown by middleware.
+    /// Clears all registered middleware.
     /// </summary>
-    /// <param name="continueOnError">
-    /// A value indicating whether execution should continue
-    /// after a middleware throws an exception.
-    /// </param>
-    /// <param name="errorHandler">
-    /// An optional callback invoked when an exception occurs,
-    /// providing the exception and the middleware type.
-    /// </param>
-    public void ConfigureErrorHandling(
-        bool continueOnError,
-        Action<Exception, Type>? errorHandler = null)
+    public void Clear()
     {
         lock (_lock)
         {
-            _continueOnError = continueOnError;
-            _errorHandler = errorHandler;
+            _inbound.Clear();
+            _outbound.Clear();
+            _outboundAlways.Clear();
+            _registeredMiddlewares.Clear();
+            _isSorted = true;
+            Volatile.Write(ref _snapshot, PipelineSnapshot.Empty);
         }
     }
 
     /// <summary>
-    /// Executes the middleware pipeline for the specified packet context.
+    /// Registers middleware into the pipeline.
     /// </summary>
-    /// <param name="context">
-    /// The packet execution context shared across middleware.
-    /// </param>
-    /// <param name="handler">
-    /// The final handler invoked after inbound middleware execution.
-    /// </param>
-    /// <param name="ct">
-    /// A cancellation token used to cancel pipeline execution.
-    /// </param>
-    /// <returns>
-    /// A task that represents the asynchronous execution of the pipeline.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="context"/> or <paramref name="handler"/> is <see langword="null"/>.
-    /// </exception>
-    public Task ExecuteAsync(
-        PacketContext<TPacket> context,
-        Func<CancellationToken, Task> handler,
-        CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(handler);
-
-        // Create immutable snapshots
-        List<MiddlewareEntry> inboundSnapshot;
-        List<MiddlewareEntry> outboundSnapshot;
-        List<MiddlewareEntry> outboundAlwaysSnapshot;
-        bool continueOnError;
-        Action<Exception, Type>? errorHandler;
-
-        lock (_lock)
-        {
-            this.ENSURE_SORTED_UNSAFE();
-            inboundSnapshot = [.. _inbound];
-            outboundSnapshot = [.. _outbound];
-            outboundAlwaysSnapshot = [.. _outboundAlways];
-            continueOnError = _continueOnError;
-            errorHandler = _errorHandler;
-        }
-
-        return INVOKE_PIPELINE_ASYNC(
-            inboundSnapshot, context,
-            async (inboundCt) =>
-            {
-                using CancellationTokenSource handlerCts = CancellationTokenSource.CreateLinkedTokenSource(inboundCt, ct);
-
-                try
-                {
-                    await handler(handlerCts.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Continue to outbound-always even if cancelled
-                }
-
-                await INVOKE_PIPELINE_ASYNC(
-                    outboundAlwaysSnapshot, context,
-                    (ct) =>
-                    {
-                        ct.ThrowIfCancellationRequested();
-                        return Task.CompletedTask;
-                    },
-                    ct,
-                    continueOnError,
-                    errorHandler
-                ).ConfigureAwait(false);
-
-                if (!context.SkipOutbound && !handlerCts.Token.IsCancellationRequested)
-                {
-                    await INVOKE_PIPELINE_ASYNC(
-                        outboundSnapshot, context,
-                        (ct) =>
-                        {
-                            ct.ThrowIfCancellationRequested();
-                            return Task.CompletedTask;
-                        },
-                        inboundCt,
-                        continueOnError,
-                        errorHandler
-                    ).ConfigureAwait(false);
-                }
-            },
-            ct,
-            continueOnError,
-            errorHandler
-        );
-    }
-
-    /// <summary>
-    /// Registers a middleware instance into the pipeline.
-    /// </summary>
-    /// <param name="middleware">
-    /// The middleware instance to register.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="middleware"/> is <see langword="null"/>.
-    /// </exception>
-    /// <exception cref="InternalErrorException">
-    /// Thrown when the middleware instance has already been registered.
-    /// </exception>
-    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    /// <param name="middleware">Middleware instance.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="middleware"/> is null.</exception>
+    /// <exception cref="InternalErrorException">Thrown when middleware is already registered.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown for unsupported stage metadata.</exception>
     public void Use(IPacketMiddleware<TPacket> middleware)
     {
         ArgumentNullException.ThrowIfNull(middleware);
@@ -214,7 +86,7 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
                     $"Middleware '{middleware.GetType().FullName}' already registered");
             }
 
-            MiddlewareMetadata metadata = GET_MIDDLEWARE_METADATA(middleware.GetType());
+            MiddlewareMetadata metadata = GetMiddlewareMetadata(middleware.GetType());
             MiddlewareEntry entry = new(middleware, metadata.Order);
 
             switch (metadata.Stage)
@@ -234,47 +106,139 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
 
             _isSorted = false;
+            this.REBUILD_SNAPSHOT_UNSAFE();
         }
     }
 
     /// <summary>
-    /// Removes all registered middleware from the pipeline.
+    /// Configures error handling behavior for middleware execution.
     /// </summary>
-    /// <remarks>
-    /// After calling this method, the pipeline will be empty
-    /// and require middleware to be registered again.
-    /// </remarks>
-    public void Clear()
+    /// <param name="continueOnError">Whether to continue the chain after middleware exceptions.</param>
+    /// <param name="errorHandler">Optional callback invoked for middleware exceptions.</param>
+    public void ConfigureErrorHandling(bool continueOnError, Action<Exception, Type>? errorHandler = null)
     {
         lock (_lock)
         {
-            _inbound.Clear();
-            _outbound.Clear();
-            _outboundAlways.Clear();
-            _registeredMiddlewares.Clear();
-            _isSorted = false;
+            _continueOnError = continueOnError;
+            _errorHandler = errorHandler;
+            this.REBUILD_SNAPSHOT_UNSAFE();
         }
     }
 
-    #endregion Public Methods
+    /// <summary>
+    /// Executes the middleware pipeline for a packet context.
+    /// </summary>
+    /// <param name="context">Packet execution context.</param>
+    /// <param name="handler">Final packet handler.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A value task representing pipeline completion.</returns>
+    public ValueTask ExecuteAsync(PacketContext<TPacket> context, Func<CancellationToken, ValueTask> handler, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        PipelineSnapshot snapshot = Volatile.Read(ref _snapshot);
+        if (snapshot.IsEmpty)
+        {
+            return handler(ct);
+        }
+
+        ValueTask pending = ExecuteStageAsync(
+            snapshot.Inbound,
+            context,
+            inboundCt => this.InvokeHandlerAsync(snapshot, context, handler, inboundCt, ct),
+            ct,
+            snapshot.ContinueOnError,
+            snapshot.ErrorHandler);
+
+        if (pending.IsCompletedSuccessfully)
+        {
+            pending.GetAwaiter().GetResult();
+            return ValueTask.CompletedTask;
+        }
+
+        return AwaitPendingAsync(pending);
+
+        static async ValueTask AwaitPendingAsync(ValueTask operation)
+            => await operation.ConfigureAwait(false);
+    }
+
+    #endregion APIs
 
     #region Private Methods
 
-    private void ENSURE_SORTED_UNSAFE()
+    private async ValueTask InvokeHandlerAsync(
+        PipelineSnapshot snapshot,
+        PacketContext<TPacket> context,
+        Func<CancellationToken, ValueTask> handler,
+        CancellationToken inboundCt,
+        CancellationToken rootCt)
     {
-        if (_isSorted)
+        CancellationTokenSource? linkedCts = null;
+        try
         {
-            return;
+            linkedCts = CreateExecutionToken(inboundCt, rootCt, out CancellationToken handlerCt);
+
+            try
+            {
+                ValueTask handlerPending = handler(handlerCt);
+                if (!handlerPending.IsCompletedSuccessfully)
+                {
+                    await handlerPending.ConfigureAwait(false);
+                }
+                else
+                {
+                    handlerPending.GetAwaiter().GetResult();
+                }
+            }
+            catch (OperationCanceledException) when (handlerCt.IsCancellationRequested)
+            {
+            }
+
+            ValueTask alwaysPending = ExecuteStageAsync(
+                snapshot.OutboundAlways,
+                context,
+                s_noopFinal,
+                rootCt,
+                snapshot.ContinueOnError,
+                snapshot.ErrorHandler);
+
+            if (!alwaysPending.IsCompletedSuccessfully)
+            {
+                await alwaysPending.ConfigureAwait(false);
+            }
+            else
+            {
+                alwaysPending.GetAwaiter().GetResult();
+            }
+
+            if (!context.SkipOutbound && !handlerCt.IsCancellationRequested)
+            {
+                ValueTask outboundPending = ExecuteStageAsync(
+                    snapshot.Outbound,
+                    context,
+                    s_noopFinal,
+                    inboundCt,
+                    snapshot.ContinueOnError,
+                    snapshot.ErrorHandler);
+
+                if (!outboundPending.IsCompletedSuccessfully)
+                {
+                    await outboundPending.ConfigureAwait(false);
+                }
+                else
+                {
+                    outboundPending.GetAwaiter().GetResult();
+                }
+            }
         }
-
-        _inbound.Sort((a, b) => a.Order.CompareTo(b.Order));
-        _outbound.Sort((a, b) => b.Order.CompareTo(a.Order));
-        _outboundAlways.Sort((a, b) => b.Order.CompareTo(a.Order));
-
-        _isSorted = true;
+        finally
+        {
+            linkedCts?.Dispose();
+        }
     }
 
-    private static MiddlewareMetadata GET_MIDDLEWARE_METADATA(Type middlewareType)
+    private static MiddlewareMetadata GetMiddlewareMetadata(Type middlewareType)
     {
         ArgumentNullException.ThrowIfNull(middlewareType);
 
@@ -301,45 +265,109 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
         });
     }
 
-    private static Task INVOKE_PIPELINE_ASYNC(
-        List<MiddlewareEntry> middlewares,
-        PacketContext<TPacket> context,
-        Func<CancellationToken, Task> final,
-        CancellationToken startToken,
-        bool continueOnError = false,
-        Action<Exception, Type>? errorHandler = null)
+    private static CancellationTokenSource? CreateExecutionToken(CancellationToken inboundToken, CancellationToken rootToken, out CancellationToken effectiveToken)
     {
-        static Func<CancellationToken, Task> CreateWrapper(
-            PacketContext<TPacket> context,
-            IPacketMiddleware<TPacket> middleware,
-            Func<CancellationToken, Task> next,
-            bool continueOnError,
-            Action<Exception, Type>? errorHandler)
+        if (inboundToken.CanBeCanceled)
         {
-            return async token =>
+            if (!rootToken.CanBeCanceled || inboundToken.Equals(rootToken))
             {
-                try
-                {
-                    await middleware.InvokeAsync(context, next).ConfigureAwait(false);
-                }
-                catch (Exception ex) when (continueOnError)
-                {
-                    errorHandler?.Invoke(ex, middleware.GetType());
-                    await next(token).ConfigureAwait(false);
-                }
-            };
+                effectiveToken = inboundToken;
+                return null;
+            }
+
+            CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(inboundToken, rootToken);
+            effectiveToken = linked.Token;
+            return linked;
         }
 
-        Func<CancellationToken, Task> next = final;
+        effectiveToken = rootToken;
+        return null;
+    }
 
-        for (int i = middlewares.Count - 1; i >= 0; i--)
+    private static ValueTask ExecuteStageAsync(
+        MiddlewareEntry[] middlewares,
+        PacketContext<TPacket> context,
+        Func<CancellationToken, ValueTask> final,
+        CancellationToken startToken,
+        bool continueOnError,
+        Action<Exception, Type>? errorHandler)
+    {
+        if (middlewares.Length == 0)
         {
-            IPacketMiddleware<TPacket> current = middlewares[i].Middleware;
-            Func<CancellationToken, Task> localNext = next;
-            next = CreateWrapper(context, current, localNext, continueOnError, errorHandler);
+            return final(startToken);
         }
 
-        return next(startToken);
+        PooledPipelineContext runner = s_pool.Get<PooledPipelineContext>();
+        runner.Initialize(middlewares, context, final, startToken, continueOnError, errorHandler);
+
+        ValueTask pending = runner.RunAsync();
+        if (pending.IsCompletedSuccessfully)
+        {
+            try
+            {
+                pending.GetAwaiter().GetResult();
+            }
+            finally
+            {
+                s_pool.Return<PooledPipelineContext>(runner);
+            }
+
+            return ValueTask.CompletedTask;
+        }
+
+        return AwaitAsync(pending, runner);
+
+        static async ValueTask AwaitAsync(ValueTask operation, PooledPipelineContext pooledRunner)
+        {
+            try
+            {
+                await operation.ConfigureAwait(false);
+            }
+            finally
+            {
+                s_pool.Return<PooledPipelineContext>(pooledRunner);
+            }
+        }
+    }
+
+    private void ENSURE_SORTED_UNSAFE()
+    {
+        if (_isSorted)
+        {
+            return;
+        }
+
+        _inbound.Sort(static (a, b) => a.Order.CompareTo(b.Order));
+        _outbound.Sort(static (a, b) => b.Order.CompareTo(a.Order));
+        _outboundAlways.Sort(static (a, b) => b.Order.CompareTo(a.Order));
+        _isSorted = true;
+    }
+
+    private void REBUILD_SNAPSHOT_UNSAFE()
+    {
+        this.ENSURE_SORTED_UNSAFE();
+
+        MiddlewareEntry[] inbound = new MiddlewareEntry[_inbound.Count];
+        for (int i = 0; i < inbound.Length; i++)
+        {
+            inbound[i] = _inbound[i];
+        }
+
+        MiddlewareEntry[] outbound = new MiddlewareEntry[_outbound.Count];
+        for (int i = 0; i < outbound.Length; i++)
+        {
+            outbound[i] = _outbound[i];
+        }
+
+        MiddlewareEntry[] outboundAlways = new MiddlewareEntry[_outboundAlways.Count];
+        for (int i = 0; i < outboundAlways.Length; i++)
+        {
+            outboundAlways[i] = _outboundAlways[i];
+        }
+
+        PipelineSnapshot snapshot = new(inbound, outbound, outboundAlways, _continueOnError, _errorHandler);
+
+        Volatile.Write(ref _snapshot, snapshot);
     }
 
     #endregion Private Methods
@@ -348,10 +376,174 @@ internal class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
     private readonly record struct MiddlewareEntry(IPacketMiddleware<TPacket> Middleware, int Order);
 
-    private readonly record struct MiddlewareMetadata(
-        int Order,
-        MiddlewareStage Stage,
-        bool AlwaysExecute);
+    private readonly record struct MiddlewareMetadata(int Order, MiddlewareStage Stage, bool AlwaysExecute);
+
+    private sealed class PipelineSnapshot
+    {
+        #region Static Fields
+
+        public static readonly PipelineSnapshot Empty = new([], [], [], continueOnError: false, errorHandler: null);
+
+        #endregion Static Fields
+
+        #region Constructors
+
+        public PipelineSnapshot(MiddlewareEntry[] inbound, MiddlewareEntry[] outbound, MiddlewareEntry[] outboundAlways, bool continueOnError, Action<Exception, Type>? errorHandler)
+        {
+            this.Inbound = inbound;
+            this.Outbound = outbound;
+            this.OutboundAlways = outboundAlways;
+            this.ContinueOnError = continueOnError;
+            this.ErrorHandler = errorHandler;
+        }
+
+        #endregion Constructors
+
+        #region Properties
+
+        public bool ContinueOnError { get; }
+
+        public MiddlewareEntry[] Inbound { get; }
+
+        public MiddlewareEntry[] Outbound { get; }
+
+        public MiddlewareEntry[] OutboundAlways { get; }
+
+        public Action<Exception, Type>? ErrorHandler { get; }
+
+        public bool IsEmpty => this.Inbound.Length == 0 && this.Outbound.Length == 0 && this.OutboundAlways.Length == 0;
+
+        #endregion Properties
+    }
+
+    private sealed class PooledPipelineContext : IPoolable
+    {
+        #region Fields
+
+        private bool _continueOnError;
+
+        private CancellationToken _startToken;
+        private PacketContext<TPacket>? _context;
+        private MiddlewareEntry[] _middlewares = [];
+        private Action<Exception, Type>? _errorHandler;
+
+        private Func<CancellationToken, ValueTask>? _final;
+        private Func<CancellationToken, ValueTask>[] _steps = [];
+
+        #endregion Fields
+
+        #region APIs
+
+        public void Initialize(
+            MiddlewareEntry[] middlewares,
+            PacketContext<TPacket> context,
+            Func<CancellationToken, ValueTask> final,
+            CancellationToken startToken,
+            bool continueOnError,
+            Action<Exception, Type>? errorHandler)
+        {
+            _middlewares = middlewares;
+            _context = context;
+            _final = final;
+            _startToken = startToken;
+            _continueOnError = continueOnError;
+            _errorHandler = errorHandler;
+            this.ENSURE_STEPS(middlewares.Length + 1);
+        }
+
+        public void ResetForPool()
+        {
+            _middlewares = [];
+            _context = null;
+            _final = null;
+            _startToken = default;
+            _continueOnError = false;
+            _errorHandler = null;
+        }
+
+        public ValueTask RunAsync() => _steps[0](_startToken);
+
+        #endregion APIs
+
+        #region Private Methods
+
+        private void ENSURE_STEPS(int requiredLength)
+        {
+            if (_steps.Length >= requiredLength)
+            {
+                return;
+            }
+
+            int currentLength = _steps.Length;
+            Array.Resize(ref _steps, requiredLength);
+
+            for (int i = currentLength; i < requiredLength; i++)
+            {
+                int index = i;
+                _steps[i] = token => this.INVOKE_ASYNC(index, token);
+            }
+        }
+
+        private ValueTask INVOKE_ASYNC(int index, CancellationToken token)
+        {
+            if ((uint)index >= (uint)_middlewares.Length)
+            {
+                Func<CancellationToken, ValueTask>? final = _final;
+                return final is null ? ValueTask.CompletedTask : final(token);
+            }
+
+            PacketContext<TPacket>? context = _context;
+            if (context is null)
+            {
+                return ValueTask.FromException(
+                    new InternalErrorException("Middleware pipeline runner is not initialized."));
+            }
+
+            MiddlewareEntry entry = _middlewares[index];
+            Func<CancellationToken, ValueTask> next = _steps[index + 1];
+
+            try
+            {
+                ValueTask pending = entry.Middleware.InvokeAsync(context, next);
+                if (!_continueOnError || pending.IsCompletedSuccessfully)
+                {
+                    return pending;
+                }
+
+                return AwaitWithContinueAsync(this, pending, entry, next, token);
+            }
+            catch (Exception ex)
+            {
+                if (!_continueOnError)
+                {
+                    return ValueTask.FromException(ex);
+                }
+
+                _errorHandler?.Invoke(ex, entry.Middleware.GetType());
+                return next(token);
+            }
+        }
+
+        private static async ValueTask AwaitWithContinueAsync(
+            PooledPipelineContext runner,
+            ValueTask pending,
+            MiddlewareEntry entry,
+            Func<CancellationToken, ValueTask> next,
+            CancellationToken token)
+        {
+            try
+            {
+                await pending.ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                runner._errorHandler?.Invoke(ex, entry.Middleware.GetType());
+                await next(token).ConfigureAwait(false);
+            }
+        }
+
+        #endregion Private Methods
+    }
 
     #endregion Nested Types
 }

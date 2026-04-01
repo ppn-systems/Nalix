@@ -4,8 +4,9 @@
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.Network.Routing;
 
-namespace Nalix.Network.Routing.Results;
+namespace Nalix.Network.Internal.Results;
 
 /// <summary>
 /// Defines a handler interface for processing method return values of packet-handling methods

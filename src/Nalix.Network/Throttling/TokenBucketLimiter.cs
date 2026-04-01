@@ -363,7 +363,10 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         // Pre-check limit before allocation
         if (this.IS_ENDPOINT_LIMIT_REACHED())
         {
-            _logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}");
+            if (_logger?.IsEnabled(LogLevel.Warning) == true)
+            {
+                _logger.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}");
+            }
 
             return new EndpointStateResult
             {
@@ -396,7 +399,10 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             };
         }
 
-        _logger?.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
+        if (_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            _logger.Debug($"[NW.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
+        }
 
         return new EndpointStateResult { State = newState, IsNew = true };
     }
@@ -519,7 +525,10 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         if (state.HardBlockedUntilSw > now)
         {
             int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
-            _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
+            if (_logger?.IsEnabled(LogLevel.Trace) == true)
+            {
+                _logger.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
+            }
 
             decision = new RateLimitDecision
             {
@@ -554,9 +563,9 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
         ushort credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _options.TokenScale);
 
-        if (credit <= 1)
+        if (credit <= 1 && _logger?.IsEnabled(LogLevel.Trace) == true)
         {
-            _logger?.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] allow credit={credit}");
+            _logger.Trace($"[NW.{nameof(TokenBucketLimiter)}:Internal] allow credit={credit}");
         }
 
         return new RateLimitDecision
@@ -637,8 +646,11 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         state.SoftViolations = 0;
 
         int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
-        _logger?.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] escalate-to-hard-lock " +
-                    $"endpoint={key.Address} retry_ms={retryMs}");
+        if (_logger?.IsEnabled(LogLevel.Warning) == true)
+        {
+            _logger.Warn($"[NW.{nameof(TokenBucketLimiter)}:Internal] escalate-to-hard-lock " +
+                        $"endpoint={key.Address} retry_ms={retryMs}");
+        }
 
         return new RateLimitDecision
         {

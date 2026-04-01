@@ -359,3 +359,5 @@ csharp_style_prefer_collection_expression = false:suggestion
 
 dotnet_diagnostic.IDE0301.severity = silent
 dotnet_diagnostic.IDE0001.severity = none
+dotnet_diagnostic.IDE0032.severity = none
+dotnet_diagnostic.IDE0290.severity = none

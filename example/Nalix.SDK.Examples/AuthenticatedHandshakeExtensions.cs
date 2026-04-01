@@ -3,10 +3,10 @@
 
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Networking.Transport;
 using Nalix.Examples.Asymmetric;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Security.Hashing;
+using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 using HandshakePacket = Nalix.Framework.DataFrames.SignalFrames.Handshake;
 

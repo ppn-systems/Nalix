@@ -20,8 +20,9 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
+using Nalix.Network.Internal.Results;
+using Nalix.Network.Internal.Routing;
 using Nalix.Network.Routing;
-using Nalix.Network.Routing.Metadata;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
@@ -96,7 +97,9 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 controllerInstance,
                 compiledMethod.MethodInfo,
                 compiledMethod.ReturnType,
-                compiledMethod.CompiledInvoker);
+                compiledMethod.CompiledInvoker,
+                expectedPacketType: null,
+                returnHandler: ReturnTypeHandlerFactory<TPacket>.ResolveHandler(compiledMethod.ReturnType));
         }
 
         string firstOps = string.Join(",", Enumerable
@@ -608,74 +611,97 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     {
         if (x01 == typeof(Task))
         {
-            return async (instance, context) =>
-            {
-                if (x00(instance, context) is Task t)
-                {
-                    await t.ConfigureAwait(false);
-                }
-                return null!;
-            };
+            return (instance, context) => AwaitTaskVoidAsync(x00(instance, context));
         }
 
         if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(Task<>))
         {
-            // Cache Result getter at compile-time for this x01
-            PropertyInfo x02 = GetRequiredProperty(x01, "Result");
-            return async (instance, context) =>
-            {
-                object r = x00(instance, context);
-                if (r is Task t)
-                {
-                    await t.ConfigureAwait(false);
-                    return x02.GetValue(t)!;
-                }
-                return r;
-            };
+            Type resultType = x01.GetGenericArguments()[0];
+            Func<object, ValueTask<object>> converter = CreateTaskConverter(resultType);
+            return (instance, context) => converter(x00(instance, context));
         }
 
         if (x01 == typeof(ValueTask))
         {
-            // Call .GetAwaiter().GetResult() without allocations
-            MethodInfo getAwaiter = GetRequiredMethod(typeof(ValueTask), "GetAwaiter", BindingFlags.Public | BindingFlags.Instance);
-
-            return async (instance, context) =>
-            {
-                object r = x00(instance, context);
-                if (r is ValueTask vt)
-                {
-                    // prefer await: lets the compiler pick optimal path
-                    await vt.ConfigureAwait(false);
-                }
-                return null!;
-            };
+            return (instance, context) => AwaitValueTaskVoidAsync(x00(instance, context));
         }
 
         if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
-            // Build a converter: ValueTask<T> -> Task<T> once, then await Task<T> (no dynamic)
-            MethodInfo x07 = GetRequiredMethod(x01, "AsTask", Type.EmptyTypes); // ValueTask<T>.AsTask()
-
-            return async (instance, context) =>
-            {
-                object r = x00(instance, context);
-                if (r is null)
-                {
-                    return null!;
-                }
-
-                // x10 AsTask() via reflection once per wrapper
-                object x03 = x07.Invoke(r, null)!; // Task<T>
-                Task x04 = (Task)x03;
-                await x04.ConfigureAwait(false);
-
-                // read Task<T>.Result once completed
-                PropertyInfo x05 = GetRequiredProperty(x03.GetType(), "Result");
-                return x05.GetValue(x03)!;
-            };
+            Type resultType = x01.GetGenericArguments()[0];
+            Func<object, ValueTask<object>> converter = CreateValueTaskConverter(resultType);
+            return (instance, context) => converter(x00(instance, context));
         }
 
         return (instance, context) => ValueTask.FromResult(x00(instance, context));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Func<object, ValueTask<object>> CreateTaskConverter(Type resultType)
+    {
+        MethodInfo method = GetRequiredMethod(
+            typeof(PacketHandlerCompiler<TController, TPacket>),
+            nameof(AwaitTaskResultAsync),
+            BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(resultType);
+
+        return (Func<object, ValueTask<object>>)Delegate.CreateDelegate(typeof(Func<object, ValueTask<object>>), method);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Func<object, ValueTask<object>> CreateValueTaskConverter(Type resultType)
+    {
+        MethodInfo method = GetRequiredMethod(
+            typeof(PacketHandlerCompiler<TController, TPacket>),
+            nameof(AwaitValueTaskResultAsync),
+            BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(resultType);
+
+        return (Func<object, ValueTask<object>>)Delegate.CreateDelegate(typeof(Func<object, ValueTask<object>>), method);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static async ValueTask<object> AwaitTaskVoidAsync(object result)
+    {
+        if (result is Task task)
+        {
+            await task.ConfigureAwait(false);
+        }
+
+        return null!;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static async ValueTask<object> AwaitTaskResultAsync<TResult>(object result)
+    {
+        if (result is Task<TResult> task)
+        {
+            TResult value = await task.ConfigureAwait(false);
+            return value!;
+        }
+
+        return result;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static async ValueTask<object> AwaitValueTaskVoidAsync(object result)
+    {
+        if (result is ValueTask valueTask)
+        {
+            await valueTask.ConfigureAwait(false);
+        }
+
+        return null!;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static async ValueTask<object> AwaitValueTaskResultAsync<TResult>(object result)
+    {
+        if (result is ValueTask<TResult> valueTask)
+        {
+            TResult value = await valueTask.ConfigureAwait(false);
+            return value!;
+        }
+
+        return result;
     }
 
     [Pure]
@@ -729,12 +755,6 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static MethodInfo GetRequiredMethod(Type type, string name, BindingFlags bindingFlags)
         => type.GetMethod(name, bindingFlags)
-        ?? throw new InternalErrorException($"Required method '{type.FullName}.{name}' was not found.");
-
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static MethodInfo GetRequiredMethod(Type type, string name, Type[] parameterTypes)
-        => type.GetMethod(name, parameterTypes)
         ?? throw new InternalErrorException($"Required method '{type.FullName}.{name}' was not found.");
 
     #endregion Private Methods

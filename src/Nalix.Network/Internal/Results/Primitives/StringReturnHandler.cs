@@ -14,8 +14,9 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.TextFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Routing;
 
-namespace Nalix.Network.Routing.Results.Primitives;
+namespace Nalix.Network.Internal.Results.Primitives;
 
 /// <summary>
 /// Selects the smallest text-packet type that fits a UTF-8 payload and sends it.
