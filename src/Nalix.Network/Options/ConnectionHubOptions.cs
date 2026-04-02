@@ -64,22 +64,36 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
-    /// Thrown when one or more validation attributes fail.
-    /// </exception>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        if (this.MaxConnections < -1)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnections), "MaxConnections must be -1 (unlimited) or positive.");
+        }
+
+        if (this.ParallelDisconnectDegree < -1)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.ParallelDisconnectDegree), "ParallelDisconnectDegree must be -1 (default) or positive.");
+        }
+
+        if (this.BroadcastBatchSize < 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.BroadcastBatchSize), "BroadcastBatchSize cannot be negative.");
+        }
+
+        if (this.ShardCount < 1)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.ShardCount), "ShardCount must be at least 1.");
+        }
 
         if (this.ParallelDisconnectDegree == 0)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("ParallelDisconnectDegree cannot be zero. Use -1 for default or a positive value.");
+            throw new System.ArgumentOutOfRangeException(nameof(this.ParallelDisconnectDegree), "ParallelDisconnectDegree cannot be zero. Use -1 for default or a positive value.");
         }
 
         if (this.MaxConnections == 0)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxConnections cannot be zero (0 means no connections are allowed). Use -1 for unlimited or a positive value.");
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnections), "MaxConnections cannot be zero (0 means no connections are allowed). Use -1 for unlimited or a positive value.");
         }
     }
 }

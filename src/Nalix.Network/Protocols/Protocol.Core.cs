@@ -61,11 +61,11 @@ public abstract partial class Protocol : IProtocol
 
             if (!this.KeepConnectionOpen)
             {
-                args.Connection.Disconnect();
+                args.Connection?.Disconnect();
 
                 if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
                 {
-                    s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection.ID}");
+                    s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection?.ID}");
                 }
             }
         }
@@ -73,11 +73,14 @@ public abstract partial class Protocol : IProtocol
         {
             _ = Interlocked.Increment(ref _totalErrors);
 
-            args.Connection.ThrottledError(s_logger, "protocol.post_fail", $"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
+            if (args.Connection != null)
+            {
+                args.Connection.ThrottledError(s_logger, "protocol.post_fail", $"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
-            // Give the derived protocol a chance to observe the failure before the socket closes.
-            this.OnConnectionError(args.Connection, ex);
-            args.Connection.Disconnect();
+                // Give the derived protocol a chance to observe the failure before the socket closes.
+                this.OnConnectionError(args.Connection, ex);
+                args.Connection.Disconnect();
+            }
         }
     }
 

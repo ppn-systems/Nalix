@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
@@ -59,9 +58,7 @@ public partial class ConfigurationLoader
                 Comment = propComment,
                 PropertyInfo = property,
                 PropertyType = property.PropertyType,
-                TypeCode = typeCode,
-                Getter = CreateGetter(property),
-                Setter = CreateSetter(property)
+                TypeCode = typeCode
             };
 
             bindableProperties.Add(propertyMetadata);
@@ -98,19 +95,4 @@ public partial class ConfigurationLoader
         return type == typeof(Guid) || type == typeof(TimeSpan);
     }
 
-    private static Func<object, object?> CreateGetter(PropertyInfo property)
-    {
-        ParameterExpression obj = Expression.Parameter(typeof(object), "obj");
-        MemberExpression prop = Expression.Property(Expression.Convert(obj, property.DeclaringType!), property);
-        return Expression.Lambda<Func<object, object?>>(Expression.Convert(prop, typeof(object)), obj).Compile();
-    }
-
-    private static Action<object, object?> CreateSetter(PropertyInfo property)
-    {
-        ParameterExpression obj = Expression.Parameter(typeof(object), "obj");
-        ParameterExpression val = Expression.Parameter(typeof(object), "val");
-        MemberExpression prop = Expression.Property(Expression.Convert(obj, property.DeclaringType!), property);
-        BinaryExpression assign = Expression.Assign(prop, Expression.Convert(val, property.PropertyType));
-        return Expression.Lambda<Action<object, object?>>(assign, obj, val).Compile();
-    }
 }

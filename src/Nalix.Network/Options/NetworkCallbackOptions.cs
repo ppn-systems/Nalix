@@ -117,21 +117,48 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
 
     #endregion Layer 2 — Global and per-IP callback caps
 
-    /// <summary>
-    /// Validates all options and throws if any value is out of range.
-    /// </summary>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
-    /// Thrown when one or more validation attributes fail.
-    /// </exception>
+    /// <inheritdoc/>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext ctx = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, ctx, validateAllProperties: true);
+        if (this.MaxPerConnectionPendingPackets < 1 || this.MaxPerConnectionPendingPackets > 1024)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPerConnectionPendingPackets), "MaxPerConnectionPendingPackets must be between 1 and 1024.");
+        }
+
+        if (this.MaxPerConnectionOpenFragmentStreams < 1 || this.MaxPerConnectionOpenFragmentStreams > 256)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPerConnectionOpenFragmentStreams), "MaxPerConnectionOpenFragmentStreams must be between 1 and 256.");
+        }
+
+        if (this.MaxPendingNormalCallbacks < 100 || this.MaxPendingNormalCallbacks > 1_000_000)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPendingNormalCallbacks), "MaxPendingNormalCallbacks must be between 100 and 1,000,000.");
+        }
+
+        if (this.CallbackWarningThreshold < 0 || this.CallbackWarningThreshold > 1_000_000)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.CallbackWarningThreshold), "CallbackWarningThreshold must be between 0 and 1,000,000.");
+        }
+
+        if (this.MaxPendingPerIp < 1 || this.MaxPendingPerIp > 10_000)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPendingPerIp), "MaxPendingPerIp must be between 1 and 10,000.");
+        }
+
+        if (this.MaxPooledCallbackStates < 64 || this.MaxPooledCallbackStates > 100_000)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPooledCallbackStates), "MaxPooledCallbackStates must be between 64 and 100,000.");
+        }
+
+        if (this.FairnessMapSize < 1024 || this.FairnessMapSize > 65536)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.FairnessMapSize), "FairnessMapSize must be between 1024 and 65536.");
+        }
 
         // Cross-field guard: warning threshold should be below global cap
         if (this.CallbackWarningThreshold > 0 && this.CallbackWarningThreshold >= this.MaxPendingNormalCallbacks)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
+            throw new System.ArgumentException(
                 $"{nameof(this.CallbackWarningThreshold)} ({this.CallbackWarningThreshold}) " +
                 $"must be less than {nameof(this.MaxPendingNormalCallbacks)} ({this.MaxPendingNormalCallbacks}).");
         }
@@ -139,7 +166,7 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
         // Cross-field guard: per-IP cap should not exceed global cap
         if (this.MaxPendingPerIp > this.MaxPendingNormalCallbacks)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
+            throw new System.ArgumentException(
                 $"{nameof(this.MaxPendingPerIp)} ({this.MaxPendingPerIp}) " +
                 $"must not exceed {nameof(this.MaxPendingNormalCallbacks)} ({this.MaxPendingNormalCallbacks}).");
         }

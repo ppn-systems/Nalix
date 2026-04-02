@@ -87,16 +87,16 @@ internal static class AsyncCallback
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledConnectEventContext>(s_pooling.ConnectEventContextPreallocate);
 
-        s_perIpFairnessMap = new int[s_opts.FairnessMapSize];
+        s_perIpFairnessMap = new long[s_opts.FairnessMapSize];
     }
 
     /// <summary>
     /// ── Per-IP pending counter ─────────────────────────────────────────────────
-    /// Uses a fixed-size hash map (open addressing / collisions managed by the same slot)
-    /// to avoid Node allocations in ConcurrentDictionary.
+    /// Uses a fixed-size hash map with linear probing (up to 8 probes) to avoid 
+    /// Node allocations in ConcurrentDictionary. The long packs (HashCode | Count).
     /// Capacity is configurable via <see cref="NetworkCallbackOptions.FairnessMapSize"/>.
     /// </summary>
-    private static readonly int[] s_perIpFairnessMap;
+    private static readonly long[] s_perIpFairnessMap;
 
     /// <summary>
     /// ── Static delegates — no closures, no per-invocation allocations ──────────
@@ -115,10 +115,7 @@ internal static class AsyncCallback
         // Once the count reaches zero, remove the key so the fairness map stays
         // bounded and a short-lived remote endpoint does not leave stale entries.
         INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(w.Args);
-        if (endpoint is not null)
-        {
-            RELEASE_ENDPOINT_SLOT(endpoint);
-        }
+        RELEASE_ENDPOINT_SLOT(endpoint);
 
         EXECUTE_AND_RETURN(w);
     };
@@ -180,18 +177,16 @@ internal static class AsyncCallback
         // Per-IP fairness is checked before the work item is queued so one remote
         // endpoint cannot reserve the global pool faster than others and starve
         // healthy peers.
+        // Unknown/null endpoints are grouped into a single bucket (hash 0) to prevent limit bypass.
         INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(args);
-        if (endpoint is not null)
+        if (!TRY_RESERVE_ENDPOINT_SLOT(endpoint, out int ipPending))
         {
-            if (!TRY_RESERVE_ENDPOINT_SLOT(endpoint, out int ipPending))
-            {
-                // Apply per-IP fairness first so a single remote endpoint cannot
-                // monopolize the queue even if there is still global headroom.
-                RELEASE_GLOBAL_SLOT();
-                Interlocked.Increment(ref s_droppedCallbacks);
-                LOG_THROTTLED_WARN_SAFE(args, "async.per_ip_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={endpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
-                return false;
-            }
+            // Apply per-IP fairness first so a single remote endpoint cannot
+            // monopolize the queue even if there is still global headroom.
+            RELEASE_GLOBAL_SLOT();
+            Interlocked.Increment(ref s_droppedCallbacks);
+            LOG_THROTTLED_WARN_SAFE(args, "async.per_ip_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={endpoint?.ToString() ?? "unknown"} pending={ipPending} max={s_opts.MaxPendingPerIp}");
+            return false;
         }
 
         // ── Warn when approaching global limit ────────────────────────────────
@@ -264,7 +259,19 @@ internal static class AsyncCallback
         PooledConnectEventContext? wrapper = (sender as Connection)?.AcquireContext() ?? PooledConnectEventContext.Get();
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
-        if (!ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false))
+        bool queued = false;
+        
+        try
+        {
+            queued = ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false);
+        }
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            LOG_THROTTLED_ERROR_SAFE(args, "async.queue_exception", $"[NW.{nameof(AsyncCallback)}] exception-queue-work-item", ex);
+            queued = false;
+        }
+
+        if (!queued)
         {
             INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(args);
             // Queue failure — extremely rare. Undo the increments we already applied.
@@ -273,11 +280,7 @@ internal static class AsyncCallback
                 // Roll back the reservation so counters stay consistent if the queue
                 // rejects the work item after we already reserved capacity.
                 RELEASE_GLOBAL_SLOT();
-
-                if (endpoint is not null)
-                {
-                    RELEASE_ENDPOINT_SLOT(endpoint);
-                }
+                RELEASE_ENDPOINT_SLOT(endpoint);
             }
 
             _ = Interlocked.Increment(ref s_droppedCallbacks);
@@ -315,35 +318,79 @@ internal static class AsyncCallback
     private static void RELEASE_GLOBAL_SLOT() => _ = Interlocked.Decrement(ref s_pendingNormal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TRY_RESERVE_ENDPOINT_SLOT(INetworkEndpoint endpoint, out int pendingAfter)
+    private static bool TRY_RESERVE_ENDPOINT_SLOT(INetworkEndpoint? endpoint, out int pendingAfter)
     {
-        // Use the endpoint's native GetHashCode which is already optimized for IP-only 
-        // hashing in SocketEndpoint. This avoids calling .Address which allocates 
-        // a string and multiple temporary objects per packet.
-        int index = (endpoint.GetHashCode() & 0x7FFFFFFF) % s_perIpFairnessMap.Length;
+        int hash = endpoint?.GetHashCode() ?? 0;
+        long[] map = s_perIpFairnessMap;
+        int startIndex = (hash & 0x7FFFFFFF) % map.Length;
 
-        while (true)
+        for (int probe = 0; probe < 8; probe++)
         {
-            int current = Volatile.Read(ref s_perIpFairnessMap[index]);
-            if (current >= s_opts.MaxPendingPerIp)
+            int index = (startIndex + probe) % map.Length;
+            while (true)
             {
-                pendingAfter = current;
-                return false;
-            }
+                long current = Volatile.Read(ref map[index]);
+                int currentHash = (int)(current >> 32);
+                int currentCount = (int)current;
 
-            pendingAfter = current + 1;
-            if (Interlocked.CompareExchange(ref s_perIpFairnessMap[index], pendingAfter, current) == current)
-            {
-                return true;
+                if (currentCount > 0 && currentHash != hash)
+                {
+                    break; // Collision, try next slot
+                }
+
+                if (currentCount >= s_opts.MaxPendingPerIp)
+                {
+                    pendingAfter = currentCount;
+                    return false; // Rate limited
+                }
+
+                long newValue = ((long)hash << 32) | (uint)(currentCount + 1);
+                if (Interlocked.CompareExchange(ref map[index], newValue, current) == current)
+                {
+                    pendingAfter = currentCount + 1;
+                    return true;
+                }
             }
         }
+
+        // If we probed 8 slots and they are all full of OTHER IPs, act as if rate limited
+        pendingAfter = s_opts.MaxPendingPerIp;
+        return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RELEASE_ENDPOINT_SLOT(INetworkEndpoint endpoint)
+    private static void RELEASE_ENDPOINT_SLOT(INetworkEndpoint? endpoint)
     {
-        int index = (endpoint.GetHashCode() & 0x7FFFFFFF) % s_perIpFairnessMap.Length;
-        _ = Interlocked.Decrement(ref s_perIpFairnessMap[index]);
+        int hash = endpoint?.GetHashCode() ?? 0;
+        long[] map = s_perIpFairnessMap;
+        int startIndex = (hash & 0x7FFFFFFF) % map.Length;
+
+        for (int probe = 0; probe < 8; probe++)
+        {
+            int index = (startIndex + probe) % map.Length;
+            while (true)
+            {
+                long current = Volatile.Read(ref map[index]);
+                int currentHash = (int)(current >> 32);
+                int currentCount = (int)current;
+
+                if (currentCount == 0)
+                {
+                    return; // Should not happen in balanced system, but safe fallback
+                }
+
+                if (currentHash != hash)
+                {
+                    break; // Not our slot, continue probing
+                }
+
+                long newValue = ((long)hash << 32) | (uint)(currentCount - 1);
+                if (Interlocked.CompareExchange(ref map[index], newValue, current) == current)
+                {
+                    return;
+                }
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

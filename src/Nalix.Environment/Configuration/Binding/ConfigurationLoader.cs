@@ -106,10 +106,10 @@ public abstract partial class ConfigurationLoader
 
         foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
         {
-            if (propertyInfo.Getter != null && propertyInfo.Setter != null)
+            if (propertyInfo.PropertyInfo.CanRead && propertyInfo.PropertyInfo.CanWrite)
             {
-                object? value = propertyInfo.Getter(this);
-                propertyInfo.Setter(clone, value);
+                object? value = propertyInfo.PropertyInfo.GetValue(this);
+                propertyInfo.PropertyInfo.SetValue(clone, value);
             }
         }
 

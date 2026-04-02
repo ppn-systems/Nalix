@@ -124,6 +124,14 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ProcessChannelCapacity must be at least 1.")]
     public int ProcessChannelCapacity { get; set; } = 256;
 
+    /// <summary>
+    /// Gets or sets the maximum time in milliseconds to wait for the process channel to drain
+    /// gracefully during shutdown before forceful termination.
+    /// </summary>
+    [IniComment("Maximum time in milliseconds to wait for the process channel to drain gracefully during shutdown (default: 5000)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 60000, ErrorMessage = "ProcessChannelDrainTimeout must be between 0 and 60000 ms.")]
+    public int ProcessChannelDrainTimeout { get; set; } = 5000;
+
     #endregion Properties
 
     /// <summary>

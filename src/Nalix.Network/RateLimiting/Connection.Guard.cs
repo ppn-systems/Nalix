@@ -46,7 +46,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     private const int MinReportCapacity = 128;
     private const int MaxReportCapacity = 4096;
-    private const int MaxCleanupKeysPerRun = 1000;
 
     #endregion Constants
 
@@ -342,41 +341,50 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// <param name="now"></param>
     private ConnectionAllowResult TRY_ACQUIRE_CONNECTION_SLOT(INetworkEndpoint key, DateTime now)
     {
-        // GetOrAdd is atomic w.r.t. insertion; the returned entry is always the canonical one.
-        ConnectionLimitEntry entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
-
-        long bannedUntil = Interlocked.Read(ref entry.BannedUntilTicks);
-        if (bannedUntil > now.Ticks)
+        while (true)
         {
-            this.LOG_BANNED_THROTTLED(entry, key, new DateTime(bannedUntil, DateTimeKind.Utc));
+            // GetOrAdd is atomic w.r.t. insertion; the returned entry is always the canonical one.
+            ConnectionLimitEntry entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
 
-            int currentConns;
-            bool lockTaken = false;
+            long bannedUntil = Interlocked.Read(ref entry.BannedUntilTicks);
+            if (bannedUntil > now.Ticks)
+            {
+                this.LOG_BANNED_THROTTLED(entry, key, new DateTime(bannedUntil, DateTimeKind.Utc));
+
+                int currentConns;
+                bool lockTaken = false;
+                try
+                {
+                    entry.SpinLock.Enter(ref lockTaken);
+                    currentConns = entry.Info.CurrentConnections;
+                }
+                finally
+                {
+                    if (lockTaken)
+                    {
+                        entry.SpinLock.Exit();
+                    }
+                }
+
+                return new ConnectionAllowResult { Allowed = false, CurrentConnections = currentConns };
+            }
+
+            // Declare the lock beforehand to use after exiting the lock.
+            bool shouldForceClose = false;
+            ConnectionAllowResult result;
+
+            // Lock-free trim before taking the SpinLock to avoid holding the lock during potentially long loops
+            this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
+
+            bool spinLockTaken = false;
             try
             {
-                entry.SpinLock.Enter(ref lockTaken);
-                currentConns = entry.Info.CurrentConnections;
-            }
-            finally
-            {
-                if (lockTaken)
+                entry.SpinLock.Enter(ref spinLockTaken);
+
+                if (entry.IsRemoved)
                 {
-                    entry.SpinLock.Exit();
+                    continue; // Retry with a fresh GetOrAdd, this one is tombstoned
                 }
-            }
-
-            return new ConnectionAllowResult { Allowed = false, CurrentConnections = currentConns };
-        }
-
-        // Declare the lock beforehand to use after exiting the lock.
-        bool shouldForceClose = false;
-        ConnectionAllowResult result;
-
-        bool spinLockTaken = false;
-        try
-        {
-            entry.SpinLock.Enter(ref spinLockTaken);
-            this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
 
             if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
             {
@@ -408,7 +416,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
             else
             {
-                int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now.Date);
+                int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now, _config.DailyResetTimeOffset);
 
                 entry.Info = entry.Info with
                 {
@@ -430,40 +438,41 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
         }
 
-        // WHY: Schedule ForceClose AFTER exiting the lock.
-        // ForceClose needs to close all connections to this IP — possibly locking ConnectionHub.
-        // Nothing prevents ScheduleWorker from running immediately after this line; TaskManager puts it in the queue.
-        if (shouldForceClose)
-        {
-            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
-                group: $"{TaskNaming.Tags.Worker}/",
-                work: async (_, _) =>
-                {
-                    try
+            // WHY: Schedule ForceClose AFTER exiting the lock.
+            // ForceClose needs to close all connections to this IP — possibly locking ConnectionHub.
+            // Nothing prevents ScheduleWorker from running immediately after this line; TaskManager puts it in the queue.
+            if (shouldForceClose)
+            {
+                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                    name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
+                    group: $"{TaskNaming.Tags.Worker}/",
+                    work: async (_, _) =>
                     {
-                        this.TRIGGER_FORCE_CLOSE_UPSTREAM(key);
-                    }
-                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                    {
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                        try
                         {
-                            _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] force-close-failed ip={key.Address}");
+                            this.TRIGGER_FORCE_CLOSE_UPSTREAM(key);
                         }
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                        {
+                            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                            {
+                                _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] force-close-failed ip={key.Address}");
+                            }
+                        }
+
+                        await Task.CompletedTask.ConfigureAwait(false);
+                    },
+                    options: new WorkerOptions
+                    {
+                        Tag = TaskNaming.Tags.Net,
+                        RetainFor = TimeSpan.Zero,
+                        IdType = SnowflakeType.System,
                     }
+                );
+            }
 
-                    await Task.CompletedTask.ConfigureAwait(false);
-                },
-                options: new WorkerOptions
-                {
-                    Tag = TaskNaming.Tags.Net,
-                    RetainFor = TimeSpan.Zero,
-                    IdType = SnowflakeType.System,
-                }
-            );
+            return result;
         }
-
-        return result;
     }
 
     /// <summary>Removes timestamps outside the rate-window. Lock-free — ConcurrentQueue is safe.</summary>
@@ -484,17 +493,21 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CALCULATE_TOTAL_CONNECTIONS_TODAY(ConnectionLimitInfo info, DateTime today)
+    private static int CALCULATE_TOTAL_CONNECTIONS_TODAY(ConnectionLimitInfo info, DateTime now, TimeSpan offset)
     {
         if (info.LastConnectionTime == default)
         {
             return 1;
         }
 
-        // Use Date comparison to avoid timezone issues
-        if (info.LastConnectionTime.Date < today)
+        // Apply offset to both times to determine the "logical day" for reset
+        DateTime logicalToday = (now + offset).Date;
+        DateTime logicalLastConnection = (info.LastConnectionTime + offset).Date;
+
+        // Use strict inequality (!=) to handle backward NTP syncs and forward day changes.
+        if (logicalLastConnection != logicalToday)
         {
-            return 1; // New day, reset counter
+            return 1; // Different day, reset counter
         }
 
         // Prevent overflow
@@ -517,6 +530,11 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         try
         {
             entry.SpinLock.Enter(ref lockTaken);
+            if (entry.IsRemoved)
+            {
+                return false;
+            }
+
             // Decrement with underflow protection
             int newCount = Math.Max(0, entry.Info.CurrentConnections - 1);
 
@@ -526,20 +544,14 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 LastConnectionTime = now
             };
 
-            // Trim queue when releasing to prevent unbounded growth
-            if (newCount == 0)
+            // Clear queue if no connections and queue is large
+            if (newCount == 0 && entry.RecentConnectionTimestamps.Count > _config.MaxConnectionsPerWindow * 2)
             {
-                this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
+                entry.RecentConnectionTimestamps.Clear();
 
-                // Clear queue if no connections and queue is large
-                if (entry.RecentConnectionTimestamps.Count > _config.MaxConnectionsPerWindow * 2)
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    entry.RecentConnectionTimestamps.Clear();
-
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
-                    {
-                        _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] cleared-queue ip={key.Address} reason=oversized");
-                    }
+                    _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] cleared-queue ip={key.Address} reason=oversized");
                 }
             }
         }
@@ -550,6 +562,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 entry.SpinLock.Exit();
             }
         }
+
+        // Lock-free trim after releasing the SpinLock
+        this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
 
         return true;
     }
@@ -663,7 +678,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
                 _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] banned-reject ip={key.Address} " +
-                               $"until={bannedUntil:HH:mm:ss}{suffix}");
+                                 $"until={bannedUntil:HH:mm:ss}{suffix}");
             }
         }
     }
@@ -843,11 +858,15 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             int scanned = 0;
             int removed = 0;
 
-            List<INetworkEndpoint> keysToRemove = new(MaxCleanupKeysPerRun);
+            int maxCleanupKeys = _config.MaxCleanupKeysPerRun > 0 
+                ? _config.MaxCleanupKeysPerRun 
+                : Math.Max(1000, _map.Count / 4);
+
+            List<INetworkEndpoint> keysToRemove = new(Math.Min(maxCleanupKeys, _map.Count));
 
             foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
             {
-                if (scanned++ >= MaxCleanupKeysPerRun)
+                if (scanned++ >= maxCleanupKeys)
                 {
                     break;
                 }
@@ -877,25 +896,38 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             // Remove in separate pass to avoid holding locks
             foreach (INetworkEndpoint key in keysToRemove)
             {
-                if (_map.TryRemove(key, out ConnectionLimitEntry? removedEntry) && removedEntry is not null)
+                if (_map.TryGetValue(key, out ConnectionLimitEntry? entry) && entry is not null)
                 {
-                    // Dispose resources
                     bool lockTaken = false;
+                    bool canRemove = false;
                     try
                     {
-                        removedEntry.SpinLock.Enter(ref lockTaken);
-                        removedEntry.RecentConnectionTimestamps.Clear();
+                        entry.SpinLock.Enter(ref lockTaken);
+                        // Double check under lock to prevent TOCTOU
+                        if (SHOULD_REMOVE_ENTRY(entry, cutoff))
+                        {
+                            entry.IsRemoved = true;
+                            canRemove = true;
+                        }
                     }
                     finally
                     {
                         if (lockTaken)
                         {
-                            removedEntry.SpinLock.Exit();
+                            entry.SpinLock.Exit();
                         }
                     }
 
-                    removed++;
-                    _ = Interlocked.Increment(ref _totalCleanedEntries);
+                    if (canRemove)
+                    {
+                        if (_map.TryRemove(key, out ConnectionLimitEntry? removedEntry) && removedEntry is not null)
+                        {
+                            // Clear queue without lock since no one else can acquire it
+                            removedEntry.RecentConnectionTimestamps.Clear();
+                            removed++;
+                            _ = Interlocked.Increment(ref _totalCleanedEntries);
+                        }
+                    }
                 }
             }
 
@@ -1057,6 +1089,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// </summary>
     internal sealed class ConnectionLimitEntry
     {
+        public bool IsRemoved;
         public long BannedUntilTicks;
 
         /// <summary>
