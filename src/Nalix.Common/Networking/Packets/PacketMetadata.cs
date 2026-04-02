@@ -6,9 +6,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Nalix.Common.Networking.Packets;
 
-namespace Nalix.Network.Routing;
+namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
 /// Represents a fully attributed packet descriptor used to define behavior and metadata

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -339,7 +338,6 @@ public sealed class CompositeSubscription : IDisposable
     /// Initializes a new <see cref="CompositeSubscription"/> with the specified subscriptions.
     /// </summary>
     /// <param name="subs"></param>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public CompositeSubscription(params IDisposable[] subs) => _subs = subs ?? [];
 
     /// <summary>

@@ -7,7 +7,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.SDK.Configuration;
+namespace Nalix.SDK.Options;
 
 /// <summary>
 /// Client transport configuration loaded by the ConfigurationManager.

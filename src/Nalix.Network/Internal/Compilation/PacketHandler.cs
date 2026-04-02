@@ -11,7 +11,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Network.Internal.Results;
 using Nalix.Network.Routing;
 
-namespace Nalix.Network.Internal.Routing;
+namespace Nalix.Network.Internal.Compilation;
 
 /// <summary>
 /// Enhanced version of <c>PacketHandler</c> using compiled delegates for zero-allocation execution.

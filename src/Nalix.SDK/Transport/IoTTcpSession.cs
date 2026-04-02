@@ -15,7 +15,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 using Nalix.Framework.Tasks;
-using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport;
@@ -404,7 +403,6 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
         _ = this.ReconnectLoopAsync(cause);
     }
 
-    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private async Task ReconnectLoopAsync(Exception cause)
     {
         this.TearDownConnection();

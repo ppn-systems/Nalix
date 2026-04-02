@@ -5,7 +5,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.Network.Configurations;
+namespace Nalix.Network.Options;
 
 /// <summary>
 /// Options for dispatch channels (per-connection queue bound and drop behavior).

@@ -7,7 +7,7 @@ using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Routing;
 
-namespace Nalix.Network.Configurations;
+namespace Nalix.Network.Options;
 
 /// <summary>
 /// Configuration for all object pools in the network layer.

@@ -15,7 +15,6 @@ using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
-using Nalix.SDK.Configuration;
 
 namespace Nalix.SDK.Transport.Internal;
 

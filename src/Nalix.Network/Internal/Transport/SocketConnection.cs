@@ -22,7 +22,6 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Framework.Time;
-using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 

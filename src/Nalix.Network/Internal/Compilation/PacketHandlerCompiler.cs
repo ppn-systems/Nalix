@@ -21,7 +21,6 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Network.Internal.Results;
-using Nalix.Network.Internal.Routing;
 using Nalix.Network.Routing;
 
 #if DEBUG

@@ -16,7 +16,6 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Internal.Compilation;
 using Nalix.Network.Internal.Results;
-using Nalix.Network.Internal.Routing;
 
 namespace Nalix.Network.Routing;
 

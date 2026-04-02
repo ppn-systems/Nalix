@@ -21,7 +21,6 @@ using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
-using Nalix.Network.Configurations;
 
 namespace Nalix.Network.Connections;
 

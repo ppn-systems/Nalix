@@ -7,7 +7,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-namespace Nalix.SDK.Configuration;
+namespace Nalix.SDK.Options;
 
 /// <summary>
 /// Controls the behaviour of <see cref="RequestExtensions.RequestAsync{TResponse}(IClientConnection, IPacket, RequestOptions, Func{TResponse, bool}, CancellationToken)"/>.

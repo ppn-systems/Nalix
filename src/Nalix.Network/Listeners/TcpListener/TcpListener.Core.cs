@@ -14,7 +14,6 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Configurations;
 using Nalix.Network.Internal.Limiters;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;

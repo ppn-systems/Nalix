@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.Logging.Configuration;
+namespace Nalix.Logging.Options;
 
 /// <summary>
 /// Provides configuration options for the logging system with a fluent interface.

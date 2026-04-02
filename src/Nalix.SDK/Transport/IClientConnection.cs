@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
-using Nalix.SDK.Configuration;
 
 namespace Nalix.SDK.Transport;
 

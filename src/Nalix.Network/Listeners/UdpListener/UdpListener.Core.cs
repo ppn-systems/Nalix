@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
-using Nalix.Network.Configurations;
 
 namespace Nalix.Network.Listeners.Udp;
 

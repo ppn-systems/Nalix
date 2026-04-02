@@ -4,7 +4,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.Network.Configurations;
+namespace Nalix.Network.Options;
 
 /// <summary>
 /// Represents configuration options that control connection limiting

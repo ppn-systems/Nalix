@@ -9,7 +9,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
-using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;

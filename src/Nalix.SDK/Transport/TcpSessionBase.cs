@@ -18,7 +18,6 @@ using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
-using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport;
@@ -119,7 +118,6 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// Constructs base session and loads TransportOptions from configuration.
     /// Derived classes are responsible for buffer configuration if needed.
     /// </summary>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     protected TcpSessionBase(ILogger? logger = null, IThreadDispatcher? dispatcher = null)
     {
         this.Logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();

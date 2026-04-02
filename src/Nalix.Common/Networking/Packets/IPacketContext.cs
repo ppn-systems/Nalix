@@ -3,7 +3,6 @@
 
 using System.Threading;
 using Nalix.Common.Abstractions;
-using Nalix.Network.Routing;
 
 namespace Nalix.Common.Networking.Packets;
 

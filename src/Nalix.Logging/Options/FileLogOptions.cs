@@ -13,7 +13,7 @@ using Nalix.Common.Environment;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Logging.Exceptions;
 
-namespace Nalix.Logging.Configuration;
+namespace Nalix.Logging.Options;
 
 /// <summary>
 /// Configuration options for the file logger.

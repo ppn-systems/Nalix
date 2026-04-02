@@ -7,7 +7,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
-using Nalix.Logging.Configuration;
 using Nalix.Logging.Formatters;
 using Nalix.Logging.Internal.Console;
 
@@ -52,7 +51,6 @@ public sealed class BatchConsoleLogTarget : INLogixTarget, IDisposable
     /// An optional delegate to configure <see cref="ConsoleLogOptions"/> for this log target.
     /// </param>
     /// <param name="formatter"></param>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public BatchConsoleLogTarget(ConsoleLogOptions? options = null, INLogixFormatter? formatter = null)
         => _provider = new ConsoleLoggerProvider(formatter ?? new AnsiColorFormatter(), options);
 

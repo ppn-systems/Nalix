@@ -20,7 +20,6 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
-using Nalix.SDK.Configuration;
 using Nalix.SDK.Transport.Extensions;
 using Nalix.SDK.Transport.Internal;
 

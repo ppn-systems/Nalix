@@ -6,7 +6,7 @@ using Nalix.Common.Security;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Connections;
 
-namespace Nalix.Network.Configurations;
+namespace Nalix.Network.Options;
 
 /// <summary>
 /// Provides configuration options for <see cref="ConnectionHub"/>.

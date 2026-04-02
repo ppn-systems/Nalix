@@ -5,7 +5,7 @@ using System;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.Logging.Configuration;
+namespace Nalix.Logging.Options;
 
 /// <summary>
 /// Configuration options for the console logger.
