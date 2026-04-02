@@ -19,8 +19,7 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Constants;
-using Nalix.Network.Timekeeping;
+using Nalix.Network.Internal.Time;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -121,12 +120,12 @@ public abstract partial class TcpListenerBase
             for (int i = 0; i < s_config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                    name: $"{NetworkTags.Tcp}.{TaskNaming.Tags.Accept}.{i}",
-                    group: $"{NetworkTags.Net}/{NetworkTags.Tcp}/{_port}",
+                    name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{i}",
+                    group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}",
                     work: async (ctx, ct) => await this.AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
-                        Tag = NetworkTags.Net,
+                        Tag = TaskNaming.Tags.Net,
                         IdType = SnowflakeType.System,
                         CancellationToken = linkedToken,
                         RetainFor = TimeSpan.FromSeconds(30),
@@ -208,7 +207,7 @@ public abstract partial class TcpListenerBase
             this.STOP_PROCESS_CHANNEL();
 
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                         .CancelGroup($"{NetworkTags.Net}/{NetworkTags.Tcp}/{_port}"));
+                                         .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}"));
 
             InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
                                     .CloseAllConnections();
@@ -288,11 +287,6 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ThreadPool MinIOCP  : {minIocp}");
         _ = sb.AppendLine();
 
-        _ = sb.AppendLine("TimeSync:");
-        _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IsTimeSyncEnabled   : {this.IsTimeSyncEnabled}");
-        _ = sb.AppendLine();
-
         _ = sb.AppendLine("--------------------------------------------");
         return sb.ToString();
     }
@@ -340,10 +334,6 @@ public abstract partial class TcpListenerBase
             {
                 ["ThreadPoolMinWorker"] = minWorker,
                 ["ThreadPoolMinIOCP"] = minIocp
-            },
-            ["TimeSync"] = new Dictionary<string, object>
-            {
-                ["IsTimeSyncEnabled"] = this.IsTimeSyncEnabled
             }
         };
 

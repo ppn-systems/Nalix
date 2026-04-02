@@ -7,12 +7,10 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Configurations;
-using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -69,35 +67,6 @@ public abstract partial class UdpListenerBase
     /// </summary>
     public bool IsListening => _isRunning;
 
-
-    /// <summary>
-    /// Gets or sets a value indicating whether time synchronization is enabled for the UDP listener.
-    /// Throws <see cref="InternalErrorException"/> if set while the listener is running.
-    /// </summary>
-    /// <exception cref="InternalErrorException"></exception>
-    public bool IsTimeSyncEnabled
-    {
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled;
-
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set
-        {
-            if (_isRunning)
-            {
-                throw new InternalErrorException($"[{nameof(UdpListenerBase)}] Cannot change IsTimeSyncEnabled while listening.");
-            }
-
-            InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                           .IsTimeSyncEnabled = value;
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[{nameof(UdpListenerBase)}] timesync={value}");
-        }
-    }
-
     #endregion Properties
 
     #region Constructors
@@ -124,9 +93,6 @@ public abstract partial class UdpListenerBase
         _protocol = protocol;
 
         _lock = new SemaphoreSlim(1, 1);
-
-        InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                       .TimeSynchronized += this.SynchronizeTime;
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
@@ -176,9 +142,6 @@ public abstract partial class UdpListenerBase
             {
                 _udpClient?.Close();
                 _udpClient = null;
-
-                InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                               .TimeSynchronized -= this.SynchronizeTime;
             }
             catch { }
 

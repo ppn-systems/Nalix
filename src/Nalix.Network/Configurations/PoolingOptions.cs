@@ -4,8 +4,8 @@
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Internal.Pooling;
+using Nalix.Network.Internal.Time;
 using Nalix.Network.Routing;
-using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Configurations;
 

@@ -19,9 +19,8 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal.Constants;
 
-namespace Nalix.Network.Timekeeping;
+namespace Nalix.Network.Internal.Time;
 
 /// <summary>
 /// Provides an ultra-lightweight <b>Hashed Wheel Timer</b> for idle connection cleanup,
@@ -213,12 +212,12 @@ public sealed class TimingWheel : IActivatable
         _cts = linkedCts;
 
         _worker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: $"{NetworkTags.Time}.{NetworkTags.Wheel}",
-            group: NetworkTags.Time,
+            name: $"{TaskNaming.Tags.Time}.{TaskNaming.Tags.Wheel}",
+            group: TaskNaming.Tags.Time,
             work: async (ctx, ct) => await this.RUN_LOOP(ctx, ct).ConfigureAwait(false),
             options: new WorkerOptions
             {
-                Tag = NetworkTags.Wheel,
+                Tag = TaskNaming.Tags.Wheel,
                 IdType = SnowflakeType.System,
                 CancellationToken = linkedCts.Token,
                 RetainFor = TimeSpan.Zero

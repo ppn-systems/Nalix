@@ -25,10 +25,9 @@ using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Configurations;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Constants;
 using Nalix.Network.Internal.Transport;
 
-namespace Nalix.Network.Throttling;
+namespace Nalix.Network.Internal.Limiters;
 
 /// <summary>
 /// High-performance per-endpoint concurrent connection limiter.
@@ -39,7 +38,7 @@ namespace Nalix.Network.Throttling;
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportable, IWithLogging<ConnectionLimiter>
+internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportable, IWithLogging<ConnectionLimiter>
 {
     #region Constants
 
@@ -358,9 +357,9 @@ public sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReportab
                     },
                     options: new WorkerOptions
                     {
-                        Tag = NetworkTags.Net,
-                        IdType = SnowflakeType.System,
+                        Tag = TaskNaming.Tags.Net,
                         RetainFor = TimeSpan.Zero,
+                        IdType = SnowflakeType.System,
                     }
                 );
 

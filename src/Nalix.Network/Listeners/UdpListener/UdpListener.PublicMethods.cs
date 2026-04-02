@@ -17,8 +17,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
-using Nalix.Network.Internal.Constants;
-using Nalix.Network.Timekeeping;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -78,12 +76,12 @@ public abstract partial class UdpListenerBase : IListener
                                         .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] listening port={_port}");
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
-                    name: $"{NetworkTags.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
-                    group: $"{NetworkTags.Net}/{NetworkTags.Udp}/{_port}",            // "net/udp/port"
+                    name: $"{TaskNaming.Tags.Udp}.{TaskNaming.Tags.Process}",              // "udp.proc"
+                    group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",            // "net/udp/port"
                     work: async (_, ct) => await this.ReceiveDatagramsAsync(ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
-                        Tag = NetworkTags.Udp,
+                        Tag = TaskNaming.Tags.Udp,
                         IdType = SnowflakeType.System,
                         CancellationToken = _cancellationToken,
                         GroupConcurrencyLimit = s_config.MaxGroupConcurrency
@@ -245,17 +243,6 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine("Configured GroupConcurrencyLimit: 8");
         _ = sb.AppendLine();
 
-        // Time sync
-        // property getter used by base:contentReference[oaicite:13]{index=13}
-        bool timeSyncEnabled = InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                                                        .IsTimeSyncEnabled;
-        _ = sb.AppendLine("Time Sync:");
-        _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enabled: {timeSyncEnabled}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LastSyncUnixMs: {_lastSyncUnixMs}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LastDriftMs(local-now - server): {_lastDriftMs}");
-        _ = sb.AppendLine();
-
         // Traffic stats
         long rxPackets = Interlocked.Read(ref _rxPackets);
         long rxBytes = Interlocked.Read(ref _rxBytes);
@@ -314,13 +301,6 @@ public abstract partial class UdpListenerBase : IListener
             {
                 ["Group"] = $"udp.port.{_port}",
                 ["ConfiguredGroupConcurrencyLimit"] = 8
-            },
-
-            ["TimeSync"] = new Dictionary<string, object>
-            {
-                ["Enabled"] = InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled,
-                ["LastSyncUnixMs"] = _lastSyncUnixMs,
-                ["LastDriftMs"] = _lastDriftMs
             },
 
             ["Traffic"] = new Dictionary<string, object>

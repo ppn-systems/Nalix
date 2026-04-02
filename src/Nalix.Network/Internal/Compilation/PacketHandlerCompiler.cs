@@ -122,16 +122,24 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     /// </summary>
     private enum SignatureKind
     {
-        /// <summary>(TPacket, IConnection)</summary>
+        /// <summary>
+        /// (TPacket, IConnection)
+        /// </summary>
         LegacyNoToken = 0,
 
-        /// <summary>(TPacket, IConnection, CancellationToken)</summary>
+        /// <summary>
+        /// (TPacket, IConnection, CancellationToken)
+        /// </summary>
         LegacyWithToken = 1,
 
-        /// <summary>(PacketContext&lt;TPacket&gt;)</summary>
+        /// <summary>
+        /// (PacketContext&lt;TPacket&gt;)
+        /// </summary>
         ContextOnly = 2,
 
-        /// <summary>(PacketContext&lt;TPacket&gt;, CancellationToken)</summary>
+        /// <summary>
+        /// (PacketContext&lt;TPacket&gt;, CancellationToken)
+        /// </summary>
         ContextWithToken = 3,
     }
 

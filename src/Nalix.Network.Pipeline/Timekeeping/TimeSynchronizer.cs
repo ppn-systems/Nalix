@@ -12,9 +12,8 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
-using Nalix.Network.Internal.Constants;
 
-namespace Nalix.Network.Timekeeping;
+namespace Nalix.Network.Pipeline.Timekeeping;
 
 /// <summary>
 /// Emits periodic time synchronization ticks at a target cadence (~16 ms, ~60 Hz).
@@ -230,8 +229,8 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
         _stoppedSignal.Reset();
 
         _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: $"{NetworkTags.Time}.{NetworkTags.Sync}",
-            group: NetworkTags.Time,
+            name: $"{TaskNaming.Tags.Time}.{TaskNaming.Tags.Sync}",
+            group: TaskNaming.Tags.Time,
             work: async (ctx, ct) =>
             {
                 try
@@ -319,7 +318,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 CancellationToken = linkedToken,
                 IdType = SnowflakeType.System,
                 RetainFor = TimeSpan.Zero,
-                Tag = NetworkTags.Sync
+                Tag = TaskNaming.Tags.Sync
             }
         );
     }

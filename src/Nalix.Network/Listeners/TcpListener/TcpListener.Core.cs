@@ -8,7 +8,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
@@ -16,10 +15,9 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Configurations;
-using Nalix.Network.Internal.Constants;
+using Nalix.Network.Internal.Limiters;
 using Nalix.Network.Internal.Pooling;
-using Nalix.Network.Throttling;
-using Nalix.Network.Timekeeping;
+using Nalix.Network.Internal.Time;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -63,31 +61,6 @@ public abstract partial class TcpListenerBase : IListener
     /// </summary>
     private ListenerState State => (ListenerState)Volatile.Read(ref _state);
 
-    /// <summary>
-    /// Enables or disables the update loop for the listener.
-    /// </summary>
-    /// <exception cref="InternalErrorException"></exception>
-    public bool IsTimeSyncEnabled
-    {
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled;
-
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set
-        {
-            if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
-            {
-                throw new InternalErrorException("Cannot change IsTimeSyncEnabled while listening.");
-            }
-
-            InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled = value;
-
-            s_logger?.Info("[NW.{Class}] timesync={Timesync}", nameof(TcpListenerBase), value);
-        }
-    }
-
     #endregion Properties
 
     #region Enums
@@ -128,8 +101,6 @@ public abstract partial class TcpListenerBase : IListener
 
         _acceptWorkerIds = new(s_config.MaxParallel);
         _lock = new SemaphoreSlim(1, 1);
-
-        InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
 
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();
@@ -204,7 +175,7 @@ public abstract partial class TcpListenerBase : IListener
                 try
                 {
                     _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                                .CancelGroup($"{NetworkTags.Net}/{NetworkTags.Tcp}/{self._port}");
+                                                .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{self._port}");
                 }
                 catch { }
 
@@ -284,9 +255,6 @@ public abstract partial class TcpListenerBase : IListener
                 {
                     _listener = null;
                 }
-
-                InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                               .TimeSynchronized -= this.SynchronizeTime;
             }
             catch { }
 
