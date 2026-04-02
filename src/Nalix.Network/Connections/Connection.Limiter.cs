@@ -138,7 +138,7 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(ConnectionLimiter));
         ArgumentNullException.ThrowIfNull(endPoint);
 
-        _ = SAFE_INCREMENT(ref _totalConnectionAttempts);
+        _ = Interlocked.Increment(ref _totalConnectionAttempts);
 
         DateTime now = Clock.NowUtc();
         INetworkEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
@@ -203,13 +203,9 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
         }
 
         DateTime now = Clock.NowUtc();
-        SocketEndpoint key = SocketEndpoint.FromIpAddress(
-            IPAddress.Parse(args.Connection.NetworkEndpoint.Address)
-        );
+        bool released = this.TRY_RELEASE_CONNECTION_SLOT(args.Connection.NetworkEndpoint, now);
 
-        bool released = this.TRY_RELEASE_CONNECTION_SLOT(key, now);
-
-        if (released && _map.TryGetValue(key, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
+        if (released && _map.TryGetValue(args.Connection.NetworkEndpoint, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
         {
             long nowTicks = Clock.NowUtc().Ticks;
             long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
@@ -222,7 +218,7 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
             {
                 string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
-                _logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] closed endpoint={key.Address}{suffix}");
+                _logger?.Trace($"[NW.{nameof(ConnectionLimiter)}] closed endpoint={args.Connection.NetworkEndpoint.Address}{suffix}");
             }
         }
     }
@@ -325,20 +321,17 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
                 currentConns = entry.Info.CurrentConnections;
             }
 
-            return new ConnectionAllowResult
-            {
-                Allowed = false,
-                CurrentConnections = currentConns
-            };
+            return new ConnectionAllowResult { Allowed = false, CurrentConnections = currentConns };
         }
 
-        // Lock the entry to safely mutate Info and enqueue timestamp atomically.
+        // Declare the lock beforehand to use after exiting the lock.
+        bool shouldForceClose = false;
+        ConnectionAllowResult result;
+
         lock (entry)
         {
-            // Trim expired timestamps (lock-free – ConcurrentQueue is thread-safe).
             this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
 
-            // Re-check rate window under lock (could have changed between outer check and lock).
             if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
             {
                 DateTime banUntil = now + _config.BanDuration;
@@ -346,44 +339,73 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
 
                 this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
 
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                    name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
-                    group: $"{TaskNaming.Tags.Worker}/",
-                    work: async (_, _) =>
-                    {
-                        _ = InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
-                                                .ForceClose(key);
-                    },
-                    options: new WorkerOptions
-                    {
-                        Tag = TaskNaming.Tags.Net,
-                        RetainFor = TimeSpan.Zero,
-                        IdType = SnowflakeType.System,
-                    }
-                );
+                // WHY: Don't call ScheduleWorker() inside the lock.
+                //
+                // Old code calls ScheduleWorker() directly in the lock (entry).
+                // ScheduleWorker can:
+                // 1. Acquire the TaskManager's internal lock → lock ordering is not guaranteed → potential deadlock.
+                // 2. Block for a short time (a few µs) when TaskManager contends → keep the entry lock longer than necessary.
+                //
+                // The lock only does one thing: update the state(BannedUntilTicks + log).
+                shouldForceClose = true;
 
                 _logger?.Warn($"[NW.{nameof(ConnectionLimiter)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
 
-                return new ConnectionAllowResult
+                result = new ConnectionAllowResult
                 {
                     Allowed = false,
                     CurrentConnections = entry.Info.CurrentConnections
                 };
             }
-
-            int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now.Date);
-
-            entry.Info = entry.Info with
+            else
             {
-                CurrentConnections = entry.Info.CurrentConnections + 1,
-                TotalConnectionsToday = newTotalToday,
-                LastConnectionTime = now
-            };
+                int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now.Date);
 
-            entry.RecentConnectionTimestamps.Enqueue(now);
+                entry.Info = entry.Info with
+                {
+                    CurrentConnections = entry.Info.CurrentConnections + 1,
+                    TotalConnectionsToday = newTotalToday,
+                    LastConnectionTime = now
+                };
 
-            return new ConnectionAllowResult { Allowed = true, CurrentConnections = entry.Info.CurrentConnections };
+                entry.RecentConnectionTimestamps.Enqueue(now);
+
+                result = new ConnectionAllowResult { Allowed = true, CurrentConnections = entry.Info.CurrentConnections };
+            }
+        } // lock released before scheduling
+
+        // WHY: Schedule ForceClose AFTER exiting the lock.
+        // ForceClose needs to close all connections to this IP — possibly locking ConnectionHub.
+        // Nothing prevents ScheduleWorker from running immediately after this line; TaskManager puts it in the queue.
+        if (shouldForceClose)
+        {
+            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
+                group: $"{TaskNaming.Tags.Worker}/",
+                work: async (_, _) =>
+                {
+                    try
+                    {
+                        _ = InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
+                                                    .ForceClose(key);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.Error($"[NW.{nameof(ConnectionLimiter)}] force-close-failed ip={key.Address} ex={ex.Message}");
+                    }
+
+                    await Task.CompletedTask.ConfigureAwait(false);
+                },
+                options: new WorkerOptions
+                {
+                    Tag = TaskNaming.Tags.Net,
+                    RetainFor = TimeSpan.Zero,
+                    IdType = SnowflakeType.System,
+                }
+            );
         }
+
+        return result;
     }
 
     /// <summary>Removes timestamps outside the rate-window. Lock-free — ConcurrentQueue is safe.</summary>
@@ -397,20 +419,9 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
 
         while (timestamps.TryPeek(out DateTime oldest) && oldest < cutoff)
         {
-            // Check TryDequeue result to handle race
-            if (!timestamps.TryDequeue(out DateTime dequeued))
-            {
-                break; // Another thread dequeued it
-            }
-
-            // Double-check dequeued value is still old
-            if (dequeued >= cutoff)
-            {
-                // Race: someone enqueued between peek and dequeue
-                // Re-enqueue it (FIFO order maintained)
-                timestamps.Enqueue(dequeued);
-                break;
-            }
+            // In the lock → TryDequeue always succeeds if TryPeek has just seen the item.
+            // No need to check the return value, but still check it so the compiler doesn't warn.
+            _ = timestamps.TryDequeue(out _);
         }
     }
 
@@ -437,7 +448,7 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
     /// </summary>
     /// <param name="key"></param>
     /// <param name="now"></param>
-    private bool TRY_RELEASE_CONNECTION_SLOT(SocketEndpoint key, DateTime now)
+    private bool TRY_RELEASE_CONNECTION_SLOT(INetworkEndpoint key, DateTime now)
     {
         if (!_map.TryGetValue(key, out ConnectionLimitEntry? entry) || entry is null)
         {
@@ -801,35 +812,6 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
         // Read Info without lock — approximate check is fine for cleanup decisions.
         ConnectionLimitInfo info = entry.Info;
         return info.CurrentConnections <= 0 && info.LastConnectionTime < cutoff;
-    }
-
-    /// <summary>
-    /// Safely increments a counter with overflow protection.
-    /// </summary>
-    /// <param name="counter"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static long SAFE_INCREMENT(ref long counter)
-    {
-        while (true)
-        {
-            long current = Interlocked.Read(ref counter);
-
-            if (current >= long.MaxValue - 1)
-            {
-                // Reset to reasonable value instead of wrapping
-                _ = Interlocked.CompareExchange(ref counter, 1_000_000, current);
-                return 1_000_000;
-            }
-
-            long next = current + 1;
-            if (Interlocked.CompareExchange(ref counter, next, current) == current)
-            {
-                return next;
-            }
-
-            // Retry on race
-            Thread.SpinWait(1);
-        }
     }
 
     #endregion Cleanup

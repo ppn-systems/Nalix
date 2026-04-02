@@ -125,10 +125,17 @@ public abstract partial class TcpListenerBase
     [DebuggerStepThrough]
     private IConnection InitializeConnection(Socket socket, PooledAcceptContext context)
     {
+        // Order:
+        // 1. Configure socket (can throw).
+        // 2. Return context to pool (only after step 1 is successful).
+        // 3. Wrap socket as Connection.
         InitializeOptions(socket);
 
-        // Trả context ngay tại đây, trước khi tạo connection
-        // Context chỉ cần cho việc Accept, không cần sau đó
+        // Why not use try/finally to return(context)?
+        // Because if LaunchizeOptions throws an error, the caller (ProcessAcceptedSocket) is still
+        // holding a reference to the socket — the caller must be responsible for closing it
+        // (which is working correctly with SafeCloseSocket during HandleAccept's catch).
+        // The new-return context is the problem to avoid.
         s_pool.Return(context);
 
         IConnection connection = new Connection(socket);
@@ -242,33 +249,13 @@ public abstract partial class TcpListenerBase
 
             try
             {
-                if (!socket.Connected || socket.Handle.ToInt64() == -1)
-                {
-                    s_logger?.Warn("[NW.{Class}:{Action}] invalid-socket remote={RemoteEndPoint}",
-                        nameof(TcpListenerBase), nameof(HandleAccept), socket.RemoteEndPoint?.ToString() ?? "<null>");
-
-                    SafeCloseSocket(socket);
-                    return;
-                }
-
-                if (socket.RemoteEndPoint is not IPEndPoint remoteIp || !_limiter.TryAccept(remoteIp))
-                {
-                    SafeCloseSocket(socket);
-                    throw new NetworkException();
-                }
-
                 // Create and process connection similar to async version
                 PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context
                     ?? throw new InternalErrorException("TryAccept context was not bound to pooled socket args.");
 
-                IConnection connection = this.InitializeConnection(socket, context);
+                IConnection connection = this.ProcessAcceptedSocket(socket, context);
 
                 // Process the connection
-                PooledTcpListenerContext ctx = s_pool.Get<PooledTcpListenerContext>();
-
-                ctx.Listener = this;
-                ctx.Connection = connection;
-
                 this.DISPATCH_CONNECTION(connection);
 
                 // Rebind a fresh context for the next accept on this args
@@ -283,16 +270,7 @@ public abstract partial class TcpListenerBase
                     nameof(TcpListenerBase), nameof(HandleAccept), socket.RemoteEndPoint?.ToString() ?? "<null>");
 
                 SafeCloseSocket(socket);
-                if (args is PooledSocketAsyncEventArgs pooled && pooled.Context != null)
-                {
-                    s_pool.Return(pooled.Context);
-
-                    // Rebind a fresh context for next accepts on this args
-                    PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
-
-                    pooled.Context = newCtx;
-                    newCtx.BindArgsForSync(pooled);
-                }
+                RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }
             catch (Exception ex)
             {
@@ -300,16 +278,7 @@ public abstract partial class TcpListenerBase
                 s_logger?.Error(ex, "[NW.{Class}:{Action}] accept-error port={Port}", nameof(TcpListenerBase), nameof(HandleAccept), _port);
 
                 SafeCloseSocket(socket);
-
-                if (((PooledSocketAsyncEventArgs)args).Context is PooledAcceptContext failedContext)
-                {
-                    s_pool.Return(failedContext);
-                }
-
-                PooledAcceptContext newCtx = s_pool.Get<PooledAcceptContext>();
-
-                ((PooledSocketAsyncEventArgs)args).Context = newCtx;
-                newCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
+                RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }
         }
         finally
@@ -351,6 +320,13 @@ public abstract partial class TcpListenerBase
     {
         ArgumentNullException.ThrowIfNull(args);
 
+        PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
+        PooledSocketAsyncEventArgs newArgs = s_pool.Get<PooledSocketAsyncEventArgs>();
+
+        newArgs.Context = context;
+        context.BindArgsForSync(newArgs);
+        newArgs.Completed += this.OnSyncAcceptCompleted;
+
         try
         {
             this.HandleAccept(args);
@@ -363,16 +339,13 @@ public abstract partial class TcpListenerBase
             // Ensure the args is clean before returning to pool
             args.AcceptSocket = null;
             s_pool.Return((PooledSocketAsyncEventArgs)args);
+
+            // WHY: AcceptNext() in the second finally (in the same block) ensures
+            // the pipeline continues even if HandleAccept throws.
+            // newArgs are prepared before try → no allocation here,
+            // no possibility of fail due to OOM after Return(args).
+            this.AcceptNext(newArgs, _cancellationToken);
         }
-
-        PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
-        PooledSocketAsyncEventArgs newArgs = s_pool.Get<PooledSocketAsyncEventArgs>();
-
-        newArgs.Context = context;
-        context.BindArgsForSync(newArgs);
-        newArgs.Completed += this.OnSyncAcceptCompleted;
-
-        this.AcceptNext(newArgs, _cancellationToken);
     }
 
     /// <summary>
@@ -547,11 +520,10 @@ public abstract partial class TcpListenerBase
 
                 // Rate-limited / rejected connection — tiếp tục
                 await Task.Delay(10, CancellationToken.None)
-                                                 .ConfigureAwait(false);
+                          .ConfigureAwait(false);
                 continue;
             }
-            catch (SocketException ex)
-                when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
+            catch (SocketException ex) when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
             {
                 if (cancellationToken.IsCancellationRequested || this.State != ListenerState.RUNNING)
                 {
@@ -563,7 +535,8 @@ public abstract partial class TcpListenerBase
                     nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), ex.SocketErrorCode, _port);
 
                 await Task.Delay(50, CancellationToken.None)
-                                                 .ConfigureAwait(false);
+                          .ConfigureAwait(false);
+
                 continue;
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -579,10 +552,6 @@ public abstract partial class TcpListenerBase
             }
             s_logger?.Trace("[NW.{Class}:{Action}] accepted remote={RemoteEndPoint} port={Port}",
                 nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), connection.NetworkEndpoint, _port);
-
-            PooledTcpListenerContext pctx = s_pool.Get<PooledTcpListenerContext>();
-            pctx.Listener = this;
-            pctx.Connection = connection;
 
             this.DISPATCH_CONNECTION(connection);
             ctx.Advance(1, note: "accepted");
@@ -643,7 +612,7 @@ public abstract partial class TcpListenerBase
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        bool contextReturned = false;
+        bool contextOwned = true;
         PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
 
         try
@@ -659,59 +628,93 @@ public abstract partial class TcpListenerBase
             socket = await context.BeginAcceptAsync(_listener, cancellationToken)
                                   .ConfigureAwait(false);
 
-            EndPoint? remoteEndPoint = socket.RemoteEndPoint;
-            if (socket.RemoteEndPoint is not IPEndPoint remoteIp || !_limiter.TryAccept(remoteIp))
+            // Validate and limit checks occur BEFORE ownership transfer.
+            // If a throw occurs here (invalid socket, limiter reject), contextOwned remains true.
+            // → finally, Return(context) will be true.
+            if (!socket.Connected || socket.Handle.ToInt64() == -1)
             {
                 SafeCloseSocket(socket);
-
-                // Trả context ở đây vì InitializeConnection sẽ không được gọi
-                contextReturned = true;
-                s_pool.Return(context);
-
-                this.Metrics.RECORD_REJECTED();
-                throw new NetworkException($"Connection rejected: {remoteEndPoint}");
+                throw new NetworkException("Invalid socket.");
             }
 
+            if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
+            {
+                SafeCloseSocket(socket);
+                throw new NetworkException("Connection rejected by limiter.");
+            }
+
+            // Transfer ownership: InitializeConnection will return the inner context.
+            // Set contextOwned = false BEFORE calling so that if InitializeConnection throws an error, it will not double-return.
+            // // After returning the context, it will not double-return.
+            contextOwned = false;
             return this.InitializeConnection(socket, context);
         }
         catch (SocketException ex)
         {
-            if (!contextReturned)
-            {
-                s_pool.Return(context);
-            }
-
             throw new NetworkException($"Socket error while accepting. Code={ex.SocketErrorCode}", ex);
         }
         catch (OperationCanceledException)
         {
-            if (!contextReturned)
-            {
-                s_pool.Return(context);
-            }
-
             throw;
         }
-        catch (NetworkException ex)
+        catch (NetworkException)
         {
-            throw new NetworkException("Internal rejection during accept", ex);
+            throw;
         }
         catch (Exception ex)
         {
-            if (!contextReturned)
+            string remote = "unknown";
+            try { remote = _listener?.LocalEndPoint?.ToString() ?? "<null>"; } catch { }
+            throw new NetworkException($"TryAccept failed. Listener={remote}", ex);
+        }
+        finally
+        {
+            // WHY: `finally` only returns when `contextOwned` = true.
+            // If `contextOwned` = false: InitializeConnection has already returned.
+            // If `contextOwned` = true: an exception occurred before the ownership transfer.
+            // This pattern completely eliminates the possibility of double-returns and simultaneous leaks.
+            if (contextOwned)
             {
                 s_pool.Return(context);
             }
-
-            string remote = "unknown";
-
-            try
-            {
-                remote = _listener?.LocalEndPoint?.ToString() ?? "<null>";
-            }
-            catch { }
-
-            throw new NetworkException($"TryAccept failed. Listener={remote}, ContextReturned={contextReturned}", ex);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static void RebindAcceptContext(PooledSocketAsyncEventArgs pooled)
+    {
+        if (pooled.Context is PooledAcceptContext ctx)
+        {
+            s_pool.Return(ctx);
+        }
+
+        PooledAcceptContext next = s_pool.Get<PooledAcceptContext>();
+        pooled.Context = next;
+        next.BindArgsForSync(pooled);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private IConnection ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
+    {
+        // Validate and limit checks occur BEFORE ownership transfer.
+        // If a throw occurs here (invalid socket, limiter reject), contextOwned remains true.
+        // → finally, Return(context) will be true.
+        if (!socket.Connected || socket.Handle.ToInt64() == -1)
+        {
+            SafeCloseSocket(socket);
+            throw new NetworkException("Invalid socket.");
+        }
+
+        // Check the connection limiter before proceeding.
+        // If the limiter rejects the connection, close the socket and throw to trigger the appropriate metrics and logging in the caller.
+        if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
+        {
+            SafeCloseSocket(socket);
+            throw new NetworkException("Connection rejected by limiter.");
+        }
+
+        IConnection connection = this.InitializeConnection(socket, context);
+
+        return connection;
     }
 }

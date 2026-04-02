@@ -34,9 +34,9 @@ public abstract partial class TcpListenerBase : IListener
     #region Fields
 
     private readonly ushort _port;
+    private readonly SemaphoreSlim _lock;
     private readonly IProtocol _protocol;
     private readonly ConnectionLimiter _limiter;
-    private readonly SemaphoreSlim _lock;
     private readonly List<ISnowflake> _acceptWorkerIds;
 
     private int _state;
