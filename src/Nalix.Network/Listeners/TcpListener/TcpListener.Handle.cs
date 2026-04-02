@@ -40,9 +40,7 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            _protocol.OnAccept(connection, _cancellationToken);
-
-            this.Metrics.RECORD_ACCEPTED();
+            this.DoAccept(connection);
 
             s_logger?.Trace("[NW.{Class}:{Action}] new={Endpoint}", nameof(TcpListenerBase), nameof(ProcessConnection), connection.NetworkEndpoint);
         }
@@ -50,6 +48,9 @@ public abstract partial class TcpListenerBase
         {
             s_logger?.Error(ex, "[NW.{Class}:{Action}] process-error={Endpoint}", nameof(TcpListenerBase), nameof(ProcessConnection), connection.NetworkEndpoint);
 
+            // Close the connection immediately if an error occurs -> prevent resource leaks.
+            // WHY close here: If OnAccept throws an error, the connection has not been registered to any
+            // managed list -> you must close it manually here; no one else can do it.
             connection.Close();
         }
     }
@@ -125,29 +126,40 @@ public abstract partial class TcpListenerBase
     [DebuggerStepThrough]
     private IConnection InitializeConnection(Socket socket, PooledAcceptContext context)
     {
-        // Order:
-        // 1. Configure socket (can throw).
-        // 2. Return context to pool (only after step 1 is successful).
-        // 3. Wrap socket as Connection.
+        // Order of importance:
+        // 1. Configure socket OPTIONS first (it may throw if the socket is invalid).
+        // 2. Return the context to the pool (only after step 1 is successful).
+        // 3. Create a connection wrapper and subscribe events.
+        //
+        // WHY doesn't try/finally be used to return the context?
+        // If InitializeOptions throw -> caller (ProcessAcceptedSocket/CreateConnectionAsync)
+        // It still holds the reference socket and will close it itself in its catch block.
+        // If the return context is here when throw -> caller doesn't know the context has been returned ->
+        // double-return bug: context returned twice -> pool corrupted.
         InitializeOptions(socket);
 
-        // Why not use try/finally to return(context)?
-        // Because if LaunchizeOptions throws an error, the caller (ProcessAcceptedSocket) is still
-        // holding a reference to the socket — the caller must be responsible for closing it
-        // (which is working correctly with SafeCloseSocket during HandleAccept's catch).
-        // The new-return context is the problem to avoid.
+        // Context only needs to return immediately during the accept — phase after the socket has been claimed.
+        // This pool slot will be reused for the next accept without waiting.
         s_pool.Return(context);
 
         IConnection connection = new Connection(socket);
 
+        // Subscribe lifecycle events.
+        // WHY subscribe to _limiter.OnConnectionClosed:
+        //      When connection close -> limit, the counter must be reduced -> allow a new connection.
         connection.OnCloseEvent += this.HandleConnectionClose;
         connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
+        // Wire protocol message handlers.
         connection.OnProcessEvent += _protocol.ProcessMessage;
         connection.OnPostProcessEvent += _protocol.PostProcessMessage;
 
         if (s_config.EnableTimeout)
         {
+            // Register connection with TimingWheel to track idle timeout.
+            // WHY TimingWheel instead of Timer per-connection:
+            // - Timer per-connection: O(n) memory + GC pressure when there are thousands of connections.
+            // - TimingWheel: O(1) tick, shared wheel for all connections -> much more efficient.
             s_timing.Register(connection);
         }
 
@@ -167,15 +179,18 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     protected static void SafeCloseSocket(Socket socket)
     {
         try
         {
+            // socket? -> null-conditional: does not throw NullReferenceException if null.
             socket?.Close();
         }
         catch (Exception ex)
         {
+            // Log in Trace (not Error) because this is expected failure in error-recovery path.
+            // WHY not rethrow: Currently in cleanup path -> the second exception will obscure the original exception.
             s_logger?.Trace("[NW.{Class}:{Action}] accept-error ex={Error}", nameof(TcpListenerBase), "Internal", ex.Message);
         }
     }
@@ -192,8 +207,7 @@ public abstract partial class TcpListenerBase
     /// </param>
     /// <remarks>
     /// <para>
-    /// On success the method validates the accepted socket, checks the connection limiter,
-    /// wires up a <see cref="PooledTcpListenerContext"/>, calls
+    /// On success the method validates the accepted socket, checks the connection limiter, calls
     /// <see cref="DISPATCH_CONNECTION"/>, and rebinds a fresh <see cref="PooledAcceptContext"/>
     /// on <paramref name="args"/> so it can be reused for the next accept.
     /// </para>
@@ -228,22 +242,26 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            if (args.SocketError != SocketError.Success || args.AcceptSocket is not Socket socket)
+            if (args.SocketError != SocketError.Success)
             {
-                s_logger?.Warn("[NW.{Class}:{Action}] accept-failed={SocketError}", nameof(TcpListenerBase), nameof(HandleAccept), args.SocketError);
+                // SocketError check first — cheapest path, no pattern match required.
+                // This is an early exit for all OS-level errors (Interrupted, OperationAborted, etc.)
+                s_logger?.Warn("[NW.{Class}:{Action}] accept-failed={SocketError}",
+                    nameof(TcpListenerBase), nameof(HandleAccept), args.SocketError);
 
-                if (args is PooledSocketAsyncEventArgs pooled)
-                {
-                    if (pooled.Context is not null)
-                    {
-                        s_pool.Return(pooled.Context);
-                    }
+                RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+                return;
+            }
 
-                    pooled.Context = s_pool.Get<PooledAcceptContext>();
+            if (args.AcceptSocket is not Socket socket)
+            {
+                // SocketError == Success but AcceptSocket null — a rare case,
+                // usually due to a race between Close() and Completed callbacks.
+                // No socket to log endpoint, logging warning is sufficient.
+                s_logger?.Warn("[NW.{Class}:{Action}] accept-socket-null port={Port}",
+                    nameof(TcpListenerBase), nameof(HandleAccept), _port);
 
-                    pooled.Context.BindArgsForSync(pooled);
-                }
-
+                RebindAcceptContext((PooledSocketAsyncEventArgs)args);
                 return;
             }
 
@@ -258,7 +276,9 @@ public abstract partial class TcpListenerBase
                 // Process the connection
                 this.DISPATCH_CONNECTION(connection);
 
-                // Rebind a fresh context for the next accept on this args
+                // Prepare args for the NEXT accept immediately.
+                // WHY prepare now: AcceptNext will call AcceptAsync with this args.
+                // Otherwise, rebind context -> the old context (returned to the pool) is reused -> bug.
                 PooledAcceptContext nextCtx = s_pool.Get<PooledAcceptContext>();
 
                 ((PooledSocketAsyncEventArgs)args).Context = nextCtx;
@@ -266,6 +286,7 @@ public abstract partial class TcpListenerBase
             }
             catch (ObjectDisposedException)
             {
+                // Listener is disposed of while accept is running -> this is expected shutdown case.
                 s_logger?.Warn("[NW.{Class}:{Action}] disposed-during-accept remote={RemoteEndPoint}",
                     nameof(TcpListenerBase), nameof(HandleAccept), socket.RemoteEndPoint?.ToString() ?? "<null>");
 
@@ -283,7 +304,10 @@ public abstract partial class TcpListenerBase
         }
         finally
         {
-            // Always clear to make the args reusable safely
+            // ALWAYS clear AcceptSocket in finally.
+            // WHY: SocketAsyncEventArgs is pooled and reused.
+            // If AcceptSocket is not cleared -> the next time AcceptAsync is used, reject args(throw).
+            // Finally ensures clear even if HandleAccept throw -> args always safe to reuse.
             args.AcceptSocket = null;
         }
     }
@@ -320,6 +344,9 @@ public abstract partial class TcpListenerBase
     {
         ArgumentNullException.ThrowIfNull(args);
 
+        // Prepare NEW args BEFORE processing the current args.
+        // WHY before: After HandleAccept + Return(args), the old args belong to the pool.
+        // AcceptNext requires new args ready to call immediately -> cannot allocate after Return.
         PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
         PooledSocketAsyncEventArgs newArgs = s_pool.Get<PooledSocketAsyncEventArgs>();
 
@@ -333,17 +360,18 @@ public abstract partial class TcpListenerBase
         }
         finally
         {
-            // Unsubscribe before returning to pool to prevent duplicate callbacks
+            // Unsubscribe BEFORE returning args to the pool.
+            // WHY: Otherwise, unsubscribe -> pool can return this args for another accept ->
+            // When that accept is complete, the old callback will be called -> duplicate processing bug.
             args.Completed -= this.OnSyncAcceptCompleted;
 
             // Ensure the args is clean before returning to pool
             args.AcceptSocket = null;
             s_pool.Return((PooledSocketAsyncEventArgs)args);
 
-            // WHY: AcceptNext() in the second finally (in the same block) ensures
-            // the pipeline continues even if HandleAccept throws.
-            // newArgs are prepared before try → no allocation here,
-            // no possibility of fail due to OOM after Return(args).
+            // Continue the accept pipeline with the new args.
+            // WHY in finally: Ensure the pipeline does not stop even if HandleAccept throws.
+            // newArgs has been prepared beforehand try -> cannot fail because OOM is here.
             this.AcceptNext(newArgs, _cancellationToken);
         }
     }
@@ -395,7 +423,7 @@ public abstract partial class TcpListenerBase
         while (!cancellationToken.IsCancellationRequested)
         {
             // Take a stable local copy to reduce races
-            Socket? s = Volatile.Read(ref _listener);
+            Socket? s = _listener;
             if (s is null || !s.IsBound)
             {
                 break;
@@ -406,13 +434,16 @@ public abstract partial class TcpListenerBase
 
             try
             {
-                // Async path: will continue in Completed handler
+                // AcceptAsync(args) returns:
+                // true -> operation pending (async) -> Completed event will fire later -> break loop.
+                // false -> operation complete immediately (sync) -> call HandleAccept inline -> continue loop.
                 if (s.AcceptAsync(args))
                 {
+                    // Async path: OnSyncAcceptCompleted will call AcceptNext next.
                     break;
                 }
 
-                // Sync completion
+                // Sync completion: process directly within this thread -> no ThreadPool hop needed.
                 this.HandleAccept(args);
             }
             catch (ObjectDisposedException)
@@ -432,7 +463,9 @@ public abstract partial class TcpListenerBase
             {
                 s_logger?.Error(ex, "[NW.{Class}:{Action}] accept-error port={Port}", nameof(TcpListenerBase), nameof(AcceptNext), _port);
 
-                // Brief delay to prevent CPU spinning on repeated errors
+                // Delay 50ms to avoid CPU spinning during persistent errors (eg, file descriptor explosion).
+                // WHY GetAwaiter().GetResult(): This is sync context -> blocking is correct.
+                // WHY CancellationToken.None: Do not want delays to be canceled midway -> wait for 50ms.
                 Task.Delay(50, CancellationToken.None)
                     .GetAwaiter()
                     .GetResult();
@@ -485,8 +518,7 @@ public abstract partial class TcpListenerBase
     /// </list>
     /// </para>
     /// <para>
-    /// On each successfully accepted connection a <see cref="PooledTcpListenerContext"/>
-    /// is retrieved from the pool, populated, and forwarded to <see cref="DISPATCH_CONNECTION"/>.
+    /// On each successfully accepted connection forwarded to <see cref="DISPATCH_CONNECTION"/>.
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
@@ -498,6 +530,9 @@ public abstract partial class TcpListenerBase
 
         while (!cancellationToken.IsCancellationRequested)
         {
+            // ctx.Beat() = heartbeat signal tells TaskManager that the worker is still alive.
+            // WHY requires heartbeat: If the worker is hanged (deadlock/infinite loop), TaskManager
+            // It can detect and restart/alert based on heartbeat timeout.
             ctx.Beat();
 
             IConnection connection;
@@ -508,6 +543,7 @@ public abstract partial class TcpListenerBase
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                // Token cancelled -> shutdown graceful -> exit loop.
                 s_logger?.Trace("[NW.{Class}:{Action}] shutdown-requested port={Port}", nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), _port);
                 break;
             }
@@ -518,9 +554,10 @@ public abstract partial class TcpListenerBase
                     break;
                 }
 
-                // Rate-limited / rejected connection — tiếp tục
-                await Task.Delay(10, CancellationToken.None)
-                          .ConfigureAwait(false);
+                // Rate-limited or limiter rejects -> short delay and then try again.
+                // WHY 10ms: Enough for the limiter to "cool down" but not too long -> responsive.
+                // WHY CancellationToken.None: This delay must be completed completely (without interruptions).
+                await Task.Delay(10, CancellationToken.None).ConfigureAwait(false);
                 continue;
             }
             catch (SocketException ex) when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
@@ -534,8 +571,9 @@ public abstract partial class TcpListenerBase
                 s_logger?.Warn("[NW.{Class}:{Action}] transient-socket-error={SocketError} port={Port}",
                     nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), ex.SocketErrorCode, _port);
 
-                await Task.Delay(50, CancellationToken.None)
-                          .ConfigureAwait(false);
+                // Transient OS-level error -> record metric + delay + retry.
+                // WHY 50ms: Longer than NetworkException delay because OS-level errors often require a recovery time.
+                await Task.Delay(50, CancellationToken.None).ConfigureAwait(false);
 
                 continue;
             }
@@ -544,15 +582,15 @@ public abstract partial class TcpListenerBase
                 this.Metrics.RECORD_ERROR();
                 s_logger?.Error(ex, "[NW.{Class}:{Action}] accept-error port={Port}", nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), _port);
 
-                await Task.Delay(50, cancellationToken)
-                          .ConfigureAwait(false);
-
+                // Unexpected error -> record + log + delay 50ms to avoid CPU spin.
+                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
                 continue;
-
             }
+
             s_logger?.Trace("[NW.{Class}:{Action}] accepted remote={RemoteEndPoint} port={Port}",
                 nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), connection.NetworkEndpoint, _port);
 
+            // Send the connection to process channel -> consumer thread for processing.
             this.DISPATCH_CONNECTION(connection);
             ctx.Advance(1, note: "accepted");
         }
@@ -612,6 +650,9 @@ public abstract partial class TcpListenerBase
     {
         cancellationToken.ThrowIfCancellationRequested();
 
+        // contextOwned = true: context is the responsibility of this method (requires return to pool).
+        // contextOwned = false: ownership has been transferred to InitializeConnection.
+        // This pattern prevents double-return (returns twice to the pool) and memory leak(no return).
         bool contextOwned = true;
         PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
 
@@ -630,7 +671,7 @@ public abstract partial class TcpListenerBase
 
             // Validate and limit checks occur BEFORE ownership transfer.
             // If a throw occurs here (invalid socket, limiter reject), contextOwned remains true.
-            // → finally, Return(context) will be true.
+            // -> finally, Return(context) will be true.
             if (!socket.Connected || socket.Handle.ToInt64() == -1)
             {
                 SafeCloseSocket(socket);
@@ -680,7 +721,14 @@ public abstract partial class TcpListenerBase
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void DoAccept(IConnection c)
+    {
+        _protocol.OnAccept(c, _cancellationToken);
+        this.Metrics.RECORD_ACCEPTED();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RebindAcceptContext(PooledSocketAsyncEventArgs pooled)
     {
         if (pooled.Context is PooledAcceptContext ctx)
@@ -693,12 +741,12 @@ public abstract partial class TcpListenerBase
         next.BindArgsForSync(pooled);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private IConnection ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
     {
         // Validate and limit checks occur BEFORE ownership transfer.
         // If a throw occurs here (invalid socket, limiter reject), contextOwned remains true.
-        // → finally, Return(context) will be true.
+        // -> finally, Return(context) will be true.
         if (!socket.Connected || socket.Handle.ToInt64() == -1)
         {
             SafeCloseSocket(socket);

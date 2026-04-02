@@ -21,7 +21,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Internally delegates the subscribe → await → timeout → unsubscribe cycle to
+/// Internally delegates the subscribe -> await -> timeout -> unsubscribe cycle to
 /// <see cref="PACKET_AWAITER"/>, which handles deserialization errors, predicate
 /// exceptions, and disconnect guards consistently across all SDK extension methods.
 /// </para>
@@ -104,7 +104,7 @@ public static class RequestExtensions
             throw new NetworkException("Client is not connected.");
         }
 
-        // PacketAwaiter handles: subscribe → send → await → timeout → unsubscribe.
+        // PacketAwaiter handles: subscribe -> send -> await -> timeout -> unsubscribe.
         return PACKET_AWAITER.AwaitAsync(
             client,
             predicate,
@@ -223,7 +223,7 @@ public static class RequestExtensions
 
             try
             {
-                // Delegate the full subscribe → send → await → timeout → unsubscribe cycle
+                // Delegate the full subscribe -> send -> await -> timeout -> unsubscribe cycle
                 // to PACKET_AWAITER, which handles deserialization errors, predicate exceptions,
                 // and disconnect guards consistently across all SDK helpers.
                 TResponse result = await PACKET_AWAITER.AwaitAsync(

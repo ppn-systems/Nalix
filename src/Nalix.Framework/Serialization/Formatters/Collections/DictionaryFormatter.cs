@@ -109,8 +109,8 @@ internal sealed class DictionaryFormatter<
     /// Serialization behavior:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><c>null</c> → writes <c>-1</c> as count.</description></item>
-    /// <item><description>Empty dictionary → writes <c>0</c>.</description></item>
+    /// <item><description><c>null</c> -> writes <c>-1</c> as count.</description></item>
+    /// <item><description>Empty dictionary -> writes <c>0</c>.</description></item>
     /// <item><description>
     /// Otherwise writes count followed by serialized key-value pairs.
     /// </description></item>
@@ -159,8 +159,8 @@ internal sealed class DictionaryFormatter<
     /// Deserialization behavior:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><c>-1</c> → returns <c>null</c>.</description></item>
-    /// <item><description><c>0</c> → returns an empty dictionary.</description></item>
+    /// <item><description><c>-1</c> -> returns <c>null</c>.</description></item>
+    /// <item><description><c>0</c> -> returns an empty dictionary.</description></item>
     /// <item><description>
     /// Otherwise reads key-value pairs sequentially.
     /// </description></item>

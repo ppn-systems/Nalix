@@ -261,7 +261,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             {
                 this.Logging?.Debug(
                     $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
-                    $"type-map opcode=0x{descriptor.OpCode:X4} → {concretePacketType.Name}");
+                    $"type-map opcode=0x{descriptor.OpCode:X4} -> {concretePacketType.Name}");
             }
         }
 

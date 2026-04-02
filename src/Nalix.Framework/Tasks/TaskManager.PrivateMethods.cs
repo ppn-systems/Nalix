@@ -346,7 +346,7 @@ public partial class TaskManager
         // Số lần liên tiếp vượt ngưỡng trước khi hành động (hysteresis)
         const int StreakRequired = 3;
 
-        // Normalize threshold: config là % trên 1 core → scale lên toàn bộ core
+        // Normalize threshold: config là % trên 1 core -> scale lên toàn bộ core
         double coreCount = Environment.ProcessorCount;
         double threshHigh = options.ThresholdHighCpu * coreCount;
         double threshLow = options.ThresholdLowCpu * coreCount;
@@ -393,7 +393,7 @@ public partial class TaskManager
                 }
                 else
                 {
-                    // CPU trong vùng ổn định → reset cả hai streak
+                    // CPU trong vùng ổn định -> reset cả hai streak
                     _highCpuStreak = 0;
                     _lowCpuStreak = 0;
                 }
@@ -466,7 +466,7 @@ public partial class TaskManager
 
         double processorCount = Environment.ProcessorCount;
 
-        // cpuDelta / wallDelta = tỷ lệ sử dụng trên 1 core → nhân processorCount → % trên toàn bộ core
+        // cpuDelta / wallDelta = tỷ lệ sử dụng trên 1 core -> nhân processorCount -> % trên toàn bộ core
         double cpuUsagePercent = cpuDelta / (double)wallDelta * processorCount * 100.0;
 
         return Math.Min(cpuUsagePercent, processorCount * 100.0);
@@ -507,7 +507,7 @@ public partial class TaskManager
                 {
                     if (!_globalConcurrencyGate.Wait(0))
                     {
-                        // Không còn slot rảnh → revert về số đã thu hồi được thực tế
+                        // Không còn slot rảnh -> revert về số đã thu hồi được thực tế
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Debug($"[FW.TaskManager.Internal] concurrency-partial-retreat from={previousLimit} to={previousLimit - i}");
                         _currentConcurrencyLimit = previousLimit - i;

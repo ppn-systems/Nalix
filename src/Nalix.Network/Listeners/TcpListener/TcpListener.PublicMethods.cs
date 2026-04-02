@@ -50,12 +50,16 @@ public abstract partial class TcpListenerBase
 
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
 
+        // Acquire mutex — SemaphoreSlim.Wait() with CancellationToken.None:
+        // WHY None (not cancel): Activate() must complete even if the external token is cancelled.
+        // If you use cancellationToken here → cancel before lock acquire → inconsistent state.
         _lock.Wait(CancellationToken.None);
 
         CancellationToken linkedToken = default;
 
         try
         {
+            // State check inside lock → avoid race condition "double Activate".
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={this.State}");
@@ -66,6 +70,9 @@ public abstract partial class TcpListenerBase
             _ = Interlocked.Exchange(ref _stopInitiated, 0);
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STARTING);
 
+            // Create a new linked CTS with an external token.
+            // WHY linked: When caller cancel → _cts also cancel → all workers stop.
+            // WHY dispose old CTS first: Avoid leaks if Activate is called again after Deactivate.
             _cts?.Dispose();
             _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _cancellationToken = _cts.Token;
@@ -107,6 +114,9 @@ public abstract partial class TcpListenerBase
 
             _acceptWorkerIds.Clear();
 
+            // Spawn N accept-worker async tasks (N = MaxParallel).
+            // WHY N workers instead of 1: On multi-core, N workers run in parallel → increment throughput accept.
+            // Each independent worker await CreateConnectionAsync → N connections can be accepted concurrently.
             for (int i = 0; i < s_config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(

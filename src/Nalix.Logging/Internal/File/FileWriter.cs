@@ -236,7 +236,7 @@ internal sealed class FileWriter : IDisposable
             {
                 FileInfo info = new(filename);
 
-                // File đã tồn tại và đã vượt size limit → thử index tiếp theo
+                // File đã tồn tại và đã vượt size limit -> thử index tiếp theo
                 if (info.Exists && info.Length >= _provider.Options.MaxFileSizeBytes)
                 {
                     _currentIndex++;
@@ -276,7 +276,7 @@ internal sealed class FileWriter : IDisposable
             }
         }
 
-        // Hết probe → báo lỗi và drop logs cho đến lần thử tiếp theo
+        // Hết probe -> báo lỗi và drop logs cho đến lần thử tiếp theo
         _provider.Options.HandleFileError?.Invoke(new FileError(
             new IOException("Exceeded max probes while selecting log file index."),
             Directories.LogsDirectory));
@@ -322,7 +322,7 @@ internal sealed class FileWriter : IDisposable
     {
         DateTime day = DateTime.Now.Date;
 
-        // Sang ngày mới → reset và mở file mới
+        // Sang ngày mới -> reset và mở file mới
         if (day != _currentDayLocal)
         {
             this.CLOSE_LOG_FILE_LOCKED();
@@ -333,14 +333,14 @@ internal sealed class FileWriter : IDisposable
             return;
         }
 
-        // Stream bị đóng (lỗi trước đó) → thử mở lại
+        // Stream bị đóng (lỗi trước đó) -> thử mở lại
         if (_stream is null || _writer is null)
         {
             this.OPEN_NEXT_LOG_FILE_LOCKED();
             return;
         }
 
-        // Đã vượt size limit → roll sang file tiếp theo
+        // Đã vượt size limit -> roll sang file tiếp theo
         if (_writtenBytesForCurrentFile >= _provider.Options.MaxFileSizeBytes)
         {
             this.CLOSE_LOG_FILE_LOCKED();

@@ -660,7 +660,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 
         if (prev != next)
         {
-            this.Logger?.Debug($"[SDK.{this.GetType().Name}] State: {prev} → {next}");
+            this.Logger?.Debug($"[SDK.{this.GetType().Name}] State: {prev} -> {next}");
         }
     }
 

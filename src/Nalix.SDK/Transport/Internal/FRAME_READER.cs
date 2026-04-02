@@ -132,7 +132,7 @@ internal sealed class FRAME_READER(
                             continue;
                         }
 
-                        // Normal (non-fragmented) frame → process decrypt/decompress
+                        // Normal (non-fragmented) frame -> process decrypt/decompress
                         this.PROCESS_NORMAL_FRAME(lease);
                     }
                     catch (Exception)

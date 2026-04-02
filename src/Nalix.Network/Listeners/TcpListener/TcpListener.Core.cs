@@ -65,6 +65,7 @@ public abstract partial class TcpListenerBase : IListener
 
     #region Enums
 
+    // STOPPED -> STARTING -> RUNNING -> STOPPING -> STOPPED
     private enum ListenerState
     {
         STOPPED = 0,
@@ -109,15 +110,11 @@ public abstract partial class TcpListenerBase : IListener
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledAcceptContext>(options.AcceptContextCapacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledTcpListenerContext>(options.TcpListenerContextCapacity);
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsCapacity);
 
         // Preallocate objects in the pools to improve performance and reduce latency during runtime.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledTcpListenerContext>(options.TcpListenerContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
 
@@ -168,7 +165,10 @@ public abstract partial class TcpListenerBase : IListener
 
             try
             {
+                // Cancel first -> signal all async loops to stop.
                 try { self._cts?.Cancel(); } catch { }
+
+                // Close socket server -> AcceptAsync will throw SocketException -> loop exits.
                 try { self._listener?.Close(); } catch { }
                 self._listener = null;
 
@@ -200,6 +200,9 @@ public abstract partial class TcpListenerBase : IListener
             }
         }
 
+        // UnsafeQueueUserWorkItem -> no capture ExecutionContext (more secure,
+        // Higher performance because it doesn't copy the context).
+        // WHY Unsafe: This is infrastructure code, no flow security context is needed.
         _ = ThreadPool.UnsafeQueueUserWorkItem(cb, this);
     }
 

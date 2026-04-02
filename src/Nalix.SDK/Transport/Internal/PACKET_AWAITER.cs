@@ -15,7 +15,7 @@ namespace Nalix.SDK.Transport.Internal;
 
 /// <summary>
 /// Internal helper that encapsulates the recurring boilerplate shared by all
-/// "subscribe → await matching packet → timeout → unsubscribe" operations.
+/// "subscribe -> await matching packet -> timeout -> unsubscribe" operations.
 /// </summary>
 internal static class PACKET_AWAITER
 {

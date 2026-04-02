@@ -99,7 +99,7 @@ public sealed class TimingWheel : IActivatable
     /// </para>
     /// <para>
     /// When <see cref="Unregister"/> is called, the entry is removed entirely. The loop detects
-    /// the missing key via <c>TryGetValue</c> → <c>false</c> and returns the task to the pool
+    /// the missing key via <c>TryGetValue</c> -> <c>false</c> and returns the task to the pool
     /// without ever touching <c>task.Conn</c> after it might have been reset.
     /// </para>
     /// </summary>
@@ -454,7 +454,7 @@ public sealed class TimingWheel : IActivatable
 
                         _ = _active.TryRemove(task.Conn, out _);
 
-                        // Close() fires OnCloseEvent → Unregister() → _active entry removed.
+                        // Close() fires OnCloseEvent -> Unregister() -> _active entry removed.
                         // The task is now fully done; safe to return to pool.
                         s_poolManager.Return(task);
                         continue;

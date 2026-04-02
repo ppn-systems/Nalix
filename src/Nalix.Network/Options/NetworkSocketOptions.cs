@@ -78,7 +78,7 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Send and receive buffer size in bytes (64–10,485,760)")]
     [System.ComponentModel.DataAnnotations.Range(64, 10_485_760, ErrorMessage = "BufferSize must be between 512 and 10MiB (10,485,760 bytes).")]
-    public int BufferSize { get; set; } = 4 * 1024;
+    public int BufferSize { get; set; } = 2 * 1024;
 
     /// <summary>
     /// Gets or sets a value indicating whether TCP Keep-Alive is enabled.

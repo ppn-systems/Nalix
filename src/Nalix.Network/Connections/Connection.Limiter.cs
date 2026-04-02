@@ -343,8 +343,8 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
                 //
                 // Old code calls ScheduleWorker() directly in the lock (entry).
                 // ScheduleWorker can:
-                // 1. Acquire the TaskManager's internal lock → lock ordering is not guaranteed → potential deadlock.
-                // 2. Block for a short time (a few µs) when TaskManager contends → keep the entry lock longer than necessary.
+                // 1. Acquire the TaskManager's internal lock -> lock ordering is not guaranteed -> potential deadlock.
+                // 2. Block for a short time (a few µs) when TaskManager contends -> keep the entry lock longer than necessary.
                 //
                 // The lock only does one thing: update the state(BannedUntilTicks + log).
                 shouldForceClose = true;
@@ -419,7 +419,7 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
 
         while (timestamps.TryPeek(out DateTime oldest) && oldest < cutoff)
         {
-            // In the lock → TryDequeue always succeeds if TryPeek has just seen the item.
+            // In the lock -> TryDequeue always succeeds if TryPeek has just seen the item.
             // No need to check the return value, but still check it so the compiler doesn't warn.
             _ = timestamps.TryDequeue(out _);
         }
@@ -492,7 +492,7 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
 
         if (nowTicks - lastTicks < windowTicks)
         {
-            // Đang trong suppress window → chỉ đếm, không log
+            // Đang trong suppress window -> chỉ đếm, không log
             _ = Interlocked.Increment(ref entry.SuppressedDDoSCount);
             return;
         }
@@ -506,7 +506,7 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
             return;
         }
 
-        // Thread thắng CAS → log summary
+        // Thread thắng CAS -> log summary
         long suppressed = Interlocked.Exchange(ref entry.SuppressedDDoSCount, 0);
 
         if (suppressed > 0)
@@ -552,7 +552,7 @@ internal sealed class ConnectionLimiter : IDisposable, IAsyncDisposable, IReport
             }
         }
 
-        // Inside window or CAS failed → suppress
+        // Inside window or CAS failed -> suppress
         _ = Interlocked.Increment(ref suppressedCount);
 
         long newLastTicks = Interlocked.Read(ref lastLogTicks);

@@ -97,7 +97,7 @@ internal sealed class FRAME_SENDER : IDisposable
         _reportBytesSent = reportBytesSent ?? throw new ArgumentNullException(nameof(reportBytesSent));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
 
-        // BoundedChannelFullMode.Wait → callers await when queue is full (backpressure).
+        // BoundedChannelFullMode.Wait -> callers await when queue is full (backpressure).
         _sendQueue = System.Threading.Channels.Channel.CreateBounded<(
             byte[],
             int,

@@ -200,7 +200,7 @@ public static class ControlExtensions
 
         long sendMono = ping.MonoTicks != 0 ? ping.MonoTicks : Clock.MonoTicksNow();
 
-        // RequestAsync: subscribe → send → await PONG in one race-condition-free call.
+        // RequestAsync: subscribe -> send -> await PONG in one race-condition-free call.
         Control pong = await client.RequestAsync<Control, Control>(
             ping,
             predicate: p => p.Type == ControlType.PONG && p.SequenceId == seq,
