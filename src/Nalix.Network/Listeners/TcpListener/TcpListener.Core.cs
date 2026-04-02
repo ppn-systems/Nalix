@@ -36,7 +36,7 @@ public abstract partial class TcpListenerBase : IListener
     private readonly ushort _port;
     private readonly SemaphoreSlim _lock;
     private readonly IProtocol _protocol;
-    private readonly ConnectionLimiter _limiter;
+    private readonly ConnectionGuard _limiter;
     private readonly List<ISnowflake> _acceptWorkerIds;
 
     private int _state;
@@ -96,7 +96,7 @@ public abstract partial class TcpListenerBase : IListener
         _port = port;
         _protocol = protocol;
         _state = (int)ListenerState.STOPPED;
-        _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>();
+        _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
 
         s_config.Validate();
 
