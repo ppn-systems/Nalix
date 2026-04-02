@@ -13,7 +13,7 @@ using Nalix.SDK.Transport.Internal;
 namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
-/// Provides request-response helpers for <see cref="IClientConnection"/>.
+/// Provides request-response helpers for <see cref="TransportSession"/>.
 /// Combines a one-shot subscription with a send operation so callers can
 /// <c>await</c> a typed reply without wiring boilerplate by hand.
 /// </summary>
@@ -85,7 +85,7 @@ public static class RequestExtensions
     /// </code>
     /// </example>
     public static Task<TResponse> RequestAsync<TRequest, TResponse>(
-        this IClientConnection client,
+        this TransportSession client,
         TRequest request,
         Func<TResponse, bool> predicate,
         int timeoutMs = 5000,
@@ -124,7 +124,7 @@ public static class RequestExtensions
     /// <returns>The first matching response packet.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<TPacket> RequestAsync<TPacket>(
-        this IClientConnection client,
+        this TransportSession client,
         TPacket request,
         Func<TPacket, bool> predicate,
         int timeoutMs = 5000,
@@ -185,7 +185,7 @@ public static class RequestExtensions
     /// </code>
     /// </example>
     public static async Task<TResponse> RequestAsync<TResponse>(
-        this IClientConnection client,
+        this TransportSession client,
         IPacket request,
         RequestOptions? options = null,
         Func<TResponse, bool>? predicate = null,

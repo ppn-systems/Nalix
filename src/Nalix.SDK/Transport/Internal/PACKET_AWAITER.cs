@@ -32,7 +32,7 @@ internal static class PACKET_AWAITER
     /// <exception cref="TimeoutException"></exception>
     /// <exception cref="OperationCanceledException"></exception>
     internal static async Task<TPkt> AwaitAsync<TPkt>(
-        IClientConnection client,
+        TransportSession client,
         Func<TPkt, bool> predicate,
         int timeoutMs,
         Func<CancellationToken, Task> sendAsync,

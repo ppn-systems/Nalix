@@ -10,7 +10,7 @@ using Nalix.Common.Networking.Packets;
 namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
-/// Convenience subscriptions for <see cref="IClientConnection"/> to reduce boilerplate.
+/// Convenience subscriptions for <see cref="TransportSession"/> to reduce boilerplate.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,7 +37,7 @@ public static class TcpSessionSubscriptions
     /// <param name="handler"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On<TPacket>(
-        this IClientConnection client,
+        this TransportSession client,
         Action<TPacket> handler)
         where TPacket : class, IPacket
     {
@@ -86,7 +86,7 @@ public static class TcpSessionSubscriptions
     /// <param name="handler"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On(
-        this IClientConnection client,
+        this TransportSession client,
         Func<IPacket, bool> predicate,
         Action<IPacket> handler)
     {
@@ -133,7 +133,7 @@ public static class TcpSessionSubscriptions
     /// <param name="handler"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable OnOnce<TPacket>(
-        this IClientConnection client,
+        this TransportSession client,
         Func<TPacket, bool> predicate,
         Action<TPacket> handler)
         where TPacket : class, IPacket
@@ -220,7 +220,7 @@ public static class TcpSessionSubscriptions
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable SubscribeTemp<TPacket>(
-        this IClientConnection client,
+        this TransportSession client,
         Action<TPacket> onMessage,
         Action<Exception>? onDisconnected = null)
         where TPacket : class, IPacket
@@ -259,7 +259,7 @@ public static class TcpSessionSubscriptions
     /// <returns>An <see cref="IDisposable"/> that unsubscribes when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable SubscribeTemp<TPacket>(
-        this IClientConnection client,
+        this TransportSession client,
         Func<TPacket, bool> predicate,
         Action<TPacket> onMessage,
         Action<Exception>? onDisconnected = null)
@@ -304,7 +304,7 @@ public static class TcpSessionSubscriptions
     /// <param name="subs"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CompositeSubscription Subscribe(
-        this IClientConnection _,
+        this TransportSession _,
         params IDisposable[] subs)
         => new(subs);
 

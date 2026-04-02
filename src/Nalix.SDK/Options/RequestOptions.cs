@@ -10,7 +10,7 @@ using Nalix.SDK.Transport.Extensions;
 namespace Nalix.SDK.Options;
 
 /// <summary>
-/// Controls the behaviour of <see cref="RequestExtensions.RequestAsync{TResponse}(IClientConnection, IPacket, RequestOptions, Func{TResponse, bool}, CancellationToken)"/>.
+/// Controls the behaviour of <see cref="RequestExtensions.RequestAsync{TResponse}(TransportSession, IPacket, RequestOptions, Func{TResponse, bool}, CancellationToken)"/>.
 /// </summary>
 /// <remarks>
 /// <para>

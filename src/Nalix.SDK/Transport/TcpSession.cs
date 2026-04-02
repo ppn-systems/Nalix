@@ -20,7 +20,7 @@ namespace Nalix.SDK.Transport;
 /// to <see cref="FRAME_READER"/> and <see cref="FRAME_SENDER"/>.
 /// Optimized for Unity and cross-platform performance.
 /// </summary>
-public partial class TcpSession : IClientConnection, IDisposable, IWithLogging<TcpSession>
+public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
 {
     private ILogger? _logger;
     private readonly FRAME_SENDER _sender;
@@ -34,35 +34,34 @@ public partial class TcpSession : IClientConnection, IDisposable, IWithLogging<T
     public const int HeaderSize = 2;
 
     /// <inheritdoc/>
-    public TransportOptions Options { get; }
+    public override TransportOptions Options { get; }
 
     /// <inheritdoc/>
-    public IPacketRegistry Catalog { get; }
+    public override IPacketRegistry Catalog { get; }
 
     /// <inheritdoc/>
-    ITransportOptions IClientConnection.Options => this.Options;
-
-    /// <inheritdoc/>
-    public bool IsConnected => _socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
+    public override bool IsConnected => _socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
 
     #region Events
 
     /// <inheritdoc/>
-    public event EventHandler? OnConnected;
+    public override event EventHandler? OnConnected;
 
     /// <inheritdoc/>
-    public event EventHandler<Exception>? OnDisconnected;
+    public override event EventHandler<Exception>? OnDisconnected;
 
     /// <inheritdoc/>
-    public event EventHandler<IBufferLease>? OnMessageReceived;
+    public override event EventHandler<IBufferLease>? OnMessageReceived;
 
     /// <inheritdoc/>
-    public event EventHandler<Exception>? OnError;
+    public override event EventHandler<Exception>? OnError;
 
-    /// <summary>Occurs when a complete frame is received and decoded.</summary>
+    /// <summary>Occurs when a complete frame is received and decoded (async).</summary>
     public event Func<ReadOnlyMemory<byte>, Task>? OnMessageAsync;
 
     #endregion Events
+
+    #region Constructor
 
     /// <summary>Initializes a new instance of the <see cref="TcpSession"/> class.</summary>
     public TcpSession(TransportOptions options, IPacketRegistry catalog, ILogger? logger = null)
@@ -82,8 +81,10 @@ public partial class TcpSession : IClientConnection, IDisposable, IWithLogging<T
         return this;
     }
 
+    #endregion Constructor
+
     /// <inheritdoc/>
-    public async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
+    public override async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
 
@@ -99,7 +100,7 @@ public partial class TcpSession : IClientConnection, IDisposable, IWithLogging<T
         {
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
             await _socket.ConnectAsync(effectiveHost, effectivePort, ct).ConfigureAwait(false);
-            Log.Connected(_logger, effectiveHost, (int)effectivePort);
+            Log.Connected(_logger, effectiveHost, effectivePort);
 
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
@@ -108,14 +109,14 @@ public partial class TcpSession : IClientConnection, IDisposable, IWithLogging<T
         }
         catch (Exception ex)
         {
-            Log.ConnectFailed(_logger, effectiveHost, (int)effectivePort, ex);
+            Log.ConnectFailed(_logger, effectiveHost, effectivePort, ex);
             this.OnError?.Invoke(this, ex);
             throw new NetworkException($"Connection failed: {ex.Message}", ex);
         }
     }
 
     /// <inheritdoc/>
-    public Task DisconnectAsync()
+    public override Task DisconnectAsync()
     {
         if (Volatile.Read(ref _disposed) == 1)
         {
@@ -139,7 +140,7 @@ public partial class TcpSession : IClientConnection, IDisposable, IWithLogging<T
     }
 
     /// <inheritdoc/>
-    public Task SendAsync(IPacket packet, CancellationToken ct = default) => this.SendAsync(packet, null, ct);
+    public override Task SendAsync(IPacket packet, CancellationToken ct = default) => this.SendAsync(packet, null, ct);
 
     /// <summary>Sends a packet asynchronously with optional encryption override.</summary>
     public async Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
@@ -151,7 +152,7 @@ public partial class TcpSession : IClientConnection, IDisposable, IWithLogging<T
     }
 
     /// <inheritdoc/>
-    public Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default) => _sender.SendAsync(payload, null, ct);
+    public override Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default) => _sender.SendAsync(payload, null, ct);
 
     private void HandleReceiveMessage(BufferLease lease)
     {
@@ -188,7 +189,7 @@ public partial class TcpSession : IClientConnection, IDisposable, IWithLogging<T
     }
 
     /// <inheritdoc/>
-    public void Dispose()
+    public override void Dispose()
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
         {

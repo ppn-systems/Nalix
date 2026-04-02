@@ -94,7 +94,7 @@ public static class ControlExtensions
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ControlBuilder NewControl(
-        this IClientConnection _,
+        this TransportSession _,
         ushort opCode,
         ControlType type,
         ProtocolType transport = ProtocolType.TCP)

@@ -74,7 +74,7 @@ public static class DirectiveClientExtensions
         public long ThrottleUntilMonoTicks;
     }
 
-    private static readonly ConditionalWeakTable<IClientConnection, ClientState> s_states = [];
+    private static readonly ConditionalWeakTable<TransportSession, ClientState> s_states = [];
 
     /// <summary>
     /// Attempts to handle a <see cref="Directive"/> packet and apply the relevant behavior.
@@ -95,7 +95,7 @@ public static class DirectiveClientExtensions
     /// Thrown if <paramref name="ct"/> is canceled during redirect/reconnect.
     /// </exception>
     public static async Task<bool> TryHandleDirectiveAsync(
-        this IClientConnection client,
+        this TransportSession client,
         IPacket packet,
         DirectiveCallbacks? callbacks = null,
         RedirectResolver? resolveRedirect = null,
@@ -207,7 +207,7 @@ public static class DirectiveClientExtensions
     /// <returns><c>true</c> if a throttle window is active; otherwise <c>false</c>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsThrottled(this IClientConnection client, out TimeSpan remaining)
+    public static bool IsThrottled(this TransportSession client, out TimeSpan remaining)
     {
         ArgumentNullException.ThrowIfNull(client);
         remaining = TimeSpan.Zero;
@@ -246,7 +246,7 @@ public static class DirectiveClientExtensions
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static async Task SendWithThrottleAsync(
-        this IClientConnection client,
+        this TransportSession client,
         IPacket packet,
         CancellationToken ct = default)
     {
@@ -268,7 +268,7 @@ public static class DirectiveClientExtensions
     /// <param name="client">The reliable client.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ClearThrottle(this IClientConnection client)
+    public static void ClearThrottle(this TransportSession client)
     {
         ArgumentNullException.ThrowIfNull(client);
 
