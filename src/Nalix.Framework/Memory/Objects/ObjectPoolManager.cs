@@ -187,13 +187,23 @@ public sealed class ObjectPoolManager : IObjectPoolManager
     #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ObjectPoolManager"/> class.
+    /// Initializes a new instance of the <see cref="ObjectPoolManager"/> class using the global configuration.
     /// </summary>
-    public ObjectPoolManager()
+    public ObjectPoolManager() : this(ConfigurationManager.Instance.Get<ObjectPoolOptions>())
     {
-        _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
-        _config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ObjectPoolManager"/> class with specific options.
+    /// </summary>
+    /// <param name="config">The configuration options to use.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+    public ObjectPoolManager(ObjectPoolOptions config)
+    {
+        ArgumentNullException.ThrowIfNull(config, nameof(config));
+        _config = config;
         _config.Validate();
+        _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
     }
 
     #endregion Constructor

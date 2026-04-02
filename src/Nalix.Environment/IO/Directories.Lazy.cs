@@ -29,9 +29,14 @@ public static partial class Directories
     private static readonly ReaderWriterLockSlim s_directoryLock = new(LockRecursionPolicy.SupportsRecursion);
 
     /// <summary>
-    /// Raised after a directory has been created. Handlers are isolated per-invocation.
+    /// Thread-safe storage for directory creation handlers using weak references to prevent memory leaks.
     /// </summary>
-    private static event Action<string>? DirectoryCreated;
+    private static readonly System.Collections.Generic.List<System.WeakReference<System.Action<string>>> s_directoryCreatedHandlers = [];
+
+    /// <summary>
+    /// Lock object for synchronizing access to the handlers list.
+    /// </summary>
+    private static readonly System.Threading.Lock s_handlerLock = new();
 
     // ---------- Configuration ----------
 

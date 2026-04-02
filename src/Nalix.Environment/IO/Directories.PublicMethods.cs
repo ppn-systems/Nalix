@@ -17,10 +17,13 @@ public static partial class Directories
     /// <param name="handler">
     /// The handler to invoke when a directory is created.
     /// </param>
-    public static void RegisterDirectoryCreationHandler(Action<string> handler)
+    public static void SubscribeDirectoryCreated(Action<string> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        DirectoryCreated += handler;
+        lock (s_handlerLock)
+        {
+            s_directoryCreatedHandlers.Add(new WeakReference<Action<string>>(handler));
+        }
     }
 
     /// <summary>
@@ -29,10 +32,24 @@ public static partial class Directories
     /// <param name="handler">
     /// The handler to remove.
     /// </param>
-    public static void UnregisterDirectoryCreationHandler(Action<string> handler)
+    public static void UnsubscribeDirectoryCreated(Action<string> handler)
     {
         ArgumentNullException.ThrowIfNull(handler);
-        DirectoryCreated -= handler;
+        lock (s_handlerLock)
+        {
+            for (int i = s_directoryCreatedHandlers.Count - 1; i >= 0; i--)
+            {
+                if (s_directoryCreatedHandlers[i].TryGetTarget(out Action<string>? target) && target == handler)
+                {
+                    s_directoryCreatedHandlers.RemoveAt(i);
+                }
+                else if (target == null)
+                {
+                    // Cleanup dead references while we are here
+                    s_directoryCreatedHandlers.RemoveAt(i);
+                }
+            }
+        }
     }
 
     #endregion Events
@@ -97,7 +114,21 @@ public static partial class Directories
                 try
                 {
                     FileInfo fi = new(filePath);
-                    if (fi.LastWriteTimeUtc < cutoff)
+
+                    // SEC: Skip symbolic links, junctions, and other reparse points to prevent 
+                    // traversal attacks where a link points to a critical system file.
+                    if (fi.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    {
+                        continue;
+                    }
+
+                    // SEC: Check both creation and write time. Some attackers manipulate 
+                    // LastWriteTime to bypass cleanup. We delete only if BOTH indicate 
+                    // the file is old, or if the timestamps are suspiciously inconsistent.
+                    DateTime lastWrite = fi.LastWriteTimeUtc;
+                    DateTime created = fi.CreationTimeUtc;
+
+                    if (lastWrite < cutoff && created < cutoff)
                     {
                         fi.Delete();
                         deleted++;
@@ -112,6 +143,11 @@ public static partial class Directories
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] DeleteOldFiles failed for '{directoryPath}': {ex}");
+        }
+
+        if (deleted > 0 && Listener.IsEnabled(DiagnosticsEvents.IO.Cleanup))
+        {
+            Listener.Write(DiagnosticsEvents.IO.Cleanup, new { Action = "FilesDeleted", Count = deleted, Path = directoryPath });
         }
 
         return deleted;

@@ -8,11 +8,13 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Microsoft.Win32.SafeHandles;
 using Nalix.Abstractions.Exceptions;
 
 #if DEBUG
+[assembly: InternalsVisibleTo("Nalix.Environment.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Environment.Benchmarks")]
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Environment.Random;
@@ -31,12 +33,26 @@ internal static partial class OsCsprng
     private static Action<Span<byte>> s_f;
 
     // Lazy /dev/urandom handle for Unix fallback
-    private static FileStream? s_devUrandom;
     private static readonly Lock s_devUrandomLock = new();
+    private static Microsoft.Win32.SafeHandles.SafeFileHandle? s_devUrandomHandle;
 
-    // Linux error codes we care about
-    private const int EINTR = 4;
-    private const int ENOSYS = 38;
+    // Linux error codes (architecture-aware)
+    private static readonly int s_eINTR = 4;
+    private static readonly int s_eNOSYS = RuntimeInformation.ProcessArchitecture switch
+    {
+        // On MIPS, ENOSYS is 89. Most other Linux architectures use 38.
+        (Architecture)9 => 89, // Mips64 (if not in enum, use cast)
+        Architecture.X86 or
+        Architecture.X64 or
+        Architecture.Arm or
+        Architecture.Arm64 or
+        Architecture.Wasm or
+        Architecture.S390x or
+        Architecture.LoongArch64 or
+        Architecture.Armv6 or
+        Architecture.Ppc64le or
+        _ => 38
+    };
 
     // Windows CNG flag
     private const uint C = 0x00000002;
@@ -85,6 +101,18 @@ internal static partial class OsCsprng
         }
 
         s_f(buffer);
+    }
+
+    /// <summary>
+    /// Shuts down the OS CSPRNG subsystem and releases any cached file handles.
+    /// </summary>
+    public static void Shutdown()
+    {
+        lock (s_devUrandomLock)
+        {
+            s_devUrandomHandle?.Dispose();
+            s_devUrandomHandle = null;
+        }
     }
 
     #endregion APIs
@@ -143,13 +171,13 @@ internal static partial class OsCsprng
                     int errno = Marshal.GetLastPInvokeError();
 
                     // EINTR: retry
-                    if (errno == EINTR)
+                    if (errno == s_eINTR)
                     {
                         continue;
                     }
 
                     // ENOSYS: kernel does not support getrandom -> permanently switch to /dev/urandom fallback
-                    if (errno == ENOSYS)
+                    if (errno == s_eNOSYS)
                     {
                         // switch dispatcher once so future calls skip getrandom
                         Volatile.Write(ref s_f, D);
@@ -182,8 +210,7 @@ internal static partial class OsCsprng
     /// <summary>
     /// P/Invoke declaration for Apple SecRandomCopyBytes function.
     /// </summary>
-    [LibraryImport(
-        "/SYSTEM/Library/Frameworks/Security.framework/Security", EntryPoint = "SecRandomCopyBytes")]
+    [LibraryImport("Security", EntryPoint = "SecRandomCopyBytes")]
     private static partial int SecRandomCopyBytes(nint rnd, nint count, nint bytes);
 
     /// <summary>
@@ -217,58 +244,56 @@ internal static partial class OsCsprng
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void D(Span<byte> b)
     {
-#pragma warning disable CA2000 // GetDevUrandom transfers ownership to the static cache; the stream is intentionally process-lifetime cached.
-        FileStream fs = GetDevUrandom();
+#pragma warning disable CA2000 // GetDevUrandomHandle returns a shared static handle that should not be disposed here.
+        SafeFileHandle handle = GET_DEV_URANDOM_HANDLE();
 #pragma warning restore CA2000
 
+        // SafeFileHandle with RandomAccess is thread-safe on Unix for character devices.
+        // We don't need the global lock here anymore.
         int total = 0;
-        // FileStream is not thread-safe -> synchronize reads
-        lock (s_devUrandomLock)
+        while (total < b.Length)
         {
-            while (total < b.Length)
+            int r = RandomAccess.Read(handle, b[total..], -1); // -1 means don't seek (appropriate for devices)
+            if (r <= 0)
             {
-                int r = fs.Read(b[total..]);
-                if (r <= 0)
-                {
-                    throw new CipherException("OS CSPRNG unavailable (/dev/urandom returned 0 bytes).");
-                }
-
-                total += r;
+                throw new CipherException("OS CSPRNG unavailable (/dev/urandom returned 0 bytes).");
             }
+
+            total += r;
         }
     }
 
     /// <summary>
-    /// Gets a cached FileStream for /dev/urandom (created lazily).
+    /// Gets a cached SafeFileHandle for /dev/urandom (created lazily).
     /// Thread-safe double-checked locking pattern.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static FileStream GetDevUrandom()
+    private static SafeFileHandle GET_DEV_URANDOM_HANDLE()
     {
-        FileStream? fs = Volatile.Read(ref s_devUrandom);
-        if (fs is not null)
+        SafeFileHandle? handle = Volatile.Read(ref s_devUrandomHandle);
+
+        if (handle is { IsInvalid: false })
         {
-            return fs;
+            return handle;
         }
 
         lock (s_devUrandomLock)
         {
-            fs = s_devUrandom;
-            if (fs is not null)
+            handle = s_devUrandomHandle;
+            if (handle is { IsInvalid: false })
             {
-                return fs;
+                return handle;
             }
 
-            fs = new FileStream(
+            handle = File.OpenHandle(
                 "/dev/urandom",
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.Read,
-                bufferSize: 0,
-                options: FileOptions.SequentialScan);
+                FileOptions.SequentialScan);
 
-            Volatile.Write(ref s_devUrandom, fs);
-            return fs;
+            Volatile.Write(ref s_devUrandomHandle, handle);
+            return handle;
         }
     }
 
