@@ -82,9 +82,12 @@ internal static partial class FieldCache<
                     ? explicitOrder.Value.Order
                     : sequentialOrder++;
 
+                int size = GET_TYPE_MEMORY_SIZE(field.FieldType);
+
                 included.Add(new FieldSchema(
                     order,
                     isHeader,
+                    size,
                     field.Name,
                     field.FieldType.IsValueType,
                     field.FieldType,
@@ -92,9 +95,23 @@ internal static partial class FieldCache<
             }
         }
 
-        included.Sort(static (a, b) => 
+        included.Sort((a, b) =>
         {
-            if (a.IsHeader != b.IsHeader) return a.IsHeader ? -1 : 1;
+            if (a.IsHeader != b.IsHeader)
+            {
+                return a.IsHeader ? -1 : 1;
+            }
+
+            if (a.IsHeader)
+            {
+                return a.Order.CompareTo(b.Order);
+            }
+
+            if (layout == SerializeLayout.Auto && a.Size != b.Size)
+            {
+                return b.Size.CompareTo(a.Size); // Descending
+            }
+
             return a.Order.CompareTo(b.Order);
         });
 
@@ -181,7 +198,55 @@ internal static partial class FieldCache<
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SerializeLayout GET_SERIALIZE_LAYOUT(Type type)
-        => type.GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout ?? SerializeLayout.Sequential;
+        => type.GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout ?? SerializeLayout.Auto;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GET_TYPE_MEMORY_SIZE(Type type)
+    {
+        if (!type.IsValueType)
+        {
+            return IntPtr.Size;
+        }
+
+        if (type.IsEnum)
+        {
+            return GET_TYPE_MEMORY_SIZE(Enum.GetUnderlyingType(type));
+        }
+
+        if (type == typeof(bool) || type == typeof(byte) || type == typeof(sbyte))
+        {
+            return 1;
+        }
+
+        if (type == typeof(short) || type == typeof(ushort) || type == typeof(char))
+        {
+            return 2;
+        }
+
+        if (type == typeof(int) || type == typeof(uint) || type == typeof(float))
+        {
+            return 4;
+        }
+
+        if (type == typeof(long) || type == typeof(ulong) || type == typeof(double) || type == typeof(DateTime) || type == typeof(TimeSpan))
+        {
+            return 8;
+        }
+
+        if (type == typeof(decimal) || type == typeof(Guid))
+        {
+            return 16;
+        }
+
+        try
+        {
+            return System.Runtime.InteropServices.Marshal.SizeOf(type);
+        }
+        catch
+        {
+            return IntPtr.Size;
+        }
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static (int Order, bool IsHeader)? GET_EXPLICIT_ORDER(FieldInfo field, Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> explicitOrdersByDeclaringType)
@@ -201,9 +266,7 @@ internal static partial class FieldCache<
             }
         }
 
-        return propertyOrders.TryGetValue(field.Name, out (int Order, bool IsHeader) order)
-            ? order
-            : null;
+        return propertyOrders.TryGetValue(field.Name, out (int Order, bool IsHeader) order) ? order : null;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
