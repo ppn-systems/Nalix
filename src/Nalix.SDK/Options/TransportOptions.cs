@@ -113,6 +113,24 @@ public sealed class TransportOptions : ConfigurationLoader, ITransportOptions
     public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.Chacha20Poly1305;
 
     /// <summary>
+    /// When true, LZ4 compression is applied to packets exceeding the <see cref="CompressionThreshold"/>.
+    /// </summary>
+    [IniComment("Enable LZ4 compression for outbound packets")]
+    public bool CompressionEnabled { get; set; } = true;
+
+    /// <summary>
+    /// The minimum size in bytes for a packet to be considered for compression.
+    /// </summary>
+    [IniComment("Minimum size in bytes to trigger compression")]
+    public int CompressionThreshold { get; set; } = 512;
+
+    /// <summary>
+    /// When true, AEAD encryption is applied to all outbound packets.
+    /// </summary>
+    [IniComment("Enable packet encryption")]
+    public bool EncryptionEnabled { get; set; } = false;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="ValidationException">

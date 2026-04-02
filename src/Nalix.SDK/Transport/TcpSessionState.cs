@@ -4,7 +4,7 @@
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// Represents the lifecycle state of a <see cref="TcpSessionBase"/>.
+/// Represents the lifecycle state of a <see cref="TcpSession"/>.
 /// </summary>
 public enum TcpSessionState : byte
 {

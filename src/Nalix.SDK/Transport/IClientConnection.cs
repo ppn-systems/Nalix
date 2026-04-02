@@ -59,12 +59,6 @@ public interface IClientConnection : IDisposable
     /// </summary>
     event EventHandler<IBufferLease> OnMessageReceived;
 
-    /// <summary>Occurs when bytes are written to the socket. Argument = byte count sent.</summary>
-    event EventHandler<long> OnBytesSent;
-
-    /// <summary>Occurs when bytes are received from the socket. Argument = byte count (header+payload).</summary>
-    event EventHandler<long> OnBytesReceived;
-
     /// <summary>Occurs when an internal error happens — useful for logging and diagnostics.</summary>
     event EventHandler<Exception> OnError;
 

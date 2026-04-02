@@ -122,7 +122,7 @@ public static class ControlExtensions
     /// <exception cref="TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     public static Task<TPkt> AwaitPacketAsync<TPkt>(
-        this TcpSessionBase client,
+        this TcpSession client,
         Func<TPkt, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
@@ -178,7 +178,7 @@ public static class ControlExtensions
     /// </code>
     /// </example>
     public static async Task<(double rttMs, Control pong)> PingAsync(
-        this TcpSessionBase client,
+        this TcpSession client,
         ushort opCode,
         uint? sequenceId = null,
         int timeoutMs = 3000,
@@ -237,7 +237,7 @@ public static class ControlExtensions
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Task<Control> AwaitControlAsync(
-        this TcpSessionBase client,
+        this TcpSession client,
         Func<Control, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
@@ -268,7 +268,7 @@ public static class ControlExtensions
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task SendControlAsync(this TcpSessionBase client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
+    public static Task SendControlAsync(this TcpSession client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(client);
 

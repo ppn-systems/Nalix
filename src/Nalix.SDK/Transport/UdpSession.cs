@@ -45,7 +45,7 @@ namespace Nalix.SDK.Transport;
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 [Obsolete("UDP transport is not ready for use and is currently unsupported. This feature is in development and may change or be removed in future releases.", error: false)]
-public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLogging<UdpSession>
+public sealed partial class UdpSession : IClientConnection, IAsyncDisposable, IWithLogging<UdpSession>
 {
     #region Constants
 
@@ -74,9 +74,6 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
     private int _connected;
     private int _reconnecting;
     private int _hasEverConnected;
-
-    private long _bytesSent;
-    private long _bytesReceived;
 
     #endregion Fields
 
@@ -167,12 +164,6 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
     /// <summary>
     /// Gets the total number of bytes sent.
     /// </summary>
-    public long BytesSent => Interlocked.Read(ref _bytesSent);
-
-    /// <summary>
-    /// Gets the total number of bytes received.
-    /// </summary>
-    public long BytesReceived => Interlocked.Read(ref _bytesReceived);
 
     /// <inheritdoc/>
     public bool IsConnected => Volatile.Read(ref _connected) == 1 && Volatile.Read(ref _disposed) == 0;
@@ -199,10 +190,6 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
     public event EventHandler<IBufferLease>? OnMessageReceived;
 
     /// <inheritdoc/>
-    public event EventHandler<long>? OnBytesSent;
-
-    /// <inheritdoc/>
-    public event EventHandler<long>? OnBytesReceived;
 
     /// <inheritdoc/>
     public event EventHandler<Exception>? OnError;
@@ -262,14 +249,8 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
             this.Options.Address = source.Options.Address;
         }
 
-        if (source.Options.Port != 0)
-        {
-            this.Options.Port = source.Options.Port;
-        }
-
-        _logger?.Info(
-            $"[SDK.{nameof(UdpSession)}] Bound UDP auth context from {source.GetType().Name} " +
-            $"to {this.Options.Address}:{this.Options.Port} with session={sessionId}.");
+        if (source.Options.Port != 0) { this.Options.Port = source.Options.Port; }
+        Log.BoundAuthContext(_logger, source.GetType().Name, this.Options.Address, (int)this.Options.Port, sessionId.ToString());
     }
 
     /// <inheritdoc/>
@@ -367,7 +348,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
             {
                 lastEx = ex;
                 try { socket.Dispose(); } catch { }
-                _logger?.Warn($"[SDK.{nameof(UdpSession)}] Failed to connect to {address}:{effectivePort}: {ex.Message}", ex);
+                _logger?.LogWarning(ex, "[SDK.UdpSession] Failed to connect to {Address}:{Port}: {Message}", address, (int)effectivePort, ex.Message);
             }
         }
 
@@ -437,7 +418,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(UdpSession)}] Prepare payload failed: {ex.Message}", ex);
+            _logger?.LogError(ex, "[SDK.UdpSession] Prepare payload failed: {Message}", ex.Message);
             return Task.FromException(ex);
         }
 
@@ -452,7 +433,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
         }
         catch (OperationCanceledException)
         {
-            _logger?.Info($"[SDK.{nameof(UdpSession)}] SendAsync: Operation canceled");
+            _logger?.LogInformation("[SDK.UdpSession] SendAsync: Operation canceled");
             throw;
         }
         finally
@@ -574,7 +555,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
                 throw new NetworkException($"[SDK.{nameof(UdpSession)}] UDP datagram send completed partially.");
             }
 
-            this.ReportBytesSent(sent);
+
             return;
         }
         catch (Exception ex)
@@ -660,7 +641,6 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
                     throw new SocketException((int)SocketError.ConnectionReset);
                 }
 
-                this.ReportBytesReceived(received);
                 using BufferLease lease = BufferLease.CopyFrom(MemoryExtensions.AsSpan(buffer, 0, received));
                 this.ProcessIncomingDatagram(lease);
             }
@@ -761,7 +741,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
                         }
                         catch (Exception ex)
                         {
-                            _logger?.Error($"[SDK.{nameof(UdpSession)}] Sync handler faulted: {ex.Message}", ex);
+                            _logger?.LogError(ex, "[SDK.UdpSession] Sync handler faulted: {Message}", ex.Message);
                         }
                         finally
                         {
@@ -792,7 +772,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(UdpSession)}] Async handler faulted: {ex.Message}", ex);
+            _logger?.LogError(ex, "[SDK.UdpSession] Async handler faulted: {Message}", ex.Message);
         }
     }
 
@@ -960,17 +940,6 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
 
     #region Event Helpers
 
-    private void ReportBytesSent(int count)
-    {
-        _ = Interlocked.Add(ref _bytesSent, count);
-        try { OnBytesSent?.Invoke(this, count); } catch { }
-    }
-
-    private void ReportBytesReceived(int count)
-    {
-        _ = Interlocked.Add(ref _bytesReceived, count);
-        try { OnBytesReceived?.Invoke(this, count); } catch { }
-    }
 
     private void RaiseConnected()
     {
@@ -1026,4 +995,10 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLoggi
     }
 
     #endregion Static Helpers
+
+    private static partial class Log
+    {
+        [LoggerMessage(1, LogLevel.Information, "[UDP] Bound UDP auth context from {SourceType} to {Address}:{Port} with session={SessionId}.")]
+        public static partial void BoundAuthContext(ILogger? logger, string sourceType, string address, int port, string sessionId);
+    }
 }
