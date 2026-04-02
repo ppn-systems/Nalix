@@ -16,6 +16,7 @@ using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
+using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Internal;
 

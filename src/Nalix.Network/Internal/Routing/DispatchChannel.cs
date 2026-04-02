@@ -18,6 +18,7 @@ using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Connections;
+using Nalix.Network.Options;
 using Nalix.Network.Routing;
 
 namespace Nalix.Network.Internal.Routing;

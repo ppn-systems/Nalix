@@ -25,6 +25,7 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Hashing;
 using Nalix.Framework.Time;
+using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport;
 

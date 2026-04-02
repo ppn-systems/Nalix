@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using Nalix.Logging.Formatters;
 using Nalix.Logging.Internal.Console;
+using Nalix.Logging.Options;
 
 namespace Nalix.Logging.Sinks;
 

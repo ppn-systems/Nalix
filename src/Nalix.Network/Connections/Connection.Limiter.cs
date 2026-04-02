@@ -23,10 +23,10 @@ using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
-using Nalix.Network.Connections;
 using Nalix.Network.Internal.Transport;
+using Nalix.Network.Options;
 
-namespace Nalix.Network.Internal.Limiters;
+namespace Nalix.Network.Connections;
 
 /// <summary>
 /// High-performance per-endpoint concurrent connection limiter.

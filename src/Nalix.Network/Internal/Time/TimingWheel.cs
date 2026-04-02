@@ -18,6 +18,7 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
+using Nalix.Network.Options;
 
 namespace Nalix.Network.Internal.Time;
 

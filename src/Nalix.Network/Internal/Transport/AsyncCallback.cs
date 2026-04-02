@@ -15,6 +15,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
+using Nalix.Network.Options;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
