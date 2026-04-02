@@ -182,10 +182,6 @@ public static class FormatterProvider
 
     #endregion Static Constructor
 
-    // =======================================================================
-    // IL-Emit Core — replaces both Expression.Compile AND Activator.CreateInstance
-    // =======================================================================
-
     #region IL-Emit Factory
 
     /// <summary>
@@ -272,10 +268,6 @@ public static class FormatterProvider
     }
 
     #endregion IL-Emit Factory
-
-    // =======================================================================
-    // Public API
-    // =======================================================================
 
     #region APIs
 
@@ -491,10 +483,6 @@ public static class FormatterProvider
     }
 
     #endregion APIs
-
-    // =======================================================================
-    // Private helpers
-    // =======================================================================
 
     #region Private Methods
 
