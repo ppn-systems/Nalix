@@ -42,7 +42,8 @@ public static class ConnectionExtensions
 
         try
         {
-            directive.Initialize(controlType, reason, action,
+            directive.Initialize(
+                controlType, reason, action,
                 sequenceId: options.SequenceId,
                 flags: options.Flags,
                 arg0: options.Arg0,
