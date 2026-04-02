@@ -20,7 +20,7 @@ internal sealed class ObjectFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T> where T : class, new()
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T>, IFillableFormatter<T> where T : class, new()
 {
     #region Core Fields
 
@@ -65,6 +65,11 @@ internal sealed class ObjectFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T Deserialize(ref DataReader reader) => ObjectILCodec<T>.Deserialize(ref reader);
+
+    /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Fill(ref DataReader reader, T value) => ObjectILCodec<T>.Fill(ref reader, value);
 
     #endregion Serialization
 }

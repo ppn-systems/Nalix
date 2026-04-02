@@ -69,4 +69,9 @@ public sealed class WorkerOptions : IWorkerOptions
     /// Gets the action to invoke when the worker has failed.
     /// </summary>
     public Action<IWorkerHandle, Exception>? OnFailed { get; set; }
+
+    /// <summary>
+    /// Gets the optional OS-level thread priority for the worker.
+    /// </summary>
+    public ThreadPriority? OSPriority { get; init; }
 }
