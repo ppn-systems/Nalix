@@ -5,11 +5,9 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 
 namespace Nalix.SDK.Transport.Extensions;
@@ -28,8 +26,6 @@ namespace Nalix.SDK.Transport.Extensions;
 [SkipLocalsInit]
 public static class DirectiveClientExtensions
 {
-    private static ILogger? ResolveLogger(IClientConnection client)
-        => (client as TcpSessionBase)?.Logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Optional callbacks for specific directive types.
@@ -127,7 +123,7 @@ public static class DirectiveClientExtensions
                 _ = Interlocked.Exchange(ref state.ThrottleUntilMonoTicks, nowTicks + delayTicks);
 
                 callbacks?.OnThrottle?.Invoke(d, TimeSpan.FromMilliseconds(delayMs));
-                ResolveLogger(client)?.Info($"DIRECTIVE THROTTLE: {delayMs} ms (SEQ={d.SequenceId})");
+
                 return true;
 
 
@@ -148,7 +144,7 @@ public static class DirectiveClientExtensions
                 {
                     if (d.Arg2 == 0)
                     {
-                        ResolveLogger(client)?.Warn($"DIRECTIVE REDIRECT ignored (no resolver, no port). SEQ={d.SequenceId}");
+
                         return true;
                     }
 
@@ -160,20 +156,19 @@ public static class DirectiveClientExtensions
                 client.Options.Port = ep.Value.port;
                 client.Options.Address = ep.Value.host;
 
-                ResolveLogger(client)?.Info($"DIRECTIVE REDIRECT -> {ep.Value.host}:{ep.Value.port} (SEQ={d.SequenceId})");
                 await client.ConnectAsync(ct: ct).ConfigureAwait(false);
                 return true;
 
 
             case ControlType.NACK:
                 callbacks?.OnNack?.Invoke(d);
-                ResolveLogger(client)?.Warn($"DIRECTIVE NACK: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
+
                 return true;
 
 
             case ControlType.NOTICE:
                 callbacks?.OnNotice?.Invoke(d);
-                ResolveLogger(client)?.Info($"DIRECTIVE NOTICE: Reason={d.Reason}, Action={d.Action}, SEQ={d.SequenceId}");
+
                 return true;
 
 
@@ -194,7 +189,7 @@ public static class DirectiveClientExtensions
             case ControlType.RESERVED2:
                 break;
             default:
-                ResolveLogger(client)?.Debug($"DIRECTIVE (unhandled type {d.Type}) SEQ={d.SequenceId}");
+
                 return true;
         }
 
@@ -260,7 +255,7 @@ public static class DirectiveClientExtensions
 
         if (client.IsThrottled(out TimeSpan wait) && wait > TimeSpan.Zero)
         {
-            ResolveLogger(client)?.Debug($"SendWithThrottle: waiting {(int)wait.TotalMilliseconds} ms");
+
             await Task.Delay(wait, ct).ConfigureAwait(false);
         }
 

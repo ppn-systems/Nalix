@@ -84,18 +84,11 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="IoTTcpSession"/> with an explicit packet registry
-    /// and optional common services.
+    /// Initializes a new instance of <see cref="IoTTcpSession"/> with an explicit packet registry.
     /// </summary>
     /// <param name="registry">Packet registry. Must not be <see langword="null"/>.</param>
-    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
-    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="registry"/> is null.</exception>
-    public IoTTcpSession(
-        IPacketRegistry registry,
-        ILogger? logger = null,
-        IThreadDispatcher? dispatcher = null)
-        : base(logger, dispatcher)
+    public IoTTcpSession(IPacketRegistry registry) : base()
     {
         this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
@@ -109,32 +102,10 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// </summary>
     /// <param name="options">Transport configuration. Must not be <see langword="null"/>.</param>
     /// <param name="registry">Packet registry. Must not be <see langword="null"/>.</param>
-    public IoTTcpSession(TransportOptions options, IPacketRegistry registry)
-        : this(options, registry, logger: null, dispatcher: null)
+    public IoTTcpSession(TransportOptions options, IPacketRegistry registry) : base()
     {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="IoTTcpSession"/> with explicit transport options,
-    /// packet registry, and optional common services.
-    /// </summary>
-    /// <param name="options">Transport configuration. Must not be <see langword="null"/>.</param>
-    /// <param name="registry">Packet registry. Must not be <see langword="null"/>.</param>
-    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
-    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.</exception>
-    public IoTTcpSession(
-        TransportOptions options,
-        IPacketRegistry registry,
-        ILogger? logger = null,
-        IThreadDispatcher? dispatcher = null)
-        : base(logger, dispatcher)
-    {
-        this.Options = options;
-        this.Catalog = registry;
-
-        ArgumentNullException.ThrowIfNull(this.Options);
-        ArgumentNullException.ThrowIfNull(this.Catalog);
+        this.Options = options ?? throw new ArgumentNullException(nameof(options));
+        this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
     }
 
     #endregion Constructors
@@ -144,8 +115,8 @@ public sealed class IoTTcpSession : TcpSessionBase, IDisposable
     /// <inheritdoc/>
     protected override void InitializeFrame()
     {
-        Sender = new FRAME_SENDER(this.RequireConnectedSocket, this.Options, this.ReportBytesSent, this.HandleSendError, this.Logger);
-        Receiver = new FRAME_READER(this.RequireConnectedSocket, this.Options, this.HandleReceiveMessage, this.HandleReceiveError, this.ReportBytesReceived, this.Logger);
+        Sender = new FRAME_SENDER(this.RequireConnectedSocket, this.Options, this.ReportBytesSent, this.HandleSendError);
+        Receiver = new FRAME_READER(this.RequireConnectedSocket, this.Options, this.HandleReceiveMessage, this.HandleReceiveError, this.ReportBytesReceived);
 
         this.Logger?.Debug($"[SDK.{nameof(IoTTcpSession)}] Frame helpers created.");
     }

@@ -34,7 +34,7 @@ namespace Nalix.SDK.Transport;
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
+public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable, IWithLogging<TcpSessionBase>
 {
     #region Fields
 
@@ -59,12 +59,12 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// <summary>
     /// Gets the logger associated with this session instance.
     /// </summary>
-    protected internal ILogger? Logger { get; }
+    protected ILogger? Logger { get; private set; }
 
     /// <summary>
     /// Gets the dispatcher used to marshal callbacks for this session instance.
     /// </summary>
-    protected internal IThreadDispatcher Dispatcher { get; }
+    protected IThreadDispatcher Dispatcher { get; private set; }
 
     /// <inheritdoc/>
     public TransportOptions Options { get; protected set; }
@@ -119,12 +119,19 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// Constructs base session and loads TransportOptions from configuration.
     /// Derived classes are responsible for buffer configuration if needed.
     /// </summary>
-    protected TcpSessionBase(ILogger? logger = null, IThreadDispatcher? dispatcher = null)
+    protected TcpSessionBase()
     {
-        this.Logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
-        this.Dispatcher = dispatcher ?? InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
+        this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        this.Dispatcher = InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
         this.Options = null!;
         this.Catalog = null!;
+    }
+
+    /// <inheritdoc/>
+    public TcpSessionBase WithLogging(ILogger logger)
+    {
+        this.Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        return this;
     }
 
     #endregion Construction
@@ -160,7 +167,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     }
 
     /// <inheritdoc/>
-    public virtual bool IsConnected => Socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
+    public virtual bool IsConnected => Volatile.Read(ref _disposed) == 0 && this.State == TcpSessionState.Connected;
 
     /// <inheritdoc/>
     public virtual Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
@@ -222,11 +229,49 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// was not worth compressing uses path 3.
     /// </para>
     /// </remarks>
-    public async Task SendAsync(IPacket packet, bool encrypt, CancellationToken cancellationToken = default)
+    public Task SendAsync(IPacket packet, bool encrypt, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        BufferLease rawLease = BufferLease.Rent(packet.Length);
+        BufferLease finalLease;
+        try
+        {
+            finalLease = this.PrepareOutboundFrame(packet, encrypt);
+        }
+        catch (Exception ex)
+        {
+            this.Logger?.Error($"[SDK.{this.GetType().Name}] Prepare payload failed: {ex.Message}", ex);
+            return Task.FromException(ex);
+        }
+
+        return this.SendAndDisposeAsync(finalLease, cancellationToken);
+    }
+
+    private async Task SendAndDisposeAsync(BufferLease lease, CancellationToken ct)
+    {
+        try
+        {
+            await this.SendAsync(lease.Memory, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            this.Logger?.Info($"[SDK.{this.GetType().Name}] SendAsync: Operation canceled");
+            throw;
+        }
+        finally
+        {
+            lease.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Synchronously handles serialization, compression, and encryption without allocating an async state machine.
+    /// Returns a leased buffer containing the final payload to be sent. The caller is responsible for disposing it.
+    /// </summary>
+    private BufferLease PrepareOutboundFrame(IPacket packet, bool encrypt)
+    {
+        BufferLease? rawLease = BufferLease.Rent(packet.Length);
+
         try
         {
             int written = packet.Serialize(rawLease.SpanFull);
@@ -234,111 +279,83 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
 
             bool enableCompress = s_options.Enabled && written >= s_options.MinSizeToCompress;
 
-            // ----------------------------------------------------------------
-            // Case 1: plain - no compression, no encryption
-            // ----------------------------------------------------------------
+            // Case 1: plain
             if (!enableCompress && !encrypt)
             {
                 this.Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Send plain payload, size={written}");
-                await this.SendAsync(rawLease.Memory, cancellationToken).ConfigureAwait(false);
-                return;
+                BufferLease ret = rawLease;
+                rawLease = null; // Hand off ownership
+                return ret;
             }
 
-            // ----------------------------------------------------------------
             // Case 2: compress only
-            // ----------------------------------------------------------------
             if (enableCompress && !encrypt)
             {
                 int maxCompressedSize = FrameTransformer.GetMaxCompressedSize(written);
-                BufferLease compressedLease = BufferLease.Rent(maxCompressedSize + FrameTransformer.Offset);
+                BufferLease? compressedLease = BufferLease.Rent(maxCompressedSize + FrameTransformer.Offset);
                 try
                 {
                     FrameTransformer.Compress(rawLease, compressedLease);
-
                     this.Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compressed and sent, original={written}, compressed={compressedLease.Length}");
-                    compressedLease.Span.WriteFlagsLE(
-                        compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
+                    compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
 
-                    await this.SendAsync(compressedLease.Memory, cancellationToken).ConfigureAwait(false);
-                    return;
+                    BufferLease ret = compressedLease;
+                    compressedLease = null;
+                    return ret;
                 }
                 finally
                 {
-                    compressedLease.Dispose();
+                    compressedLease?.Dispose();
                 }
             }
 
-            // ----------------------------------------------------------------
             // Case 3: encrypt only
-            // ----------------------------------------------------------------
             if (!enableCompress && encrypt)
             {
                 int maxCipherSize = FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, rawLease.Length);
-                BufferLease encryptedLease = BufferLease.Rent(maxCipherSize + FrameTransformer.Offset);
+                BufferLease? encryptedLease = BufferLease.Rent(maxCipherSize + FrameTransformer.Offset);
                 try
                 {
                     FrameTransformer.Encrypt(rawLease, encryptedLease, this.Options.Secret, this.Options.Algorithm);
-
-                    encryptedLease.Span.WriteFlagsLE(
-                        encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-
+                    encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
                     this.Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Encrypted and sent, len={encryptedLease.Length}");
-                    await this.SendAsync(encryptedLease.Memory, cancellationToken).ConfigureAwait(false);
-                    return;
+
+                    BufferLease ret = encryptedLease;
+                    encryptedLease = null;
+                    return ret;
                 }
                 finally
                 {
-                    encryptedLease.Dispose();
+                    encryptedLease?.Dispose();
                 }
             }
 
-            // ----------------------------------------------------------------
             // Case 4: compress then encrypt
-            // ----------------------------------------------------------------
             int maxCompressed = FrameTransformer.GetMaxCompressedSize(written);
-            BufferLease compressLease = BufferLease.Rent(maxCompressed + FrameTransformer.Offset);
+            using BufferLease compressLease = BufferLease.Rent(maxCompressed + FrameTransformer.Offset);
+            FrameTransformer.Compress(rawLease, compressLease);
+            compressLease.Span.WriteFlagsLE(compressLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
+
+            int maxCipher = FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, compressLease.Length);
+            BufferLease? encryptLease = BufferLease.Rent(maxCipher + FrameTransformer.Offset);
             try
             {
-                FrameTransformer.Compress(rawLease, compressLease);
+                FrameTransformer.Encrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm);
+                encryptLease.Span.WriteFlagsLE(encryptLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
+                this.Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compress+Encrypt, final-size={encryptLease.Length}");
 
-                compressLease.Span.WriteFlagsLE(
-                    compressLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-
-                int maxCipher = FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, compressLease.Length);
-                BufferLease encryptLease = BufferLease.Rent(maxCipher + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Encrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm);
-
-                    encryptLease.Span.WriteFlagsLE(
-                        encryptLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-
-                    this.Logger?.Trace($"[SDK.{this.GetType().Name}] SendAsync: Compress+Encrypt, final-size={encryptLease.Length}");
-                    await this.SendAsync(encryptLease.Memory, cancellationToken).ConfigureAwait(false);
-                    return;
-                }
-                finally
-                {
-                    encryptLease.Dispose();
-                }
+                BufferLease ret = encryptLease;
+                encryptLease = null;
+                return ret;
             }
             finally
             {
-                compressLease.Dispose();
+                encryptLease?.Dispose();
             }
-        }
-        catch (OperationCanceledException)
-        {
-            this.Logger?.Info($"[SDK.{this.GetType().Name}] SendAsync: Operation canceled");
-            throw;
-        }
-        catch (Exception)
-        {
-            throw;
         }
         finally
         {
-            rawLease.Dispose();
+            rawLease?.Dispose();
         }
     }
 
@@ -508,13 +525,22 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                 this.Logger?.Warn($"[SDK.{this.GetType().Name}] TearDownConnection: Sender cleanup threw: {ex.Message}", ex);
             }
 
+            try
+            {
+                FRAME_READER? prevReceiver = Interlocked.Exchange(ref Receiver, null);
+                prevReceiver?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                this.Logger?.Warn($"[SDK.{this.GetType().Name}] TearDownConnection: Receiver cleanup threw: {ex.Message}", ex);
+            }
+
             try { Socket?.Shutdown(SocketShutdown.Both); } catch { }
             try { Socket?.Close(); Socket?.Dispose(); } catch { }
 
             this.Logger?.Debug($"[SDK.{this.GetType().Name}] TearDownConnection: Socket closed and disposed.");
 
             Socket = null;
-            Receiver = null;
         }
 
     }
@@ -551,19 +577,13 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// Report byte counts to subscribers. Subclasses can override to include counters.
     /// </summary>
     /// <param name="count"></param>
-    protected virtual void ReportBytesSent(int count)
-    {
-        try { OnBytesSent?.Invoke(this, count); } catch { }
-    }
+    protected virtual void ReportBytesSent(int count) => this.RaiseBytesSent(count);
 
     /// <summary>
     /// Report byte counts to subscribers. Subclasses can override to include counters.
     /// </summary>
     /// <param name="count"></param>
-    protected virtual void ReportBytesReceived(int count)
-    {
-        try { OnBytesReceived?.Invoke(this, count); } catch { }
-    }
+    protected virtual void ReportBytesReceived(int count) => this.RaiseBytesReceived(count);
 
     /// <summary>
     /// Default receive message delivery for synchronous subscribers.
@@ -574,17 +594,17 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(lease);
 
-        ReadOnlyMemory<byte> asyncData = default;
-        Delegate[]? handlers = OnMessageReceived?.GetInvocationList();
-        Func<TcpSessionBase, ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageReceivedAsync;
-
-        if (asyncHandler is not null)
-        {
-            asyncData = lease.Span.ToArray();
-        }
-
         try
         {
+            ReadOnlyMemory<byte> asyncData = default;
+            Delegate[]? handlers = OnMessageReceived?.GetInvocationList();
+            Func<TcpSessionBase, ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageReceivedAsync;
+
+            if (asyncHandler is not null)
+            {
+                asyncData = lease.Span.ToArray();
+            }
+
             if (handlers?.Length > 0)
             {
                 foreach (Delegate d in handlers)
@@ -610,19 +630,19 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
                     });
                 }
             }
+
+            if (asyncHandler is not null)
+            {
+                this.Dispatcher.Post(() =>
+                {
+                    this.Logger?.Debug($"[SDK.{nameof(TcpSessionBase)}] Dispatch async handler, length={asyncData.Length}");
+                    _ = this.InvokeAsyncHandler(asyncHandler, asyncData);
+                });
+            }
         }
         finally
         {
             try { lease.Dispose(); } catch { }
-        }
-
-        if (asyncHandler is not null)
-        {
-            this.Dispatcher.Post(() =>
-            {
-                this.Logger?.Debug($"[SDK.{nameof(TcpSessionBase)}] Dispatch async handler, length={asyncData.Length}");
-                _ = this.InvokeAsyncHandler(asyncHandler, asyncData);
-            });
         }
     }
 
@@ -633,7 +653,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// <param name="ex"></param>
     protected virtual void HandleSendError(Exception ex)
     {
-        try { OnError?.Invoke(this, ex); } catch { }
+        this.RaiseError(ex);
         this.TearDownConnection();
     }
 
@@ -644,7 +664,7 @@ public abstract class TcpSessionBase : IClientConnection, IAsyncDisposable
     /// <param name="ex"></param>
     protected virtual void HandleReceiveError(Exception ex)
     {
-        try { OnError?.Invoke(this, ex); } catch { }
+        this.RaiseError(ex);
         this.TearDownConnection();
     }
 

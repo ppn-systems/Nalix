@@ -45,7 +45,7 @@ namespace Nalix.SDK.Transport;
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 [Obsolete("UDP transport is not ready for use and is currently unsupported. This feature is in development and may change or be removed in future releases.", error: false)]
-public sealed class UdpSession : IClientConnection, IAsyncDisposable
+public sealed class UdpSession : IClientConnection, IAsyncDisposable, IWithLogging<UdpSession>
 {
     #region Constants
 
@@ -60,7 +60,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
     private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
 
-    private readonly ILogger? _logger;
+    private ILogger? _logger;
     private readonly IThreadDispatcher _dispatcher;
     private readonly Lock _sync = new();
 
@@ -101,54 +101,38 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UdpSession"/> class with an explicit packet registry
-    /// and optional common services.
+    /// Initializes a new instance of the <see cref="UdpSession"/> class with an explicit packet registry.
     /// </summary>
     /// <param name="registry">The packet registry used for packet serialization and deserialization.</param>
-    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
-    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="registry"/> is null.</exception>
-    public UdpSession(
-        IPacketRegistry registry,
-        ILogger? logger = null,
-        IThreadDispatcher? dispatcher = null)
+    public UdpSession(IPacketRegistry registry)
     {
-        _logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
-        _dispatcher = dispatcher ?? InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _dispatcher = InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
         this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
         this.Options.Validate();
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="UdpSession"/> class with explicit dependencies.
+    /// Initializes a new instance of the <see cref="UdpSession"/> class with explicit transport options and packet registry.
     /// </summary>
     /// <param name="options">The transport options used by this session.</param>
     /// <param name="registry">The packet registry used for packet serialization and deserialization.</param>
-    public UdpSession(TransportOptions options, IPacketRegistry registry)
-        : this(options, registry, logger: null, dispatcher: null)
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="UdpSession"/> class with explicit transport options,
-    /// packet registry, and optional common services.
-    /// </summary>
-    /// <param name="options">The transport options used by this session.</param>
-    /// <param name="registry">The packet registry used for packet serialization and deserialization.</param>
-    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
-    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.</exception>
-    public UdpSession(
-        TransportOptions options,
-        IPacketRegistry registry,
-        ILogger? logger = null,
-        IThreadDispatcher? dispatcher = null)
+    public UdpSession(TransportOptions options, IPacketRegistry registry)
     {
-        _logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
-        _dispatcher = dispatcher ?? InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _dispatcher = InstanceManager.Instance.GetExistingInstance<IThreadDispatcher>() ?? new InlineDispatcher();
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
         this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
+    }
+
+    /// <inheritdoc/>
+    public UdpSession WithLogging(ILogger logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        return this;
     }
 
     #endregion Constructors
@@ -431,7 +415,7 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
     /// Compression and encryption follow the same packet-transform rules used by TCP sessions, but the final output
     /// is emitted as a single UDP datagram.
     /// </remarks>
-    public async Task SendAsync(IPacket packet, bool encrypt, CancellationToken ct = default)
+    public Task SendAsync(IPacket packet, bool encrypt, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
@@ -446,98 +430,121 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
             throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
         }
 
-        BufferLease rawLease = BufferLease.Rent(packet.Length);
+        BufferLease finalLease;
+        try
+        {
+            finalLease = this.PrepareOutboundFrame(packet, encrypt);
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error($"[SDK.{nameof(UdpSession)}] Prepare payload failed: {ex.Message}", ex);
+            return Task.FromException(ex);
+        }
+
+        return this.SendAndDisposeAsync(finalLease, ct);
+    }
+
+    private async Task SendAndDisposeAsync(BufferLease lease, CancellationToken ct)
+    {
+        try
+        {
+            await this.SendAsync(lease.Memory, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger?.Info($"[SDK.{nameof(UdpSession)}] SendAsync: Operation canceled");
+            throw;
+        }
+        finally
+        {
+            lease.Dispose();
+        }
+    }
+
+    private BufferLease PrepareOutboundFrame(IPacket packet, bool encrypt)
+    {
+        BufferLease? rawLease = BufferLease.Rent(packet.Length);
+
         try
         {
             int written = packet.Serialize(rawLease.SpanFull);
             rawLease.CommitLength(written);
 
-            bool enableCompression = s_options.Enabled && written >= s_options.MinSizeToCompress;
+            bool enableCompress = s_options.Enabled && written >= s_options.MinSizeToCompress;
 
-            if (!enableCompression && !encrypt)
+            if (!enableCompress && !encrypt)
             {
-                await this.SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
-                return;
+                BufferLease ret = rawLease;
+                rawLease = null;
+                return ret;
             }
 
-            if (enableCompression && !encrypt)
+            if (enableCompress && !encrypt)
             {
                 int maxCompressedSize = FrameTransformer.GetMaxCompressedSize(written);
-                BufferLease compressedLease = BufferLease.Rent(maxCompressedSize + FrameTransformer.Offset);
+                BufferLease? compressedLease = BufferLease.Rent(maxCompressedSize + FrameTransformer.Offset);
 
                 try
                 {
                     FrameTransformer.Compress(rawLease, compressedLease);
+                    compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
 
-                    compressedLease.Span.WriteFlagsLE(
-                        compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-
-                    await this.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
-                    return;
+                    BufferLease ret = compressedLease;
+                    compressedLease = null;
+                    return ret;
                 }
                 finally
                 {
-                    compressedLease.Dispose();
+                    compressedLease?.Dispose();
                 }
             }
 
-            if (!enableCompression && encrypt)
+            if (!enableCompress && encrypt)
             {
                 int maxCipherSize = FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, rawLease.Length);
-                BufferLease encryptedLease = BufferLease.Rent(maxCipherSize + FrameTransformer.Offset);
+                BufferLease? encryptedLease = BufferLease.Rent(maxCipherSize + FrameTransformer.Offset);
 
                 try
                 {
                     FrameTransformer.Encrypt(rawLease, encryptedLease, this.Options.Secret, this.Options.Algorithm);
+                    encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
-                    encryptedLease.Span.WriteFlagsLE(
-                        encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-
-                    await this.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
-                    return;
+                    BufferLease ret = encryptedLease;
+                    encryptedLease = null;
+                    return ret;
                 }
                 finally
                 {
-                    encryptedLease.Dispose();
+                    encryptedLease?.Dispose();
                 }
             }
 
             int maxCompressed = FrameTransformer.GetMaxCompressedSize(written);
-            BufferLease compressLease = BufferLease.Rent(maxCompressed + FrameTransformer.Offset);
+            using BufferLease compressLease = BufferLease.Rent(maxCompressed + FrameTransformer.Offset);
+
+            FrameTransformer.Compress(rawLease, compressLease);
+            compressLease.Span.WriteFlagsLE(compressLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
+
+            int maxCipher = FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, compressLease.Length);
+            BufferLease? encryptLease = BufferLease.Rent(maxCipher + FrameTransformer.Offset);
 
             try
             {
-                FrameTransformer.Compress(rawLease, compressLease);
+                FrameTransformer.Encrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm);
+                encryptLease.Span.WriteFlagsLE(encryptLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
 
-                compressLease.Span.WriteFlagsLE(
-                    compressLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-
-                int maxCipher = FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, compressLease.Length);
-                BufferLease encryptLease = BufferLease.Rent(maxCipher + FrameTransformer.Offset);
-
-                try
-                {
-                    FrameTransformer.Encrypt(compressLease, encryptLease, this.Options.Secret, this.Options.Algorithm);
-
-                    encryptLease.Span.WriteFlagsLE(
-                        encryptLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-
-                    await this.SendAsync(encryptLease.Memory, ct).ConfigureAwait(false);
-                    return;
-                }
-                finally
-                {
-                    encryptLease.Dispose();
-                }
+                BufferLease ret = encryptLease;
+                encryptLease = null;
+                return ret;
             }
             finally
             {
-                compressLease.Dispose();
+                encryptLease?.Dispose();
             }
         }
         finally
         {
-            rawLease.Dispose();
+            rawLease?.Dispose();
         }
     }
 
@@ -728,17 +735,17 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
 
     private void DeliverMessage(BufferLease lease)
     {
-        ReadOnlyMemory<byte> asyncData = default;
-        Delegate[]? handlers = OnMessageReceived?.GetInvocationList();
-        Func<UdpSession, ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageReceivedAsync;
-
-        if (asyncHandler is not null)
-        {
-            asyncData = lease.Span.ToArray();
-        }
-
         try
         {
+            ReadOnlyMemory<byte> asyncData = default;
+            Delegate[]? handlers = OnMessageReceived?.GetInvocationList();
+            Func<UdpSession, ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageReceivedAsync;
+
+            if (asyncHandler is not null)
+            {
+                asyncData = lease.Span.ToArray();
+            }
+
             if (handlers?.Length > 0)
             {
                 foreach (Delegate handlerDelegate in handlers)
@@ -763,15 +770,15 @@ public sealed class UdpSession : IClientConnection, IAsyncDisposable
                     });
                 }
             }
+
+            if (asyncHandler is not null)
+            {
+                _dispatcher.Post(() => _ = this.InvokeAsyncHandler(asyncHandler, asyncData));
+            }
         }
         finally
         {
             try { lease.Dispose(); } catch { }
-        }
-
-        if (asyncHandler is not null)
-        {
-            _dispatcher.Post(() => _ = this.InvokeAsyncHandler(asyncHandler, asyncData));
         }
     }
 

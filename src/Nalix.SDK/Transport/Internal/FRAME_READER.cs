@@ -3,17 +3,14 @@
 
 using System;
 using System.Buffers.Binary;
-using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Extensions;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Nalix.SDK.Options;
@@ -33,16 +30,14 @@ internal sealed class FRAME_READER(
     TransportOptions options,
     Action<BufferLease> onMessage,
     Action<Exception> onError,
-    Action<int> reportBytesReceived,
-    ILogger? logger = null) : IDisposable
+    Action<int> reportBytesReceived) : IDisposable
 {
     #region Fields
 
     private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
-
     private readonly TransportOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly Func<Socket> _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
-    private readonly ILogger? _logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     private readonly Action<Exception> _onError = onError ?? throw new ArgumentNullException(nameof(onError));
     private readonly Action<BufferLease> _onMessage = onMessage ?? throw new ArgumentNullException(nameof(onMessage));
     private readonly Action<int> _reportBytesReceived = reportBytesReceived ?? throw new ArgumentNullException(nameof(reportBytesReceived));
@@ -70,11 +65,9 @@ internal sealed class FRAME_READER(
         try
         {
             s = _getSocket();
-            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop starting; endpoint={FORMAT_ENDPOINT(s)}");
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] receive-start-error", ex);
             _onError(ex);
             return;
         }
@@ -94,10 +87,6 @@ internal sealed class FRAME_READER(
 
                     if (totalLen < TcpSession.HeaderSize || totalLen > _options.MaxPacketSize)
                     {
-                        _logger?.Warn(
-                            $"[SDK.{nameof(FRAME_READER)}] invalid-packet-size totalLen={totalLen} " +
-                            $"max={_options.MaxPacketSize} endpoint={FORMAT_ENDPOINT(s)}");
-
                         throw new SocketException((int)SocketError.ProtocolNotSupported);
                     }
 
@@ -146,16 +135,12 @@ internal sealed class FRAME_READER(
                     System.Buffers.ArrayPool<byte>.Shared.Return(headerBuffer);
                 }
             }
-
-            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop ending normally");
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
-            _logger?.Trace($"[SDK.{nameof(FRAME_READER)}] receive-loop cancelled");
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] receive-loop faulted", ex);
             try { _onError(ex); } catch { }
         }
         finally
@@ -185,21 +170,15 @@ internal sealed class FRAME_READER(
             // Always dispose the chunk lease immediately (data has been copied by assembler)
             chunkLease.Dispose();
 
-            if (streamEvicted)
-            {
-                _logger?.Warn(
-                    $"[SDK.{nameof(FRAME_READER)}] Fragment stream evicted " +
-                    $"stream={header.StreamId} — timeout or overflow");
-            }
+            bool dummyEvicted = streamEvicted;
 
             if (assembled is not null)
             {
                 this.PROCESS_NORMAL_FRAME(assembled);   // Now decrypt and decompress the full payload
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger?.Warn($"[SDK.{nameof(FRAME_READER)}] Failed to process fragmented chunk", ex);
             chunkLease.Dispose();
         }
     }
@@ -210,8 +189,6 @@ internal sealed class FRAME_READER(
     /// </summary>
     private void PROCESS_NORMAL_FRAME(BufferLease lease)
     {
-
-        _logger?.Debug($"[SDK.{nameof(FRAME_READER)}] header-read length={lease.Length}");
         try
         {
             PacketFlags flags = lease.Span.ReadFlagsLE();
@@ -242,9 +219,8 @@ internal sealed class FRAME_READER(
             // Deliver to upper layer (HandleReceiveMessage)
             _onMessage(lease);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_READER)}] Failed to process normal frame", ex);
             lease.Dispose();
         }
     }
@@ -264,19 +240,6 @@ internal sealed class FRAME_READER(
 
             read += n;
         }
-    }
-
-    [DebuggerStepThrough]
-    private static string FORMAT_ENDPOINT(Socket? s)
-    {
-        if (s is null)
-        {
-            return "<null-socket>";
-        }
-
-        try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
-        catch (ObjectDisposedException) { return "<disposed>"; }
-        catch { return "<unknown>"; }
     }
 
     public void Dispose() => _fragmentAssembler.Dispose();

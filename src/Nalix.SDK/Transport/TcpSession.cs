@@ -121,14 +121,11 @@ public sealed class TcpSession : TcpSessionBase
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TcpSession"/> class with an explicit packet registry
-    /// and optional common services.
+    /// Initializes a new instance of the <see cref="TcpSession"/> class with an explicit packet registry.
     /// </summary>
     /// <param name="registry">The packet registry used for packet serialization and deserialization.</param>
-    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
-    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="registry"/> is null.</exception>
-    public TcpSession(IPacketRegistry registry, ILogger? logger = null, IThreadDispatcher? dispatcher = null) : base(logger, dispatcher)
+    public TcpSession(IPacketRegistry registry) : base()
     {
         this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
         this.Options = ConfigurationManager.Instance.Get<TransportOptions>();
@@ -137,43 +134,15 @@ public sealed class TcpSession : TcpSessionBase
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="TcpSession"/> class.
-    /// </summary>
-    /// <param name="options">
-    /// The transport configuration options used to initialize the TCP session.
-    /// </param>
-    /// <param name="registry">
-    /// The packet registry responsible for managing and resolving packet handlers.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.
-    /// </exception>
-    public TcpSession(TransportOptions options, IPacketRegistry registry)
-        : this(options, registry, logger: null, dispatcher: null)
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TcpSession"/> class with explicit transport options,
-    /// packet registry, and optional common services.
+    /// Initializes a new instance of the <see cref="TcpSession"/> class with explicit transport options and packet registry.
     /// </summary>
     /// <param name="options">The transport configuration options used to initialize the TCP session.</param>
     /// <param name="registry">The packet registry responsible for managing and resolving packet handlers.</param>
-    /// <param name="logger">Optional logger override. When null, the logger is resolved from <see cref="InstanceManager"/>.</param>
-    /// <param name="dispatcher">Optional dispatcher override. When null, the dispatcher is resolved from <see cref="InstanceManager"/>.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> or <paramref name="registry"/> is null.</exception>
-    public TcpSession(
-        TransportOptions options,
-        IPacketRegistry registry,
-        ILogger? logger = null,
-        IThreadDispatcher? dispatcher = null)
-        : base(logger, dispatcher)
+    public TcpSession(TransportOptions options, IPacketRegistry registry) : base()
     {
-        this.Options = options;
-        this.Catalog = registry;
-
-        ArgumentNullException.ThrowIfNull(this.Options);
-        ArgumentNullException.ThrowIfNull(this.Catalog);
+        this.Options = options ?? throw new ArgumentNullException(nameof(options));
+        this.Catalog = registry ?? throw new ArgumentNullException(nameof(registry));
     }
 
     #endregion Constructors
@@ -303,8 +272,8 @@ public sealed class TcpSession : TcpSessionBase
     /// </summary>
     protected override void InitializeFrame()
     {
-        Sender = new FRAME_SENDER(this.RequireConnectedSocket, this.Options, this.ReportBytesSent, this.HandleSendError, this.Logger);
-        Receiver = new FRAME_READER(this.RequireConnectedSocket, this.Options, this.HandleReceiveMessage, this.HandleReceiveError, this.ReportBytesReceived, this.Logger);
+        Sender = new FRAME_SENDER(this.RequireConnectedSocket, this.Options, this.ReportBytesSent, this.HandleSendError);
+        Receiver = new FRAME_READER(this.RequireConnectedSocket, this.Options, this.HandleReceiveMessage, this.HandleReceiveError, this.ReportBytesReceived);
 
         this.Logger?.Debug($"[SDK.{this.GetType().Name}] Frame helpers created");
     }

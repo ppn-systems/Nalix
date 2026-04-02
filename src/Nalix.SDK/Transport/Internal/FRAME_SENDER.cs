@@ -7,12 +7,10 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Nalix.SDK.Options;
@@ -53,7 +51,7 @@ internal sealed class FRAME_SENDER : IDisposable
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0052:Remove unread private members", Justification = "<Pending>")]
     private readonly TransportOptions _options;
     private readonly FragmentOptions _fragmentOptions;
-    private readonly ILogger? _logger;
+
     private readonly Func<Socket> _getSocket;
     private readonly Action<int> _reportBytesSent;
     private readonly Action<Exception> _onError;
@@ -86,13 +84,11 @@ internal sealed class FRAME_SENDER : IDisposable
         Func<Socket> getSocket,
         TransportOptions options,
         Action<int> reportBytesSent,
-        Action<Exception> onError,
-        ILogger? logger = null)
+        Action<Exception> onError)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
         _fragmentOptions.Validate();
-        _logger = logger ?? InstanceManager.Instance.GetExistingInstance<ILogger>();
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _reportBytesSent = reportBytesSent ?? throw new ArgumentNullException(nameof(reportBytesSent));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
@@ -258,8 +254,6 @@ internal sealed class FRAME_SENDER : IDisposable
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_SENDER)}] drain-loop-faulted: {ex.Message}", ex);
-
             _onError(ex);
         }
         finally
@@ -303,8 +297,6 @@ internal sealed class FRAME_SENDER : IDisposable
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[SDK.{nameof(FRAME_SENDER)}:{nameof(SEND_FRAME_ASYNC)}] send-error: {ex.Message}", ex);
-
             _ = tcs.TrySetResult(false);
             _onError(ex);
 
