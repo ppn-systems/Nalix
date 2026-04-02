@@ -1,11 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Security;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Security.Aead;
 using Nalix.Codec.Security.Internal;
-using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Security;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Security.Engine;
@@ -130,7 +130,6 @@ public static class AeadEngine
                 case CipherSuiteType.None:
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
-
                 default:
                     ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
                     return;
@@ -217,9 +216,8 @@ public static class AeadEngine
                 case CipherSuiteType.None:
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
-                    throw new System.NotSupportedException("Authenticated decryption is not supported for the selected non-AEAD algorithm.");
                 default:
-                    ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
+                    ThrowHelper.ThrowNotSupportedException("Authenticated decryption is not supported for the selected non-AEAD algorithm.");
                     return;
             }
 

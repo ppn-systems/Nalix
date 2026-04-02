@@ -6,6 +6,7 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Primitives;
 
@@ -60,7 +61,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         }
 
         // Reserve the sentinel value for null, so valid arrays must stay below it.
-        if (value.Length > SerializerBounds.MaxString)
+        if (value.Length > SerializationStaticOptions.Instance.MaxStringLength)
         {
             throw new SerializationFailureException("The string array exceeds the maximum encodable length.");
         }
@@ -103,10 +104,10 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
             return null!;
         }
 
-        if (length < 0 || length > SerializerBounds.MaxString)
+        if (length < 0 || length > SerializationStaticOptions.Instance.MaxStringLength)
         {
             throw new SerializationFailureException(
-                $"String array length out of range: {length}. Max allowed is {SerializerBounds.MaxString}.");
+                $"String array length out of range: {length}. Max allowed is {SerializationStaticOptions.Instance.MaxStringLength}.");
         }
 
         string[] result = new string[length];
@@ -120,3 +121,4 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         return result;
     }
 }
+

@@ -8,6 +8,7 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -81,7 +82,7 @@ internal sealed class ReferenceListFormatter<
             return null!;
         }
 
-        if (count < 0 || count > SerializerBounds.MaxArray)
+        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw new SerializationFailureException("Reference list length out of range.");
         }
@@ -97,3 +98,4 @@ internal sealed class ReferenceListFormatter<
         return list;
     }
 }
+

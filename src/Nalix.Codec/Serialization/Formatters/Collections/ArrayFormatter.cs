@@ -7,6 +7,7 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -92,9 +93,10 @@ internal sealed class ArrayFormatter<
             return null!;
         }
 
-        if (length < 0 || length > SerializerBounds.MaxArray)
+        int limit = SerializationStaticOptions.Instance.MaxArrayLength;
+        if (length < 0 || length > limit)
         {
-            throw new SerializationFailureException("Array length out of range");
+            throw new SerializationFailureException($"Array length {length} out of range (Config: Serialization.MaxArrayLength)");
         }
 
         long totalLong = (long)length * s_elementSize;

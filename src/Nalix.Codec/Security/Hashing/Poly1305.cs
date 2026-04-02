@@ -42,7 +42,7 @@ namespace Nalix.Codec.Security.Hashing;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public struct Poly1305
+public ref struct Poly1305
 {
     #region Constants
 
@@ -369,7 +369,7 @@ public struct Poly1305
     /// <exception cref="System.ArgumentException">
     /// <paramref name="destination"/> is too small.
     /// </exception>
-    public readonly void ComputeTag(
+    public void ComputeTag(
         System.ReadOnlySpan<byte> message,
         System.Span<byte> destination)
     {
@@ -412,6 +412,9 @@ public struct Poly1305
 
         // Produce the tag
         this.FinalizeTagCore(accumulator, destination);
+
+        // Securely zero all sensitive key material after one-shot use
+        this.Clear();
     }
 
     #endregion Public — Instance One-Shot
@@ -543,8 +546,8 @@ public struct Poly1305
 
         _finalized = true;
 
-        // Clear the accumulator (sensitive state)
-        ((System.Span<uint>)_acc).Clear();
+        // Securely zero all sensitive key material and internal state
+        this.Clear();
     }
 
     /// <summary>

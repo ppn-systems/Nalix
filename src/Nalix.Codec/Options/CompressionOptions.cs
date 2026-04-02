@@ -33,6 +33,18 @@ public sealed class CompressionOptions : ConfigurationLoader
     public int MinSizeToCompress { get; init; } = 1024; // 1KB default
 
     /// <summary>
+    /// Gets or sets the maximum allowed size, in bytes, for a decompressed packet payload.
+    /// </summary>
+    /// <remarks>
+    /// This is a security limit used to prevent allocation-based DoS attacks (Zip Bombs).
+    /// If a packet declares an original size larger than this limit, it will be rejected.
+    /// </remarks>
+    [IniComment("Maximum allowed size (bytes) for a decompressed packet payload (default 32MB)")]
+    [System.ComponentModel.DataAnnotations.Range(1024, int.MaxValue,
+        ErrorMessage = "MaxDecompressedSize must be at least 1024 bytes.")]
+    public int MaxDecompressedSize { get; init; } = 32 * 1024 * 1024; // 32MB default
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <remarks>

@@ -6,6 +6,7 @@ using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -76,7 +77,7 @@ internal sealed class ReferenceArrayFormatter<
             return [];
         }
 
-        if (length < 0 || length > SerializerBounds.MaxArray)
+        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw CodecErrors.SerializationLengthOutOfRange;
         }
@@ -90,3 +91,4 @@ internal sealed class ReferenceArrayFormatter<
         return array;
     }
 }
+

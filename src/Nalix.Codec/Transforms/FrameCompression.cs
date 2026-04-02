@@ -26,6 +26,12 @@ public static class FrameCompression
     {
         ArgumentNullException.ThrowIfNull(src);
 
+        if (src.Length <= FrameTransformer.Offset)
+        {
+            throw new ArgumentException(
+                $"Source too small for decompression: {src.Length}. Min required is {FrameTransformer.Offset + 1}.", nameof(src));
+        }
+
         IBufferLease dest = BufferLease.Rent(FrameTransformer
                                        .GetDecompressedLength(src.Span[FrameTransformer.Offset..]) + FrameTransformer.Offset);
         try
@@ -48,6 +54,12 @@ public static class FrameCompression
     public static IBufferLease CompressFrame([Borrowed] IBufferLease src)
     {
         ArgumentNullException.ThrowIfNull(src);
+
+        if (src.Length <= FrameTransformer.Offset)
+        {
+            throw new ArgumentException(
+                $"Source too small for compression: {src.Length}. Min required is {FrameTransformer.Offset + 1}.", nameof(src));
+        }
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer
                                        .GetMaxCompressedSize(src.Length - FrameTransformer.Offset) + FrameTransformer.Offset);

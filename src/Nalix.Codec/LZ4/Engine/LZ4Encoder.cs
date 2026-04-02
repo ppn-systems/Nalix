@@ -51,14 +51,15 @@ internal static class LZ4Encoder
         {
             fixed (int* hashTable = table)
             {
-#if DEBUG
-                Debug.Assert(hashTable is not null, "Hash table pinning failed");
-#endif
-
-                Span<byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
+                // Safety: We slice the output span to exclude the header area.
+                // This ensures LZ4BlockEncoder.EncodeBlock can only write into the remaining space.
+                Span<byte> compressedDataOutput = output.Slice(LZ4BlockHeader.Size);
+                
                 int compressedDataLength =
                     LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable, hashBits);
 
+                // If EncodeBlock returns -1, it means the output buffer was too small to hold 
+                // the compressed data. We bail out before writing the header to avoid data corruption.
                 if (compressedDataLength < 0)
                 {
                     throw CodecErrors.LZ4EncoderOutputBufferTooSmall;
@@ -66,17 +67,7 @@ internal static class LZ4Encoder
 
                 int totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
 
-#if DEBUG
-                Debug.Assert(
-                    totalCompressedLength <= output.Length,
-                    $"Compressed data ({totalCompressedLength} bytes) exceeds output buffer ({output.Length} bytes)");
-#endif
-
-                if (totalCompressedLength > output.Length)
-                {
-                    throw CodecErrors.LZ4EncoderOutputBufferTooSmall;
-                }
-
+                // Write the header only after successful compression of the data block.
                 WriteHeader(output, input.Length, totalCompressedLength);
                 return totalCompressedLength;
             }
@@ -120,20 +111,18 @@ internal static class LZ4Encoder
             return 16;
         }
 
+        // Calculate bits based on input length, using a conservative jump threshold (1.5x)
+        // to avoid wasting ArrayPool resources for inputs just over a power of 2.
         int bits = System.Numerics.BitOperations.Log2((uint)inputLength);
 
-        // Clamp to avoid tiny hash tables handling too much traffic or huge tables for empty data
-        if (bits < 8)
+        if (bits > 8 && inputLength < (1 << bits) + (1 << (bits - 1)))
         {
-            bits = 8;
+            bits--;
         }
 
-        if (bits > 16)
-        {
-            bits = 16;
-        }
-
-        return bits;
+        // Minimum 8 bits (256 entries) to ensure decent match finding for small blocks.
+        // Clamped at 16 bits maximum (handled by the if check above).
+        return Math.Max(8, bits);
     }
 
     #endregion Private Methods

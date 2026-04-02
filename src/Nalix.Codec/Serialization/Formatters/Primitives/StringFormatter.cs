@@ -9,6 +9,7 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Primitives;
 
@@ -58,9 +59,10 @@ public sealed class StringFormatter : IFormatter<string>
 
         // Guard the payload size before we expand the writer buffer.
         int byteCount = s_utf8.GetByteCount(value);
-        if (byteCount > SerializerBounds.MaxString)
+        int limit = SerializationStaticOptions.Instance.MaxStringLength;
+        if (byteCount > limit)
         {
-            throw CodecErrors.SerializationStringTooLong;
+            throw new SerializationFailureException($"String encoded size {byteCount} exceeds the allowed limit of {limit} (Config: Serialization.MaxStringLength)");
         }
 
         // Write the length first so the reader knows exactly how many bytes to consume.
@@ -111,9 +113,10 @@ public sealed class StringFormatter : IFormatter<string>
             return null!;
         }
 
-        if (length < 0 || length > SerializerBounds.MaxString)
+        int limit = SerializationStaticOptions.Instance.MaxStringLength;
+        if (length < 0 || length > limit)
         {
-            throw CodecErrors.SerializationLengthOutOfRange;
+            throw new SerializationFailureException($"String length {length} out of range (Config: Serialization.MaxStringLength)");
         }
 
         // Build a read-only span over the exact UTF-8 byte range and decode it directly.

@@ -6,6 +6,7 @@ using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.Extensions;
 
@@ -102,7 +103,7 @@ public sealed class PacketRegistry : IPacketRegistry
     /// Because <see cref="PacketRegistry"/> is shared, calling Configure on any 
     /// <c>PacketProvider&lt;T&gt;</c> will take effect for all other packet types.
     /// </remarks>
-    public static void Configure(IObjectPoolManager manager) => Manager = manager;
+    public static void Configure(IObjectPoolManager manager) => System.Threading.Volatile.Write(ref Manager, manager);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -157,8 +158,16 @@ public sealed class PacketRegistry : IPacketRegistry
             return false;
         }
 
-        packet = deserializer(raw);
-        return packet is not null;
+        try
+        {
+            packet = deserializer(raw);
+            return packet is not null;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
+        {
+            packet = null;
+            return false;
+        }
     }
 
     #endregion Public API
