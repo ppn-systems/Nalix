@@ -12,7 +12,6 @@ namespace Nalix.Network.Options;
 [IniComment("Network socket configuration — controls port, buffering, concurrency, and socket behavior")]
 public sealed class NetworkSocketOptions : ConfigurationLoader
 {
-
     #region Constants
 
     internal const int True = 1;

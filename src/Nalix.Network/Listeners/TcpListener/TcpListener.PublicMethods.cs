@@ -17,7 +17,6 @@ using Nalix.Common.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Time;
 
@@ -31,15 +30,6 @@ namespace Nalix.Network.Listeners.Tcp;
 [DebuggerDisplay("Port={_port}, StateWrapper={StateWrapper}")]
 public abstract partial class TcpListenerBase
 {
-    /// <summary>
-    /// Updates the listener with the current server time, provided as a Unix timestamp.
-    /// </summary>
-    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC),
-    /// as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public virtual void SynchronizeTime(long milliseconds) { }
-
     /// <summary>
     /// Starts listening for incoming connections and processes them using the specified protocol.
     /// The listening process can be cancelled using the provided <see cref="CancellationToken"/>.
@@ -243,7 +233,7 @@ public abstract partial class TcpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     public virtual string GenerateReport()
     {
-        StringBuilder sb = new(1024);
+        StringBuilder sb = new(2048);
         ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TcpListenerBase Status:");

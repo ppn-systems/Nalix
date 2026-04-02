@@ -16,7 +16,6 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Time;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -169,23 +168,6 @@ public abstract partial class UdpListenerBase : IListener
     }
 
     /// <summary>
-    /// Updates the listener with the current server time, provided as a Unix timestamp.
-    /// </summary>
-    /// <param name="milliseconds">The current server time in milliseconds since the Unix epoch (January 1, 2020, 00:00:00 UTC), as provided by <see cref="Clock.UnixMillisecondsNow"/>.</param>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public virtual void SynchronizeTime(long milliseconds)
-    {
-        // Record last sync and drift vs local clock
-        long now = Clock.UnixMillisecondsNow();
-        _lastSyncUnixMs = milliseconds;
-        _lastDriftMs = now - milliseconds;
-
-        // Hook for derived listeners (optional override)
-        this.OnTimeSynchronized(milliseconds, now, _lastDriftMs);
-    }
-
-    /// <summary>
     /// Called when the listener synchronizes its time with the server.
     /// </summary>
     /// <param name="serverMs">The current server time in milliseconds since the Unix epoch.</param>
@@ -326,6 +308,8 @@ public abstract partial class UdpListenerBase : IListener
 
         return data;
     }
+
+    public void SynchronizeTime(long milliseconds) => throw new NotImplementedException();
 
     #endregion IReportable Implementation
 }
