@@ -168,19 +168,6 @@ public abstract partial class UdpListenerBase : IListener
     }
 
     /// <summary>
-    /// Called when the listener synchronizes its time with the server.
-    /// </summary>
-    /// <param name="serverMs">The current server time in milliseconds since the Unix epoch.</param>
-    /// <param name="localMs">The local time in milliseconds since the Unix epoch.</param>
-    /// <param name="driftMs">The calculated drift in milliseconds between server and local time.</param>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected virtual void OnTimeSynchronized(long serverMs, long localMs, long driftMs)
-    {
-        // No-op by default
-    }
-
-    /// <summary>
     /// Determines whether the incoming packet is authenticated.
     /// Default returns true (i.e., trusted). Override in derived class.
     /// </summary>
@@ -308,8 +295,6 @@ public abstract partial class UdpListenerBase : IListener
 
         return data;
     }
-
-    public void SynchronizeTime(long milliseconds) => throw new NotImplementedException();
 
     #endregion IReportable Implementation
 }

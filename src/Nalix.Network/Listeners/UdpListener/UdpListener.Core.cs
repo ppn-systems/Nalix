@@ -51,11 +51,6 @@ public abstract partial class UdpListenerBase
 
     private long _recvErrors;
 
-    /// <summary>
-    /// Time sync diagnostics
-    /// </summary>
-    private long _lastSyncUnixMs;
-    private long _lastDriftMs;
     private int _procSeq = -1;
 
     #endregion Fields
