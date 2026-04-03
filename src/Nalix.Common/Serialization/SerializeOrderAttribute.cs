@@ -7,19 +7,23 @@ using Nalix.Common.Networking.Packets;
 namespace Nalix.Common.Serialization;
 
 /// <summary>
-/// Specifies the serialization order of a field or property.
+/// Marks a field or property with an explicit serialization order.
+/// This is used when the serializer should not infer ordering automatically.
 /// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true)]
 public class SerializeOrderAttribute : Attribute
 {
-    /// <summary>Gets the serialization order of the field or property.</summary>
+    /// <summary>Gets the explicit serialization order assigned to the member.</summary>
     public int Order { get; set; }
 
     /// <summary>Initializes a new instance of the <see cref="SerializeOrderAttribute"/> class.</summary>
-    /// <param name="order">The order in which the field or property should be serialized.</param>
+    /// <param name="order">The explicit order value to assign to the member.</param>
     public SerializeOrderAttribute(int order) => this.Order = order;
 
-    /// <summary>Initializes a new instance of the <see cref="SerializeOrderAttribute"/> class using a packet header offset.</summary>
-    /// <param name="position">The enum value that defines the order of serialization.</param>
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SerializeOrderAttribute"/> class
+    /// using a packet header offset value.
+    /// </summary>
+    /// <param name="position">The packet header offset that maps to the explicit order.</param>
     public SerializeOrderAttribute(PacketHeaderOffset position) : this((int)position) { }
 }

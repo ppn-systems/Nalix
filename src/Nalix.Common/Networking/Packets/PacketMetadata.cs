@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// Represents packet metadata used to describe dispatch and serialization behavior.
+/// Captures the packet attributes that drive dispatch, validation, and transport behavior.
 /// </summary>
 /// <param name="opCode">The opcode metadata for the packet.</param>
 /// <param name="timeout">The optional timeout metadata.</param>
@@ -20,7 +20,7 @@ namespace Nalix.Common.Networking.Packets;
 /// <param name="concurrencyLimit">The optional concurrency limit metadata.</param>
 /// <param name="customAttributes">Additional custom attributes keyed by attribute type.</param>
 /// <remarks>
-/// This type is immutable and uses sequential layout for predictable interop and serialization behavior.
+/// The struct is immutable so metadata can be cached and shared safely across dispatch paths.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -35,41 +35,36 @@ public readonly struct PacketMetadata(
     IReadOnlyDictionary<Type, Attribute>? customAttributes = null)
 {
     /// <summary>
-    /// Gets the operation code attribute which uniquely identifies the type of packet.
+    /// Gets the opcode attribute that uniquely identifies the packet type.
     /// </summary>
     public readonly PacketOpcodeAttribute PacketOpcode = opCode;
 
     /// <summary>
-    /// Gets the optional timeout attribute which defines the time duration
-    /// after which the packet operation is considered expired.
+    /// Gets the optional timeout attribute.
     /// </summary>
     public readonly PacketTimeoutAttribute? Timeout = timeout;
 
     /// <summary>
-    /// Gets the optional permission attribute that specifies access control
-    /// or authorization level required to handle this packet.
+    /// Gets the optional permission requirement.
     /// </summary>
     public readonly PacketPermissionAttribute? Permission = permission;
 
     /// <summary>
-    /// Gets the optional encryption attribute that defines the required
-    /// encryption mechanism for this packet’s payload.
+    /// Gets the optional encryption requirement.
     /// </summary>
     public readonly PacketEncryptionAttribute? Encryption = encryption;
 
     /// <summary>
-    /// Gets the optional rate limit attribute that specifies the allowed burst and
-    /// requests per second for this packet, used to control network traffic and prevent abuse.
+    /// Gets the optional rate limit requirement.
     /// </summary>
     public readonly PacketRateLimitAttribute? RateLimit = rateLimit;
 
     /// <summary>
-    /// Gets the optional concurrency limit attribute that specifies the maximum number of concurrent
-    /// operations allowed for this packet, and optionally the queuing behavior if the limit is reached.
+    /// Gets the optional concurrency limit requirement.
     /// </summary>
     public readonly PacketConcurrencyLimitAttribute? ConcurrencyLimit = concurrencyLimit;
 
-    /// <summary>Gets the custom metadata attributes keyed by attribute type.</summary>
+    /// <summary>Gets additional custom metadata attributes keyed by attribute type.</summary>
     public readonly IReadOnlyDictionary<Type, Attribute> CustomAttributes = customAttributes
         ?? new Dictionary<Type, Attribute>();
 

@@ -6,24 +6,24 @@ using System;
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// <c>PacketRateLimitAttribute</c> is an attribute used to limit the rate of requests for a method.
-/// Apply this attribute to methods to specify how many requests per second are allowed, and the burst size.
+/// Marks a handler with a request rate limit.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="PacketRateLimitAttribute"/> class.
+/// The dispatcher can use this information to throttle bursts and protect the handler
+/// from sustained overload.
 /// </remarks>
 /// <param name="requestsPerSecond">Maximum requests per second allowed.</param>
-/// <param name="burst">Burst size (default is 1).</param>
+/// <param name="burst">Burst size, where 1 means no burst beyond the steady rate.</param>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
 public sealed class PacketRateLimitAttribute(int requestsPerSecond, double burst = 1) : Attribute
 {
     /// <summary>
-    /// The burst size allowed for requests. Default is 1.
+    /// Gets the burst size allowed for requests.
     /// </summary>
     public double Burst { get; } = burst;
 
     /// <summary>
-    /// The maximum number of requests allowed per second.
+    /// Gets the maximum number of requests allowed per second.
     /// </summary>
     public int RequestsPerSecond { get; } = requestsPerSecond;
 }

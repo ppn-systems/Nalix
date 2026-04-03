@@ -13,21 +13,22 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Framework.Memory.Internal;
 
 /// <summary>
-/// Provides methods to efficiently write literal bytes directly to a memory destination.
-/// This class is optimized for high-performance memory operations with minimal overhead.
+/// Writes literal byte sequences into a destination pointer and advances that pointer
+/// as bytes are copied.
+/// The helper keeps the hot path small by delegating the actual copy to <see cref="MemOps"/>.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static unsafe class LiteralWriter
 {
     /// <summary>
-    /// Writes a sequence of literal bytes from a memory pointer to the destination.
+    /// Writes a sequence of literal bytes from a raw pointer into the destination.
     /// </summary>
-    /// <param name="destPtr">A reference to the destination memory pointer. This pointer will be updated after writing.</param>
-    /// <param name="literalStartPtr">The pointer to the start of the literal data to be written.</param>
-    /// <param name="length">The number of bytes to write from the literal data. Must be non-negative.</param>
+    /// <param name="destPtr">The destination pointer, which is advanced by <paramref name="length"/> bytes.</param>
+    /// <param name="literalStartPtr">The source pointer containing the literal bytes.</param>
+    /// <param name="length">The number of bytes to copy.</param>
     /// <remarks>
-    /// This method directly copies bytes from one memory location to another.
-    /// It is assumed that `destPtr` has enough space to accommodate `length` bytes.
+    /// The caller owns the destination bounds. This helper does not validate capacity;
+    /// it only performs the copy and advances the write cursor.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(
@@ -40,21 +41,21 @@ internal static unsafe class LiteralWriter
             return;
         }
 
-        // Copy the data from source pointer to destination pointer
+        // Copy the data in one block so callers can treat this as a pointer-based append.
         MemOps.Copy(literalStartPtr, destPtr, length);
 
-        // Advance the destination pointer by the number of bytes written
+        // Advance the cursor past the bytes that were just written.
         destPtr += length;
     }
 
     /// <summary>
-    /// Writes a sequence of literal bytes from a read-only span to the destination.
+    /// Writes a sequence of literal bytes from a read-only span into the destination.
     /// </summary>
-    /// <param name="destPtr">A reference to the destination memory pointer. This pointer will be updated after writing.</param>
-    /// <param name="literals">The span of bytes containing the literal data to be written.</param>
+    /// <param name="destPtr">The destination pointer, which is advanced by the copied length.</param>
+    /// <param name="literals">The source bytes to append.</param>
     /// <remarks>
-    /// This method is designed to handle scenarios where the source data is in a span.
-    /// Spans provide safer and more flexible memory access compared to raw pointers.
+    /// This overload is the safer call site for span-based sources but uses the same
+    /// pointer append semantics as the raw pointer overload.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Write(
@@ -66,10 +67,10 @@ internal static unsafe class LiteralWriter
             return;
         }
 
-        // Copy the data from the span to the destination pointer
+        // Copy span data directly into the pointer destination.
         MemOps.Copy(literals, destPtr);
 
-        // Advance the destination pointer by the number of bytes written
+        // Advance the cursor to the new end of written data.
         destPtr += literals.Length;
     }
 }

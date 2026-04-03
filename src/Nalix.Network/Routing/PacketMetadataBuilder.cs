@@ -11,6 +11,7 @@ namespace Nalix.Network.Routing;
 /// <summary>
 /// Collects packet-related attributes and turns them into a single immutable
 /// <see cref="PacketMetadata"/> instance.
+/// The builder is intended for one registration pass, then one build step.
 /// </summary>
 public sealed class PacketMetadataBuilder
 {
@@ -79,8 +80,8 @@ public sealed class PacketMetadataBuilder
     /// <summary>
     /// Builds an immutable <see cref="PacketMetadata"/> instance from the
     /// current builder state.
-    /// The builder is copied into the result so the caller can keep mutating
-    /// this instance without affecting already-built metadata.
+    /// The builder contents are copied into the result so previously built
+    /// metadata stays isolated from later edits.
     /// </summary>
     /// <returns>A new <see cref="PacketMetadata"/> instance.</returns>
     /// <exception cref="InternalErrorException">

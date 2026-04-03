@@ -6,8 +6,8 @@ using System;
 namespace Nalix.Common.Serialization;
 
 /// <summary>
-/// An attribute that marks a class, struct, or interface as serializable with a specified layout.
-/// This attribute is used to configure the serialization behavior for types in the Nalix serialization framework.
+/// Marks a type as participating in Nalix serialization and selects the layout
+/// strategy used for its fields.
 /// </summary>
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Struct |
@@ -15,8 +15,7 @@ namespace Nalix.Common.Serialization;
 public sealed class SerializePackableAttribute(SerializeLayout layout = SerializeLayout.Auto) : Attribute
 {
     /// <summary>
-    /// Gets the layout strategy to be used during serialization of the marked type.
-    /// The default value is <see cref="SerializeLayout.Auto"/> if not explicitly set.
+    /// Gets the layout strategy used when serializing the marked type.
     /// </summary>
     public SerializeLayout SerializeLayout { get; set; } = layout;
 }

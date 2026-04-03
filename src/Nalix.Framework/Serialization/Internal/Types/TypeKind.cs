@@ -12,23 +12,23 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Framework.Serialization.Internal.Types;
 
 /// <summary>
-/// Represents the kind of type.
+/// Classifies the type shape that matters to the serializer's layout logic.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal enum TypeKind : byte
 {
     /// <summary>
-    /// No specific type assigned.
+    /// No special handling is required.
     /// </summary>
     None = 0,
 
     /// <summary>
-    /// Represents an unmanaged single-dimensional array.
+    /// An unmanaged single-dimensional array with contiguous element storage.
     /// </summary>
     UnmanagedSZArray = 1,
 
     /// <summary>
-    /// Represents a fixed-size serializable type.
+    /// A serializable type whose byte size is known up front.
     /// </summary>
     FixedSizeSerializable = 2,
 }
