@@ -329,8 +329,10 @@ internal sealed class BufferPoolShared : IDisposable
             // This guarantees that the public byte[] API always delivers arrays where
             // data starts at offset 0 — required by FrameReader, FrameSender, and all
             // network components that write directly to array[0..].
-            // Batch-slab (one large array sliced into segments) cannot satisfy this
-            // contract without non-zero segment offsets, which break the entire stack.
+            //
+            // The slab-based allocation path (SlabBucket / SlabPoolManager) is used
+            // separately via BufferPoolManager.RentSegment() for callers that handle
+            // ArraySegment with non-zero offsets (e.g., BufferLease.Rent(), SAEA).
             byte[] buf = GC.AllocateArray<byte>(_bufferSize, pinned: true);
             ArraySegment<byte> segment = new(buf, 0, _bufferSize);
 
