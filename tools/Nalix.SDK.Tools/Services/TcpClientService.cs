@@ -104,7 +104,6 @@ public sealed class TcpClientService : ITcpClientService
         PacketLogEntry entry = new()
         {
             Timestamp = DateTimeOffset.Now,
-            Direction = "Sent",
             PacketName = packet.GetType().Name,
             Snapshot = snapshot
         };
@@ -155,7 +154,6 @@ public sealed class TcpClientService : ITcpClientService
             entry = new PacketLogEntry
             {
                 Timestamp = DateTimeOffset.Now,
-                Direction = "Received",
                 PacketName = frame.GetType().Name,
                 Snapshot = PacketSnapshot.FromPacket(frame)
             };
@@ -165,7 +163,6 @@ public sealed class TcpClientService : ITcpClientService
             entry = new PacketLogEntry
             {
                 Timestamp = DateTimeOffset.Now,
-                Direction = "Received",
                 PacketName = "Unknown Packet",
                 Snapshot = PacketCatalogService.CreateSnapshotFromRaw(rawBytes),
                 DecodeStatus = exception.Message

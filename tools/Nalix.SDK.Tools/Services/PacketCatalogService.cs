@@ -172,7 +172,6 @@ public sealed class PacketCatalogService : IPacketCatalogService
                     PropertyType = property.PropertyType,
                     EditorKind = this.ResolveEditorKind(property.PropertyType),
                     IsHeader = property.GetCustomAttribute<SerializeHeaderAttribute>() is not null,
-                    IsIgnored = false,
                     Children = this.IsComplexType(property.PropertyType)
                         ? this.BuildPropertyDefinitions(this.GetNonNullableType(property.PropertyType), path)
                         : Array.Empty<PacketPropertyDefinition>()

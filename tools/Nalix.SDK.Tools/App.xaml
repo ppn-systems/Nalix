@@ -1,9 +1,7 @@
 <Application x:Class="Nalix.SDK.Tools.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:converters="clr-namespace:Nalix.SDK.Tools.Converters">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <converters:NullToBooleanConverter x:Key="NullToBooleanConverter" />
     </Application.Resources>
 </Application>

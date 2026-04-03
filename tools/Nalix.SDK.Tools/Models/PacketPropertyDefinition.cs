@@ -34,11 +34,6 @@ public sealed class PacketPropertyDefinition
     public bool IsHeader { get; init; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the property is ignored by serialization.
-    /// </summary>
-    public bool IsIgnored { get; init; }
-
-    /// <summary>
     /// Gets or sets the ordered child definitions when the property is complex.
     /// </summary>
     public IReadOnlyList<PacketPropertyDefinition> Children { get; init; } = Array.Empty<PacketPropertyDefinition>();

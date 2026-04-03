@@ -13,11 +13,6 @@ public sealed class PacketLogEntry
     public required DateTimeOffset Timestamp { get; init; }
 
     /// <summary>
-    /// Gets or sets the traffic direction label.
-    /// </summary>
-    public required string Direction { get; init; }
-
-    /// <summary>
     /// Gets or sets the packet title.
     /// </summary>
     public required string PacketName { get; init; }
@@ -36,5 +31,5 @@ public sealed class PacketLogEntry
     /// Gets a summary string shown in the list.
     /// </summary>
     public string Summary =>
-        $"{this.Timestamp:HH:mm:ss}  {this.Direction,-8}  0x{this.Snapshot.OpCode:X4}  {this.PacketName}";
+        $"{this.Timestamp:HH:mm:ss}  0x{this.Snapshot.OpCode:X4}  {this.PacketName}";
 }

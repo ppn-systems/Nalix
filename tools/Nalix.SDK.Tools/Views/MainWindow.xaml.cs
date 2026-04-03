@@ -41,20 +41,4 @@ public partial class MainWindow : Window
             viewModel.InspectSelectedReceivedPacketCommand.Execute(null);
         }
     }
-
-    private void CopySentHexButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (this.DataContext is MainWindowViewModel viewModel && !string.IsNullOrWhiteSpace(viewModel.SentDetailRawHex))
-        {
-            Clipboard.SetText(viewModel.SentDetailRawHex);
-        }
-    }
-
-    private void CopyReceivedHexButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (this.DataContext is MainWindowViewModel viewModel && !string.IsNullOrWhiteSpace(viewModel.ReceivedDetailRawHex))
-        {
-            Clipboard.SetText(viewModel.ReceivedDetailRawHex);
-        }
-    }
 }

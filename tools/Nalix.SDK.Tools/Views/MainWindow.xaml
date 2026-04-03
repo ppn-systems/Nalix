@@ -146,7 +146,7 @@
                                     <ComboBox Grid.Row="0"
                                               Grid.Column="1"
                                               Margin="8,0,0,8"
-                                              DisplayMemberPath="SelectorDisplay"
+                                              DisplayMemberPath="Name"
                                               ItemsSource="{Binding PacketTypes}"
                                               SelectionChanged="BuilderPacketTypeComboBox_SelectionChanged"
                                               SelectedItem="{Binding SelectedPacketType}" />
@@ -231,22 +231,22 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.ColumnSpan="2" Margin="0,0,0,12">
-                                <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding SentDetailTitle}" />
+                                <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding SentDetail.Title}" />
                                 <TextBlock Margin="0,6,0,0"
                                            Foreground="#64748B"
                                            TextWrapping="Wrap"
-                                           Text="{Binding SentDetailSummary}" />
+                                           Text="{Binding SentDetail.Summary}" />
                             </StackPanel>
 
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                <controls:DynamicPropertyForm ItemsSource="{Binding SentDetailProperties}" />
+                                <controls:DynamicPropertyForm ItemsSource="{Binding SentDetail.Properties}" />
                             </ScrollViewer>
 
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="16,0,0,0">
                                 <Button Width="100"
                                         Margin="0,0,0,8"
                                         HorizontalAlignment="Left"
-                                        Click="CopySentHexButton_Click"
+                                        Command="{Binding SentDetail.CopyHexCommand}"
                                         Content="Copy Hex" />
                                 <TextBox Padding="10"
                                          VerticalAlignment="Stretch"
@@ -256,7 +256,7 @@
                                          TextWrapping="Wrap"
                                          FontFamily="Consolas"
                                          IsReadOnly="True"
-                                         Text="{Binding SentDetailRawHex, Mode=OneWay}" />
+                                         Text="{Binding SentDetail.RawHex, Mode=OneWay}" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -302,22 +302,22 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.ColumnSpan="2" Margin="0,0,0,12">
-                                <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding ReceivedDetailTitle}" />
+                                <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding ReceivedDetail.Title}" />
                                 <TextBlock Margin="0,6,0,0"
                                            Foreground="#64748B"
                                            TextWrapping="Wrap"
-                                           Text="{Binding ReceivedDetailSummary}" />
+                                           Text="{Binding ReceivedDetail.Summary}" />
                             </StackPanel>
 
                             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                <controls:DynamicPropertyForm ItemsSource="{Binding ReceivedDetailProperties}" />
+                                <controls:DynamicPropertyForm ItemsSource="{Binding ReceivedDetail.Properties}" />
                             </ScrollViewer>
 
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="16,0,0,0">
                                 <Button Width="100"
                                         Margin="0,0,0,8"
                                         HorizontalAlignment="Left"
-                                        Click="CopyReceivedHexButton_Click"
+                                        Command="{Binding ReceivedDetail.CopyHexCommand}"
                                         Content="Copy Hex" />
                                 <TextBox Padding="10"
                                          VerticalAlignment="Stretch"
@@ -327,7 +327,7 @@
                                          TextWrapping="Wrap"
                                          FontFamily="Consolas"
                                          IsReadOnly="True"
-                                         Text="{Binding ReceivedDetailRawHex, Mode=OneWay}" />
+                                         Text="{Binding ReceivedDetail.RawHex, Mode=OneWay}" />
                             </StackPanel>
                         </Grid>
                     </Border>

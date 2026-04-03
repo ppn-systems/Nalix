@@ -39,11 +39,6 @@ public sealed class PacketTypeDescriptor
     public string PaddedName { get; init; } = string.Empty;
 
     /// <summary>
-    /// Gets a compact display string for packet selectors.
-    /// </summary>
-    public string SelectorDisplay => this.Name;
-
-    /// <summary>
     /// Gets a compact registry display string.
     /// </summary>
     public string RegistryDisplay => $"{(string.IsNullOrEmpty(this.PaddedName) ? this.Name : this.PaddedName)} | 0x{this.MagicNumber:X8}";

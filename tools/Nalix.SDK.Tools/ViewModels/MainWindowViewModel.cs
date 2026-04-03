@@ -27,22 +27,20 @@ public sealed class MainWindowViewModel : ViewModelBase
     private string _host = "127.0.0.1";
     private string _portText = "57206";
     private string _statusText = "Ready.";
-    private string _resolutionText = "Enter an OpCode or pick a packet type from the registry.";
-    private string _rawHex = string.Empty;
+    private string _resolutionText = "Select a packet type to begin editing.";
     private string _currentPacketTitle = "No packet loaded";
-    private string _currentPacketSummary = "Resolve an opcode or load a packet type to begin editing.";
-    private string _sentDetailTitle = "Select a sent packet";
-    private string _sentDetailSummary = "Sent packet details will appear here.";
-    private string _sentDetailRawHex = string.Empty;
-    private string _receivedDetailTitle = "Select a received packet";
-    private string _receivedDetailSummary = "Received packet details will appear here.";
-    private string _receivedDetailRawHex = string.Empty;
+    private string _currentPacketSummary = "Select a packet type in Packet Builder to begin editing.";
     private string _hexViewerTitle = "Hex Viewer";
     private string _hexViewerHex = string.Empty;
     private bool _isHexViewerVisible;
     private bool _isConnected;
     private bool _currentPacketIsReadOnly;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
+    /// </summary>
+    /// <param name="catalogService">The packet catalog service.</param>
+    /// <param name="tcpClientService">The TCP client service.</param>
     public MainWindowViewModel(IPacketCatalogService catalogService, ITcpClientService tcpClientService)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
@@ -52,6 +50,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             this.PacketTypes.Add(descriptor);
         }
+
+        this.SentDetail = new PacketHistoryDetailViewModel("Select a sent packet", "Sent packet details will appear here.");
+        this.ReceivedDetail = new PacketHistoryDetailViewModel("Select a received packet", "Received packet details will appear here.");
 
         this.ConnectCommand = new AsyncRelayCommand(this.ConnectAsync, this.CanConnect);
         this.DisconnectCommand = new AsyncRelayCommand(this.DisconnectAsync, this.CanDisconnect);
@@ -82,9 +83,9 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<PacketLogEntry> ReceivedHistory { get; } = [];
 
-    public ObservableCollection<PropertyNodeViewModel> SentDetailProperties { get; } = [];
+    public PacketHistoryDetailViewModel SentDetail { get; }
 
-    public ObservableCollection<PropertyNodeViewModel> ReceivedDetailProperties { get; } = [];
+    public PacketHistoryDetailViewModel ReceivedDetail { get; }
 
     public AsyncRelayCommand ConnectCommand { get; }
 
@@ -113,7 +114,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             if (this.SetProperty(ref _selectedPacketType, value))
             {
-                // Packet identity is determined by MagicNumber/type selection.
+                // Packet identity is determined by explicit packet type selection.
             }
 
             this.NotifyCommandStates();
@@ -127,9 +128,13 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             if (this.SetProperty(ref _selectedSentHistoryEntry, value))
             {
-                if (value is not null)
+                if (value is null)
                 {
-                    this.ShowSentDetail(value);
+                    this.SentDetail.Reset();
+                }
+                else
+                {
+                    this.SentDetail.Show(value, _catalogService);
                 }
 
                 this.NotifyCommandStates();
@@ -144,9 +149,13 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             if (this.SetProperty(ref _selectedReceivedHistoryEntry, value))
             {
-                if (value is not null)
+                if (value is null)
                 {
-                    this.ShowReceivedDetail(value);
+                    this.ReceivedDetail.Reset();
+                }
+                else
+                {
+                    this.ReceivedDetail.Show(value, _catalogService);
                 }
 
                 this.NotifyCommandStates();
@@ -190,18 +199,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         private set => this.SetProperty(ref _resolutionText, value);
     }
 
-    public string RawHex
-    {
-        get => _rawHex;
-        private set
-        {
-            if (this.SetProperty(ref _rawHex, value))
-            {
-                this.NotifyCommandStates();
-            }
-        }
-    }
-
     public string CurrentPacketTitle
     {
         get => _currentPacketTitle;
@@ -212,42 +209,6 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         get => _currentPacketSummary;
         private set => this.SetProperty(ref _currentPacketSummary, value);
-    }
-
-    public string SentDetailTitle
-    {
-        get => _sentDetailTitle;
-        private set => this.SetProperty(ref _sentDetailTitle, value);
-    }
-
-    public string SentDetailSummary
-    {
-        get => _sentDetailSummary;
-        private set => this.SetProperty(ref _sentDetailSummary, value);
-    }
-
-    public string SentDetailRawHex
-    {
-        get => _sentDetailRawHex;
-        private set => this.SetProperty(ref _sentDetailRawHex, value);
-    }
-
-    public string ReceivedDetailTitle
-    {
-        get => _receivedDetailTitle;
-        private set => this.SetProperty(ref _receivedDetailTitle, value);
-    }
-
-    public string ReceivedDetailSummary
-    {
-        get => _receivedDetailSummary;
-        private set => this.SetProperty(ref _receivedDetailSummary, value);
-    }
-
-    public string ReceivedDetailRawHex
-    {
-        get => _receivedDetailRawHex;
-        private set => this.SetProperty(ref _receivedDetailRawHex, value);
     }
 
     public string HexViewerTitle
@@ -373,8 +334,14 @@ public sealed class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        this.LoadDescriptor(this.SelectedPacketType, false);
-        this.ResolutionText = $"Loaded {this.SelectedPacketType.FullName} into the packet builder. Packet type is defined by MagicNumber.";
+        FrameBase packet = _catalogService.CreatePacket(this.SelectedPacketType);
+        if (packet.Protocol == ProtocolType.NONE)
+        {
+            packet.Protocol = ProtocolType.TCP;
+        }
+
+        this.LoadPacket(packet, this.SelectedPacketType, false);
+        this.ResolutionText = $"Loaded {this.SelectedPacketType.FullName} into the packet builder. Packet identity is defined by MagicNumber.";
     }
 
     private void ResetPacket()
@@ -384,28 +351,25 @@ public sealed class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        this.LoadDescriptor(this.SelectedPacketType, false);
+        this.LoadSelectedPacketType();
         this.StatusText = "Packet editor reset to a fresh instance.";
     }
 
     private void SerializePacket()
     {
-        this.RefreshSerializedPacket();
-        if (_currentPacket is not null)
+        if (this.TryRefreshSerializedPacket(out string hex) && _currentPacket is not null)
         {
             this.StatusText = $"Serialized {_currentPacket.GetType().Name} into {_currentPacket.Length:N0} bytes.";
-            this.ShowHexViewer($"Serialized: {_currentPacket.GetType().Name}", this.RawHex);
+            this.ShowHexViewer($"Serialized: {_currentPacket.GetType().Name}", hex);
         }
     }
 
     private async Task SendPacketAsync()
     {
-        if (_currentPacket is null)
+        if (_currentPacket is null || !this.TryRefreshSerializedPacket(out _))
         {
             return;
         }
-
-        this.RefreshSerializedPacket();
 
         try
         {
@@ -419,7 +383,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void CopyHexViewer()
     {
-        Clipboard.SetText(this.HexViewerHex ?? string.Empty);
+        Clipboard.SetText(this.HexViewerHex);
         this.StatusText = "Hex copied to the clipboard.";
     }
 
@@ -454,13 +418,10 @@ public sealed class MainWindowViewModel : ViewModelBase
             }
 
             this.SelectedPacketType = descriptor;
-            _currentPacket = frame;
-            this.CurrentPacketIsReadOnly = isReadOnly;
-            this.RebuildPropertyNodes(frame, descriptor, isReadOnly);
+            this.LoadPacket(frame, descriptor, isReadOnly);
             this.ResolutionText = isReadOnly
                 ? $"Loaded received packet snapshot for {descriptor.FullName} in read-only mode."
                 : $"Reopened sent packet snapshot for {descriptor.FullName}.";
-            this.RefreshSerializedPacket();
         }
         catch (Exception exception)
         {
@@ -468,19 +429,12 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void LoadDescriptor(PacketTypeDescriptor descriptor, bool isReadOnly)
+    private void LoadPacket(FrameBase packet, PacketTypeDescriptor descriptor, bool isReadOnly)
     {
-        FrameBase packet = _catalogService.CreatePacket(descriptor);
-
-        if (packet.Protocol == ProtocolType.NONE)
-        {
-            packet.Protocol = ProtocolType.TCP;
-        }
-
         _currentPacket = packet;
         this.CurrentPacketIsReadOnly = isReadOnly;
         this.RebuildPropertyNodes(packet, descriptor, isReadOnly);
-        this.RefreshSerializedPacket();
+        _ = this.TryRefreshSerializedPacket(out _);
     }
 
     private void RebuildPropertyNodes(FrameBase packet, PacketTypeDescriptor descriptor, bool isReadOnly)
@@ -491,34 +445,41 @@ public sealed class MainWindowViewModel : ViewModelBase
                      [.. descriptor.Properties.Where(static definition => !string.Equals(definition.Name, "OpCode", StringComparison.Ordinal))],
                      isReadOnly,
                      !isReadOnly,
-                     this.RefreshSerializedPacket))
+                     this.HandleCurrentPacketChanged))
         {
             this.CurrentProperties.Add(node);
         }
 
-        this.CurrentPacketTitle = $"{descriptor.Name}{(isReadOnly ? " (Read-only)" : string.Empty)}";
-        this.CurrentPacketSummary = $"{descriptor.FullName} | Magic 0x{packet.MagicNumber:X8} | OpCode 0x{packet.OpCode:X4}";
+        this.CurrentPacketTitle = isReadOnly ? $"{descriptor.Name} (Read-only)" : descriptor.Name;
     }
 
-    private void RefreshSerializedPacket()
+    private void HandleCurrentPacketChanged() => _ = this.TryRefreshSerializedPacket(out _);
+
+    private bool TryRefreshSerializedPacket(out string hex)
     {
+        hex = string.Empty;
         if (_currentPacket is null)
         {
-            this.RawHex = string.Empty;
-            return;
+            this.CurrentPacketSummary = "Select a packet type in Packet Builder to begin editing.";
+            return false;
         }
 
         try
         {
-            this.RawHex = _currentPacket.Serialize().ToHexString();
-            this.CurrentPacketSummary = $"{_currentPacket.GetType().FullName} | Magic 0x{_currentPacket.MagicNumber:X8} | OpCode 0x{_currentPacket.OpCode:X4} | Length {_currentPacket.Length:N0} bytes";
+            hex = _currentPacket.Serialize().ToHexString();
+            this.CurrentPacketSummary = this.BuildPacketSummary(_currentPacket);
+            return true;
         }
         catch (Exception exception)
         {
-            this.RawHex = string.Empty;
+            this.CurrentPacketSummary = this.BuildPacketSummary(_currentPacket);
             this.StatusText = $"Serialization failed: {exception.Message}";
+            return false;
         }
     }
+
+    private string BuildPacketSummary(FrameBase frame)
+        => $"{frame.GetType().FullName} | Magic 0x{frame.MagicNumber:X8} | OpCode 0x{frame.OpCode:X4} | Length {frame.Length:N0} bytes";
 
     private bool TryParsePort(out ushort port)
         => ushort.TryParse(this.PortText, NumberStyles.Integer, CultureInfo.InvariantCulture, out port);
@@ -532,10 +493,8 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void HandlePacketSent(object? sender, PacketLogEntry entry)
     {
         this.SentHistory.Insert(0, entry);
-        this.RawHex = entry.Snapshot.RawBytes.ToHexString();
         this.StatusText = $"{entry.PacketName} sent successfully.";
         this.SelectedSentHistoryEntry = entry;
-        this.ShowSentDetail(entry);
     }
 
     private void HandlePacketReceived(object? sender, PacketLogEntry entry)
@@ -543,72 +502,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         this.ReceivedHistory.Insert(0, entry);
         this.StatusText = $"{entry.PacketName} received ({entry.DecodeStatus}).";
         this.SelectedReceivedHistoryEntry = entry;
-        this.ShowReceivedDetail(entry);
-    }
-
-    private void ShowSentDetail(PacketLogEntry entry)
-    {
-        ArgumentNullException.ThrowIfNull(entry);
-
-        this.FillHistoryDetail(
-            entry,
-            this.SentDetailProperties,
-            entry.PacketName,
-            value => this.SentDetailTitle = value,
-            value => this.SentDetailSummary = value,
-            value => this.SentDetailRawHex = value);
-    }
-
-    private void ShowReceivedDetail(PacketLogEntry entry)
-    {
-        ArgumentNullException.ThrowIfNull(entry);
-
-        this.FillHistoryDetail(
-            entry,
-            this.ReceivedDetailProperties,
-            entry.PacketName,
-            value => this.ReceivedDetailTitle = value,
-            value => this.ReceivedDetailSummary = value,
-            value => this.ReceivedDetailRawHex = value);
-    }
-
-    private void FillHistoryDetail(
-        PacketLogEntry entry,
-        ObservableCollection<PropertyNodeViewModel> targetProperties,
-        string title,
-        Action<string> setTitle,
-        Action<string> setSummary,
-        Action<string> setRawHex)
-    {
-        targetProperties.Clear();
-        setTitle(title);
-        setRawHex(entry.Snapshot.RawBytes.ToHexString());
-
-        try
-        {
-            FrameBase frame = _catalogService.Deserialize(entry.Snapshot.RawBytes);
-            PacketTypeDescriptor? descriptor = _catalogService.FindByType(frame.GetType());
-            setSummary(descriptor is null
-                ? $"{frame.GetType().FullName} | OpCode 0x{frame.OpCode:X4} | Magic 0x{frame.MagicNumber:X8}"
-                : $"{descriptor.FullName} | OpCode 0x{frame.OpCode:X4} | Magic 0x{frame.MagicNumber:X8} | {entry.DecodeStatus}");
-
-            if (descriptor is not null)
-            {
-                foreach (PropertyNodeViewModel node in PropertyNodeViewModel.CreateNodes(
-                             frame,
-                             descriptor.Properties,
-                             true,
-                             false,
-                             static () => { }))
-                {
-                    targetProperties.Add(node);
-                }
-            }
-        }
-        catch
-        {
-            setSummary($"{entry.Snapshot.PacketTypeName} | OpCode 0x{entry.Snapshot.OpCode:X4} | Magic 0x{entry.Snapshot.MagicNumber:X8} | {entry.DecodeStatus}");
-        }
     }
 
     private void ShowHexViewer(string title, string hex)

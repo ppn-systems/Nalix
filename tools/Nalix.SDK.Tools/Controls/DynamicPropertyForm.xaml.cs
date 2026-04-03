@@ -15,7 +15,7 @@ namespace Nalix.SDK.Tools.Controls;
 /// </summary>
 public partial class DynamicPropertyForm : UserControl
 {
-    private readonly IPropertyEditorFactory _propertyEditorFactory = new PropertyEditorFactory();
+    private static readonly IPropertyEditorFactory PropertyEditorFactory = new PropertyEditorFactory();
     private INotifyCollectionChanged? _currentCollection;
 
     /// <summary>
@@ -99,7 +99,7 @@ public partial class DynamicPropertyForm : UserControl
     {
         if (propertyNode.EditorKind == EditorKind.Complex)
         {
-            return _propertyEditorFactory.CreateEditor(propertyNode);
+            return PropertyEditorFactory.CreateEditor(propertyNode);
         }
 
         Grid grid = new()
@@ -125,7 +125,7 @@ public partial class DynamicPropertyForm : UserControl
         _ = grid.Children.Add(labelPanel);
 
         StackPanel editorPanel = new();
-        _ = editorPanel.Children.Add(_propertyEditorFactory.CreateEditor(propertyNode));
+        _ = editorPanel.Children.Add(PropertyEditorFactory.CreateEditor(propertyNode));
 
         TextBlock errorBlock = new()
         {
