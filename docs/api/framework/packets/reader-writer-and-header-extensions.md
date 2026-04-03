@@ -14,6 +14,14 @@ This page covers the low-level helper APIs around `DataReader`, `DataWriter`, an
 - `DataWriterExtensions`
 - `HeaderExtensions`
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `DataReaderExtensions` | `ReadByte`, `ReadUInt16`, `ReadUInt32`, `ReadInt32`, `ReadInt64`, `ReadUInt64`, `ReadBoolean`, `ReadEnumByte`, `ReadEnumUInt16`, `ReadEnumUInt32`, `ReadBytes`, `ReadRemainingBytes`, `ReadUnmanaged`, `Remaining` |
+| `DataWriterExtensions` | `Write`, `WriteEnum`, `WriteUnmanaged` overloads for primitive, span, enum, and unmanaged values |
+| `HeaderExtensions` | `ReadMagicNumberLE`, `ReadOpCodeLE`, `ReadFlagsLE`, `WriteFlagsLE`, `ReadPriorityLE`, `ReadTransportLE`, `ReadSequenceIdLE` |
+
 ## When to use these helpers
 
 Use these APIs when you are:
@@ -99,6 +107,12 @@ ushort headerOpcode = writer.WrittenSpan.ReadOpCodeLE();
 - `DataReaderExtensions` and `DataWriterExtensions` are marked as editor-hidden helpers, but they are still part of the public API surface.
 - `HeaderExtensions` works directly on `Span<byte>` and `ReadOnlySpan<byte>` and is intended for hot paths that need fast header inspection.
 - These helpers assume the Nalix packet header layout and explicit little-endian reads for protocol stability.
+
+### Common pitfalls
+
+- using these helpers when `LiteSerializer` or `PacketBase<TSelf>` already gives you the shape you want
+- reading header fields from the wrong byte offset
+- mixing endianness assumptions with the fixed Nalix wire layout
 
 ## Related APIs
 

@@ -1,10 +1,10 @@
 # ConnectionLimitOptions
 
-`ConnectionLimitOptions` controls how `ConnectionLimiter` enforces per-endpoint connection caps, burst detection, temporary bans, and cleanup of old limiter state.
+`ConnectionLimitOptions` controls how `ConnectionGuard` enforces per-endpoint connection caps, burst detection, temporary bans, and cleanup of old limiter state.
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/ConnectionLimitOptions.cs`
+- `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
 
 ## Properties
 

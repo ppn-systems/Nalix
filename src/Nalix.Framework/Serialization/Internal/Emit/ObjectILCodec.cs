@@ -5,7 +5,8 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Internal.Reflection;
 
 /// <summary>
-/// Fully unrolled, zero-overhead IL serializer for reference types (classes).
+/// Builds a per-type IL serializer for reference types and caches the generated
+/// delegates for reuse.
 /// </summary>
 internal static class ObjectILCodec<T> where T : class, new()
 {
@@ -21,6 +22,8 @@ internal static class ObjectILCodec<T> where T : class, new()
 
     static ObjectILCodec()
     {
+        // Reflection is paid once per closed type, then the generated delegates are reused
+        // on the hot path without further metadata discovery.
         s_fields = FieldCache<T>.GetFields();
 
         if (s_fields == null || s_fields.Length == 0)
@@ -44,6 +47,8 @@ internal static class ObjectILCodec<T> where T : class, new()
 
     private static SerializeDelegate GenerateSerialize()
     {
+        // Emit a linear serializer: each discovered field is written in the cached order
+        // and the generated method contains no loops at runtime.
         DynamicMethod dm = new(
             $"ObjectSerialize_{typeof(T).Name}",
             typeof(void),
@@ -64,6 +69,8 @@ internal static class ObjectILCodec<T> where T : class, new()
 
     private static DeserializeDelegate GenerateDeserialize()
     {
+        // Emit a matching constructor + field-population path so the object is
+        // fully reconstructed before it is returned to the caller.
         DynamicMethod dm = new(
             $"ObjectDeserialize_{typeof(T).Name}",
             typeof(T),

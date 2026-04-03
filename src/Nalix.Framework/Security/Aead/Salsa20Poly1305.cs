@@ -12,6 +12,8 @@ namespace Nalix.Framework.Security.Aead;
 /// <summary>
 /// Provides an allocation-minimized, Span-first implementation of a
 /// SALSA20-Poly1305 AEAD scheme (secretbox-style keystream layout, AEAD transcript like RFC 8439).
+/// The API mirrors the ChaCha20-Poly1305 flow so callers can switch algorithms
+/// without having to relearn the transcript or counter rules.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -104,15 +106,16 @@ public static class Salsa20Poly1305
         try
         {
             zeros.Clear();
-            // 1) Derive 32-byte Poly1305 one-time key from Salsa20 counter=0
-            // Fill polyKey with keystream (encrypting zero block)
+            // Counter 0 is reserved for the Poly1305 one-time key, so payload
+            // keystream starts later and does not reuse the key-derivation block.
             written = Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey); // typically writes 32
 
-            // 2) Encrypt payload with counter=1+
-            // If Salsa20.Encrypt returns written bytes, capture it; otherwise assume plaintext.Length.
+            // Counter 1 begins the payload keystream; the zero block is never reused
+            // for data.
             written = Salsa20.Encrypt(key, nonce, counter: 1UL, plaintext, dstCiphertext);
 
-            // 3) MAC transcript (AAD || pad16 || CT || pad16 || lenAAD || lenCT)
+            // MAC the detached transcript in the exact AEAD order so AAD and
+            // ciphertext stay bound together in the final tag.
             Poly1305 poly = new(polyKey);
 
             // Use only the written portion of dstCiphertext for MAC
@@ -179,22 +182,26 @@ public static class Salsa20Poly1305
 
         try
         {
-            // 1) Poly1305 one-time key (counter=0)
+            // Counter 0 again derives the Poly1305 one-time key before verifying
+            // the tag. The decrypt path must reproduce the encrypt-side transcript.
             System.Span<byte> zeros = stackalloc byte[32];
             zeros.Clear();
             _ = Salsa20.Encrypt(key, nonce, counter: 0UL, zeros, polyKey);
 
-            // 2) Compute expected tag over AAD + CT
+            // Recompute the expected tag over the detached transcript before
+            // decrypting. If this check fails, the ciphertext is rejected.
             Poly1305 poly = new(polyKey);
             BUILD_TRANSCRIPT_AND_FINALIZE(poly, aad, ciphertext, computed);
 
-            // 3) Constant-time compare
+            // Reject tampered ciphertext before producing plaintext. The compare is
+            // fixed-time so attackers cannot learn where the mismatch occurred.
             if (!BitwiseOperations.FixedTimeEquals(computed, tag))
             {
                 return -1;
             }
 
-            // 4) Decrypt with counter=1+
+            // Counter 1 begins the actual payload keystream.
+            // This mirrors the encrypt path and keeps the keystream schedule aligned.
             return Salsa20.Decrypt(key, nonce, counter: 1UL, ciphertext, dstPlaintext);
         }
         finally
@@ -221,7 +228,8 @@ public static class Salsa20Poly1305
         Poly1305 mac, System.ReadOnlySpan<byte> aad,
         System.ReadOnlySpan<byte> ciphertext, System.Span<byte> tagOut16)
     {
-        // AAD
+        // AAD first, then pad to the next 16-byte boundary so the transcript
+        // layout matches the AEAD construction exactly.
         if (!aad.IsEmpty)
         {
             mac.Update(aad);
@@ -229,7 +237,8 @@ public static class Salsa20Poly1305
 
         Pad16(mac, aad.Length);
 
-        // Ciphertext
+        // Ciphertext follows the same padding rule as AAD so the transcript stays
+        // canonical and cannot be interpreted ambiguously.
         if (!ciphertext.IsEmpty)
         {
             mac.Update(ciphertext);
@@ -237,7 +246,8 @@ public static class Salsa20Poly1305
 
         Pad16(mac, ciphertext.Length);
 
-        // Lengths (LE 64-bit each)
+        // Bind the exact lengths into the MAC so transcript truncation or
+        // extension cannot be forged.
         System.Span<byte> lens = stackalloc byte[16];
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(lens, (ulong)aad.Length);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(lens[8..], (ulong)ciphertext.Length);
@@ -256,6 +266,8 @@ public static class Salsa20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void Pad16(Poly1305 mac, int length)
     {
+        // Poly1305 pads to the next 16-byte boundary. If the segment is already
+        // aligned, there is nothing to add.
         int rem = length & 0x0F;
         if (rem == 0)
         {

@@ -25,6 +25,8 @@ namespace Nalix.Framework.Serialization;
 
 /// <summary>
 /// Provides a global registry for registering and retrieving formatters without boxing.
+/// The provider centralizes formatter lookup so serializer code can ask for a
+/// formatter once and then reuse the resolved instance on the hot path.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class FormatterProvider
@@ -52,18 +54,14 @@ public static class FormatterProvider
         { 5, typeof(ValueTupleFormatter<,,,,>) },
     };
 
-    // -----------------------------------------------------------------------
-    // IL-Emit factory cache
-    //   Key:   concrete formatter Type  (e.g. ArrayFormatter<int>)
-    //   Value: Func<object>             — compiled DynamicMethod, called in O(1)
+    // IL-emit factory cache:
+    //   Key   = concrete formatter type, such as ArrayFormatter<int>
+    //   Value = a compiled parameterless constructor delegate.
     //
-    // WHY ConcurrentDictionary<Type, Func<object>> instead of per-T generic cache:
-    //   • We don't know TFormatter at compile-time here — it's always built via
-    //     MakeGenericType at runtime.
-    //   • ConcurrentDictionary gives lock-free reads after the first write.
-    //   • One entry per *concrete* formatter type, not per T — so
-    //     ArrayFormatter<int> and ArrayFormatter<long> get separate slots.
-    // -----------------------------------------------------------------------
+    // This cache exists because formatter types are assembled dynamically with
+    // MakeGenericType, so we cannot rely on a compile-time generic cache here.
+    // By caching the constructor delegate per concrete formatter type, repeated
+    // lookups stay O(1) and avoid reflection after the first hit.
     private static readonly ConcurrentDictionary<Type, Func<object>> s_factoryCache = new();
 
     #endregion Fields
@@ -72,13 +70,13 @@ public static class FormatterProvider
 
     static FormatterProvider()
     {
-        // ============================================================ //
-        // String
+        // String formatters are registered first because they are among the most
+        // common and often participate in higher-level composite serializers.
         Register(new StringFormatter());
         Register(new StringArrayFormatter());
 
-        // ============================================================ //
-        // Unmanaged primitives
+        // Primitive unmanaged formatters cover the common scalar types that can
+        // be serialized directly without per-element reference tracking.
         Register(new UnmanagedFormatter<char>());
         Register(new UnmanagedFormatter<byte>());
         Register(new UnmanagedFormatter<sbyte>());
@@ -99,8 +97,8 @@ public static class FormatterProvider
         Register(new UnmanagedFormatter<TimeOnly>());
         Register(new UnmanagedFormatter<DateTimeOffset>());
 
-        // ============================================================ //
-        // Unmanaged arrays
+        // Array formatters are registered separately so fixed-size element types
+        // can be serialized as contiguous buffers with minimal per-item overhead.
         Register(new ArrayFormatter<char>());
         Register(new ArrayFormatter<byte>());
         Register(new ArrayFormatter<sbyte>());
@@ -120,8 +118,8 @@ public static class FormatterProvider
         Register(new ArrayFormatter<TimeOnly>());
         Register(new ArrayFormatter<DateTimeOffset>());
 
-        // ============================================================ //
-        // Nullable<T>
+        // Nullable<T> formatters preserve the distinction between "no value" and
+        // the default value of the underlying type.
         Register(new NullableFormatter<char>());
         Register(new NullableFormatter<byte>());
         Register(new NullableFormatter<sbyte>());
@@ -142,8 +140,8 @@ public static class FormatterProvider
         Register(new NullableFormatter<TimeOnly>());
         Register(new NullableFormatter<DateTimeOffset>());
 
-        // ============================================================ //
-        // NullableArray<T>
+        // NullableArray<T> formatters do the same for collections that may contain
+        // missing entries at arbitrary positions.
         Register(new NullableArrayFormatter<char>());
         Register(new NullableArrayFormatter<byte>());
         Register(new NullableArrayFormatter<sbyte>());
@@ -164,8 +162,8 @@ public static class FormatterProvider
         Register(new NullableArrayFormatter<TimeOnly>());
         Register(new NullableArrayFormatter<DateTimeOffset>());
 
-        // ============================================================ //
-        // Custom — UInt56
+        // UInt56 is a project-specific numeric type, so it gets the same full
+        // formatter coverage as the built-in primitives.
         Register(new ArrayFormatter<UInt56>());
         Register(new UnmanagedFormatter<UInt56>());
         Register(new NullableFormatter<UInt56>());
@@ -208,11 +206,15 @@ public static class FormatterProvider
     [MethodImpl(MethodImplOptions.NoInlining)] // cold path — emit once, cache forever
     private static Func<object> BuildCtorFactory(Type concreteFormatterType)
     {
+        // Build a tiny factory once so repeated formatter creation stays reflection-free.
+        // The goal is to pay the reflection cost only when a new formatter type is
+        // first requested, not on every serialization operation.
         ConstructorInfo ctor = concreteFormatterType.GetConstructor(Type.EmptyTypes)
             ?? throw new SerializationFailureException(
                 $"No parameterless constructor on '{concreteFormatterType.FullName}'.");
 
-        // Owner = concreteFormatterType so the JIT can access any internal ctor.
+        // Use the concrete formatter type as the dynamic method owner so the JIT
+        // can access internal constructors when necessary.
         DynamicMethod dm = new(
             name: $"__new_{concreteFormatterType.Name}",
             returnType: typeof(object),
@@ -225,6 +227,7 @@ public static class FormatterProvider
         // IL:
         //   newobj <ctor>    ; allocate + call ctor, push ref onto stack
         //   ret              ; return the object reference
+        // Emit the minimum possible IL: construct the formatter and return it.
         il.Emit(OpCodes.Newobj, ctor);
         il.Emit(OpCodes.Ret);
 
@@ -249,6 +252,7 @@ public static class FormatterProvider
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> EmitCreate<T>(Type genericFormatterDef, Type typeArg)
     {
+        // Close the open generic formatter type at runtime, then instantiate the cached constructor.
         Type concrete = genericFormatterDef.MakeGenericType([typeArg]);
         return (IFormatter<T>)GetOrAddFactory(concrete)();
     }

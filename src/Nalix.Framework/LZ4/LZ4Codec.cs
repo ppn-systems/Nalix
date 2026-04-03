@@ -14,8 +14,9 @@ using Nalix.Framework.Memory.Buffers;
 namespace Nalix.Framework.LZ4;
 
 /// <summary>
-/// Provides high-performance methods for compressing and decompressing data using the Nalix LZ4 algorithm.
-/// This class is static-like and designed for zero-allocation workflows.
+/// Provides high-performance LZ4 compression and decompression helpers.
+/// The API is intentionally thin so callers can choose between span-based
+/// zero-copy operations and pooled-buffer workflows.
 /// </summary>
 [DebuggerNonUserCode]
 public static class LZ4Codec
@@ -23,6 +24,10 @@ public static class LZ4Codec
     /// <summary>
     /// Compresses the input data into the specified output buffer.
     /// </summary>
+    /// <remarks>
+    /// This overload is the lowest-allocation path: the caller owns the output span
+    /// and receives only the number of bytes written.
+    /// </remarks>
     /// <param name="input">The input data to compress.</param>
     /// <param name="output">The output buffer to receive the compressed data.</param>
     /// <returns>The number of bytes written to the output buffer.</returns>
@@ -45,9 +50,12 @@ public static class LZ4Codec
     }
 
     /// <summary>
-    /// Compresses the input data into a <see cref="BufferLease"/> rented from the pool.
-    /// Caller is responsible for disposing the lease when done.
+    /// Compresses the input data into a pooled <see cref="BufferLease"/>.
     /// </summary>
+    /// <remarks>
+    /// This is the convenience path for callers who want a ready-to-use pooled
+    /// buffer without manually sizing and renting it first.
+    /// </remarks>
     /// <param name="input">The input data to compress.</param>
     /// <param name="lease">
     /// On success, a <see cref="BufferLease"/> whose <see cref="BufferLease.Span"/> contains
@@ -89,6 +97,10 @@ public static class LZ4Codec
     /// <summary>
     /// Decompresses the input compressed data into the specified output buffer.
     /// </summary>
+    /// <remarks>
+    /// The caller owns the destination span, which keeps this overload useful in
+    /// pipelines where the final output buffer is already allocated elsewhere.
+    /// </remarks>
     /// <param name="input">The compressed input data, including header information.</param>
     /// <param name="output">The output buffer to receive the decompressed data.</param>
     /// <returns>The number of bytes written to the output buffer.</returns>
@@ -100,9 +112,12 @@ public static class LZ4Codec
     public static int Decode(ReadOnlySpan<byte> input, Span<byte> output) => LZ4Decoder.Decode(input, output);
 
     /// <summary>
-    /// Decompresses the compressed input into a <see cref="BufferLease"/> rented from the pool.
-    /// Caller is responsible for disposing the lease when done.
+    /// Decompresses the compressed input into a pooled <see cref="BufferLease"/>.
     /// </summary>
+    /// <remarks>
+    /// This overload is convenient when the caller does not want to size the
+    /// output buffer manually and prefers to hand the result off as a lease.
+    /// </remarks>
     /// <param name="input">The compressed input data, including header information.</param>
     /// <param name="lease">
     /// On success, a <see cref="BufferLease"/> whose <see cref="BufferLease.Span"/> contains

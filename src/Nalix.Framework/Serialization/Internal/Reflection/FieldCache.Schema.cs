@@ -14,15 +14,16 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Framework.Serialization.Internal.Reflection;
 
 /// <summary>
-/// Represents metadata for a field, including its type and ordering.
+/// Describes one serialized field and the metadata needed to read or write it
+/// without re-running reflection.
 /// </summary>
-/// <param name="Order">The order of the field in the serialized structure.</param>
-/// <param name="IsHeader">Indicates whether the field is a header.</param>
-/// <param name="Size">The memory size of the field type.</param>
-/// <param name="Name">The name of the field.</param>
-/// <param name="IsValueType">Indicates whether the field is a value type.</param>
-/// <param name="FieldType">The type of the field.</param>
-/// <param name="FieldInfo">Reflection metadata for the field.</param>
+/// <param name="Order">The effective serialization order used by the serializer.</param>
+/// <param name="IsHeader">Whether the field must be emitted before regular payload fields.</param>
+/// <param name="Size">The field size estimate used for layout sorting and packing heuristics.</param>
+/// <param name="Name">The field name as declared on the type.</param>
+/// <param name="IsValueType">Whether the field type is a value type and can be copied by value safely.</param>
+/// <param name="FieldType">The runtime field type.</param>
+/// <param name="FieldInfo">The reflection handle kept for getter/setter emission and fallback access.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal readonly record struct FieldSchema(
     int Order,

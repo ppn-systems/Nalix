@@ -22,13 +22,13 @@ Options describe log level, formatting, and targets.
 **Key Components**
 - `NLogixOptions`
 - `FileLogOptions`
-- `ILoggerTarget`
+- `INLogixTarget`
 
 ### Quick example
 
 ```csharp
 NLogixOptions options = new();
-ILoggerTarget target = /* your target */;
+INLogixTarget target = /* your target */;
 options.RegisterTarget(target);
 ```
 

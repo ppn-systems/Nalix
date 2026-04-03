@@ -8,21 +8,20 @@ using Nalix.Common.Networking.Packets;
 namespace Nalix.Network.Routing;
 
 /// <summary>
-/// Defines a dispatcher interface for handling incoming network packets.
+/// Dispatches incoming packets from either raw transport data or already
+/// deserialized packet objects.
 /// </summary>
 /// <remarks>
-/// Implementations of this interface are responsible for processing incoming
-/// packets from various representations, including raw byte buffers and fully
-/// deserialized packet objects. The dispatcher determines how packets are
-/// handled based on their content and the connection from which they originate.
+/// Implementations decide how packets are turned into handler calls and how
+/// the associated connection should be used during dispatch.
 /// </remarks>
 public interface IPacketDispatch : IActivatable, IReportable
 {
     /// <summary>
-    /// Handles an incoming packet represented as a <see cref="IBufferLease"/> array.
+    /// Handles an incoming packet represented as a pooled buffer lease.
     /// </summary>
     /// <param name="packet">
-    /// The byte array containing the raw packet data, or <see langword="null"/> to indicate no data.
+    /// The pooled buffer containing the raw packet data.
     /// </param>
     /// <param name="connection">
     /// The connection from which the packet was received.

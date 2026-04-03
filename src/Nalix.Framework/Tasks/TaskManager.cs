@@ -25,7 +25,8 @@ using Nalix.Framework.Time;
 namespace Nalix.Framework.Tasks;
 
 /// <summary>
-/// Manages background recurring tasks and worker tasks, providing scheduling, cancellation, and reporting functionalities.
+/// Coordinates background worker tasks and recurring jobs with shared concurrency,
+/// cancellation, timing, and reporting support.
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
@@ -56,8 +57,12 @@ public sealed partial class TaskManager : ITaskManager
     #region Properties
 
     /// <summary>
-    /// Gets a short console title summary containing running workers, total workers, and recurring tasks.
+    /// Gets a compact status line for consoles and diagnostics.
     /// </summary>
+    /// <remarks>
+    /// The title is intentionally short so it can be shown in window titles or
+    /// one-line dashboards without formatting or truncation logic.
+    /// </remarks>
     public string Title
     {
         get
@@ -72,23 +77,40 @@ public sealed partial class TaskManager : ITaskManager
     /// <summary>
     /// Gets the average execution time for worker tasks in milliseconds.
     /// </summary>
+    /// <remarks>
+    /// The value is derived from the accumulated stopwatch ticks and the number
+    /// of completed executions, so it reflects the long-term average rather than
+    /// the most recent run.
+    /// </remarks>
     public double AverageWorkerExecutionTime =>
         _workerExecutionCount == 0 ? 0 : _workerExecutionTicks / (double)_workerExecutionCount / Stopwatch.Frequency * 1000;
 
     /// <summary>
     /// Gets the average execution time for recurring tasks in milliseconds.
     /// </summary>
+    /// <remarks>
+    /// This uses the same tick-based accounting as worker timings so the report
+    /// stays consistent across both task types.
+    /// </remarks>
     public double AverageRecurringExecutionTime =>
         _recurringExecutionCount == 0 ? 0 : _recurringExecutionTicks / (double)_recurringExecutionCount / Stopwatch.Frequency * 1000;
 
     /// <summary>
     /// Gets the total worker errors observed.
     /// </summary>
+    /// <remarks>
+    /// The counter is read with <see langword="Volatile.Read"/> because it
+    /// may be incremented from worker completion paths on different threads.
+    /// </remarks>
     public int WorkerErrorCount => Volatile.Read(ref _workerErrorCount);
 
     /// <summary>
     /// Gets the total recurring task errors observed.
     /// </summary>
+    /// <remarks>
+    /// The counter is read with <see langword="Volatile.Read"/> because it
+    /// may be updated concurrently by recurring execution paths.
+    /// </remarks>
     public int RecurringErrorCount => Volatile.Read(ref _recurringErrorCount);
 
     #endregion Properties
@@ -98,6 +120,10 @@ public sealed partial class TaskManager : ITaskManager
     /// <summary>
     /// Initializes a new instance of the <see cref="TaskManager"/> class.
     /// </summary>
+    /// <remarks>
+    /// The constructor wires up shared concurrency gates, periodic cleanup, and
+    /// optional monitoring workers before any user-defined task is scheduled.
+    /// </remarks>
     /// <param name="options">Optional configuration options for the TaskManager.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="options"/> contains invalid scheduling limits.</exception>
     /// <exception cref="InvalidOperationException">Thrown when startup monitoring workers cannot be scheduled.</exception>
@@ -123,10 +149,11 @@ public sealed partial class TaskManager : ITaskManager
             _ = this.ScheduleWorker(
                 "task.monitor",
                 "task",
-                async (ctx, ct) => await this.MONITOR_CONCURRENCY_ASYNC(ctx, ct).ConfigureAwait(false), // Pass CancellationToken
+                async (ctx, ct) => await this.MONITOR_CONCURRENCY_ASYNC(ctx, ct).ConfigureAwait(false),
                 new WorkerOptions
                 {
-                    RetainFor = TimeSpan.FromMinutes(10) // Cho phép giữ Monitor lâu hơn sau khi chạy xong
+                    // Keep the monitor worker around longer so transient spikes can still be reported.
+                    RetainFor = TimeSpan.FromMinutes(10)
                 }
             );
         }
@@ -167,7 +194,7 @@ public sealed partial class TaskManager : ITaskManager
         TimingScope scope = default;
         options ??= new WorkerOptions();
 
-        // Acquire global concurrency slot
+        // Reserve one global worker slot before we allocate IDs and start the task.
         _globalConcurrencyGate.Wait();
 
         if (_options.IsEnableLatency)
@@ -187,7 +214,7 @@ public sealed partial class TaskManager : ITaskManager
             throw new InternalErrorException($"[{nameof(TaskManager)}:{nameof(ScheduleWorker)}] cannot add worker");
         }
 
-        // Optional concurrency cap per-group
+        // A per-group gate is only created when the caller asks for a group cap.
         Gate? gate = null;
         Exception? failure = null;
 
@@ -196,7 +223,7 @@ public sealed partial class TaskManager : ITaskManager
             gate = _groupGates.GetOrAdd(group, _ => new Gate(new SemaphoreSlim(cap, cap), cap));
         }
 
-        // run
+        // The worker body is launched on the thread pool so scheduling stays non-blocking.
         try
         {
             st.Task = Task.Run(async () =>

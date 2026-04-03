@@ -1,6 +1,6 @@
 # SDK Subscriptions
 
-`TcpSessionSubscriptions` provides convenience subscriptions on top of `IClientConnection`.
+`TcpSessionSubscriptions` provides convenience subscriptions on top of `TransportSession` and `TcpSession`.
 
 ## Source mapping
 
@@ -14,9 +14,22 @@
 - `SubscribeTemp<TPacket>(...)`
 - `CompositeSubscription`
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `TcpSessionSubscriptions` | `On<TPacket>(...)`, `On(...)`, `OnOnce<TPacket>(...)`, `SubscribeTemp<TPacket>(...)`, `Subscribe(...)` |
+| `CompositeSubscription` | `Add(...)`, `Dispose()` |
+
 ## Why it exists
 
 These helpers reduce message-subscription boilerplate and centralize lease ownership so subscriber code works with deserialized packets rather than raw leases.
+
+## Common pitfalls
+
+- forgetting to dispose the returned subscription
+- assuming a subscriber can keep using the raw lease after the helper already disposed it
+- treating `CompositeSubscription` as mandatory when a single `using var` is enough
 
 ## Basic usage
 
@@ -51,3 +64,4 @@ using var sub = client.SubscribeTemp<Control>(
 
 - [TCP Session Extensions](./tcp-session-extensions.md)
 - [TCP Session](./tcp-session.md)
+- [Transport Session](./transport-session.md)

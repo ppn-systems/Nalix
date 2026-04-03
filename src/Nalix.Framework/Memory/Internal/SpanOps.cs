@@ -14,7 +14,8 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Framework.Memory.Internal;
 
 /// <summary>
-/// Helper methods for working with Spans.
+/// Low-level span helpers used by the encoders and decoders that need
+/// branch-light length encoding and decoding.
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
@@ -22,33 +23,31 @@ namespace Nalix.Framework.Memory.Internal;
 internal static unsafe class SpanOps
 {
     /// <summary>
-    /// Writes a variable-length integer (little-endian). Used for lengths greater than 15.
-    /// Writes bytes until the value is less than 255.
+    /// Writes a variable-length integer using 0xFF continuation bytes followed by a final remainder.
     /// </summary>
-    /// <param name="dest"></param>
-    /// <param name="value"></param>
+    /// <param name="dest">The destination buffer.</param>
+    /// <param name="value">The value to encode.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="value"/> is negative.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static int WriteVarInt(byte* dest, int value)
     {
-        // Negative should never happen in encoder paths; clamp-to-0 preserves protocol.
+        // Negative values are invalid input and indicate a caller bug.
         if (value < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(value), "WriteVarInt does not support negative values.");
         }
 
-        // Number of full 0xFF bytes and the final remainder (<255)
-        // This removes the loop-carried subtraction by 255.
+        // Split the value into as many 0xFF markers as needed, then a final remainder byte.
         uint u = (uint)value;
-        int ffCount = (int)(u / 255u);     // how many 0xFF
-        byte last = (byte)(u % 255u);    // final terminator
+        int ffCount = (int)(u / 255u);
+        byte last = (byte)(u % 255u);
 
         byte* p = dest;
 
-        // Write 0xFF blocks with wide stores to reduce loop overhead
+        // Write 0xFF blocks with wide stores to reduce loop overhead.
         const ulong F8 = 0xFFFFFFFFFFFFFFFFul;
 
-        // 16-byte chunks (2x ulong)
+        // 16-byte chunks (2x ulong).
         while (ffCount >= 16)
         {
             // write 16 bytes of 0xFF
@@ -57,7 +56,7 @@ internal static unsafe class SpanOps
             ffCount -= 16;
         }
 
-        // 8-byte chunk
+        // 8-byte chunk.
         if (ffCount >= 8)
         {
             *(ulong*)p = F8;
@@ -65,7 +64,7 @@ internal static unsafe class SpanOps
             ffCount -= 8;
         }
 
-        // 4-byte chunk
+        // 4-byte chunk.
         if (ffCount >= 4)
         {
             // 0xFFFFFFFF as uint
@@ -74,7 +73,7 @@ internal static unsafe class SpanOps
             ffCount -= 4;
         }
 
-        // Tail: 0..3 single bytes
+        // Tail: 0..3 single bytes.
         switch (ffCount)
         {
             case 3: p[0] = 255; p[1] = 255; p[2] = 255; p += 3; break;
@@ -84,7 +83,7 @@ internal static unsafe class SpanOps
                 break;
         }
 
-        // Final remainder (<255)
+        // Final remainder (<255) terminates the run of continuation bytes.
         *p = last;
         p += 1;
 
@@ -92,17 +91,18 @@ internal static unsafe class SpanOps
     }
 
     /// <summary>
-    /// Reads a variable-length integer (little-endian).
+    /// Reads a variable-length integer that was encoded with 0xFF continuation bytes.
     /// </summary>
-    /// <param name="src"></param>
-    /// <param name="srcEnd"></param>
-    /// <param name="value"></param>
+    /// <param name="src">A reference to the current source pointer.</param>
+    /// <param name="srcEnd">The end of the readable source range.</param>
+    /// <param name="value">When the method returns, contains the decoded value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static int ReadVarInt(ref byte* src, byte* srcEnd, out int value)
     {
         value = 0;
         int bytesRead = 0;
 
+        // Fast path: look ahead in 8-byte chunks while we know enough input remains.
         while ((ulong)(srcEnd - src) >= 8)
         {
             if (src[0] != 255)
@@ -160,7 +160,7 @@ internal static unsafe class SpanOps
                 value += add; src += 7; bytesRead += 7; goto Terminate;
             }
 
-            // 8×0xFF nguyên khối
+            // Eight continuation bytes in a row.
             const int add8 = 255 * 8;
             if (value > int.MaxValue - add8) { value = -1; return bytesRead; }
             value += add8; src += 8; bytesRead += 8;
@@ -170,14 +170,14 @@ internal static unsafe class SpanOps
             break;
         }
 
-        // Đuôi scalar
+        // Scalar tail for the final few continuation bytes.
         while (src < srcEnd && *src == 255)
         {
             if (value > int.MaxValue - 255) { value = -1; return bytesRead; }
             value += 255; src++; bytesRead++;
         }
 
-        // Phải có byte kết thúc (<255)
+        // A terminating byte < 255 must be present.
         if (src >= srcEnd) { value = -1; return bytesRead; }
 
         int last = *src; // 0..254

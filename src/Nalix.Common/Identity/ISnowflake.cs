@@ -8,50 +8,48 @@ using Nalix.Common.Primitives;
 namespace Nalix.Common.Identity;
 
 /// <summary>
-/// Defines the core contract for a unique identifier, including type,
-/// machine association, serialization, and equality comparison.
+/// Describes the common shape of a Nalix snowflake identifier.
+/// A snowflake combines a value, machine id, and type tag into a compact 56-bit form.
 /// </summary>
 public interface ISnowflake
 {
     /// <summary>
-    /// Gets the 32-bit value component.
+    /// Gets whether the identifier is empty.
     /// </summary>
     /// <remarks>
-    /// Extracts the lower 32 bits of the identifier, representing the main value.
-    /// This operation is optimized for performance using direct bit manipulation.
+    /// Empty identifiers are used as a sentinel and should not be treated as valid IDs.
     /// </remarks>
     bool IsEmpty { get; }
 
     /// <summary>
-    /// Gets the 8-bit type component.
+    /// Gets the identifier type tag.
     /// </summary>
     /// <remarks>
-    /// Extracts bits 48-55 of the identifier, representing the snowflake type.
-    /// This operation is optimized for performance using direct bit manipulation.
+    /// The type tag helps the system distinguish between identifier families such as
+    /// accounts, sessions, and system objects.
     /// </remarks>
     SnowflakeType Type { get; }
 
     /// <summary>
-    /// Gets the underlying 32-bit unsigned integer value of the identifier.
+    /// Gets the value component of the identifier.
     /// </summary>
     uint Value { get; }
 
     /// <summary>
-    /// Gets the 16-bit machine identifier component.
+    /// Gets the machine identifier component.
     /// </summary>
     /// <remarks>
-    /// Extracts bits 32-47 of the identifier, representing the machine ID.
-    /// This operation is optimized for performance using direct bit manipulation.
+    /// The machine id lets identifiers be generated independently on different machines
+    /// while still remaining unique.
     /// </remarks>
     ushort MachineId { get; }
 
     /// <summary>
-    /// Converts this <see cref="ISnowflake"/> to its underlying 56-bit representation.
+    /// Converts this <see cref="ISnowflake"/> to its compact 56-bit representation.
     /// </summary>
-    /// <returns>The 56-bit unsigned integer value of this identifier.</returns>
     /// <remarks>
-    /// This is the most efficient serialization method as it returns the internal representation directly.
-    /// Use this when you need to store or transmit the identifier in a compact binary format.
+    /// This is the smallest wire representation for the identifier and is useful when
+    /// storing or transmitting IDs in binary form.
     /// </remarks>
     /// <returns>
     /// A <see cref="UInt56"/> value representing the identifier as a 56-bit unsigned integer.
@@ -61,30 +59,28 @@ public interface ISnowflake
     /// <summary>
     /// Converts this <see cref="ISnowflake"/> to a 7-byte array.
     /// </summary>
-    /// <returns>A new byte array containing the serialized identifier.</returns>
     /// <remarks>
-    /// This method allocates a new 7-byte array and writes the identifier in little-endian format.
-    /// The layout is: [0-3]=Value, [4-5]=MachineId, [6]=Type.
-    /// For better performance, use <see cref="TryWriteBytes(Span{byte})"/> with a pre-allocated buffer.
+    /// The layout is little-endian: [0-3]=Value, [4-5]=MachineId, [6]=Type.
+    /// Use <see cref="TryWriteBytes(Span{byte})"/> when you already have a buffer.
     /// </remarks>
+    /// <returns>A new 7-byte array containing the serialized identifier.</returns>
     byte[] ToByteArray();
 
     /// <summary>
-    /// Attempts to write the serialized <see cref="ISnowflake"/> to the specified byte span.
+    /// Attempts to write the serialized identifier to the specified byte span.
     /// </summary>
     /// <param name="destination">The span to write the serialized bytes to.</param>
     /// <returns>
-    /// <c>true</c> if the identifier was successfully serialized; <c>false</c> if <paramref name="destination"/>
-    /// is too small (less than 7 bytes).
+    /// <c>true</c> if the identifier was written successfully; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// This overload is identical to <see cref="TryWriteBytes(Span{byte}, out int)"/> but does not
-    /// return the number of bytes written. Use this when you don't need the byte count.
+    /// This is the simplest zero-allocation path when the caller only cares about success
+    /// or failure.
     /// </remarks>
     bool TryWriteBytes(Span<byte> destination);
 
     /// <summary>
-    /// Attempts to write the serialized <see cref="ISnowflake"/> to the specified byte span.
+    /// Attempts to write the serialized identifier to the specified byte span.
     /// </summary>
     /// <param name="destination">The span to write the serialized bytes to.</param>
     /// <param name="bytesWritten">
@@ -92,13 +88,11 @@ public interface ISnowflake
     /// This is always 7 on success, or 0 on failure.
     /// </param>
     /// <returns>
-    /// <c>true</c> if the identifier was successfully serialized; <c>false</c> if <paramref name="destination"/>
-    /// is too small (less than 7> bytes).
+    /// <c>true</c> if the identifier was written successfully; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// This method writes the identifier in little-endian format: [0-3]=Value, [4-5]=MachineId, [6]=Type.
-    /// The method validates the destination buffer size before writing to prevent buffer overflows.
-    /// This is the recommended serialization method for performance-critical scenarios.
+    /// This is the recommended zero-allocation path when the caller also needs the byte
+    /// count and already owns the destination buffer.
     /// </remarks>
     bool TryWriteBytes(Span<byte> destination, [NotNullWhen(true)] out int bytesWritten);
 }

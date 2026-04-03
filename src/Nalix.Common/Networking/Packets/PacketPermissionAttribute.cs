@@ -7,12 +7,10 @@ using Nalix.Common.Security;
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// Specifies the minimum <see cref="PermissionLevel"/> required to execute the target packet command.
+/// Marks a handler with the minimum <see cref="PermissionLevel"/> required to run it.
 /// </summary>
 /// <remarks>
-/// Apply this attribute to a packet handler method to enforce that only clients
-/// with at least the specified authority level are allowed to execute the command.
-/// This check is typically performed by the packet dispatch or command handling system.
+/// The dispatch layer uses this as an authorization gate before invoking the handler.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 public sealed class PacketPermissionAttribute : Attribute

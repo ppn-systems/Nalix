@@ -7,51 +7,39 @@ using System.Diagnostics.CodeAnalysis;
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// Provides a read-only catalog that maps magic numbers and packet types
-/// to their corresponding deserializers and transformation delegates.
+/// Provides a read-only lookup catalog for packet deserializers.
 /// </summary>
 /// <remarks>
-/// The catalog exposes lookup methods for:
-/// <list type="bullet">
-///   <item>
-///     <description>Deserializing a packet by inspecting its magic number.</description>
-///   </item>
-///   <item>
-///     <description>Retrieving a typed <see cref="PacketDeserializer"/> by magic number.</description>
-///   </item>
-/// </list>
-/// Implementations must be safe for concurrent read access if used across threads.
+/// Implementations should support concurrent reads because the registry is used by
+/// the packet dispatch path.
 /// </remarks>
 public interface IPacketRegistry
 {
     /// <summary>
-    /// Gets the number of deserializers registered in this catalog.
+    /// Gets the number of registered deserializers.
     /// </summary>
     int DeserializerCount { get; }
 
     /// <summary>
-    /// Returns <see langword="true"/> if a deserializer is registered for
-    /// <paramref name="magic"/>.
+    /// Returns <see langword="true"/> if a deserializer is registered for the magic number.
     /// </summary>
     bool IsKnownMagic(uint magic);
 
     /// <summary>
-    /// Returns <see langword="true"/> if a deserializer is registered for the packet type
-    /// <typeparamref name="TPacket"/>, resolved via its FNV-1a magic number.
+    /// Returns <see langword="true"/> if a deserializer is registered for <typeparamref name="TPacket"/>.
     /// </summary>
     bool IsRegistered<TPacket>() where TPacket : IPacket;
 
     /// <summary>
-    /// Attempts to deserialize a packet by reading the magic number from the provided
-    /// raw buffer and dispatching to the registered deserializer.
+    /// Attempts to deserialize a packet by resolving the magic number from the raw buffer
+    /// and dispatching to the matching deserializer.
     /// </summary>
     /// <param name="raw">
     /// The raw byte span. The first four bytes are interpreted as a little-endian
-    /// 32-bit magic number. Must be at least <see cref="PacketConstants.HeaderSize"/> bytes.
+    /// 32-bit magic number.
     /// </param>
     /// <returns>
-    /// When this method returns <see langword="true"/>, the deserialized
-    /// <see cref="IPacket"/>; otherwise <see langword="null"/>.
+    /// The deserialized packet.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when a registered deserializer rejects a malformed packet buffer.</exception>
     IPacket Deserialize(ReadOnlySpan<byte> raw);

@@ -321,6 +321,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
             return false;
         }
 
+        // Only enqueue the connection once when it transitions from "not ready"
+        // to "ready"; the per-priority ready queue then acts as a wake-up list.
         if (state.TryMarkReady())
         {
             _ = Interlocked.Increment(ref _readyConnections);
@@ -425,6 +427,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static bool TryDequeueHighest(ConnectionState state, [NotNullWhen(true)] out IBufferLease raw, out int dequeuedFrom)
     {
+        // The mask tells us which priorities are non-empty without scanning all
+        // queues. We always pop the highest bit first to preserve priority order.
         int mask = state.NonEmptyMask;
 
         while (mask != 0)
@@ -460,6 +464,9 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
             return;
         }
 
+        // Requeue only when the connection still has packets left. The ready queue
+        // is a wake-up list, not the packet store itself, so we only enqueue the
+        // connection when it transitions back to "has more work to do".
         if (!state.TryMarkReady())
         {
             return;
@@ -741,9 +748,15 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                 if (diff == 0)
                 {
+                    // Sequence matches the enqueue position, so this slot is free.
+                    // The slot is reserved with a CAS on the producer cursor so two
+                    // writers never claim the same slot at once.
                     if (Interlocked.CompareExchange(ref _enqueuePos.Value, pos + 1, pos) == pos)
                     {
                         slot.Item = lease;
+                        // Publish the item by advancing the slot sequence. The
+                        // consumer will not observe this slot until the sequence
+                        // number moves forward, which acts as the release fence.
                         Volatile.Write(ref slot.Sequence, pos + 1);
                         return true;
                     }
@@ -753,6 +766,9 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                 if (diff < 0)
                 {
+                    // The slot sequence is behind the producer cursor, so the ring
+                    // is full at this position and the caller must retry later.
+                    // This is the backpressure signal that prevents overwriting data.
                     return false;
                 }
 
@@ -774,10 +790,14 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                 if (diff == 0)
                 {
+                    // Sequence matches the dequeue position, so this slot has data.
+                    // The consumer wins the slot with a CAS on the dequeue cursor.
                     if (Interlocked.CompareExchange(ref _dequeuePos.Value, pos + 1, pos) == pos)
                     {
                         IBufferLease? item = slot.Item;
                         slot.Item = null;
+                        // Move the sequence forward by one full ring to mark the slot
+                        // free for the next producer lap.
                         Volatile.Write(ref slot.Sequence, pos + _slots.Length);
 
                         if (item is null)
@@ -795,6 +815,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
                 if (diff < 0)
                 {
+                    // The producer has not published anything for this position yet.
+                    // Spin until the write becomes visible or the slot is confirmed empty.
                     lease = null!;
                     return false;
                 }
@@ -869,6 +891,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         public int GetHighestPriority()
         {
             int mask = Volatile.Read(ref _nonEmptyMask);
+            // Highest set bit == highest non-empty priority, so we can jump
+            // directly to the hottest queue without scanning every priority.
             return mask == 0 ? -1 : 31 - BitOperations.LeadingZeroCount((uint)mask);
         }
 
@@ -931,6 +955,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
             int next = Interlocked.Increment(ref _priorityCounts[priority]);
             if (next == 1)
             {
+                // First item in this priority range: mark it non-empty in the bitset
+                // so Pull() can find this priority without scanning all queues.
                 this.SetPriorityBit(priority);
             }
 
@@ -945,9 +971,13 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
             {
                 if (next < 0)
                 {
+                    // Counter underflow is corrected here so the state stays usable
+                    // even if a dequeue path races with a drain/reset path.
                     _ = Interlocked.Exchange(ref _priorityCounts[priority], 0);
                 }
 
+                // When the last item leaves a priority, clear its bit so scans can
+                // skip the queue entirely on future pulls.
                 this.ClearPriorityBit(priority);
             }
 
@@ -964,6 +994,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void ClearPriorityBitIfEmpty(int priority)
         {
+            // If a dequeue raced and the queue became empty, make sure the bitset
+            // does not keep advertising this priority as available.
             if (this.ReadPriorityCount(priority) <= 0)
             {
                 this.ClearPriorityBit(priority);
@@ -982,6 +1014,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                 drained++;
             }
 
+            // After draining, force every counter and bit back to a clean idle
+            // state so a later reuse starts from known-zero bookkeeping.
             for (int i = 0; i < _priorityCounts.Length; i++)
             {
                 _ = Interlocked.Exchange(ref _priorityCounts[i], 0);
@@ -1039,6 +1073,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                     return;
                 }
 
+                // CAS loop avoids losing concurrent updates to other priority bits.
                 if (Interlocked.CompareExchange(ref _nonEmptyMask, mask | bit, mask) == mask)
                 {
                     return;
@@ -1060,6 +1095,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                     return;
                 }
 
+                // Same CAS pattern as SetPriorityBit, but clearing the single bit.
                 if (Interlocked.CompareExchange(ref _nonEmptyMask, mask & clearMask, mask) == mask)
                 {
                     return;

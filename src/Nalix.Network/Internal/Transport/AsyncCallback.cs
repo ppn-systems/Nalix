@@ -106,7 +106,9 @@ internal static class AsyncCallback
         // Decrement global counter first.
         _ = Interlocked.Decrement(ref s_pendingNormal);
 
-        // Decrement per-IP counter; remove key when it hits zero.
+        // Decrement the per-IP counter only after the callback actually runs.
+        // Once the count reaches zero, remove the key so the fairness map stays
+        // bounded and a short-lived remote endpoint does not leave stale entries.
         if (w.Args.NetworkEndpoint is not null)
         {
             _ = s_perIpPending.AddOrUpdate(w.Args.NetworkEndpoint, addValueFactory: static (_, _) => 0,
@@ -164,18 +166,24 @@ internal static class AsyncCallback
 
         if (globalPending >= s_opts.MaxPendingNormalCallbacks)
         {
+            // Drop the callback before queuing work so one overloaded server path
+            // cannot keep piling up work items and consuming the entire normal lane.
             Interlocked.Increment(ref s_droppedCallbacks);
             s_logger?.Error($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={args.NetworkEndpoint}");
             return false;
         }
 
-        // ── Per-IP backpressure check ──────────────────────────────────────────
+        // Per-IP fairness is checked before the work item is queued so one remote
+        // endpoint cannot reserve the global pool faster than others and starve
+        // healthy peers.
         if (args.NetworkEndpoint is not null)
         {
             int ipPending = s_perIpPending.GetOrAdd(args.NetworkEndpoint, 0);
 
             if (ipPending >= s_opts.MaxPendingPerIp)
             {
+                // Apply per-IP fairness first so a single remote endpoint cannot
+                // monopolize the queue even if there is still global headroom.
                 Interlocked.Increment(ref s_droppedCallbacks);
                 s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={args.NetworkEndpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
                 return false;
@@ -210,9 +218,9 @@ internal static class AsyncCallback
     /// <see cref="s_pendingNormal"/> is <b>not</b> incremented for these callbacks.
     /// </para>
     /// </summary>
-    /// <param name="callback"></param>
-    /// <param name="sender"></param>
-    /// <param name="args"></param>
+    /// <param name="callback">The event handler to invoke.</param>
+    /// <param name="sender">The sender object.</param>
+    /// <param name="args">The event arguments.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InvokeHighPriority(
@@ -264,6 +272,8 @@ internal static class AsyncCallback
             // Queue failure — extremely rare. Undo the increments we already applied.
             if (!isHigh)
             {
+                // Roll back the reservation so counters stay consistent if the queue
+                // rejects the work item after we already reserved capacity.
                 _ = Interlocked.Decrement(ref s_pendingNormal);
 
                 if (args.NetworkEndpoint is not null)

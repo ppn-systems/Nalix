@@ -35,6 +35,12 @@ public abstract void ProcessMessage(object sender, IConnectEventArgs args);
 
 This is the main per-message handler in the connection event pipeline.
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `Protocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)`, `ValidateConnection(...)`, `SetConnectionAcceptance(...)`, `GenerateReport()` |
+
 ## Acceptance flow
 
 `OnAccept(connection, ct)` currently:
@@ -46,6 +52,12 @@ This is the main per-message handler in the connection event pipeline.
 - if validation fails, closes the connection
 - on unexpected errors, calls `OnConnectionError(...)` and disconnects
 
+### Failure modes worth knowing
+
+- rejecting a connection in `ValidateConnection(...)` closes the socket immediately
+- turning off acceptance with `SetConnectionAcceptance(false)` makes `OnAccept(...)` reject new sessions
+- letting `ProcessMessage(...)` throw counts as a protocol error and usually triggers disconnect behavior downstream
+
 ## Post-process flow
 
 `PostProcessMessage(sender, args)`:
@@ -56,6 +68,12 @@ This is the main per-message handler in the connection event pipeline.
 - on exceptions, increments `TotalErrors`, calls `OnConnectionError(...)`, and disconnects
 
 `KeepConnectionOpen` is backed by an atomic field and defaults to `false`.
+
+### Common pitfalls
+
+- doing packet dispatch work in `OnAccept(...)` instead of `ProcessMessage(...)`
+- forgetting that `KeepConnectionOpen = false` will disconnect after post-processing
+- ignoring `GenerateReport()` when you are debugging disconnect loops or protocol errors
 
 ## Extensibility points
 
@@ -76,6 +94,13 @@ This is the main per-message handler in the connection event pipeline.
 protocol.SetConnectionAcceptance(true);
 await protocol.OnAccept(connection, ct);
 ```
+
+Typical flow:
+
+1. listener accepts the socket
+2. protocol validates the connection
+3. incoming frames are processed
+4. post-processing decides whether the session stays open
 
 ## Diagnostics
 

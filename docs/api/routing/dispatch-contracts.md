@@ -15,6 +15,7 @@ This page covers the public routing contracts that sit below `PacketDispatchChan
 ## IDispatchChannel<TPacket>
 
 `IDispatchChannel<TPacket>` is the low-level queue contract used by routing internals.
+It moves `IBufferLease` instances through the queueing stage before the dispatch runtime turns them into packets.
 
 ## Basic usage
 

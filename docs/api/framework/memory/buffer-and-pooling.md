@@ -18,6 +18,15 @@ This page covers the shared lease and pooling APIs used across networking and di
 - `ObjectPoolManager`
 - `TypedObjectPoolAdapter<T>`
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `BufferLease` | `Span`, `SpanFull`, `Memory`, `CommitLength(...)`, `Retain()`, `ReleaseOwnership(...)`, `Dispose()`, `Rent(...)`, `CopyFrom(...)`, `FromRented(...)`, `TakeOwnership(...)` |
+| `ObjectPool` | `Get<T>()`, `Return<T>(...)`, `Prealloc<T>(...)`, `SetMaxCapacity<T>(...)`, `GetTypeInfo<T>()`, `GetStatistics()`, `Clear()`, `ClearType<T>()`, `Trim(...)`, `GetMultiple<T>(...)`, `ReturnMultiple<T>(...)` |
+| `ObjectPoolManager` | `Get<T>()`, `Return<T>(...)`, `GetTypedPool<T>()`, `Prealloc<T>(...)`, `SetMaxCapacity<T>(...)`, `GetTypeInfo<T>()`, `ClearPool<T>()`, `ClearAllPools()`, `TrimAllPools(...)`, `PerformHealthCheck()`, `ResetStatistics()`, `ScheduleRegularTrimming(...)`, `GenerateReport()`, `GetDetailedStatistics()` |
+| `TypedObjectPoolAdapter<T>` | typed get/return/prealloc/trim/clear helpers and manager-backed statistics access |
+
 ## IBufferLease and BufferLease
 
 `IBufferLease` is the shared contract. `BufferLease` is the main concrete implementation used by listeners, dispatch, and SDK receive paths.
@@ -32,6 +41,27 @@ lease.CommitLength(payload.Length);
 
 ReadOnlyMemory<byte> memory = lease.Memory;
 ```
+
+### When to use BufferLease
+
+Use it when:
+
+- a receive or send path wants pooled byte storage
+- you need a disposable wrapper around raw buffer ownership
+- you want to avoid allocating new arrays on every packet
+
+Avoid it when:
+
+- the data is tiny and only used once
+- the call path is already short-lived and allocation cost is not meaningful
+- you do not control the disposal boundary
+
+### Performance guidance
+
+- prefer `Rent(...)` and pooled flows on hot network paths
+- call `CommitLength(...)` only after you know the final written length
+- release ownership only when another component truly needs the raw array
+- treat buffer reuse as a throughput optimization, not a correctness requirement
 
 ### Public methods that matter
 
@@ -63,6 +93,12 @@ Useful methods:
 
 - `Rent(capacity)`
 - `Return(array)`
+
+### Common pitfalls
+
+- holding onto a rented array after returning it
+- renting a larger buffer than your actual payload path needs
+- mixing `BufferLease` ownership with direct array ownership without a clear handoff
 
 ## BufferPoolState
 
@@ -110,6 +146,20 @@ Useful public methods:
 - `GetMultiple<T>(count)`
 - `ReturnMultiple<T>(objects)`
 
+### When to use ObjectPool
+
+Use it when:
+
+- you have `IPoolable` instances that are expensive to create repeatedly
+- you need a global shared pool for reusable runtime objects
+- you want to trim or preallocate for predictable server load
+
+Avoid it when:
+
+- the object is cheap and short-lived
+- the object holds external resources that are better managed explicitly
+- the type cannot be safely reset for reuse
+
 ## ObjectPoolManager
 
 `ObjectPoolManager` is the higher-level manager with reporting, health checks, typed adapters, and multi-pool statistics.
@@ -141,6 +191,12 @@ Useful public methods:
 - `ScheduleRegularTrimming(interval, percentage, ct)`
 - `GenerateReport()`
 - `GetDetailedStatistics()`
+
+### Performance guidance
+
+- preallocate during startup if you know the steady-state shape
+- trim during low-traffic windows rather than on a hot path
+- use `PerformHealthCheck()` when tuning pool behavior under real load
 
 ## BufferConfig
 
@@ -198,6 +254,12 @@ Reach for `BufferConfig` when you are tuning:
 - memory-sensitive deployments
 - secure workloads that require zeroing returned buffers
 - adaptive pool behavior under burst traffic
+
+### Common pitfalls
+
+- over-allocating just to avoid thinking about pool sizes
+- turning on secure clearing everywhere without measuring the cost
+- using the same buffer sizing profile for wildly different traffic patterns
 
 ## Related APIs
 

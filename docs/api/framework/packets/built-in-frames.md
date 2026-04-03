@@ -80,9 +80,19 @@ Important public members:
 
 `Text256`, `Text512`, and `Text1024` are the built-in text packet types used when the dispatcher needs to emit string payloads.
 
+## Packet pooling
+
+Packet instances are pooled through type-specific helpers:
+
+- `PacketPool<TPacket>`
+- `PacketLease<TPacket>`
+
+Use the lease-based API when you want the packet to return itself to the pool automatically.
+
 ## Related APIs
 
 - [Frame Model](./frame-model.md)
 - [Packet Registry](./packet-registry.md)
+- [Packet Pooling](./packet-pooling.md)
 - [SDK Extensions](../../sdk/tcp-session-extensions.md)
 - [Handler Return Types](../../routing/handler-results.md)

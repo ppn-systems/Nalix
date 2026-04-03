@@ -20,9 +20,26 @@ This page covers the shared background-work contracts in `Nalix.Common.Concurren
 - `IWorkerOptions`
 - `IRecurringOptions`
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `ITaskManager` | `Title`, `ScheduleRecurring(...)`, `RunOnceAsync(...)`, `ScheduleWorker(...)`, `CancelAllWorkers()`, `CancelWorker(...)`, `CancelGroup(...)`, `CancelRecurring(...)`, `GetWorkers(...)`, `TryGetWorker(...)`, `GetRecurring()`, `TryGetRecurring(...)` |
+| `IWorkerContext` | `Beat()`, `Advance(...)`, and worker progress/heartbeat reporting members used by the current runtime |
+| `IWorkerHandle` | worker identity, group, running state, progress, last run, next run, and cancellation/reporting helpers |
+| `IRecurringHandle` | recurring job identity, next run, running state, and cancellation/reporting helpers |
+| `IWorkerOptions` | `Tag`, `MachineId`, `IdType`, `OnCompleted`, `OnFailed`, `ExecutionTimeout`, `RetainFor`, `GroupConcurrencyLimit`, `TryAcquireSlotImmediately`, `CancellationToken` |
+| `IRecurringOptions` | `Tag`, `Jitter`, `BackoffCap`, `ExecutionTimeout`, `NonReentrant`, `FailuresBeforeBackoff` |
+
 ## ITaskManager
 
 `ITaskManager` is the shared contract behind long-running workers and recurring jobs.
+
+Typical flow:
+
+1. schedule a worker or recurring job
+2. keep the handle for cancellation or reporting
+3. query active work through the manager
 
 ## Basic usage
 
@@ -57,6 +74,12 @@ IRecurringHandle recurring = taskManager.ScheduleRecurring(
 - `GetRecurring()`
 - `TryGetRecurring(name, out handle)`
 
+### Common pitfalls
+
+- scheduling recurring work and then dropping the handle immediately
+- using worker names without a consistent naming convention
+- forgetting to cancel or dispose long-lived work during shutdown
+
 ## IWorkerContext
 
 `IWorkerContext` is passed into worker delegates so they can report heartbeat and progress.
@@ -67,6 +90,12 @@ IRecurringHandle recurring = taskManager.ScheduleRecurring(
 ctx.Beat();
 ctx.Advance(5, "batch completed");
 ```
+
+### Common pitfalls
+
+- assuming the worker will update progress automatically
+- forgetting to call `Beat()` inside long-running loops
+- treating progress messages as optional if you want useful diagnostics
 
 ## Handle contracts
 
@@ -81,6 +110,23 @@ You typically read:
 - `Progress`
 - `LastRunUtc`
 - `NextRunUtc`
+
+### Common pitfalls
+
+- reading handle state after the manager has already disposed it
+- assuming a recurring job is still active just because the handle exists
+- ignoring `Group` when you use group concurrency limits
+
+## Options contracts
+
+`IWorkerOptions` and `IRecurringOptions` describe the knobs the task manager uses to shape execution.
+
+### Common pitfalls
+
+- leaving `Tag` empty when you rely on it for diagnostics or grouping
+- setting `ExecutionTimeout` too low for a job that does real work
+- assuming `NonReentrant` is optional if overlapping work would be harmful
+- forgetting `BackoffCap` and `FailuresBeforeBackoff` are part of the retry shape for recurring jobs
 
 ## Related APIs
 

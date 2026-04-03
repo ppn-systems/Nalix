@@ -49,6 +49,12 @@ flowchart LR
 - unsubscribes from `TimeSynchronizer`
 - disposes the internal semaphore lock
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `UdpListenerBase` | `Activate(...)`, `Deactivate(...)`, `Dispose()`, `GenerateReport()`, `IsAuthenticated(...)`, `OnTimeSynchronized(...)`, `IsTimeSyncEnabled` |
+
 ## Inbound authentication model
 
 `ProcessDatagram(...)` currently expects every accepted datagram to end with:
@@ -67,6 +73,12 @@ The base class then:
 - finally calls your overridden `IsAuthenticated(...)`
 
 Only after all of those steps pass does the payload get injected into the connection.
+
+### Failure modes worth knowing
+
+- short packets are dropped before any connection lookup
+- unknown sessions are counted separately from authentication failures
+- replay-window failures should be treated as client/server clock or nonce issues, not generic transport loss
 
 ## Extensibility points
 
@@ -94,6 +106,12 @@ The class keeps counters for:
 - short packets are dropped before any connection lookup
 - unknown sessions and auth failures are tracked separately in diagnostics
 
+### Common pitfalls
+
+- treating UDP as if it can safely work without a session identity
+- making `IsAuthenticated(...)` slow or non-deterministic
+- forgetting that the listener expects the authenticated trailer to be present on every accepted datagram
+
 !!! tip "Keep authentication fast"
     `IsAuthenticated(...)` should be deterministic and cheap.
     Expensive lookups or slow policy checks belong in a safer layer upstream of sustained UDP traffic.
@@ -107,6 +125,13 @@ var listener = new SampleUdpListener(protocol);
 await listener.Activate(ct);
 Console.WriteLine(listener.GenerateReport());
 ```
+
+Typical flow:
+
+1. establish the trusted session over TCP
+2. activate UDP only after the session exists
+3. validate datagrams through `IsAuthenticated(...)`
+4. use `GenerateReport()` to confirm drops and time-sync state
 
 ## Related APIs
 

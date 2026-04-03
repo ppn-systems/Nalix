@@ -112,10 +112,14 @@ flowchart LR
 ### Key components
 
 - `FrameBase` / `PacketBase<TSelf>` — base abstractions for headers, auto-magic, serialization, and pooling.
+- `SerializePackableAttribute` / `SerializeOrderAttribute` / `SerializeIgnoreAttribute` / `SerializeHeaderAttribute` / `SerializeDynamicSizeAttribute` — low-level serialization layout controls.
+- `LiteSerializer` / `FormatterProvider` / `IFormatter<T>` — serializer entry points and formatter resolution.
+- `DataReaderExtensions` / `DataWriterExtensions` / `HeaderExtensions` — low-level read/write and header inspection helpers.
 - `PacketRegistryFactory` — scans packet types and binds deserialize function pointers.
 - `PacketRegistry` — frozen catalog of deserializers/transformers.
 - `Handshake` — control frame used to establish shared secret and protocol flags.
 - `Control` / `Directive` / `Text256/512/1024` — built-in frame types.
+- `PacketPool<TPacket>` / `PacketLease<TPacket>` — packet pooling helpers for reusable packet instances.
 - `FragmentHeader` / `FragmentAssembler` / `FragmentOptions` — chunk large payloads and reassemble them safely.
 - `LZ4Codec` — pooled block compression and decompression.
 
@@ -154,6 +158,7 @@ IPacketRegistry catalog = factory.CreateCatalog();
 - [Snowflake](../api/framework/runtime/snowflake.md)
 - [Packet Registry](../api/framework/packets/packet-registry.md)
 - [Built-in Frames](../api/framework/packets/built-in-frames.md)
+- [Packet Pooling](../api/framework/packets/packet-pooling.md)
 - [Frame Model](../api/framework/packets/frame-model.md)
 - [Fragmentation](../api/framework/packets/fragmentation.md)
 - [LZ4](../api/framework/memory/lz4.md)

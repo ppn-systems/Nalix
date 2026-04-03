@@ -1,8 +1,8 @@
 # Architecture
 
-This page describes the current server-side shape of `Nalix.Network` as it exists in `src`, without the older placeholder layers and renamed runtime pieces.
+This page describes the current server-side shape of `Nalix.Network` as it exists in `src`.
 
-Use this page when you want the big picture before diving into API pages.
+Use it when you want the big picture before diving into the API pages.
 
 ## Runtime map
 
@@ -31,9 +31,9 @@ flowchart LR
 The common TCP path looks like this:
 
 1. `TcpListenerBase` accepts a socket.
-2. `ConnectionLimiter` may reject or ban the endpoint before full admission.
+2. `ConnectionGuard` may reject the endpoint before full admission.
 3. The listener creates a `Connection` and passes it to `Protocol.OnAccept(...)`.
-4. The protocol receives framed data and forwards work into `PacketDispatchChannel`.
+4. The protocol forwards framed data into `PacketDispatchChannel`.
 5. Dispatch queues the work, the worker loop deserializes the packet, resolves metadata, runs middleware, invokes the handler, and optionally sends a result back through the connection.
 
 The UDP path follows the same broad model, but datagrams are authenticated and mapped to session state differently inside `UdpListenerBase`.
@@ -77,7 +77,7 @@ The network runtime is designed to run with pressure controls enabled, not as an
 
 Typical pieces are:
 
-- `ConnectionLimiter` for admission control
+- `ConnectionGuard` for admission control
 - `TokenBucketLimiter` and `PolicyRateLimiter` for request-rate protection
 - `ConcurrencyGate` for in-flight handler limits
 - `TimingWheel` for timeout and scheduled expiry handling
@@ -114,8 +114,7 @@ The exact middleware stack depends on your configuration and metadata. Packet at
 ## Where other packages fit
 
 - `Nalix.Common` provides contracts and packet attributes.
-- `Nalix.Framework` provides `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, and timing helpers.
-- `Nalix.Framework` provides built-in packet types, packet registry support, and shared runtime helpers.
+- `Nalix.Framework` provides `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, timing helpers, built-in packet types, packet registry support, and shared runtime helpers.
 - `Nalix.SDK` is the client-side counterpart.
 
 ## Recommended next pages

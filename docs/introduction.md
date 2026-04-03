@@ -28,7 +28,7 @@ InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 
 | Goal | Start with |
 |---|---|
-| Build a TCP or UDP server | [Quick Start](./quickstart.md) |
+| Build a TCP or UDP server | [Quickstart](./quickstart.md) |
 | Build a TCP client | [Nalix.SDK](./packages/nalix-sdk.md) |
 | Understand package layout | [Packages Overview](./packages/index.md) |
 | Understand packet metadata and dispatch | [Nalix.Network](./packages/nalix-network.md) |
@@ -48,7 +48,7 @@ A server usually looks like this:
 A client usually looks like this:
 
 1. load or create `TransportOptions`
-2. create `TcpSession` or `IoTTcpSession`
+2. create `TransportSession`-derived `TcpSession`
 3. connect
 4. perform handshake or control flow if needed
 5. use `RequestAsync`, `PingAsync`, or direct send helpers
@@ -56,7 +56,7 @@ A client usually looks like this:
 ## Recommended first reading
 
 - [Installation](./installation.md)
-- [Quick Start](./quickstart.md)
+- [Quickstart](./quickstart.md)
 - [Nalix.Network](./packages/nalix-network.md)
 - [Nalix.SDK](./packages/nalix-sdk.md)
 

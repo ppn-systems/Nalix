@@ -57,9 +57,9 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolShared"/> class.
     /// </summary>
-    /// <param name="bufferSize"></param>
-    /// <param name="initialCapacity"></param>
-    /// <param name="secureClear"></param>
+    /// <param name="bufferSize">The size of buffers managed by the pool.</param>
+    /// <param name="initialCapacity">The number of buffers to preallocate.</param>
+    /// <param name="secureClear">Whether to clear buffers before returning them to the array pool.</param>
     private BufferPoolShared(int bufferSize, int initialCapacity, bool secureClear)
     {
         _disposeLock = new();
@@ -83,9 +83,9 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Gets or creates a shared buffer pool for the specified buffer size.
     /// </summary>
-    /// <param name="bufferSize"></param>
-    /// <param name="initialCapacity"></param>
-    /// <param name="secureClear"></param>
+    /// <param name="bufferSize">The size of buffers managed by the pool.</param>
+    /// <param name="initialCapacity">The number of buffers to preallocate.</param>
+    /// <param name="secureClear">Whether to clear buffers before returning them to the array pool.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity, bool secureClear)
         => s_pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity, secureClear));
@@ -113,7 +113,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Releases a buffer back into the pool.
     /// </summary>
-    /// <param name="buffer"></param>
+    /// <param name="buffer">The buffer to return.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is null or does not match this pool's buffer size.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -142,7 +142,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Increases the capacity of the pool by adding buffers.
     /// </summary>
-    /// <param name="additionalCapacity"></param>
+    /// <param name="additionalCapacity">The number of additional buffers to add.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="additionalCapacity"/> is less than or equal to zero.</exception>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -171,7 +171,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Decreases the capacity of the pool by removing buffers.
     /// </summary>
-    /// <param name="capacityToRemove"></param>
+    /// <param name="capacityToRemove">The number of buffers to remove.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void DecreaseCapacity(int capacityToRemove)
@@ -276,7 +276,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Pre-allocates buffers to the specified capacity.
     /// </summary>
-    /// <param name="capacity"></param>
+    /// <param name="capacity">The number of buffers to preallocate.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void PreallocateBuffers(int capacity)
@@ -293,7 +293,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Rents buffers from the ArrayPool and enqueues them into the ring.
     /// </summary>
-    /// <param name="count"></param>
+    /// <param name="count">The number of buffers to rent and enqueue.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void RentAndEnqueueBuffers(int count)
@@ -320,7 +320,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Returns a collection of buffers to the ArrayPool, optionally clearing them.
     /// </summary>
-    /// <param name="buffers"></param>
+    /// <param name="buffers">The buffers to return to the array pool.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ReturnBuffersToArrayPool(List<byte[]> buffers)
@@ -340,7 +340,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Returns a buffer array to the ArrayPool, optionally clearing them.
     /// </summary>
-    /// <param name="buffers"></param>
+    /// <param name="buffers">The buffers to return to the array pool.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ReturnBuffersToArrayPool(byte[][] buffers)
@@ -360,7 +360,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Performs the actual resource cleanup.
     /// </summary>
-    /// <param name="disposing"></param>
+    /// <param name="disposing">Whether the method is being called from <see cref="Dispose()"/>.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void Dispose(bool disposing)

@@ -2,7 +2,7 @@
 
 This guide shows when to use `UdpListenerBase` and what to implement first.
 
-Use it when you have decided UDP is the right transport, but want the safest minimal server shape before layering in more game or telemetry logic.
+Use it when you have already decided UDP is the right transport, but want the safest minimal server shape before layering in more game or telemetry logic.
 
 ## When UDP makes sense
 

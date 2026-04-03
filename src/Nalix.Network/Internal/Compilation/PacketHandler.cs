@@ -14,7 +14,8 @@ using Nalix.Network.Routing;
 namespace Nalix.Network.Internal.Compilation;
 
 /// <summary>
-/// Enhanced version of <c>PacketHandler</c> using compiled delegates for zero-allocation execution.
+/// Immutable dispatch record that pairs packet metadata with the compiled invoker
+/// used to execute a packet handler without reflection on the hot path.
 /// </summary>
 /// <typeparam name="TPacket">The packet type handled by this delegate.</typeparam>
 /// <param name="opCode"></param>
@@ -53,7 +54,7 @@ internal readonly struct PacketHandler<TPacket>(
     public readonly Type ReturnType = returnType;
 
     /// <summary>
-    /// Metadata metadata for this handler (e.g., timeout, rate limiting, permissions).
+    /// Metadata for this handler, including timeout, rate limiting, and permissions.
     /// </summary>
     public readonly PacketMetadata Metadata = metadata;
 
@@ -69,7 +70,8 @@ internal readonly struct PacketHandler<TPacket>(
 
     /// <summary>
     /// A compiled delegate for invoking the handler directly.
-    /// PERFORMANCE CRITICAL: avoids reflection and allocations.
+    /// This is the performance-critical entry point used every time a packet is dispatched.
+    /// It avoids reflection, parameter boxing, and per-call delegate allocation.
     /// </summary>
     public readonly Func<object, PacketContext<TPacket>,
                     ValueTask<object>> Invoker = compiledInvoker;
@@ -91,7 +93,7 @@ internal readonly struct PacketHandler<TPacket>(
 
     /// <summary>
     /// Executes the handler using the compiled delegate for maximum performance.
-    /// PERFORMANCE CRITICAL: this is a zero-allocation execution path.
+    /// This is the zero-allocation path that the dispatcher calls for every packet.
     /// </summary>
     /// <param name="context">The packet context containing the request and metadata.</param>
     /// <returns>

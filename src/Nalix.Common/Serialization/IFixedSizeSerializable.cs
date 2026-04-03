@@ -4,14 +4,13 @@
 namespace Nalix.Common.Serialization;
 
 /// <summary>
-/// Defines a contract for types that can be serialized with a fixed size.
-/// Implementing types must provide a static property indicating the fixed size in bytes.
+/// Marks a type whose serialized size is known at compile time.
+/// The serializer can use this to avoid per-instance size discovery.
 /// </summary>
 public interface IFixedSizeSerializable
 {
     /// <summary>
-    /// Gets the fixed size in bytes required to serialize an instance of the implementing type.
-    /// This property must be implemented as a static abstract member.
+    /// Gets the fixed size, in bytes, required to serialize one instance of the type.
     /// </summary>
     static abstract int Size { get; }
 }

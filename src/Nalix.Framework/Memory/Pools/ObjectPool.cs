@@ -10,19 +10,21 @@ using Nalix.Framework.Memory.Objects;
 namespace Nalix.Framework.Memory.Pools;
 
 /// <summary>
-/// A high-performance thread-safe pool for storing and reusing <see cref="IPoolable"/> instances
-/// in real-time server environments.
+/// A thread-safe pool that stores and reuses <see cref="IPoolable"/> instances by type.
+/// Objects are reset before being returned to the pool so callers always receive a
+/// clean instance on the next rent.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="ObjectPool"/> class with the specified maximum items per type.
+/// Each pooled type gets its own internal bucket and capacity limit. The pool is
+/// intentionally simple: rent fast, reset on return, and discard when full.
 /// </remarks>
-/// <param name="defaultMaxItemsPerType">The default maximum ProtocolType of items to store per type.</param>
+/// <param name="defaultMaxItemsPerType">The default maximum number of items to keep per pooled type.</param>
 public sealed class ObjectPool(int defaultMaxItemsPerType)
 {
     #region Constants
 
     /// <summary>
-    /// Standard maximum pool size to prevent unbounded memory growth
+    /// Standard maximum pool size used when the caller does not provide a positive limit.
     /// </summary>
     public const int DefaultMaxSize = 1024;
 
@@ -31,12 +33,13 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     #region Fields
 
     /// <summary>
-    /// Type-specific storage for pooled objects
+    /// Type-specific storage for pooled objects.
+    /// Each concrete type gets its own bucket so instances never cross type boundaries.
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, TypePool> _typePools = new();
 
     /// <summary>
-    /// Statistics tracking
+    /// Statistics tracking for diagnostics and capacity tuning.
     /// </summary>
     private long _totalCreated;
 
@@ -45,7 +48,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     private readonly System.Diagnostics.Stopwatch _uptime = System.Diagnostics.Stopwatch.StartNew();
 
     /// <summary>
-    /// Configuration
+    /// Configuration for the default per-type pool capacity.
     /// </summary>
     private readonly int _defaultMaxItemsPerType = defaultMaxItemsPerType > 0 ? defaultMaxItemsPerType : DefaultMaxSize;
 
@@ -64,7 +67,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     public event Action<string>? TraceOccurred;
 
     /// <summary>
-    /// Gets the total ProtocolType of objects created across all types.
+    /// Gets the total number of objects created across all pooled types.
     /// </summary>
     public long TotalCreatedCount
     {
@@ -76,7 +79,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     }
 
     /// <summary>
-    /// Gets the total ProtocolType of currently pooled objects across all types.
+    /// Gets the total number of objects currently available across all pools.
     /// </summary>
     public int TotalAvailableCount
     {
@@ -92,17 +95,17 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     }
 
     /// <summary>
-    /// Gets the ProtocolType of object types currently being pooled.
+    /// Gets the number of distinct object types currently being pooled.
     /// </summary>
     public int TypeCount => _typePools.Count;
 
     /// <summary>
-    /// Gets the total ProtocolType of objects returned to the pool.
+    /// Gets the total number of objects returned to the pool.
     /// </summary>
     public long TotalReturnedCount => System.Threading.Interlocked.Read(ref _totalReturned);
 
     /// <summary>
-    /// Gets the total ProtocolType of objects rented from the pool.
+    /// Gets the total number of objects rented from the pool.
     /// </summary>
     public long TotalRentedCount => System.Threading.Interlocked.Read(ref _totalRented);
 
@@ -127,7 +130,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     #region Public Methods
 
     /// <summary>
-    /// Gets or creates and returns an instance of <typeparamref name="T"/>.
+    /// Gets an instance of <typeparamref name="T"/>, creating a new one when the pool is empty.
     /// </summary>
     /// <typeparam name="T">The type of object to get from the pool.</typeparam>
     /// <returns>An instance of <typeparamref name="T"/>.</returns>
@@ -138,17 +141,17 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     {
         Type type = typeof(T);
 
-        // Get or create the type-specific pool
+        // Resolve the bucket for this type once per rent call.
         TypePool typePool = _typePools.GetOrAdd(type, _ => new TypePool(_defaultMaxItemsPerType));
 
-        // Try to get an object from the pool or create a new one
+        // Rent from the bucket when possible; otherwise create a fresh instance.
         if (typePool.TryPop(out IPoolable? obj) && obj != null)
         {
             _ = System.Threading.Interlocked.Increment(ref _totalRented);
             return (T)obj;
         }
 
-        // Create a new instance if the pool is empty
+        // Pool miss: create a new instance and account for it as a fresh allocation.
         T newObj = new();
 
         _ = System.Threading.Interlocked.Increment(ref _totalCreated);
@@ -176,29 +179,29 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
 
         Type type = typeof(T);
 
-        // Initialize the object before returning it to the pool
+        // Reset first so the next renter always sees a clean object.
         obj.ResetForPool();
 
-        // Get or create the type-specific pool
+        // Return to the same bucket used for rent.
         TypePool typePool = _typePools.GetOrAdd(type, _ => new TypePool(_defaultMaxItemsPerType));
 
-        // Try to add the object to the pool
+        // If the bucket is full we simply drop the instance and let GC reclaim it.
         if (typePool.TryPush(obj))
         {
             _ = System.Threading.Interlocked.Increment(ref _totalReturned);
             return;
         }
 
-        // If the pool is full, the object will be garbage collected
+        // Capacity reached: discard instead of growing without bound.
         TraceOccurred?.Invoke($"Return<{type.Name}>: Pools at capacity, object discarded");
     }
 
     /// <summary>
-    /// Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.
+    /// Preallocates and stores multiple new instances of <typeparamref name="T"/> in the pool.
     /// </summary>
     /// <typeparam name="T">The type of objects to preallocate.</typeparam>
-    /// <param name="count">The ProtocolType of instances to preallocate.</param>
-    /// <returns>The ProtocolType of instances successfully preallocated.</returns>
+    /// <param name="count">The number of instances to preallocate.</param>
+    /// <returns>The number of instances successfully added to the pool.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public int Prealloc<T>(int count) where T : IPoolable, new()
@@ -214,7 +217,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         int created = 0;
         for (int i = 0; i < count; i++)
         {
-            // Create a new instance and try to add it to the pool
+            // Preallocation stops as soon as the bucket reports that it is full.
             T obj = new();
             if (typePool.TryPush(obj))
             {
@@ -224,7 +227,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             }
             else
             {
-                // If the pool is full, stop creating objects
+                // Stop once capacity is reached so preallocation does not overshoot the limit.
                 break;
             }
         }

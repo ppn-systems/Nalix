@@ -14,6 +14,14 @@ This page covers the core `Nalix.Framework.DataFrames` abstractions that sit und
 - `PacketBase<TSelf>`
 - `FrameTransformer`
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `FrameBase` | `MagicNumber`, `OpCode`, `Flags`, `Priority`, `Protocol`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
+| `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GenerateReportData()`, `Deserialize(ReadOnlySpan<byte>)` |
+| `FrameTransformer` | `Encrypt`, `TryEncrypt`, `Decrypt`, `TryDecrypt`, `Compress`, `TryCompress`, `Decompress`, `TryDecompress`, size helpers |
+
 ## FrameBase
 
 `FrameBase` is the common wire-level header contract for Nalix packets.
@@ -59,11 +67,7 @@ public sealed class ChatMessage : PacketBase<ChatMessage>
     [SerializeOrder(PacketHeaderOffset.Region)]
     public string Content { get; set; } = string.Empty;
 
-    public void Initialize(string content)
-    {
-        this.Content = content ?? string.Empty;
-        this.Protocol = ProtocolType.TCP;
-    }
+    public void Initialize(string content) => Content = content ?? string.Empty;
 }
 ```
 
@@ -107,6 +111,12 @@ bool encrypted = FrameTransformer.Encrypt(sourceLease, destLease, key, CipherSui
 - compression uses pooled `LZ4Codec`
 - `Try*` overloads still catch failures and return `false`
 - non-`Try*` overloads now raise exceptions for invalid input, malformed envelopes, or transform failures
+
+### Common pitfalls
+
+- expecting `ResetForPool()` to preserve custom runtime state
+- using `FrameTransformer` on bytes that still include the header region
+- assuming `Deserialize(...)` will silently accept malformed input
 
 ## When to use which layer
 

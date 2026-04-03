@@ -4,21 +4,21 @@
 namespace Nalix.Common.Networking.Protocols;
 
 /// <summary>
-/// Standard reason codes for control packets (DISCONNECT, ERROR, NACK).
-/// Grouped by ranges to ease logging, analytics, and client decisioning.
-/// Inspired by WebSocket close codes, MQTT v5 reason codes, gRPC, HTTP, and QUIC.
+/// Standard reason codes for protocol control messages.
+/// The numeric ranges are grouped so clients and logs can distinguish general,
+/// transport, framing, and security failures quickly.
 /// </summary>
 public enum ProtocolReason : ushort
 {
     #region 0–49: General
 
     /// <summary>
-    /// No reason specified (default).
+    /// No reason specified.
     /// </summary>
     NONE = 0,
 
     /// <summary>
-    /// NONE or unspecified error.
+    /// Unspecified error.
     /// </summary>
     UNKNOWN = 1,
 
@@ -28,12 +28,12 @@ public enum ProtocolReason : ushort
     CANCELLED = 2,
 
     /// <summary>
-    /// Feature not implemented on this endpoint/version.
+    /// Feature not implemented on this endpoint or version.
     /// </summary>
     NOT_IMPLEMENTED = 3,
 
     /// <summary>
-    /// Temporary condition; try again later.
+    /// Temporary condition; retry later.
     /// </summary>
     TEMPORARY_FAILURE = 4,
 
@@ -57,7 +57,7 @@ public enum ProtocolReason : ushort
     #region 100–149: Transport / Network
 
     /// <summary>
-    /// No response within expected timeframe.
+    /// No response within the expected timeframe.
     /// </summary>
     TIMEOUT = 100,
 
@@ -72,17 +72,17 @@ public enum ProtocolReason : ushort
     LOCAL_CLOSED = 102,
 
     /// <summary>
-    /// Generic network/transport error.
+    /// Generic transport error.
     /// </summary>
     NETWORK_ERROR = 103,
 
     /// <summary>
-    /// Connection refused by remote host/port.
+    /// Connection refused by the remote host or port.
     /// </summary>
     CONNECTION_REFUSED = 104,
 
     /// <summary>
-    /// Connection reset by peer.
+    /// Connection reset by the peer.
     /// </summary>
     CONNECTION_RESET = 105,
 
@@ -92,7 +92,7 @@ public enum ProtocolReason : ushort
     DNS_FAILURE = 106,
 
     /// <summary>
-    /// MTU/fragmentation constraints violated.
+    /// MTU or fragmentation constraints were violated.
     /// </summary>
     MTU_VIOLATION = 107,
 
@@ -102,7 +102,7 @@ public enum ProtocolReason : ushort
     CONGESTION = 108,
 
     /// <summary>
-    /// Keepalive/ping failed.
+    /// Keepalive or ping failed.
     /// </summary>
     KEEPALIVE_FAILED = 109,
 
@@ -121,7 +121,7 @@ public enum ProtocolReason : ushort
     VERSION_UNSUPPORTED = 151,
 
     /// <summary>
-    /// Frame/message size exceeds allowed limit.
+    /// Frame or message size exceeds the allowed limit.
     /// </summary>
     FRAME_TOO_LARGE = 152,
 
@@ -151,22 +151,22 @@ public enum ProtocolReason : ushort
     STATE_VIOLATION = 157,
 
     /// <summary>
-    /// Cryptographic algorithm or parameters not supported.
+    /// Cryptographic algorithm or parameters are not supported.
     /// </summary>
     CRYPTO_UNSUPPORTED = 158,
 
     /// <summary>
-    /// Compression algorithm not supported.
+    /// Compression algorithm is not supported.
     /// </summary>
     COMPRESSION_UNSUPPORTED = 159,
 
     /// <summary>
-    /// Represents the error code for an unsupported operation.
+    /// Operation is not supported.
     /// </summary>
     OPERATION_UNSUPPORTED = 160,
 
     /// <summary>
-    /// Packet is malformed or does not conform to protocol framing.
+    /// Packet is malformed or does not conform to framing.
     /// </summary>
     MALFORMED_PACKET = 161,
 
@@ -185,7 +185,7 @@ public enum ProtocolReason : ushort
     UNAUTHORIZED = 201,
 
     /// <summary>
-    /// Access explicitly forbidden by policy.
+    /// Access is explicitly forbidden by policy.
     /// </summary>
     FORBIDDEN = 202,
 
@@ -200,7 +200,7 @@ public enum ProtocolReason : ushort
     ACCOUNT_SUSPENDED = 204,
 
     /// <summary>
-    /// Client/user is banned.
+    /// Client or user is banned.
     /// </summary>
     BANNED = 205,
 
@@ -210,7 +210,7 @@ public enum ProtocolReason : ushort
     IP_BLOCKED = 206,
 
     /// <summary>
-    /// Too many requests (rate limited).
+    /// Too many requests.
     /// </summary>
     RATE_LIMITED = 207,
 

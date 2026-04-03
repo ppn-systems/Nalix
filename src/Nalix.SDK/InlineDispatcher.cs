@@ -9,24 +9,18 @@ using System.Runtime.CompilerServices;
 namespace Nalix.SDK;
 
 /// <summary>
-/// A dispatcher implementation that executes actions immediately on the calling thread.
+/// An <see cref="IThreadDispatcher"/> that executes actions immediately on the calling thread.
 /// </summary>
 /// <remarks>
-/// This dispatcher does not switch to any specific thread (e.g., UI thread).
-/// It is typically used for testing, non-UI scenarios, or environments where
-/// thread marshalling is not required.
+/// This dispatcher does not switch threads. It is typically used for tests or
+/// for environments where thread marshalling is not required.
 /// </remarks>
 [StackTraceHidden]
 [DebuggerStepThrough]
 [DebuggerNonUserCode]
 public sealed class InlineDispatcher : IThreadDispatcher
 {
-    /// <summary>
-    /// Executes the specified <paramref name="action"/> synchronously on the current thread.
-    /// </summary>
-    /// <param name="action">
-    /// The action to execute. If <c>null</c>, no operation is performed.
-    /// </param>
+    /// <inheritdoc/>
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Post(Action action) => action?.Invoke();

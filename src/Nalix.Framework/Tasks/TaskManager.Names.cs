@@ -10,12 +10,13 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Framework.Tasks;
 
 /// <summary>
-/// Provides a standardized naming scheme for groups, workers, and recurring jobs.
+/// Provides a standardized naming scheme for worker groups, worker instances,
+/// and recurring jobs.
 /// <para>
 /// Conventions:
-/// - Groups use path-style with '/' separators (e.g., "net/tcp/5720").
-/// - Workers use dot-style with '.' separators (e.g., "tcp.accept.5720.0").
-/// - All names are lowercase; only [A-Za-z0-9-_.] allowed after <see cref="SanitizeToken(string)"/>.
+/// - Groups use path-style segments with '/' separators, because they often describe hierarchy.
+/// - Workers and recurring jobs use dot-style segments with '.' separators, because they read like identifiers.
+/// - All names are normalized to lowercase-safe tokens before they are concatenated.
 /// </para>
 /// </summary>
 /// <remarks>
@@ -29,27 +30,28 @@ namespace Nalix.Framework.Tasks;
 public static class TaskNaming
 {
     /// <summary>
-    /// Canonical short tags that appear in task names.
-    /// Applications may extend this with domain-specific tags.
+    /// Canonical short tags used when building task names.
+    /// Applications may add their own tags, but these keep the built-in naming
+    /// scheme consistent across the framework.
     /// </summary>
     public static class Tags
     {
-        /// <inheritdoc/>
+        /// Tag for TCP-related tasks.
         public const string Tcp = "tcp";
 
-        /// <inheritdoc/>
+        /// Tag for UDP-related tasks.
         public const string Udp = "udp";
 
-        /// <inheritdoc/>
+        /// Tag for generic network tasks.
         public const string Net = "net";
 
-        /// <inheritdoc/>
+        /// Tag for time synchronization or scheduling tasks.
         public const string Time = "time";
 
-        /// <inheritdoc/>
+        /// Tag for synchronization-related tasks.
         public const string Sync = "sync";
 
-        /// <inheritdoc/>
+        /// Tag for wheel-based timing tasks.
         public const string Wheel = "wheel";
 
         /// <summary>
@@ -84,15 +86,17 @@ public static class TaskNaming
     }
 
     /// <summary>
-    /// Recurring job name builder (dot-style).
+    /// Builds recurring job names using the framework's dot-style convention.
     /// </summary>
     public static class Recurring
     {
         /// <summary>
-        /// Build a recurring job id with a hex instance key, e.g. "cleanup.00BC614E".
+        /// Builds a recurring job name that combines a sanitized prefix, a built-in tag,
+        /// and a fixed-width hexadecimal instance key.
         /// </summary>
         /// <remarks>
-        /// Invalid characters in <paramref name="prefix"/> are replaced by <c>_</c> via <see cref="SanitizeToken(string)"/>.
+        /// This keeps job names stable and sortable while still allowing the caller to
+        /// provide a human-readable prefix.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public static string CleanupJobId(string prefix, int instanceKey) => $"{SanitizeToken(prefix)}.{Tags.Cleanup}.{instanceKey:X8}";
@@ -100,8 +104,12 @@ public static class TaskNaming
 
     /// <summary>
     /// Sanitizes an arbitrary string into a safe token for task names.
-    /// Allows letters, digits, '-', '_', '.', replaces others with '_'.
     /// </summary>
+    /// <remarks>
+    /// The sanitizer keeps only letters, digits, hyphen, underscore, and period.
+    /// Any other character is replaced with an underscore so callers can pass in
+    /// user input without accidentally breaking the naming format.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [SkipLocalsInit]
     public static string SanitizeToken(string s)

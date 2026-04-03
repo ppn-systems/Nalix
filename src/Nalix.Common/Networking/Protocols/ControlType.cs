@@ -4,82 +4,82 @@
 namespace Nalix.Common.Networking.Protocols;
 
 /// <summary>
-/// Represents the type of control message used in messaging operations.
+/// Identifies the kind of control message used by the protocol layer.
 /// </summary>
 public enum ControlType : byte
 {
     /// <summary>
-    /// Represents a null or uninitialized control message.
+    /// No control message specified.
     /// </summary>
     NONE = 0x00,
 
     /// <summary>
-    /// Represents a ping message used to check the connection status.
+    /// Ping message used to check connection liveness.
     /// </summary>
     PING = 0x01,
 
     /// <summary>
-    /// Represents a pong message sent in response to a ping.
+    /// Pong response sent to a ping.
     /// </summary>
     PONG = 0x02,
 
     /// <summary>
-    /// Represents an acknowledgment message confirming receipt of a message.
+    /// Acknowledgement confirming receipt.
     /// </summary>
     ACK = 0x03,
 
     /// <summary>
-    /// Represents a disconnect message indicating the termination of a connection.
+    /// Disconnect request or notification.
     /// </summary>
     DISCONNECT = 0x04,
 
     /// <summary>
-    /// Represents an error message indicating a problem or failure in the connection.
+    /// Error message describing a failure.
     /// </summary>
     ERROR = 0x05,
 
     /// <summary>
-    /// Represents a heartbeat message used to maintain an active connection.
+    /// Heartbeat message used to keep a connection active.
     /// </summary>
     HEARTBEAT = 0x07,
 
     /// <summary>
-    /// Represents a negative acknowledgment message indicating that a message was not received or processed successfully.
+    /// Negative acknowledgement indicating that processing failed.
     /// </summary>
     NACK = 0x08,
 
     /// <summary>
-    /// Represents a resume message used to continue a previously interrupted connection or session.
+    /// Resume a previously interrupted connection or session.
     /// </summary>
     RESUME = 0x09,
 
     /// <summary>
-    /// Represents a shutdown message indicating a request to gracefully terminate the connection or service.
+    /// Request graceful shutdown.
     /// </summary>
     SHUTDOWN = 0x0A,
 
     /// <summary>
-    /// Represents a message instructing the client to redirect to another endpoint.
+    /// Instruct the client to redirect to another endpoint.
     /// </summary>
     REDIRECT = 0x0B,
 
     /// <summary>
-    /// Represents a throttling message requesting the client to reduce its rate.
+    /// Request the client to reduce its rate.
     /// </summary>
     THROTTLE = 0x0C,
 
     /// <summary>
-    /// Represents a maintenance notice sent by the server.
+    /// Maintenance notice sent by the server.
     /// </summary>
     NOTICE = 0x0D,
 
     /// <summary>
-    /// The operation has timed out.
+    /// The operation timed out.
     /// </summary>
     TIMEOUT = 0x10,
 
     /// <summary>
-    /// Failure in processing the operation.
+    /// Generic operation failure.
     /// </summary>
     FAIL = 0x11,
 
@@ -89,7 +89,7 @@ public enum ControlType : byte
     TIMESYNCREQUEST = 0x12,
 
     /// <summary>
-    /// Server responds with server timestamp.
+    /// Server responds with its current time.
     /// </summary>
     TIMESYNCRESPONSE = 0x13,
 

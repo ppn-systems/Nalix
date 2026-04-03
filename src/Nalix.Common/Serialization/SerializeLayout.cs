@@ -4,26 +4,22 @@
 namespace Nalix.Common.Serialization;
 
 /// <summary>
-/// Defines the layout strategy for serialization.
+/// Describes how fields are ordered when a type is serialized.
 /// </summary>
 public enum SerializeLayout : byte
 {
     /// <summary>
-    /// Indicates that serialization should follow an automatic layout,
-    /// where fields are grouped and ordered by size to minimize layout memory padding.
-    /// This is the default layout.
+    /// Fields are grouped and ordered automatically to reduce padding and improve packing.
     /// </summary>
     Auto = 0,
 
     /// <summary>
-    /// Indicates that serialization should follow a sequential layout,
-    /// where fields or properties are processed in the order they are defined.
+    /// Fields or properties are processed in the order they are declared.
     /// </summary>
     Sequential = 1,
 
     /// <summary>
-    /// Indicates that serialization should follow an explicit layout,
-    /// where the serialization order or structure is explicitly defined.
+    /// Field order is taken from explicit serialization metadata.
     /// </summary>
     Explicit = 2
 }

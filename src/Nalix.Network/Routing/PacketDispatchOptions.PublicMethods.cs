@@ -22,7 +22,7 @@ namespace Nalix.Network.Routing;
 public sealed partial class PacketDispatchOptions<TPacket>
 {
     /// <summary>
-    /// Configures logging for the packet dispatcher, enabling logging of packet processing details.
+    /// Attaches a logger used by the dispatcher for setup, routing, and failure diagnostics.
     /// </summary>
     /// <param name="logger">The logger instance that will be used for logging packet processing events.</param>
     /// <returns>
@@ -38,7 +38,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Configures a custom error handler to manage exceptions during packet processing.
+    /// Registers a custom error hook that receives handler exceptions before the dispatcher
+    /// emits the protocol-level failure response.
     /// </summary>
     /// <param name="errorHandler">
     /// An action that takes an exception and the packet ID, which allows custom handling of errors
@@ -58,7 +59,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Adds a middleware component to the packet processing pipeline.
+    /// Adds a packet middleware component to the execution pipeline.
     /// </summary>
     /// <param name="middleware">
     /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked during packet processing.
@@ -79,7 +80,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Adds a middleware component to the packet processing pipeline.
+    /// Adds a network-buffer middleware component to the pre-dispatch pipeline.
     /// </summary>
     /// <param name="middleware">
     /// The <see cref="IPacketMiddleware{TPacket}"/> instance that will be invoked during packet processing.
@@ -100,7 +101,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Overrides the default number of dispatch loops.
+    /// Overrides the number of worker loops used by the packet dispatcher.
     /// </summary>
     /// <param name="loopCount">
     /// The number of worker loops to start. Must be between 1 and 64.
@@ -124,7 +125,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Configures how the middleware pipeline handles exceptions thrown during packet processing.
+    /// Configures how packet middleware reacts when one of the middleware stages throws.
     /// </summary>
     /// <param name="continueOnError">
     /// A value indicating whether the pipeline should continue processing subsequent middleware
@@ -157,8 +158,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Registers a handler by creating an instance of the specified controller type
-    /// and scanning its methods decorated with <see cref="PacketOpcodeAttribute"/>.
+    /// Registers a controller type and scans its public methods for packet handler attributes.
     /// </summary>
     /// <typeparam name="TController">
     /// The type of the controller to register. Must have a parameterless constructor.
@@ -172,7 +172,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         where TController : class, new() => this.WithHandler(() => new TController());
 
     /// <summary>
-    /// Registers a handler using an existing instance of the specified controller type.
+    /// Registers a handler using an existing controller instance.
     /// </summary>
     /// <typeparam name="TController">The type of the controller to register.</typeparam>
     /// <param name="instance">An existing instance of <typeparamref name="TController"/>.</param>
@@ -188,9 +188,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         where TController : class => this.WithHandler(() => ThrowIfNull(instance, nameof(instance)));
 
     /// <summary>
-    /// Registers a handler by creating an instance of the specified controller type
-    /// using a provided factory function, then scanning its methods decorated
-    /// with <see cref="PacketOpcodeAttribute"/>.
+    /// Registers a controller factory and scans the produced instance for packet handlers.
     /// </summary>
     /// <typeparam name="TController">
     /// The type of the controller to register.
@@ -200,17 +198,18 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </param>
     /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
     /// <remarks>
+    /// During registration the dispatcher does more than just compile delegates:
+    /// it also records the concrete packet type expected by each handler so it can
+    /// warn about runtime type mismatches before the handler body runs.
     /// <para>
-    /// In addition to compiling handler delegates, this method inspects each handler method's
-    /// first parameter to determine the concrete packet type it expects. That type is stored in
-    /// <c>_packetTypeMap[opCode]</c> and consulted at dispatch time to emit an early, actionable
-    /// warning when the deserialized packet's runtime type does not match the handler signature —
-    /// rather than a cryptic <see cref="InvalidCastException"/> deep inside an expression tree.
+    /// This is especially important for legacy direct-packet handlers, because a
+    /// mismatch there would otherwise surface later as an expression-tree cast
+    /// failure with very little context.
     /// </para>
     /// <para>
-    /// For context-style handlers whose first parameter is <c>PacketContext&lt;TPacket&gt;</c>,
-    /// no concrete-type entry is recorded because the context wraps the packet behind its
-    /// interface — the cast is deferred to handler code itself.
+    /// Context-style handlers do not need that extra mapping because the packet is
+    /// carried inside <c>PacketContext&lt;TPacket&gt;</c> and the handler can decide
+    /// how to inspect it.
     /// </para>
     /// </remarks>
     /// <exception cref="InternalErrorException"></exception>
@@ -272,7 +271,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Attempts to resolve a registered packet handler descriptor for the specified opcode.
+    /// Attempts to resolve a cached packet handler descriptor for the specified opcode.
     /// </summary>
     /// <param name="opCode">The opcode of the packet handler to resolve.</param>
     /// <param name="handler">
@@ -297,7 +296,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     }
 
     /// <summary>
-    /// Executes a resolved handler with a pooled packet context.
+    /// Executes a resolved handler with a pooled packet context and returns the context
+    /// to the object pool afterward.
     /// </summary>
     /// <param name="descriptor">Resolved handler descriptor.</param>
     /// <param name="packet">Incoming packet.</param>

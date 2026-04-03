@@ -21,9 +21,8 @@ public abstract partial class Protocol
     #region Properties
 
     /// <summary>
-    /// Gets or sets a value indicating whether the connection should be kept open after processing.
-    /// Standard value is false unless overridden.
-    /// Thread-safe implementation using atomic operations.
+    /// Gets or sets whether the protocol keeps the connection open after a message is processed.
+    /// The flag is stored atomically because it is read during hot-path post-processing.
     /// </summary>
     public virtual bool KeepConnectionOpen
     {
@@ -41,7 +40,7 @@ public abstract partial class Protocol
     #region Disposal
 
     /// <summary>
-    /// Disposes resources used by this ProtocolType.
+    /// Disposes resources used by this protocol instance.
     /// </summary>
     public void Dispose()
     {
@@ -58,13 +57,13 @@ public abstract partial class Protocol
     /// <param name="disposing">True if called from Dispose, false if called from finalizer.</param>
     protected virtual void Dispose(bool disposing)
     {
-        // Atomic check-and-set: 0 -> 1
-        // If already 1, return immediately (already disposed)
+        // The first caller flips the disposed flag from 0 to 1; later callers are ignored.
         if (Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
         {
+            return;
         }
 
-        // Optional: clean up managed resources if (disposing)
+        // Derived protocols can release managed resources when disposing == true.
     }
 
     #endregion Disposal

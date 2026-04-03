@@ -123,5 +123,7 @@ LiteSerializer.Register(new MyCustomFormatter());
 
 ## Related APIs
 
+- [Serialization Attributes](../../common/serialization-attributes.md)
+- [Framework Serialization Basics](../serialization/serialization-basics.md)
 - [Packet Registry](./packet-registry.md)
 - [Built-in Frames](./built-in-frames.md)

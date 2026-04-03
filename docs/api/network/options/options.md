@@ -1,18 +1,18 @@
 # Network Options
 
-This page summarizes the main `Nalix.Network.Configurations` types that shape listener behavior, dispatch pressure, throttling, compression, idle cleanup, and object pooling.
+This page summarizes the main `Nalix.Network.Options` types that shape listener behavior, dispatch pressure, throttling, compression, idle cleanup, and object pooling.
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/NetworkSocketOptions.cs`
-- `src/Nalix.Network/Configurations/PoolingOptions.cs`
-- `src/Nalix.Network/Configurations/DispatchOptions.cs`
-- `src/Nalix.Network/Configurations/ConnectionLimitOptions.cs`
-- `src/Nalix.Network/Configurations/ConnectionHubOptions.cs`
-- `src/Nalix.Network/Configurations/TimingWheelOptions.cs`
-- `src/Nalix.Network/Configurations/NetworkCallbackOptions.cs`
-- `src/Nalix.Network/Configurations/CompressionOptions.cs`
-- `src/Nalix.Network/Configurations/TokenBucketOptions.cs`
+- `src/Nalix.Network/Options/NetworkSocketOptions.cs`
+- `src/Nalix.Network/Options/PoolingOptions.cs`
+- `src/Nalix.Network/Options/DispatchOptions.cs`
+- `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
+- `src/Nalix.Network/Options/ConnectionHubOptions.cs`
+- `src/Nalix.Network/Options/TimingWheelOptions.cs`
+- `src/Nalix.Network/Options/NetworkCallbackOptions.cs`
+- `src/Nalix.Network/Options/CompressionOptions.cs`
+- `src/Nalix.Network/Options/TokenBucketOptions.cs`
 
 ## Core option types
 

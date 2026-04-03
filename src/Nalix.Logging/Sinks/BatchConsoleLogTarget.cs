@@ -14,8 +14,7 @@ using Nalix.Logging.Options;
 namespace Nalix.Logging.Sinks;
 
 /// <summary>
-/// A logging target that buffers log messages and periodically writes them to the console.
-/// This approach improves performance by reducing console IEndpointKey /O operations when logging frequently.
+/// A buffered logging target that periodically writes log entries to the console.
 /// </summary>
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
@@ -48,18 +47,16 @@ public sealed class BatchConsoleLogTarget : INLogixTarget, IDisposable
     /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class.
     /// Optionally configures the batch console log options.
     /// </summary>
-    /// <param name="options">
-    /// An optional delegate to configure <see cref="ConsoleLogOptions"/> for this log target.
-    /// </param>
-    /// <param name="formatter"></param>
+    /// <param name="options">The console log options for this target.</param>
+    /// <param name="formatter">The formatter used to render log entries.</param>
     public BatchConsoleLogTarget(ConsoleLogOptions? options = null, INLogixFormatter? formatter = null)
         => _provider = new ConsoleLoggerProvider(formatter ?? new AnsiColorFormatter(), options);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom configuration logic.
+    /// Initializes a new instance of the <see cref="BatchConsoleLogTarget"/> class with custom configuration logic.
     /// </summary>
-    /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
-    /// <param name="formatter"></param>
+    /// <param name="options">An action that configures the <see cref="ConsoleLogOptions"/> before use.</param>
+    /// <param name="formatter">The formatter used to render log entries.</param>
     public BatchConsoleLogTarget(Action<ConsoleLogOptions> options, INLogixFormatter? formatter = null)
         : this(Configure(options), formatter)
     {
@@ -115,7 +112,6 @@ public sealed class BatchConsoleLogTarget : INLogixTarget, IDisposable
 
     /// <summary>
     /// Releases resources used by the <see cref="BatchConsoleLogTarget"/> instance.
-    /// Flushes any remaining logs in the buffer before shutting down.
     /// </summary>
     [StackTraceHidden]
     [DebuggerStepThrough]

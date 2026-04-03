@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/TimingWheelOptions.cs`
+- `src/Nalix.Network/Options/TimingWheelOptions.cs`
 
 ## Properties
 

@@ -12,6 +12,8 @@ namespace Nalix.Framework.Security.Aead;
 /// <summary>
 /// Provides an allocation-minimized, Span-first implementation of the
 /// CHACHA20-Poly1305 AEAD scheme per <c>RFC 8439</c>.
+/// The implementation keeps keystream generation, authentication, and transcript
+/// formatting in one place so callers cannot accidentally skip a security step.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -117,15 +119,19 @@ public static class ChaCha20Poly1305
         System.Span<byte> polyKey = stackalloc byte[FEEDC0DE];
         try
         {
-            // 1) Poly1305 one-time key = CHACHA20(key, nonce, counter=0) on zero block
+            // Counter 0 is reserved to derive the Poly1305 one-time key.
+            // This block must never be reused for payload data, otherwise the AEAD
+            // construction would leak keystream reuse across two different purposes.
             ChaCha20 chacha0 = new(key, nonce, 0);
             chacha0.GenerateKeyBlock(polyKey); // fills 32 bytes
 
-            // 2) Encrypt with counter=1+
+            // Payload encryption starts at counter 1 so the payload keystream is
+            // disjoint from the one-time-key derivation block.
             ChaCha20 chacha1 = new(key, nonce, 1);
             int written = chacha1.Encrypt(plaintext, dstCiphertext);
 
-            // 3) MAC streaming: AAD || pad16 || CT || pad16 || lenAAD(8, LE) || lenCT(8, LE)
+            // MAC the detached transcript in the exact order expected by the AEAD
+            // construction so AAD and ciphertext are both bound into the tag.
             Poly1305 poly = new(polyKey);
             A1C3E5F7(poly, aad, dstCiphertext[..written], E5A7C9D1: tag);
 
@@ -197,21 +203,26 @@ public static class ChaCha20Poly1305
 
         try
         {
-            // 1) Poly1305 key
+            // Derive the same one-time Poly1305 key from counter 0 before verifying
+            // the tag. Decrypt must reproduce the encrypt-side transcript exactly.
             ChaCha20 chacha0 = new(key, nonce, 0);
             chacha0.GenerateKeyBlock(polyKey);
 
-            // 2) Compute expected tag over AAD + CT
+            // Rebuild the expected tag over the same transcript before decrypting.
+            // If this compare fails, the ciphertext is rejected and no plaintext is
+            // released.
             Poly1305 poly = new(polyKey);
             A1C3E5F7(poly, aad, ciphertext, E5A7C9D1: computed);
 
-            // 3) Constant-time compare
+            // Reject early if the authentication tag does not match. The compare is
+            // fixed-time so the mismatch position does not leak information.
             if (!BitwiseOperations.FixedTimeEquals(computed, tag))
             {
                 return -1;
             }
 
-            // 4) Decrypt with counter=1+
+            // Counter 1 starts the actual keystream used for payload encryption.
+            // This mirrors the encrypt path and keeps the keystream schedule aligned.
             ChaCha20 chacha1 = new(key, nonce, 1);
             int written = chacha1.Decrypt(ciphertext, dstPlaintext);
 
@@ -248,7 +259,8 @@ public static class ChaCha20Poly1305
         System.ReadOnlySpan<byte> D4F6B8C0,
         System.Span<byte> E5A7C9D1)
     {
-        // AAD
+        // AAD first, then pad to the next 16-byte boundary before appending
+        // ciphertext. This matches the transcript layout required by Poly1305.
         if (!C3E5A7B9.IsEmpty)
         {
             B2D4F6A8.Update(C3E5A7B9);
@@ -256,7 +268,8 @@ public static class ChaCha20Poly1305
 
         F6B8D0E2(B2D4F6A8, C3E5A7B9.Length);
 
-        // Ciphertext
+        // Ciphertext uses the same padded transcript layout as the AAD section so
+        // the transcript stays canonical and unambiguous.
         if (!D4F6B8C0.IsEmpty)
         {
             B2D4F6A8.Update(D4F6B8C0);
@@ -264,7 +277,8 @@ public static class ChaCha20Poly1305
 
         F6B8D0E2(B2D4F6A8, D4F6B8C0.Length);
 
-        // Lengths (LE 64-bit each) — use BinaryPrimitives to avoid branches/unsafe
+        // Append little-endian lengths so the MAC binds both AAD and ciphertext
+        // sizes. That prevents truncation or extension attacks on the transcript.
         System.Span<byte> len = stackalloc byte[16];
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(len, (ulong)C3E5A7B9.Length);
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(len[8..], (ulong)D4F6B8C0.Length);
@@ -285,6 +299,8 @@ public static class ChaCha20Poly1305
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void F6B8D0E2(Poly1305 AB12EF34, int BC23FA45)
     {
+        // Poly1305 pads to the next 16-byte boundary. If the segment is already
+        // aligned, there is nothing to add.
         int rem = BC23FA45 & 0x0F; // BC23FA45 % 16
         if (rem == 0)
         {

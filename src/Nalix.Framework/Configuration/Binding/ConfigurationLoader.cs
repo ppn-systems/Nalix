@@ -15,8 +15,10 @@ using Nalix.Framework.Injection;
 namespace Nalix.Framework.Configuration.Binding;
 
 /// <summary>
-/// Provides high-performance access to configuration values by binding them to properties.
-/// This class uses optimized reflection with caching to efficiently populate properties from an INI configuration file.
+/// Provides high-performance access to configuration values by binding them to
+/// properties.
+/// Reflection is used only to discover the binding metadata once; the resolved
+/// property map is then cached and reused for subsequent loads.
 /// </summary>
 /// <remarks>
 /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
@@ -91,6 +93,8 @@ public abstract partial class ConfigurationLoader
 
     /// <summary>
     /// Creates a shallow clone of this configuration instance.
+    /// The clone copies the current property values and initialization state, but
+    /// it does not re-run the configuration binding pipeline.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when cached metadata cannot be created for the derived configuration type.</exception>
     [Pure]
@@ -138,9 +142,10 @@ public abstract partial class ConfigurationLoader
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
 
-        // Write the section-level comment once, before the first property is processed.
-        // IniConfig.WriteComment is a no-op when the section already exists, so this
-        // is safe to call on every initialization — it only fires on first-time generation.
+        // Write the section-level comment before the first property is processed.
+        // IniConfig.WriteComment is a no-op when the section already exists, so the
+        // call is safe even on repeated initialization; it only matters the first time
+        // a section is generated.
         configFile.WriteComment(section, key: null, comment: metadata.SectionComment);
 
         foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
@@ -155,7 +160,8 @@ public abstract partial class ConfigurationLoader
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
 
-                    // HandleEmptyValue writes the comment + default value for new keys
+                    // HandleEmptyValue writes the comment and default value for new
+                    // keys so newly discovered settings are self-documenting.
                     this.HandleEmptyValue(configFile, section, propertyInfo);
                     continue;
                 }

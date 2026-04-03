@@ -4,18 +4,18 @@
 namespace Nalix.Common.Networking.Protocols;
 
 /// <summary>
-/// High-level client actions suggested by the server for a given reason.
-/// Clients should treat these as hints to guide behavior.
+/// High-level actions suggested to the client for a given control reason.
+/// Treat these values as guidance rather than strict commands.
 /// </summary>
 public enum ProtocolAdvice : byte
 {
     /// <summary>
-    /// No specific action. Log and continue.
+    /// No specific action.
     /// </summary>
     NONE = 0,
 
     /// <summary>
-    /// Retry immediately (typically after a quick reconnect).
+    /// Retry immediately.
     /// </summary>
     RETRY = 1,
 
@@ -25,27 +25,27 @@ public enum ProtocolAdvice : byte
     BACKOFF_RETRY = 2,
 
     /// <summary>
-    /// Do not retry automatically. Requires user or app intervention.
+    /// Do not retry automatically.
     /// </summary>
     DO_NOT_RETRY = 3,
 
     /// <summary>
-    /// Prompt user to re-authenticate or refresh credentials.
+    /// Re-authenticate or refresh credentials.
     /// </summary>
     REAUTHENTICATE = 4,
 
     /// <summary>
-    /// Reduce sending rate or adjust flow control credits.
+    /// Reduce sending rate.
     /// </summary>
     SLOW_DOWN = 5,
 
     /// <summary>
-    /// Reconnect or switch transport/route.
+    /// Reconnect or switch transport or route.
     /// </summary>
     RECONNECT = 6,
 
     /// <summary>
-    /// Fix the issue and retry the operation.
+    /// Fix the issue and retry.
     /// </summary>
     FIX_AND_RETRY = 7,
 }

@@ -6,12 +6,10 @@ using System;
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// Specifies the operation code (OpCode) that identifies the type of packet handled by the target method.
+/// Marks a method with the opcode that identifies its packet.
 /// </summary>
 /// <remarks>
-/// Apply this attribute to a method to associate it with a unique packet OpCode.
-/// The OpCode is typically used by a packet dispatcher to route incoming packets
-/// to the correct handler.
+/// The dispatcher uses this value to route incoming packets to the correct handler.
 /// </remarks>
 /// <param name="opcode">
 /// The unique operation code that identifies the packet type.
@@ -20,7 +18,7 @@ namespace Nalix.Common.Networking.Packets;
 public sealed class PacketOpcodeAttribute(ushort opcode) : Attribute
 {
     /// <summary>
-    /// Gets the operation code associated with the target method.
+    /// Gets the opcode associated with the target method.
     /// </summary>
     public ushort OpCode { get; } = opcode;
 }

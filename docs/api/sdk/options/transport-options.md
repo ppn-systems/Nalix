@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.SDK/Configuration/TransportOptions.cs`
+- `src/Nalix.SDK/Options/TransportOptions.cs`
 
 ## What it controls
 

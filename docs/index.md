@@ -15,7 +15,7 @@ If you are new to the project, read in this order:
 
 1. [Introduction](./introduction.md)
 2. [Installation](./installation.md)
-3. [Quick Start](./quickstart.md)
+3. [Quickstart](./quickstart.md)
 4. [Packages Overview](./packages/index.md)
 
 If you are building a server, continue with:

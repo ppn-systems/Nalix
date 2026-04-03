@@ -132,7 +132,7 @@ public abstract partial class UdpListenerBase : IListener
     /// <summary>
     /// Stops the listener from receiving further UDP datagrams.
     /// </summary>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">A token that may be used by derived implementations during shutdown.</param>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -171,8 +171,8 @@ public abstract partial class UdpListenerBase : IListener
     /// Determines whether the incoming packet is authenticated.
     /// Default returns true (i.e., trusted). Override in derived class.
     /// </summary>
-    /// <param name="connection"></param>
-    /// <param name="result"></param>
+    /// <param name="connection">The owning connection.</param>
+    /// <param name="result">The received UDP result.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     protected abstract bool IsAuthenticated(IConnection connection, in UdpReceiveResult result);

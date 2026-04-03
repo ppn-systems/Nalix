@@ -9,57 +9,41 @@ using Nalix.Common.Serialization;
 namespace Nalix.Framework.DataFrames.SignalFrames;
 
 /// <summary>
-/// A compact, generic server-to-client directive frame for common control scenarios.
+/// Represents a directive frame used for control and server feedback.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
 public sealed class Directive : PacketBase<Directive>, IPacketReasoned
 {
-    /// <summary>
-    /// DIRECTIVE type (shared ControlType).
-    /// </summary>
+    /// <summary>Gets or sets the directive type.</summary>
     [SerializeOrder(PacketHeaderOffset.Region + 0)]
     public ControlType Type { get; set; }
 
-    /// <summary>
-    /// Reason taxonomy explaining why this directive is sent.
-    /// </summary>
+    /// <summary>Gets or sets the reason for the directive.</summary>
     [SerializeOrder(PacketHeaderOffset.Region + 1)]
     public ProtocolReason Reason { get; set; }
 
-    /// <summary>
-    /// Suggested client action for this reason.
-    /// </summary>
+    /// <summary>Gets or sets the suggested action for the client.</summary>
     [SerializeOrder(PacketHeaderOffset.Region + 2)]
     public ProtocolAdvice Action { get; set; }
 
-    /// <summary>
-    /// Fast-path decision flags.
-    /// </summary>
+    /// <summary>Gets or sets directive flags.</summary>
     [SerializeOrder(PacketHeaderOffset.Region + 3)]
     public ControlFlags Control { get; set; }
 
-    /// <summary>
-    /// Multi-purpose argument #0.
-    /// </summary>
+    /// <summary>Gets or sets the first directive argument.</summary>
     [SerializeOrder(PacketHeaderOffset.Region + 4)]
     public uint Arg0 { get; set; }
 
-    /// <summary>
-    /// Multi-purpose argument #1.
-    /// </summary>
+    /// <summary>Gets or sets the second directive argument.</summary>
     [SerializeOrder(PacketHeaderOffset.Region + 5)]
     public uint Arg1 { get; set; }
 
-    /// <summary>
-    /// Multi-purpose argument #2.
-    /// </summary>
+    /// <summary>Gets or sets the third directive argument.</summary>
     [SerializeOrder(PacketHeaderOffset.Region + 6)]
     public ushort Arg2 { get; set; }
 
-    /// <summary>
-    /// Initialize with minimal defaults.
-    /// </summary>
+    /// <summary>Initializes a new instance with default values.</summary>
     public Directive()
     {
         this.Protocol = ProtocolType.TCP;
@@ -67,17 +51,15 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned
         this.OpCode = PacketConstants.OpcodeDefault;
     }
 
-    /// <summary>
-    /// Initialize all fields without allocations. Keep semantics stable across versions.
-    /// </summary>
-    /// <param name="type"></param>
-    /// <param name="reason"></param>
-    /// <param name="action"></param>
-    /// <param name="sequenceId"></param>
-    /// <param name="flags"></param>
-    /// <param name="arg0"></param>
-    /// <param name="arg1"></param>
-    /// <param name="arg2"></param>
+    /// <summary>Initializes the directive payload.</summary>
+    /// <param name="type">The directive type.</param>
+    /// <param name="reason">The reason code.</param>
+    /// <param name="action">The suggested client action.</param>
+    /// <param name="sequenceId">The sequence identifier.</param>
+    /// <param name="flags">The directive flags.</param>
+    /// <param name="arg0">The first directive argument.</param>
+    /// <param name="arg1">The second directive argument.</param>
+    /// <param name="arg2">The third directive argument.</param>
     public void Initialize(
         ControlType type, ProtocolReason reason, ProtocolAdvice action,
         uint sequenceId, ControlFlags flags = ControlFlags.NONE,
@@ -96,18 +78,16 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned
         this.Priority = PacketPriority.URGENT;
     }
 
-    /// <summary>
-    /// Initialize all fields with custom opCode.
-    /// </summary>
-    /// <param name="opCode"></param>
-    /// <param name="type"></param>
-    /// <param name="reason"></param>
-    /// <param name="action"></param>
-    /// <param name="sequenceId"></param>
-    /// <param name="flags"></param>
-    /// <param name="arg0"></param>
-    /// <param name="arg1"></param>
-    /// <param name="arg2"></param>
+    /// <summary>Initializes the directive payload with a custom opcode.</summary>
+    /// <param name="opCode">The opcode to assign.</param>
+    /// <param name="type">The directive type.</param>
+    /// <param name="reason">The reason code.</param>
+    /// <param name="action">The suggested client action.</param>
+    /// <param name="sequenceId">The sequence identifier.</param>
+    /// <param name="flags">The directive flags.</param>
+    /// <param name="arg0">The first directive argument.</param>
+    /// <param name="arg1">The second directive argument.</param>
+    /// <param name="arg2">The third directive argument.</param>
     public void Initialize(
         ushort opCode,
         ControlType type, ProtocolReason reason, ProtocolAdvice action,

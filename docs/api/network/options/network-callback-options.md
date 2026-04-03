@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/NetworkCallbackOptions.cs`
+- `src/Nalix.Network/Options/NetworkCallbackOptions.cs`
 
 ## What it controls
 

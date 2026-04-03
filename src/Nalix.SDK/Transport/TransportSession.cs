@@ -11,9 +11,12 @@ using Nalix.SDK.Options;
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// A base class for client-side transport sessions (TCP, UDP), 
-/// providing a unified API for events and core lifecycle methods.
+/// Provides the common contract for client-side transport sessions.
 /// </summary>
+/// <remarks>
+/// Derived sessions expose a consistent lifecycle for connecting, disconnecting,
+/// sending packets, and receiving transport events.
+/// </remarks>
 public abstract class TransportSession : IDisposable
 {
     /// <summary>Gets the transport options used by the session.</summary>
@@ -28,18 +31,18 @@ public abstract class TransportSession : IDisposable
     #region Events
 
     /// <summary>
-    /// Occurs when the session successfully establishes a connection.
+    /// Occurs when the session establishes a connection.
     /// </summary>
     public abstract event EventHandler? OnConnected;
 
     /// <summary>
-    /// Occurs when the session is disconnected, providing the exception that caused the disconnect if applicable.
+    /// Occurs when the session disconnects.
     /// </summary>
     public abstract event EventHandler<Exception>? OnDisconnected;
 
     /// <summary>
-    /// Occurs when a new message (data frame) is received from the remote endpoint.
-    /// The receiver takes temporary ownership of the BufferLease and must ensure it is disposed.
+    /// Occurs when a message is received from the remote endpoint.
+    /// The handler receives temporary ownership of the buffer lease and must dispose it.
     /// </summary>
     public abstract event EventHandler<IBufferLease>? OnMessageReceived;
 
@@ -53,23 +56,30 @@ public abstract class TransportSession : IDisposable
     #region Methods
 
     /// <summary>
-    /// Asynchronously establishes a connection to the specified remote endpoint.
+    /// Asynchronously connects to the configured remote endpoint.
     /// </summary>
+    /// <param name="host">The target host name or address. If <see langword="null"/> or empty, the configured default is used.</param>
+    /// <param name="port">The target port. If <see langword="null"/>, the configured default is used.</param>
+    /// <param name="ct">The token to observe while connecting.</param>
     public abstract Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default);
 
     /// <summary>
-    /// Asynchronously terminates the current connection.
+    /// Asynchronously disconnects from the remote endpoint.
     /// </summary>
     public abstract Task DisconnectAsync();
 
     /// <summary>
-    /// Asynchronously sends a serialized packet to the remote endpoint.
+    /// Asynchronously sends a packet to the remote endpoint.
     /// </summary>
+    /// <param name="packet">The packet to send.</param>
+    /// <param name="ct">The token to observe while sending.</param>
     public abstract Task SendAsync(IPacket packet, CancellationToken ct = default);
 
     /// <summary>
     /// Asynchronously sends raw binary data to the remote endpoint.
     /// </summary>
+    /// <param name="payload">The payload to send.</param>
+    /// <param name="ct">The token to observe while sending.</param>
     public abstract Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default);
 
     /// <summary>

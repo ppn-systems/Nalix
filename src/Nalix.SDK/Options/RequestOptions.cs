@@ -80,18 +80,18 @@ public sealed record RequestOptions
     /// <summary>
     /// Returns a new <see cref="RequestOptions"/> with <see cref="TimeoutMs"/> changed.
     /// </summary>
-    /// <param name="ms"></param>
+    /// <param name="ms">The timeout in milliseconds for each attempt.</param>
     public RequestOptions WithTimeout(int ms) => this with { TimeoutMs = ms };
 
     /// <summary>
     /// Returns a new <see cref="RequestOptions"/> with <see cref="RetryCount"/> changed.
     /// </summary>
-    /// <param name="count"></param>
+    /// <param name="count">The number of retries after the first attempt times out.</param>
     public RequestOptions WithRetry(int count) => this with { RetryCount = count };
 
     /// <summary>
     /// Returns a new <see cref="RequestOptions"/> with <see cref="Encrypt"/> changed.
     /// </summary>
-    /// <param name="encrypt"></param>
+    /// <param name="encrypt">Whether to encrypt outbound frames.</param>
     public RequestOptions WithEncrypt(bool encrypt = true) => this with { Encrypt = encrypt };
 }

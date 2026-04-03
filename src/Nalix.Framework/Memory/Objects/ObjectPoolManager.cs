@@ -17,8 +17,7 @@ using Nalix.Framework.Memory.Pools;
 namespace Nalix.Framework.Memory.Objects;
 
 /// <summary>
-/// Provides thread-safe access to a collection of object pools containing instances of <see cref="IPoolable"/>.
-/// Tracks comprehensive metrics including hit/miss rates, allocation patterns, and pool health.
+/// Provides thread-safe access to a collection of object pools.
 /// </summary>
 public sealed class ObjectPoolManager : IReportable
 {
@@ -163,10 +162,8 @@ public sealed class ObjectPoolManager : IReportable
 
     #region APIs
 
-    /// <summary>
-    /// Gets or creates and returns an instance of <typeparamref name="T"/>.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <summary>Gets or creates and returns an instance of <typeparamref name="T"/>.</summary>
+    /// <typeparam name="T">The poolable type to retrieve.</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Get<T>() where T : IPoolable, new()
     {
@@ -204,11 +201,9 @@ public sealed class ObjectPoolManager : IReportable
         return result;
     }
 
-    /// <summary>
-    /// Returns an instance of <typeparamref name="T"/> to the pool for future reuse.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="obj"></param>
+    /// <summary>Returns an instance of <typeparamref name="T"/> to the pool for future reuse.</summary>
+    /// <typeparam name="T">The poolable type to return.</typeparam>
+    /// <param name="obj">The object to return.</param>
     /// <exception cref="ArgumentNullException"><paramref name="obj"/> is <c>null</c>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return<T>(T obj) where T : IPoolable, new()
@@ -242,21 +237,17 @@ public sealed class ObjectPoolManager : IReportable
         }
     }
 
-    /// <summary>
-    /// Gets or creates a type-specific pool adapter for more efficient operations with a specific type.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <summary>Gets or creates a type-specific pool adapter for <typeparamref name="T"/>.</summary>
+    /// <typeparam name="T">The poolable type.</typeparam>
     public TypedObjectPoolAdapter<T> GetTypedPool<T>() where T : IPoolable, new()
     {
         ObjectPool pool = this.GetOrCreatePool<T>();
         return new TypedObjectPoolAdapter<T>(pool, this);
     }
 
-    /// <summary>
-    /// Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="count"></param>
+    /// <summary>Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.</summary>
+    /// <typeparam name="T">The poolable type.</typeparam>
+    /// <param name="count">The number of instances to preallocate.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="count"/> is less than or equal to zero.</exception>
     public int Prealloc<T>(int count) where T : IPoolable, new()
     {
@@ -278,11 +269,9 @@ public sealed class ObjectPoolManager : IReportable
         return allocated;
     }
 
-    /// <summary>
-    /// Sets the maximum capacity for a specific type's pool.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="maxCapacity"></param>
+    /// <summary>Sets the maximum capacity for a specific type's pool.</summary>
+    /// <typeparam name="T">The poolable type.</typeparam>
+    /// <param name="maxCapacity">The maximum number of items to retain.</param>
     /// <returns><see langword="true"/> when the target pool was updated or created; otherwise, <see langword="false"/>.</returns>
     public bool SetMaxCapacity<T>(int maxCapacity) where T : IPoolable
     {
@@ -318,10 +307,8 @@ public sealed class ObjectPoolManager : IReportable
         return true;
     }
 
-    /// <summary>
-    /// Gets information about a specific type's pool.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <summary>Gets information about a specific type's pool.</summary>
+    /// <typeparam name="T">The poolable type.</typeparam>
     public Dictionary<string, object> GetTypeInfo<T>() where T : IPoolable
     {
         Type type = typeof(T);
@@ -350,10 +337,8 @@ public sealed class ObjectPoolManager : IReportable
         return info;
     }
 
-    /// <summary>
-    /// Clears all objects from a specific type's pool.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <summary>Clears all objects from a specific type's pool.</summary>
+    /// <typeparam name="T">The poolable type.</typeparam>
     public int ClearPool<T>() where T : IPoolable
     {
         Type type = typeof(T);
@@ -369,9 +354,7 @@ public sealed class ObjectPoolManager : IReportable
         return 0;
     }
 
-    /// <summary>
-    /// Clears all objects from all pools.
-    /// </summary>
+    /// <summary>Clears all objects from all pools.</summary>
     public int ClearAllPools()
     {
         int totalRemoved = 0;
@@ -387,10 +370,8 @@ public sealed class ObjectPoolManager : IReportable
         return totalRemoved;
     }
 
-    /// <summary>
-    /// Trims all pools to their target sizes.
-    /// </summary>
-    /// <param name="percentage"></param>
+    /// <summary>Trims all pools to their target sizes.</summary>
+    /// <param name="percentage">The percentage of items to trim from each pool.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown by an underlying pool when <paramref name="percentage"/> falls outside the supported trim range.</exception>
     public int TrimAllPools(int percentage = 50)
     {
@@ -477,12 +458,10 @@ public sealed class ObjectPoolManager : IReportable
                                 .Trace($"[SH.{nameof(ObjectPoolManager)}:{nameof(ResetStatistics)}] stats-reset-complete");
     }
 
-    /// <summary>
-    /// Schedules a regular trimming operation to run in the background.
-    /// </summary>
-    /// <param name="interval"></param>
-    /// <param name="percentage"></param>
-    /// <param name="cancellationToken"></param>
+    /// <summary>Schedules a regular trimming operation to run in the background.</summary>
+    /// <param name="interval">The delay between trimming runs.</param>
+    /// <param name="percentage">The percentage of items to trim from each pool.</param>
+    /// <param name="cancellationToken">The token used to cancel the background loop.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="interval"/> is negative or not supported by <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</exception>
     public Task ScheduleRegularTrimming(
         TimeSpan interval,

@@ -9,8 +9,9 @@ using Nalix.Common.Networking.Packets;
 namespace Nalix.Network.Routing;
 
 /// <summary>
-/// Provides a mutable builder for constructing <see cref="PacketMetadata"/>
-/// instances from attributes and metadata providers.
+/// Collects packet-related attributes and turns them into a single immutable
+/// <see cref="PacketMetadata"/> instance.
+/// The builder is intended for one registration pass, then one build step.
 /// </summary>
 public sealed class PacketMetadataBuilder
 {
@@ -21,37 +22,39 @@ public sealed class PacketMetadataBuilder
     #endregion Fields
 
     /// <summary>
-    /// Gets or sets the opcode attribute associated with the handler.
+    /// Gets or sets the opcode attribute that identifies the packet handler.
     /// </summary>
     public PacketOpcodeAttribute? Opcode { get; set; }
 
     /// <summary>
-    /// Gets or sets the timeout attribute associated with the handler.
+    /// Gets or sets the timeout attribute that limits handler execution time.
     /// </summary>
     public PacketTimeoutAttribute? Timeout { get; set; }
 
     /// <summary>
-    /// Gets or sets the permission attribute associated with the handler.
+    /// Gets or sets the permission attribute required to execute the handler.
     /// </summary>
     public PacketPermissionAttribute? Permission { get; set; }
 
     /// <summary>
-    /// Gets or sets the encryption attribute associated with the handler.
+    /// Gets or sets the encryption attribute that describes transport protection.
     /// </summary>
     public PacketEncryptionAttribute? Encryption { get; set; }
 
     /// <summary>
-    /// Gets or sets the rate limit attribute associated with the handler.
+    /// Gets or sets the rate limit attribute that constrains handler throughput.
     /// </summary>
     public PacketRateLimitAttribute? RateLimit { get; set; }
 
     /// <summary>
-    /// Gets or sets the concurrency limit attribute associated with the handler.
+    /// Gets or sets the concurrency attribute that caps parallel handler execution.
     /// </summary>
     public PacketConcurrencyLimitAttribute? ConcurrencyLimit { get; set; }
 
     /// <summary>
     /// Adds or replaces a custom attribute in the metadata builder.
+    /// The last attribute of a given type wins, which keeps repeated scans
+    /// deterministic when multiple providers contribute metadata.
     /// </summary>
     /// <param name="attribute">The attribute to add.</param>
     /// <exception cref="ArgumentNullException">
@@ -65,6 +68,8 @@ public sealed class PacketMetadataBuilder
 
     /// <summary>
     /// Gets a custom attribute of the specified type if it has been added.
+    /// This is primarily useful when a later stage wants to inspect optional
+    /// metadata without knowing which provider produced it.
     /// </summary>
     /// <typeparam name="TAttribute">The attribute type to retrieve.</typeparam>
     /// <returns>
@@ -73,8 +78,10 @@ public sealed class PacketMetadataBuilder
     public TAttribute? Get<TAttribute>() where TAttribute : Attribute => _custom.TryGetValue(typeof(TAttribute), out Attribute? value) ? value as TAttribute : null;
 
     /// <summary>
-    /// Builds an immutable <see cref="PacketMetadata"/> instance from
-    /// the current builder state.
+    /// Builds an immutable <see cref="PacketMetadata"/> instance from the
+    /// current builder state.
+    /// The builder contents are copied into the result so previously built
+    /// metadata stays isolated from later edits.
     /// </summary>
     /// <returns>A new <see cref="PacketMetadata"/> instance.</returns>
     /// <exception cref="InternalErrorException">

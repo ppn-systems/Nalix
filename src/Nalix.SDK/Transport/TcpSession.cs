@@ -16,12 +16,12 @@ using Nalix.SDK.Transport.Internal;
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// Manages high-performance TCP socket lifecycle, delegating protocol-heavy work 
-/// to <see cref="FRAME_READER"/> and <see cref="FRAME_SENDER"/>.
-/// Optimized for Unity and cross-platform performance.
+/// Provides a TCP transport session built on <see cref="FRAME_READER"/> and <see cref="FRAME_SENDER"/>.
 /// </summary>
 public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
 {
+    #region Fields
+
     private ILogger? _logger;
 
     // Low-level components for reading and sending frames
@@ -32,7 +32,9 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     private CancellationTokenSource? _loopCts;
     private int _disposed;
 
-    /// <summary>Fixed framing header size (2-byte length).</summary>
+    #endregion Fields
+
+    /// <summary>Gets the fixed framing header size in bytes.</summary>
     public const int HeaderSize = 2;
 
     /// <inheritdoc/>
@@ -58,7 +60,7 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     /// <inheritdoc/>
     public override event EventHandler<Exception>? OnError;
 
-    /// <summary>Occurs when a complete frame is received and decoded (async).</summary>
+    /// <summary>Occurs when a complete frame is received and decoded asynchronously.</summary>
     public event Func<ReadOnlyMemory<byte>, Task>? OnMessageAsync;
 
     #endregion Events
@@ -66,6 +68,9 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     #region Constructor
 
     /// <summary>Initializes a new instance of the <see cref="TcpSession"/> class.</summary>
+    /// <param name="options">The transport options for this session.</param>
+    /// <param name="catalog">The packet registry used to resolve packet metadata.</param>
+    /// <param name="logger">The optional logger used for transport diagnostics.</param>
     public TcpSession(TransportOptions options, IPacketRegistry catalog, ILogger? logger = null)
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
@@ -149,7 +154,10 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     /// <inheritdoc/>
     public override Task SendAsync(IPacket packet, CancellationToken ct = default) => this.SendAsync(packet, null, ct);
 
-    /// <summary>Sends a packet asynchronously with optional encryption override.</summary>
+    /// <summary>Sends a packet asynchronously with an optional encryption override.</summary>
+    /// <param name="packet">The packet to serialize and send.</param>
+    /// <param name="encrypt">A value that overrides packet encryption when provided.</param>
+    /// <param name="ct">The token to observe while sending.</param>
     public async Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
@@ -164,8 +172,7 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     public override Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default) => _sender.SendAsync(payload, null, ct);
 
     /// <summary>
-    /// Handles incoming messages received by FRAME_READER.
-    /// Manages the ownership and disposal of the provided BufferLease.
+    /// Handles messages received by <see cref="FRAME_READER"/>.
     /// </summary>
     private void HandleReceiveMessage(BufferLease lease)
     {

@@ -24,6 +24,16 @@ The `Nalix.SDK.Transport.Extensions` namespace enriches `IClientConnection`/`Tcp
 - Request/response helpers (`RequestAsync`, `RequestOptions`) that send, await, optionally encrypt, and retry safely.
 - Subscription helpers (`On<T>`, `OnOnce<T>`, `SubscribeTemp`, `Subscribe`) that automatically dispose leases and log handler errors.
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `ControlExtensions` | `NewControl(...)`, `AwaitPacketAsync(...)`, `AwaitControlAsync(...)`, `SendControlAsync(...)`, `ControlBuilder` |
+| `DirectiveClientExtensions` | `TryHandleDirectiveAsync(...)`, `IsThrottled(...)`, `SendWithThrottleAsync(...)`, `ClearThrottle(...)`, `DirectiveCallbacks`, `RedirectResolver` |
+| `RequestExtensions` | `RequestAsync<TResponse>(...)` |
+| `TcpSessionSubscriptions` | `On<TPacket>(...)`, `On(...)`, `OnOnce<TPacket>(...)`, `SubscribeTemp<TPacket>(...)`, `Subscribe(...)` |
+| `CompositeSubscription` | `Add(...)`, `Dispose()` |
+
 ---
 
 ## Control helpers (ControlExtensions)
@@ -33,6 +43,12 @@ The `Nalix.SDK.Transport.Extensions` namespace enriches `IClientConnection`/`Tcp
 - `PingAsync` sends a CONTROL PING and awaits the corresponding PONG, returns `(rttMs, Control pong)` and optionally syncs the client clock with the server timestamp.
 - `SendControlAsync` materializes the builder, applies any extra configuration, and transmits the CONTROL frame.
 - All helpers use `PACKET_AWAITER` to avoid races and to ensure timeouts/reconnects are handled uniformly.
+
+### Common pitfalls
+
+- using `AwaitControlAsync(...)` without a prior send when you actually need a correlated request/response flow
+- forgetting that `ControlBuilder` is a `ref struct`, so it cannot be captured in lambdas
+- assuming `SendControlAsync(...)` is a separate transport layer instead of a convenience wrapper around `TcpSession.SendAsync(...)`
 
 ### Example
 
@@ -70,6 +86,12 @@ It lets you plug custom behavior for:
 
 Use it when you want the SDK helpers to keep directive parsing and throttle tracking, while your app decides how UI, logging, reconnect UX, or redirect policy should behave.
 
+### Common pitfalls
+
+- ignoring `THROTTLE` state and immediately sending again
+- assuming `REDIRECT` will always resolve cleanly without a custom resolver
+- treating callback exceptions as transport failures; the helper catches them so the receive loop stays alive
+
 ### Example
 
 ```csharp
@@ -101,11 +123,17 @@ if (session.IsThrottled(out TimeSpan remaining))
 ## Request/response helpers (RequestExtensions)
 
 - `RequestAsync<TRequest, TResponse>` combines send+await into a single, race-free operation.
-- Overload with `RequestOptions` controls timeout, retry count, and optional encryption (`Encrypt = true` requires `TcpSessionBase`).
+- Overload with `RequestOptions` controls timeout, retry count, and optional encryption (`Encrypt = true` requires `TcpSession`).
 - `RequestOptions.Default` ships with 5s timeout, no retries, and no encryption; fluent builders (`WithTimeout`, `WithRetry`, `WithEncrypt`) make tweaks easy.
 - Only `TimeoutException` is retried; other fatal errors (disconnects, invalid packets) propagate immediately.
 - `RequestAsync<TResponse>(IPacket request, RequestOptions? options = null, Func<TResponse, bool>? predicate = null)` handles both wildcard and filtered waits.
 - The helpers log retry attempts via `ILogger` when `InstanceManager` provides one.
+
+### Common pitfalls
+
+- using `Encrypt = true` on a client that is not `TcpSession`
+- assuming non-timeout failures should be retried
+- forgetting to supply a predicate when you need to correlate a specific reply
 
 ### Example
 
@@ -127,6 +155,12 @@ Control reply = await session.RequestAsync<Control>(
 - `SubscribeTemp<TPacket>` combines a temporary message handler with an optional `OnDisconnected` hook for request/response scenarios.
 - `Subscribe` op encodes multiple subscriptions into a `CompositeSubscription` for easy disposal.
 - Exceptions thrown by subscribers are caught and logged so that the receive loop never faults.
+
+### Common pitfalls
+
+- forgetting to dispose the returned subscription
+- expecting subscriber exceptions to bubble out of the receive loop
+- using `On(...)` when `OnOnce<TPacket>(...)` or `SubscribeTemp<TPacket>(...)` would better match the request shape
 
 ### Example
 
@@ -150,7 +184,15 @@ Flow: connect session → perform handshake → optionally handle directives/thr
 
 - Always dispose the `IDisposable` returned by subscription helpers (use `using var`), especially before issuing `RequestAsync` calls.
 - When sending throttled traffic, wrap `SendWithThrottleAsync` around your packets so you never violate server directives.
-- Use `RequestOptions.WithEncrypt()` only on `TcpSession`/`IoTTcpSession` instances; the base class exposes `SendAsync(packet, encrypt: true)` for encryption-aware transports.
+- Use `RequestOptions.WithEncrypt()` only on `TcpSession`; the concrete client exposes `SendAsync(packet, encrypt: true)` for encryption-aware transport sends.
+
+### Quick flow
+
+1. connect the session
+2. create a control helper or request helper
+3. optionally handle directives and throttle state
+4. subscribe only for the duration you need
+5. dispose subscriptions when the flow is done
 
 ## Example
 

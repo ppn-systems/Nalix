@@ -15,6 +15,7 @@ namespace Nalix.Framework.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {
+    // These caches keep the reflection-backed helper methods cheap after the first lookup.
     private static readonly MethodInfo s_isReferenceOrContainsReferencesMethod;
     private static readonly MethodInfo s_unsafeSizeOfMethod;
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<bool>> s_isRefCache;
@@ -22,6 +23,7 @@ internal static partial class TypeMetadata
 
     static TypeMetadata()
     {
+        // Resolve the generic runtime helpers once so later calls can just bind them to T.
         _ = typeof(IFixedSizeSerializable);
         s_isReferenceOrContainsReferencesMethod = typeof(RuntimeHelpers)
             .GetMethod(nameof(RuntimeHelpers.IsReferenceOrContainsReferences))!;
@@ -36,6 +38,8 @@ internal static partial class TypeMetadata
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool IsReferenceOrContainsReferences(Type type)
     {
+        // Cache the closed generic delegate per type so repeated unmanaged checks do
+        // not pay reflection costs more than once.
         Func<bool> fn = s_isRefCache.GetOrAdd(type, static t =>
         {
             MethodInfo method = s_isReferenceOrContainsReferencesMethod.MakeGenericMethod(t);
@@ -50,6 +54,7 @@ internal static partial class TypeMetadata
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int UnsafeSizeOf(Type type)
     {
+        // Same pattern as above, but for size queries.
         Func<int> del = s_sizeOfFnCache.GetOrAdd(type, static t =>
         {
             MethodInfo method = s_unsafeSizeOfMethod.MakeGenericMethod(t);

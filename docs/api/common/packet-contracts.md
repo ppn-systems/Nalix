@@ -16,6 +16,16 @@
 - `IPacket`
 - `IPacketRegistry`
 - `IPacketSender<TPacket>`
+- `IPacketContext<TPacket>`
+
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `IPacket` | packet header members, `Length`, `Serialize()` overloads |
+| `IPacketRegistry` | registry lookup, registration checks, deserialization helpers |
+| `IPacketSender<TPacket>` | packet send helpers with metadata-aware behavior |
+| `IPacketContext<TPacket>` | `SkipOutbound`, `Packet`, `Connection`, `Attributes`, `Sender`, `CancellationToken` |
 
 ## IPacket
 
@@ -49,6 +59,16 @@ It supports:
 - sending with normal metadata-driven behavior
 - sending with an explicit encryption override
 
+## IPacketContext<TPacket>
+
+`IPacketContext<TPacket>` is the handler context used when packet middleware or handlers need the current packet, connection, metadata, and sender together.
+
+### Common pitfalls
+
+- using `connection.TCP.SendAsync(...)` when `context.Sender` already knows the current packet metadata
+- ignoring `SkipOutbound` when a handler intentionally wants to suppress outbound middleware
+- treating `Attributes` as optional when your middleware depends on resolved packet metadata
+
 ## Example
 
 ```csharp
@@ -61,6 +81,13 @@ if (registry.TryDeserialize(buffer, out IPacket? decoded))
     Console.WriteLine($"decoded opcode: {decoded.OpCode}");
 }
 ```
+
+Typical flow:
+
+1. registry resolves raw bytes to a packet
+2. handler receives `IPacketContext<TPacket>`
+3. middleware reads metadata from `context.Attributes`
+4. handler sends through `context.Sender` when it needs packet-aware send behavior
 
 ## Related APIs
 

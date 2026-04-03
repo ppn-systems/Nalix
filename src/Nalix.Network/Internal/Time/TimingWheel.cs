@@ -162,7 +162,8 @@ public sealed class TimingWheel : IActivatable
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<TimeoutTask>(options.TimeoutTaskCapacity);
 
-        // Preallocate objects in the pools to improve performance and reduce latency during runtime.
+        // Preallocate objects in the pools so the wheel does not pay allocation
+        // cost on the first few timeout registrations.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<TimeoutTask>(options.TimeoutTaskPreallocate);
 
@@ -282,6 +283,7 @@ public sealed class TimingWheel : IActivatable
         }
 
         // Fast-path: already registered or raced with another register call.
+        // TryAdd makes duplicate Register calls effectively no-ops.
         if (!_active.TryAdd(connection, 0))
         {
             return;
@@ -295,7 +297,9 @@ public sealed class TimingWheel : IActivatable
         {
             task = s_poolManager.Get<TimeoutTask>();
             task.Conn = connection;
-            task.Version = 0; // ResetForPool guarantees this, but be explicit.
+            // ResetForPool guarantees this starts at zero, but write it explicitly
+            // so the initial version is obvious in the code path.
+            task.Version = 0;
 
             long baseTick = Volatile.Read(ref _tick);
             long ticks = Math.Max(1, _idleTimeoutMs / (long)_tickMs);
@@ -428,8 +432,10 @@ public sealed class TimingWheel : IActivatable
                     if (task.Rounds > 0)
                     {
                         task.Rounds--;
-                        queue.Enqueue(task); // stay in the same bucket for one more revolution
-                        continue;
+                    // Keep the task in the same bucket until its full wheel
+                    // rotation budget is exhausted.
+                    queue.Enqueue(task); // stay in the same bucket for one more revolution
+                    continue;
                     }
 
                     // ── Idle-time check ───────────────────────────────────────────────
@@ -475,8 +481,8 @@ public sealed class TimingWheel : IActivatable
                         ? (int)((tickSnapshot + ticksMore) & _mask)
                         : (int)((tickSnapshot + ticksMore) % _wheelSize);
 
-                    // Update _active first so that if Unregister races here, it will
-                    // remove the entry and the enqueued task will be caught by stale check.
+                    // Update the live version first so a racing Unregister turns the
+                    // task into a stale entry instead of a double-fire.
                     _active[task.Conn] = newVersion;
 
                     _wheel[nextBucket].Enqueue(task);
@@ -521,8 +527,10 @@ public sealed class TimingWheel : IActivatable
             ConcurrentQueue<TimeoutTask> queue = _wheel[i];
             while (queue.TryDequeue(out TimeoutTask? task))
             {
-                // Guard: skip tasks that were already returned to pool by a concurrent path.
-                if (task.Conn is not null)
+            // Only return tasks that still own a live connection reference.
+            // Tasks already returned by the loop or a concurrent path have Conn
+            // cleared, so they should be ignored here.
+            if (task.Conn is not null)
                 {
                     s_poolManager.Return(task);
                 }

@@ -13,17 +13,23 @@ public static partial class Clock
     /// <summary>
     /// Custom epoch (Unix ms) used for ID generation.
     /// Default: 2025-01-01 UTC.
+    /// This keeps project-local IDs compact and makes timestamp math independent
+    /// from the raw 1970 Unix epoch.
     /// </summary>
     public static readonly long EpochMilliseconds = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero).ToUnixTimeMilliseconds();
 
     /// <summary>
-    /// Returns milliseconds since custom epoch.
+    /// Returns milliseconds since the custom epoch.
+    /// This is useful for compact IDs and monotonic timestamp deltas where the
+    /// absolute Unix time is not needed.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long EpochMillisecondsNow() => UnixMillisecondsNow() - EpochMilliseconds;
 
     /// <summary>
     /// Returns the current UTC time with high accuracy.
+    /// The value is reconstructed from the monotonic stopwatch plus the last
+    /// synchronization state so it does not jump around with small clock changes.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed synchronized time falls outside the valid <see cref="DateTime"/> range.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,11 +43,13 @@ public static partial class Clock
             return new DateTime(ticks, DateTimeKind.Utc);
         }
 
-        // Use Volatile.Read to ensure thread-safe reads of synchronized values
+        // Use volatile reads so synchronization updates become visible without
+        // locking every time query.
         double dc = Volatile.Read(ref _driftCorrection);
         long offset = Volatile.Read(ref _timeOffset);
 
-        // Apply drift correction to the entire elapsed time, then add offset
+        // Apply drift correction to the elapsed stopwatch span, then add the
+        // stored offset to recover the current UTC estimate.
         long corrected = (long)(swTicks * _swToDateTimeTicks * dc) + offset;
         return new DateTime(UtcBaseTicks + corrected, DateTimeKind.Utc);
     }
@@ -55,8 +63,8 @@ public static partial class Clock
 
     /// <summary>
     /// Current Unix timestamp (seconds) as uint32.
-    /// Note: uint32 max is ~4.2 billion, Unix seconds is currently ~1.7 billion (since 1970),
-    /// so it's OK for now but will overflow in ~50 years (around year 2106).
+    /// Note: uint32 max is ~4.2 billion, Unix seconds is currently ~1.7 billion
+    /// (since 1970), so it is still safe for now but will overflow around 2106.
     /// </summary>
     /// <returns>The current Unix timestamp in seconds as uint32.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the computed synchronized time falls outside the valid <see cref="DateTime"/> range.</exception>
@@ -66,7 +74,8 @@ public static partial class Clock
     {
         long seconds = (long)(NowUtc() - DateTime.UnixEpoch).TotalSeconds;
 
-        // Check for overflow before casting
+        // Check for overflow before casting so the caller sees a clear exception
+        // instead of a silent wraparound.
         return seconds > uint.MaxValue
             ? throw new OverflowException(
                 "Unix timestamp exceeds UInt32.MaxValue. This typically occurs after year 2106.")

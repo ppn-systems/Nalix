@@ -15,14 +15,17 @@ namespace Nalix.Framework.Security.Engine;
 /// <summary>
 /// Provides a unified, Span-first engine to generate and apply symmetric
 /// cipher keystreams (stream and CTR modes) for multiple algorithms.
+/// This keeps the algorithm selection and envelope handling in one place so
+/// callers do not need to know which concrete primitive is used underneath.
 /// </summary>
 /// <remarks>
 /// Envelope helpers follow the pattern:
 /// <c>Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written)</c>
 /// producing <c>header(12) || nonce || ciphertext</c>,
 /// and <c>Decrypt(key, envelope, plaintext, out written)</c>.
-/// If nonce is empty/default, a cryptographically random
-/// nonce of the appropriate length for the algorithm is generated automatically.
+/// If nonce is empty/default, a cryptographically random nonce of the
+/// appropriate length for the algorithm is generated automatically so the
+/// caller can use a self-contained envelope without precomputing a nonce.
 /// </remarks>
 [System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
@@ -59,6 +62,9 @@ public static class SymmetricEngine
         switch (type)
         {
             case CipherSuiteType.Chacha20:
+                // Raw keystream mode is just XOR with the selected stream cipher.
+                // We construct the cipher here so the caller only needs to know the
+                // algorithm type, not the underlying implementation details.
                 ChaCha20 chacha = new(key, nonce, (uint)counter);
                 try
                 {
@@ -123,6 +129,8 @@ public static class SymmetricEngine
         written = 0;
 
         int nonceLength = EnvelopeCipher.GetNonceLength(algorithm);
+        // If the caller omits a nonce, generate one so the envelope remains
+        // self-contained and can be decrypted later without side channels.
         int resolvedNonceLength = nonce.IsEmpty ? nonceLength : nonce.Length;
         int total = EnvelopeFormat.HeaderSize + resolvedNonceLength + plaintext.Length;
 
@@ -154,6 +162,9 @@ public static class SymmetricEngine
             nonce.CopyTo(nonceToUse);
         }
 
+        // Reuse the sequence value as the stream counter so the envelope header
+        // stays aligned with the cipher state and the caller only has to manage
+        // one monotonic number.
         ulong counter = seqVal;
         System.Span<byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + resolvedNonceLength, plaintext.Length);
 

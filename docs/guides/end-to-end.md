@@ -8,7 +8,7 @@ This guide shows the smallest useful Nalix TCP server flow:
 4. start a `TcpListenerBase`
 5. send one request and receive one response
 
-The sample is intentionally small so clients can copy the structure first and optimize later.
+The sample stays intentionally small so you can copy the structure first and optimize later.
 
 Use it when you want the shortest path from a listener to a handler reply.
 
@@ -77,7 +77,7 @@ listener.Activate();
 
 ## Client
 
-The transport/session abstraction can vary on your side, but the request/response pattern is:
+The transport/session abstraction can vary on your side, but the request/response pattern is usually the same:
 
 ```csharp
 Control request = new() { Type = ControlType.PING };

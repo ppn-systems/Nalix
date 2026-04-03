@@ -16,7 +16,9 @@ using Nalix.Network.Options;
 
 namespace Nalix.Network.Routing;
 
-/// <inheritdoc/>
+/// Carries a packet, its connection, and the metadata needed while a handler is
+/// executing. Instances are pooled so dispatch can reuse context objects without
+/// allocating on every packet.
 [DebuggerDisplay("IsInitialized={_isInitialized}, Properties={_properties.Count}")]
 public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable where TPacket : IPacket
 {
@@ -88,10 +90,12 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     #region Constructor
 
     /// <summary>
-    /// Initializes static resources for the <see cref="PacketContext{TPacket}"/> class.
+    /// Preallocates pooled packet contexts and sets the per-type capacity for this
+    /// closed generic packet context.
     /// </summary>
     /// <remarks>
-    /// Preallocates 64 instances and sets a maximum pool capacity of 1024 instances in the object pool.
+    /// The pool sizing comes from configuration so hot dispatch paths do not need
+    /// to decide capacity dynamically.
     /// </remarks>
     static PacketContext()
     {
@@ -109,7 +113,8 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     /// Initializes a new instance of the <see cref="PacketContext{TPacket}"/> class for pooling.
     /// </summary>
     /// <remarks>
-    /// This constructor is used by the object pool to create instances in the <see cref="PacketContextState.Pooled"/> state.
+    /// The constructor leaves the context in the pooled state with placeholder
+    /// values so the object pool can hand it out later through <see cref="Initialize"/>.
     /// </remarks>
     public PacketContext()
     {
@@ -133,7 +138,8 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     /// <param name="descriptor">The metadata describing the packet.</param>
     /// <param name="token">The cancellation token for the context.</param>
     /// <remarks>
-    /// This method is thread-safe and transitions the context to the <see cref="PacketContextState.InUse"/> state.
+    /// This method marks the pooled instance as in use before populating the
+    /// packet-specific fields so the dispatcher can return it safely later.
     /// </remarks>
     /// <exception cref="InternalErrorException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -158,10 +164,11 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     #region IDisposable
 
     /// <summary>
-    /// Resets the context for reuse in the object pool.
+    /// Resets the context so it can be safely reused by the object pool.
     /// </summary>
     /// <remarks>
-    /// If the context is initialized, it is reset and transitioned to the <see cref="PacketContextState.Pooled"/> state.
+    /// The sender is returned to the shared pool first, then all packet-specific
+    /// references are cleared so the next renter sees a clean context.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ResetForPool()
@@ -185,10 +192,11 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     }
 
     /// <summary>
-    /// Returns the context to the object pool.
+    /// Returns the context to the object pool once dispatch has finished with it.
     /// </summary>
     /// <remarks>
-    /// This method is thread-safe and ensures the context is only returned if it is in the <see cref="PacketContextState.InUse"/> state.
+    /// The state transition prevents double-return and makes the pool handoff idempotent
+    /// if multiple cleanup paths race to dispose the same context.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Return()

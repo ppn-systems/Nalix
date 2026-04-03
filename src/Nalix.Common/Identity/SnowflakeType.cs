@@ -7,30 +7,29 @@
 namespace Nalix.Common.Identity;
 
 /// <summary>
-/// Defines the category of an <see cref="ISnowflake"/> value,
-/// used to distinguish between different purposes or entities in the system.
+/// Categorizes a snowflake so the system can tell what kind of entity it refers to.
 /// </summary>
 public enum SnowflakeType : byte
 {
     #region Core System
 
     /// <summary>
-    /// NONE or generic purpose.
+    /// Unspecified or generic purpose.
     /// </summary>
     Unknown = 0,
 
     /// <summary>
-    /// For system configurations or version tracking.
+    /// Configuration and versioning identifiers.
     /// </summary>
     Configuration = 1,
 
     /// <summary>
-    /// For logging events and audit trails.
+    /// Logging and audit trail identifiers.
     /// </summary>
     Log = 2,
 
     /// <summary>
-    /// SYSTEM-wide unique identifier.
+    /// System-wide infrastructure identifiers.
     /// </summary>
     System = 3,
 
@@ -39,12 +38,12 @@ public enum SnowflakeType : byte
     #region User & Security
 
     /// <summary>
-    /// For user account management.
+    /// User account identifiers.
     /// </summary>
     Account = 10,
 
     /// <summary>
-    /// For session management.
+    /// Session identifiers.
     /// </summary>
     Session = 11,
 
@@ -53,22 +52,22 @@ public enum SnowflakeType : byte
     #region Communication & Messaging
 
     /// <summary>
-    /// For chat and message management.
+    /// Messaging identifiers.
     /// </summary>
     Message = 20,
 
     /// <summary>
-    /// For notifications and alerts.
+    /// Notification identifiers.
     /// </summary>
     Notification = 21,
 
     /// <summary>
-    /// For email tracking.
+    /// Email identifiers.
     /// </summary>
     Email = 22,
 
     /// <summary>
-    /// For phone verification and SMS tracking.
+    /// SMS and phone verification identifiers.
     /// </summary>
     Sms = 23,
 
@@ -77,34 +76,34 @@ public enum SnowflakeType : byte
     #region Business & Transactions
 
     /// <summary>
-    /// For tracking orders and purchases.
+    /// Order identifiers.
     /// </summary>
     Order = 30,
 
     /// <summary>
-    /// For inventory management.
+    /// Inventory identifiers.
     /// </summary>
     Inventory = 31,
 
     /// <summary>
-    /// For financial transactions.
+    /// Transaction identifiers.
     /// </summary>
     Transaction = 32,
 
     /// <summary>
-    /// For invoice and billing.
+    /// Invoice and billing identifiers.
     /// </summary>
     Invoice = 33,
 
     /// <summary>
-    /// For tracking customer support tickets.
+    /// Support ticket identifiers.
     /// </summary>
     SupportTicket = 34,
 
     #endregion Business & Transactions
 
     /// <summary>
-    /// The maximum valid value for <see cref="SnowflakeType"/>.
+    /// The maximum numeric value reserved for the enum.
     /// </summary>
     MaxValue = 255
 }

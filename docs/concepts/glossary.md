@@ -107,3 +107,28 @@ Examples:
 - [Choose the Right Building Block](./choose-the-right-building-block.md)
 - [Architecture](./architecture.md)
 - [Middleware](./middleware.md)
+
+## Reading paths by persona
+
+```mermaid
+flowchart TD
+    A["Server dev"] --> B["Introduction"]
+    B --> C["Quickstart"]
+    C --> D["Architecture"]
+    D --> E["Server Blueprint"]
+
+    F["Client dev"] --> G["Introduction"]
+    G --> H["Quickstart"]
+    H --> I["SDK Overview"]
+    I --> J["TCP Session"]
+
+    K["Middleware author"] --> L["Choose the Right Building Block"]
+    L --> M["Middleware"]
+    M --> N["Custom Middleware End-to-End"]
+    N --> O["Custom Metadata Provider"]
+
+    P["Packet author"] --> Q["Packet Contracts"]
+    Q --> R["Serialization Attributes"]
+    R --> S["Frame Model"]
+    S --> T["Packet Registry"]
+```

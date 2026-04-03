@@ -15,9 +15,7 @@ using Nalix.Logging.Exceptions;
 
 namespace Nalix.Logging.Options;
 
-/// <summary>
-/// Configuration options for the file logger.
-/// </summary>
+/// <summary>Configuration options for file-based logging.</summary>
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("File={LogFileName,nq}, Dir={LogDirectory,nq}, MaxSize={MaxFileSizeBytes}")]
 [IniComment("File logger configuration — controls file size, queue, flush behavior, and naming")]
@@ -25,9 +23,7 @@ public sealed class FileLogOptions : ConfigurationLoader
 {
     #region Constants
 
-    /// <summary>
-    /// 10 MB
-    /// </summary>
+    /// <summary>The default maximum log file size, in bytes.</summary>
     private const int DefaultMaxFileSize = 10 * 1024 * 1024;
     private const int DefaultMaxQueueSize = 4096;
 
@@ -36,8 +32,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     #region Properties
 
     /// <summary>
-    /// The maximum allowed file size for a log file in bytes.
-    /// When this size is reached, a new log file will be created.
+    /// Gets or sets the maximum allowed size of a log file in bytes.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when value is less than 1KB or greater than 2GB.</exception>
     [IniComment("Max log file size in bytes before rotation (min 1024, max 33554432)")]
@@ -60,7 +55,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     } = DefaultMaxFileSize;
 
     /// <summary>
-    /// The maximum number of entries that can be queued before blocking or discarding.
+    /// Gets or sets the maximum number of queued log entries before blocking or dropping.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when value is less than 1.</exception>
     [IniComment("Maximum log entries in the write queue (minimum 1)")]
@@ -80,7 +75,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     } = DefaultMaxQueueSize;
 
     /// <summary>
-    /// Gets or sets the name template for log files.
+    /// Gets or sets the base log file name.
     /// </summary>
     /// <remarks>
     /// The actual filename may have additional information appended like date or sequence number.
@@ -95,7 +90,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     } = $"log_{Environment.MachineName}_.log";
 
     /// <summary>
-    /// Gets or sets the interval at which log entries are flushed to disk.
+    /// Gets or sets the interval at which buffered log entries are flushed to disk.
     /// </summary>
     /// <remarks>
     /// A shorter interval reduces the risk of data loss but may impact performance.
@@ -104,7 +99,7 @@ public sealed class FileLogOptions : ConfigurationLoader
     public TimeSpan FlushInterval { get; set; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
-    /// Gets or sets the behavior when the queue is full.
+    /// Gets or sets whether writers should block when the queue is full.
     /// </summary>
     /// <remarks>
     /// When true, logging will block until queue space is available.
@@ -114,20 +109,16 @@ public sealed class FileLogOptions : ConfigurationLoader
     public bool BlockWhenQueueFull { get; set; }
 
     /// <summary>
-    /// Optional: also suffix by process to avoid cross-process collisions.
+    /// Gets or sets whether to append the current process name and ID to the file name.
     /// </summary>
     [IniComment("Append process name and ID to the file name to avoid multi-process collisions")]
     public bool UsePerProcessSuffix { get; set; }
 
-    /// <summary>
-    /// A custom formatter for the log file name.
-    /// </summary>
+    /// <summary>Gets or sets a custom formatter for log file names.</summary>
     [ConfiguredIgnore]
     public Func<string, string>? FormatLogFileName { get; set; }
 
-    /// <summary>
-    /// A custom handler for file errors.
-    /// </summary>
+    /// <summary>Gets or sets the callback used to handle file-related errors.</summary>
     [ConfiguredIgnore]
     public Action<FileError>? HandleFileError { get; set; }
 
@@ -135,17 +126,13 @@ public sealed class FileLogOptions : ConfigurationLoader
 
     #region Methods
 
-    /// <summary>
-    /// Gets full path to the current log file.
-    /// </summary>
+    /// <summary>Gets the full path to the current log file.</summary>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public string GetFullLogFilePath()
         => Path.Combine(Directories.LogsDirectory, this.LogFileName);
 
-    /// <summary>
-    /// Builds the exact log file name for a given day and index.
-    /// </summary>
+    /// <summary>Builds the log file name for the specified date and index.</summary>
     /// <param name="date">The date to include in the file name.</param>
     /// <param name="index">The sequence index for the file on the given date.</param>
     /// <returns>The constructed log file name.</returns>

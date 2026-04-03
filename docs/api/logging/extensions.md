@@ -4,13 +4,15 @@ This page covers the public `ILogger` convenience extensions in `Nalix.Logging`.
 
 ## Source mapping
 
-- `src/Nalix.Logging/NLogix.Extensions.cs`
+- `src/Nalix.Logging/Extensions/NLogixFx.cs`
+- `src/Nalix.Logging/Extensions/NLogixFx.Internal.cs`
+- `src/Nalix.Logging/Extensions/NLogixFx.Level.cs`
 
 ## Main type
 
-- `NLogixExtensions`
+- `NLogixFx`
 
-`NLogixExtensions` adds contextual logging helpers such as `Info<T>(...)` and `Error<T>(...)`.
+`NLogixFx` adds contextual logging helpers such as `Info<T>(...)` and `Error<T>(...)`.
 
 ## Basic usage
 

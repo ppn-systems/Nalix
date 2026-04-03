@@ -19,7 +19,10 @@ using Nalix.Network.Internal.Transport;
 namespace Nalix.Network.Connections;
 
 /// <summary>
-/// Represents a network connection that manages socket communication, stream transformation, and event handling.
+/// Represents a network connection that manages socket communication, stream
+/// transformation, and event handling.
+/// This is the high-level owner for the socket transport and the per-connection
+/// event pipeline.
 /// </summary>
 public sealed partial class Connection : IConnection, IConnectionErrorTracked
 {
@@ -44,23 +47,24 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     #region Constructor
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Connection"/> class with a socket, buffer allocator, and optional logger.
-    /// </summary>
-    /// <param name="socket">The socket used for the connection.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="socket"/> is null.</exception>
+    /// <summary>Initializes a new instance of the <see cref="Connection"/> class.</summary>
+    /// <param name="socket">The connected socket used for the connection.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="socket"/> is null.</exception>
     public Connection(Socket socket)
     {
         _lock = new Lock();
         this.Secret = [];
         _disposed = false;
 
+        // Snapshot the remote endpoint up front so the connection can be logged
+        // and tracked even before protocol-level events begin.
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."));
 
         _args = new ConnectionEventArgs(this);
         this.Socket = new SocketConnection(socket);
 
+        // Wire the socket-level events into the connection-level callback pipeline.
         this.Socket.SetCallback(this, _args, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 
         this.TCP = new SocketTcpTransport(this);
@@ -113,9 +117,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         set;
     }
 
-    /// <summary>
-    /// Gets the total number of bytes sent through this connection.
-    /// </summary>
+    /// <summary>Gets the total number of bytes sent through this connection.</summary>
+    /// <returns>The total number of bytes sent.</returns>
     public long BytesSent
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -172,6 +175,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             return;
         }
 
+        // Route close through the bridge so the same high-priority callback path
+        // is used everywhere.
         this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
 #if DEBUG
@@ -203,6 +208,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
         try
         {
+            // Return pooled metadata first so the connection does not keep
+            // borrowed state alive after disposal begins.
             this.Attributes.Return();
 
             this.Disconnect();
@@ -235,7 +242,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             return;
         }
 
-        // Close events bypas backpressure — cleanup must never be delayed
+        // Close events bypass backpressure because cleanup must never be delayed.
         _ = Internal.Transport.AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
     }
 

@@ -18,7 +18,9 @@ using System.Runtime.CompilerServices;
 namespace Nalix.Framework.Serialization.Internal.Types;
 
 /// <summary>
-/// Provides metadata operations for serialization types.
+/// Provides type-shape queries used by the serializer and formatter registry.
+/// The helpers here answer questions like "is this unmanaged?" and "how large is it?"
+/// without forcing every caller to repeat reflection work.
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
@@ -104,12 +106,15 @@ internal static partial class TypeMetadata
 
     public static void RecursiveWarmupFields(Type type, HashSet<Type>? visited = null)
     {
+        // Walk the transitive closure of field types so formatter registration can be
+        // preheated without revisiting the same type over and over.
         visited ??= [];
         if (!visited.Add(type))
         {
             return;
         }
 
+        // Warm the formatter cache for this type before recursing into its dependencies.
         _ = typeof(FormatterProvider).GetMethod("Get")!.MakeGenericMethod(type).Invoke(null, null);
 
         if (type.IsPrimitive || type.IsEnum || type == typeof(string))
@@ -119,6 +124,7 @@ internal static partial class TypeMetadata
 
         if (type.IsArray)
         {
+            // Arrays depend on their element type, so recurse into that instead of the wrapper.
             RecursiveWarmupFields(type.GetElementType()!, visited);
             return;
         }
@@ -126,6 +132,7 @@ internal static partial class TypeMetadata
         {
             foreach (Type ga in type.GetGenericArguments())
             {
+                // Generic arguments may themselves need formatter warmup.
                 RecursiveWarmupFields(ga, visited);
             }
         }
@@ -134,9 +141,11 @@ internal static partial class TypeMetadata
         {
             if (field.FieldType == type)
             {
+                // Self-referential fields are legal, but we skip them to avoid infinite recursion.
                 continue;
             }
 
+            // Recurse into nested field types so the full graph is warmed, not just the root type.
             RecursiveWarmupFields(field.FieldType, visited);
         }
     }

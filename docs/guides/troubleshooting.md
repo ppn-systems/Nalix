@@ -2,7 +2,7 @@
 
 This page collects the most common Nalix setup failures and the fastest places to check first.
 
-Use it after the basic server shape exists and runtime behavior is not matching what you expect.
+Use it after the basic server shape exists and the runtime still is not behaving the way you expect.
 
 ## 1. Server starts but no packets reach handlers
 
@@ -12,14 +12,14 @@ Use it after the basic server shape exists and runtime behavior is not matching 
 - no handler log appears
 - no response is sent
 
-**Check**
+**Check first**
 
 - `IPacketRegistry` is registered once in `InstanceManager`
 - your handler class is actually registered with `WithHandler(...)`
 - handler methods have the correct `[PacketOpcode(...)]`
 - `Protocol.ProcessMessage(...)` really forwards `args.Lease` into `PacketDispatchChannel`
 
-**Fast fix**
+**Quick fix**
 
 Use this exact pattern first:
 
@@ -35,14 +35,14 @@ public override void ProcessMessage(object sender, IConnectEventArgs args)
 - TCP connect succeeds
 - connection closes right after first traffic
 
-**Check**
+**Check first**
 
 - `Protocol.ValidateConnection(...)`
 - `Protocol.IsAccepting`
-- listener logs for `ConnectionLimiter` rejections
+- listener logs for `ConnectionGuard` rejections
 - middleware that short-circuits before the handler
 
-**Fast fix**
+**Quick fix**
 
 - temporarily make `ValidateConnection(...) => true`
 - disable custom middleware one piece at a time
@@ -54,13 +54,13 @@ public override void ProcessMessage(object sender, IConnectEventArgs args)
 
 - connections die after a quiet period
 
-**Check**
+**Check first**
 
 - `NetworkSocketOptions.EnableTimeout`
 - `TimingWheelOptions.IdleTimeoutMs`
 - whether your app expects long quiet windows
 
-**Fast fix**
+**Quick fix**
 
 - increase `IdleTimeoutMs`
 - or disable timeout enforcement during local development
@@ -73,17 +73,17 @@ public override void ProcessMessage(object sender, IConnectEventArgs args)
 - pending queues grow
 - many rejected packets from one endpoint
 
-**Check**
+**Check first**
 
 - `DispatchOptions`
 - `ConnectionLimitOptions`
-- `ConnectionLimiter.GenerateReport()`
+- `ConnectionGuard.GenerateReport()`
 - `PacketDispatchChannel.GenerateReport()`
 
-**Fast fix**
+**Quick fix**
 
 - bound per-connection queue size
-- lower abusive connection pressure with `ConnectionLimiter`
+- lower abusive connection pressure with `ConnectionGuard`
 - add packet-level throttling or concurrency middleware
 
 ## 5. Middleware runs, but custom metadata is missing
@@ -92,13 +92,13 @@ public override void ProcessMessage(object sender, IConnectEventArgs args)
 
 - `context.Attributes.GetCustomAttribute<T>()` returns null
 
-**Check**
+**Check first**
 
 - your provider implements `IPacketMetadataProvider`
 - the provider is registered before handler compilation / dispatcher setup
 - the handler method actually has the custom attribute
 
-**Fast fix**
+**Quick fix**
 
 ```csharp
 PacketMetadataProviders.Register(new MyMetadataProvider());
@@ -112,7 +112,7 @@ Register it during startup, before building dispatch handlers.
 
 - UDP traffic arrives at the socket but is ignored
 
-**Check**
+**Check first**
 
 - datagram contains session ID, timestamp, and auth tag
 - session exists in `ConnectionHub`
@@ -120,7 +120,7 @@ Register it during startup, before building dispatch handlers.
 - `IsAuthenticated(...)` returns true
 - connection secret is initialized
 
-**Fast fix**
+**Quick fix**
 
 Start with:
 
@@ -149,12 +149,12 @@ If you need manual control, switch to `PacketContext<TPacket>` and send through 
 
 ## Good runtime reports to call
 
-When debugging, these usually give the fastest signal:
+When you are debugging, these usually give the fastest signal:
 
 - `listener.GenerateReport()`
 - `protocol.GenerateReport()`
 - `connectionHub.GenerateReport()`
-- `connectionLimiter.GenerateReport()`
+- `connectionGuard.GenerateReport()`
 - `packetDispatchChannel.GenerateReport()`
 - `concurrencyGate.GenerateReport()`
 

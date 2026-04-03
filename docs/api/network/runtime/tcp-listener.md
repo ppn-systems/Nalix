@@ -10,7 +10,7 @@
 
 ```mermaid
 flowchart LR
-    A["Accept worker"] --> B["ConnectionLimiter"]
+    A["Accept worker"] --> B["ConnectionGuard"]
     B --> C["Connection"]
     C --> D["Bounded process channel"]
     D --> E["Protocol.OnAccept(...)"]
@@ -32,11 +32,17 @@ flowchart LR
 - tune thread-pool minima on Windows when `TuneThreadPool` is enabled
 - create and configure the listen socket
 - accept incoming sockets in parallel
-- reject abusive endpoints via `ConnectionLimiter`
+- reject abusive endpoints via `ConnectionGuard`
 - initialize `Connection` objects and wire their events
 - queue accepted connections into a bounded process channel
 - invoke `Protocol.OnAccept(...)` on the dedicated process thread
 - manage `TimingWheel` activation when idle timeout tracking is enabled
+
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `TcpListenerBase` | `Activate(...)`, `Deactivate(...)`, `Dispose()`, `GenerateReport()`, `State`, `Port`, `Protocol`, `ConnectionHub` |
 
 ## Startup flow
 
@@ -50,12 +56,18 @@ flowchart LR
 6. schedules `MaxParallel` accept workers via `TaskManager`
 7. starts the bounded process channel thread
 
+### Common pitfalls
+
+- treating the listener like an application layer instead of transport infrastructure
+- leaving `TimingWheel` enabled without matching timeout expectations
+- running with too small a `MaxParallel` value and then mistaking backlog for packet loss
+
 ## Accept path
 
 Each accept worker runs `AcceptConnectionsAsync(...)`:
 
 - accepts one socket via `CreateConnectionAsync(...)`
-- enforces `ConnectionLimiter`
+- enforces `ConnectionGuard`
 - creates a `Connection`
 - wires `OnCloseEvent`, `OnProcessEvent`, and `OnPostProcessEvent`
 - registers the connection in `TimingWheel` if timeout support is enabled
@@ -76,6 +88,12 @@ This keeps new-connection setup from starving packet-processing callbacks.
     When the bounded process channel is full, new accepted connections can be closed immediately.
     Treat that as a signal to review backlog, dispatch pressure, and connection limits instead of trying to bypass the backpressure path.
 
+### Failure modes worth knowing
+
+- connection admission can fail before protocol code runs if `ConnectionGuard` rejects the endpoint
+- a full process channel closes accepted sockets rather than letting the listener stall
+- timeout tracking is optional, but if enabled it can close idle connections independently of dispatch health
+
 ## Shutdown flow
 
 `Deactivate(ct)`:
@@ -88,6 +106,11 @@ This keeps new-connection setup from starving packet-processing callbacks.
 - closes all active connections through `ConnectionHub`
 - deactivates `TimingWheel` when enabled
 - returns to `STOPPED`
+
+### Disposal notes
+
+- after `Dispose()`, accept workers and the process channel should be considered dead
+- active connections are closed during shutdown, so do not keep references expecting them to remain usable
 
 ## Diagnostics
 
@@ -112,6 +135,13 @@ await listener.Activate(ct);
 string report = listener.GenerateReport();
 Console.WriteLine(report);
 ```
+
+Typical flow:
+
+1. configure sockets and timeouts
+2. activate the listener
+3. accept connections into the process channel
+4. inspect `GenerateReport()` when traffic or backlog looks wrong
 
 ## Related APIs
 

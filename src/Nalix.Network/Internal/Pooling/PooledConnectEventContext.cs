@@ -12,11 +12,14 @@ using Nalix.Framework.Memory.Objects;
 namespace Nalix.Network.Internal.Pooling;
 
 /// <summary>
-/// Represents a reusable (pooled) context for invoking a connection event callback.
+/// Represents a reusable pooled context for invoking a connection event callback.
+/// The wrapper exists so callback dispatch can reuse the same object instead of
+/// allocating a fresh closure/context for every event.
 /// </summary>
 /// <remarks>
-/// This type is designed to minimize allocations by reusing instances via an object pool.
-/// It temporarily stores the event sender, arguments, and callback delegate during invocation.
+/// The sender, arguments, and callback delegate are copied into this object just
+/// long enough for the ThreadPool work item to run, then the instance is returned
+/// to the pool and reused by the next callback.
 /// </remarks>
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
@@ -25,22 +28,23 @@ internal sealed class PooledConnectEventContext : IPoolable
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     /// <summary>
-    /// Gets or sets the event sender.
+    /// The event sender captured for this callback invocation.
     /// </summary>
     public object? Sender;
 
     /// <summary>
-    /// Gets or sets the connection event arguments.
+    /// The event arguments captured for this callback invocation.
     /// </summary>
     public IConnectEventArgs Args = default!;
 
     /// <summary>
-    /// Gets or sets the callback delegate to invoke.
+    /// The callback delegate that will be invoked by the dispatcher.
     /// </summary>
     public EventHandler<IConnectEventArgs>? Callback;
 
     /// <summary>
-    /// Initializes the context with the specified callback, sender, and arguments.
+    /// Initializes the pooled wrapper with the callback, sender, and arguments
+    /// so they can be passed to the worker thread without allocating a closure.
     /// </summary>
     /// <param name="callback">The event handler to invoke.</param>
     /// <param name="sender">The source of the event.</param>

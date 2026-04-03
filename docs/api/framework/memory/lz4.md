@@ -23,6 +23,13 @@ This layer provides:
 - block decompression into a caller-supplied span
 - block decompression into a rented `BufferLease`
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `LZ4Codec` | `Encode(...)`, `Decode(...)`, `GetMaxCompressedSize(...)`, `GetMaxDecompressedSize(...)`, `GetCompressionRatio(...)` and related span / lease overloads |
+| `LZ4BlockHeader` | block header fields and wire-size helpers used by the codec |
+
 ## Runtime shape
 
 ```mermaid
@@ -76,6 +83,20 @@ Use the span overload when you already own the destination buffer.
 
 Use the `BufferLease` overload when you want a pooled, zero-copy-friendly path.
 
+## When to use LZ4
+
+Use LZ4 when:
+
+- payloads are large enough that compression overhead can pay for itself
+- you are sending repetitive or highly structured packet bodies
+- you want to reduce network bandwidth or buffer pressure on the receive side
+
+Avoid LZ4 when:
+
+- payloads are tiny and already close to the minimum frame size
+- the data is random, encrypted, or already compressed
+- latency is more important than payload size
+
 ## Decode overloads
 
 `LZ4Codec.Decode(...)` supports:
@@ -84,6 +105,13 @@ Use the `BufferLease` overload when you want a pooled, zero-copy-friendly path.
 - `Decode(ReadOnlySpan<byte> input, out BufferLease? lease, out int bytesWritten)`
 
 Use the `BufferLease` overload on hot paths where you want pooled output.
+
+## Performance guidance
+
+- benchmark your real payloads before turning compression on by default
+- prefer pooled overloads on live network paths
+- keep compression disabled for traffic that does not benefit from it
+- treat compression as a throughput tool, not a universal win
 
 ## Example
 
@@ -94,12 +122,19 @@ LZ4Codec.Encode(input, out BufferLease compressed, out int written);
 using (compressed)
 {
     LZ4Codec.Decode(compressed.Span, out BufferLease? restored, out int restoredBytes);
-    using (restored)
+using (restored)
     {
         Console.WriteLine(restoredBytes);
     }
 }
 ```
+
+## Common pitfalls
+
+- compressing already-compressed or encrypted payloads
+- using compression for very small packets where header overhead dominates
+- forgetting that a pooled output lease must be disposed
+- assuming the same compression ratio across all payload types
 
 ## Important notes
 

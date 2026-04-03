@@ -9,13 +9,12 @@ using Nalix.Framework.Memory.Buffers;
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 
 /// <summary>
-/// <para>Provides serialization and deserialization functionality for <see cref="string"/> arrays.</para>
+/// Serializes <see cref="string"/> arrays as a length-prefixed sequence of nested
+/// string payloads.
 /// <para>
-/// Encoding format:
-/// - UInt16: number of elements
-///     - 0          => empty array
-///     - 65535      => null array (SerializerBounds.Null)
-///     - otherwise  => element count, followed by that many serialized strings
+/// The first <see cref="ushort"/> stores the array state:
+/// 0 means empty, <see cref="SerializerBounds.Null"/> means <see langword="null"/>,
+/// and any other value is the element count.
 /// </para>
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
@@ -33,6 +32,10 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
     /// <summary>
     /// Serializes a string array into the provided writer.
     /// </summary>
+    /// <remarks>
+    /// Each element is written using <see cref="StringFormatter"/> so array
+    /// elements follow the same null/empty/non-empty rules as standalone strings.
+    /// </remarks>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string array to serialize.</param>
     /// <exception cref="SerializationFailureException">Thrown when <paramref name="value"/> exceeds the maximum encodable element count.</exception>
@@ -41,25 +44,23 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, string[] value)
     {
+        // Null array is represented by the reserved sentinel value.
         if (value is null)
         {
-            // 65535 biểu diễn null array
             s_uInt16Formatter.Serialize(ref writer, SerializerBounds.Null);
             return;
         }
 
+        // Empty arrays are encoded with a zero count and no element payloads.
         if (value.Length == 0)
         {
             s_uInt16Formatter.Serialize(ref writer, 0);
             return;
         }
 
-        // Optional: nếu muốn giới hạn số phần tử, có thể thêm check ở đây
-        // ví dụ: if (value.Length > SerializerBounds.MaxCollection) throw ...
-
+        // Reserve the sentinel value for null, so valid arrays must stay below it.
         if (value.Length > ushort.MaxValue - 1)
         {
-            // Chừa 65535 cho null
             throw new SerializationFailureException("The string array exceeds the maximum encodable length.");
         }
 
@@ -67,8 +68,8 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
 
         for (int i = 0; i < value.Length; i++)
         {
-            writer.Expand(sizeof(int));
-            // Reuse StringFormatter logic (null, empty, UTF8, bounds, ...)
+            // Delegate element encoding to the string formatter so one place owns the
+            // null/empty/UTF-8 details.
             s_stringFormatterInstance.Serialize(ref writer, value[i]);
         }
     }
@@ -76,6 +77,10 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
     /// <summary>
     /// Deserializes a string array from the provided reader.
     /// </summary>
+    /// <remarks>
+    /// The array header is decoded first, then each element is delegated back to
+    /// <see cref="StringFormatter"/> so the per-string wire format stays consistent.
+    /// </remarks>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized string array.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
@@ -85,11 +90,13 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
     {
         ushort length = s_uInt16Formatter.Deserialize(ref reader);
 
+        // Zero means an empty array, not a null array.
         if (length == 0)
         {
             return Array.Empty<string>();
         }
 
+        // The sentinel is reserved for null arrays.
         if (length == SerializerBounds.Null)
         {
             return null!;
@@ -99,7 +106,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
 
         for (int i = 0; i < length; i++)
         {
-            // Ensure non-null assignment; if null, assign string.Empty to avoid CS8601
+            // Each element is decoded using the same rules as standalone strings.
             result[i] = s_stringFormatterInstance.Deserialize(ref reader);
         }
 

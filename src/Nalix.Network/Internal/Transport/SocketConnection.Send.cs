@@ -279,7 +279,10 @@ internal sealed partial class SocketConnection
     #region Fragmented Send Helpers
 
     /// <summary>
-    /// Gửi payload lớn bằng cách tự động fragment.
+    /// Sends large payloads by fragmenting them automatically.
+    /// The caller does not need to split the payload manually; this method
+    /// turns it into the wire format expected by the receiver and sends each
+    /// fragment in order.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2014:Do not use stackalloc in loops", Justification = "<Pending>")]
     private void SEND_FRAGMENTED(ReadOnlySpan<byte> payload)
@@ -317,10 +320,10 @@ internal sealed partial class SocketConnection
 
             fragHeader.WriteTo(headerBuffer);
 
-            // Calculate the total frame size for this segment
+            // Compute the full wire size for this fragment, including the outer
+            // length prefix and the fragment header.
             int framePayloadSize = FragmentHeader.WireSize + thisChunkSize;
 
-            // + 2 byte length
             int totalFrameSize = HeaderSize + framePayloadSize;
 
             if (totalFrameSize > ushort.MaxValue)
@@ -329,15 +332,17 @@ internal sealed partial class SocketConnection
                     $"Fragmented frame size {totalFrameSize} exceeds the {ushort.MaxValue}-byte wire header limit.");
             }
 
-            // Fast path: stackalloc if small
+            // Small fragments stay on the stack to avoid renting a buffer.
+            // This keeps the fast path allocation-free for fragments that fit
+            // comfortably within the stack allocation limit.
             if (totalFrameSize <= PacketConstants.StackAllocLimit)
             {
                 Span<byte> frame = stackalloc byte[totalFrameSize];
 
-                // Write outer frame length
+                // Write the outer frame length.
                 BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)totalFrameSize);
 
-                // Write FragmentHeader + Magic + body
+                // Write FragmentHeader + magic + chunk body.
                 headerBuffer.CopyTo(frame[HeaderSize..]);
                 payload.Slice(offset, thisChunkSize).CopyTo(frame[(HeaderSize + FragmentHeader.WireSize)..]);
 
@@ -345,7 +350,8 @@ internal sealed partial class SocketConnection
             }
             else
             {
-                // Slow path: pooled buffer
+                // Large fragments use a pooled buffer so we do not allocate on
+                // every chunk and can reuse the same memory pressure budget.
                 byte[] rented = BufferLease.ByteArrayPool.Rent(totalFrameSize);
                 try
                 {
@@ -438,13 +444,16 @@ internal sealed partial class SocketConnection
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void BUILD_FRAGMENT_FRAME(Span<byte> frame, ReadOnlySpan<byte> fragHeader, ReadOnlySpan<byte> chunkBody)
         {
-            // Write outer frame length (2 bytes LE)
+            // Write the outer frame length first because the receiver reads this
+            // prefix before it can interpret the fragment header or payload body.
             BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)frame.Length);
 
-            // Copy FragmentHeader (có Magic)
+            // Copy the fragment header, including the magic marker that lets the
+            // receiver recognize this frame as a fragment stream.
             fragHeader.CopyTo(frame[HeaderSize..]);
 
-            // Copy chunk body
+            // Copy the chunk body into the wire frame immediately after the
+            // fragment header.
             chunkBody.CopyTo(frame[(HeaderSize + FragmentHeader.WireSize)..]);
         }
 

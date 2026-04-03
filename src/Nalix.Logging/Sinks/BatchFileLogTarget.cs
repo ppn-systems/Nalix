@@ -12,13 +12,10 @@ using Nalix.Logging.Options;
 namespace Nalix.Logging.Sinks;
 
 /// <summary>
-/// Provides a channel-based file logging target, optimized for non-blocking log producers
-/// with a batched background consumer.
+/// A buffered logging target that writes log entries to a file.
 /// </summary>
 /// <remarks>
-/// This class is plug-compatible with <see cref="INLogixTarget"/> implementations such as
-/// <see cref="BatchFileLogTarget"/>, but it uses <see cref="FileLoggerProvider"/> internally
-/// to buffer and asynchronously write logs to the file system.
+/// This target buffers log entries and flushes them through <see cref="FileLoggerProvider"/>.
 /// </remarks>
 [DebuggerNonUserCode]
 [DebuggerDisplay("ChannelFileLogTarget")]
@@ -32,9 +29,7 @@ public sealed class BatchFileLogTarget : INLogixTarget, IDisposable
 
     #region Constructors
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with the specified formatter and options.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="BatchFileLogTarget"/> class.</summary>
     /// <param name="options">The file log options to configure file paths, size limits, and rolling behavior.</param>
     /// <param name="formatter">The log formatter used to convert log entries into string format.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="formatter"/> or <paramref name="options"/> is null.</exception>
@@ -45,19 +40,12 @@ public sealed class BatchFileLogTarget : INLogixTarget, IDisposable
         _provider = new FileLoggerProvider(formatter, options);
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with default options.
-    /// </summary>
-    /// <remarks>
-    /// Uses the default <see cref="AnsiColorFormatter"/> and <see cref="FileLogOptions"/>.
-    /// </remarks>
+    /// <summary>Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with default options.</summary>
     public BatchFileLogTarget() : this(null, new FileLogFormatter())
     {
     }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom configuration logic.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="BatchFileLogTarget"/> class with custom configuration logic.</summary>
     /// <param name="options">An action that configures the <see cref="FileLogOptions"/> before use.</param>
     public BatchFileLogTarget(Action<FileLogOptions> options)
         : this(Configure(options), new FileLogFormatter())
@@ -68,14 +56,7 @@ public sealed class BatchFileLogTarget : INLogixTarget, IDisposable
 
     #region APIs
 
-    /// <summary>
-    /// Publishes a log entry to the file logging channel.
-    /// </summary>
-    /// <param name="timestampUtc">The UTC timestamp assigned to the log event.</param>
-    /// <param name="logLevel">The severity level of the log event.</param>
-    /// <param name="eventId">The associated event identifier.</param>
-    /// <param name="message">The rendered log message.</param>
-    /// <param name="exception">The associated exception, if any.</param>
+    /// <inheritdoc/>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Publish(
@@ -86,12 +67,7 @@ public sealed class BatchFileLogTarget : INLogixTarget, IDisposable
         Exception? exception)
         => _provider.Enqueue(timestampUtc, logLevel, eventId, message, exception);
 
-    /// <summary>
-    /// Releases all resources used by the <see cref="BatchFileLogTarget"/>.
-    /// </summary>
-    /// <remarks>
-    /// Ensures the log queue is flushed before disposal.
-    /// </remarks>
+    /// <inheritdoc/>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -106,9 +82,7 @@ public sealed class BatchFileLogTarget : INLogixTarget, IDisposable
 
     #region Private Methods
 
-    /// <summary>
-    /// Applies configuration to <see cref="FileLogOptions"/> using the provided delegate.
-    /// </summary>
+    /// <summary>Applies configuration to <see cref="FileLogOptions"/> using the provided delegate.</summary>
     /// <param name="configure">The action that configures the file log options.</param>
     /// <returns>A configured <see cref="FileLogOptions"/> instance.</returns>
     [DebuggerStepThrough]

@@ -14,11 +14,13 @@ Use these packages together or separately depending on whether you are building 
 
 | Package | Use it for | Key types |
 | --- | --- | --- |
-| Nalix.SDK | Client TCP sessions, request helpers, and control/directive flows; `UdpSession` exists but is currently unsupported | `TcpSession`, `IoTTcpSession`, `UdpSession`, `TransportOptions`, `RequestOptions` |
-| Nalix.Network | Listeners, connections, dispatch pipeline, server-side throttling | `TcpListenerBase`, `UdpListenerBase`, `ConnectionHub`, `PacketDispatchChannel` |
+| Nalix.SDK | Client transport sessions, request helpers, and control/directive flows | `TransportSession`, `TcpSession`, `TransportOptions`, `RequestOptions` |
+| Nalix.Network | Listeners, connections, dispatch pipeline, and connection guarding | `TcpListenerBase`, `UdpListenerBase`, `Protocol`, `ConnectionHub`, `PacketDispatchChannel`, `ConnectionGuard` |
+| Nalix.Network.Pipeline | Packet middleware, throttling, and time synchronization helpers | `ConcurrencyGate`, `PolicyRateLimiter`, `TokenBucketLimiter`, `TimeSynchronizer`, `TokenBucketOptions` |
 | Nalix.Common | Shared contracts, packet attributes, middleware contracts | `IPacket`, `IConnection`, `PacketControllerAttribute`, `PacketOpcodeAttribute` |
-| Nalix.Logging | Structured logging and targets | `NLogix`, `NLogixOptions`, `ILoggerTarget` |
-| Nalix.Framework | Configuration, service registry, scheduling, IDs, timing helpers, built-in frames, registry, serializer helpers | `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, `Clock`, `PacketRegistryFactory`, `PacketRegistry`, `Handshake`, `Control`, `Text256/512/1024` |
+| Nalix.Logging | Structured logging and targets | `NLogix`, `NLogixOptions`, `INLogixTarget` |
+| Nalix.Framework | Configuration, service registry, scheduling, IDs, timing helpers, built-in frames, registry, serializer helpers | `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, `Clock`, `PacketRegistryFactory`, `PacketRegistry`, `Handshake`, `Control`, `Directive`, `Text256/512/1024`, `FrameBase`, `PacketBase<TSelf>`, `FrameTransformer`, `FragmentAssembler`, `FragmentOptions`, `DataReaderExtensions`, `DataWriterExtensions`, `HeaderExtensions` |
+| Nalix.Analyzers | Compile-time diagnostics and code fixes for packet, serialization, middleware, configuration, and SDK usage | `NalixUsageAnalyzer`, `DiagnosticDescriptors`, code fix providers |
 
 ## Minimal wiring map
 

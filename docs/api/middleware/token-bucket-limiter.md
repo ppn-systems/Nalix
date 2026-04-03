@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Throttling/TokenBucketLimiter.cs`
+- `src/Nalix.Network.Pipeline/Throttling/TokenBucketLimiter.cs`
 
 ## What it does
 

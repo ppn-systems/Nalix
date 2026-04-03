@@ -6,8 +6,8 @@ using Nalix.Framework.Memory.Buffers;
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 
 /// <summary>
-/// Provides serialization and deserialization logic for
-/// <see cref="System.ValueTuple{T1, T2}"/>.
+/// Serializes value tuples element-by-element using the registered formatter for
+/// each generic slot.
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
@@ -23,8 +23,11 @@ internal sealed class ValueTupleFormatter<T1, T2> : IFormatter<(T1, T2)>
 
     /// <summary>
     /// Serializes a <see cref="System.ValueTuple{T1, T2}"/> into the specified <see cref="DataWriter"/>.
-    /// Elements are written sequentially: Item1 then Item2.
     /// </summary>
+    /// <remarks>
+    /// The tuple is written in declaration order so the receiver can reconstruct it
+    /// without any extra shape metadata.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, (T1, T2) value)
@@ -46,8 +49,8 @@ internal sealed class ValueTupleFormatter<T1, T2> : IFormatter<(T1, T2)>
 // =========================================================================
 
 /// <summary>
-/// Provides serialization and deserialization logic for
-/// <see cref="System.ValueTuple{T1, T2, T3}"/>.
+/// Serializes value tuples element-by-element using the registered formatter for
+/// each generic slot.
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
@@ -64,8 +67,11 @@ internal sealed class ValueTupleFormatter<T1, T2, T3> : IFormatter<(T1, T2, T3)>
 
     /// <summary>
     /// Serializes a <see cref="System.ValueTuple{T1, T2, T3}"/> into the specified <see cref="DataWriter"/>.
-    /// Elements are written sequentially: Item1, Item2, Item3.
     /// </summary>
+    /// <remarks>
+    /// The tuple is written in declaration order so the receiver can reconstruct it
+    /// without any extra shape metadata.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, (T1, T2, T3) value)
@@ -89,8 +95,8 @@ internal sealed class ValueTupleFormatter<T1, T2, T3> : IFormatter<(T1, T2, T3)>
 // =========================================================================
 
 /// <summary>
-/// Provides serialization and deserialization logic for
-/// <see cref="System.ValueTuple{T1, T2, T3, T4}"/>.
+/// Serializes value tuples element-by-element using the registered formatter for
+/// each generic slot.
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
@@ -109,8 +115,11 @@ internal sealed class ValueTupleFormatter<T1, T2, T3, T4> : IFormatter<(T1, T2, 
 
     /// <summary>
     /// Serializes a <see cref="System.ValueTuple{T1, T2, T3, T4}"/> into the specified <see cref="DataWriter"/>.
-    /// Elements are written sequentially: Item1 through Item4.
     /// </summary>
+    /// <remarks>
+    /// The tuple is written in declaration order so the receiver can reconstruct it
+    /// without any extra shape metadata.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, (T1, T2, T3, T4) value)
@@ -136,8 +145,8 @@ internal sealed class ValueTupleFormatter<T1, T2, T3, T4> : IFormatter<(T1, T2, 
 // =========================================================================
 
 /// <summary>
-/// Provides serialization and deserialization logic for
-/// <see cref="System.ValueTuple{T1, T2, T3, T4, T5}"/> and larger tuples.
+/// Serializes tuples with five or more elements, including the nested <c>TRest</c>
+/// layout used by the BCL for tuples larger than arity seven.
 /// </summary>
 /// <remarks>
 /// <para>

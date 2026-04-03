@@ -12,7 +12,7 @@ public static class ProtocolStringExtensions
     /// </summary>
     /// <param name="advice">The <see cref="ProtocolAdvice"/> value.</param>
     /// <returns>A concise, user-friendly English string describing the advice.</returns>
-    public static string ToString(this ProtocolAdvice advice)
+    public static string ToDisplayString(this ProtocolAdvice advice)
     {
         return advice switch
         {
@@ -33,7 +33,7 @@ public static class ProtocolStringExtensions
     /// </summary>
     /// <param name="reason">The <see cref="ProtocolReason"/> value.</param>
     /// <returns>A concise, user-friendly English string describing the reason.</returns>
-    public static string ToString(this ProtocolReason reason)
+    public static string ToDisplayString(this ProtocolReason reason)
     {
         return reason switch
         {

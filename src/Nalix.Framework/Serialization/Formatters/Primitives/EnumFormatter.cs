@@ -8,8 +8,9 @@ using Nalix.Framework.Memory.Buffers;
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 
 /// <summary>
-/// Provides serialization and deserialization for enum types without boxing,
-/// directly serializing the underlying type.
+/// Serializes enum values through their underlying integral representation without boxing.
+/// The formatter resolves the enum's backing type once and then reuses specialized
+/// read/write delegates for the hot path.
 /// </summary>
 /// <typeparam name="T">The enum type to be serialized and deserialized.</typeparam>
 [System.Diagnostics.StackTraceHidden]
@@ -30,7 +31,7 @@ public sealed class EnumFormatter<
 
     static EnumFormatter()
     {
-
+        // Resolve the enum backing type once so the generated delegates can be cached.
         s_underlyingTypeCode = Type.GetTypeCode(Enum
                                    .GetUnderlyingType(typeof(T)));
 
@@ -40,6 +41,10 @@ public sealed class EnumFormatter<
     /// <summary>
     /// Serializes an enum value into the provided writer using its underlying type.
     /// </summary>
+    /// <remarks>
+    /// The generated delegate avoids boxing by reinterpreting the enum bits as the
+    /// matching primitive type before calling the primitive formatter.
+    /// </remarks>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The enum value to serialize.</param>
     /// <exception cref="InvalidOperationException">Thrown when the formatter was created for a non-enum type.</exception>
@@ -53,6 +58,9 @@ public sealed class EnumFormatter<
     /// <summary>
     /// Deserializes an enum value from the provided reader using its underlying type.
     /// </summary>
+    /// <remarks>
+    /// The primitive value is read first and then reinterpreted back into <typeparamref name="T"/>.
+    /// </remarks>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized enum value.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the formatter was created for a non-enum type.</exception>
@@ -77,6 +85,8 @@ public sealed class EnumFormatter<
         "Style", "IDE0350:Use implicitly typed lambda", Justification = "<Pending>")]
     private static (SerializeDelegate serialize, DeserializeDelegate deserialize) CreateEnumFormatterDelegates()
     {
+        // Dispatch once by backing type, then close over the matching primitive formatter
+        // so the runtime path stays as small as possible.
         return s_underlyingTypeCode switch
         {
             TypeCode.Byte => (
@@ -183,6 +193,7 @@ public sealed class EnumFormatter<
                     return System.Runtime.CompilerServices.Unsafe.As<ulong, T>(ref v);
                 }
             ),
+            // Only the primitive enum backing types are supported by the formatter pipeline.
             _ => throw new SerializationFailureException($"Enum underlying type '{s_underlyingTypeCode}' is not supported."),
         };
     }

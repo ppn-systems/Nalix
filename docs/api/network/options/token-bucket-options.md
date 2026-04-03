@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/TokenBucketOptions.cs`
+- `src/Nalix.Network.Pipeline/Options/TokenBucketOptions.cs`
 
 ## What it controls
 

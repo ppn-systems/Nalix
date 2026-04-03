@@ -8,7 +8,7 @@ Nalix is designed around a simple real-time server model:
 - TCP for reliable request/response
 - UDP for low-latency datagrams when needed
 
-Use this page when you want to understand the runtime mindset behind the network layer, not just individual types.
+Use this page when you want the runtime mindset behind the network layer, not just the individual types.
 
 ## Mental model
 
@@ -34,11 +34,11 @@ That state includes:
 - secret / algorithm
 - bytes sent, uptime, ping time, and error count
 
-This is why `Connection` and `ConnectionHub` are core parts of the real-time model.
+This is why `Connection` and `ConnectionHub` sit at the center of the real-time model.
 
 ## 2. Request flow
 
-A normal TCP request looks like:
+A normal TCP request usually looks like this:
 
 1. socket accepted
 2. `Protocol.OnAccept(...)` starts receive
@@ -46,7 +46,7 @@ A normal TCP request looks like:
 4. dispatch deserializes, runs middleware, and invokes handler
 5. handler returns or sends a response
 
-For client work, the easiest mindset is:
+For client work, the simplest mental model is:
 
 - TCP = reliable command/request flow
 - dispatch = application entry point
@@ -63,21 +63,21 @@ Typical use cases:
 - discovery
 - fast non-critical real-time signals
 
-The UDP path still depends on session identity and authentication rules, instead of being a totally separate world.
+The UDP path still depends on session identity and authentication rules. Think of it as the same app, just with a different transport style.
 
 ## 4. Throttling and protection
 
-Real-time systems fail fastest when they do not control pressure.
+Real-time systems tend to fail fastest when they do not control pressure.
 
 Nalix bakes that into the model with:
 
-- `ConnectionLimiter`
+- `ConnectionGuard`
 - `TokenBucketLimiter`
 - `PolicyRateLimiter`
 - `ConcurrencyGate`
 - timeout enforcement through `TimingWheel`
 
-These are not optional “extras”. They are part of making the engine stable under real traffic.
+These are not optional extras. They are part of making the engine stable under real traffic.
 
 ## 5. Why packet metadata matters
 

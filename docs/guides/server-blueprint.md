@@ -2,9 +2,9 @@
 
 This page is the recommended blueprint for a real Nalix server project.
 
-It is not the smallest sample. It is the shape that scales best when a client team starts adding real handlers, middleware, options, and operational checks.
+It is not the smallest sample. It is the shape that holds up better once you start adding real handlers, middleware, options, and operational checks.
 
-Use it when the starter template is too small and you need a cleaner production-oriented startup shape.
+Use it when the starter template feels too small and you want a cleaner production-oriented startup shape.
 
 ## Recommended project flow
 
@@ -108,11 +108,11 @@ PacketDispatchChannel dispatch = new(options =>
 
 Keep dispatch setup in one place.
 
-Do not spread `WithMiddleware(...)` and `WithHandler(...)` across random files. That makes startup order hard to reason about.
+Do not spread `WithMiddleware(...)` and `WithHandler(...)` across random files. It makes startup order harder to reason about.
 
 ## 5. Protocol layer
 
-Your protocol should usually stay thin.
+Your protocol should stay thin in most projects.
 
 Its job is to bridge incoming frames into dispatch, not to become the business layer.
 
@@ -171,7 +171,7 @@ listener.Dispose();
 
 ## 8. Diagnostics surface
 
-A strong server blueprint also includes a place to pull reports from:
+A strong server blueprint also includes an easy place to pull reports from:
 
 - `listener.GenerateReport()`
 - `protocol.GenerateReport()`

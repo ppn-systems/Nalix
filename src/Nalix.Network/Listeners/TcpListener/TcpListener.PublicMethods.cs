@@ -26,6 +26,8 @@ namespace Nalix.Network.Listeners.Tcp;
 /// An abstract base class for network listeners.
 /// This class manages the process of accepting incoming network connections
 /// and handling the associated protocol processing.
+/// It owns the listener lifecycle, the accept workers, and the shutdown flow
+/// for a concrete TCP listener implementation.
 /// </summary>
 [DebuggerDisplay("Port={_port}, StateWrapper={StateWrapper}")]
 public abstract partial class TcpListenerBase
@@ -50,16 +52,18 @@ public abstract partial class TcpListenerBase
 
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
 
-        // Acquire mutex — SemaphoreSlim.Wait() with CancellationToken.None:
-        // WHY None (not cancel): Activate() must complete even if the external token is cancelled.
-        // If you use cancellationToken here → cancel before lock acquire → inconsistent state.
+        // Acquire the mutex with CancellationToken.None.
+        // Activate() must be allowed to finish its state transition even if the
+        // caller's token is already canceled; otherwise we could exit after
+        // partially initializing the listener and leave it in an inconsistent state.
         _lock.Wait(CancellationToken.None);
 
         CancellationToken linkedToken = default;
 
         try
         {
-            // State check inside lock → avoid race condition "double Activate".
+            // Check state while holding the lock so two concurrent Activate calls
+            // cannot both observe STOPPED and initialize twice.
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={this.State}");
@@ -70,9 +74,10 @@ public abstract partial class TcpListenerBase
             _ = Interlocked.Exchange(ref _stopInitiated, 0);
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STARTING);
 
-            // Create a new linked CTS with an external token.
-            // WHY linked: When caller cancel → _cts also cancel → all workers stop.
-            // WHY dispose old CTS first: Avoid leaks if Activate is called again after Deactivate.
+            // Create a linked CTS so cancellation from the caller propagates to
+            // every worker, timeout job, and background accept loop.
+            // Disposing the previous CTS first avoids leaking registrations when
+            // Activate/Deactivate cycles happen repeatedly.
             _cts?.Dispose();
             _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _cancellationToken = _cts.Token;
@@ -114,9 +119,9 @@ public abstract partial class TcpListenerBase
 
             _acceptWorkerIds.Clear();
 
-            // Spawn N accept-worker async tasks (N = MaxParallel).
-            // WHY N workers instead of 1: On multi-core, N workers run in parallel → increment throughput accept.
-            // Each independent worker await CreateConnectionAsync → N connections can be accepted concurrently.
+            // Spawn N accept-worker async tasks, where N = MaxParallel.
+            // Multiple workers let the listener accept several connections in
+            // parallel instead of serializing every accept behind one loop.
             for (int i = 0; i < s_config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
@@ -164,13 +169,14 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// Stops the listener from accepting further connections.
     /// </summary>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">A token that may be used by derived implementations during shutdown.</param>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Deactivate(CancellationToken cancellationToken = default)
     {
-        // Skip throwing if already disposed; just return calmly or let ListenerState check handle it.
+        // If the listener is already disposed and fully stopped, there is nothing
+        // left to deactivate.
         if (Volatile.Read(ref _isDisposed) != 0 && this.State == ListenerState.STOPPED)
         {
             return;
@@ -178,7 +184,8 @@ public abstract partial class TcpListenerBase
 
         s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
 
-        // Try Running->Stopping; if not, try Starting->Stopping
+        // Try RUNNING -> STOPPING first; if that fails, allow STARTING -> STOPPING
+        // so shutdown works even while activation is still in progress.
         int prev = Interlocked.CompareExchange(ref _state,
             (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
 
@@ -237,6 +244,8 @@ public abstract partial class TcpListenerBase
 
     /// <summary>
     /// Generates a diagnostic report of the TCP listener state and metrics.
+    /// This is a human-readable snapshot intended for troubleshooting and ops
+    /// tooling, not a stable serialization format.
     /// </summary>
     /// <returns>A formatted string report.</returns>
     [Pure]
@@ -292,7 +301,9 @@ public abstract partial class TcpListenerBase
     }
 
     /// <summary>
-    /// Generates diagnostic data as key-value pairs describing the current TCP listener state and metrics.
+    /// Generates diagnostic data as key-value pairs describing the current TCP
+    /// listener state and metrics.
+    /// This shape is easier for automation and structured logging to consume.
     /// </summary>
     /// <returns>A dictionary containing the report data.</returns>
     public virtual IDictionary<string, object> GenerateReportData()

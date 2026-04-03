@@ -52,11 +52,15 @@ internal sealed class SocketUdpTransport : IConnection.IUdp, IPoolable, IDisposa
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         long expiryCutoff = now - maxReplayWindowMs;
 
+        // Keep the nonce only if it is new; duplicates are treated as replayed
+        // packets and rejected before they can be processed.
         if (!_udpReplayNonces.TryAdd(nonce, timestamp))
         {
             return false;
         }
 
+        // Clean up lazily so the replay map stays small without paying cleanup
+        // cost on every packet.
         if (_udpReplayNonces.Count >= UdpReplaySoftLimit ||
             now - Interlocked.Read(ref _udpReplayLastCleanupMs) >= UdpReplayCleanupIntervalMs)
         {
@@ -67,11 +71,15 @@ internal sealed class SocketUdpTransport : IConnection.IUdp, IPoolable, IDisposa
 
         void CLEANUP_UDP_REPLAY_NONCES(long expiryCutoff, long now)
         {
+            // Only one thread performs cleanup for a given interval; the exchange
+            // acts as a cheap gate so concurrent packets do not all sweep the map.
             if (Interlocked.Exchange(ref _udpReplayLastCleanupMs, now) > now - UdpReplayCleanupIntervalMs)
             {
                 return;
             }
 
+            // Drop entries older than the replay window cutoff. This keeps the
+            // replay dictionary bounded while still rejecting stale packets.
             foreach (KeyValuePair<ulong, long> entry in _udpReplayNonces)
             {
                 if (entry.Value < expiryCutoff)
@@ -112,6 +120,8 @@ internal sealed class SocketUdpTransport : IConnection.IUdp, IPoolable, IDisposa
 
         if (packet.Length < BufferLease.StackAllocThreshold)
         {
+            // Small datagrams are serialized on the stack to avoid renting a
+            // buffer and to keep the UDP fast path allocation-free.
             Span<byte> buffer = stackalloc byte[packet.Length * 110 / 100];
             int bytesWritten = packet.Serialize(buffer);
             this.Send(buffer[..bytesWritten]);
@@ -146,6 +156,9 @@ internal sealed class SocketUdpTransport : IConnection.IUdp, IPoolable, IDisposa
 
         if (packet.Length < BufferLease.StackAllocThreshold)
         {
+            // Small datagrams are serialized into a temporary array instead of
+            // renting pooled memory. This mirrors the sync fast path above while
+            // still avoiding a larger pooled allocation.
             byte[] buffer = new byte[packet.Length * 110 / 100];
             int bytesWritten = packet.Serialize(buffer);
             await this.SendAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesWritten), cancellationToken).ConfigureAwait(false);

@@ -95,8 +95,8 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Creates a new buffer pool with a specified buffer size and initial capacity.
     /// </summary>
-    /// <param name="bufferSize"></param>
-    /// <param name="initialCapacity"></param>
+    /// <param name="bufferSize">The buffer size for the new pool.</param>
+    /// <param name="initialCapacity">The number of buffers to preallocate.</param>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void CreatePool(int bufferSize, int initialCapacity)
     {
@@ -119,7 +119,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Rents a buffer that is at least the requested size with optimized lookup.
     /// </summary>
-    /// <param name="size"></param>
+    /// <param name="size">The minimum buffer size required.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="size"/> exceeds every configured pool size.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the selected pool key no longer resolves to a backing pool.</exception>
     [DebuggerStepThrough]
@@ -151,7 +151,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Returns a buffer to the appropriate pool.
     /// </summary>
-    /// <param name="buffer"></param>
+    /// <param name="buffer">The buffer to return.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> does not match any managed pool size.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -200,7 +200,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Orchestrates auto-resize evaluation for a given pool.
     /// </summary>
-    /// <param name="pool"></param>
+    /// <param name="pool">The pool to evaluate.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void EvaluateResize(BufferPoolShared pool)
@@ -228,8 +228,8 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Calculates cooldown based on current usage and miss rate.
     /// </summary>
-    /// <param name="usage"></param>
-    /// <param name="missRate"></param>
+    /// <param name="usage">The current usage ratio.</param>
+    /// <param name="missRate">The current miss rate.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetAdaptiveCooldown(double usage, double missRate)
@@ -253,9 +253,9 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Checks whether we are still in cooldown window for a buffer size.
     /// </summary>
-    /// <param name="bufferSize"></param>
-    /// <param name="now"></param>
-    /// <param name="cooldown"></param>
+    /// <param name="bufferSize">The buffer size being checked.</param>
+    /// <param name="now">The current time in tick count milliseconds.</param>
+    /// <param name="cooldown">The cooldown duration in milliseconds.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsCooldownActive(int bufferSize, long now, int cooldown)
@@ -267,11 +267,11 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Attempts to expand the pool when under pressure.
     /// </summary>
-    /// <param name="pool"></param>
-    /// <param name="state"></param>
-    /// <param name="usage"></param>
-    /// <param name="missRate"></param>
-    /// <param name="now"></param>
+    /// <param name="pool">The pool to expand.</param>
+    /// <param name="state">The current pool state snapshot.</param>
+    /// <param name="usage">The current usage ratio.</param>
+    /// <param name="missRate">The current miss rate.</param>
+    /// <param name="now">The current time in tick count milliseconds.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryExpandPool(
@@ -303,9 +303,9 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Calculates expansion step based on usage and configuration.
     /// </summary>
-    /// <param name="state"></param>
-    /// <param name="usage"></param>
-    /// <param name="expandThreshold"></param>
+    /// <param name="state">The current pool state snapshot.</param>
+    /// <param name="usage">The current usage ratio.</param>
+    /// <param name="expandThreshold">The configured expand threshold.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int CalculateExpandStep(in BufferPoolState state, double usage, double expandThreshold)
@@ -325,10 +325,10 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Attempts to shrink the pool when it is sufficiently idle.
     /// </summary>
-    /// <param name="pool"></param>
-    /// <param name="state"></param>
-    /// <param name="usage"></param>
-    /// <param name="now"></param>
+    /// <param name="pool">The pool to shrink.</param>
+    /// <param name="state">The current pool state snapshot.</param>
+    /// <param name="usage">The current usage ratio.</param>
+    /// <param name="now">The current time in tick count milliseconds.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void TryShrinkPool(
@@ -361,8 +361,8 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Adjusts the rent and return counters and decides whether to trigger a resize evaluation.
     /// </summary>
-    /// <param name="poolSize"></param>
-    /// <param name="isRent"></param>
+    /// <param name="poolSize">The pool size being tracked.</param>
+    /// <param name="isRent">Whether the counter represents a rent operation.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool AdjustCounter(int poolSize, bool isRent)
@@ -390,7 +390,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <summary>
     /// Finds the most suitable pool size with optimized binary search.
     /// </summary>
-    /// <param name="size"></param>
+    /// <param name="size">The requested buffer size.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindSuitablePoolSize(int size)
