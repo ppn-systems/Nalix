@@ -10,20 +10,17 @@ using System.Runtime.InteropServices;
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// Represents a fully attributed packet descriptor used to define behavior and metadata
-/// of network packets, such as operation code, timeout policy, rate limits, permission requirements,
-/// and encryption strategy.
+/// Represents packet metadata used to describe dispatch and serialization behavior.
 /// </summary>
-/// <param name="opCode"></param>
-/// <param name="timeout"></param>
-/// <param name="permission"></param>
-/// <param name="encryption"></param>
-/// <param name="rateLimit"></param>
-/// <param name="concurrencyLimit"></param>
-/// <param name="customAttributes"></param>
+/// <param name="opCode">The opcode metadata for the packet.</param>
+/// <param name="timeout">The optional timeout metadata.</param>
+/// <param name="permission">The optional permission requirement.</param>
+/// <param name="encryption">The optional encryption requirement.</param>
+/// <param name="rateLimit">The optional rate limit metadata.</param>
+/// <param name="concurrencyLimit">The optional concurrency limit metadata.</param>
+/// <param name="customAttributes">Additional custom attributes keyed by attribute type.</param>
 /// <remarks>
-/// This struct uses sequential layout and is optimized for performance in network dispatch systems.
-/// All attributes are immutable for safe usage in high-throughput scenarios.
+/// This type is immutable and uses sequential layout for predictable interop and serialization behavior.
 /// </remarks>
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -72,16 +69,11 @@ public readonly struct PacketMetadata(
     /// </summary>
     public readonly PacketConcurrencyLimitAttribute? ConcurrencyLimit = concurrencyLimit;
 
-    /// <summary>
-    /// Gets a read-only dictionary of custom metadata attributes,
-    /// keyed by their concrete <see cref="Type"/>.
-    /// </summary>
+    /// <summary>Gets the custom metadata attributes keyed by attribute type.</summary>
     public readonly IReadOnlyDictionary<Type, Attribute> CustomAttributes = customAttributes
         ?? new Dictionary<Type, Attribute>();
 
-    /// <summary>
-    /// Gets a custom attribute of the specified type if it exists.
-    /// </summary>
+    /// <summary>Gets a custom attribute of the specified type, if present.</summary>
     /// <typeparam name="TAttribute">The attribute type to retrieve.</typeparam>
     /// <returns>
     /// The attribute instance if it exists; otherwise, <see langword="null"/>.

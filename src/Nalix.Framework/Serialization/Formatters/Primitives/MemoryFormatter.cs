@@ -137,8 +137,8 @@ internal sealed class ReadOnlyMemoryFormatter<T> : IFormatter<System.ReadOnlyMem
     /// <summary>
     /// Serializes a <see cref="System.ReadOnlyMemory{T}"/> into the specified <see cref="DataWriter"/>.
     /// </summary>
-    /// <param name="writer"></param>
-    /// <param name="value"></param>
+    /// <param name="writer">The writer to which data will be written.</param>
+    /// <param name="value">The memory value to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, System.ReadOnlyMemory<T> value) => _inner.Serialize(ref writer, System.Runtime.InteropServices.MemoryMarshal.AsMemory(value));
@@ -146,7 +146,7 @@ internal sealed class ReadOnlyMemoryFormatter<T> : IFormatter<System.ReadOnlyMem
     /// <summary>
     /// Deserializes a <see cref="System.ReadOnlyMemory{T}"/> from the specified <see cref="DataReader"/>.
     /// </summary>
-    /// <param name="reader"></param>
+    /// <param name="reader">The reader containing serialized data.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.ReadOnlyMemory<T> Deserialize(ref DataReader reader) => _inner.Deserialize(ref reader);

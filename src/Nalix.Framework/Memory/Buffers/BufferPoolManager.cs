@@ -23,8 +23,7 @@ using Nalix.Framework.Tasks;
 namespace Nalix.Framework.Memory.Buffers;
 
 /// <summary>
-/// Manages buffers of various sizes with optimized allocation/deallocation and optional trimming.
-/// Includes safety guardrails to prevent aggressive shrinking and ensure minimum buffer availability.
+/// Manages pooled byte buffers and provides trimming, metrics, and fallback allocation.
 /// </summary>
 [DebuggerNonUserCode]
 public sealed class BufferPoolManager : IDisposable, IReportable
@@ -128,15 +127,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     static BufferPoolManager() => RecurringName = "buf.trim";
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with validation and trimming.
-    /// </summary>
+    /// <summary>Initializes a new instance of the <see cref="BufferPoolManager"/> class.</summary>
     public BufferPoolManager() : this(bufferConfig: null) { }
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class with validation and trimming.
-    /// </summary>
-    /// <param name="bufferConfig"></param>
+    /// <summary>Initializes a new instance of the <see cref="BufferPoolManager"/> class.</summary>
+    /// <param name="bufferConfig">The buffer configuration to use. If <see langword="null"/>, the default configuration is loaded.</param>
     public BufferPoolManager(BufferConfig? bufferConfig = null)
     {
         BufferConfig config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferConfig>();
@@ -185,10 +180,8 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     #region Public API
 
-    /// <summary>
-    /// Rents a buffer of at least the requested size with optimized caching and optional fallback.
-    /// </summary>
-    /// <param name="minimumLength"></param>
+    /// <summary>Rents a buffer of at least the requested size.</summary>
+    /// <param name="minimumLength">The minimum number of bytes required.</param>
     /// <exception cref="ArgumentException">Thrown when <paramref name="minimumLength"/> cannot be serviced by the configured pools and fallback is disabled.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -214,11 +207,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
     }
 
-    /// <summary>
-    /// Returns the buffer to the appropriate pool with safety checks and fallback.
-    /// </summary>
-    /// <param name="array"></param>
-    /// <param name="arrayClear"></param>
+    /// <summary>Returns a buffer to the appropriate pool.</summary>
+    /// <param name="array">The buffer to return.</param>
+    /// <param name="arrayClear">Whether the buffer should be cleared before returning it.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
@@ -239,19 +230,13 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
     }
 
-    /// <summary>
-    /// Rents a buffer and wraps it as an <see cref="ArraySegment{T}"/> for use with
-    /// <see cref="SocketAsyncEventArgs"/> (SAEA) workflows.
-    /// </summary>
+    /// <summary>Rents a buffer and wraps it as an <see cref="ArraySegment{T}"/> for <see cref="SocketAsyncEventArgs"/> workflows.</summary>
     /// <param name="size">The minimum number of bytes required.</param>
     /// <returns>
     /// An <see cref="ArraySegment{T}"/> backed by a pooled buffer,
     /// with <c>Offset = 0</c> and <c>Count = size</c>.
     /// </returns>
-    /// <remarks>
-    /// The caller must return the underlying array via <see cref="Return(ArraySegment{byte})"/>
-    /// or <see cref="ReturnFromSaea"/> after use to avoid leaking pool buffers.
-    /// </remarks>
+    /// <remarks>The caller must return the underlying array after use to avoid leaking pool buffers.</remarks>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ArraySegment<byte> RentSegment(int size = 256)
@@ -319,7 +304,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <summary>
     /// Gets the allocation ratio for a given buffer size with caching for performance.
     /// </summary>
-    /// <param name="size"></param>
+    /// <param name="size">The buffer size being queried.</param>
     /// <exception cref="InvalidOperationException">Thrown when buffer allocation metadata is unavailable.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -453,7 +438,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <summary>
     /// Rents buffer from configured pools and optionally updates size cache.
     /// </summary>
-    /// <param name="size"></param>
+    /// <param name="size">The requested buffer size.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private byte[] RENT_FROM_POOLS_WITH_CACHING(int size)
@@ -491,8 +476,8 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <summary>
     /// Handles rent failure by optionally falling back to ArrayPool.
     /// </summary>
-    /// <param name="size"></param>
-    /// <param name="ex"></param>
+    /// <param name="size">The requested buffer size.</param>
+    /// <param name="ex">The exception describing the rent failure.</param>
     /// <exception cref="ArgumentException">Rethrown when the requested buffer size is invalid and fallback is disabled.</exception>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -514,7 +499,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <summary>
     /// Returns a buffer to managed Nalix pools and emits analytics if enabled.
     /// </summary>
-    /// <param name="buffer"></param>
+    /// <param name="buffer">The buffer to return to the managed pools.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void RETURN_TO_MANAGED_POOLS(byte[] buffer)
@@ -531,8 +516,8 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <summary>
     /// Handles return failure by optionally returning buffer to fallback ArrayPool.
     /// </summary>
-    /// <param name="buffer"></param>
-    /// <param name="ex"></param>
+    /// <param name="buffer">The buffer to return.</param>
+    /// <param name="ex">The exception describing the return failure.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void HANDLE_RETURN_FAILURE(byte[] buffer, ArgumentException ex)
@@ -681,8 +666,8 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <summary>
     /// Calculates shrink step with safety guardrails to prevent aggressive reduction.
     /// </summary>
-    /// <param name="info"></param>
-    /// <param name="cycle"></param>
+    /// <param name="info">The current pool state snapshot.</param>
+    /// <param name="cycle">The current trim cycle number.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
@@ -727,9 +712,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <summary>
     /// Applies trim on a single pool with metrics tracking.
     /// </summary>
-    /// <param name="pool"></param>
-    /// <param name="info"></param>
-    /// <param name="shrinkStep"></param>
+    /// <param name="pool">The pool to trim.</param>
+    /// <param name="info">The current pool state snapshot.</param>
+    /// <param name="shrinkStep">The number of buffers to remove.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void TRIM_SINGLE_POOL(BufferPoolShared pool, in BufferPoolState info, int shrinkStep)

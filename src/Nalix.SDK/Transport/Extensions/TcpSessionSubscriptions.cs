@@ -28,13 +28,11 @@ public static class TcpSessionSubscriptions
 {
     // ── On<TPacket> ──────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Subscribes to strongly-typed packets.
-    /// Returns <see cref="IDisposable"/> for easy unsubscription.
-    /// </summary>
-    /// <typeparam name="TPacket"></typeparam>
-    /// <param name="client"></param>
-    /// <param name="handler"></param>
+    /// <summary>Subscribes to strongly-typed packets.</summary>
+    /// <typeparam name="TPacket">The packet type to receive.</typeparam>
+    /// <param name="client">The transport session to subscribe to.</param>
+    /// <param name="handler">The callback invoked for each received packet.</param>
+    /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On<TPacket>(
         this TransportSession client,
@@ -77,13 +75,11 @@ public static class TcpSessionSubscriptions
 
     // ── On with predicate ────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Subscribes with a predicate filter.
-    /// Returns <see cref="IDisposable"/> for easy unsubscription.
-    /// </summary>
-    /// <param name="client"></param>
-    /// <param name="predicate"></param>
-    /// <param name="handler"></param>
+    /// <summary>Subscribes to packets that match a predicate.</summary>
+    /// <param name="client">The transport session to subscribe to.</param>
+    /// <param name="predicate">A filter that determines whether a packet should be delivered.</param>
+    /// <param name="handler">The callback invoked for each matching packet.</param>
+    /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On(
         this TransportSession client,
@@ -127,10 +123,11 @@ public static class TcpSessionSubscriptions
     /// One-shot subscription: auto-unsubscribes after the first matching packet.
     /// Thread-safe via <see cref="Interlocked"/>.
     /// </summary>
-    /// <typeparam name="TPacket"></typeparam>
-    /// <param name="client"></param>
-    /// <param name="predicate"></param>
-    /// <param name="handler"></param>
+    /// <typeparam name="TPacket">The packet type to receive.</typeparam>
+    /// <param name="client">The transport session to subscribe to.</param>
+    /// <param name="predicate">A filter that determines whether a packet should be delivered.</param>
+    /// <param name="handler">The callback invoked for the first matching packet.</param>
+    /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable OnOnce<TPacket>(
         this TransportSession client,
@@ -195,15 +192,10 @@ public static class TcpSessionSubscriptions
     /// Subscribes to strongly-typed packets for the duration of a scoped operation.
     /// Automatically unsubscribes when the returned <see cref="IDisposable"/> is disposed.
     /// </summary>
-    /// <typeparam name="TPacket">The expected packet type.</typeparam>
-    /// <param name="client">The connected client.</param>
-    /// <param name="onMessage">
-    /// Handler invoked for each matching packet. The lease has already been disposed
-    /// before this is called — do not interact with the raw buffer.
-    /// </param>
-    /// <param name="onDisconnected">
-    /// Optional handler invoked when the client disconnects while the subscription is active.
-    /// </param>
+    /// <typeparam name="TPacket">The packet type to receive.</typeparam>
+    /// <param name="client">The transport session to subscribe to.</param>
+    /// <param name="onMessage">Handler invoked for each matching packet.</param>
+    /// <param name="onDisconnected">Optional handler invoked when the session disconnects while the subscription is active.</param>
     /// <returns>
     /// An <see cref="IDisposable"/> that unsubscribes both handlers when disposed.
     /// Always wrap in a <c>using</c> statement.
@@ -251,11 +243,11 @@ public static class TcpSessionSubscriptions
     /// <summary>
     /// Subscribes to strongly-typed packets with a predicate filter for the duration of a scoped operation.
     /// </summary>
-    /// <typeparam name="TPacket">The expected packet type.</typeparam>
-    /// <param name="client">The connected client.</param>
-    /// <param name="predicate">Filter — only packets for which this returns <c>true</c> are forwarded.</param>
+    /// <typeparam name="TPacket">The packet type to receive.</typeparam>
+    /// <param name="client">The transport session to subscribe to.</param>
+    /// <param name="predicate">A filter that determines whether a packet should be delivered.</param>
     /// <param name="onMessage">Handler invoked for each matching packet.</param>
-    /// <param name="onDisconnected">Optional disconnect handler.</param>
+    /// <param name="onDisconnected">Optional handler invoked when the session disconnects while the subscription is active.</param>
     /// <returns>An <see cref="IDisposable"/> that unsubscribes when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable SubscribeTemp<TPacket>(
@@ -300,8 +292,9 @@ public static class TcpSessionSubscriptions
     /// <summary>
     /// Groups multiple subscriptions into a single <see cref="CompositeSubscription"/>.
     /// </summary>
-    /// <param name="_"></param>
-    /// <param name="subs"></param>
+    /// <param name="_">The transport session used for fluent syntax.</param>
+    /// <param name="subs">The subscriptions to group.</param>
+    /// <returns>A composite handle that disposes all subscriptions together.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CompositeSubscription Subscribe(
         this TransportSession _,
@@ -332,14 +325,14 @@ public sealed class CompositeSubscription : IDisposable
     /// <summary>
     /// Initializes a new <see cref="CompositeSubscription"/> with the specified subscriptions.
     /// </summary>
-    /// <param name="subs"></param>
+    /// <param name="subs">The subscriptions to include.</param>
     public CompositeSubscription(params IDisposable[] subs) => _subs = subs ?? [];
 
     /// <summary>
     /// Adds a new subscription.
     /// If already disposed, the subscription is disposed immediately.
     /// </summary>
-    /// <param name="sub"></param>
+    /// <param name="sub">The subscription to add.</param>
     public void Add(IDisposable sub)
     {
         if (sub is null)
@@ -394,7 +387,7 @@ public sealed class CompositeSubscription : IDisposable
 /// Used internally to wrap event unsubscription delegates into a disposable handle.
 /// Thread-safe: the delegate is invoked at most once.
 /// </summary>
-/// <param name="onDispose"></param>
+/// <param name="onDispose">The action to invoke when disposed.</param>
 internal sealed class DelegateDisposable(Action onDispose) : IDisposable
 {
     private Action _onDispose = onDispose;

@@ -13,13 +13,12 @@ namespace Nalix.SDK.Extensions;
 public static class SubscriptionExtensions
 {
     /// <summary>
-    /// Subscribes to the <see cref="TransportSession.OnMessageReceived"/> and <see cref="TransportSession.OnDisconnected"/> events.
-    /// Returns an <see cref="IDisposable"/> that unsubscribes when disposed.
+    /// Subscribes to <see cref="TransportSession.OnMessageReceived"/> and <see cref="TransportSession.OnDisconnected"/>.
     /// </summary>
-    /// <param name="this">The reliable client to subscribe to.</param>
+    /// <param name="this">The transport session to subscribe to.</param>
     /// <param name="onMessageReceived">The action to invoke when a packet is received.</param>
-    /// <param name="onDisconnected">The action to invoke when the client is disconnected.</param>
-    /// <returns>An <see cref="IDisposable"/> that unsubscribes the handlers when disposed.</returns>
+    /// <param name="onDisconnected">The action to invoke when the session disconnects.</param>
+    /// <returns>An <see cref="IDisposable"/> that removes the subscriptions when disposed.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="this"/> is null.</exception>
     public static IDisposable SubscribeTemp(this TransportSession @this, EventHandler<IBufferLease> onMessageReceived, EventHandler<Exception> onDisconnected)
     {
@@ -34,18 +33,16 @@ public static class SubscriptionExtensions
     /// <summary>
     /// Handles unsubscription from <see cref="TransportSession"/> events.
     /// </summary>
-    /// <remarks>
-    /// Initializes a new instance of the <see cref="Unsubscriber"/> class.
-    /// </remarks>
-    /// <param name="c">The reliable client.</param>
-    /// <param name="p">The packet received handler.</param>
-    /// <param name="d">The disconnected handler.</param>
+    /// <param name="c">The transport session being tracked.</param>
+    /// <param name="p">The message-received handler to remove.</param>
+    /// <param name="d">The disconnected handler to remove.</param>
     private sealed class Unsubscriber(TransportSession c, EventHandler<IBufferLease> p, EventHandler<Exception> d) : IDisposable
     {
         private readonly TransportSession _client = c;
         private readonly EventHandler<IBufferLease> _messageReceived = p;
         private readonly EventHandler<Exception> _disconnect = d;
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             _client.OnDisconnected -= _disconnect;

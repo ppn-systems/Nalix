@@ -164,7 +164,7 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// Stops the listener from accepting further connections.
     /// </summary>
-    /// <param name="cancellationToken"></param>
+    /// <param name="cancellationToken">A token that may be used by derived implementations during shutdown.</param>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]

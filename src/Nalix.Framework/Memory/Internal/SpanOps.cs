@@ -25,8 +25,8 @@ internal static unsafe class SpanOps
     /// Writes a variable-length integer (little-endian). Used for lengths greater than 15.
     /// Writes bytes until the value is less than 255.
     /// </summary>
-    /// <param name="dest"></param>
-    /// <param name="value"></param>
+    /// <param name="dest">The destination buffer.</param>
+    /// <param name="value">The value to encode.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="value"/> is negative.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static int WriteVarInt(byte* dest, int value)
@@ -94,9 +94,9 @@ internal static unsafe class SpanOps
     /// <summary>
     /// Reads a variable-length integer (little-endian).
     /// </summary>
-    /// <param name="src"></param>
-    /// <param name="srcEnd"></param>
-    /// <param name="value"></param>
+    /// <param name="src">A reference to the current source pointer.</param>
+    /// <param name="srcEnd">The end of the readable source range.</param>
+    /// <param name="value">When the method returns, contains the decoded value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static int ReadVarInt(ref byte* src, byte* srcEnd, out int value)
     {

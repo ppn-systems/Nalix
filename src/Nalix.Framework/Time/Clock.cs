@@ -9,8 +9,7 @@ using System.Threading;
 namespace Nalix.Framework.Time;
 
 /// <summary>
-/// Handles precise time for the system with high accuracy, supporting various time-related operations
-/// required for real-time communication and distributed systems.
+/// Provides time synchronization and timestamp helpers.
 /// </summary>
 [StackTraceHidden]
 [DebuggerStepThrough]
@@ -74,13 +73,11 @@ public static partial class Clock
 
     #region Time Synchronization Methods
 
-    /// <summary>
-    /// Synchronizes the clock with an external time source.
-    /// </summary>
-    /// <param name="externalTime">The accurate external UTC time.</param>
-    /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied.</param>
-    /// <returns>The adjustment made in milliseconds.</returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="externalTime"/> is not expressed in UTC.</exception>
+    /// <summary>Synchronizes the clock with an external UTC time source.</summary>
+    /// <param name="externalTime">The external UTC time to synchronize against.</param>
+    /// <param name="maxAllowedDriftMs">The maximum drift, in milliseconds, allowed before the correction is skipped.</param>
+    /// <returns>The applied adjustment, in milliseconds.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="externalTime"/> is not UTC.</exception>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static double SynchronizeTime(
         DateTime externalTime,
@@ -127,15 +124,13 @@ public static partial class Clock
         return diffMs;
     }
 
-    /// <summary>
-    /// Applies time synchronization using a Unix timestamp and optional RTT.
-    /// </summary>
-    /// <param name="serverUnixMs">The server Unix timestamp in milliseconds. Must be non-negative and within a reasonable range.</param>
-    /// <param name="rttMs">Round-trip time in milliseconds. Must be non-negative.</param>
-    /// <param name="maxAllowedDriftMs">Maximum allowed drift in milliseconds before adjustment is applied. Must be positive.</param>
-    /// <param name="maxHardAdjustMs">Maximum hard adjustment in milliseconds. Must be positive.</param>
-    /// <returns>The adjustment made in milliseconds, or 0 if inputs are invalid or adjustment exceeds limits.</returns>
-    /// <exception cref="ArgumentException">Thrown when input parameters are invalid.</exception>
+    /// <summary>Synchronizes the clock using a Unix timestamp and optional round-trip time.</summary>
+    /// <param name="serverUnixMs">The server Unix timestamp, in milliseconds.</param>
+    /// <param name="rttMs">The measured round-trip time, in milliseconds.</param>
+    /// <param name="maxAllowedDriftMs">The maximum drift, in milliseconds, allowed before the correction is skipped.</param>
+    /// <param name="maxHardAdjustMs">The maximum absolute correction, in milliseconds, allowed for a single adjustment.</param>
+    /// <returns>The applied adjustment, in milliseconds, or 0 when the correction is rejected.</returns>
+    /// <exception cref="ArgumentException">Thrown when an input value is invalid.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double SynchronizeUnixMilliseconds(
         long serverUnixMs,
@@ -180,9 +175,7 @@ public static partial class Clock
         return Math.Abs(adjustMs) > maxHardAdjustMs ? 0 : SynchronizeTime(externalTime, maxAllowedDriftMs);
     }
 
-    /// <summary>
-    /// Resets time synchronization to use the local system time.
-    /// </summary>
+    /// <summary>Resets time synchronization to use the local system clock.</summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void ResetSynchronization()
     {
@@ -193,17 +186,13 @@ public static partial class Clock
         LastSyncTime = DateTime.MinValue;
     }
 
-    /// <summary>
-    /// Gets the estimated clock drift rate.
-    /// A value greater than 1.0 means the local clock is running slower than the reference clock.
-    /// A value less than 1.0 means the local clock is running faster than the reference clock.
-    /// </summary>
+    /// <summary>Gets the estimated clock drift rate.</summary>
+    /// <returns>A value greater than 1.0 indicates the local clock is slower than the reference clock.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static double DriftRate() => Volatile.Read(ref _driftCorrection);
 
-    /// <summary>
-    /// Gets the current error estimate between the synchronized time and system time in milliseconds.
-    /// </summary>
+    /// <summary>Gets the current error estimate between synchronized time and system time, in milliseconds.</summary>
+    /// <returns>The current error estimate, in milliseconds.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static double CurrentErrorEstimateMs()
     {
