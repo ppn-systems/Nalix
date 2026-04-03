@@ -2,7 +2,7 @@
 
 This page gives you a copy-paste server template for a new Nalix project.
 
-Use it when you want one working server shape first, and plan to split it into cleaner files after the runtime is already alive.
+Use it when you want one working server shape first and plan to split it into cleaner files after the runtime is already alive.
 
 !!! note "Copy first, refactor second"
     The template is intentionally compact.
@@ -44,7 +44,7 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
-using Nalix.Network.Configurations;
+using Nalix.Network.Options;
 using Nalix.Network.Listeners.Tcp;
 using Nalix.Network.Protocols;
 using Nalix.Network.Routing;
@@ -252,7 +252,7 @@ At minimum, keep access to:
 
 ## First things to replace
 
-When copying this template into a real project, replace:
+When you copy this template into a real project, replace:
 
 - `BuildLogger()`
 - `BuildPacketRegistry()`

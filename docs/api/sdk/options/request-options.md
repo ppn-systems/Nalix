@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.SDK/Configuration/RequestOptions.cs`
+- `src/Nalix.SDK/Options/RequestOptions.cs`
 
 ## What it controls
 
@@ -24,7 +24,7 @@ RequestOptions options = RequestOptions.Default
 ## Important behavior
 
 - retries happen only on timeout
-- `Encrypt = true` requires a `TcpSessionBase` transport
+- `Encrypt = true` requires a `TcpSession` transport
 - total wait time can grow to `TimeoutMs * (RetryCount + 1)`
 
 ## Related APIs

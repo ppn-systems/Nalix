@@ -4,8 +4,8 @@ Nalix.Network lets handler methods return more than just `void`. The dispatcher 
 
 ## Source mapping
 
-- `src/Nalix.Network/Routing/Results/ReturnTypeHandlerFactory.cs`
-- `src/Nalix.Network/Routing/Results/*`
+- `src/Nalix.Network/Internal/Results/ReturnTypeHandlerFactory.cs`
+- `src/Nalix.Network/Internal/Results/*`
 
 ## Supported return shapes
 
@@ -58,6 +58,7 @@ The current implementation:
 - chooses the smallest registered text frame type that fits
 - falls back to chunking across multiple packets when necessary
 - preserves Unicode rune boundaries while splitting
+- uses pooled `Text256`, `Text512`, and `Text1024` packet instances for text replies
 
 ## Example
 

@@ -4,13 +4,13 @@ Use this guide when you know you need request policy or frame processing, but yo
 
 ## Start with the right question
 
-Before writing middleware, ask:
+Before you write middleware, ask:
 
 - do I need raw bytes, or a deserialized packet?
 - am I enforcing transport safety, or application policy?
 - should this behavior live in one middleware, or become handler metadata?
 
-Those questions usually decide the correct shape before code does.
+Those questions usually point you to the right shape before code does.
 
 ## The two middleware layers
 
@@ -38,7 +38,7 @@ Typical cases:
 - validating frame shape
 - dropping malformed or obviously abusive traffic early
 
-This layer is cheap and early, but it does not know handler metadata yet.
+This layer is early and cheap, but it does not know handler metadata yet.
 
 ## Choose packet middleware when
 
@@ -53,17 +53,17 @@ Typical cases:
 - tenant or region policy
 - auditing and tracing
 
-This is the default choice for most application teams.
+For most teams, this is the easiest place to start.
 
 ## A safe build order
 
-For most projects, middleware grows cleanly in this order:
+For most projects, middleware usually grows cleanly in this order:
 
 1. start with one packet middleware
 2. add metadata-driven policy only when repeated rules appear
 3. add buffer middleware only when raw-frame handling is truly needed
 
-That path keeps debugging simple and avoids inventing transport complexity too early.
+That path keeps debugging simple and avoids adding transport complexity too early.
 
 ## Example: one packet middleware
 
@@ -76,7 +76,7 @@ PacketDispatchChannel dispatch = new(options =>
 });
 ```
 
-That one middleware can already:
+Even one middleware can already:
 
 - log opcode and endpoint
 - enforce permission rules
@@ -99,13 +99,13 @@ Keep buffer middleware narrow. If the logic starts depending on handler attribut
 
 ## Good default patterns
 
-For public traffic:
+For public traffic, a good starting setup is:
 
-- `ConnectionLimiter` at accept time
+- `ConnectionGuard` at accept time
 - one packet middleware for permission or audit policy
 - built-in rate or concurrency controls where needed
 
-For internal traffic:
+For internal traffic, you can stay lighter:
 
 - keep middleware minimal
 - add metadata only for repeated conventions

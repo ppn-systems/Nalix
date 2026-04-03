@@ -19,6 +19,7 @@ It is the explicit outbound path used by `PacketContext<TPacket>.Sender` when a 
 It handles:
 
 - packet serialization
+- packet leasing through the pooled context sender pipeline
 - compression decisions through `CompressionOptions`
 - encryption decisions through the current connection secret and cipher suite
 - flag updates for compressed and encrypted frames
@@ -29,6 +30,7 @@ It handles:
 This type is pooled and must be initialized before use.
 
 `PacketContext<TPacket>.Initialize(...)` rents and configures a sender for the current request, and reset/return logic clears that state after the handler completes.
+The surrounding packet flow also uses pooled packet and lease helpers from `Nalix.Framework.DataFrames.Pooling`.
 
 ## Send behavior
 
@@ -81,6 +83,7 @@ await context.Sender.SendAsync(new Handshake(), forceEncrypt: true, ct);
 - `Initialize(...)` stores the active context
 - `ResetForPool()` clears the context reference
 - using the sender before initialization throws
+- the sender itself participates in the same pooling model as `PacketLease<TPacket>` and `PacketPool<TPacket>`
 
 ## Related APIs
 

@@ -41,6 +41,14 @@ flowchart LR
 | `UpTime`, `LastPingTime` | Metrics exposed through the framed socket cache. |
 | `Attributes`        | **ObjectMap** storing arbitrary session metadata as key/value pairs (user data/context/etc).  |
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `Connection` | `ID`, `UpTime`, `BytesSent`, `LastPingTime`, `NetworkEndpoint`, `TCP`, `UDP`, `Secret`, `Level`, `Algorithm`, `Attributes`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Close(...)`, `Disconnect(...)`, `Dispose()` |
+| `ConnectionExtensions` | `SendAsync(...)` for control/directive sends |
+| `ConnectionEventArgs` | connection + lease event payload used by listener/protocol bridges |
+
 ### Attributes (ObjectMap)
 
 The `Attributes` property is an `ObjectMap<string, object>` allocated with every Connection, meant for storing arbitrary metadata (key/value pairs) relevant to the session: user data, flags, tokens, auxiliary context, etc.
@@ -62,6 +70,12 @@ The `Attributes` property is an `ObjectMap<string, object>` allocated with every
     // Remove a key
     connection.Attributes.Remove("UserName");
     ```
+
+### Common pitfalls
+
+- putting app state into the connection and then assuming it survives disposal
+- updating `Secret`, `Level`, or `Algorithm` from multiple places without a clear owner
+- using `Disconnect(...)` as if it were always a graceful close
 
 ## Event bridges
 
@@ -85,6 +99,12 @@ These are bridged from `SocketConnection.SetCallback(...)`:
 - `Disconnect(reason)` currently aliases `Close(force: true)`.
 - `Dispose()` marks the instance disposed, disconnects, disposes the framed socket, and returns any pooled UDP transport to `ObjectPoolManager`.
 
+### Lifecycle notes
+
+- `OnCloseEvent` should be treated as the last chance to clean up per-connection state.
+- `OnProcessEvent` and `OnPostProcessEvent` are bridged from the transport receive loop.
+- disposing a connection invalidates the transport facades, so callers should stop using `TCP` or `UDP` after teardown begins.
+
 ## Directive sending helper
 
 `ConnectionExtensions.SendAsync(...)` sends a protocol `Directive` over TCP.
@@ -103,7 +123,7 @@ Use this helper for throttle, fail, timeout, or other control replies.
 
 - `TcpListenerBase` subscribes protocol and limiter handlers to the connection events.
 - `Protocol.ProcessMessage` and `Protocol.PostProcessMessage` usually attach to the process events.
-- `ConnectionLimiter.OnConnectionClosed` should be attached to `OnCloseEvent` so per-endpoint counters stay accurate.
+- `ConnectionGuard.OnConnectionClosed` should be attached to `OnCloseEvent` so per-endpoint counters stay accurate.
 
 ## Transport implementation details
 
@@ -118,6 +138,13 @@ connection.OnPostProcessEvent += protocol.PostProcessMessage;
 await connection.TCP.SendAsync(new Control(), ct);
 connection.Close();
 ```
+
+Typical flow:
+
+1. the listener creates `Connection`
+2. the protocol attaches process callbacks
+3. dispatch reads and writes through `Connection.TCP`
+4. close/dispose signals shut the transport down and return pooled resources
 
 ## Related APIs
 

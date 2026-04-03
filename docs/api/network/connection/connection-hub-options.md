@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Configurations/ConnectionHubOptions.cs`
+- `src/Nalix.Network/Options/ConnectionHubOptions.cs`
 
 ## Important properties
 

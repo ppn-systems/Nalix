@@ -1,6 +1,6 @@
 # Nalix.Network
 
-`Nalix.Network` is the runtime package for listeners, connections, protocol flow, packet dispatch, middleware, and network-facing safeguards.
+`Nalix.Network` is the runtime package for listeners, connections, protocol flow, packet dispatch, and connection guarding.
 
 If you are building the server side of a Nalix-based system, this is the package you will use most.
 
@@ -52,7 +52,7 @@ Core entry points:
 - `Connection`
 - `ConnectionHub`
 - `ConnectionHubOptions`
-- `ConnectionLimiter`
+- `ConnectionGuard`
 
 Use these when you need:
 
@@ -67,9 +67,9 @@ Core entry points:
 
 - packet middleware
 - buffer middleware
-- `ConcurrencyGate`
-- `TokenBucketLimiter`
-- `PolicyRateLimiter`
+- `ConnectionGuard`
+
+The packet-level middleware, throttling, and time-sync helpers live in `Nalix.Network.Pipeline`.
 
 Use these to keep the server stable under real traffic.
 

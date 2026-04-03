@@ -1,23 +1,23 @@
 # Frame Reader and Sender
 
-This page documents the internal framing helpers behind `TcpSessionBase` and `TcpSession`.
+This page documents the internal framing helpers behind `TransportSession` and `TcpSession`.
 
 !!! note "Transport implementation details"
     `FRAME_READER` and `FRAME_SENDER` are internal SDK helpers, not the main client abstraction.
-    Most consumers should work through `TcpSession` or `IoTTcpSession`, but these types are useful when you need to understand send ordering, receive ownership, fragmentation, or reconnect behavior.
+    Most consumers should work through `TcpSession`, but these types are useful when you need to understand send ordering, receive ownership, fragmentation, or reconnect behavior.
 
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/Internal/FRAME_READER.cs`
 - `src/Nalix.SDK/Transport/Internal/FRAME_SENDER.cs`
-- `src/Nalix.SDK/Transport/TcpSessionBase.cs`
+- `src/Nalix.SDK/Transport/TransportSession.cs`
 - `src/Nalix.SDK/Transport/TcpSession.cs`
 
 ## Runtime model
 
 ```mermaid
 flowchart LR
-    A["TcpSessionBase.SendAsync"] --> B["FRAME_SENDER"]
+    A["TcpSession.SendAsync"] --> B["FRAME_SENDER"]
     B --> C["Bounded send queue"]
     C --> D["Single drain loop"]
     D --> E["Socket.SendAsync"]
@@ -26,12 +26,12 @@ flowchart LR
     G --> H["Header + payload read"]
     H --> I["Fragment reassembly"]
     I --> J["Decrypt / decompress"]
-    J --> K["TcpSessionBase.HandleReceiveMessage"]
+    J --> K["TcpSession.HandleReceiveMessage"]
 ```
 
 ## FRAME_SENDER
 
-`FRAME_SENDER` is the single-writer send pipeline used by `TcpSessionBase.SendAsync(...)`.
+`FRAME_SENDER` is the single-writer send pipeline used by `TcpSession.SendAsync(...)`.
 
 Its job is to:
 
@@ -86,11 +86,11 @@ Ownership is important on the receive path:
 - for a complete frame, `FRAME_READER` passes the lease to the session callback
 - the upper layer becomes the sole owner and must dispose it
 
-This is why `TcpSessionBase.HandleReceiveMessage(...)` is careful about lease copies, event dispatching, and final cleanup.
+This is why `TcpSession.HandleReceiveMessage(...)` is careful about lease copies, event dispatching, and final cleanup.
 
-## Interaction with TcpSessionBase
+## Interaction with TransportSession
 
-`TcpSessionBase` wires these helpers together:
+`TcpSession` wires these helpers together:
 
 - `InitializeFrame()` creates `FRAME_SENDER` and `FRAME_READER`
 - `SendAsync(ReadOnlyMemory<byte>)` and `SendAsync(IPacket)` forward into `FRAME_SENDER`
@@ -99,7 +99,7 @@ This is why `TcpSessionBase.HandleReceiveMessage(...)` is careful about lease co
 
 `TcpSession` then layers on:
 
-- TaskManager-backed receive scheduling
+- background receive scheduling
 - reconnect handling
 - heartbeat and bandwidth sampling through `SessionMonitor`
 
