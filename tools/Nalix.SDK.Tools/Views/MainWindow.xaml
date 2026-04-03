@@ -23,8 +23,6 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="16" />
-                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <StackPanel>
@@ -38,27 +36,32 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1"
-                                Orientation="Horizontal"
                                 VerticalAlignment="Center">
-                        <TextBlock Margin="0,0,8,0"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource AccentBrush}"
-                                   Text="{Binding Source={StaticResource ToolTexts}, Path=ThemeLabel}" />
-                        <ComboBox Width="120"
-                                  ItemsSource="{Binding ThemeOptions}"
-                                  SelectedItem="{Binding SelectedThemeOption}"
-                                  DisplayMemberPath="DisplayName" />
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Margin="0,0,0,6">
+                            <TextBlock Margin="0,0,8,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource AccentBrush}"
+                                       Text="{Binding Source={StaticResource ToolTexts}, Path=ThemeLabel}" />
+                            <ComboBox Width="120"
+                                      ItemsSource="{Binding ThemeOptions}"
+                                      SelectedItem="{Binding SelectedThemeOption}"
+                                      DisplayMemberPath="DisplayName" />
+                        </StackPanel>
                     </StackPanel>
-
-                    <Border Grid.Column="3"
-                            Padding="12,8"
-                            Background="{DynamicResource HeaderCardBrush}"
-                            BorderBrush="{DynamicResource AccentSoftBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8">
-                        <TextBlock Foreground="{DynamicResource InverseSecondaryTextBrush}" Text="{Binding StatusText}" />
-                    </Border>
                 </Grid>
+            </Border>
+
+            <Border DockPanel.Dock="Top"
+                    Margin="16,0,16,8"
+                    Padding="12,8"
+                    Background="{DynamicResource HeaderCardBrush}"
+                    BorderBrush="{DynamicResource AccentSoftBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <TextBlock Foreground="{DynamicResource InverseSecondaryTextBrush}"
+                           Text="{Binding StatusText}" />
             </Border>
 
             <StatusBar DockPanel.Dock="Bottom" Padding="8,4" Background="{DynamicResource StatusBarBackgroundBrush}">
@@ -77,6 +80,9 @@
                 </TabItem>
                 <TabItem Header="{Binding Source={StaticResource ToolTexts}, Path=TabPacketRegistryBrowser}">
                     <views:PacketRegistryBrowserView DataContext="{Binding PacketRegistryBrowser}" />
+                </TabItem>
+                <TabItem Header="{Binding Source={StaticResource ToolTexts}, Path=TabLog}">
+                    <views:LogTabView DataContext="{Binding Log}" />
                 </TabItem>
             </TabControl>
         </DockPanel>

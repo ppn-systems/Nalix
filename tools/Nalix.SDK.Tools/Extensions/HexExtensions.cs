@@ -77,4 +77,54 @@ public static class HexExtensions
 
         return result;
     }
+
+    /// <summary>
+    /// Formats bytes into an offset-based hex dump with ASCII preview.
+    /// </summary>
+    /// <param name="bytes">The source bytes.</param>
+    /// <param name="bytesPerLine">The number of bytes per line.</param>
+    /// <returns>The formatted hex dump.</returns>
+    public static string ToHexDump(this byte[]? bytes, int bytesPerLine = 16)
+    {
+        if (bytes is null || bytes.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        StringBuilder builder = new(bytes.Length * 5);
+        for (int offset = 0; offset < bytes.Length; offset += bytesPerLine)
+        {
+            int lineLength = Math.Min(bytesPerLine, bytes.Length - offset);
+            _ = builder.Append(offset.ToString("X4", CultureInfo.InvariantCulture));
+            _ = builder.Append("  ");
+
+            for (int index = 0; index < bytesPerLine; index++)
+            {
+                if (index < lineLength)
+                {
+                    _ = builder.Append(bytes[offset + index].ToString("X2", CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                    _ = builder.Append("  ");
+                }
+
+                if (index < bytesPerLine - 1)
+                {
+                    _ = builder.Append(' ');
+                }
+            }
+
+            _ = builder.Append("  |");
+            for (int index = 0; index < lineLength; index++)
+            {
+                byte current = bytes[offset + index];
+                _ = builder.Append(current >= 32 && current <= 126 ? (char)current : '.');
+            }
+
+            _ = builder.AppendLine("|");
+        }
+
+        return builder.ToString();
+    }
 }

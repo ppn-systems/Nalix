@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using Nalix.Framework.DataFrames;
 
 namespace Nalix.SDK.Tools.Models;
@@ -16,6 +16,6 @@ public sealed class PacketCatalog
     /// <summary>
     /// Gets or sets all discovered packet type descriptors.
     /// </summary>
-    public required IReadOnlyList<PacketTypeDescriptor> PacketTypes { get; init; }
+    public required ReadOnlyCollection<PacketTypeDescriptor> PacketTypes { get; init; }
 
 }

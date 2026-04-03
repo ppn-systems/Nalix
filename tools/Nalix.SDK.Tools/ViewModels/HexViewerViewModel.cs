@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using CommunityToolkit.Mvvm.Input;
 using Nalix.SDK.Tools.Configuration;
+using Nalix.SDK.Tools.Extensions;
 
 namespace Nalix.SDK.Tools.ViewModels;
 
@@ -13,6 +14,7 @@ public sealed class HexViewerViewModel : ViewModelBase
     private readonly PacketToolTextConfig _texts;
     private string _title;
     private string _hex = string.Empty;
+    private string _copyText = string.Empty;
     private bool _isVisible;
 
     /// <summary>
@@ -61,6 +63,21 @@ public sealed class HexViewerViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets the raw hex text copied to the clipboard.
+    /// </summary>
+    public string CopyText
+    {
+        get => _copyText;
+        private set
+        {
+            if (this.SetProperty(ref _copyText, value))
+            {
+                this.CopyCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    /// <summary>
     /// Gets a value indicating whether the overlay is visible.
     /// </summary>
     public bool IsVisible
@@ -84,15 +101,17 @@ public sealed class HexViewerViewModel : ViewModelBase
     public void Show(string title, string hex)
     {
         this.Title = string.IsNullOrWhiteSpace(title) ? _texts.HexViewerTitle : title;
-        this.Hex = hex ?? string.Empty;
+        byte[] rawBytes = Nalix.SDK.Tools.Extensions.HexExtensions.ParseHex(hex);
+        this.CopyText = rawBytes.Length == 0 ? string.Empty : rawBytes.ToHexString();
+        this.Hex = rawBytes.Length == 0 ? string.Empty : rawBytes.ToHexDump();
         this.IsVisible = !string.IsNullOrWhiteSpace(this.Hex);
     }
 
-    private bool CanCopy() => this.IsVisible && !string.IsNullOrWhiteSpace(this.Hex);
+    private bool CanCopy() => this.IsVisible && !string.IsNullOrWhiteSpace(this.CopyText);
 
     private bool CanClose() => this.IsVisible;
 
-    private void Copy() => Clipboard.SetText(this.Hex);
+    private void Copy() => Clipboard.SetText(this.CopyText);
 
     private void Close() => this.IsVisible = false;
 }

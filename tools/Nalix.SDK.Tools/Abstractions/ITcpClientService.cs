@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.SDK.Options;
 using Nalix.SDK.Tools.Models;
 
 namespace Nalix.SDK.Tools.Abstractions;

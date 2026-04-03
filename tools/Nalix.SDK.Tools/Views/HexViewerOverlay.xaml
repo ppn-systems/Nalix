@@ -34,7 +34,7 @@
                              AcceptsReturn="True"
                              VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Auto"
-                             TextWrapping="Wrap"
+                             TextWrapping="NoWrap"
                              FontFamily="Consolas"
                              IsReadOnly="True"
                              Text="{Binding Hex, Mode=OneWay}" />

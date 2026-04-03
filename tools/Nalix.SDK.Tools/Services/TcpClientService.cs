@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Models;
@@ -124,15 +123,12 @@ public sealed class TcpClientService : ITcpClientService
                 _configurationService.Texts.HistorySummaryFormat,
                 timestamp,
                 snapshot.OpCode,
-                packet.GetType().Name)
+                packet.GetType().Name,
+                snapshot.RawBytes.Length)
         };
 
         this.Dispatch(() => this.PacketSent?.Invoke(this, entry));
-        this.RaiseStatus(string.Format(
-            CultureInfo.CurrentCulture,
-            _configurationService.Texts.StatusPacketSentFormat,
-            packet.GetType().Name,
-            packet.OpCode));
+        this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusPacketSentFormat, packet.GetType().Name, packet.OpCode));
     }
 
     /// <inheritdoc/>
@@ -175,20 +171,21 @@ public sealed class TcpClientService : ITcpClientService
 
         try
         {
-            FrameBase frame = _catalogService.Deserialize(rawBytes);
-            PacketSnapshot snapshot = PacketSnapshot.FromPacket(frame);
+            IPacket packet = _catalogService.Deserialize(rawBytes);
+            PacketSnapshot snapshot = PacketSnapshot.FromPacket(packet);
             DateTimeOffset timestamp = DateTimeOffset.Now;
             entry = new PacketLogEntry
             {
                 Timestamp = timestamp,
-                PacketName = frame.GetType().Name,
+                PacketName = packet.GetType().Name,
                 Snapshot = snapshot,
                 Summary = string.Format(
                     CultureInfo.CurrentCulture,
                     _configurationService.Texts.HistorySummaryFormat,
                     timestamp,
                     snapshot.OpCode,
-                    frame.GetType().Name)
+                    packet.GetType().Name,
+                    snapshot.RawBytes.Length)
             };
         }
         catch (Exception exception)
@@ -206,7 +203,8 @@ public sealed class TcpClientService : ITcpClientService
                     _configurationService.Texts.HistorySummaryFormat,
                     timestamp,
                     snapshot.OpCode,
-                    _configurationService.Texts.UnknownPacketName)
+                    _configurationService.Texts.UnknownPacketName,
+                    snapshot.RawBytes.Length)
             };
         }
 

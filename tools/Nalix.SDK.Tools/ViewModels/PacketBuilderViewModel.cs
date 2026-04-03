@@ -1,12 +1,12 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.DataFrames;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Extensions;
@@ -17,23 +17,25 @@ namespace Nalix.SDK.Tools.ViewModels;
 /// <summary>
 /// Handles packet builder state and commands.
 /// </summary>
-public sealed class PacketBuilderViewModel : ViewModelBase
+public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 {
     private readonly IPacketCatalogService _catalogService;
     private readonly ITcpClientService _tcpClientService;
-    private readonly IFileDialogService _fileDialogService;
     private readonly PacketToolTextConfig _texts;
     private readonly Action<string, string> _showHexViewer;
-    private FrameBase? _currentPacket;
+    private IPacket? _currentPacket;
     private PacketTypeDescriptor? _selectedPacketType;
     private string _host = "127.0.0.1";
     private string _portText = "57206";
     private string _resolutionText;
     private string _currentPacketTitle;
     private string _currentPacketSummary;
+    private string _repeatCountText = "10";
+    private string _repeatDelayText = "250";
     private bool _isConnected;
     private bool _currentPacketIsReadOnly;
     private bool _suppressAutoLoad;
+    private CancellationTokenSource? _repeatSendCts;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketBuilderViewModel"/> class.
@@ -41,11 +43,10 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     /// <param name="catalogService">The packet catalog service.</param>
     /// <param name="tcpClientService">The TCP client service.</param>
     /// <param name="showHexViewer">The callback used to open the shared hex viewer.</param>
-    public PacketBuilderViewModel(IPacketCatalogService catalogService, ITcpClientService tcpClientService, IFileDialogService fileDialogService, PacketToolTextConfig texts, Action<string, string> showHexViewer)
+    public PacketBuilderViewModel(IPacketCatalogService catalogService, ITcpClientService tcpClientService, PacketToolTextConfig texts, Action<string, string> showHexViewer)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
         _tcpClientService = tcpClientService ?? throw new ArgumentNullException(nameof(tcpClientService));
-        _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
         _texts = texts ?? throw new ArgumentNullException(nameof(texts));
         _showHexViewer = showHexViewer ?? throw new ArgumentNullException(nameof(showHexViewer));
         _resolutionText = _texts.PlaceholderCurrentPacketSummary;
@@ -59,10 +60,10 @@ public sealed class PacketBuilderViewModel : ViewModelBase
 
         this.ConnectCommand = new AsyncRelayCommand(this.ConnectAsync, this.CanConnect);
         this.DisconnectCommand = new AsyncRelayCommand(this.DisconnectAsync, this.CanDisconnect);
-        this.LoadPacketAssemblyCommand = new RelayCommand(this.LoadPacketAssembly);
         this.ResetPacketCommand = new RelayCommand(this.ResetPacket, this.CanResetPacket);
         this.SerializePacketCommand = new RelayCommand(this.SerializePacket, this.CanSerializePacket);
         this.SendPacketCommand = new AsyncRelayCommand(this.SendPacketAsync, this.CanSendPacket);
+        this.RepeatSendCommand = new AsyncRelayCommand(this.RepeatSendAsync, this.CanRepeatSend);
 
         _tcpClientService.StatusChanged += this.HandleStatusChanged;
 
@@ -98,11 +99,6 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     public AsyncRelayCommand DisconnectCommand { get; }
 
     /// <summary>
-    /// Gets the load assembly command.
-    /// </summary>
-    public RelayCommand LoadPacketAssemblyCommand { get; }
-
-    /// <summary>
     /// Gets the reset command.
     /// </summary>
     public RelayCommand ResetPacketCommand { get; }
@@ -116,6 +112,11 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     /// Gets the send command.
     /// </summary>
     public AsyncRelayCommand SendPacketCommand { get; }
+
+    /// <summary>
+    /// Gets the repeat send command.
+    /// </summary>
+    public AsyncRelayCommand RepeatSendCommand { get; }
 
     /// <summary>
     /// Gets or sets the connection host.
@@ -197,6 +198,36 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets or sets the repeat count text.
+    /// </summary>
+    public string RepeatCountText
+    {
+        get => _repeatCountText;
+        set
+        {
+            if (this.SetProperty(ref _repeatCountText, value))
+            {
+                this.NotifyCommandStates();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the repeat delay text in milliseconds.
+    /// </summary>
+    public string RepeatDelayText
+    {
+        get => _repeatDelayText;
+        set
+        {
+            if (this.SetProperty(ref _repeatDelayText, value))
+            {
+                this.NotifyCommandStates();
+            }
+        }
+    }
+
+    /// <summary>
     /// Gets a value indicating whether the TCP client is connected.
     /// </summary>
     public bool IsConnected
@@ -236,14 +267,14 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
-        FrameBase frame = _catalogService.Deserialize(snapshot.RawBytes);
-        PacketTypeDescriptor? descriptor = _catalogService.FindByType(frame.GetType());
+        IPacket packet = _catalogService.Deserialize(snapshot.RawBytes);
+        PacketTypeDescriptor? descriptor = _catalogService.FindByType(packet.GetType());
         if (descriptor is null)
         {
             return false;
         }
 
-        this.ShowPacket(frame, descriptor, isReadOnly);
+        this.ShowPacket(packet, descriptor, isReadOnly);
         this.ResolutionText = string.Format(
             CultureInfo.CurrentCulture,
             isReadOnly ? _texts.StatusLoadedReceivedSnapshotFormat : _texts.StatusReopenedSentSnapshotFormat,
@@ -257,7 +288,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     /// <param name="packet">The packet instance.</param>
     /// <param name="descriptor">The packet descriptor.</param>
     /// <param name="isReadOnly">Whether the packet should be read-only.</param>
-    public void ShowPacket(FrameBase packet, PacketTypeDescriptor descriptor, bool isReadOnly)
+    public void ShowPacket(IPacket packet, PacketTypeDescriptor descriptor, bool isReadOnly)
     {
         ArgumentNullException.ThrowIfNull(packet);
         ArgumentNullException.ThrowIfNull(descriptor);
@@ -287,6 +318,8 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     private bool CanSerializePacket() => _currentPacket is not null;
 
     private bool CanSendPacket() => _currentPacket is not null && !this.CurrentPacketIsReadOnly && this.IsConnected;
+
+    private bool CanRepeatSend() => this.CanSendPacket() && this.TryParseRepeatOptions(out _, out _);
 
     private async Task ConnectAsync()
     {
@@ -335,40 +368,6 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         this.RaiseStatusRequested(_texts.StatusPacketEditorReset);
     }
 
-    private void LoadPacketAssembly()
-    {
-        string? assemblyPath = _fileDialogService.PickPacketAssembly(_texts.PacketAssemblyDialogTitle, _texts.PacketAssemblyDialogFilter);
-        if (string.IsNullOrWhiteSpace(assemblyPath))
-        {
-            return;
-        }
-
-        int previousCount = this.PacketTypes.Count;
-        PacketTypeDescriptor? previousSelection = this.SelectedPacketType;
-
-        try
-        {
-            PacketCatalog catalog = _catalogService.LoadPacketAssembly(assemblyPath);
-            this.RefreshPacketTypes(catalog.PacketTypes, previousSelection);
-
-            int addedCount = Math.Max(0, this.PacketTypes.Count - previousCount);
-            string fileName = Path.GetFileName(assemblyPath);
-            this.RaiseStatusRequested(
-                addedCount > 0
-                    ? string.Format(CultureInfo.CurrentCulture, _texts.StatusPacketAssemblyLoadedFormat, fileName, this.PacketTypes.Count)
-                    : string.Format(CultureInfo.CurrentCulture, _texts.StatusPacketAssemblyNoNewTypesFormat, fileName));
-
-            if (addedCount > 0 && this.IsConnected)
-            {
-                this.RaiseStatusRequested(_texts.StatusPacketAssemblyReconnectRequired);
-            }
-        }
-        catch (Exception exception)
-        {
-            this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusPacketAssemblyLoadFailedFormat, exception.Message));
-        }
-    }
-
     private void SerializePacket()
     {
         if (this.TryRefreshSerializedPacket(out string hex) && _currentPacket is not null)
@@ -395,9 +394,56 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         }
     }
 
+    private async Task RepeatSendAsync()
+    {
+        if (_currentPacket is null || !this.TryRefreshSerializedPacket(out _) || !this.TryParseRepeatOptions(out int count, out int delayMs))
+        {
+            return;
+        }
+
+        if (count <= 0)
+        {
+            this.RaiseStatusRequested(_texts.StatusRepeatSendCancelled);
+            return;
+        }
+
+        _repeatSendCts?.Cancel();
+        _repeatSendCts?.Dispose();
+        _repeatSendCts = new CancellationTokenSource();
+
+        CancellationToken token = _repeatSendCts.Token;
+        this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusRepeatSendStartedFormat, count, delayMs));
+
+        int sentCount = 0;
+        try
+        {
+            for (int index = 0; index < count; index++)
+            {
+                token.ThrowIfCancellationRequested();
+                await _tcpClientService.SendPacketAsync(_currentPacket, token).ConfigureAwait(true);
+                sentCount++;
+
+                if (delayMs > 0 && index < count - 1)
+                {
+                    await Task.Delay(delayMs, token).ConfigureAwait(true);
+                }
+            }
+
+            this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusRepeatSendFinishedFormat, sentCount));
+        }
+        catch (OperationCanceledException)
+        {
+            this.RaiseStatusRequested(_texts.StatusRepeatSendCancelled);
+        }
+        catch (Exception exception)
+        {
+            this.RaiseStatusRequested(exception.Message);
+        }
+    }
+
     private void LoadDescriptor(PacketTypeDescriptor descriptor, bool isReadOnly)
     {
-        FrameBase packet = _catalogService.CreatePacket(descriptor);
+        IPacket packet = _catalogService.CreatePacket(descriptor);
         if (packet.Protocol == ProtocolType.NONE)
         {
             packet.Protocol = ProtocolType.TCP;
@@ -405,6 +451,12 @@ public sealed class PacketBuilderViewModel : ViewModelBase
 
         this.ShowPacket(packet, descriptor, isReadOnly);
         this.ResolutionText = string.Format(CultureInfo.CurrentCulture, _texts.StatusLoadedPacketBuilderFormat, descriptor.FullName);
+    }
+
+    public void ReloadPacketCatalog(PacketCatalog catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        this.RefreshPacketTypes(catalog.PacketTypes, this.SelectedPacketType);
     }
 
     private void RefreshPacketTypes(System.Collections.Generic.IReadOnlyList<PacketTypeDescriptor> packetTypes, PacketTypeDescriptor? previousSelection)
@@ -455,7 +507,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         }
     }
 
-    private void RebuildPropertyNodes(FrameBase packet, PacketTypeDescriptor descriptor, bool isReadOnly)
+    private void RebuildPropertyNodes(IPacket packet, PacketTypeDescriptor descriptor, bool isReadOnly)
     {
         this.CurrentProperties.Clear();
         foreach (PropertyNodeViewModel node in PropertyNodeViewModel.CreateNodes(
@@ -498,8 +550,8 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         }
     }
 
-    private string BuildPacketSummary(FrameBase frame)
-        => string.Format(CultureInfo.CurrentCulture, _texts.BuilderSummaryFormat, frame.GetType().FullName, frame.MagicNumber, frame.OpCode, frame.Length);
+    private string BuildPacketSummary(IPacket packet)
+        => string.Format(CultureInfo.CurrentCulture, _texts.BuilderSummaryFormat, packet.GetType().FullName, packet.MagicNumber, packet.OpCode, packet.Length);
 
     private bool TryParsePort(out ushort port)
         => ushort.TryParse(this.PortText, NumberStyles.Integer, CultureInfo.InvariantCulture, out port);
@@ -508,6 +560,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     {
         this.IsConnected = _tcpClientService.IsConnected;
         this.NotifyCommandStates();
+    }
+
+    private bool TryParseRepeatOptions(out int count, out int delayMs)
+    {
+        bool countOk = int.TryParse(this.RepeatCountText, NumberStyles.Integer, CultureInfo.InvariantCulture, out count);
+        bool delayOk = int.TryParse(this.RepeatDelayText, NumberStyles.Integer, CultureInfo.InvariantCulture, out delayMs);
+        return countOk && delayOk && count > 0 && delayMs >= 0;
     }
 
     private void RaiseStatusRequested(string message)
@@ -525,5 +584,15 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         this.ResetPacketCommand.NotifyCanExecuteChanged();
         this.SerializePacketCommand.NotifyCanExecuteChanged();
         this.SendPacketCommand.NotifyCanExecuteChanged();
+        this.RepeatSendCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        _tcpClientService.StatusChanged -= this.HandleStatusChanged;
+        _repeatSendCts?.Cancel();
+        _repeatSendCts?.Dispose();
+        _repeatSendCts = null;
     }
 }

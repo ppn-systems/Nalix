@@ -61,11 +61,30 @@
         </Grid.ColumnDefinitions>
 
         <GroupBox Header="{Binding Source={StaticResource ToolTexts}, Path=GroupRegisteredPackets}">
-            <ListBox Margin="12"
-                     FontFamily="Consolas"
-                     DisplayMemberPath="RegistryDisplay"
-                     ItemsSource="{Binding PacketTypes}"
-                     SelectedItem="{Binding SelectedPacketType}" />
+            <DockPanel Margin="12">
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock Margin="0,0,0,4"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Text="{Binding Source={StaticResource ToolTexts}, Path=LabelRegistrySearch}" />
+                    <TextBox Margin="0,0,0,8"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{Binding Source={StaticResource ToolTexts}, Path=RegistrySearchPlaceholder}" />
+                    <UniformGrid Columns="2">
+                        <Button Margin="0,0,8,0"
+                                Command="{Binding LoadPacketAssemblyCommand}"
+                                Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonLoadPacketDll}" />
+                        <Button Command="{Binding ToggleFavoriteCommand}"
+                                Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonFavoritePacket}" />
+                    </UniformGrid>
+                    <CheckBox Margin="0,8,0,0"
+                              Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonFavoritesOnly}"
+                              IsChecked="{Binding FavoritesOnly}" />
+                </StackPanel>
+                <ListBox FontFamily="Consolas"
+                         DisplayMemberPath="DisplayText"
+                         ItemsSource="{Binding Entries}"
+                         SelectedItem="{Binding SelectedEntry}" />
+            </DockPanel>
         </GroupBox>
 
         <Border Grid.Column="2"

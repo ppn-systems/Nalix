@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
 using Nalix.Framework.DataFrames;
 using Nalix.SDK.Tools.Abstractions;
@@ -19,6 +20,7 @@ namespace Nalix.SDK.Tools.Services;
 /// </summary>
 public sealed class PacketCatalogService : IPacketCatalogService
 {
+    private readonly HashSet<string> _probeDirectories = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyDictionary<Type, PacketTypeDescriptor> _descriptorByType = new Dictionary<Type, PacketTypeDescriptor>();
 
     /// <summary>
@@ -26,6 +28,8 @@ public sealed class PacketCatalogService : IPacketCatalogService
     /// </summary>
     public PacketCatalogService()
     {
+        _probeDirectories.Add(AppContext.BaseDirectory);
+        AssemblyLoadContext.Default.Resolving += this.ResolveAssembly;
         this.LoadNalixAssemblies();
         this.Catalog = this.BuildCatalog();
     }
@@ -47,7 +51,14 @@ public sealed class PacketCatalogService : IPacketCatalogService
             throw new FileNotFoundException("The selected packet assembly could not be found.", fullPath);
         }
 
-        this.LoadAssembly(fullPath);
+        _ = _probeDirectories.Add(Path.GetDirectoryName(fullPath) ?? AppContext.BaseDirectory);
+        Assembly assembly = this.LoadAssembly(fullPath);
+        IReadOnlyList<Type> packetTypes = this.GetPacketTypes(assembly, throwOnLoaderErrors: true);
+        if (packetTypes.Count == 0)
+        {
+            throw new InvalidOperationException($"No IPacket implementations were found in {Path.GetFileName(fullPath)}.");
+        }
+
         this.Catalog = this.BuildCatalog();
         return this.Catalog;
     }
@@ -57,27 +68,27 @@ public sealed class PacketCatalogService : IPacketCatalogService
         => _descriptorByType.TryGetValue(packetType, out PacketTypeDescriptor? descriptor) ? descriptor : null;
 
     /// <inheritdoc/>
-    public FrameBase CreatePacket(PacketTypeDescriptor descriptor)
+    public IPacket CreatePacket(PacketTypeDescriptor descriptor)
     {
         ArgumentNullException.ThrowIfNull(descriptor);
 
-        if (Activator.CreateInstance(descriptor.PacketType) is not FrameBase frame)
+        if (Activator.CreateInstance(descriptor.PacketType) is not IPacket packet)
         {
             throw new InvalidOperationException($"Cannot create packet instance for {descriptor.PacketType.FullName}.");
         }
 
-        return frame;
+        return packet;
     }
 
     /// <inheritdoc/>
-    public FrameBase Deserialize(byte[] rawBytes)
+    public IPacket Deserialize(byte[] rawBytes)
     {
-        if (this.Catalog.Registry.Deserialize(rawBytes) is not FrameBase frame)
+        if (this.Catalog.Registry.Deserialize(rawBytes) is not IPacket packet)
         {
-            throw new InvalidOperationException("The packet registry returned a non-frame packet instance.");
+            throw new InvalidOperationException("The packet registry returned a non-packet instance.");
         }
 
-        return frame;
+        return packet;
     }
 
     private void LoadNalixAssemblies()
@@ -89,20 +100,56 @@ public sealed class PacketCatalogService : IPacketCatalogService
         }
     }
 
-    private void LoadAssembly(string assemblyPath)
+    private Assembly LoadAssembly(string assemblyPath)
     {
-        if (!this.TryLoadAssembly(assemblyPath))
-        {
-            AssemblyName expectedAssemblyName = AssemblyName.GetAssemblyName(assemblyPath);
-            bool alreadyLoaded = AppDomain.CurrentDomain
-                .GetAssemblies()
-                .Any(assembly => string.Equals(assembly.GetName().Name, expectedAssemblyName.Name, StringComparison.OrdinalIgnoreCase));
+        string fullPath = Path.GetFullPath(assemblyPath);
+        AssemblyName expectedAssemblyName = AssemblyName.GetAssemblyName(fullPath);
+        Assembly? existingAssembly = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .FirstOrDefault(assembly => string.Equals(assembly.GetName().Name, expectedAssemblyName.Name, StringComparison.OrdinalIgnoreCase));
 
-            if (!alreadyLoaded)
+        if (existingAssembly is not null)
+        {
+            return existingAssembly;
+        }
+
+        return AssemblyLoadContext.Default.LoadFromAssemblyPath(fullPath);
+    }
+
+    private Assembly? ResolveAssembly(AssemblyLoadContext context, AssemblyName assemblyName)
+    {
+        Assembly? existingAssembly = AppDomain.CurrentDomain
+            .GetAssemblies()
+            .FirstOrDefault(assembly => string.Equals(assembly.GetName().Name, assemblyName.Name, StringComparison.OrdinalIgnoreCase));
+
+        if (existingAssembly is not null)
+        {
+            return existingAssembly;
+        }
+
+        foreach (string directory in _probeDirectories)
+        {
+            string? candidatePath = Path.Combine(directory, $"{assemblyName.Name}.dll");
+            if (!File.Exists(candidatePath))
             {
-                _ = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
+                candidatePath = this.FindAssemblyPath(directory, assemblyName.Name);
+                if (candidatePath is null)
+                {
+                    continue;
+                }
+            }
+
+            try
+            {
+                return context.LoadFromAssemblyPath(candidatePath);
+            }
+            catch
+            {
+                // Continue probing other known directories.
             }
         }
+
+        return null;
     }
 
     private bool TryLoadAssembly(string assemblyPath)
@@ -130,6 +177,57 @@ public sealed class PacketCatalogService : IPacketCatalogService
         }
     }
 
+    private string? FindAssemblyPath(string rootDirectory, string? assemblyName)
+    {
+        if (string.IsNullOrWhiteSpace(rootDirectory) || string.IsNullOrWhiteSpace(assemblyName) || !Directory.Exists(rootDirectory))
+        {
+            return null;
+        }
+
+        try
+        {
+            return Directory
+                .EnumerateFiles(rootDirectory, $"{assemblyName}.dll", SearchOption.AllDirectories)
+                .FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private IReadOnlyList<Type> GetPacketTypes(Assembly assembly, bool throwOnLoaderErrors)
+    {
+        try
+        {
+            return [.. assembly
+                .GetTypes()
+                .Where(static type => type.IsClass && !type.IsAbstract && typeof(IPacket).IsAssignableFrom(type))];
+        }
+        catch (ReflectionTypeLoadException exception)
+        {
+            List<Type> packetTypes =
+            [
+                .. exception.Types
+                    .OfType<Type>()
+                    .Where(static type => type.IsClass && !type.IsAbstract && typeof(IPacket).IsAssignableFrom(type))
+            ];
+
+            if (packetTypes.Count > 0 || !throwOnLoaderErrors)
+            {
+                return packetTypes;
+            }
+
+            string loaderMessage = exception.LoaderExceptions
+                .Where(static loaderException => loaderException is not null && !string.IsNullOrWhiteSpace(loaderException.Message))
+                .Select(static loaderException => loaderException!.Message)
+                .FirstOrDefault()
+                ?? exception.Message;
+
+            throw new InvalidOperationException(loaderMessage, exception);
+        }
+    }
+
     private PacketCatalog BuildCatalog()
     {
         PacketRegistryFactory factory = new();
@@ -143,7 +241,7 @@ public sealed class PacketCatalogService : IPacketCatalogService
                 .GetAssemblies()
                 .Where(static assembly => !assembly.IsDynamic)
                 .SelectMany(static assembly => assembly.GetLoadableTypes())
-                .Where(static type => type.IsClass && !type.IsAbstract && typeof(FrameBase).IsAssignableFrom(type))
+                .Where(static type => type.IsClass && !type.IsAbstract && typeof(IPacket).IsAssignableFrom(type))
                 .Distinct()
                 .Select(this.BuildDescriptor)
                 .OrderBy(static descriptor => descriptor.Name, StringComparer.Ordinal)

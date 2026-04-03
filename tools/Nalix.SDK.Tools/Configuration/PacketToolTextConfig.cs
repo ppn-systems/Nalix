@@ -11,7 +11,7 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string AppHeaderTitle { get; set; } = "TCP Packet Testing Tool";
 
-    public string AppHeaderSubtitle { get; set; } = "Reflection-driven packet builder for Nalix FrameBase packets";
+    public string AppHeaderSubtitle { get; set; } = "Reflection-driven packet builder for Nalix IPacket packets";
 
     public string ThemeLabel { get; set; } = "Theme";
 
@@ -26,6 +26,8 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
     public string TabReceiveHistory { get; set; } = "Receive History";
 
     public string TabPacketRegistryBrowser { get; set; } = "Packet Registry Browser";
+
+    public string TabLog { get; set; } = "Log";
 
     public string GroupConnection { get; set; } = "Connection";
 
@@ -57,7 +59,21 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string ButtonSend { get; set; } = "Send";
 
+    public string ButtonRepeatSend { get; set; } = "Repeat Send";
+
+    public string LabelRepeatCount { get; set; } = "Count";
+
+    public string LabelRepeatDelay { get; set; } = "Delay ms";
+
+    public string StatusRepeatSendStartedFormat { get; set; } = "Repeat send started: {0} times, {1} ms delay.";
+
+    public string StatusRepeatSendFinishedFormat { get; set; } = "Repeat send finished: {0} packet(s) sent.";
+
+    public string StatusRepeatSendCancelled { get; set; } = "Repeat send cancelled.";
+
     public string GroupBuilderNotes { get; set; } = "Builder Notes";
+
+    public string GroupRepeatSend { get; set; } = "Repeat Send";
 
     public string GroupSentPackets { get; set; } = "Sent Packets";
 
@@ -69,7 +85,59 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string ButtonCopyHex { get; set; } = "Copy Hex";
 
+    public string PacketLengthLabel { get; set; } = "Length";
+
     public string GroupRegisteredPackets { get; set; } = "Registered Packets";
+
+    public string ButtonFavoritePacket { get; set; } = "Favorite";
+
+    public string ButtonFavoritesOnly { get; set; } = "Favorites Only";
+
+    public string LabelRegistrySearch { get; set; } = "Search";
+
+    public string RegistrySearchPlaceholder { get; set; } = "Filter by name, namespace, or magic...";
+
+    public string GroupLogEntries { get; set; } = "Activity Log";
+
+    public string ButtonClearLog { get; set; } = "Clear Log";
+
+    public string PlaceholderNoLogEntries { get; set; } = "No log entries yet.";
+
+    public string LogDetailsTitle { get; set; } = "Entry Details";
+
+    public string LogTimestampLabel { get; set; } = "Time";
+
+    public string LogSourceLabel { get; set; } = "Source";
+
+    public string LogMessageLabel { get; set; } = "Message";
+
+    public string LogSourceSystem { get; set; } = "System";
+
+    public string LogSourceBuilder { get; set; } = "Builder";
+
+    public string LogSourceRegistry { get; set; } = "Registry";
+
+    public string LogSourceTcp { get; set; } = "TCP";
+
+    public string LogSourceHistory { get; set; } = "History";
+
+    public string LogEntrySummaryFormat { get; set; } = "{0:HH:mm:ss} | {1} | {2}";
+
+    public string GroupPacketDiff { get; set; } = "Packet Diff";
+
+    public string ButtonComparePrevious { get; set; } = "Compare Previous";
+
+    public string PlaceholderNoPreviousPacketForDiff { get; set; } = "Select a packet with at least one previous entry to compare.";
+
+    public string PacketDiffSummaryFormat { get; set; } = "{0} vs {1} - {2:N0} differing byte(s).";
+
+    public string PacketDiffNoDifferences { get; set; } = "No byte differences found.";
+
+    public string PacketDiffLineFormat { get; set; } = "0x{0:X4}: {1} -> {2}";
+
+    public string PacketDiffLengthLineFormat { get; set; } = "Length: {0:N0} -> {1:N0} bytes";
+
+    public string PacketDiffDetailTitle { get; set; } = "Diff Details";
 
     public string RegistryPropertyHeader { get; set; } = "Property";
 
@@ -115,6 +183,8 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string StatusPacketAssemblyLoadFailedFormat { get; set; } = "Unable to load packet assembly: {0}";
 
+    public string StatusPacketAssemblyLoadFailedShort { get; set; } = "Unable to load packet assembly.";
+
     public string StatusLoadedReceivedSnapshotFormat { get; set; } = "Loaded received packet snapshot for {0} in read-only mode.";
 
     public string StatusReopenedSentSnapshotFormat { get; set; } = "Reopened sent packet snapshot for {0}.";
@@ -143,9 +213,9 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string UnknownPacketName { get; set; } = "Unknown Packet";
 
-    public string HistorySummaryFormat { get; set; } = "{0:HH:mm:ss}  0x{1:X4}  {2}";
+    public string HistorySummaryFormat { get; set; } = "{0:HH:mm:ss}  0x{1:X4}  {2}  ({3:N0} bytes)";
 
-    public string DetailSummaryFormat { get; set; } = "{0} | OpCode 0x{1:X4} | Magic 0x{2:X8} | {3}";
+    public string DetailSummaryFormat { get; set; } = "{0} | OpCode 0x{1:X4} | Magic 0x{2:X8} | Length {3:N0} bytes | {4}";
 
     public string BuilderSummaryFormat { get; set; } = "{0} | Magic 0x{1:X8} | OpCode 0x{2:X4} | Length {3:N0} bytes";
 

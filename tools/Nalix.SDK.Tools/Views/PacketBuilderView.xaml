@@ -41,7 +41,6 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="80" />
@@ -57,23 +56,40 @@
                                   SelectedItem="{Binding SelectedPacketType}" />
                         <TextBlock Grid.Row="1"
                                    Grid.ColumnSpan="2"
-                                   Margin="0,0,0,10"
                                    Foreground="{DynamicResource SecondaryTextBrush}"
                                    TextWrapping="Wrap"
                                    Text="{Binding Source={StaticResource ToolTexts}, Path=PacketSelectionHint}" />
-                        <Button Grid.Row="2"
-                                Grid.ColumnSpan="2"
-                                Command="{Binding LoadPacketAssemblyCommand}"
-                                Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonLoadPacketDll}" />
                     </Grid>
                 </GroupBox>
 
                 <GroupBox Header="{Binding Source={StaticResource ToolTexts}, Path=GroupActions}" Margin="0,0,0,12">
-                    <UniformGrid Margin="10" Columns="3">
-                        <Button Margin="0,0,8,0" Command="{Binding ResetPacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonReset}" />
-                        <Button Margin="0,0,8,0" Command="{Binding SerializePacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonSerialize}" />
-                        <Button Command="{Binding SendPacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonSend}" />
-                    </UniformGrid>
+                    <StackPanel Margin="10">
+                        <UniformGrid Margin="0,0,0,10" Columns="3">
+                            <Button Margin="0,0,8,0" Command="{Binding ResetPacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonReset}" />
+                            <Button Margin="0,0,8,0" Command="{Binding SerializePacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonSerialize}" />
+                            <Button Command="{Binding SendPacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonSend}" />
+                        </UniformGrid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="78" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="72" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="{Binding Source={StaticResource ToolTexts}, Path=LabelRepeatCount}" />
+                            <TextBox Grid.Column="1" Text="{Binding RepeatCountText, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="{Binding Source={StaticResource ToolTexts}, Path=LabelRepeatDelay}" />
+                            <TextBox Grid.Column="4" Text="{Binding RepeatDelayText, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <Button Margin="0,10,0,0"
+                                Command="{Binding RepeatSendCommand}"
+                                Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonRepeatSend}" />
+                    </StackPanel>
                 </GroupBox>
 
                 <GroupBox Header="{Binding Source={StaticResource ToolTexts}, Path=GroupBuilderNotes}">

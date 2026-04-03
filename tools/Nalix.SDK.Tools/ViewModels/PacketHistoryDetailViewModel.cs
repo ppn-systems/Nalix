@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows;
 using CommunityToolkit.Mvvm.Input;
-using Nalix.Framework.DataFrames;
+using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Extensions;
@@ -21,6 +21,7 @@ public sealed class PacketHistoryDetailViewModel : ViewModelBase
     private readonly string _placeholderSummary;
     private string _title;
     private string _summary;
+    private string _lengthText = string.Empty;
     private string _rawHex = string.Empty;
 
     /// <summary>
@@ -67,6 +68,15 @@ public sealed class PacketHistoryDetailViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Gets the packet length text.
+    /// </summary>
+    public string LengthText
+    {
+        get => _lengthText;
+        private set => this.SetProperty(ref _lengthText, value);
+    }
+
+    /// <summary>
     /// Gets the raw packet hex.
     /// </summary>
     public string RawHex
@@ -89,6 +99,7 @@ public sealed class PacketHistoryDetailViewModel : ViewModelBase
         this.Properties.Clear();
         this.Title = _placeholderTitle;
         this.Summary = _placeholderSummary;
+        this.LengthText = string.Empty;
         this.RawHex = string.Empty;
     }
 
@@ -104,15 +115,16 @@ public sealed class PacketHistoryDetailViewModel : ViewModelBase
 
         this.Properties.Clear();
         this.Title = entry.PacketName;
+        this.LengthText = string.Format(CultureInfo.CurrentCulture, _texts.HexBytesFormat, entry.Snapshot.RawBytes.Length);
         this.RawHex = entry.Snapshot.RawBytes.ToHexString();
 
         try
         {
-            FrameBase frame = catalogService.Deserialize(entry.Snapshot.RawBytes);
-            PacketTypeDescriptor? descriptor = catalogService.FindByType(frame.GetType());
+            IPacket packet = catalogService.Deserialize(entry.Snapshot.RawBytes);
+            PacketTypeDescriptor? descriptor = catalogService.FindByType(packet.GetType());
             this.Summary = descriptor is null
-                ? this.BuildFallbackSummary(frame.GetType().FullName ?? frame.GetType().Name, frame.OpCode, frame.MagicNumber, entry.DecodeStatus)
-                : this.BuildFallbackSummary(descriptor.FullName, frame.OpCode, frame.MagicNumber, entry.DecodeStatus);
+                ? this.BuildFallbackSummary(packet.GetType().FullName ?? packet.GetType().Name, packet.OpCode, packet.MagicNumber, entry.Snapshot.RawBytes.Length, entry.DecodeStatus)
+                : this.BuildFallbackSummary(descriptor.FullName, packet.OpCode, packet.MagicNumber, entry.Snapshot.RawBytes.Length, entry.DecodeStatus);
 
             if (descriptor is null)
             {
@@ -120,7 +132,7 @@ public sealed class PacketHistoryDetailViewModel : ViewModelBase
             }
 
             foreach (PropertyNodeViewModel node in PropertyNodeViewModel.CreateNodes(
-                         frame,
+                         packet,
                          descriptor.Properties,
                          true,
                          false,
@@ -135,6 +147,7 @@ public sealed class PacketHistoryDetailViewModel : ViewModelBase
                 entry.Snapshot.PacketTypeName,
                 entry.Snapshot.OpCode,
                 entry.Snapshot.MagicNumber,
+                entry.Snapshot.RawBytes.Length,
                 entry.DecodeStatus);
         }
     }
@@ -143,6 +156,6 @@ public sealed class PacketHistoryDetailViewModel : ViewModelBase
 
     private void CopyHex() => Clipboard.SetText(this.RawHex);
 
-    private string BuildFallbackSummary(string packetTypeName, ushort opCode, uint magicNumber, string decodeStatus)
-        => string.Format(CultureInfo.CurrentCulture, _texts.DetailSummaryFormat, packetTypeName, opCode, magicNumber, decodeStatus);
+    private string BuildFallbackSummary(string packetTypeName, ushort opCode, uint magicNumber, int length, string decodeStatus)
+        => string.Format(CultureInfo.CurrentCulture, _texts.DetailSummaryFormat, packetTypeName, opCode, magicNumber, length, decodeStatus);
 }

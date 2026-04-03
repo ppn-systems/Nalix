@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.ComponentModel;
 using System.Linq;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Configuration;
@@ -11,14 +12,20 @@ namespace Nalix.SDK.Tools.ViewModels;
 /// <summary>
 /// Coordinates the main window and cross-tab interactions.
 /// </summary>
-public sealed class MainWindowViewModel : ViewModelBase
+public sealed class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly IPacketCatalogService _catalogService;
+    private readonly ITcpClientService _tcpClientService;
     private readonly PacketToolTextConfig _texts;
     private readonly IAppConfigurationService _configurationService;
     private readonly IThemeService _themeService;
+    private readonly Action<string> _packetBuilderStatusHandler;
+    private readonly Action<string> _packetRegistryStatusHandler;
+    private readonly EventHandler<string> _tcpStatusHandler;
+    private readonly PropertyChangedEventHandler _packetBuilderPropertyChangedHandler;
     private string _statusText;
     private ThemeOption? _selectedThemeOption;
+    private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
@@ -31,16 +38,17 @@ public sealed class MainWindowViewModel : ViewModelBase
         IFileDialogService fileDialogService)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
-        ArgumentNullException.ThrowIfNull(tcpClientService);
+        _tcpClientService = tcpClientService ?? throw new ArgumentNullException(nameof(tcpClientService));
         _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
         ArgumentNullException.ThrowIfNull(fileDialogService);
         _texts = _configurationService.Texts;
-        _statusText = _texts.StatusReady;
+        _statusText = string.Empty;
 
+        this.Log = new ApplicationLogTabViewModel(_texts);
         this.HexViewer = new HexViewerViewModel(_texts);
-        this.PacketBuilder = new PacketBuilderViewModel(_catalogService, tcpClientService, fileDialogService, _texts, this.ShowHexViewer);
-        this.PacketRegistryBrowser = new PacketRegistryBrowserViewModel(this.PacketBuilder.PacketTypes, _texts);
+        this.PacketBuilder = new PacketBuilderViewModel(_catalogService, _tcpClientService, _texts, this.ShowHexViewer);
+        this.PacketRegistryBrowser = new PacketRegistryBrowserViewModel(this.PacketBuilder.PacketTypes, _catalogService, fileDialogService, _texts);
         this.SentHistory = new PacketHistoryTabViewModel(
             _texts.GroupSentPackets,
             _texts.ButtonReopenSelectedPacket,
@@ -63,10 +71,17 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         this.SentHistory.OpenRequested += this.HandleOpenRequested;
         this.ReceiveHistory.OpenRequested += this.HandleOpenRequested;
-        this.PacketBuilder.StatusRequested += this.HandleBuilderStatusRequested;
-        tcpClientService.StatusChanged += this.HandleStatusChanged;
-        tcpClientService.PacketSent += this.HandlePacketSent;
-        tcpClientService.PacketReceived += this.HandlePacketReceived;
+        _packetBuilderStatusHandler = status => this.UpdateStatus(_texts.LogSourceBuilder, status);
+        _packetRegistryStatusHandler = status => this.UpdateStatus(_texts.LogSourceRegistry, status);
+        _tcpStatusHandler = (_, status) => this.UpdateStatus(_texts.LogSourceTcp, status);
+        _packetBuilderPropertyChangedHandler = this.HandlePacketBuilderPropertyChanged;
+        this.PacketBuilder.StatusRequested += _packetBuilderStatusHandler;
+        this.PacketRegistryBrowser.StatusRequested += _packetRegistryStatusHandler;
+        this.PacketRegistryBrowser.AssemblyLoadFailed += this.HandleRegistryLoadFailed;
+        this.PacketRegistryBrowser.CatalogReloaded += this.HandleCatalogReloaded;
+        _tcpClientService.StatusChanged += _tcpStatusHandler;
+        _tcpClientService.PacketSent += this.HandlePacketSent;
+        _tcpClientService.PacketReceived += this.HandlePacketReceived;
 
         if (this.PacketBuilder.SelectedPacketType is not null)
         {
@@ -75,14 +90,9 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         this.SelectedThemeOption = this.ThemeOptions.FirstOrDefault(option => option.Mode == _configurationService.Appearance.ThemeMode)
             ?? this.ThemeOptions[0];
+        this.UpdateStatus(_texts.LogSourceSystem, _texts.StatusReady);
 
-        this.PacketBuilder.PropertyChanged += (_, args) =>
-        {
-            if (string.Equals(args.PropertyName, nameof(PacketBuilderViewModel.SelectedPacketType), StringComparison.Ordinal))
-            {
-                this.PacketRegistryBrowser.SelectedPacketType = this.PacketBuilder.SelectedPacketType;
-            }
-        };
+        this.PacketBuilder.PropertyChanged += _packetBuilderPropertyChangedHandler;
     }
 
     /// <summary>
@@ -143,39 +153,95 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// </summary>
     public HexViewerViewModel HexViewer { get; }
 
+    /// <summary>
+    /// Gets the application log workspace.
+    /// </summary>
+    public ApplicationLogTabViewModel Log { get; }
+
     private void HandleOpenRequested(PacketSnapshot snapshot, bool isReadOnly)
     {
         try
         {
             if (!this.PacketBuilder.TryOpenSnapshot(snapshot, isReadOnly))
             {
-                this.StatusText = string.Format(CultureInfo.CurrentCulture, _texts.StatusPacketTypeUnavailableFormat, snapshot.PacketTypeName);
+                this.UpdateStatus(_texts.LogSourceHistory, string.Format(CultureInfo.CurrentCulture, _texts.StatusPacketTypeUnavailableFormat, snapshot.PacketTypeName));
                 return;
             }
 
             this.PacketRegistryBrowser.SelectedPacketType = this.PacketBuilder.SelectedPacketType;
+            this.UpdateStatus(_texts.LogSourceHistory, this.PacketBuilder.CurrentPacketSummary);
         }
         catch (Exception exception)
         {
-            this.StatusText = string.Format(CultureInfo.CurrentCulture, _texts.StatusUnableOpenSnapshotFormat, exception.Message);
+            this.UpdateStatus(_texts.LogSourceHistory, string.Format(CultureInfo.CurrentCulture, _texts.StatusUnableOpenSnapshotFormat, exception.Message));
         }
     }
-
-    private void HandleStatusChanged(object? sender, string status) => this.StatusText = status;
-
-    private void HandleBuilderStatusRequested(string status) => this.StatusText = status;
 
     private void HandlePacketSent(object? sender, PacketLogEntry entry)
     {
         this.SentHistory.AddEntry(entry);
-        this.StatusText = string.Format(CultureInfo.CurrentCulture, _texts.StatusSentPacketSuccessFormat, entry.PacketName);
+        this.UpdateStatus(_texts.LogSourceTcp, string.Format(CultureInfo.CurrentCulture, _texts.StatusSentPacketSuccessFormat, entry.PacketName));
     }
 
     private void HandlePacketReceived(object? sender, PacketLogEntry entry)
     {
         this.ReceiveHistory.AddEntry(entry);
-        this.StatusText = string.Format(CultureInfo.CurrentCulture, _texts.StatusReceivedPacketSuccessFormat, entry.PacketName, entry.DecodeStatus);
+        this.UpdateStatus(_texts.LogSourceTcp, string.Format(CultureInfo.CurrentCulture, _texts.StatusReceivedPacketSuccessFormat, entry.PacketName, entry.DecodeStatus));
+    }
+
+    private void HandleCatalogReloaded(PacketCatalog catalog, int addedCount)
+    {
+        this.PacketBuilder.ReloadPacketCatalog(catalog);
+        this.PacketRegistryBrowser.ReloadFromPacketTypes(catalog.PacketTypes);
+        this.PacketRegistryBrowser.SelectedPacketType = this.PacketBuilder.SelectedPacketType;
+
+        if (addedCount > 0 && this.PacketBuilder.IsConnected)
+        {
+            this.UpdateStatus(_texts.LogSourceRegistry, _texts.StatusPacketAssemblyReconnectRequired);
+        }
+    }
+
+    private void HandleRegistryLoadFailed(string statusMessage, string detailMessage)
+    {
+        this.StatusText = statusMessage;
+        this.Log.Add(_texts.LogSourceRegistry, $"{statusMessage} {detailMessage}");
+    }
+
+    private void UpdateStatus(string source, string message)
+    {
+        this.StatusText = message;
+        this.Log.Add(source, message);
     }
 
     private void ShowHexViewer(string title, string hex) => this.HexViewer.Show(title, hex);
+
+    private void HandlePacketBuilderPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (string.Equals(args.PropertyName, nameof(PacketBuilderViewModel.SelectedPacketType), StringComparison.Ordinal))
+        {
+            this.PacketRegistryBrowser.SelectedPacketType = this.PacketBuilder.SelectedPacketType;
+        }
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        this.SentHistory.OpenRequested -= this.HandleOpenRequested;
+        this.ReceiveHistory.OpenRequested -= this.HandleOpenRequested;
+        this.PacketBuilder.StatusRequested -= _packetBuilderStatusHandler;
+        this.PacketRegistryBrowser.StatusRequested -= _packetRegistryStatusHandler;
+        this.PacketRegistryBrowser.AssemblyLoadFailed -= this.HandleRegistryLoadFailed;
+        this.PacketRegistryBrowser.CatalogReloaded -= this.HandleCatalogReloaded;
+        _tcpClientService.StatusChanged -= _tcpStatusHandler;
+        _tcpClientService.PacketSent -= this.HandlePacketSent;
+        _tcpClientService.PacketReceived -= this.HandlePacketReceived;
+        this.PacketBuilder.PropertyChanged -= _packetBuilderPropertyChangedHandler;
+        this.PacketBuilder.Dispose();
+    }
 }

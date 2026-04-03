@@ -1,5 +1,5 @@
 using System;
-using Nalix.Framework.DataFrames;
+using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Tools.Models;
 
 namespace Nalix.SDK.Tools.Abstractions;
@@ -32,13 +32,13 @@ public interface IPacketCatalogService
     /// Creates a packet instance for the specified descriptor.
     /// </summary>
     /// <param name="descriptor">The descriptor to instantiate.</param>
-    /// <returns>The created frame.</returns>
-    FrameBase CreatePacket(PacketTypeDescriptor descriptor);
+    /// <returns>The created packet.</returns>
+    IPacket CreatePacket(PacketTypeDescriptor descriptor);
 
     /// <summary>
     /// Deserializes a packet from raw bytes.
     /// </summary>
     /// <param name="rawBytes">The packet bytes.</param>
     /// <returns>The deserialized packet.</returns>
-    FrameBase Deserialize(byte[] rawBytes);
+    IPacket Deserialize(byte[] rawBytes);
 }
