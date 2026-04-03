@@ -2,7 +2,7 @@
 
 `Nalix.Analyzers.CodeFixes` provides the Roslyn fixes that complement the diagnostics in `Nalix.Analyzers`.
 
-Use this page when you want to know what the analyzer can usually fix for you automatically.
+Use this page when you want a quick sense of what the analyzer can usually fix for you automatically.
 
 ## Source mapping
 
@@ -87,4 +87,4 @@ The available fixes currently cover these common workflows:
 - [Analyzers Overview](./index.md)
 - [Serialization Attributes](../common/serialization-attributes.md)
 - [Packet Registry](../framework/packets/packet-registry.md)
-- [Middleware](../concepts/middleware.md)
+- [Middleware](../../concepts/middleware.md)

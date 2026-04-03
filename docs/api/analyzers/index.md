@@ -93,4 +93,4 @@ The current analyzer surface covers:
 - [Serialization Attributes](../common/serialization-attributes.md)
 - [Serialization Basics](../framework/serialization/serialization-basics.md)
 - [Packet Registry](../framework/packets/packet-registry.md)
-- [Middleware](../concepts/middleware.md)
+- [Middleware](../../concepts/middleware.md)
