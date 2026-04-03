@@ -177,40 +177,6 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     /// <inheritdoc/>
     public override Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default) => _sender.SendAsync(payload, null, ct);
 
-    /// <summary>
-    /// Handles messages received by <see cref="FRAME_READER"/>.
-    /// </summary>
-    private void HandleReceiveMessage(BufferLease lease)
-    {
-        try
-        {
-            // First notify synchronous subscribers
-            this.OnMessageReceived?.Invoke(this, lease);
-
-            // Then notify asynchronous subscriber if present
-            if (this.OnMessageAsync is { } handler)
-            {
-                // Run async handler in background and ensure lease disposal in finally block
-                _ = Task.Run(async () =>
-                {
-                    try { await handler(lease.Memory).ConfigureAwait(false); }
-                    catch (Exception ex) { Log.AsyncHandlerFaulted(_logger, ex); }
-                    finally { lease.Dispose(); }
-                });
-            }
-            else
-            {
-                // No async handler, dispose now
-                lease.Dispose();
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.MessageDeliveryFaulted(_logger, ex);
-            lease.Dispose();
-        }
-    }
-
     /// <inheritdoc/>
     public override void Dispose()
     {
@@ -255,6 +221,40 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
         Log.TransportError(_logger, ex);
         this.OnDisconnected?.Invoke(this, ex);
         _ = this.DisconnectAsync();
+    }
+
+    /// <summary>
+    /// Handles messages received by <see cref="FRAME_READER"/>.
+    /// </summary>
+    private void HandleReceiveMessage(BufferLease lease)
+    {
+        try
+        {
+            // First notify synchronous subscribers
+            this.OnMessageReceived?.Invoke(this, lease);
+
+            // Then notify asynchronous subscriber if present
+            if (this.OnMessageAsync is { } handler)
+            {
+                // Run async handler in background and ensure lease disposal in finally block
+                _ = Task.Run(async () =>
+                {
+                    try { await handler(lease.Memory).ConfigureAwait(false); }
+                    catch (Exception ex) { Log.AsyncHandlerFaulted(_logger, ex); }
+                    finally { lease.Dispose(); }
+                });
+            }
+            else
+            {
+                // No async handler, dispose now
+                lease.Dispose();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.MessageDeliveryFaulted(_logger, ex);
+            lease.Dispose();
+        }
     }
 
     #endregion Private
