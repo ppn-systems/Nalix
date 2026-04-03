@@ -17,6 +17,7 @@ threshold.
 | `BucketCount` | `512` | `1..int.MaxValue` | Number of timing wheel buckets. Power-of-two values enable a bitmask fast path for bucket selection. |
 | `TickDuration` | `1000` | `1..int.MaxValue` | Tick interval, in milliseconds, used by the background `PeriodicTimer`. |
 | `IdleTimeoutMs` | `60000` | `1..int.MaxValue` | Idle threshold, in milliseconds, after which registered connections are force-closed. |
+| `WheelDrainTimeoutMs` | `5000` | `0..60000` (ms) | Maximum time in milliseconds to wait for the timing wheel to drain gracefully during shutdown before forceful termination. |
 
 `Validate()` uses data-annotation validation through
 `Validator.ValidateObject(..., validateAllProperties: true)` and rejects values

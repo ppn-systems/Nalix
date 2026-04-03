@@ -1,4 +1,4 @@
-﻿# Serialization Basics
+# Serialization Basics
 
 `Nalix.Framework.Serialization` provides the serializer entry point and formatter resolution layer used by the framework and packet system.
 
@@ -129,6 +129,12 @@ The current source supports these groups directly:
 | Enum | Backing integral type. | Supported backing types are byte, sbyte, short, ushort, int, uint, long, and ulong. |
 
 Span-backed serialization wraps the caller buffer directly. If the formatter writes past the span capacity, the writer cannot expand and the operation fails instead of allocating a replacement buffer.
+
+!!! note "Configuring bounds"
+    `SerializerBounds.MaxArray` and `SerializerBounds.MaxString` are populated at startup from
+    `SerializationOptions` (loaded via `ConfigurationManager`). The defaults are `1_048_576` (1 M) for both.
+    `SerializationOptions.MaxWriterCapacity` (default 128 MB) caps individual `DataWriter` buffer expansions.
+    Adjust these values in `server.ini` to harden against malformed or oversized deserialization payloads.
 
 ## Built-in formatter details
 

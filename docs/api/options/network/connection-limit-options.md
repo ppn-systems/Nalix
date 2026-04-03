@@ -28,6 +28,8 @@ connection error cutoffs, and per-endpoint cleanup behavior used by
 | `MaxErrorThreshold` | `50` | `1..int.MaxValue` | Per-connection error count threshold before disconnect. |
 | `UdpReplayWindowSize` | `1024` | `64..65536` | Sliding replay-protection window size allocated by `Connection`. |
 | `MaxPacketPerSecond` | `128` | `1..10_000_000` | UDP listener rate limiter budget per connection. |
+| `MaxCleanupKeysPerRun` | `0` | `0..10_000_000` | Max endpoint keys scanned per cleanup cycle; `0` auto-scales based on tracked entry count. |
+| `DailyResetTimeOffset` | `00:00:00` | `-14:00:00..14:00:00` | UTC offset used to determine the start-of-day for daily connection-limit resets. |
 
 `Validate()` uses data annotations through
 `Validator.ValidateObject(..., validateAllProperties: true)`.
@@ -96,7 +98,9 @@ A recurring cleanup job is scheduled with:
 - `Jitter = 250ms`
 - `ExecutionTimeout = 2s`
 
-Each run scans at most `1000` endpoint keys. Entries are removed only when they have
+Each run scans at most `MaxCleanupKeysPerRun` endpoint keys per cycle; when
+`MaxCleanupKeysPerRun` is `0` (the default), the scan count is auto-scaled to a
+percentage of the current tracked entry count. Entries are removed only when they have
 no active connections and `LastConnectionTime` is older than
 `now - InactivityThreshold`. Removed entries have their timestamp queues cleared.
 
