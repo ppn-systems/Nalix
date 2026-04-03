@@ -34,6 +34,8 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
 
     #endregion Fields
 
+    #region Properties
+
     /// <summary>Gets the fixed framing header size in bytes.</summary>
     public const int HeaderSize = 2;
 
@@ -45,6 +47,8 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
 
     /// <inheritdoc/>
     public override bool IsConnected => _socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
+
+    #endregion Properties
 
     #region Events
 
@@ -90,6 +94,8 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     }
 
     #endregion Constructor
+
+    #region APIs
 
     /// <inheritdoc/>
     public override async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
@@ -205,13 +211,6 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
         }
     }
 
-    private void HandleError(Exception ex)
-    {
-        Log.TransportError(_logger, ex);
-        this.OnDisconnected?.Invoke(this, ex);
-        _ = this.DisconnectAsync();
-    }
-
     /// <inheritdoc/>
     public override void Dispose()
     {
@@ -225,6 +224,10 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
         _reader.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    #endregion APIs
+
+    #region Private
 
     private static partial class Log
     {
@@ -246,4 +249,13 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
         [LoggerMessage(6, LogLevel.Error, "[TCP] Transport error occurred.")]
         public static partial void TransportError(ILogger? logger, Exception ex);
     }
+
+    private void HandleError(Exception ex)
+    {
+        Log.TransportError(_logger, ex);
+        this.OnDisconnected?.Invoke(this, ex);
+        _ = this.DisconnectAsync();
+    }
+
+    #endregion Private
 }
