@@ -27,9 +27,6 @@ on:
         default: false
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Gate: skip build when the PR is documentation-only
-  # ---------------------------------------------------------------------------
   check-label:
     name: "Check: Documentation label"
     if: github.event_name == 'pull_request'
@@ -50,13 +47,9 @@ jobs:
             const isDoc = labels.some(l => l.name === 'documentation');
             core.setOutput('is_document', isDoc ? 'true' : 'false');
 
-  # ---------------------------------------------------------------------------
-  # Main: restore → build → test → (optional) publish
-  # ---------------------------------------------------------------------------
   build:
     name: "Build & Test (${{ inputs.os }})"
     needs: check-label
-    # always() prevents skip when check-label is skipped (non-PR events)
     if: |
       always() &&
       (needs.check-label.outputs.is_document != 'true')
@@ -68,9 +61,7 @@ jobs:
 
     steps:
       - name: Set environment variables
-        shell: bash
-        run: |
-          echo "TEST_RESULTS_DIR=artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
+        run: echo "TEST_RESULTS_DIR=artifacts/test-results/${{ runner.os }}" >> "$GITHUB_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -84,55 +75,38 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          # Fallback to *.csproj when packages.lock.json is absent
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
 
       - name: Decode signing key
-        shell: bash
-        run: echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
-
-      - name: Restore source projects
-        shell: bash
         run: |
-          echo "${{ inputs.project }}" | tr -d '\r' | while IFS= read -r proj; do
-            [ -n "$proj" ] && { echo "Restoring $proj"; dotnet restore "$proj"; }
-          done
+          if [ -n "${{ secrets.SIGNING_KEY }}" ]; then
+            echo "${{ secrets.SIGNING_KEY }}" | base64 -d > ./Nalix.snk
+          else
+            echo "SIGNING_KEY is not set. Skipping signing key creation."
+          fi
 
-      - name: Restore test projects
-        shell: bash
+      - name: Restore all projects
         run: |
-          echo "${{ inputs.test }}" | tr -d '\r' | while IFS= read -r proj; do
-            [ -n "$proj" ] && { echo "Restoring $proj"; dotnet restore "$proj"; }
-          done
+          dotnet restore src/Nalix.sln
+          dotnet restore tests/Nalix.Tests.sln
 
-      - name: Build source projects
-        shell: bash
+      - name: Build all projects
         run: |
-          echo "${{ inputs.project }}" | tr -d '\r' | while IFS= read -r proj; do
-            [ -n "$proj" ] && { echo "Building $proj"; dotnet build "$proj" --configuration Release --no-restore; }
-          done
+          dotnet build src/Nalix.sln \
+            --configuration Release \
+            --no-restore \
+            /p:UseSharedCompilation=false
 
-      - name: Create test results directory
-        shell: bash
-        run: mkdir -p "$TEST_RESULTS_DIR"
-
-      - name: Run tests
-        shell: bash
+      - name: Run all tests
         run: |
-          echo "${{ inputs.test }}" | tr -d '\r' | while IFS= read -r proj; do
-            if [ -n "$proj" ]; then
-              name=$(basename "${proj%.*}")
-              echo "Testing $proj"
-              dotnet test "$proj" \
-                --configuration Release \
-                --no-restore \
-                --logger "trx;LogFileName=${name}-${{ runner.os }}.trx" \
-                --results-directory "$TEST_RESULTS_DIR" \
-                --verbosity normal
-            fi
-          done
+          dotnet test tests/Nalix.Tests.sln \
+            --configuration Release \
+            --no-restore \
+            --logger "trx;LogFileName=tests_results.trx" \
+            --results-directory "$TEST_RESULTS_DIR" \
+            /p:UseSharedCompilation=false
 
       - name: Upload test results
         if: always()
@@ -142,29 +116,14 @@ jobs:
           path: ${{ env.TEST_RESULTS_DIR }}
           if-no-files-found: warn
 
-      - name: Comment test results on PR
-        if: always() && github.event_name == 'pull_request'
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: ${{ env.TEST_RESULTS_DIR }}/**/*.trx
-          comment_mode: always
-          fail_on: test failures
-
       - name: Publish build output
         if: inputs.deploy
-        shell: bash
         run: |
-          echo "${{ inputs.project }}" | tr -d '\r' | while IFS= read -r proj; do
-            if [ -n "$proj" ]; then
-              name=$(basename "$proj" .csproj)
-              echo "Publishing $proj → ./publish/$name"
-              dotnet publish "$proj" \
-                --configuration Release \
-                --no-restore \
-                --no-build \
-                --output "./publish/$name"
-            fi
-          done
+          dotnet publish src/Nalix.sln \
+            --configuration Release \
+            --no-restore \
+            --no-build \
+            --output ./publish
 
       - name: Upload publish artifact
         if: inputs.deploy
