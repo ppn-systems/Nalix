@@ -21,7 +21,6 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Network.Internal.Results;
-using Nalix.Network.Internal.Routing;
 using Nalix.Network.Routing;
 
 #if DEBUG
@@ -122,16 +121,24 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     /// </summary>
     private enum SignatureKind
     {
-        /// <summary>(TPacket, IConnection)</summary>
+        /// <summary>
+        /// (TPacket, IConnection)
+        /// </summary>
         LegacyNoToken = 0,
 
-        /// <summary>(TPacket, IConnection, CancellationToken)</summary>
+        /// <summary>
+        /// (TPacket, IConnection, CancellationToken)
+        /// </summary>
         LegacyWithToken = 1,
 
-        /// <summary>(PacketContext&lt;TPacket&gt;)</summary>
+        /// <summary>
+        /// (PacketContext&lt;TPacket&gt;)
+        /// </summary>
         ContextOnly = 2,
 
-        /// <summary>(PacketContext&lt;TPacket&gt;, CancellationToken)</summary>
+        /// <summary>
+        /// (PacketContext&lt;TPacket&gt;, CancellationToken)
+        /// </summary>
         ContextWithToken = 3,
     }
 
@@ -332,9 +339,9 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             {
                 throw new InternalErrorException(
                     $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                    $"parameter type PacketContext<{declaredT.Name}> does not match " +
+                    $"parameter type IPacketContext<{declaredT.Name}> does not match " +
                     $"the dispatcher's TPacket={typeof(TPacket).Name}. " +
-                    $"Declare the parameter as PacketContext<{typeof(TPacket).Name}> " +
+                    $"Declare the parameter as IPacketContext<{typeof(TPacket).Name}> " +
                     $"and cast context.Packet to {declaredT.Name} inside the method body: " +
                     $"var pkt = ({declaredT.Name})context.Packet;");
             }
@@ -348,7 +355,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     ? SignatureKind.ContextWithToken
                     : throw new InternalErrorException(
                             $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                            "when the first parameter is PacketContext<TPacket>, " +
+                            "when the first parameter is IPacketContext<TPacket>, " +
                             "the only valid second parameter is CancellationToken. " +
                             $"Found {parms.Length} parameter(s).");
             }
@@ -393,8 +400,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 "Supported forms: " +
                 "(TPacket, IConnection), " +
                 "(TPacket, IConnection, CancellationToken), " +
-                "(PacketContext<T>), " +
-                "(PacketContext<T>, CancellationToken).");
+                "(IPacketContext<T>), " +
+                "(IPacketContext<T>, CancellationToken).");
         }
     }
 

@@ -3,8 +3,16 @@ name: "CI: Windows Build & Test"
 on:
   push:
     branches: ["master"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
   pull_request:
     branches: ["master"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "*.sln"
 
 permissions:
   contents: read

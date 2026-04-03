@@ -11,7 +11,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Internal.Routing;
+using Nalix.Network.Internal.Compilation;
 using Nalix.Network.Middleware;
 using Nalix.Network.Middleware.Internal;
 

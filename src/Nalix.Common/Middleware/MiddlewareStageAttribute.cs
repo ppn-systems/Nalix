@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Nalix.Common.Middleware;
 
@@ -27,6 +26,5 @@ public sealed class MiddlewareStageAttribute : Attribute
     /// Initializes a new instance of the <see cref="MiddlewareStageAttribute"/> class.
     /// </summary>
     /// <param name="stage">The execution stage.</param>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public MiddlewareStageAttribute(MiddlewareStage stage) => this.Stage = stage;
 }

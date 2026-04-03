@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking.Packets;
 
 namespace Nalix.Common.Serialization;
@@ -22,8 +21,6 @@ public class SerializeOrderAttribute : Attribute
     /// Initializes a new instance of the <see cref="SerializeOrderAttribute"/> class with the specified serialization order.
     /// </summary>
     /// <param name="order">The order in which the field or property should be serialized.</param>
-    [SuppressMessage(
-        "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public SerializeOrderAttribute(int order) => this.Order = order;
 
     /// <summary>

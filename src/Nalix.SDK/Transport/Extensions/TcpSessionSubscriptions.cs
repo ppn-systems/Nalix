@@ -2,18 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
 
 namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
-/// Convenience subscriptions for <see cref="IClientConnection"/> to reduce boilerplate.
+/// Convenience subscriptions for <see cref="TransportSession"/> to reduce boilerplate.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -40,7 +37,7 @@ public static class TcpSessionSubscriptions
     /// <param name="handler"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On<TPacket>(
-        this IClientConnection client,
+        this TransportSession client,
         Action<TPacket> handler)
         where TPacket : class, IPacket
     {
@@ -62,11 +59,10 @@ public static class TcpSessionSubscriptions
 
                 handler(t);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Swallow handler exceptions — must not fault FRAME_READER receive loop.
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[SDK.On<{typeof(TPacket).Name}>] handler-error: {ex.Message}", ex);
+
             }
             finally
             {
@@ -90,7 +86,7 @@ public static class TcpSessionSubscriptions
     /// <param name="handler"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On(
-        this IClientConnection client,
+        this TransportSession client,
         Func<IPacket, bool> predicate,
         Action<IPacket> handler)
     {
@@ -111,10 +107,9 @@ public static class TcpSessionSubscriptions
 
                 handler(p);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[SDK.On(predicate)] handler-error: {ex.Message}", ex);
+
             }
             finally
             {
@@ -138,7 +133,7 @@ public static class TcpSessionSubscriptions
     /// <param name="handler"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable OnOnce<TPacket>(
-        this IClientConnection client,
+        this TransportSession client,
         Func<TPacket, bool> predicate,
         Action<TPacket> handler)
         where TPacket : class, IPacket
@@ -178,11 +173,10 @@ public static class TcpSessionSubscriptions
 
                 handler(t);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Swallow — must not bubble up to FRAME_READER receive loop.
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[SDK.OnOnce<{typeof(TPacket).Name}>] handler-error: {ex.Message}", ex);
+
             }
             finally
             {
@@ -226,7 +220,7 @@ public static class TcpSessionSubscriptions
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable SubscribeTemp<TPacket>(
-        this IClientConnection client,
+        this TransportSession client,
         Action<TPacket> onMessage,
         Action<Exception>? onDisconnected = null)
         where TPacket : class, IPacket
@@ -265,7 +259,7 @@ public static class TcpSessionSubscriptions
     /// <returns>An <see cref="IDisposable"/> that unsubscribes when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable SubscribeTemp<TPacket>(
-        this IClientConnection client,
+        this TransportSession client,
         Func<TPacket, bool> predicate,
         Action<TPacket> onMessage,
         Action<Exception>? onDisconnected = null)
@@ -310,7 +304,7 @@ public static class TcpSessionSubscriptions
     /// <param name="subs"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CompositeSubscription Subscribe(
-        this IClientConnection _,
+        this TransportSession _,
         params IDisposable[] subs)
         => new(subs);
 
@@ -339,7 +333,6 @@ public sealed class CompositeSubscription : IDisposable
     /// Initializes a new <see cref="CompositeSubscription"/> with the specified subscriptions.
     /// </summary>
     /// <param name="subs"></param>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public CompositeSubscription(params IDisposable[] subs) => _subs = subs ?? [];
 
     /// <summary>

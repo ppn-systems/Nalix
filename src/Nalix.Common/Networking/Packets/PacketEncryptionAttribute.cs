@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Security;
 
 namespace Nalix.Common.Networking.Packets;
@@ -28,8 +27,6 @@ public sealed class PacketEncryptionAttribute : Attribute
     /// The symmetric encryption algorithm to apply when <paramref name="isEncrypted"/> is <c>true</c>.
     /// Defaults to <see cref="CipherSuiteType.Chacha20Poly1305"/>.
     /// </param>
-    [SuppressMessage(
-        "Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public PacketEncryptionAttribute(
         bool isEncrypted = true,
         CipherSuiteType algorithmType = CipherSuiteType.Chacha20Poly1305)

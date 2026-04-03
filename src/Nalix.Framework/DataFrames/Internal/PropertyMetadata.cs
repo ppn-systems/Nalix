@@ -67,10 +67,10 @@ internal sealed class PropertyMetadata
     /// <summary>
     /// Pre-computed default value used by <c>ResetForPool</c>.
     /// <list type="bullet">
-    ///   <item><see cref="byte"/>[] → <see cref="Array.Empty{T}"/></item>
-    ///   <item><see cref="string"/> → <see cref="string.Empty"/></item>
-    ///   <item>Value type → <see cref="Activator.CreateInstance(Type)"/></item>
-    ///   <item>Reference type → <see langword="null"/></item>
+    ///   <item><see cref="byte"/>[] -> <see cref="Array.Empty{T}"/></item>
+    ///   <item><see cref="string"/> -> <see cref="string.Empty"/></item>
+    ///   <item>Value type -> <see cref="Activator.CreateInstance(Type)"/></item>
+    ///   <item>Reference type -> <see langword="null"/></item>
     /// </list>
     /// </summary>
     public object? DefaultValue { get; }

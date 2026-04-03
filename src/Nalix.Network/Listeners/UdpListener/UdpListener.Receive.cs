@@ -19,7 +19,6 @@ using Nalix.Framework.Security.Hashing;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Constants;
 using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Listeners.Udp;
@@ -64,15 +63,15 @@ public abstract partial class UdpListenerBase
                 int idx = next & int.MaxValue;
 
                 _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?.ScheduleWorker(
-                    name: $"{NetworkTags.Udp}.{TaskNaming.Tags.Accept}",
-                    group: $"{NetworkTags.Net}/{NetworkTags.Udp}/{_port}",
+                    name: $"{TaskNaming.Tags.Udp}.{TaskNaming.Tags.Accept}",
+                    group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",
                     work: (_, __) =>
                     {
                         this.ProcessDatagram(result); return new ValueTask();
                     },
                     options: new WorkerOptions
                     {
-                        Tag = NetworkTags.Udp,
+                        Tag = TaskNaming.Tags.Udp,
                         IdType = SnowflakeType.System,
                         TryAcquireSlotImmediately = true,
                         CancellationToken = cancellationToken,

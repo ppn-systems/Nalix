@@ -77,8 +77,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     );
 
     /// <summary>
-    /// null  → has dynamic properties, call ComputeDynamicLength() at runtime.
-    /// value → all properties are fixed-size, return directly.
+    /// null  -> has dynamic properties, call ComputeDynamicLength() at runtime.
+    /// value -> all properties are fixed-size, return directly.
     /// Using int? avoids the "0-as-sentinel" ambiguity from the previous version.
     /// </summary>
     [SerializeIgnore]
@@ -121,7 +121,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            // Fast path: all properties are fixed-size → return cached value directly.
+            // Fast path: all properties are fixed-size -> return cached value directly.
             int? fixedSize = s_cachedFixedSize.Value;
             return fixedSize ?? this.COMPUTE_DYNAMIC_LENGTH();
         }

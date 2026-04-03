@@ -34,6 +34,24 @@ public static class TaskNaming
     /// </summary>
     public static class Tags
     {
+        /// <inheritdoc/>
+        public const string Tcp = "tcp";
+
+        /// <inheritdoc/>
+        public const string Udp = "udp";
+
+        /// <inheritdoc/>
+        public const string Net = "net";
+
+        /// <inheritdoc/>
+        public const string Time = "time";
+
+        /// <inheritdoc/>
+        public const string Sync = "sync";
+
+        /// <inheritdoc/>
+        public const string Wheel = "wheel";
+
         /// <summary>
         /// Tag for tasks that process data or requests.
         /// </summary>

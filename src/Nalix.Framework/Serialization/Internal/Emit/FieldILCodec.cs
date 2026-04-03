@@ -41,7 +41,7 @@ internal static class FieldILCodec
     private static readonly MethodInfo s_writeReadOnlySpanByteMethod = typeof(DataWriterExtensions).GetMethod("Write", [typeof(DataWriter).MakeByRefType(), typeof(ReadOnlySpan<byte>)])!;
     private static readonly MethodInfo s_writeUnmanagedMethod = typeof(DataWriterExtensions).GetMethod("WriteUnmanaged", BindingFlags.Public | BindingFlags.Static)!;
 
-    // Note: DataReaderExtensions doesn't have Read(short), float, double, char, etc. → we fall back to ReadUnmanaged for those.
+    // Note: DataReaderExtensions doesn't have Read(short), float, double, char, etc. -> we fall back to ReadUnmanaged for those.
     private static readonly MethodInfo s_readByteMethod = typeof(DataReaderExtensions).GetMethod("ReadByte", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readBooleanMethod = typeof(DataReaderExtensions).GetMethod("ReadBoolean", [typeof(DataReader).MakeByRefType()])!;
     private static readonly MethodInfo s_readUInt16Method = typeof(DataReaderExtensions).GetMethod("ReadUInt16", [typeof(DataReader).MakeByRefType()])!;
@@ -193,7 +193,7 @@ internal static class FieldILCodec
             return TryResolveWriteMethod(Enum.GetUnderlyingType(fieldType));
         }
 
-        // Note: short is missing in DataWriterExtensions → we fall through to WriteUnmanaged
+        // Note: short is missing in DataWriterExtensions -> we fall through to WriteUnmanaged
         // You can add Write(short) later if you want.
 
         // Arrays need their formatter to preserve framing metadata such as length prefixes.

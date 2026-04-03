@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+		<IsTrimmable>false</IsTrimmable>
+		<OutputType>Library</OutputType>
+		<Deterministic>true</Deterministic>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
+
+		<Description>
+			<![CDATA[]]>
+		</Description>
+
+		<PackageReleaseNotes>
+			<![CDATA[]]>
+		</PackageReleaseNotes>
+
+	</PropertyGroup>
+
+	<Import Project="..\Nalix.Build.props" />
+	<Import Project="..\Package.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
+
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+	</ItemGroup>
+</Project>

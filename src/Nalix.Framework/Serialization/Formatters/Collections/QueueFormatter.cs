@@ -26,7 +26,7 @@ namespace Nalix.Framework.Serialization.Formatters.Collections;
 /// </item>
 /// <item>
 /// <description>
-/// For each element (in FIFO order, head → tail):
+/// For each element (in FIFO order, head -> tail):
 /// <list type="bullet">
 /// <item><description>Element serialized using <see cref="IFormatter{T}"/>.</description></item>
 /// </list>
@@ -96,10 +96,10 @@ internal sealed class QueueFormatter<
     /// Serialization behavior:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><c>null</c> → writes <c>-1</c> as count.</description></item>
-    /// <item><description>Empty queue → writes <c>0</c>.</description></item>
+    /// <item><description><c>null</c> -> writes <c>-1</c> as count.</description></item>
+    /// <item><description>Empty queue -> writes <c>0</c>.</description></item>
     /// <item><description>
-    /// Otherwise writes count followed by elements in FIFO order (head → tail).
+    /// Otherwise writes count followed by elements in FIFO order (head -> tail).
     /// </description></item>
     /// </list>
     /// </remarks>
@@ -121,8 +121,8 @@ internal sealed class QueueFormatter<
             return;
         }
 
-        // Queue<T> enumerate theo đúng thứ tự FIFO (head → tail)
-        // → Dequeue() sau deserialize sẽ trả về đúng phần tử đầu tiên
+        // Queue<T> enumerate theo đúng thứ tự FIFO (head -> tail)
+        // -> Dequeue() sau deserialize sẽ trả về đúng phần tử đầu tiên
         foreach (T element in value)
         {
             s_elementFormatter.Serialize(ref writer, element);
@@ -147,8 +147,8 @@ internal sealed class QueueFormatter<
     /// Deserialization behavior:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><c>-1</c> → returns <c>null</c>.</description></item>
-    /// <item><description><c>0</c> → returns an empty queue.</description></item>
+    /// <item><description><c>-1</c> -> returns <c>null</c>.</description></item>
+    /// <item><description><c>0</c> -> returns an empty queue.</description></item>
     /// <item><description>
     /// Otherwise reads and enqueues elements sequentially, preserving original FIFO order.
     /// </description></item>

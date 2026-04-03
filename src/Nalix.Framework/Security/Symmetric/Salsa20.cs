@@ -164,12 +164,12 @@ public static class Salsa20
             c10 = 0x79622d32; // "2-by"
             c15 = 0x6b206574; // "te k"
 
-            // First 16 bytes of key → s[1..4]
+            // First 16 bytes of key -> s[1..4]
             s[1] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(key[..4]);
             s[2] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(4, 4));
             s[3] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(8, 4));
             s[4] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(12, 4));
-            // Second 16 bytes of key → s[11..14]
+            // Second 16 bytes of key -> s[11..14]
             s[11] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(16, 4));
             s[12] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(20, 4));
             s[13] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(key.Slice(24, 4));
@@ -200,11 +200,11 @@ public static class Salsa20
         s[10] = c10;
         s[15] = c15;
 
-        // Nonce → s[6..7]
+        // Nonce -> s[6..7]
         s[6] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(nonce[..4]);
         s[7] = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(nonce.Slice(4, 4));
 
-        // Counter → s[8] (low 32 bits), s[9] (high 32 bits)
+        // Counter -> s[8] (low 32 bits), s[9] (high 32 bits)
         s[8] = (uint)(counter & 0xFFFF_FFFFu);
         s[9] = (uint)(counter >> 32);
 

@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
+using Nalix.Framework.Tasks;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -14,14 +15,21 @@ public abstract partial class TcpListenerBase
 {
     #region Fields
 
-    /// <summary>
-    /// Dedicated consumer thread — drains the channel at BelowNormal priority.
-    /// </summary>
+    // Thread BelowNormal is separate so that drain channel — is separate from ThreadPool.
+    // WHY separate thread: This thread runs continuously; using ThreadPool will occupy the thread pool
+    // and compete with more important async callback I/O.
     private Thread? _processThread;
 
-    /// <summary>
-    /// Bounded channel: N producers (accept-loop workers) → 1 consumer (BelowNormal thread).
-    /// </summary>
+    // Bounded channel: N producers (accept-loop workers) -> 1 consumer (BelowNormal thread).
+    //
+    // Producer-Consumer Architecture:
+    // - N producers: accept-workers run in parallel, each worker accepts 1 conn and then DISPATCH.
+    // - 1 consumer: _processThread drain channel and call ProcessConnection.
+    //
+    // WHY Channel instead of ConcurrentQueue + ManualResetEvent:
+    // - Channel has WaitToReadAsync() async-aware -> consumer thread not busy-wait.
+    // - BoundedChannel has a built-in backpressure (DropWrite when full).
+    // - A more concise API, more deferred in terms of concurrency.
     private System.Threading.Channels.Channel<IConnection>? _processChannel;
 
     #endregion Fields
@@ -40,19 +48,29 @@ public abstract partial class TcpListenerBase
             {
                 SingleReader = true,   // only the consumer thread reads
                 SingleWriter = false,  // many accept-loop workers write
-                // DropWrite = TryWrite returns false when full (no blocking producer)
+
+                // DropWrite = TryWrite returns false when the channel is full (no block producer).
+                // WHY DropWrite instead of Wait: If block producer -> accept-worker is held
+                // -> Cannot accept new connection -> latency increases and may fail.
+                // DropWrite + log -> DDoS protection: new connection dropped, old connection secure.
                 FullMode = System.Threading.Channels.BoundedChannelFullMode.DropWrite,
+
+                // AllowSynchronousContinuations = false -> continuation is always scheduled
+                // Go to ThreadPool instead of running inline on the writer's thread.
+                // WHY: Avoid stack overflow and unexpected re-entrancy on producer thread.
                 AllowSynchronousContinuations = false,
             });
 
         _processThread = new Thread(() => this.PROCESS_CHANNEL_LOOP(cancellationToken))
         {
+            // Does not prevent the process from exiting when the main thread finishes.
             IsBackground = true,
-            Name = $"NW.AcceptDispatch.{_port}",
-            // ── Core of the priority fix ─────────────────────────────────────
-            // OS scheduler prefers Normal-priority ThreadPool threads over this
-            // thread whenever both are runnable.
-            // → AsyncCallback packet callbacks always win CPU over new-connection setup.
+            Name = $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{TaskNaming.Tags.Dispatch}.{_port}",
+
+            // BelowNormal priority -> OS scheduler prioritizes Normal-priority ThreadPool thread.
+            // WHY: AsyncCallback of the I/O socket running on ThreadPool (Normal priority).
+            // If consumer thread is on the same priority -> CPU competition -> I/O callback is delayed.
+            // BelowNormal -> I/O callback always wins against CPU -> better throughput under high load.
             Priority = ThreadPriority.BelowNormal,
         };
 
@@ -65,7 +83,12 @@ public abstract partial class TcpListenerBase
     /// </summary>
     private void STOP_PROCESS_CHANNEL()
     {
+        // TryComplete() -> đánh dấu channel là "đã đóng" (sẽ không nhận thêm item mới).
+        // Consumer thread sẽ drain hết item còn lại rồi thoát khỏi vòng lặp.
         _ = (_processChannel?.Writer.TryComplete());
+
+        // Join với timeout 5 giây -> tránh block vô hạn nếu consumer thread bị treo.
+        // WHY 5s: Đủ để consumer drain hết item còn lại trong queue khi shutdown.
         _ = (_processThread?.Join(millisecondsTimeout: 5_000));
     }
 
@@ -101,8 +124,12 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        // Channel full -> DDoS backpressure: drop the new connection immediately.
-        // Existing legitimate connections already in the channel are unaffected.
+        // Channel full (FullMode = DropWrite) -> drop new connection.
+        // WHY drop new instead of drop old:
+        // - The old connection in the channel has been accepted and may be legitimate user.
+        // - The new connection (dropped) could be part of a DDoS burst -> drop is correct.
+        // - Backpressure signal: If the channel is consistently full, increase ProcessChannelCapacity or
+        //   optimize ProcessConnection for faster execution.
         this.Metrics.RECORD_REJECTED();
 
         s_logger?.Warn("[NW.{Class}:{Action}] channel-full remote={RemoteEndPoint} port={Port} — dropped",
@@ -131,8 +158,10 @@ public abstract partial class TcpListenerBase
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            // ── Fast path: drain all immediately available items ──────────────
-            // Avoids async state machine overhead during bursts.
+            // ── Fast path: drain all items available immediately ──────────────
+            // TryRead() is not async -> does not consume overhead async state machine.
+            // WHY fast-path first: In burst scenario, the channel can contain multiple items.
+            // Drain runs out in the sync loop much faster than waiting each item individually.
             while (reader.TryRead(out IConnection? connection))
             {
                 if (connection is null)
@@ -143,7 +172,10 @@ public abstract partial class TcpListenerBase
                 this.INVOKE_PROCESS(connection);
             }
 
-            // ── Slow path: wait for next item ─────────────────────────────────
+            // ── Slow path: wait for the next item (async) ─────────────────────────
+            // WaitToReadAsync returns ValueTask<bool>:
+            // - true -> has item -> continue loop to TryRead.
+            // - false -> channel completed (shutdown) -> exit.
             ValueTask<bool> wait = reader.WaitToReadAsync(cancellationToken);
 
             if (wait.IsCompletedSuccessfully)
@@ -156,7 +188,11 @@ public abstract partial class TcpListenerBase
                 continue;
             }
 
-            // Genuinely async — block this background thread until data arrives.
+            // Genuinely async — block this thread until data is available.
+            // WHY GetAwaiter().GetResult() instead of await:
+            // - This is dedicated background thread (not async context).
+            // - Blocking this thread is correct in design — this thread is SPECIFICALLY for waiting.
+            // - Using await will create an unnecessary async state machine.
             try
             {
                 if (!wait.AsTask().GetAwaiter().GetResult())
@@ -170,7 +206,10 @@ public abstract partial class TcpListenerBase
             }
         }
 
-        // Drain any remaining items that arrived before the channel was completed.
+        // Drain the remaining items after the channel is complete or the token has been cancelled.
+        // WHY drain after exiting the loop:
+        // - The channel may have the item written in before TryComplete() is called.
+        // - No drain -> leak connection (socket not closed correctly).
         while (reader.TryRead(out IConnection? connection))
         {
             if (connection is null)
@@ -194,8 +233,11 @@ public abstract partial class TcpListenerBase
     {
         try
         {
-            // ProcessConnection → OnAccept → BeginReceive (returns in microseconds).
-            // The receive loop itself runs as a separate async task on the ThreadPool.
+            // ProcessConnection -> OnAccept -> BeginReceive (completed in microseconds).
+            // Receive loop actually runs async on ThreadPool -> no block consumer thread.
+            // WHY calls directly instead of ThreadPool.Queue:
+            // - Save 1 ThreadPool hop -> reduce latency.
+            // - Consumer thread BelowNormal -> does not compete with I/O callbacks.
             this.ProcessConnection(connection);
         }
         catch (Exception ex)

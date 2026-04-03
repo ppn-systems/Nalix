@@ -26,7 +26,7 @@ namespace Nalix.Framework.Serialization.Formatters.Collections;
 /// </item>
 /// <item>
 /// <description>
-/// For each element in LIFO order (top → bottom):
+/// For each element in LIFO order (top -> bottom):
 /// <list type="bullet">
 /// <item><description>Element serialized using <see cref="IFormatter{T}"/>.</description></item>
 /// </list>
@@ -93,10 +93,10 @@ internal sealed class StackFormatter<
     /// Serialization behavior:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><c>null</c> → writes <c>-1</c> as count.</description></item>
-    /// <item><description>Empty stack → writes <c>0</c>.</description></item>
+    /// <item><description><c>null</c> -> writes <c>-1</c> as count.</description></item>
+    /// <item><description>Empty stack -> writes <c>0</c>.</description></item>
     /// <item><description>
-    /// Otherwise writes count followed by elements in LIFO order (top → bottom).
+    /// Otherwise writes count followed by elements in LIFO order (top -> bottom).
     /// </description></item>
     /// </list>
     /// </remarks>
@@ -118,8 +118,8 @@ internal sealed class StackFormatter<
             return;
         }
 
-        // Stack<T> enumerate theo LIFO (top → bottom)
-        // → Push() khi deserialize theo thứ tự ngược lại sẽ phục hồi đúng stack
+        // Stack<T> enumerate theo LIFO (top -> bottom)
+        // -> Push() khi deserialize theo thứ tự ngược lại sẽ phục hồi đúng stack
         foreach (T element in value)
         {
             s_elementFormatter.Serialize(ref writer, element);
@@ -144,8 +144,8 @@ internal sealed class StackFormatter<
     /// Deserialization behavior:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><c>-1</c> → returns <c>null</c>.</description></item>
-    /// <item><description><c>0</c> → returns an empty stack.</description></item>
+    /// <item><description><c>-1</c> -> returns <c>null</c>.</description></item>
+    /// <item><description><c>0</c> -> returns an empty stack.</description></item>
     /// <item><description>
     /// Otherwise reads elements into a temporary array then pushes in reverse
     /// to restore original top-of-stack correctly.
@@ -175,15 +175,15 @@ internal sealed class StackFormatter<
             return stack;
         }
 
-        // Serialize ghi top → bottom
-        // Nếu Push() thẳng thì stack bị đảo ngược → cần đọc vào array rồi Push ngược lại
+        // Serialize ghi top -> bottom
+        // Nếu Push() thẳng thì stack bị đảo ngược -> cần đọc vào array rồi Push ngược lại
         T[] buffer = new T[count];
         for (int i = 0; i < count; i++)
         {
             buffer[i] = s_elementFormatter.Deserialize(ref reader);
         }
 
-        // Push từ bottom → top để khôi phục đúng thứ tự LIFO ban đầu
+        // Push từ bottom -> top để khôi phục đúng thứ tự LIFO ban đầu
         for (int i = count - 1; i >= 0; i--)
         {
             stack.Push(buffer[i]);

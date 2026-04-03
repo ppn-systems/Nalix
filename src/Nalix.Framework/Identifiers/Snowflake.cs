@@ -221,7 +221,7 @@ public readonly partial struct Snowflake : ISnowflake
 
             if (now == last)
             {
-                // same millisecond → increment sequence
+                // same millisecond -> increment sequence
                 seq = Interlocked.Increment(ref _sequence) & 0x0FFF;
 
                 if (seq == 0)
@@ -239,7 +239,7 @@ public readonly partial struct Snowflake : ISnowflake
             }
             else
             {
-                // new millisecond → reset sequence
+                // new millisecond -> reset sequence
                 seq = 0;
                 _ = Interlocked.Exchange(ref _sequence, 0);
             }
@@ -247,7 +247,7 @@ public readonly partial struct Snowflake : ISnowflake
             // try publish timestamp (CAS)
             if (Interlocked.CompareExchange(ref _lastTimestampMs, now, last) != last)
             {
-                continue; // race → retry
+                continue; // race -> retry
             }
 
             // pack 32-bit value

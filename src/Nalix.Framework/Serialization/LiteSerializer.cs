@@ -247,8 +247,8 @@ public static class LiteSerializer
         // ── Case 2: Unmanaged single-dimensional array ────────────────────────────
         // T is something like int[], byte[], float[].
         // Layout: [4-byte length prefix][element data...]
-        // Special cases: null  → NullArrayMarker  [255,255,255,255]
-        //                empty → EmptyArrayMarker [0,0,0,0]
+        // Special cases: null  -> NullArrayMarker  [255,255,255,255]
+        //                empty -> EmptyArrayMarker [0,0,0,0]
         if (kind is TypeKind.UnmanagedSZArray)
         {
             if (value is null)

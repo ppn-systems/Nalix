@@ -84,7 +84,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// <summary>
     /// -------------------------------------------------------------------------
     /// Static completion handler — shared across ALL instances.
-    /// No closure, no lambda capture → zero delegate allocation per receive.
+    /// No closure, no lambda capture -> zero delegate allocation per receive.
     /// Resolves the TCS AND decrements the active-op counter (EndOperation).
     /// -------------------------------------------------------------------------
     /// </summary>
@@ -220,7 +220,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         args.SetBuffer(buffer, offset, count);
 
         // Fresh TCS per receive.
-        // RunContinuationsAsynchronously → continuations post to thread-pool,
+        // RunContinuationsAsynchronously -> continuations post to thread-pool,
         // preventing stack-dives when the OS fires many completions synchronously.
         TaskCompletionSource<int> tcs = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
@@ -329,7 +329,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void BeginOperation()
     {
-        // First in-flight op → reset the idle event.
+        // First in-flight op -> reset the idle event.
         if (Interlocked.Increment(ref _activeOps) == 1)
         {
             _idle.Reset();
@@ -339,7 +339,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EndOperation()
     {
-        // Last completing op → signal idle.
+        // Last completing op -> signal idle.
         if (Interlocked.Decrement(ref _activeOps) == 0)
         {
             _idle.Set();

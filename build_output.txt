@@ -1,0 +1,39 @@
+  Determining projects to restore...
+  Restored E:\Cs\Nalix\src\Nalix.Framework\Nalix.Framework.csproj (in 211 ms).
+  Restored E:\Cs\Nalix\src\Nalix.Common\Nalix.Common.csproj (in 211 ms).
+  Restored E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj (in 211 ms).
+  Nalix.Common -> E:\Cs\Nalix\src\Nalix.Common\bin\Debug\net10.0\Nalix.Common.dll
+  Nalix.Framework -> E:\Cs\Nalix\src\Nalix.Framework\bin\Debug\net10.0\Nalix.Framework.dll
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(17,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(29,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(41,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(53,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(65,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(77,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\Transport\UdpSession.cs(436,25): error CS1061: 'ISnowflake' does not contain a definition for 'WriteTo' and no accessible extension method 'WriteTo' accepting a first argument of type 'ISnowflake' could be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(98,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(110,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(122,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(134,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(146,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(158,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+
+Build FAILED.
+
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(17,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(29,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(41,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(53,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(65,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(77,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(98,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(110,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(122,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(134,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(146,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\obj\Debug\net10.0\Microsoft.Extensions.Logging.Generators\Microsoft.Extensions.Logging.Generators.LoggerMessageGenerator\LoggerMessage.g.cs(158,21): warning CS8602: Dereference of a possibly null reference. [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+E:\Cs\Nalix\src\Nalix.SDK\Transport\UdpSession.cs(436,25): error CS1061: 'ISnowflake' does not contain a definition for 'WriteTo' and no accessible extension method 'WriteTo' accepting a first argument of type 'ISnowflake' could be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\src\Nalix.SDK\Nalix.SDK.csproj]
+    12 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:02.80

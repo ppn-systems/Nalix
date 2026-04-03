@@ -81,7 +81,6 @@ public abstract partial class ConfigurationLoader
     /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
     /// The section and key names in the INI file are derived from the class and property names.
     /// </summary>
-    [SuppressMessage("Style", "IDE0290:Use primary constructor", Justification = "<Pending>")]
     public ConfigurationLoader()
     {
     }

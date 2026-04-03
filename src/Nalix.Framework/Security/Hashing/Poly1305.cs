@@ -54,12 +54,12 @@ public struct Poly1305
     public const byte TagSize = 16;
 
     /// <summary>
-    /// Number of 32-bit words in the accumulator / r / prime representation (130 bits → 5 words).
+    /// Number of 32-bit words in the accumulator / r / prime representation (130 bits -> 5 words).
     /// </summary>
     private const byte WordCount = 5;
 
     /// <summary>
-    /// Number of 32-bit words in the s part of the key (128 bits → 4 words).
+    /// Number of 32-bit words in the s part of the key (128 bits -> 4 words).
     /// </summary>
     private const byte SWordCount = 4;
 
@@ -525,7 +525,7 @@ public struct Poly1305
             ((System.ReadOnlySpan<byte>)_pending)[.._pendingLen].CopyTo(blockSpan);
             blockSpan[_pendingLen] = 0x01;
 
-            // Partial final block: isFinalBlock = true → n[4] = 0
+            // Partial final block: isFinalBlock = true -> n[4] = 0
             this.AddBlock(
                 _acc,
                 ((System.ReadOnlySpan<byte>)block)[..(_pendingLen + 1)],
@@ -780,7 +780,7 @@ public struct Poly1305
         System.Span<uint> product = productBuf;
         product.Clear();
 
-        // Schoolbook multiplication: 5 × 5 → 10 words
+        // Schoolbook multiplication: 5 × 5 -> 10 words
         MultiplyRow(a, b, product, 0);
         MultiplyRow(a, b, product, 1);
         MultiplyRow(a, b, product, 2);
@@ -911,7 +911,7 @@ public struct Poly1305
             }
         }
 
-        // All words equal → a == b → a ≥ b is true.
+        // All words equal -> a == b -> a ≥ b is true.
         return true;
     }
 

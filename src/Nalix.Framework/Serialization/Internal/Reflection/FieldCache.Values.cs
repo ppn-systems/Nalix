@@ -82,8 +82,8 @@ internal static partial class FieldCache<T>
         bool ownerIsValueType = typeof(T).IsValueType;
 
         // Owner param type:
-        //   struct  → pass by ref so we never box the struct
-        //   class   → plain ref type, no boxing anyway
+        //   struct  -> pass by ref so we never box the struct
+        //   class   -> plain ref type, no boxing anyway
         Type ownerParamType = ownerIsValueType ? typeof(T).MakeByRefType() : typeof(T);
 
         // DynamicMethod name is diagnostic only — not part of any public API.

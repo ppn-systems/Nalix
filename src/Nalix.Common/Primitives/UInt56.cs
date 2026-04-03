@@ -203,7 +203,7 @@ public readonly struct UInt56 :
                 $"Value {value} is outside the range of a UInt56 (0..{MaxValue}).");
         }
 
-        // Pack UInt64 → 3 fields in a single pass
+        // Pack UInt64 -> 3 fields in a single pass
         _lo = (uint)value;
         _mid = (ushort)(value >> 32);
         _hi = (byte)(value >> 48);
@@ -1118,7 +1118,7 @@ public readonly struct UInt56 :
         ArgumentOutOfRangeException.ThrowIfNegative(shiftAmount);
 
         // Mask to lower 6 bits: shift amount is effectively modulo 64
-        // If shiftAmount >= 56 every bit is shifted out → result is 0
+        // If shiftAmount >= 56 every bit is shifted out -> result is 0
         shiftAmount &= 63;
         return shiftAmount >= 56 ? Zero : FromRaw(value.ToUInt64() >>> shiftAmount);
     }

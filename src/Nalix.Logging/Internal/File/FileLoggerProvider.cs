@@ -17,7 +17,7 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Logging.Configuration;
+using Nalix.Logging.Options;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Logging.Tests")]

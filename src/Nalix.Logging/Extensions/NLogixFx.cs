@@ -5,7 +5,7 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
-using Nalix.Logging.Configuration;
+using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging.Extensions;

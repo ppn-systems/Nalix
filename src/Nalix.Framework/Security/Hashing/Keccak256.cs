@@ -164,7 +164,7 @@ public static class Keccak256
         }
 
         // ── One-shot fast-path ────────────────────────────────────────────────────
-        // Entire payload fits in one rate block → no absorb loop, just pad + permute.
+        // Entire payload fits in one rate block -> no absorb loop, just pad + permute.
         if (data.Length <= RateBytes)
         {
             OneShotFastPath(data, output);
@@ -231,7 +231,7 @@ public static class Keccak256
         block[data.Length] = PadDomain; // 0x01
 
         // BUG FIX #2: when data fills the block exactly (data.Length == RateBytes),
-        // the pad byte and the final 0x80 land on the same position → 0x01 | 0x80 = 0x81.
+        // the pad byte and the final 0x80 land on the same position -> 0x01 | 0x80 = 0x81.
         // The |= handles both the normal case and the overlap case correctly.
         block[RateBytes - 1] |= PadFinal; // 0x80
 
@@ -331,8 +331,8 @@ public static class Keccak256
             buffer[n] = PadDomain; // 0x01
 
             // BUG FIX #2: when n == RateBytes-1, pad and final bits share the same byte.
-            // Using |= handles both the overlap case (n == RateBytes-1 → 0x01|0x80 = 0x81)
-            // and the normal case (n < RateBytes-1 → byte was cleared, so |= is equivalent).
+            // Using |= handles both the overlap case (n == RateBytes-1 -> 0x01|0x80 = 0x81)
+            // and the normal case (n < RateBytes-1 -> byte was cleared, so |= is equivalent).
             // The previous code had a special branch that absorbed an extra all-zero block
             // after the padding block — that was wrong per the Keccak spec.
             buffer[RateBytes - 1] |= PadFinal; // 0x80

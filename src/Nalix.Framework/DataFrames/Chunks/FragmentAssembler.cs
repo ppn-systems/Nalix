@@ -345,7 +345,7 @@ public sealed class FragmentAssembler : IDisposable
         }
         catch (IndexOutOfRangeException)
         {
-            // If parsing fails → treat as normal packet
+            // If parsing fails -> treat as normal packet
             return false;
         }
     }

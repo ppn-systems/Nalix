@@ -12,11 +12,11 @@ namespace Nalix.Common.Serialization;
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Struct |
     AttributeTargets.Interface, Inherited = true)]
-public sealed class SerializePackableAttribute(SerializeLayout layout) : Attribute
+public sealed class SerializePackableAttribute(SerializeLayout layout = SerializeLayout.Auto) : Attribute
 {
     /// <summary>
     /// Gets the layout strategy to be used during serialization of the marked type.
-    /// The default value is <see cref="SerializeLayout.Sequential"/> if not explicitly set.
+    /// The default value is <see cref="SerializeLayout.Auto"/> if not explicitly set.
     /// </summary>
     public SerializeLayout SerializeLayout { get; set; } = layout;
 }
