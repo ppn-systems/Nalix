@@ -68,8 +68,9 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
 
     /// <summary>
     /// Carries the per-receive TCS and the owning <see cref="PooledSocketReceiveContext"/>
-    /// so the static completion handler can resolve the TCS AND call
-    /// <see cref="EndOperation"/> without a closure.
+    /// so the static completion handler can resolve the TCS and call
+    /// <see cref="EndOperation"/> without capturing a closure or allocating a
+    /// delegate per receive.
     /// </summary>
     /// <param name="tcs"></param>
     /// <param name="owner"></param>
@@ -82,11 +83,9 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     }
 
     /// <summary>
-    /// -------------------------------------------------------------------------
-    /// Static completion handler — shared across ALL instances.
-    /// No closure, no lambda capture -> zero delegate allocation per receive.
-    /// Resolves the TCS AND decrements the active-op counter (EndOperation).
-    /// -------------------------------------------------------------------------
+    /// Static completion handler shared across all instances.
+    /// It resolves the receive task and decrements the active-operation counter
+    /// for the owning context without allocating a per-call closure.
     /// </summary>
     [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     private static readonly EventHandler<SocketAsyncEventArgs> AsyncReceiveCompleted = static (_, e) =>
@@ -108,7 +107,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         }
         finally
         {
-            // Always decrement — even if TrySet* fails (duplicate completion guard).
+            // Always decrement, even if TrySet* fails, so duplicate completions or
+            // late completions cannot leave the context stuck in "busy" state.
             token.Owner.EndOperation();
         }
     };
@@ -118,7 +118,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Always access through BindArgs(...) to keep handler wiring correct.
+    /// Always access through BindArgs(...) so the completion handler wiring stays
+    /// correct and the pooled SAEA is not swapped out behind the context's back.
     /// </summary>
     private SocketAsyncEventArgs? _args;
 
@@ -127,12 +128,14 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// 0 = idle, 1 = one receive in-flight (SAEA is single-op per instance).
     /// Incremented before ReceiveAsync, decremented when OS completes (sync or async).
     /// Prevents ResetForPool() from returning the SAEA while the kernel still holds it.
+    /// This is the guard that makes pooling safe under both synchronous and async
+    /// completion paths.
     /// </summary>
     private int _activeOps;
 
     /// <summary>
     /// Signaled when _activeOps == 0. ResetForPool() waits on this before cleanup.
-    /// Initialized to signaled (no ops outstanding).
+    /// It starts signaled because a newly created context has no in-flight receive.
     /// </summary>
     private readonly ManualResetEventSlim _idle =
         new(initialState: true);
@@ -152,6 +155,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// <summary>
     /// Ensures this context has a bound SAEA, acquiring one from
     /// <see cref="ObjectPoolManager"/> if necessary.
+    /// The binding step is deferred so contexts can be pooled independently from
+    /// the underlying SocketAsyncEventArgs instances.
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
     public void EnsureArgsBound()
@@ -176,6 +181,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// Rebinds this context to <paramref name="newArgs"/>:
     /// detaches the completion handler from the old SAEA (if any) and
     /// attaches it to the new one.
+    /// This keeps the static completion callback paired with the correct SAEA.
     /// </summary>
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
@@ -200,7 +206,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// <b>Sync fast-path:</b> when <see cref="Socket.ReceiveAsync(SocketAsyncEventArgs)"/>
     /// returns <see langword="false"/>, the result is returned via
     /// <see cref="ValueTask{T}"/> — no Task allocation,
-    /// no TCS await. Common on LAN/loopback.
+    /// no TCS await. Common on LAN/loopback, where the socket often completes
+    /// inline before the OS has a chance to post an async completion.
     /// </para>
     /// </summary>
     /// <param name="socket">The connected socket to read from.</param>
@@ -216,20 +223,22 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     {
         SocketAsyncEventArgs args = this.Args; // throws if not bound
 
-        // Point the SAEA window at the requested slice.
+        // Point the SAEA window at the requested slice so the kernel writes
+        // directly into the caller's buffer segment.
         args.SetBuffer(buffer, offset, count);
 
-        // Fresh TCS per receive.
-        // RunContinuationsAsynchronously -> continuations post to thread-pool,
-        // preventing stack-dives when the OS fires many completions synchronously.
+        // Fresh TCS per receive. RunContinuationsAsynchronously keeps continuations
+        // off the IO completion thread and avoids deep synchronous continuation
+        // chains when a burst of receives completes inline.
         TaskCompletionSource<int> tcs = new(
             TaskCreationOptions.RunContinuationsAsynchronously);
 
-        // Store BOTH the TCS and this context in UserToken so the static handler
-        // can call EndOperation() without a closure capture.
+        // Store both the TCS and the owner context in UserToken so the static
+        // completion handler can resolve the result and balance the active-op
+        // counter without capturing any state or allocating a closure.
         args.UserToken = new ReceiveToken(tcs, this);
 
-        // Mark that a kernel operation is now in-flight.
+        // Mark that a kernel operation is now in-flight before calling into the socket.
         this.BeginOperation();
 
         bool pending;
@@ -246,9 +255,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
 
         if (!pending)
         {
-            // ── Sync fast-path: OS already has data ──────────────────────
-            // Capture result before calling EndOperation (no re-entrancy risk here
-            // because the static handler is NOT called on the sync path).
+            // Sync fast-path: the socket completed inline, so we must consume the
+            // result here because the static completion handler will not run.
             SocketError err = args.SocketError;
             int bytes = args.BytesTransferred;
 
@@ -269,8 +277,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
         Debug.WriteLine($"[PooledSocketReceiveContext] recv-async-pending offset={offset} count={count} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
-        // ── Async path: static handler fires when OS completes ───────────
-        // EndOperation() is called inside AsyncReceiveCompleted via the token.
+        // Async path: the completion callback will fire later and call
+        // EndOperation() via the token wrapper.
         return new ValueTask<int>(tcs.Task);
     }
 
@@ -278,6 +286,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     /// Resets the internal state of this context before returning to the pool.
     /// Waits (up to 5 s) for any in-flight SAEA operation to finish so the
     /// kernel is guaranteed to have released the buffer before we clear the SAEA.
+    /// The wait is intentionally bounded so teardown cannot hang forever if a
+    /// socket misbehaves or the caller forgets to cancel first.
     /// </summary>
     public void ResetForPool()
     {
@@ -286,15 +296,16 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
             $"[PooledSocketReceiveContext] ResetForPool begin activeOps={_activeOps} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
 
-        // Wait for in-flight op. 5 s is generous; a real connection teardown
-        // should cancel the socket first (which causes the OS to abort the op).
+        // Wait for the in-flight operation to finish. Five seconds is generous;
+        // a real teardown should cancel the socket first so the OS aborts the op.
         if (!_idle.Wait(TimeSpan.FromSeconds(5)))
         {
 #if DEBUG
             Debug.WriteLine(
                 $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for idle activeOps={_activeOps} ctx={RuntimeHelpers.GetHashCode(this)}");
 #endif
-            // Still proceed — better to risk a brief race than to leak the context.
+            // Still proceed — better to risk a brief race than to leak the context
+            // forever if the kernel or caller fails to complete promptly.
         }
 
         if (_args != null)
@@ -329,7 +340,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void BeginOperation()
     {
-        // First in-flight op -> reset the idle event.
+        // First in-flight operation clears the idle signal so ResetForPool knows
+        // there is still an outstanding receive.
         if (Interlocked.Increment(ref _activeOps) == 1)
         {
             _idle.Reset();
@@ -339,7 +351,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EndOperation()
     {
-        // Last completing op -> signal idle.
+        // Last completing operation sets the idle signal so ResetForPool can
+        // safely clear and return the pooled SAEA.
         if (Interlocked.Decrement(ref _activeOps) == 0)
         {
             _idle.Set();

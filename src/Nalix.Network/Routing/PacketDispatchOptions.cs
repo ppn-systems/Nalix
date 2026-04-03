@@ -18,8 +18,8 @@ using Nalix.Network.Middleware.Internal;
 namespace Nalix.Network.Routing;
 
 /// <summary>
-/// Provides options for packet dispatching, including middleware configuration,
-/// error handling, and logging.
+/// Configures how packet handlers are stored, how middleware is applied, and
+/// how dispatch failures are reported.
 /// </summary>
 /// <typeparam name="TPacket">The type of packet being dispatched.</typeparam>
 [DebuggerNonUserCode]
@@ -35,13 +35,13 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     private int _handlerCount;
 
     /// <summary>
-    /// Network buffer middleware pipeline for processing raw byte buffers before packet transformation.
+    /// Gets the middleware pipeline that transforms raw network buffers before packet dispatch.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public NetworkBufferMiddlewarePipeline NetworkPipeline { get; }
 
     /// <summary>
-    /// Gets or sets a custom error-handling delegate invoked when packet processing fails.
+    /// Gets or sets a custom error handler invoked when packet processing fails.
     /// </summary>
     /// <remarks>
     /// If not set, exceptions are only logged. You can override this to trigger alerts or retries.
@@ -51,6 +51,10 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketDispatchOptions{TPacket}"/> class.
     /// </summary>
+    /// <remarks>
+    /// The constructor sets up the default transport pipeline so a caller gets a
+    /// functional decrypt/decompress path without having to wire everything manually.
+    /// </remarks>
     public PacketDispatchOptions()
     {
         _handlerTable = new PacketHandler<TPacket>[ushort.MaxValue + 1];
@@ -60,7 +64,7 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
 
         this.NetworkPipeline = new NetworkBufferMiddlewarePipeline();
 
-        // Add default network middleware for frame processing. You can customize this pipeline as needed.
+        // Default middleware handles the most common transport steps before a packet reaches its handler.
         this.NetworkPipeline.Use(new DecryptMiddleware());
         this.NetworkPipeline.Use(new DecompressMiddleware());
     }

@@ -15,7 +15,8 @@ using Nalix.Common.Abstractions;
 namespace Nalix.Network.Internal.Pooling;
 
 /// <summary>
-/// A pooled wrapper around <see cref="SocketAsyncEventArgs"/> that resets state before returning to the pool.
+/// A pooled wrapper around <see cref="SocketAsyncEventArgs"/> that resets every
+/// socket-specific field before the instance is returned to the pool.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [DebuggerDisplay("HasSocket={AcceptSocket != null}, HasContext={Context != null}")]
@@ -23,16 +24,19 @@ internal sealed class PooledSocketAsyncEventArgs : SocketAsyncEventArgs, IPoolab
 {
     /// <summary>
     /// The pooled accept context associated with this event args.
+    /// The accept context is stored here so the completion path can recover the
+    /// owning state without a closure or external lookup.
     /// </summary>
     public PooledAcceptContext? Context { get; set; }
 
     /// <summary>
     /// Resets the internal state before returning to the pool.
+    /// This clears the associated context, user token, accepted socket, remote
+    /// endpoint, and buffer window so the next accept starts from a clean slate.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
-        // Unsubscribe event handlers if needed here (e.g. this.Completed -= SomeHandler)
         this.Context = null;
         this.UserToken = null;
         this.AcceptSocket = null;

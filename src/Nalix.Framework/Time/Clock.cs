@@ -10,6 +10,8 @@ namespace Nalix.Framework.Time;
 
 /// <summary>
 /// Provides time synchronization and timestamp helpers.
+/// The clock keeps a local estimate of UTC that can be nudged toward an
+/// external reference without replacing the system clock.
 /// </summary>
 [StackTraceHidden]
 [DebuggerStepThrough]
@@ -17,13 +19,13 @@ public static partial class Clock
 {
     #region Constants and Fields
 
-    // BaseValue36 values for high-precision time calculation
+    // Baseline values used to anchor the monotonic stopwatch to UTC time.
     private static readonly DateTime UtcBase;
     private static readonly long UtcBaseTicks;
     private static readonly double DriftSmoothing;
     private static readonly Stopwatch UtcStopwatch;
 
-    // Time synchronization variables
+    // Synchronization state: offset, drift correction, and last sync markers.
     private static long _timeOffset;
     private static double _driftCorrection;
     private static long _lastSyncMonoTicks;
@@ -55,11 +57,12 @@ public static partial class Clock
 
     static Clock()
     {
-        _timeOffset = 0; // In ticks, adjusted from external time sources
-        _driftCorrection = 1.0; // Multiplier to correct for system clock drift
+        _timeOffset = 0; // UTC offset relative to the monotonic estimate, in ticks.
+        _driftCorrection = 1.0; // Drift multiplier applied to elapsed stopwatch time.
         _swToDateTimeTicks = (double)TimeSpan.TicksPerSecond / Stopwatch.Frequency;
 
-        // Static class, no instantiation allowed
+        // The initial estimate is based on the current UTC time and then refined
+        // by later synchronization calls.
         DriftSmoothing = 0.1;
         IsSynchronized = false;
         UtcBase = DateTime.UtcNow;
@@ -88,9 +91,12 @@ public static partial class Clock
             throw new ArgumentException("External time must be UTC", nameof(externalTime));
         }
 
+        // Compare the reference time against the current local estimate first.
         double diffMs = (externalTime - NowUtc()).TotalMilliseconds;
         if (Math.Abs(diffMs) <= maxAllowedDriftMs)
         {
+            // If the difference is small enough, keep the current estimate rather
+            // than forcing a correction that would just introduce noise.
             return 0;
         }
 
@@ -109,11 +115,15 @@ public static partial class Clock
             long deltaMono = nowMono - _lastSyncMonoTicks;
 
             double monoElapsed = deltaMono / (double)Stopwatch.Frequency;
+            // Update the drift estimate only when enough monotonic time has passed
+            // to make the ratio meaningful.
             if (monoElapsed > 60.0)
             {
                 double drift = extElapsed / monoElapsed;
                 double dc = _driftCorrection;
-                dc += (drift - dc) * DriftSmoothing;   // optimized smoothing
+                // Smooth the correction so one noisy sync sample does not swing the
+                // clock estimate too aggressively.
+                dc += (drift - dc) * DriftSmoothing;
                 Volatile.Write(ref _driftCorrection, dc);
             }
         }
@@ -138,7 +148,8 @@ public static partial class Clock
         double maxAllowedDriftMs = 1_000.0,
         double maxHardAdjustMs = 10_000.0)
     {
-        // Validate input parameters
+        // Validate input parameters up front so the correction logic only runs on
+        // sane values.
         if (serverUnixMs < 0)
         {
             throw new ArgumentException("Server Unix timestamp cannot be negative", nameof(serverUnixMs));
@@ -159,7 +170,8 @@ public static partial class Clock
             throw new ArgumentException("Max hard adjust must be positive", nameof(maxHardAdjustMs));
         }
 
-        // Sanity check: Unix timestamp should be reasonable (after year 2000 and before year 2100)
+        // Sanity check: Unix timestamp should be reasonable (after year 2000 and
+        // before year 2100) so obviously bad input does not skew the local clock.
         const long MinReasonableUnixMs = 946684800000L; // Jan 1, 2000
         const long MaxReasonableUnixMs = 4102444800000L; // Jan 1, 2100
         if (serverUnixMs is < MinReasonableUnixMs or > MaxReasonableUnixMs)
@@ -167,7 +179,7 @@ public static partial class Clock
             throw new ArgumentException("Server Unix timestamp is outside reasonable range (2000-2100)", nameof(serverUnixMs));
         }
 
-        // Compensate half RTT (one-way latency)
+        // Compensate half the round-trip time as an estimate of one-way latency.
         long corrected = serverUnixMs + (long)(rttMs * 0.5);
         DateTime externalTime = DateTime.UnixEpoch.AddMilliseconds(corrected);
 
@@ -179,6 +191,8 @@ public static partial class Clock
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void ResetSynchronization()
     {
+        // Clear both the offset and the drift estimate so future reads fall back
+        // to the local system clock until a new synchronization arrives.
         _ = Interlocked.Exchange(ref _timeOffset, 0);
         _ = Interlocked.Exchange(ref _driftCorrection, 1.0);
 

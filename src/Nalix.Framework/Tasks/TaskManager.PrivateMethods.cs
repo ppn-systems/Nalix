@@ -58,6 +58,8 @@ public partial class TaskManager
             return;
         }
 
+        // Cleanup only removes workers that already completed and stayed alive long
+        // enough for their RetainFor window to expire.
         DateTimeOffset now = DateTimeOffset.UtcNow;
         foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
@@ -104,7 +106,7 @@ public partial class TaskManager
     {
         CancellationToken ct = s.CancellationTokenSource.Token;
 
-        // Initial jitter (unchanged semantics)
+        // Initial jitter spreads recurring jobs out so they do not all wake up together.
         if (s.Options.Jitter is { } j && j > TimeSpan.Zero)
         {
             try
@@ -119,12 +121,12 @@ public partial class TaskManager
             catch (OperationCanceledException) { return; }
         }
 
-        // Interval in Stopwatch ticks
+        // Work entirely in stopwatch ticks to avoid drift from repeated TimeSpan conversions.
         long step = s.IntervalTicks;
         long freq = Stopwatch.Frequency;
         long next = Stopwatch.GetTimestamp() + step;
 
-        // Local helpers for fast delay
+        // Busy-wait is only used for tiny gaps where a full Task.Delay would overshoot too much.
         static void BusyWait(long untilTicks, CancellationToken ct)
         {
             SpinWait sw = new();
@@ -139,6 +141,7 @@ public partial class TaskManager
             }
         }
 
+        // Above this threshold, a normal delay is cheaper and less CPU intensive than spinning.
         const double BusyWaitMaxSeconds = 0.0002; // 200 µs cap for busy spin
 
         while (!ct.IsCancellationRequested)
@@ -165,13 +168,14 @@ public partial class TaskManager
                 }
                 else
                 {
-                    // catch up missed intervals
+                    // If the job fell behind, skip the missed slots instead of replaying every one.
                     long missed = ((-delayTicks) + step - 1) / step;
                     next += (missed + 1) * step;
                 }
 
                 if (s.Options.NonReentrant)
                 {
+                    // A zero-timeout acquire keeps the scheduler from overlapping the same recurring job.
                     if (!await s.Gate.WaitAsync(0, ct).ConfigureAwait(false))
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -252,21 +256,22 @@ public partial class TaskManager
         RecurringState s,
         CancellationToken ct)
     {
+        // Backoff only starts after a configurable number of consecutive failures.
         int n = Math.Max(1, s.Options.FailuresBeforeBackoff);
         if (s.ConsecutiveFailures < n)
         {
             return;
         }
 
+        // Cap the exponential growth so a broken recurring job does not disappear forever.
         int pow = Math.Min(5, s.ConsecutiveFailures - n); // cap at 2^5 = 32s
         int baseMs = 1000 << pow; // base delay: 1000ms * 2^pow
         int cap = (int)Math.Max(1, s.Options.BackoffCap.TotalMilliseconds);
         int maxDelay = Math.Min(baseMs, cap);
 
-        // Full jitter: random(0, min(base * 2^pow, cap))
-        // pow = min(5, ConsecutiveFailures - FailuresBeforeBackoff)
-        // baseMs = 1000ms * 2^pow, maxDelay = min(baseMs, cap)
-        // Prevents thundering herd while maintaining exponential backoff
+        // Full jitter avoids synchronized retries when many jobs fail at the same time.
+        // Each retry gets a random delay inside the capped exponential window instead
+        // of all workers retrying at the exact same moment.
         int delayMs = Csprng.GetInt32(0, maxDelay + 1);
 
         try
@@ -295,6 +300,7 @@ public partial class TaskManager
     private void RETAIN_OR_REMOVE(WorkerState st)
     {
         TimeSpan? keep = st.Options.RetainFor;
+        // If retention is disabled, remove the worker as soon as it finishes.
         if (keep is null || keep <= TimeSpan.Zero)
         {
             _ = _workers.TryRemove(st.Id, out _);
@@ -309,6 +315,7 @@ public partial class TaskManager
                                         .Warn($"[FW.{nameof(TaskManager)}] retain-cts-dispose-error id={st.Id} msg={ex.Message}");
             }
 
+            // Group gates are released only when the last worker in that group is gone.
             bool hasSameGroup = false;
             foreach (WorkerState other in _workers.Values)
             {

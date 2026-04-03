@@ -25,6 +25,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private async ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
     {
+        // If the packet was deserialized into the wrong runtime type, fail early and
+        // send a protocol-level response instead of letting the handler crash later.
         Type? expectedType = descriptor.ExpectedPacketType;
         if (expectedType is not null && !expectedType.IsInstanceOfType(context.Packet))
         {
@@ -51,10 +53,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return;
         }
 
+        // Void / Task / ValueTask handlers do not produce an outbound packet payload.
         context.SkipOutbound = HasNoOutboundResult(descriptor.ReturnType);
 
         if (!_pipeline.IsEmpty)
         {
+            // The packet pipeline runs first so middleware can transform, validate, or short-circuit
+            // the context before the actual handler executes.
             await _pipeline.ExecuteAsync(context, InvokeHandlerAsync, context.CancellationToken)
                            .ConfigureAwait(false);
         }
@@ -71,6 +76,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
                 if (!descriptor.CanExecute(context))
                 {
+                    // Rate limiting is treated as a protocol failure with a transient retry hint.
                     await this.TrySendControlAsync(
                         context,
                         descriptor.OpCode,
@@ -89,6 +95,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
                 if (!context.SkipOutbound)
                 {
+                    // The return handler converts the raw handler result into the wire-level reply.
                     await AwaitReturnAsync(descriptor.ReturnHandler.HandleAsync(result, context), ct).ConfigureAwait(false);
                 }
             }
@@ -104,6 +111,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         static async ValueTask<object> AwaitHandlerResultAsync(ValueTask<object> pending, CancellationToken token)
         {
+            // Fast path: if the handler already completed, avoid an allocation and return the result directly.
             token.ThrowIfCancellationRequested();
 
             if (pending.IsCompletedSuccessfully)
@@ -121,6 +129,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         static async ValueTask AwaitReturnAsync(ValueTask pending, CancellationToken token)
         {
+            // Same fast-path pattern as above, but for handlers that only need to emit side effects.
             token.ThrowIfCancellationRequested();
 
             if (pending.IsCompletedSuccessfully)
@@ -145,6 +154,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         PacketHandler<TPacket> descriptor,
         PacketContext<TPacket> context, Exception exception)
     {
+        // Connection teardown is expected during shutdown or remote disconnect, so do not
+        // spam logs or send protocol failures for those paths.
         bool teardownException = IsConnectionTeardownException(exception);
         if (teardownException)
         {
@@ -166,6 +177,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
             return;
         }
 
+        // Custom error hooks run before the control reply so an application can record
+        // the failure even if the outbound control message later cannot be delivered.
         _errorHandler?.Invoke(exception, descriptor.OpCode);
 
         (ProtocolReason reason, ProtocolAdvice action, ControlFlags flags) = MapExceptionToProtocol(exception);
@@ -204,6 +217,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         try
         {
+            // Best-effort only: if the connection is already falling apart, the control message
+            // is skipped and the original failure path is preserved.
             await context.Connection.SendAsync(
                 controlType: controlType,
                 reason: reason,
@@ -225,6 +240,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static bool IsConnectionTeardownException(Exception ex)
     {
+        // Cancellation and object disposal are the normal shutdown signals.
         if (ex is OperationCanceledException or ObjectDisposedException)
         {
             return true;
@@ -261,11 +277,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
 
     /// <summary>
-    /// Inspects a handler <paramref name="method"/>'s parameter list and returns the
-    /// concrete packet type it expects, or <see langword="null"/> for context-style methods.
+    /// Inspects a handler method and returns the concrete packet type it expects,
+    /// or <see langword="null"/> when the handler uses <c>PacketContext&lt;TPacket&gt;</c>.
     /// </summary>
-    /// <param name="method"></param>
-    /// <param name="contextType"></param>
+    /// <param name="method">The handler method to inspect.</param>
+    /// <param name="contextType">The closed <c>PacketContext&lt;TPacket&gt;</c> type for the current dispatcher.</param>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Type? ResolveConcretePacketType(
@@ -281,22 +297,22 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         Type firstParam = parms[0].ParameterType;
 
-        // Context-style: (PacketContext<TPacket>[, CancellationToken])
-        // The packet type is accessed through the context — no direct cast needed.
+        // Context-style handlers read the packet from PacketContext<TPacket>, so there is
+        // no need to record a separate concrete packet type here.
         if (firstParam == contextType)
         {
             return null;
         }
 
-        // Legacy-style: (SomePacket, IConnection[, CancellationToken])
-        // Return the concrete packet type (may equal TPacket if the handler uses the interface).
+        // Legacy-style handlers receive the packet directly, so capture the actual packet type
+        // for a dispatch-time sanity check.
         return typeof(IPacket).IsAssignableFrom(firstParam) ? firstParam : null;
     }
 
     /// <summary>
-    /// Map exception types to ProtocolCode/ProtocolAction/ControlFlags.
+    /// Maps an exception to the protocol-level response that should be sent back to the peer.
     /// </summary>
-    /// <param name="ex"></param>
+    /// <param name="ex">The exception raised by handler execution or dispatch plumbing.</param>
     /// <exception cref="NotImplementedException"></exception>
     [Pure]
     [StackTraceHidden]
