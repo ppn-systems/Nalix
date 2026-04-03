@@ -81,7 +81,7 @@ public ref struct DataWriter
         }
 
         _rent = false;
-        _owner = buffer;                 // owns an external array (but not rented) → cannot expand by rent policy
+        _owner = buffer;                 // owns an external array (but not rented) -> cannot expand by rent policy
         _span = MemoryExtensions.AsSpan(buffer);
 
         this.WrittenCount = 0;
@@ -101,7 +101,7 @@ public ref struct DataWriter
 
         _span = span;       // direct span view (stackalloc, sliced array, etc.)
         _owner = null;      // no backing array ownership
-        _rent = false;      // not rented → cannot Expand()
+        _rent = false;      // not rented -> cannot Expand()
 
         this.WrittenCount = 0;
     }

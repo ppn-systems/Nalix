@@ -8,18 +8,16 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Configurations;
-using Nalix.Network.Internal.Constants;
+using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
-using Nalix.Network.Throttling;
-using Nalix.Network.Timekeeping;
+using Nalix.Network.Internal.Time;
+using Nalix.Network.Options;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -36,9 +34,9 @@ public abstract partial class TcpListenerBase : IListener
     #region Fields
 
     private readonly ushort _port;
-    private readonly IProtocol _protocol;
-    private readonly ConnectionLimiter _limiter;
     private readonly SemaphoreSlim _lock;
+    private readonly IProtocol _protocol;
+    private readonly ConnectionGuard _limiter;
     private readonly List<ISnowflake> _acceptWorkerIds;
 
     private int _state;
@@ -63,35 +61,11 @@ public abstract partial class TcpListenerBase : IListener
     /// </summary>
     private ListenerState State => (ListenerState)Volatile.Read(ref _state);
 
-    /// <summary>
-    /// Enables or disables the update loop for the listener.
-    /// </summary>
-    /// <exception cref="InternalErrorException"></exception>
-    public bool IsTimeSyncEnabled
-    {
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled;
-
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set
-        {
-            if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
-            {
-                throw new InternalErrorException("Cannot change IsTimeSyncEnabled while listening.");
-            }
-
-            InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().IsTimeSyncEnabled = value;
-
-            s_logger?.Info("[NW.{Class}] timesync={Timesync}", nameof(TcpListenerBase), value);
-        }
-    }
-
     #endregion Properties
 
     #region Enums
 
+    // STOPPED -> STARTING -> RUNNING -> STOPPING -> STOPPED
     private enum ListenerState
     {
         STOPPED = 0,
@@ -122,14 +96,12 @@ public abstract partial class TcpListenerBase : IListener
         _port = port;
         _protocol = protocol;
         _state = (int)ListenerState.STOPPED;
-        _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionLimiter>();
+        _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
 
         s_config.Validate();
 
         _acceptWorkerIds = new(s_config.MaxParallel);
         _lock = new SemaphoreSlim(1, 1);
-
-        InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>().TimeSynchronized += this.SynchronizeTime;
 
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();
@@ -138,15 +110,11 @@ public abstract partial class TcpListenerBase : IListener
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledAcceptContext>(options.AcceptContextCapacity);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledTcpListenerContext>(options.TcpListenerContextCapacity);
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsCapacity);
 
         // Preallocate objects in the pools to improve performance and reduce latency during runtime.
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledTcpListenerContext>(options.TcpListenerContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
 
@@ -197,14 +165,17 @@ public abstract partial class TcpListenerBase : IListener
 
             try
             {
+                // Cancel first -> signal all async loops to stop.
                 try { self._cts?.Cancel(); } catch { }
+
+                // Close socket server -> AcceptAsync will throw SocketException -> loop exits.
                 try { self._listener?.Close(); } catch { }
                 self._listener = null;
 
                 try
                 {
                     _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                                .CancelGroup($"{NetworkTags.Net}/{NetworkTags.Tcp}/{self._port}");
+                                                .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{self._port}");
                 }
                 catch { }
 
@@ -229,6 +200,9 @@ public abstract partial class TcpListenerBase : IListener
             }
         }
 
+        // UnsafeQueueUserWorkItem -> no capture ExecutionContext (more secure,
+        // Higher performance because it doesn't copy the context).
+        // WHY Unsafe: This is infrastructure code, no flow security context is needed.
         _ = ThreadPool.UnsafeQueueUserWorkItem(cb, this);
     }
 
@@ -284,9 +258,6 @@ public abstract partial class TcpListenerBase : IListener
                 {
                     _listener = null;
                 }
-
-                InstanceManager.Instance.GetOrCreateInstance<TimeSynchronizer>()
-                               .TimeSynchronized -= this.SynchronizeTime;
             }
             catch { }
 

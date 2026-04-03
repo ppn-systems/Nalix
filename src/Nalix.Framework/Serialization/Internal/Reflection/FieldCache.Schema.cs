@@ -17,6 +17,8 @@ namespace Nalix.Framework.Serialization.Internal.Reflection;
 /// Represents metadata for a field, including its type and ordering.
 /// </summary>
 /// <param name="Order">The order of the field in the serialized structure.</param>
+/// <param name="IsHeader">Indicates whether the field is a header.</param>
+/// <param name="Size">The memory size of the field type.</param>
 /// <param name="Name">The name of the field.</param>
 /// <param name="IsValueType">Indicates whether the field is a value type.</param>
 /// <param name="FieldType">The type of the field.</param>
@@ -24,6 +26,8 @@ namespace Nalix.Framework.Serialization.Internal.Reflection;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal readonly record struct FieldSchema(
     int Order,
+    bool IsHeader,
+    int Size,
     string Name,
     bool IsValueType,
     Type FieldType,

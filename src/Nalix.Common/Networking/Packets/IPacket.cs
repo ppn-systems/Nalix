@@ -30,38 +30,38 @@ public interface IPacket
     /// <summary>
     /// Gets the magic number that uniquely identifies the packet format or protocol.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.MagicNumber)]
+    [SerializeHeader(PacketHeaderOffset.MagicNumber)]
     uint MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) that specifies the command or type of the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.OpCode)]
+    [SerializeHeader(PacketHeaderOffset.OpCode)]
     ushort OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with the packet, indicating its state or processing options.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Flags)]
+    [SerializeHeader(PacketHeaderOffset.Flags)]
     PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the priority level of the packet for processing or transmission.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Priority)]
+    [SerializeHeader(PacketHeaderOffset.Priority)]
     PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (for example, TCP or UDP) used to transmit the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Transport)]
+    [SerializeHeader(PacketHeaderOffset.Transport)]
     ProtocolType Protocol { get; set; }
 
     /// <summary>
     /// Gets the sequence identifier of the packet.
     /// This is used to correlate requests with their responses.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.SequenceId)]
+    [SerializeHeader(PacketHeaderOffset.SequenceId)]
     uint SequenceId { get; }
 
     #endregion Metadata

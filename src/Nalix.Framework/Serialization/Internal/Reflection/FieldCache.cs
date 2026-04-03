@@ -24,15 +24,13 @@ internal static partial class FieldCache<
     private static readonly FieldSchema[] s_metadata;
     private static readonly SerializeLayout s_layout;
     private static readonly HashSet<string> s_ignoredProperties;
-    private static readonly Dictionary<Type, Dictionary<string, int>> s_explicitOrdersByDeclaringType;
+    private static readonly Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> s_explicitOrdersByDeclaringType;
 
     static FieldCache()
     {
         s_layout = GET_SERIALIZE_LAYOUT(typeof(T));
         s_ignoredProperties = BUILD_IGNORED_PROPERTIES(typeof(T));
-        s_explicitOrdersByDeclaringType = s_layout == SerializeLayout.Explicit
-            ? BUILD_EXPLICIT_ORDER_MAPS(typeof(T))
-            : [];
+        s_explicitOrdersByDeclaringType = BUILD_EXPLICIT_ORDER_MAPS(typeof(T));
         s_metadata = DISCOVER_FIELDS(typeof(T), s_layout, s_ignoredProperties, s_explicitOrdersByDeclaringType);
 
         s_getters = new Delegate[s_metadata.Length];
@@ -46,7 +44,7 @@ internal static partial class FieldCache<
             s_setters[i] = CreateSetter(field);
         }
 
-        ENSURE_EXPLICIT_LAYOUT_IS_VALID();
+        ENSURE_LAYOUT_IS_VALID();
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -54,7 +52,7 @@ internal static partial class FieldCache<
         Type type,
         SerializeLayout layout,
         HashSet<string> ignoredProperties,
-        Dictionary<Type, Dictionary<string, int>> explicitOrdersByDeclaringType)
+        Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> explicitOrdersByDeclaringType)
     {
         List<FieldSchema> included = new(16);
         int sequentialOrder = 0;
@@ -73,16 +71,23 @@ internal static partial class FieldCache<
                     continue;
                 }
 
-                int? explicitOrder = layout == SerializeLayout.Explicit
-                    ? GET_EXPLICIT_ORDER(field, explicitOrdersByDeclaringType)
-                    : null;
+                (int Order, bool IsHeader)? explicitOrder = GET_EXPLICIT_ORDER(field, explicitOrdersByDeclaringType);
                 if (layout == SerializeLayout.Explicit && explicitOrder is null)
                 {
                     continue;
                 }
 
+                bool isHeader = explicitOrder is not null && explicitOrder.Value.IsHeader;
+                int order = explicitOrder is not null && (layout == SerializeLayout.Explicit || isHeader)
+                    ? explicitOrder.Value.Order
+                    : sequentialOrder++;
+
+                int size = GET_TYPE_MEMORY_SIZE(field.FieldType);
+
                 included.Add(new FieldSchema(
-                    layout == SerializeLayout.Explicit ? explicitOrder!.Value : sequentialOrder++,
+                    order,
+                    isHeader,
+                    size,
                     field.Name,
                     field.FieldType.IsValueType,
                     field.FieldType,
@@ -90,10 +95,25 @@ internal static partial class FieldCache<
             }
         }
 
-        if (layout == SerializeLayout.Explicit)
+        included.Sort((a, b) =>
         {
-            included.Sort(static (a, b) => a.Order.CompareTo(b.Order));
-        }
+            if (a.IsHeader != b.IsHeader)
+            {
+                return a.IsHeader ? -1 : 1;
+            }
+
+            if (a.IsHeader)
+            {
+                return a.Order.CompareTo(b.Order);
+            }
+
+            if (layout == SerializeLayout.Auto && a.Size != b.Size)
+            {
+                return b.Size.CompareTo(a.Size); // Descending
+            }
+
+            return a.Order.CompareTo(b.Order);
+        });
 
         return [.. included];
     }
@@ -119,25 +139,37 @@ internal static partial class FieldCache<
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Dictionary<Type, Dictionary<string, int>> BUILD_EXPLICIT_ORDER_MAPS(Type type)
+    private static Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> BUILD_EXPLICIT_ORDER_MAPS(Type type)
     {
-        Dictionary<Type, Dictionary<string, int>> result = [];
+        Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> result = [];
 
         for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
         {
             PropertyInfo[] properties = current.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-            Dictionary<string, int> propertyOrders = new(StringComparer.Ordinal);
+            Dictionary<string, (int Order, bool IsHeader)> propertyOrders = new(StringComparer.Ordinal);
 
             for (int i = 0; i < properties.Length; i++)
             {
                 PropertyInfo property = properties[i];
                 SerializeOrderAttribute? order = property.GetCustomAttribute<SerializeOrderAttribute>();
-                if (order is null)
+                SerializeHeaderAttribute? header = property.GetCustomAttribute<SerializeHeaderAttribute>();
+
+                if (order is not null && header is not null)
                 {
+                    throw new InvalidOperationException($"Property {property.Name} in {current.Name} cannot have both [SerializeHeader] and [SerializeOrder].");
+                }
+
+                if (header is not null)
+                {
+                    propertyOrders[property.Name] = (header.Order, true);
                     continue;
                 }
 
-                propertyOrders[property.Name] = order.Order;
+                if (order is not null)
+                {
+                    propertyOrders[property.Name] = (order.Order, false);
+                    continue;
+                }
             }
 
             result[current] = propertyOrders;
@@ -166,13 +198,61 @@ internal static partial class FieldCache<
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SerializeLayout GET_SERIALIZE_LAYOUT(Type type)
-        => type.GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout ?? SerializeLayout.Sequential;
+        => type.GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout ?? SerializeLayout.Auto;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GET_TYPE_MEMORY_SIZE(Type type)
+    {
+        if (!type.IsValueType)
+        {
+            return IntPtr.Size;
+        }
+
+        if (type.IsEnum)
+        {
+            return GET_TYPE_MEMORY_SIZE(Enum.GetUnderlyingType(type));
+        }
+
+        if (type == typeof(bool) || type == typeof(byte) || type == typeof(sbyte))
+        {
+            return 1;
+        }
+
+        if (type == typeof(short) || type == typeof(ushort) || type == typeof(char))
+        {
+            return 2;
+        }
+
+        if (type == typeof(int) || type == typeof(uint) || type == typeof(float))
+        {
+            return 4;
+        }
+
+        if (type == typeof(long) || type == typeof(ulong) || type == typeof(double) || type == typeof(DateTime) || type == typeof(TimeSpan))
+        {
+            return 8;
+        }
+
+        if (type == typeof(decimal) || type == typeof(Guid))
+        {
+            return 16;
+        }
+
+        try
+        {
+            return System.Runtime.InteropServices.Marshal.SizeOf(type);
+        }
+        catch
+        {
+            return IntPtr.Size;
+        }
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int? GET_EXPLICIT_ORDER(FieldInfo field, Dictionary<Type, Dictionary<string, int>> explicitOrdersByDeclaringType)
+    private static (int Order, bool IsHeader)? GET_EXPLICIT_ORDER(FieldInfo field, Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> explicitOrdersByDeclaringType)
     {
         Type? type = field.DeclaringType;
-        if (type is null || !explicitOrdersByDeclaringType.TryGetValue(type, out Dictionary<string, int>? propertyOrders))
+        if (type is null || !explicitOrdersByDeclaringType.TryGetValue(type, out Dictionary<string, (int Order, bool IsHeader)>? propertyOrders))
         {
             return null;
         }
@@ -180,25 +260,18 @@ internal static partial class FieldCache<
         if (field.Name.Length > 2 && field.Name[0] == '<')
         {
             int end = field.Name.IndexOf('>');
-            if (end > 1 && propertyOrders.TryGetValue(field.Name[1..end], out int backingFieldOrder))
+            if (end > 1 && propertyOrders.TryGetValue(field.Name[1..end], out (int Order, bool IsHeader) backingFieldOrder))
             {
                 return backingFieldOrder;
             }
         }
 
-        return propertyOrders.TryGetValue(field.Name, out int order)
-            ? order
-            : null;
+        return propertyOrders.TryGetValue(field.Name, out (int Order, bool IsHeader) order) ? order : null;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ENSURE_EXPLICIT_LAYOUT_IS_VALID()
+    private static void ENSURE_LAYOUT_IS_VALID()
     {
-        if (s_layout is not SerializeLayout.Explicit)
-        {
-            return;
-        }
-
         ENSURE_NO_DUPLICATE_ORDERS();
         ENSURE_NO_NEGATIVE_ORDERS();
     }
@@ -208,7 +281,7 @@ internal static partial class FieldCache<
     {
         for (int i = 1; i < s_metadata.Length; i++)
         {
-            if (s_metadata[i - 1].Order == s_metadata[i].Order)
+            if (s_metadata[i - 1].IsHeader == s_metadata[i].IsHeader && s_metadata[i - 1].Order == s_metadata[i].Order)
             {
                 throw new InvalidOperationException($"Duplicate serialize orders in {typeof(T).Name}");
             }

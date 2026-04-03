@@ -12,21 +12,13 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Configurations;
+using Nalix.Network.Options;
 
 namespace Nalix.Network.Routing;
 
-/// <summary>
-/// Represents a context for handling network packets with support for object pooling and zero-allocation design.
-/// </summary>
-/// <typeparam name="TPacket">The type of packet being processed.</typeparam>
-/// <remarks>
-/// This class is designed to manage the lifecycle of a packet context, including initialization, property storage,
-/// and cleanup for reuse in a high-performance networking environment. It uses object pooling to minimize memory
-/// allocations and supports thread-safe operations.
-/// </remarks>
+/// <inheritdoc/>
 [DebuggerDisplay("IsInitialized={_isInitialized}, Properties={_properties.Count}")]
-public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
+public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable where TPacket : IPacket
 {
     #region Fields
 
@@ -39,40 +31,7 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
 
     #region Properties
 
-    /// <summary>
-    /// Gets the current packet being processed.
-    /// </summary>
-    public TPacket Packet
-    {
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        get;
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private set;
-    }
-
-    /// <summary>
-    /// Gets the connection associated with the packet.
-    /// </summary>
-    public IConnection Connection
-    {
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        get;
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private set;
-    }
-
-    /// <summary>
-    /// Gets the packet metadata with attributes.
-    /// </summary>
-    public PacketMetadata Attributes
-    {
-        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        get; private set;
-    }
-
-    /// <summary>
-    /// If true, outbound middlewares will be skipped for this context.
-    /// </summary>
+    /// <inheritdoc/>
     public bool SkipOutbound
     {
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -81,10 +40,33 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         internal set;
     }
 
-    /// <summary>
-    /// Gets or sets the cancellation token associated with the packet context.
-    /// </summary>
-    public CancellationToken CancellationToken
+    /// <inheritdoc/>
+    public TPacket Packet
+    {
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private set;
+    }
+
+    /// <inheritdoc/>
+    public IConnection Connection
+    {
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private set;
+    }
+
+    /// <inheritdoc/>
+    public PacketMetadata Attributes
+    {
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        get; private set;
+    }
+
+    /// <inheritdoc/>
+    public IPacketSender<TPacket> Sender
     {
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get;
@@ -92,12 +74,8 @@ public sealed class PacketContext<TPacket> : IPoolable where TPacket : IPacket
         internal set;
     }
 
-    /// <summary>
-    /// Gets a sender that automatically applies encryption/compression
-    /// based on the current handler's attributes.
-    /// Use this instead of calling connection.TCP.SendAsync() directly.
-    /// </summary>
-    public IPacketSender<TPacket> Sender
+    /// <inheritdoc/>
+    public CancellationToken CancellationToken
     {
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get;

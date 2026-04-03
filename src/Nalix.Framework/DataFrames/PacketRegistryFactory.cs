@@ -58,7 +58,7 @@ public sealed class PacketRegistryFactory
     private readonly HashSet<Type> _explicitPacketTypes = [];
     private readonly HashSet<Assembly> _assemblies = [];
 
-    // namespace → recursive flag
+    // namespace -> recursive flag
     // Key: namespace string (exact or prefix match when recursive=true)
     private readonly Dictionary<string, bool> _namespaceScan = new(StringComparer.Ordinal);
 

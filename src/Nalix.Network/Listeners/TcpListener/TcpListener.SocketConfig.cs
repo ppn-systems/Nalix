@@ -21,30 +21,41 @@ public abstract partial class TcpListenerBase
     {
         if (s_config.EnableIPv6)
         {
-            // Try IPv6 + DualMode first
+            // Try creating an IPv6 socket with DualMode first.
+            // DualMode = true -> 1 socket that receives both IPv6 and IPv4-mapped (::ffff:x.x.x.x).
+            // WHY prioritizes IPv6: Future-proof, supporting IPv4 clients via dual-stack.
             Socket? sock = null;
+
             try
             {
-                sock = new Socket(
-                    AddressFamily.InterNetworkV6,
-                    SocketType.Stream, ProtocolType.Tcp)
+                sock = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp)
                 {
                     Blocking = true,
-                    DualMode = s_config.DualMode,                 // Must set before Bind
-                    ExclusiveAddressUse = !s_config.ReuseAddress, // fast rebind combo with ReuseAddress
+
+                    // DualMode MUST be set BEFORE Bind — after Bind, it cannot be set again.
+                    DualMode = s_config.DualMode,
+
+                    // ExclusiveAddressUse = !ReuseAddress:
+                    // ReuseAddress = true -> multiple processes can bind to the same port (load balancing).
+                    // ReuseAddress = false -> exclusive -> prevent port hijacking.
+                    ExclusiveAddressUse = !s_config.ReuseAddress,
+
+                    // LingerState(false, 0) -> When Close() is called, RST is sent immediately,
+                    // Don't wait for the drain buffer. WHY: Server-side listener does not require a liner
+                    // Only per-connection sockets need to be considered.
                     LingerState = new LingerOption(false, 0)
                 };
 
-                // Reuse BEFORE bind
-                sock.SetSocketOption(
-                    SocketOptionLevel.Socket,
-                    SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
+                // ReuseAddress MUST be set BEFORE Bind.
+                // WHY: Allows binding the port again immediately after the server restart (avoid "Address already in use").
+                sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
 
-                // Optional: larger listen buffer (per-connection tuning is more important)
-                sock.SetSocketOption(
-                    SocketOptionLevel.Socket,
-                    SocketOptionName.ReceiveBuffer, s_config.BufferSize);
+                // Increase the receiver buffer of the listener socket.
+                // WHY: Listener socket receives connection request (SYN), larger buffer
+                // This helps OS queue have more pending connections before app accepts.
+                sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, s_config.BufferSize);
 
+                // IPv6Any (::) -> listens on all IPv6 interfaces (and IPv4 via DualMode).
                 IPEndPoint epV6Any = new(IPAddress.IPv6Any, _port);
 
                 s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
@@ -59,41 +70,29 @@ public abstract partial class TcpListenerBase
             }
             catch (Exception ex)
             {
+                // IPv6/DualMode is not supported on this environment -> IPv4 fallback.
+                // WHY not rethrow: Failover automatically is better than crashing the server.
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
 
-                // Clean up the half-initialized IPv6 socket before falling back
-                try
-                {
-                    sock?.Close();
-                }
-                catch { }
-                try
-                {
-                    sock?.Dispose();
-                }
-                catch { }
+                try { sock?.Close(); } catch { }
+                try { sock?.Dispose(); } catch { }
 
                 sock = null;
             }
         }
 
-        // Fallback: IPv4-only
-        _listener = new Socket(
-            AddressFamily.InterNetwork,
-            SocketType.Stream, ProtocolType.Tcp)
+        // Fallback: IPv4-only socket.
+        // Used when: EnableIPv6 = false, or IPv6 bind fails.
+        _listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
         {
             Blocking = true,
             ExclusiveAddressUse = !s_config.ReuseAddress,
             LingerState = new LingerOption(false, 0)
         };
 
-        _listener.SetSocketOption(
-            SocketOptionLevel.Socket,
-            SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
+        _listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
 
-        _listener.SetSocketOption(
-            SocketOptionLevel.Socket,
-            SocketOptionName.ReceiveBuffer, s_config.BufferSize);
+        _listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, s_config.BufferSize);
 
         IPEndPoint epV4Any = new(IPAddress.Any, _port);
 
@@ -190,53 +189,62 @@ public abstract partial class TcpListenerBase
         // When you want to disconnect immediately without making sure the data has been sent.
         // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
 
-        // Keep the accepted socket in blocking mode; Task-based async works fine with blocking sockets.
-        // If you really want non-blocking I/O, ensure your Accept/Receive loops expect WouldBlock.
+        // Keep the socket in blocking mode.
+        // WHY: Task-based async I/O works well with socket blocking.
+        // Non-blocking mode requires handling WouldBlock errors in every recv/send call ->, which is much more complex.
         socket.Blocking = true;
 
-        // Performance tuning
+        // OS-level buffer for each connection.
+        // Larger -> fewer syscalls when throughput is high (batching more recv/send into the OS buffer).
+        // Smaller -> saves memory when there are multiple connections simultaneously.
         socket.NoDelay = s_config.NoDelay;
         socket.SendBufferSize = s_config.BufferSize;
         socket.ReceiveBufferSize = s_config.BufferSize;
 
         if (s_config.KeepAlive)
         {
-            // Windows specific settings
-            socket.SetSocketOption(SocketOptionLevel.Socket,
-                                   SocketOptionName.KeepAlive, true);
+            // Enable TCP Keep-Alive -> OS will automatically send probes when connection idle.
+            // WHY requires Keep-Alive: NAT/firewall usually drops the "silent" connection after a few minutes.
+            // Keep-Alive keeps the connection alive and detects that the peer is dead (network failure).
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 
             try
             {
-                // Cross-platform in modern .NET
+                // Cross-platform API (.NET 5+): Windows, Linux, and macOS all support it.
+                // Time = 3s: After 3 seconds of idle, start sending the first probe.
                 socket.SetSocketOption(SocketOptionLevel.Tcp,
                                        SocketOptionName.TcpKeepAliveTime, 3);
 
+                // Interval = 1s: If no response is given, send the next probe after 1 second.
                 socket.SetSocketOption(SocketOptionLevel.Tcp,
                                        SocketOptionName.TcpKeepAliveInterval, 1);
 
+                // RetryCount = 3: after 3 probes, there is no response -> connection dead -> close socket.
+                // Total time to detect dead connection: 3 + (3 × 1) = 6 seconds.
                 socket.SetSocketOption(SocketOptionLevel.Tcp,
                                        SocketOptionName.TcpKeepAliveRetryCount, 3);
             }
             catch
             {
-                // Fallback Windows-only SIO_KEEPALIVE_VALS if needed
+                // Fallback Windows-only: SIO_KEEPALIVE_VALS IOControl.
+                // WHY fallback: Older runtime or restricted environment does not support cross-platform API.
+                // SIO_KEEPALIVE_VALS = 12-byte struct: [on(4 bytes)][time_ms(4 bytes)][interval_ms(4 bytes)].
                 if (OperatingSystem.IsWindows())
                 {
-                    // Win32 SIO_KEEPALIVE_VALS: [on(4)][time(4 ms)][interval(4 ms)]
-                    // 1. Turning on Keep-Alive
-                    // 2. 3 seconds without data, send Keep-Alive
-                    // 3. Send every 1 second if there is no response
-
                     const int on = 1;
-                    const int time = 3_000;
-                    const int interval = 1_000;
+                    const int time = 3_000; // 3 seconds = 3000ms
+                    const int interval = 1_000; // 1 second = 1000ms
 
                     byte[] vals = new byte[12];
+                    // WHY BinaryPrimitives instead of BitConverter: BinaryPrimitives does not allocate,
+                    // Write directly to the buffer. LittleEndian because the Windows API requires it.
                     System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[0..4], on);
                     System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[4..8], time);
                     System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[8..12], interval);
                     _ = socket.IOControl(IOControlCode.KeepAliveValues, vals, null);
                 }
+                // Non-Windows without support cross-platform API -> ignore silently.
+                // WHY not throw: Best-effort; Keep-Alive will still work without it.
             }
         }
     }
@@ -246,6 +254,14 @@ public abstract partial class TcpListenerBase
     private static bool IsIgnorableAcceptError(
         SocketError code,
         CancellationToken token)
+        // These SocketError occur when the listener is shutting down normally:
+        // Shutdown -> socket.Shutdown() is called.
+        // TimedOut -> accept timeout (if a socket timeout is set).
+        // NotSocket -> The socket was closed before accepting.
+        // WouldBlock -> non-blocking socket without pending connection.
+        // Interrupted -> accept is interrupted by signal/close.
+        // InvalidArgument -> invalid sockets args (usually after Close).
+        // OperationAborted -> async operation is destroyed (usually when Dispose).
         => token.IsCancellationRequested || code
         is SocketError.Shutdown
         or SocketError.TimedOut

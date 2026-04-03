@@ -97,8 +97,8 @@ internal sealed class HashSetFormatter<
     /// Serialization behavior:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><c>null</c> → writes <c>-1</c> as count.</description></item>
-    /// <item><description>Empty set → writes <c>0</c>.</description></item>
+    /// <item><description><c>null</c> -> writes <c>-1</c> as count.</description></item>
+    /// <item><description>Empty set -> writes <c>0</c>.</description></item>
     /// <item><description>Otherwise writes count followed by each unique element.</description></item>
     /// </list>
     /// </remarks>
@@ -144,8 +144,8 @@ internal sealed class HashSetFormatter<
     /// Deserialization behavior:
     /// </para>
     /// <list type="bullet">
-    /// <item><description><c>-1</c> → returns <c>null</c>.</description></item>
-    /// <item><description><c>0</c> → returns an empty hash set.</description></item>
+    /// <item><description><c>-1</c> -> returns <c>null</c>.</description></item>
+    /// <item><description><c>0</c> -> returns an empty hash set.</description></item>
     /// <item><description>
     /// Otherwise reads elements and adds them to the set.
     /// Duplicate elements (if any) are silently ignored by <see cref="System.Collections.Generic.HashSet{T}.Add"/>.
