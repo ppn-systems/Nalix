@@ -12,9 +12,36 @@ This page covers the packet catalog APIs in `Nalix.Framework.DataFrames`.
 - `PacketRegistryFactory`
 - `PacketRegistry`
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `PacketRegistryFactory` | `RegisterPacket`, `IncludeAssembly`, `IncludeCurrentDomain`, `IncludeNamespace`, `IncludeNamespaceRecursive`, `CreateCatalog`, `Compute` |
+| `PacketRegistry` | `IsKnownMagic`, `IsRegistered`, `TryDeserialize`, `TryGetDeserializer`, `DeserializerCount` |
+
+## Source notes
+
+The default factory now pre-registers these built-in packet types:
+
+- `Text256`
+- `Text512`
+- `Text1024`
+- `Control`
+- `Handshake`
+- `Directive`
+
 ## PacketRegistryFactory
 
 `PacketRegistryFactory` builds an immutable `PacketRegistry` by registering packet types explicitly or by scanning assemblies and namespaces.
+
+It is the object you typically use when you want the same packet catalog on both server and client.
+
+### Typical responsibilities
+
+- register built-in packet types
+- scan application assemblies or namespaces
+- compute magic numbers from packet types
+- build the frozen registry once, then reuse it
 
 ## Basic usage
 
@@ -37,9 +64,30 @@ PacketRegistry registry = factory.CreateCatalog();
 - `CreateCatalog()`
 - `Compute(type)`
 
+### Practical notes
+
+- `CreateCatalog()` is the handoff point from builder-style setup to runtime lookup.
+- `Compute(type)` is used to derive the magic number for a packet type.
+- the factory is the right place to centralize packet registration instead of sprinkling manual registrations across startup files.
+
+### Common pitfalls
+
+- calling `CreateCatalog()` before all packet assemblies are registered
+- registering the same packet type in multiple startup paths
+- assuming the catalog auto-discovers types without scanning or explicit registration
+
 ## PacketRegistry
 
 `PacketRegistry` is the immutable runtime catalog used by listeners and SDK sessions.
+
+Once created, it is intended to be shared and treated as read-only.
+
+### What it gives you
+
+- fast magic-number lookup
+- type registration checks
+- deserializer resolution
+- a single source of truth for packet discovery at runtime
 
 ## Basic usage
 
@@ -60,6 +108,17 @@ bool registered = registry.IsRegistered<Handshake>();
 - `TryDeserialize(raw, out packet)`
 - `TryGetDeserializer(magic, out deserializer)`
 - `DeserializerCount`
+
+### Practical notes
+
+- listeners use the registry while decoding inbound traffic
+- SDK sessions use the same registry to stay aligned with the server packet catalog
+- if the registry and packet types drift apart, deserialization usually fails fast rather than silently producing the wrong packet
+
+### Common pitfalls
+
+- treating the registry as mutable after startup
+- deserializing with a registry built from a different packet set than the sender
 
 ## Related APIs
 

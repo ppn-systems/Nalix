@@ -103,3 +103,33 @@ That gives you the cleanest learning path and the fewest moving parts.
 - [UDP Auth Flow](../guides/udp-auth-flow.md)
 - [Custom Middleware](../guides/custom-middleware-end-to-end.md)
 - [Custom Metadata Provider](../guides/custom-metadata-provider.md)
+
+## Reading paths by persona
+
+```mermaid
+flowchart TD
+    Server["Server dev"] --> Server1["Introduction"]
+    Server1 --> Server2["Quickstart"]
+    Server2 --> Server3["Nalix.Network"]
+    Server3 --> Server4["Architecture"]
+    Server4 --> Server5["Server Blueprint"]
+
+    Client["Client dev"] --> Client1["Introduction"]
+    Client1 --> Client2["Quickstart"]
+    Client2 --> Client3["Nalix.SDK"]
+    Client3 --> Client4["SDK Overview"]
+    Client4 --> Client5["TCP Session"]
+
+    Middleware["Middleware author"] --> Middleware1["Choose the Right Building Block"]
+    Middleware1 --> Middleware2["Middleware"]
+    Middleware2 --> Middleware3["Custom Middleware End-to-End"]
+    Middleware3 --> Middleware4["Custom Metadata Provider"]
+
+    Packet["Packet author"] --> Packet1["Glossary"]
+    Packet1 --> Packet2["Packet Contracts"]
+    Packet2 --> Packet3["Serialization Attributes"]
+    Packet3 --> Packet4["Frame Model"]
+    Packet4 --> Packet5["Packet Registry"]
+```
+
+If you are not sure where to begin, start with the persona that matches your current task.

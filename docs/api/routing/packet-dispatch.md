@@ -17,6 +17,13 @@
 - `Activate(...)` starts `DispatchLoopCount` workers, or defaults to `clamp(Environment.ProcessorCount / 2, 1, 12)`
 - `Deactivate(...)` cancels workers and releases the semaphore so blocked loops can exit
 
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `PacketDispatchChannel` | `Activate(...)`, `Deactivate(...)`, `HandlePacket(...)` overloads, `GenerateReport()`, `Dispose()` |
+| `PacketDispatcherBase<TPacket>` | compiled handler and middleware execution helpers used by the channel |
+
 ## Input paths
 
 `HandlePacket(IBufferLease, IConnection)`:
@@ -43,6 +50,12 @@ Each worker:
 
 If middleware returns `null`, the packet is dropped before deserialization. If deserialization fails, the dispatcher logs the packet head in hex and drops the lease.
 
+### Failure modes worth knowing
+
+- a full queue can delay or drop incoming work before it reaches handlers
+- middleware returning `null` is an intentional drop path, not a silent failure
+- deserialization failures mean the packet registry or packet bytes are out of sync
+
 ## Diagnostics
 
 `GenerateReport()` includes:
@@ -56,6 +69,12 @@ If middleware returns `null`, the packet is dropped before deserialization. If d
 - semaphore count and cancellation status
 - packet registry type
 
+### Common pitfalls
+
+- calling the typed `HandlePacket(IPacket, IConnection)` path as if it were the normal ingress path
+- assuming a packet made it to middleware just because the socket accepted the bytes
+- forgetting to inspect queue pressure when handler latency grows
+
 ## Basic usage
 
 ```csharp
@@ -66,6 +85,13 @@ dispatch.HandlePacket(lease, connection);
 string report = dispatch.GenerateReport();
 Console.WriteLine(report);
 ```
+
+Typical flow:
+
+1. accept a raw buffer lease from the connection
+2. queue it into the dispatcher
+3. run middleware and deserialization in the worker loop
+4. invoke handlers and dispose the lease
 
 ## Related APIs
 

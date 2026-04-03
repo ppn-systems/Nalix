@@ -222,7 +222,7 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Sets the valid payload length (must be 0..Capacity).
     /// </summary>
-    /// <param name="length"></param>
+    /// <param name="length">The new payload length.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="length"/> is negative or larger than <see cref="Capacity"/>.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -306,9 +306,9 @@ public sealed class BufferLease : IBufferLease
     /// After a successful release, this instance becomes empty and disposing it is a no-op.
     /// Only allowed when this is the last reference (refCount == 1).
     /// </summary>
-    /// <param name="buffer"></param>
-    /// <param name="start"></param>
-    /// <param name="length"></param>
+    /// <param name="buffer">The detached buffer.</param>
+    /// <param name="start">The starting offset of the detached slice.</param>
+    /// <param name="length">The length of the detached slice.</param>
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -340,8 +340,8 @@ public sealed class BufferLease : IBufferLease
     /// Auto-rents a buffer from <see cref="BufferPoolManager"/> and returns a new empty slice [start=0, length=0].
     /// Caller writes to <see cref="SpanFull"/> then calls <see cref="CommitLength(int)"/>.
     /// </summary>
-    /// <param name="capacity"></param>
-    /// <param name="zeroOnDispose"></param>
+    /// <param name="capacity">The minimum capacity to rent.</param>
+    /// <param name="zeroOnDispose">Whether to clear the buffer before returning it to the pool.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="capacity"/> is negative.</exception>
     /// <exception cref="OutOfMemoryException">Thrown when no backing array can be rented.</exception>
     [DebuggerStepThrough]
@@ -357,8 +357,8 @@ public sealed class BufferLease : IBufferLease
     /// <summary>
     /// Creates a <see cref="BufferLease"/> by copying the source into a newly rented buffer.
     /// </summary>
-    /// <param name="src"></param>
-    /// <param name="zeroOnDispose"></param>
+    /// <param name="src">The source data to copy.</param>
+    /// <param name="zeroOnDispose">Whether to clear the buffer before returning it to the pool.</param>
     /// <exception cref="OutOfMemoryException">Thrown when no backing array can be rented for the copied data.</exception>
     public static BufferLease CopyFrom(ReadOnlySpan<byte> src, bool zeroOnDispose = false)
     {
@@ -371,9 +371,9 @@ public sealed class BufferLease : IBufferLease
     /// Wraps an array that was previously rented from <see cref="BufferPoolManager"/> (payload starts at 0).
     /// Caller asserts the array comes from the same pool and is safe to own here.
     /// </summary>
-    /// <param name="buffer"></param>
-    /// <param name="length"></param>
-    /// <param name="zeroOnDispose"></param>
+    /// <param name="buffer">The rented buffer to wrap.</param>
+    /// <param name="length">The payload length within the buffer.</param>
+    /// <param name="zeroOnDispose">Whether to clear the buffer before returning it to the pool.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="buffer"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="length"/> is outside the bounds of <paramref name="buffer"/>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -387,10 +387,10 @@ public sealed class BufferLease : IBufferLease
     /// Wraps a slice [<paramref name="start"/>..&lt;start+length&gt;) of a previously rented array from <see cref="BufferPoolManager"/>.
     /// This is the key API for zero-copy handoff of a payload located after a protocol header.
     /// </summary>
-    /// <param name="buffer"></param>
-    /// <param name="start"></param>
-    /// <param name="length"></param>
-    /// <param name="zeroOnDispose"></param>
+    /// <param name="buffer">The rented buffer to wrap.</param>
+    /// <param name="start">The start offset of the slice.</param>
+    /// <param name="length">The length of the slice.</param>
+    /// <param name="zeroOnDispose">Whether to clear the buffer before returning it to the pool.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="buffer"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the requested slice is outside the bounds of <paramref name="buffer"/>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

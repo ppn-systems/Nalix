@@ -11,7 +11,9 @@ using Nalix.Framework.Memory.Buffers;
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
 
 /// <summary>
-/// Provides serialization and deserialization functionality for <see cref="string"/> values using UTF-8 encoding.
+/// Serializes <see cref="string"/> values as a length-prefixed UTF-8 payload.
+/// Null, empty, and non-empty strings are encoded with distinct sentinel rules
+/// so the reader can round-trip them without extra metadata.
 /// </summary>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
@@ -26,6 +28,10 @@ public sealed class StringFormatter : IFormatter<string>
     /// <summary>
     /// Serializes a string value into the provided writer.
     /// </summary>
+    /// <remarks>
+    /// The encoded form starts with a 16-bit length prefix. A special sentinel is
+    /// used for <see langword="null"/> so null and empty strings remain distinct.
+    /// </remarks>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The string value to serialize.</param>
     /// <exception cref="SerializationFailureException">Thrown when the encoded UTF-8 payload exceeds the supported maximum length or encoding writes an unexpected byte count.</exception>
@@ -34,26 +40,31 @@ public sealed class StringFormatter : IFormatter<string>
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, string value)
     {
+        // Null is encoded with a sentinel length so the reader can distinguish it from an empty string.
         if (value == null)
         {
             writer.Write(SerializerBounds.Null);
             return;
         }
 
+        // Empty strings are encoded as a zero length with no UTF-8 payload.
         if (value.Length == 0)
         {
             writer.Write((ushort)0);
             return;
         }
 
+        // Guard the payload size before we expand the writer buffer.
         int byteCount = s_utf8.GetByteCount(value);
         if (byteCount > SerializerBounds.MaxString)
         {
             throw new SerializationFailureException("The string exceeds the allowed limit.");
         }
 
+        // Write the length first so the reader knows exactly how many bytes to consume.
         writer.Write((ushort)byteCount);
 
+        // Expand once and encode directly into the writer's free buffer to avoid extra copies.
         writer.Expand(byteCount);
         int bytesWritten = s_utf8.GetBytes(
             value.AsSpan(),
@@ -71,6 +82,10 @@ public sealed class StringFormatter : IFormatter<string>
     /// <summary>
     /// Deserializes a string value from the provided reader.
     /// </summary>
+    /// <remarks>
+    /// The reader mirrors the serializer's sentinel rules so <see langword="null"/>,
+    /// empty, and populated strings all round-trip correctly.
+    /// </remarks>
     /// <param name="reader">The serialization reader containing the data to deserialize.</param>
     /// <returns>The deserialized string value.</returns>
     /// <exception cref="SerializationFailureException">
@@ -83,21 +98,25 @@ public sealed class StringFormatter : IFormatter<string>
     {
         ushort length = reader.ReadUInt16();
 
+        // Zero length means an empty string, not null.
         if (length == 0)
         {
             return string.Empty;
         }
 
+        // The sentinel is reserved for null and must be checked before any range validation.
         if (length == SerializerBounds.Null)
         {
             return null!;
         }
 
+        // Reject corrupt or oversized payloads before we slice the input buffer.
         if (length > SerializerBounds.MaxString)
         {
             throw new SerializationFailureException("String length out of range");
         }
 
+        // Build a read-only span over the exact UTF-8 byte range and decode it directly.
         ref byte start = ref reader.GetSpanReference(length);
         string result = s_utf8.GetString(
             MemoryMarshal.CreateReadOnlySpan(ref start, length));

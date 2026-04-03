@@ -15,9 +15,8 @@ using Nalix.SDK.Transport.Internal;
 namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
-/// Provides client-side helpers for CONTROL frames, including:
-/// a fluent <see cref="ControlBuilder"/>, a one-shot <see cref="PingAsync"/> that returns RTT,
-/// and <see cref="AwaitControlAsync"/> to wait for a matching CONTROL without a receive pump.
+/// Provides client-side helpers for CONTROL frames, including a fluent <see cref="ControlBuilder"/>,
+/// a matcher via <see cref="AwaitControlAsync"/>, and a fluent sender via <see cref="SendControlAsync"/>.
 /// </summary>
 /// <remarks>
 /// These helpers use <see cref="Clock"/> for stamping and monotonic timing to achieve robust RTT measurements.
@@ -33,7 +32,7 @@ public static class ControlExtensions
     /// Use <see cref="NewControl"/> to create an instance,
     /// then chain configuration methods before calling <see cref="Build"/>.
     /// </summary>
-    /// <param name="c"></param>
+    /// <param name="c">The control instance being configured.</param>
     /// <remarks>
     /// This is a <see langword="ref struct"/> — it cannot be captured in lambdas or stored on the heap.
     /// Use <see cref="Build"/> to materialize the <see cref="Control"/> before passing it to async code.
@@ -149,7 +148,7 @@ public static class ControlExtensions
     /// Awaits until a CONTROL frame matching the specified predicate is received, or a timeout occurs.
     /// Non-matching packets are ignored.
     /// </summary>
-    /// <param name="client">The connected reliable client.</param>
+    /// <param name="client">The connected client.</param>
     /// <param name="predicate">A predicate that returns <c>true</c> for the desired CONTROL.</param>
     /// <param name="timeoutMs">The maximum time to wait, in milliseconds.</param>
     /// <param name="ct">A token to cancel the operation.</param>

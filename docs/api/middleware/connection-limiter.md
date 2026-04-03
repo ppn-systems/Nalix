@@ -1,10 +1,10 @@
 # Connection Limiter
 
-`ConnectionLimiter` protects the TCP accept path by enforcing per-endpoint connection caps and rate windows.
+`ConnectionGuard` protects the TCP accept path by enforcing per-endpoint connection caps and rate windows.
 
 ## Source mapping
 
-- `src/Nalix.Network/Throttling/ConnectionLimiter.cs`
+- `src/Nalix.Network/Connections/Connection.Guard.cs`
 
 ## What it does
 
@@ -21,7 +21,7 @@
 ConnectionLimitOptions options = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
 options.Validate();
 
-ConnectionLimiter limiter = new(options);
+ConnectionGuard limiter = new(options);
 
 if (!limiter.TryAccept(remoteEndPoint))
 {
@@ -39,7 +39,7 @@ connection.OnCloseEvent += limiter.OnConnectionClosed;
 
 If you skip this, active connection counts can stay artificially high for an endpoint.
 
-`TryAccept(...)` returns `false` for over-limit, burst-window, or banned endpoints, and throws if the limiter has already been disposed.
+`TryAccept(...)` returns `false` for over-limit, burst-window, or banned endpoints, and throws if the guard has already been disposed.
 
 ## Diagnostics
 

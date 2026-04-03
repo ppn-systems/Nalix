@@ -6,22 +6,12 @@ using Nalix.Common.Networking.Protocols;
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// Defines default values and constants for packet configuration and memory thresholds.
+/// Defines packet framing and allocation thresholds shared by the networking stack.
 /// </summary>
 public static class PacketConstants
 {
     /// <summary>
     /// The size, in bytes, of the fixed packet header.
-    /// Includes:
-    /// <list type="bullet">
-    /// <item><see cref="PacketFlags"/>Flags (Byte)</item>
-    /// <item><see cref="ushort"/> OpCode (UInt32)</item>
-    /// <item><see cref="ushort"/> Length (UInt16)</item>
-    /// <item><see cref="uint"/> MagicNumber</item>
-    /// <item><see cref="PacketPriority"/>Priority (Byte)</item>
-    /// <item><see cref="ProtocolType"/>Protocol (Byte)</item>
-    /// <item><see cref="uint"/> SequenceId (UInt32)</item>
-    /// </list>
     /// </summary>
     public const byte HeaderSize =
         sizeof(uint) +    // MagicNumber = 4  (offset 0)
@@ -48,13 +38,11 @@ public static class PacketConstants
 
     /// <summary>
     /// The minimum payload size, in bytes, required to enable compression.
-    /// Payloads smaller than this value will not be compressed.
     /// </summary>
     public const short CompressionThreshold = 0x0100;
 
     /// <summary>
     /// The maximum allowed total packet size, in bytes.
-    /// This limit is 2,147,483,6xx bytes (0xFFFFFFF - HeaderSize), corresponding to the maximum value of an 32-bit integer.
     /// </summary>
     public const int PacketSizeLimit = int.MaxValue - HeaderSize;
 }

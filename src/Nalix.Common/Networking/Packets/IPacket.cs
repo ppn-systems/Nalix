@@ -10,11 +10,11 @@ using Nalix.Common.Serialization;
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>
-/// Defines the common contract for all network packets.
+/// Describes a packet that can be serialized and sent over the wire.
 /// </summary>
 /// <remarks>
-/// An <see cref="IPacket"/> implementation represents a unit of data that can be serialized
-/// for transmission or storage and later deserialized for processing.
+/// Implementations expose a fixed header and a serialization API that the packet
+/// pipeline can use without knowing the concrete packet type.
 /// </remarks>
 [SerializePackable(SerializeLayout.Explicit)]
 public interface IPacket
@@ -22,44 +22,43 @@ public interface IPacket
     #region Metadata
 
     /// <summary>
-    /// Gets the total size, in bytes, of the serialized packet, including headers and payload.
+    /// Gets the total serialized size, in bytes, including headers and payload.
     /// </summary>
     [SerializeIgnore]
     int Length { get; }
 
     /// <summary>
-    /// Gets the magic number that uniquely identifies the packet format or protocol.
+    /// Gets the magic number that identifies the packet format or protocol.
     /// </summary>
     [SerializeHeader(PacketHeaderOffset.MagicNumber)]
     uint MagicNumber { get; set; }
 
     /// <summary>
-    /// Gets the operation code (OpCode) that specifies the command or type of the packet.
+    /// Gets the operation code that identifies the packet handler.
     /// </summary>
     [SerializeHeader(PacketHeaderOffset.OpCode)]
     ushort OpCode { get; set; }
 
     /// <summary>
-    /// Gets the flags associated with the packet, indicating its state or processing options.
+    /// Gets the flags associated with the packet.
     /// </summary>
     [SerializeHeader(PacketHeaderOffset.Flags)]
     PacketFlags Flags { get; set; }
 
     /// <summary>
-    /// Gets the priority level of the packet for processing or transmission.
+    /// Gets the priority level of the packet.
     /// </summary>
     [SerializeHeader(PacketHeaderOffset.Priority)]
     PacketPriority Priority { get; set; }
 
     /// <summary>
-    /// Gets the transport protocol (for example, TCP or UDP) used to transmit the packet.
+    /// Gets the transport protocol used to transmit the packet.
     /// </summary>
     [SerializeHeader(PacketHeaderOffset.Transport)]
     ProtocolType Protocol { get; set; }
 
     /// <summary>
-    /// Gets the sequence identifier of the packet.
-    /// This is used to correlate requests with their responses.
+    /// Gets the sequence identifier used to correlate requests and responses.
     /// </summary>
     [SerializeHeader(PacketHeaderOffset.SequenceId)]
     uint SequenceId { get; }

@@ -6,14 +6,15 @@ using System.Reflection;
 namespace Nalix.Network.Routing;
 
 /// <summary>
-/// Defines a contract for components that can contribute metadata
-/// for packet handler methods.
+/// Contributes metadata for packet handler registration.
+/// Providers can inspect the handler method and populate a builder with
+/// attributes that later become part of the final packet metadata.
 /// </summary>
 public interface IPacketMetadataProvider
 {
     /// <summary>
-    /// Populates the <see cref="PacketMetadataBuilder"/> with metadata
-    /// for the specified handler method.
+    /// Populates the <see cref="PacketMetadataBuilder"/> with metadata for the
+    /// specified handler method.
     /// </summary>
     /// <param name="method">The handler method being inspected.</param>
     /// <param name="builder">

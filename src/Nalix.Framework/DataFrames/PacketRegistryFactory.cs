@@ -21,6 +21,8 @@ namespace Nalix.Framework.DataFrames;
 /// <summary>
 /// Builds an immutable <see cref="PacketRegistry"/> by scanning packet types and
 /// binding their static deserialize functions with maximum performance.
+/// The factory separates discovery from registration so packet metadata can be
+/// assembled once and reused by the runtime registry.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -47,8 +49,9 @@ public sealed class PacketRegistryFactory
 
     private static readonly MethodInfo s_bindAllPtrsMi;
 
-    // Built-in namespaces whose types are pre-registered in the default constructor
-    // and must NOT be re-added during assembly scanning (would cause duplicate magic).
+    // Built-in namespaces whose types are pre-registered in the default constructor.
+    // These namespaces are skipped during scanning so the factory does not try to
+    // register the same built-in packets twice.
     private static readonly FrozenSet<string> s_builtInNamespaces;
 
     #endregion Static: Defaults & Utilities
@@ -58,8 +61,11 @@ public sealed class PacketRegistryFactory
     private readonly HashSet<Type> _explicitPacketTypes = [];
     private readonly HashSet<Assembly> _assemblies = [];
 
-    // namespace -> recursive flag
-    // Key: namespace string (exact or prefix match when recursive=true)
+    // Namespace filter table:
+    //   key   = namespace string
+    //   value = true when the namespace should match recursively
+    // Exact matches are cheaper, but recursive matches are useful when a whole
+    // packet family lives under a shared root namespace.
     private readonly Dictionary<string, bool> _namespaceScan = new(StringComparer.Ordinal);
 
     #endregion Fields
@@ -103,6 +109,8 @@ public sealed class PacketRegistryFactory
 
     /// <summary>
     /// Registers a concrete packet type explicitly.
+    /// Explicit registrations are useful when packet types are known ahead of
+    /// time and should always be present even if assembly scanning is disabled.
     /// </summary>
     /// <exception cref="ArgumentException">Thrown when <typeparamref name="TPacket"/> does not expose a stable packet identity at registration time.</exception>
     public PacketRegistryFactory RegisterPacket<TPacket>() where TPacket : IPacket
@@ -120,6 +128,8 @@ public sealed class PacketRegistryFactory
     /// <summary>
     /// Register all packets that implement <see cref="IPacket"/> in the assembly.
     /// If <paramref name="requireAttribute"/> is true, only register classes that have <see cref="PacketAttribute"/>.
+    /// This is the broad discovery path used when the caller wants the factory to
+    /// harvest packet types automatically from a plugin assembly.
     /// </summary>
     /// <param name="asm">Assembly to scan packets.</param>
     /// <param name="requireAttribute">Only register classes with the attribute if true; register all if false.</param>
@@ -153,6 +163,8 @@ public sealed class PacketRegistryFactory
     /// <summary>
     /// Adds an assembly to be scanned for packet types.
     /// Only types whose namespace is NOT in the built-in set will be considered.
+    /// Keeping assembly selection separate lets the caller control the discovery
+    /// scope without paying for a full AppDomain scan.
     /// </summary>
     public PacketRegistryFactory IncludeAssembly(Assembly? asm)
     {
@@ -167,6 +179,8 @@ public sealed class PacketRegistryFactory
     /// <summary>
     /// Scans all loaded assemblies in the current <see cref="AppDomain"/>
     /// for packet types.
+    /// This is the widest discovery mode and is usually only appropriate when
+    /// the caller wants to auto-register everything available at runtime.
     /// </summary>
     public PacketRegistryFactory IncludeCurrentDomain()
     {

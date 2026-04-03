@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Throttling/PolicyRateLimiter.cs`
+- `src/Nalix.Network.Pipeline/Throttling/PolicyRateLimiter.cs`
 
 ## What it does
 

@@ -7,21 +7,26 @@ using Nalix.Framework.Configuration.Binding;
 namespace Nalix.Framework.Options;
 
 /// <summary>
-/// Options for data compression behavior.
+/// Configures when compression is enabled and when payloads are large enough
+/// to justify the cost of compressing them.
 /// </summary>
 [IniComment("Compression configuration — controls when and how data is compressed")]
 public sealed class CompressionOptions : ConfigurationLoader
 {
     /// <summary>
-    /// Enable or disable compression globally.
+    /// Gets or sets whether compression is enabled globally.
     /// </summary>
     [IniComment("Enable or disable compression (true = enabled, false = disabled)")]
     public bool Enabled { get; init; } = true;
 
     /// <summary>
-    /// Minimum payload size (in bytes) required to trigger compression.
-    /// Data smaller than this value will NOT be compressed.
+    /// Gets or sets the minimum payload size, in bytes, required before compression is attempted.
     /// </summary>
+    /// <remarks>
+    /// Small payloads often grow after compression because of headers and framing,
+    /// so this threshold prevents wasted CPU time on messages that are too small
+    /// to benefit from compression.
+    /// </remarks>
     [IniComment("Minimum data size (bytes) to trigger compression (e.g. 1024 = 1KB)")]
     [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue,
         ErrorMessage = "MinSizeToCompress must be >= 0.")]
@@ -30,6 +35,10 @@ public sealed class CompressionOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
+    /// <remarks>
+    /// This relies on data annotation validation so callers can reuse the same
+    /// validation path as the rest of the configuration system.
+    /// </remarks>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>

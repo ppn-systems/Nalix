@@ -76,10 +76,11 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[NW.{nameof(PacketHandlerCompiler<,>)}:{nameof(CompileHandlers)}] scan controller={controllerType.Name}");
 
-        // Get or compile all handler methods
+        // Reuse cached method metadata when possible; otherwise compile once and
+        // freeze the result so dispatch stays allocation-free at runtime.
         FrozenDictionary<ushort, PacketHandlerDescriptor<TPacket>> compiledMethods = CompileControllerHandlers(controllerType);
 
-        // Create the controller instance
+        // Create one controller instance up front and reuse it for every handler.
         TController controllerInstance = factory();
 
         // CreateCatalog delegate descriptors
@@ -215,13 +216,11 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private static PacketHandlerDescriptor<TPacket> CompileHandlerMethod(MethodInfo x22)
     {
-        // -------------------------------------------------------------------
-        // Shared expression nodes — always built regardless of signature kind
+        // Shared expression nodes — always built regardless of signature kind.
         // x00 = boxed controller instance
-        // x01 = PacketContext<TPacket>  (the single source-of-truth arg the
-        //        compiled invoker always receives from ExecuteHandlerAsync)
+        // x01 = PacketContext<TPacket> (the single source-of-truth arg the
+        //       compiled invoker always receives from ExecuteHandlerAsync)
         // x02..x04 = property reads off x01
-        // -------------------------------------------------------------------
         ParameterExpression x00 =
             Expression.Parameter(typeof(object), "instance");
 
@@ -242,19 +241,16 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         MemberExpression x04 =
             Expression.Property(x01, cancellationTokenProperty);
 
-        // -------------------------------------------------------------------
         // Detect which of the 4 supported signatures this method uses.
         // Supported forms:
         //   Legacy  (a) (TPacket, IConnection)
         //   Legacy  (b) (TPacket, IConnection, CancellationToken)
         //   New     (c) (PacketContext<TPacket>)
         //   New     (d) (PacketContext<TPacket>, CancellationToken)
-        // -------------------------------------------------------------------
         ParameterInfo[] parms = x22.GetParameters();
 
         SignatureKind kind = ResolveSignatureKind(x22, parms);
 
-        // -------------------------------------------------------------------
         // Context-style with a DIFFERENT concrete PacketContext<T>
         //
         // When TPacket = IPacket but the handler declares PacketContext<Handshake>,
@@ -265,7 +261,6 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         // bridge instead. MethodInfo.Invoke boxes arguments to object and performs the
         // assignability check at runtime via CLR rules, accepting PacketContext<Handshake>
         // without any explicit cast.
-        // -------------------------------------------------------------------
         bool needsContextBridge =
             (kind is SignatureKind.ContextOnly or SignatureKind.ContextWithToken)
             && parms[0].ParameterType != typeof(PacketContext<TPacket>);
@@ -278,9 +273,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         }
         else if (RuntimeFeature.IsDynamicCodeSupported)
         {
-            // ---------------------------------------------------------------
             // Normal expression-tree path — types match exactly.
-            // ---------------------------------------------------------------
             Expression[] x09 = BuildArgExpressions(kind, parms, x01, x02, x03, x04);
 
             Expression x10 = x22.IsStatic
@@ -524,7 +517,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         return (instance, context) =>
         {
             // MethodInfo.Invoke accepts the concrete PacketContext<T> as-is via
-            // object boxing — no coercion operator required.
+            // object boxing, so no coercion operator is needed.
             object[] args = withToken
                 ? [context, context.CancellationToken]
                 : [context];
@@ -616,6 +609,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         Func<object, PacketContext<TPacket>, object> x00,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type x01)
     {
+        // Normalize the handler return type into a single awaitable shape so the
+        // dispatcher can treat sync, Task, and ValueTask handlers uniformly.
         if (x01 == typeof(Task))
         {
             return (instance, context) => AwaitTaskVoidAsync(x00(instance, context));
@@ -646,6 +641,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Func<object, ValueTask<object>> CreateTaskConverter(Type resultType)
     {
+        // Reuse the generic async helper instead of building a new wrapper per type.
         MethodInfo method = GetRequiredMethod(
             typeof(PacketHandlerCompiler<TController, TPacket>),
             nameof(AwaitTaskResultAsync),
@@ -657,6 +653,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Func<object, ValueTask<object>> CreateValueTaskConverter(Type resultType)
     {
+        // Same idea for ValueTask<T>: bind the generic helper once, then cache the delegate.
         MethodInfo method = GetRequiredMethod(
             typeof(PacketHandlerCompiler<TController, TPacket>),
             nameof(AwaitValueTaskResultAsync),
@@ -668,6 +665,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static async ValueTask<object> AwaitTaskVoidAsync(object result)
     {
+        // Await the task for its side effects, then normalize the result to null.
         if (result is Task task)
         {
             await task.ConfigureAwait(false);
@@ -679,6 +677,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static async ValueTask<object> AwaitTaskResultAsync<TResult>(object result)
     {
+        // Return the typed task result as object so the outer pipeline stays generic.
         if (result is Task<TResult> task)
         {
             TResult value = await task.ConfigureAwait(false);
@@ -691,6 +690,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static async ValueTask<object> AwaitValueTaskVoidAsync(object result)
     {
+        // Await the ValueTask for completion and normalize the result to null.
         if (result is ValueTask valueTask)
         {
             await valueTask.ConfigureAwait(false);
@@ -702,6 +702,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static async ValueTask<object> AwaitValueTaskResultAsync<TResult>(object result)
     {
+        // Same normalization step for ValueTask<T>.
         if (result is ValueTask<TResult> valueTask)
         {
             TResult value = await valueTask.ConfigureAwait(false);

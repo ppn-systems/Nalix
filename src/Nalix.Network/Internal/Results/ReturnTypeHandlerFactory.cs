@@ -41,7 +41,10 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     }
 
     /// <summary>
-    /// Get handler cho specific return type.
+    /// Returns the cached handler for a specific return type.
+    /// If the type is not part of the base map, the factory lazily builds a
+    /// wrapper handler for <c>Task&lt;T&gt;</c> / <c>ValueTask&lt;T&gt;</c> or an
+    /// unsupported-type handler when the return type is not recognized.
     /// </summary>
     /// <param name="returnType"></param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -57,7 +60,9 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     }
 
     /// <summary>
-    /// Create base handlers dictionary.
+    /// Creates the immutable base handler map for the common return types.
+    /// These handlers cover the fast path and avoid reflection for the built-in
+    /// return shapes that appear most often in packet handlers.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static System.Collections.Frozen.FrozenDictionary<Type, IReturnHandler<TPacket>> CreateReturnTypeHandlerMap()
@@ -103,12 +108,16 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
 
             if (genericType == typeof(Task<>))
             {
+                // Task<T> is handled by first resolving the inner handler for T and
+                // then wrapping it in an awaitable adapter that unwraps the Task.
                 IReturnHandler<TPacket> innerHandler = ResolveHandler(genericArg);
                 return CreateTaskWrapperHandler(innerHandler, genericArg);
             }
 
             if (genericType == typeof(ValueTask<>))
             {
+                // Same wrapper pattern for ValueTask<T>: unwrap the result after
+                // awaiting and feed it through the handler selected for T.
                 IReturnHandler<TPacket> innerHandler = ResolveHandler(genericArg);
                 return CreateValueTaskWrapperHandler(innerHandler, genericArg);
             }

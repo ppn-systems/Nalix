@@ -20,13 +20,20 @@ flowchart LR
 - `src/Nalix.Network/Connections/Connection.Hub.cs`
 - `src/Nalix.Network/Connections/Connection.Hub.Statistics.cs`
 - `src/Nalix.Network/Connections/Connection.Hub.EventArgs.cs`
-- `src/Nalix.Network/Configurations/ConnectionHubOptions.cs`
+- `src/Nalix.Network/Options/ConnectionHubOptions.cs`
 
 ## Core design
 
 - Connections are distributed across internal shards using a compact `UInt56` key derived from `connection.ID`.
 - Anonymous connections are also queued in FIFO order so `DROP_OLDEST` can evict them efficiently.
 - `Statistics` returns a structured snapshot with connection count, drop policy, shard count, anonymous queue depth, evicted count, and rejected count.
+
+## Public members at a glance
+
+| Type | Public members |
+|---|---|
+| `ConnectionHub` | `RegisterConnection`, `UnregisterConnection`, `GetConnection`, `ListConnections`, `BroadcastAsync`, `BroadcastWhereAsync`, `ForceClose`, `CloseAllConnections`, `GenerateReport()`, `Statistics` |
+| `ConnectionHubStatistics` | `ConnectionCount`, `MaxConnections`, `DropPolicy`, `ShardCount`, `AnonymousQueueDepth`, `EvictedConnections`, `RejectedConnections` |
 
 ## Keying model
 
@@ -63,6 +70,12 @@ In both cases the hub raises `CapacityLimitReached`.
 
 `RegisterConnection(...)` no longer returns a boolean status. Admission failures now surface as `InvalidOperationException`, which keeps duplicate registrations and over-capacity cases explicit for callers.
 
+### Common pitfalls
+
+- using the hub as an app-state store instead of a live session registry
+- keeping a connection reference after unregistering or closing it
+- assuming username binding is built in as a reverse index
+
 ## Broadcast behavior
 
 - `BroadcastBatchSize > 0` enables batched `Task.WhenAll(...)` fan-out.
@@ -80,6 +93,12 @@ In both cases the hub raises `CapacityLimitReached`.
 - bytes sent and uptime aggregates
 - per-status and per-algorithm summaries
 - the first 15 active connections
+
+### Failure modes worth watching
+
+- capacity rejections when `MaxConnections` is too low for the current traffic pattern
+- stale anonymous queue growth when connections are accepted but never promoted
+- broadcast fan-out pressure when a large live set is sent to at once
 
 ## ConnectionHubStatistics
 
@@ -114,6 +133,13 @@ ConnectionHubStatistics stats = hub.Statistics;
 int liveConnections = stats.ConnectionCount;
 int rejectedConnections = stats.RejectedConnections;
 ```
+
+Typical flow:
+
+1. register the connection after acceptance
+2. resolve it later by snowflake or endpoint-derived keys
+3. broadcast or force-close when needed
+4. inspect `Statistics` or `GenerateReport()` during debugging
 
 ---
 

@@ -4,19 +4,19 @@
 
 ## Source mapping
 
-- `src/Nalix.Common/Diagnostics/ILogger.cs`
-- `src/Nalix.Common/Diagnostics/ILoggerTarget.cs`
-- `src/Nalix.Common/Diagnostics/ILogDistributor.cs`
+- `src/Nalix.Common/Logging/INLogixDistributor.cs`
+- `src/Nalix.Common/Logging/INLogixErrorHandler.cs`
+- `src/Nalix.Common/Logging/INLogixTarget.cs`
 
 ## Main types
 
-- `ILogger`
-- `ILoggerTarget`
-- `ILogDistributor`
+- `INLogixDistributor`
+- `INLogixErrorHandler`
+- `INLogixTarget`
 
 ## ILogger
 
-`ILogger` is the main logging abstraction used by framework, network, SDK, and logging components.
+`ILogger` is still the main Microsoft logging abstraction used by framework, network, SDK, and logging components.
 
 It exposes methods such as:
 
@@ -27,9 +27,9 @@ It exposes methods such as:
 - `Error(...)`
 - `Fatal(...)`
 
-## ILoggerTarget
+## INLogixTarget
 
-`ILoggerTarget` is the sink contract. A target receives a `LogEntry` and decides how it is stored or displayed.
+`INLogixTarget` is the sink contract. A target receives a log entry and decides how it is stored or displayed.
 
 Typical examples:
 
@@ -37,9 +37,9 @@ Typical examples:
 - file output
 - remote logging target
 
-## ILogDistributor
+## INLogixDistributor
 
-`ILogDistributor` is the fan-out abstraction that pushes one log entry to many targets.
+`INLogixDistributor` is the fan-out abstraction that pushes one log entry to many targets.
 
 It supports:
 

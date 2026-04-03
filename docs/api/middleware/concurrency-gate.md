@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Throttling/ConcurrencyGate.cs`
+- `src/Nalix.Network.Pipeline/Throttling/ConcurrencyGate.cs`
 
 ## What it does
 

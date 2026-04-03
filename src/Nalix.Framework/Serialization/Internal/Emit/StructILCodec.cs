@@ -9,7 +9,8 @@ using Nalix.Framework.Serialization.Internal.Reflection;
 namespace Nalix.Framework.Serialization.Internal.Emit;
 
 /// <summary>
-/// Optimized IL Emit serializer - SAFE + HIGH PERFORMANCE
+/// Builds a per-type IL serializer for value types and caches the generated
+/// delegates for reuse.
 /// </summary>
 internal static class StructILCodec<T> where T : struct
 {
@@ -19,7 +20,7 @@ internal static class StructILCodec<T> where T : struct
     public delegate void SerializeDelegate(ref DataWriter writer, T value);
     public delegate T DeserializeDelegate(ref DataReader reader);
 
-    // Cached per type
+    // Reflection and method resolution are done once per closed struct type.
     private static readonly FieldSchema[] s_fields;
     private static readonly MethodInfo?[] s_directReadMethods;
     private static readonly MethodInfo?[] s_directWriteMethods;
@@ -49,6 +50,9 @@ internal static class StructILCodec<T> where T : struct
 
     private static SerializeDelegate GenerateSerialize()
     {
+        // For structs the generated serializer still writes fields sequentially,
+        // but the owner value is passed by value because serialization does not
+        // need to mutate the original instance.
         DynamicMethod dm = new($"StructSerialize_{typeof(T).Name}",
             typeof(void), [typeof(DataWriter).MakeByRefType(), typeof(T)],
             typeof(StructILCodec<T>).Module, skipVisibility: true);
@@ -66,6 +70,8 @@ internal static class StructILCodec<T> where T : struct
 
     private static DeserializeDelegate GenerateDeserialize()
     {
+        // Build the struct in a local, initialize it once, then populate each field
+        // directly through the emitted IL before returning the completed value.
         DynamicMethod dm = new($"StructDeserialize_{typeof(T).Name}",
             typeof(T), [typeof(DataReader).MakeByRefType()],
             typeof(StructILCodec<T>).Module, skipVisibility: true);
