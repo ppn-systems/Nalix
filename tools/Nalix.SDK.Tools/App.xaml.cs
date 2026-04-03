@@ -1,4 +1,5 @@
 using System.Windows;
+using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Services;
 using Nalix.SDK.Tools.ViewModels;
 using Nalix.SDK.Tools.Views;
@@ -15,8 +16,8 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        PacketCatalogService catalogService = new();
-        TcpClientService tcpClientService = new(catalogService);
+        IPacketCatalogService catalogService = new PacketCatalogService();
+        ITcpClientService tcpClientService = new TcpClientService(catalogService);
         MainWindowViewModel viewModel = new(catalogService, tcpClientService);
 
         MainWindow window = new()

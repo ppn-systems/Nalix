@@ -1,0 +1,97 @@
+<UserControl x:Class="Nalix.SDK.Tools.Views.PacketBuilderView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nalix.SDK.Tools.Controls">
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="370" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Connection" Margin="0,0,0,12">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="75" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Host" />
+                        <TextBox Grid.Row="0" Grid.Column="1" Margin="8,0,0,8" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Port" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Margin="8,0,0,12" Text="{Binding PortText, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <UniformGrid Grid.Row="2" Grid.ColumnSpan="2" Columns="2">
+                            <Button Margin="0,0,8,0" Command="{Binding ConnectCommand}" Content="Connect" />
+                            <Button Command="{Binding DisconnectCommand}" Content="Disconnect" />
+                        </UniformGrid>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Packet Selection" Margin="0,0,0,12">
+                    <Grid Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="80" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Type" />
+                        <ComboBox Grid.Row="0"
+                                  Grid.Column="1"
+                                  Margin="8,0,0,8"
+                                  DisplayMemberPath="Name"
+                                  ItemsSource="{Binding PacketTypes}"
+                                  SelectedItem="{Binding SelectedPacketType}" />
+                        <TextBlock Grid.Row="1"
+                                   Grid.ColumnSpan="2"
+                                   Foreground="#64748B"
+                                   TextWrapping="Wrap"
+                                   Text="Packet type is selected explicitly by MagicNumber identity." />
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Actions" Margin="0,0,0,12">
+                    <UniformGrid Margin="10" Columns="3">
+                        <Button Margin="0,0,8,0" Command="{Binding ResetPacketCommand}" Content="Reset" />
+                        <Button Margin="0,0,8,0" Command="{Binding SerializePacketCommand}" Content="Serialize" />
+                        <Button Command="{Binding SendPacketCommand}" Content="Send" />
+                    </UniformGrid>
+                </GroupBox>
+
+                <GroupBox Header="Builder Notes">
+                    <TextBlock Margin="10" TextWrapping="Wrap" Foreground="#334155" Text="{Binding ResolutionText}" />
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Column="2" Padding="16" Background="White" CornerRadius="10" BorderBrush="#D9E2EC" BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Margin="0,0,0,16">
+                    <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding CurrentPacketTitle}" />
+                    <TextBlock Margin="0,6,0,0" Foreground="#64748B" TextWrapping="Wrap" Text="{Binding CurrentPacketSummary}" />
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <controls:DynamicPropertyForm ItemsSource="{Binding CurrentProperties}" />
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

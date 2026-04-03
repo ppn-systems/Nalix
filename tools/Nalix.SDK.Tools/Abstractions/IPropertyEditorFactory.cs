@@ -1,7 +1,7 @@
 using System.Windows;
 using Nalix.SDK.Tools.ViewModels;
 
-namespace Nalix.SDK.Tools.Services;
+namespace Nalix.SDK.Tools.Abstractions;
 
 /// <summary>
 /// Creates WPF editor controls for reflected packet properties.

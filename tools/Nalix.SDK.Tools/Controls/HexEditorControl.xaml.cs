@@ -13,7 +13,8 @@ namespace Nalix.SDK.Tools.Controls;
 /// </summary>
 public partial class HexEditorControl : UserControl
 {
-    private static readonly SolidColorBrush DefaultBorderBrush = new(Color.FromRgb(0x33, 0x41, 0x55));
+    private static readonly SolidColorBrush s_defaultBorderBrush = new(Color.FromRgb(0x33, 0x41, 0x55));
+
     private bool _isUpdating;
 
     /// <summary>
@@ -63,7 +64,7 @@ public partial class HexEditorControl : UserControl
             HexTextBox.Text = (this.Value ?? Array.Empty<byte>()).ToHexString();
             ByteCountTextBlock.Text = $"{this.Value?.Length ?? 0:N0} bytes";
             StatusTextBlock.Text = "Hex input accepts spaces and line breaks.";
-            HexTextBox.BorderBrush = DefaultBorderBrush;
+            HexTextBox.BorderBrush = s_defaultBorderBrush;
         }
         finally
         {
@@ -84,7 +85,7 @@ public partial class HexEditorControl : UserControl
             this.Value = parsed;
             ByteCountTextBlock.Text = $"{parsed.Length:N0} bytes";
             StatusTextBlock.Text = "Hex value updated.";
-            HexTextBox.BorderBrush = DefaultBorderBrush;
+            HexTextBox.BorderBrush = s_defaultBorderBrush;
         }
         catch (Exception exception)
         {
@@ -104,7 +105,7 @@ public partial class HexEditorControl : UserControl
         {
             _isUpdating = true;
             HexTextBox.Text = (this.Value ?? Array.Empty<byte>()).ToHexString();
-            HexTextBox.BorderBrush = DefaultBorderBrush;
+            HexTextBox.BorderBrush = s_defaultBorderBrush;
         }
         finally
         {

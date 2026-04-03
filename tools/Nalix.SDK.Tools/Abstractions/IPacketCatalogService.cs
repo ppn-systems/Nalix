@@ -2,7 +2,7 @@ using System;
 using Nalix.Framework.DataFrames;
 using Nalix.SDK.Tools.Models;
 
-namespace Nalix.SDK.Tools.Services;
+namespace Nalix.SDK.Tools.Abstractions;
 
 /// <summary>
 /// Provides packet discovery, metadata inspection, and runtime packet creation services.

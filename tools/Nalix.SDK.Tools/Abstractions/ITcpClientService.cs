@@ -4,48 +4,48 @@ using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Tools.Models;
 
-namespace Nalix.SDK.Tools.Services;
+namespace Nalix.SDK.Tools.Abstractions;
 
 /// <summary>
-/// Defines the TCP client service used by the application.
+/// Defines TCP client operations used by the packet tool.
 /// </summary>
 public interface ITcpClientService : IDisposable
 {
     /// <summary>
-    /// Gets a value indicating whether the session is connected.
+    /// Gets a value indicating whether the TCP client is connected.
     /// </summary>
     bool IsConnected { get; }
 
     /// <summary>
-    /// Occurs when the connection state changed.
+    /// Raised when the status text changes.
     /// </summary>
     event EventHandler<string>? StatusChanged;
 
     /// <summary>
-    /// Occurs when a packet was sent.
+    /// Raised when a packet has been sent.
     /// </summary>
     event EventHandler<PacketLogEntry>? PacketSent;
 
     /// <summary>
-    /// Occurs when a packet was received.
+    /// Raised when a packet has been received.
     /// </summary>
     event EventHandler<PacketLogEntry>? PacketReceived;
 
     /// <summary>
-    /// Connects to the specified endpoint.
+    /// Connects the TCP session.
     /// </summary>
-    /// <param name="settings">The target endpoint settings.</param>
+    /// <param name="settings">The connection settings.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task ConnectAsync(ConnectionSettings settings, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Disconnects the current session.
+    /// Disconnects the TCP session.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task DisconnectAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Serializes and sends the specified packet.
+    /// Sends a packet through the active TCP session.
     /// </summary>
     /// <param name="packet">The packet to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>

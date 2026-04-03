@@ -5,6 +5,7 @@ using System.Windows;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 using Nalix.SDK.Options;
+using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Models;
 using Nalix.SDK.Transport;
 

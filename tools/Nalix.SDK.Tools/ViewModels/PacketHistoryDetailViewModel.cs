@@ -3,9 +3,9 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.Input;
 using Nalix.Framework.DataFrames;
+using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Extensions;
 using Nalix.SDK.Tools.Models;
-using Nalix.SDK.Tools.Services;
 
 namespace Nalix.SDK.Tools.ViewModels;
 

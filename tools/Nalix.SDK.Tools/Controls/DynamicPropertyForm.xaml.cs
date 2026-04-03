@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Models;
 using Nalix.SDK.Tools.Services;
 using Nalix.SDK.Tools.ViewModels;
@@ -15,7 +16,7 @@ namespace Nalix.SDK.Tools.Controls;
 /// </summary>
 public partial class DynamicPropertyForm : UserControl
 {
-    private static readonly IPropertyEditorFactory PropertyEditorFactory = new PropertyEditorFactory();
+    private static readonly IPropertyEditorFactory PropertyEditorFactoryInstance = new PropertyEditorFactory();
     private INotifyCollectionChanged? _currentCollection;
 
     /// <summary>
@@ -99,7 +100,7 @@ public partial class DynamicPropertyForm : UserControl
     {
         if (propertyNode.EditorKind == EditorKind.Complex)
         {
-            return PropertyEditorFactory.CreateEditor(propertyNode);
+            return PropertyEditorFactoryInstance.CreateEditor(propertyNode);
         }
 
         Grid grid = new()
@@ -125,7 +126,7 @@ public partial class DynamicPropertyForm : UserControl
         _ = grid.Children.Add(labelPanel);
 
         StackPanel editorPanel = new();
-        _ = editorPanel.Children.Add(PropertyEditorFactory.CreateEditor(propertyNode));
+        _ = editorPanel.Children.Add(PropertyEditorFactoryInstance.CreateEditor(propertyNode));
 
         TextBlock errorBlock = new()
         {

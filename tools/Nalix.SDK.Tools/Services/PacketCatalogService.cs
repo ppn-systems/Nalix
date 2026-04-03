@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using Nalix.Common.Serialization;
 using Nalix.Framework.DataFrames;
+using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Extensions;
 using Nalix.SDK.Tools.Models;
 
