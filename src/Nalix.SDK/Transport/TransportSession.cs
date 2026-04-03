@@ -27,35 +27,54 @@ public abstract class TransportSession : IDisposable
 
     #region Events
 
-    /// <summary>Occurs when the session successfully connects.</summary>
+    /// <summary>
+    /// Occurs when the session successfully establishes a connection.
+    /// </summary>
     public abstract event EventHandler? OnConnected;
 
-    /// <summary>Occurs on disconnect. Argument is the reason or <c>null</c>.</summary>
+    /// <summary>
+    /// Occurs when the session is disconnected, providing the exception that caused the disconnect if applicable.
+    /// </summary>
     public abstract event EventHandler<Exception>? OnDisconnected;
 
-    /// <summary>Occurs when a raw frame is received and decoded.</summary>
+    /// <summary>
+    /// Occurs when a new message (data frame) is received from the remote endpoint.
+    /// The receiver takes temporary ownership of the BufferLease and must ensure it is disposed.
+    /// </summary>
     public abstract event EventHandler<IBufferLease>? OnMessageReceived;
 
-    /// <summary>Occurs when an internal transport error happens.</summary>
+    /// <summary>
+    /// Occurs when a transport-level error is encountered.
+    /// </summary>
     public abstract event EventHandler<Exception>? OnError;
 
     #endregion Events
 
     #region Methods
 
-    /// <summary>Connects asynchronously to the remote endpoint.</summary>
+    /// <summary>
+    /// Asynchronously establishes a connection to the specified remote endpoint.
+    /// </summary>
     public abstract Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default);
 
-    /// <summary>Disconnects and stops all background processes.</summary>
+    /// <summary>
+    /// Asynchronously terminates the current connection.
+    /// </summary>
     public abstract Task DisconnectAsync();
 
-    /// <summary>Serializes and sends a packet asynchronously.</summary>
+    /// <summary>
+    /// Asynchronously sends a serialized packet to the remote endpoint.
+    /// </summary>
     public abstract Task SendAsync(IPacket packet, CancellationToken ct = default);
 
-    /// <summary>Sends raw payload bytes asynchronously.</summary>
+    /// <summary>
+    /// Asynchronously sends raw binary data to the remote endpoint.
+    /// </summary>
     public abstract Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default);
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Releases all resources used by the session.
+    /// </summary>
     public abstract void Dispose();
 
     #endregion Methods

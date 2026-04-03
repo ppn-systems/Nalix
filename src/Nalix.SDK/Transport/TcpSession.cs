@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -23,6 +23,8 @@ namespace Nalix.SDK.Transport;
 public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
 {
     private ILogger? _logger;
+
+    // Low-level components for reading and sending frames
     private readonly FRAME_SENDER _sender;
     private readonly FRAME_READER _reader;
 
@@ -70,6 +72,7 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
         this.Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _logger = logger;
 
+        // Initialize frame helpers with a factory to get the latest socket instance
         _sender = new FRAME_SENDER(() => _socket!, options, this.HandleError);
         _reader = new FRAME_READER(() => _socket!, options, this.HandleReceiveMessage, this.HandleError);
     }
@@ -91,6 +94,7 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
         string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
         ushort effectivePort = port ?? this.Options.Port;
 
+        // Ensure single connection at a time
         if (this.IsConnected)
         {
             await this.DisconnectAsync().ConfigureAwait(false);
@@ -98,12 +102,14 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
 
         try
         {
+            // Initialize socket with NoDelay to reduce latency
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
             await _socket.ConnectAsync(effectiveHost, effectivePort, ct).ConfigureAwait(false);
             Log.Connected(_logger, effectiveHost, effectivePort);
 
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
+            // Start background worker for reading frames
             _loopCts = new CancellationTokenSource();
             _ = Task.Run(() => _reader.ReceiveLoopAsync(_loopCts.Token), CancellationToken.None);
         }
@@ -123,6 +129,7 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
             return Task.CompletedTask;
         }
 
+        // Signal background loops to stop
         _loopCts?.Cancel();
         _loopCts?.Dispose();
         _loopCts = null;
@@ -146,6 +153,8 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     public async Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
+
+        // Rent a buffer, serialize the packet, and delegate sending to FRAME_SENDER
         using BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));
         _ = await _sender.SendAsync(lease.Memory, encrypt, ct).ConfigureAwait(false);
@@ -154,14 +163,21 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     /// <inheritdoc/>
     public override Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default) => _sender.SendAsync(payload, null, ct);
 
+    /// <summary>
+    /// Handles incoming messages received by FRAME_READER.
+    /// Manages the ownership and disposal of the provided BufferLease.
+    /// </summary>
     private void HandleReceiveMessage(BufferLease lease)
     {
         try
         {
+            // First notify synchronous subscribers
             this.OnMessageReceived?.Invoke(this, lease);
 
+            // Then notify asynchronous subscriber if present
             if (this.OnMessageAsync is { } handler)
             {
+                // Run async handler in background and ensure lease disposal in finally block
                 _ = Task.Run(async () =>
                 {
                     try { await handler(lease.Memory).ConfigureAwait(false); }
@@ -171,6 +187,7 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
             }
             else
             {
+                // No async handler, dispose now
                 lease.Dispose();
             }
         }
