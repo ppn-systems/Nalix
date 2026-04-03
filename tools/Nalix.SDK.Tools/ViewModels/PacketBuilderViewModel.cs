@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
 using Nalix.SDK.Tools.Abstractions;
+using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Extensions;
 using Nalix.SDK.Tools.Models;
 
@@ -19,14 +20,15 @@ public sealed class PacketBuilderViewModel : ViewModelBase
 {
     private readonly IPacketCatalogService _catalogService;
     private readonly ITcpClientService _tcpClientService;
+    private readonly PacketToolTextConfig _texts;
     private readonly Action<string, string> _showHexViewer;
     private FrameBase? _currentPacket;
     private PacketTypeDescriptor? _selectedPacketType;
     private string _host = "127.0.0.1";
     private string _portText = "57206";
-    private string _resolutionText = "Select a packet type to begin editing.";
-    private string _currentPacketTitle = "No packet loaded";
-    private string _currentPacketSummary = "Select a packet type in Packet Builder to begin editing.";
+    private string _resolutionText;
+    private string _currentPacketTitle;
+    private string _currentPacketSummary;
     private bool _isConnected;
     private bool _currentPacketIsReadOnly;
     private bool _suppressAutoLoad;
@@ -37,11 +39,15 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     /// <param name="catalogService">The packet catalog service.</param>
     /// <param name="tcpClientService">The TCP client service.</param>
     /// <param name="showHexViewer">The callback used to open the shared hex viewer.</param>
-    public PacketBuilderViewModel(IPacketCatalogService catalogService, ITcpClientService tcpClientService, Action<string, string> showHexViewer)
+    public PacketBuilderViewModel(IPacketCatalogService catalogService, ITcpClientService tcpClientService, PacketToolTextConfig texts, Action<string, string> showHexViewer)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
         _tcpClientService = tcpClientService ?? throw new ArgumentNullException(nameof(tcpClientService));
+        _texts = texts ?? throw new ArgumentNullException(nameof(texts));
         _showHexViewer = showHexViewer ?? throw new ArgumentNullException(nameof(showHexViewer));
+        _resolutionText = _texts.PlaceholderCurrentPacketSummary;
+        _currentPacketTitle = _texts.PlaceholderNoPacketLoaded;
+        _currentPacketSummary = _texts.PlaceholderCurrentPacketSummary;
 
         foreach (PacketTypeDescriptor descriptor in _catalogService.Catalog.PacketTypes)
         {
@@ -229,9 +235,10 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         }
 
         this.ShowPacket(frame, descriptor, isReadOnly);
-        this.ResolutionText = isReadOnly
-            ? $"Loaded received packet snapshot for {descriptor.FullName} in read-only mode."
-            : $"Reopened sent packet snapshot for {descriptor.FullName}.";
+        this.ResolutionText = string.Format(
+            CultureInfo.CurrentCulture,
+            isReadOnly ? _texts.StatusLoadedReceivedSnapshotFormat : _texts.StatusReopenedSentSnapshotFormat,
+            descriptor.FullName);
         return true;
     }
 
@@ -276,7 +283,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     {
         if (!this.TryParsePort(out ushort port))
         {
-            this.RaiseStatusRequested("The port must be a valid unsigned 16-bit integer.");
+            this.RaiseStatusRequested(_texts.StatusPortInvalid);
             return;
         }
 
@@ -316,15 +323,15 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         }
 
         this.LoadDescriptor(this.SelectedPacketType, false);
-        this.RaiseStatusRequested("Packet editor reset to a fresh instance.");
+        this.RaiseStatusRequested(_texts.StatusPacketEditorReset);
     }
 
     private void SerializePacket()
     {
         if (this.TryRefreshSerializedPacket(out string hex) && _currentPacket is not null)
         {
-            this.RaiseStatusRequested($"Serialized {_currentPacket.GetType().Name} into {_currentPacket.Length:N0} bytes.");
-            _showHexViewer($"Serialized: {_currentPacket.GetType().Name}", hex);
+            this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusSerializedFormat, _currentPacket.GetType().Name, _currentPacket.Length));
+            _showHexViewer(string.Format(CultureInfo.CurrentCulture, _texts.SerializedViewerTitleFormat, _currentPacket.GetType().Name), hex);
         }
     }
 
@@ -354,7 +361,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         }
 
         this.ShowPacket(packet, descriptor, isReadOnly);
-        this.ResolutionText = $"Loaded {descriptor.FullName} into the packet builder. Packet identity is defined by MagicNumber.";
+        this.ResolutionText = string.Format(CultureInfo.CurrentCulture, _texts.StatusLoadedPacketBuilderFormat, descriptor.FullName);
     }
 
     private void RebuildPropertyNodes(FrameBase packet, PacketTypeDescriptor descriptor, bool isReadOnly)
@@ -370,7 +377,9 @@ public sealed class PacketBuilderViewModel : ViewModelBase
             this.CurrentProperties.Add(node);
         }
 
-        this.CurrentPacketTitle = isReadOnly ? $"{descriptor.Name} (Read-only)" : descriptor.Name;
+        this.CurrentPacketTitle = isReadOnly
+            ? $"{descriptor.Name} ({_texts.ReadOnlySuffix})"
+            : descriptor.Name;
     }
 
     private void HandleCurrentPacketChanged() => _ = this.TryRefreshSerializedPacket(out _);
@@ -380,7 +389,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         hex = string.Empty;
         if (_currentPacket is null)
         {
-            this.CurrentPacketSummary = "Select a packet type in Packet Builder to begin editing.";
+            this.CurrentPacketSummary = _texts.PlaceholderCurrentPacketSummary;
             return false;
         }
 
@@ -393,13 +402,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         catch
         {
             this.CurrentPacketSummary = this.BuildPacketSummary(_currentPacket);
-            this.RaiseStatusRequested("Serialization failed for the current packet.");
+            this.RaiseStatusRequested(_texts.StatusSerializationFailed);
             return false;
         }
     }
 
     private string BuildPacketSummary(FrameBase frame)
-        => $"{frame.GetType().FullName} | Magic 0x{frame.MagicNumber:X8} | OpCode 0x{frame.OpCode:X4} | Length {frame.Length:N0} bytes";
+        => string.Format(CultureInfo.CurrentCulture, _texts.BuilderSummaryFormat, frame.GetType().FullName, frame.MagicNumber, frame.OpCode, frame.Length);
 
     private bool TryParsePort(out ushort port)
         => ushort.TryParse(this.PortText, NumberStyles.Integer, CultureInfo.InvariantCulture, out port);

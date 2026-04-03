@@ -1,9 +1,11 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows;
 using CommunityToolkit.Mvvm.Input;
 using Nalix.Framework.DataFrames;
 using Nalix.SDK.Tools.Abstractions;
+using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Extensions;
 using Nalix.SDK.Tools.Models;
 
@@ -14,6 +16,7 @@ namespace Nalix.SDK.Tools.ViewModels;
 /// </summary>
 public sealed class PacketHistoryDetailViewModel : ViewModelBase
 {
+    private readonly PacketToolTextConfig _texts;
     private readonly string _placeholderTitle;
     private readonly string _placeholderSummary;
     private string _title;
@@ -25,8 +28,9 @@ public sealed class PacketHistoryDetailViewModel : ViewModelBase
     /// </summary>
     /// <param name="placeholderTitle">The placeholder title.</param>
     /// <param name="placeholderSummary">The placeholder summary.</param>
-    public PacketHistoryDetailViewModel(string placeholderTitle, string placeholderSummary)
+    public PacketHistoryDetailViewModel(PacketToolTextConfig texts, string placeholderTitle, string placeholderSummary)
     {
+        _texts = texts ?? throw new ArgumentNullException(nameof(texts));
         _placeholderTitle = placeholderTitle ?? throw new ArgumentNullException(nameof(placeholderTitle));
         _placeholderSummary = placeholderSummary ?? throw new ArgumentNullException(nameof(placeholderSummary));
         _title = placeholderTitle;
@@ -140,5 +144,5 @@ public sealed class PacketHistoryDetailViewModel : ViewModelBase
     private void CopyHex() => Clipboard.SetText(this.RawHex);
 
     private string BuildFallbackSummary(string packetTypeName, ushort opCode, uint magicNumber, string decodeStatus)
-        => $"{packetTypeName} | OpCode 0x{opCode:X4} | Magic 0x{magicNumber:X8} | {decodeStatus}";
+        => string.Format(CultureInfo.CurrentCulture, _texts.DetailSummaryFormat, packetTypeName, opCode, magicNumber, decodeStatus);
 }

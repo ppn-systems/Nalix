@@ -1,10 +1,12 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.Win32;
 using Nalix.SDK.Tools.Extensions;
+using Nalix.SDK.Tools.Services;
 
 namespace Nalix.SDK.Tools.Controls;
 
@@ -58,12 +60,13 @@ public partial class HexEditorControl : UserControl
             return;
         }
 
+        var texts = ToolResourceHelper.GetTexts();
         _isUpdating = true;
         try
         {
             HexTextBox.Text = (this.Value ?? Array.Empty<byte>()).ToHexString();
-            ByteCountTextBlock.Text = $"{this.Value?.Length ?? 0:N0} bytes";
-            StatusTextBlock.Text = "Hex input accepts spaces and line breaks.";
+            ByteCountTextBlock.Text = string.Format(CultureInfo.CurrentCulture, texts.HexBytesFormat, this.Value?.Length ?? 0);
+            StatusTextBlock.Text = texts.HexHint;
             HexTextBox.BorderBrush = s_defaultBorderBrush;
         }
         finally
@@ -79,12 +82,13 @@ public partial class HexEditorControl : UserControl
             return;
         }
 
+        var texts = ToolResourceHelper.GetTexts();
         try
         {
             byte[] parsed = HexExtensions.ParseHex(HexTextBox.Text);
             this.Value = parsed;
-            ByteCountTextBlock.Text = $"{parsed.Length:N0} bytes";
-            StatusTextBlock.Text = "Hex value updated.";
+            ByteCountTextBlock.Text = string.Format(CultureInfo.CurrentCulture, texts.HexBytesFormat, parsed.Length);
+            StatusTextBlock.Text = texts.HexUpdated;
             HexTextBox.BorderBrush = s_defaultBorderBrush;
         }
         catch (Exception exception)
@@ -115,34 +119,36 @@ public partial class HexEditorControl : UserControl
 
     private void ImportButton_Click(object sender, RoutedEventArgs e)
     {
+        var texts = ToolResourceHelper.GetTexts();
         OpenFileDialog dialog = new()
         {
-            Filter = "Binary files (*.bin)|*.bin|All files (*.*)|*.*",
-            Title = "Import binary payload"
+            Filter = texts.HexDialogFilter,
+            Title = texts.HexImportDialogTitle
         };
 
         if (dialog.ShowDialog() == true)
         {
             this.Value = File.ReadAllBytes(dialog.FileName);
             this.SyncFromValue();
-            StatusTextBlock.Text = $"Loaded {this.Value.Length:N0} bytes from {Path.GetFileName(dialog.FileName)}.";
+            StatusTextBlock.Text = string.Format(CultureInfo.CurrentCulture, texts.HexLoadedFileStatusFormat, this.Value.Length, Path.GetFileName(dialog.FileName));
         }
     }
 
     private void ExportButton_Click(object sender, RoutedEventArgs e)
     {
+        var texts = ToolResourceHelper.GetTexts();
         SaveFileDialog dialog = new()
         {
-            Filter = "Binary files (*.bin)|*.bin|All files (*.*)|*.*",
-            FileName = "payload.bin",
-            Title = "Export binary payload"
+            Filter = texts.HexDialogFilter,
+            FileName = texts.HexExportFileName,
+            Title = texts.HexExportDialogTitle
         };
 
         if (dialog.ShowDialog() == true)
         {
             byte[] value = this.Value ?? Array.Empty<byte>();
             File.WriteAllBytes(dialog.FileName, value);
-            StatusTextBlock.Text = $"Saved {value.Length:N0} bytes to {Path.GetFileName(dialog.FileName)}.";
+            StatusTextBlock.Text = string.Format(CultureInfo.CurrentCulture, texts.HexSavedFileStatusFormat, value.Length, Path.GetFileName(dialog.FileName));
         }
     }
 }

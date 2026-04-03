@@ -1,5 +1,9 @@
 using System;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Linq;
 using Nalix.SDK.Tools.Abstractions;
+using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Models;
 
 namespace Nalix.SDK.Tools.ViewModels;
@@ -10,48 +14,65 @@ namespace Nalix.SDK.Tools.ViewModels;
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private readonly IPacketCatalogService _catalogService;
-    private readonly ITcpClientService _tcpClientService;
-    private string _statusText = "Ready.";
+    private readonly PacketToolTextConfig _texts;
+    private readonly IAppConfigurationService _configurationService;
+    private readonly IThemeService _themeService;
+    private string _statusText;
+    private ThemeOption? _selectedThemeOption;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MainWindowViewModel"/> class.
     /// </summary>
-    /// <param name="catalogService">The packet catalog service.</param>
-    /// <param name="tcpClientService">The TCP client service.</param>
-    public MainWindowViewModel(IPacketCatalogService catalogService, ITcpClientService tcpClientService)
+    public MainWindowViewModel(
+        IPacketCatalogService catalogService,
+        ITcpClientService tcpClientService,
+        IAppConfigurationService configurationService,
+        IThemeService themeService)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
-        _tcpClientService = tcpClientService ?? throw new ArgumentNullException(nameof(tcpClientService));
+        ArgumentNullException.ThrowIfNull(tcpClientService);
+        _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+        _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+        _texts = _configurationService.Texts;
+        _statusText = _texts.StatusReady;
 
-        this.HexViewer = new HexViewerViewModel();
-        this.PacketBuilder = new PacketBuilderViewModel(_catalogService, _tcpClientService, this.ShowHexViewer);
-        this.PacketRegistryBrowser = new PacketRegistryBrowserViewModel(this.PacketBuilder.PacketTypes);
+        this.HexViewer = new HexViewerViewModel(_texts);
+        this.PacketBuilder = new PacketBuilderViewModel(_catalogService, tcpClientService, _texts, this.ShowHexViewer);
+        this.PacketRegistryBrowser = new PacketRegistryBrowserViewModel(this.PacketBuilder.PacketTypes, _texts);
         this.SentHistory = new PacketHistoryTabViewModel(
-            "Sent Packets",
-            "Reopen Selected Packet",
-            "Select a sent packet",
-            "Sent packet details will appear here.",
+            _texts.GroupSentPackets,
+            _texts.ButtonReopenSelectedPacket,
+            _texts.PlaceholderSentPacketTitle,
+            _texts.PlaceholderSentPacketSummary,
             false,
-            _catalogService);
+            _catalogService,
+            _texts);
         this.ReceiveHistory = new PacketHistoryTabViewModel(
-            "Received Packets",
-            "Inspect Selected Packet",
-            "Select a received packet",
-            "Received packet details will appear here.",
+            _texts.GroupReceivedPackets,
+            _texts.ButtonInspectSelectedPacket,
+            _texts.PlaceholderReceivedPacketTitle,
+            _texts.PlaceholderReceivedPacketSummary,
             true,
-            _catalogService);
+            _catalogService,
+            _texts);
+
+        this.ThemeOptions.Add(new ThemeOption { Mode = ToolThemeMode.Light, DisplayName = _texts.ThemeLight });
+        this.ThemeOptions.Add(new ThemeOption { Mode = ToolThemeMode.Dark, DisplayName = _texts.ThemeDark });
 
         this.SentHistory.OpenRequested += this.HandleOpenRequested;
         this.ReceiveHistory.OpenRequested += this.HandleOpenRequested;
         this.PacketBuilder.StatusRequested += this.HandleBuilderStatusRequested;
-        _tcpClientService.StatusChanged += this.HandleStatusChanged;
-        _tcpClientService.PacketSent += this.HandlePacketSent;
-        _tcpClientService.PacketReceived += this.HandlePacketReceived;
+        tcpClientService.StatusChanged += this.HandleStatusChanged;
+        tcpClientService.PacketSent += this.HandlePacketSent;
+        tcpClientService.PacketReceived += this.HandlePacketReceived;
 
         if (this.PacketBuilder.SelectedPacketType is not null)
         {
             this.PacketRegistryBrowser.SelectedPacketType = this.PacketBuilder.SelectedPacketType;
         }
+
+        this.SelectedThemeOption = this.ThemeOptions.FirstOrDefault(option => option.Mode == _configurationService.Appearance.ThemeMode)
+            ?? this.ThemeOptions[0];
 
         this.PacketBuilder.PropertyChanged += (_, args) =>
         {
@@ -69,6 +90,30 @@ public sealed class MainWindowViewModel : ViewModelBase
     {
         get => _statusText;
         private set => this.SetProperty(ref _statusText, value);
+    }
+
+    /// <summary>
+    /// Gets the available theme options.
+    /// </summary>
+    public ObservableCollection<ThemeOption> ThemeOptions { get; } = [];
+
+    /// <summary>
+    /// Gets or sets the selected theme option.
+    /// </summary>
+    public ThemeOption? SelectedThemeOption
+    {
+        get => _selectedThemeOption;
+        set
+        {
+            if (!this.SetProperty(ref _selectedThemeOption, value) || value is null)
+            {
+                return;
+            }
+
+            _configurationService.Appearance.ThemeMode = value.Mode;
+            _themeService.ApplyTheme(value.Mode);
+            _configurationService.Save();
+        }
     }
 
     /// <summary>
@@ -102,7 +147,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             if (!this.PacketBuilder.TryOpenSnapshot(snapshot, isReadOnly))
             {
-                this.StatusText = $"Packet type {snapshot.PacketTypeName} is not available in the registry browser.";
+                this.StatusText = string.Format(CultureInfo.CurrentCulture, _texts.StatusPacketTypeUnavailableFormat, snapshot.PacketTypeName);
                 return;
             }
 
@@ -110,7 +155,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
         catch (Exception exception)
         {
-            this.StatusText = $"Unable to open packet snapshot: {exception.Message}";
+            this.StatusText = string.Format(CultureInfo.CurrentCulture, _texts.StatusUnableOpenSnapshotFormat, exception.Message);
         }
     }
 
@@ -121,13 +166,13 @@ public sealed class MainWindowViewModel : ViewModelBase
     private void HandlePacketSent(object? sender, PacketLogEntry entry)
     {
         this.SentHistory.AddEntry(entry);
-        this.StatusText = $"{entry.PacketName} sent successfully.";
+        this.StatusText = string.Format(CultureInfo.CurrentCulture, _texts.StatusSentPacketSuccessFormat, entry.PacketName);
     }
 
     private void HandlePacketReceived(object? sender, PacketLogEntry entry)
     {
         this.ReceiveHistory.AddEntry(entry);
-        this.StatusText = $"{entry.PacketName} received ({entry.DecodeStatus}).";
+        this.StatusText = string.Format(CultureInfo.CurrentCulture, _texts.StatusReceivedPacketSuccessFormat, entry.PacketName, entry.DecodeStatus);
     }
 
     private void ShowHexViewer(string title, string hex) => this.HexViewer.Show(title, hex);

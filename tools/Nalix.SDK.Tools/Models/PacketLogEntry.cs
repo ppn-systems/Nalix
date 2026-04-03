@@ -30,6 +30,5 @@ public sealed class PacketLogEntry
     /// <summary>
     /// Gets a summary string shown in the list.
     /// </summary>
-    public string Summary =>
-        $"{this.Timestamp:HH:mm:ss}  0x{this.Snapshot.OpCode:X4}  {this.PacketName}";
+    public required string Summary { get; init; }
 }

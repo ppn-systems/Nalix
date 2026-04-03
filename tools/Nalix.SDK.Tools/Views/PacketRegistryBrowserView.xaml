@@ -3,21 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:models="clr-namespace:Nalix.SDK.Tools.Models">
     <UserControl.Resources>
-        <SolidColorBrush x:Key="RegistryTreeForegroundBrush" Color="#0F172A" />
-        <SolidColorBrush x:Key="RegistryTreeTypeBrush" Color="#64748B" />
-        <SolidColorBrush x:Key="RegistryTreeSelectedBrush" Color="#1E40AF" />
-        <SolidColorBrush x:Key="RegistryTreeSelectedForegroundBrush" Color="#F8FAFC" />
         <Style x:Key="RegistryTreePrimaryTextStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource RegistryTreeForegroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TreeViewItem}, Path=IsSelected}" Value="True">
-                    <Setter Property="Foreground" Value="{StaticResource RegistryTreeSelectedForegroundBrush}" />
+                    <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
         <Style x:Key="RegistryTreeTypeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource RegistryTreePrimaryTextStyle}">
-            <Setter Property="Foreground" Value="{StaticResource RegistryTreeTypeBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
         </Style>
         <HierarchicalDataTemplate DataType="{x:Type models:PacketPropertyDefinition}"
                                   ItemsSource="{Binding Children}">
@@ -39,19 +35,19 @@
             </Grid>
         </HierarchicalDataTemplate>
         <Style x:Key="RegistryTreeItemStyle" TargetType="TreeViewItem">
-            <Setter Property="Foreground" Value="{StaticResource RegistryTreeForegroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
             <Setter Property="Padding" Value="3,2" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource RegistryTreeSelectedBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
                 </Trigger>
                 <MultiTrigger>
                     <MultiTrigger.Conditions>
                         <Condition Property="IsSelected" Value="True" />
                         <Condition Property="IsSelectionActive" Value="False" />
                     </MultiTrigger.Conditions>
-                    <Setter Property="Background" Value="{StaticResource RegistryTreeSelectedBrush}" />
+                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
                 </MultiTrigger>
             </Style.Triggers>
         </Style>
@@ -64,7 +60,7 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <GroupBox Header="Registered Packets">
+        <GroupBox Header="{Binding Source={StaticResource ToolTexts}, Path=GroupRegisteredPackets}">
             <ListBox Margin="12"
                      FontFamily="Consolas"
                      DisplayMemberPath="RegistryDisplay"
@@ -72,7 +68,12 @@
                      SelectedItem="{Binding SelectedPacketType}" />
         </GroupBox>
 
-        <Border Grid.Column="2" Padding="16" Background="White" CornerRadius="10" BorderBrush="#D9E2EC" BorderThickness="1">
+        <Border Grid.Column="2"
+                Padding="16"
+                Background="{DynamicResource SurfaceBrush}"
+                CornerRadius="10"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -81,12 +82,16 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding SelectedPacketType.Name}" />
-                <TextBlock Grid.Row="1" Margin="0,6,0,14" Foreground="#64748B" TextWrapping="Wrap" Text="{Binding SelectedPacketType.DetailSummary}" />
+                <TextBlock Grid.Row="1"
+                           Margin="0,6,0,14"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           TextWrapping="Wrap"
+                           Text="{Binding SelectedPacketDetailSummary}" />
                 <Border Grid.Row="2"
                         Padding="12"
-                        Background="#F8FAFC"
+                        Background="{DynamicResource SurfaceAltBrush}"
                         CornerRadius="8"
-                        BorderBrush="#E2E8F0"
+                        BorderBrush="{DynamicResource BorderStrongBrush}"
                         BorderThickness="1">
                     <Grid Grid.IsSharedSizeScope="True">
                         <Grid.RowDefinitions>
@@ -101,14 +106,14 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock MinWidth="180"
                                        FontWeight="SemiBold"
-                                       Foreground="#0F172A"
-                                       Text="Property" />
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Text="{Binding Source={StaticResource ToolTexts}, Path=RegistryPropertyHeader}" />
                             <TextBlock Grid.Column="1"
                                        MinWidth="150"
                                        Margin="20,0,0,0"
                                        FontWeight="SemiBold"
-                                       Foreground="#0F172A"
-                                       Text="Type" />
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Text="{Binding Source={StaticResource ToolTexts}, Path=RegistryTypeHeader}" />
                         </Grid>
 
                         <TreeView Grid.Row="1"

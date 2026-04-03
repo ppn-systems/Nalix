@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -17,6 +18,7 @@ namespace Nalix.SDK.Tools.Services;
 public sealed class TcpClientService : ITcpClientService
 {
     private readonly IPacketCatalogService _catalogService;
+    private readonly IAppConfigurationService _configurationService;
     private TcpSession? _session;
     private bool _disposed;
 
@@ -24,7 +26,12 @@ public sealed class TcpClientService : ITcpClientService
     /// Initializes a new instance of the <see cref="TcpClientService"/> class.
     /// </summary>
     /// <param name="catalogService">The packet catalog service.</param>
-    public TcpClientService(IPacketCatalogService catalogService) => _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
+    /// <param name="configurationService">The app configuration service.</param>
+    public TcpClientService(IPacketCatalogService catalogService, IAppConfigurationService configurationService)
+    {
+        _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
+        _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
+    }
 
     /// <inheritdoc/>
     public bool IsConnected => _session?.IsConnected == true;
@@ -63,7 +70,11 @@ public sealed class TcpClientService : ITcpClientService
         _session = session;
 
         await session.ConnectAsync(settings.Host, settings.Port, cancellationToken).ConfigureAwait(false);
-        this.RaiseStatus($"Connected to {settings.Host}:{settings.Port}");
+        this.RaiseStatus(string.Format(
+            CultureInfo.CurrentCulture,
+            _configurationService.Texts.StatusConnectedFormat,
+            settings.Host,
+            settings.Port));
     }
 
     /// <inheritdoc/>
@@ -85,7 +96,7 @@ public sealed class TcpClientService : ITcpClientService
 
         await session.DisconnectAsync().ConfigureAwait(false);
         session.Dispose();
-        this.RaiseStatus("Disconnected");
+        this.RaiseStatus(_configurationService.Texts.StatusDisconnected);
     }
 
     /// <inheritdoc/>
@@ -96,21 +107,32 @@ public sealed class TcpClientService : ITcpClientService
 
         if (_session is null)
         {
-            throw new InvalidOperationException("The TCP session is not connected.");
+            throw new InvalidOperationException(_configurationService.Texts.StatusTcpSessionNotConnected);
         }
 
         PacketSnapshot snapshot = PacketSnapshot.FromPacket(packet);
+        DateTimeOffset timestamp = DateTimeOffset.Now;
         await _session.SendAsync(packet, cancellationToken).ConfigureAwait(false);
 
         PacketLogEntry entry = new()
         {
-            Timestamp = DateTimeOffset.Now,
+            Timestamp = timestamp,
             PacketName = packet.GetType().Name,
-            Snapshot = snapshot
+            Snapshot = snapshot,
+            Summary = string.Format(
+                CultureInfo.CurrentCulture,
+                _configurationService.Texts.HistorySummaryFormat,
+                timestamp,
+                snapshot.OpCode,
+                packet.GetType().Name)
         };
 
         this.Dispatch(() => this.PacketSent?.Invoke(this, entry));
-        this.RaiseStatus($"Sent {packet.GetType().Name} (0x{packet.OpCode:X4})");
+        this.RaiseStatus(string.Format(
+            CultureInfo.CurrentCulture,
+            _configurationService.Texts.StatusPacketSentFormat,
+            packet.GetType().Name,
+            packet.OpCode));
     }
 
     /// <inheritdoc/>
@@ -138,11 +160,13 @@ public sealed class TcpClientService : ITcpClientService
         }
     }
 
-    private void HandleConnected(object? sender, EventArgs e) => this.RaiseStatus("TCP connection established.");
+    private void HandleConnected(object? sender, EventArgs e) => this.RaiseStatus(_configurationService.Texts.StatusTcpConnectionEstablished);
 
-    private void HandleDisconnected(object? sender, Exception exception) => this.RaiseStatus($"Disconnected: {exception.Message}");
+    private void HandleDisconnected(object? sender, Exception exception)
+        => this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusTcpDisconnectedFormat, exception.Message));
 
-    private void HandleError(object? sender, Exception exception) => this.RaiseStatus($"TCP error: {exception.Message}");
+    private void HandleError(object? sender, Exception exception)
+        => this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusTcpErrorFormat, exception.Message));
 
     private Task HandleMessageAsync(ReadOnlyMemory<byte> payload)
     {
@@ -152,21 +176,37 @@ public sealed class TcpClientService : ITcpClientService
         try
         {
             FrameBase frame = _catalogService.Deserialize(rawBytes);
+            PacketSnapshot snapshot = PacketSnapshot.FromPacket(frame);
+            DateTimeOffset timestamp = DateTimeOffset.Now;
             entry = new PacketLogEntry
             {
-                Timestamp = DateTimeOffset.Now,
+                Timestamp = timestamp,
                 PacketName = frame.GetType().Name,
-                Snapshot = PacketSnapshot.FromPacket(frame)
+                Snapshot = snapshot,
+                Summary = string.Format(
+                    CultureInfo.CurrentCulture,
+                    _configurationService.Texts.HistorySummaryFormat,
+                    timestamp,
+                    snapshot.OpCode,
+                    frame.GetType().Name)
             };
         }
         catch (Exception exception)
         {
+            PacketSnapshot snapshot = PacketCatalogService.CreateSnapshotFromRaw(rawBytes);
+            DateTimeOffset timestamp = DateTimeOffset.Now;
             entry = new PacketLogEntry
             {
-                Timestamp = DateTimeOffset.Now,
-                PacketName = "Unknown Packet",
-                Snapshot = PacketCatalogService.CreateSnapshotFromRaw(rawBytes),
-                DecodeStatus = exception.Message
+                Timestamp = timestamp,
+                PacketName = _configurationService.Texts.UnknownPacketName,
+                Snapshot = snapshot,
+                DecodeStatus = exception.Message,
+                Summary = string.Format(
+                    CultureInfo.CurrentCulture,
+                    _configurationService.Texts.HistorySummaryFormat,
+                    timestamp,
+                    snapshot.OpCode,
+                    _configurationService.Texts.UnknownPacketName)
             };
         }
 

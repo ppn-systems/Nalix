@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using Nalix.SDK.Tools.Models;
+using Nalix.SDK.Tools.Services;
 
 namespace Nalix.SDK.Tools.ViewModels;
 
@@ -208,7 +209,7 @@ public sealed class PropertyNodeViewModel : ViewModelBase
             }
 
             value = null;
-            errorText = $"{this.DisplayName} cannot be empty.";
+            errorText = string.Format(CultureInfo.CurrentCulture, ToolResourceHelper.GetTexts().PropertyValueCannotBeEmptyFormat, this.DisplayName);
             return false;
         }
 
@@ -307,7 +308,7 @@ public sealed class PropertyNodeViewModel : ViewModelBase
         }
 
         value = null;
-        errorText = $"Type {effectiveType.Name} is not supported by the editor.";
+        errorText = string.Format(CultureInfo.CurrentCulture, ToolResourceHelper.GetTexts().PropertyTypeNotSupportedFormat, effectiveType.Name);
         return false;
     }
 
@@ -371,7 +372,7 @@ public sealed class PropertyNodeViewModel : ViewModelBase
         Type effectiveType = this.GetEffectiveType(type);
         if (effectiveType == typeof(byte[]))
         {
-            return "byte[]";
+            return ToolResourceHelper.GetTexts().ByteArrayTypeName;
         }
 
         return effectiveType.Name;

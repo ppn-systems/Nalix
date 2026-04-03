@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using CommunityToolkit.Mvvm.Input;
+using Nalix.SDK.Tools.Configuration;
 
 namespace Nalix.SDK.Tools.ViewModels;
 
@@ -9,15 +10,18 @@ namespace Nalix.SDK.Tools.ViewModels;
 /// </summary>
 public sealed class HexViewerViewModel : ViewModelBase
 {
-    private string _title = "Hex Viewer";
+    private readonly PacketToolTextConfig _texts;
+    private string _title;
     private string _hex = string.Empty;
     private bool _isVisible;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HexViewerViewModel"/> class.
     /// </summary>
-    public HexViewerViewModel()
+    public HexViewerViewModel(PacketToolTextConfig texts)
     {
+        _texts = texts ?? throw new ArgumentNullException(nameof(texts));
+        _title = _texts.HexViewerTitle;
         this.CopyCommand = new RelayCommand(this.Copy, this.CanCopy);
         this.CloseCommand = new RelayCommand(this.Close, this.CanClose);
     }
@@ -79,7 +83,7 @@ public sealed class HexViewerViewModel : ViewModelBase
     /// <param name="hex">The hex content.</param>
     public void Show(string title, string hex)
     {
-        this.Title = string.IsNullOrWhiteSpace(title) ? "Hex Viewer" : title;
+        this.Title = string.IsNullOrWhiteSpace(title) ? _texts.HexViewerTitle : title;
         this.Hex = hex ?? string.Empty;
         this.IsVisible = !string.IsNullOrWhiteSpace(this.Hex);
     }

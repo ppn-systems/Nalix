@@ -295,7 +295,7 @@ public sealed class PacketCatalogService : IPacketCatalogService
 
         return new PacketSnapshot
         {
-            PacketTypeName = "Unknown Packet",
+            PacketTypeName = ToolResourceHelper.GetTexts().UnknownPacketName,
             RawBytes = rawBytes,
             OpCode = opCode,
             MagicNumber = magicNumber

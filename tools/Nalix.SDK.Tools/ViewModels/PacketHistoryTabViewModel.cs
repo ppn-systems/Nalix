@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using Nalix.SDK.Tools.Abstractions;
+using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Models;
 
 namespace Nalix.SDK.Tools.ViewModels;
@@ -29,13 +30,15 @@ public sealed class PacketHistoryTabViewModel : ViewModelBase
         string placeholderTitle,
         string placeholderSummary,
         bool openReadOnly,
-        IPacketCatalogService catalogService)
+        IPacketCatalogService catalogService,
+        PacketToolTextConfig texts)
     {
         ArgumentNullException.ThrowIfNull(catalogService);
+        ArgumentNullException.ThrowIfNull(texts);
 
         this.ListHeader = listHeader ?? throw new ArgumentNullException(nameof(listHeader));
         this.OpenButtonText = openButtonText ?? throw new ArgumentNullException(nameof(openButtonText));
-        this.Detail = new PacketHistoryDetailViewModel(placeholderTitle, placeholderSummary);
+        this.Detail = new PacketHistoryDetailViewModel(texts, placeholderTitle, placeholderSummary);
         this.OpenSelectedPacketCommand = new RelayCommand(this.OpenSelectedPacket, this.CanOpenSelectedPacket);
         this.CatalogService = catalogService;
         _openReadOnly = openReadOnly;

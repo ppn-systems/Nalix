@@ -87,9 +87,10 @@ public partial class DynamicPropertyForm : UserControl
 
         if (!hasAny)
         {
+            var texts = ToolResourceHelper.GetTexts();
             _ = HostPanel.Children.Add(new TextBlock
             {
-                Text = "No serializable properties were discovered for this packet.",
+                Text = texts.DynamicFormEmptyMessage,
                 Foreground = Brushes.DimGray,
                 Margin = new Thickness(0, 4, 0, 0)
             });

@@ -11,7 +11,7 @@
 
         <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <GroupBox Header="Connection" Margin="0,0,0,12">
+                <GroupBox Header="{Binding Source={StaticResource ToolTexts}, Path=GroupConnection}" Margin="0,0,0,12">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -23,20 +23,20 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Host" />
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Source={StaticResource ToolTexts}, Path=LabelHost}" />
                         <TextBox Grid.Row="0" Grid.Column="1" Margin="8,0,0,8" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" />
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Port" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Source={StaticResource ToolTexts}, Path=LabelPort}" />
                         <TextBox Grid.Row="1" Grid.Column="1" Margin="8,0,0,12" Text="{Binding PortText, UpdateSourceTrigger=PropertyChanged}" />
 
                         <UniformGrid Grid.Row="2" Grid.ColumnSpan="2" Columns="2">
-                            <Button Margin="0,0,8,0" Command="{Binding ConnectCommand}" Content="Connect" />
-                            <Button Command="{Binding DisconnectCommand}" Content="Disconnect" />
+                            <Button Margin="0,0,8,0" Command="{Binding ConnectCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonConnect}" />
+                            <Button Command="{Binding DisconnectCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonDisconnect}" />
                         </UniformGrid>
                     </Grid>
                 </GroupBox>
 
-                <GroupBox Header="Packet Selection" Margin="0,0,0,12">
+                <GroupBox Header="{Binding Source={StaticResource ToolTexts}, Path=GroupPacketSelection}" Margin="0,0,0,12">
                     <Grid Margin="10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -47,7 +47,7 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Type" />
+                        <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Source={StaticResource ToolTexts}, Path=LabelType}" />
                         <ComboBox Grid.Row="0"
                                   Grid.Column="1"
                                   Margin="8,0,0,8"
@@ -56,27 +56,32 @@
                                   SelectedItem="{Binding SelectedPacketType}" />
                         <TextBlock Grid.Row="1"
                                    Grid.ColumnSpan="2"
-                                   Foreground="#64748B"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
                                    TextWrapping="Wrap"
-                                   Text="Packet type is selected explicitly by MagicNumber identity." />
+                                   Text="{Binding Source={StaticResource ToolTexts}, Path=PacketSelectionHint}" />
                     </Grid>
                 </GroupBox>
 
-                <GroupBox Header="Actions" Margin="0,0,0,12">
+                <GroupBox Header="{Binding Source={StaticResource ToolTexts}, Path=GroupActions}" Margin="0,0,0,12">
                     <UniformGrid Margin="10" Columns="3">
-                        <Button Margin="0,0,8,0" Command="{Binding ResetPacketCommand}" Content="Reset" />
-                        <Button Margin="0,0,8,0" Command="{Binding SerializePacketCommand}" Content="Serialize" />
-                        <Button Command="{Binding SendPacketCommand}" Content="Send" />
+                        <Button Margin="0,0,8,0" Command="{Binding ResetPacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonReset}" />
+                        <Button Margin="0,0,8,0" Command="{Binding SerializePacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonSerialize}" />
+                        <Button Command="{Binding SendPacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonSend}" />
                     </UniformGrid>
                 </GroupBox>
 
-                <GroupBox Header="Builder Notes">
-                    <TextBlock Margin="10" TextWrapping="Wrap" Foreground="#334155" Text="{Binding ResolutionText}" />
+                <GroupBox Header="{Binding Source={StaticResource ToolTexts}, Path=GroupBuilderNotes}">
+                    <TextBlock Margin="10" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryTextBrush}" Text="{Binding ResolutionText}" />
                 </GroupBox>
             </StackPanel>
         </ScrollViewer>
 
-        <Border Grid.Column="2" Padding="16" Background="White" CornerRadius="10" BorderBrush="#D9E2EC" BorderThickness="1">
+        <Border Grid.Column="2"
+                Padding="16"
+                Background="{DynamicResource SurfaceBrush}"
+                CornerRadius="10"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -85,7 +90,7 @@
 
                 <StackPanel Margin="0,0,0,16">
                     <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding CurrentPacketTitle}" />
-                    <TextBlock Margin="0,6,0,0" Foreground="#64748B" TextWrapping="Wrap" Text="{Binding CurrentPacketSummary}" />
+                    <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" Text="{Binding CurrentPacketSummary}" />
                 </StackPanel>
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

@@ -16,9 +16,15 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        AppConfigurationService appConfigurationService = new();
+        this.Resources[ToolResourceHelper.ToolTextsResourceKey] = appConfigurationService.Texts;
+
+        AppThemeService themeService = new();
+        themeService.ApplyTheme(appConfigurationService.Appearance.ThemeMode);
+
         IPacketCatalogService catalogService = new PacketCatalogService();
-        ITcpClientService tcpClientService = new TcpClientService(catalogService);
-        MainWindowViewModel viewModel = new(catalogService, tcpClientService);
+        ITcpClientService tcpClientService = new TcpClientService(catalogService, appConfigurationService);
+        MainWindowViewModel viewModel = new(catalogService, tcpClientService, appConfigurationService, themeService);
 
         MainWindow window = new()
         {

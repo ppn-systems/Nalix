@@ -3,9 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              MinHeight="170">
     <Border Padding="10"
-            Background="#0F172A"
+            Background="{DynamicResource HexEditorSurfaceBrush}"
             CornerRadius="8"
-            BorderBrush="#1E293B"
+            BorderBrush="{DynamicResource HexEditorBorderBrush}"
             BorderThickness="1">
         <Grid>
             <Grid.RowDefinitions>
@@ -16,7 +16,7 @@
 
             <DockPanel Grid.Row="0" LastChildFill="False">
                 <TextBlock x:Name="ByteCountTextBlock"
-                           Foreground="#CBD5E1"
+                           Foreground="{DynamicResource HexEditorTextBrush}"
                            FontWeight="SemiBold"
                            VerticalAlignment="Center"
                            DockPanel.Dock="Left"
@@ -26,10 +26,10 @@
                     <Button Margin="0,0,8,0"
                             Padding="10,4"
                             Click="ImportButton_Click"
-                            Content="Import .bin" />
+                            Content="{Binding Source={StaticResource ToolTexts}, Path=HexImportButton}" />
                     <Button Padding="10,4"
                             Click="ExportButton_Click"
-                            Content="Export .bin" />
+                            Content="{Binding Source={StaticResource ToolTexts}, Path=HexExportButton}" />
                 </StackPanel>
             </DockPanel>
 
@@ -42,18 +42,18 @@
                      HorizontalScrollBarVisibility="Auto"
                      TextWrapping="Wrap"
                      FontFamily="Consolas"
-                     Foreground="#F8FAFC"
-                     Background="#020617"
-                     BorderBrush="#334155"
+                     Foreground="{DynamicResource HexEditorInputForegroundBrush}"
+                     Background="{DynamicResource HexEditorInputBackgroundBrush}"
+                     BorderBrush="{DynamicResource HexEditorInputBorderBrush}"
                      BorderThickness="1"
                      TextChanged="HexTextBox_TextChanged"
                      LostKeyboardFocus="HexTextBox_LostKeyboardFocus" />
 
             <TextBlock x:Name="StatusTextBlock"
                        Grid.Row="2"
-                       Foreground="#94A3B8"
+                       Foreground="{DynamicResource MutedTextBrush}"
                        FontSize="11"
-                       Text="Hex input accepts spaces and line breaks." />
+                       Text="{Binding Source={StaticResource ToolTexts}, Path=HexHint}" />
         </Grid>
     </Border>
 </UserControl>

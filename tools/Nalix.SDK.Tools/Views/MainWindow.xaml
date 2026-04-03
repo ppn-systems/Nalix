@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:Nalix.SDK.Tools.Views"
-        Title="Nalix TCP Packet Testing Tool"
+        Title="{Binding Source={StaticResource ToolTexts}, Path=AppWindowTitle}"
         Width="1280"
         Height="720"
         MinWidth="1280"
@@ -11,44 +11,69 @@
         MaxHeight="720"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
-        Background="#F4F7FB">
+        Background="{DynamicResource AppBackgroundBrush}">
     <Grid>
         <DockPanel>
-            <Border DockPanel.Dock="Top" Padding="18,14" Background="#0F172A">
+            <Border DockPanel.Dock="Top"
+                    Padding="18,14"
+                    Background="{DynamicResource HeaderBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderStrongBrush}"
+                    BorderThickness="0,0,0,1">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <StackPanel>
-                        <TextBlock FontSize="24" FontWeight="SemiBold" Foreground="White" Text="TCP Packet Testing Tool" />
+                        <TextBlock FontSize="24"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource InversePrimaryTextBrush}"
+                                   Text="{Binding Source={StaticResource ToolTexts}, Path=AppHeaderTitle}" />
                         <TextBlock Margin="0,4,0,0"
-                                   Foreground="#94A3B8"
-                                   Text="Reflection-driven packet builder for Nalix FrameBase packets" />
+                                   Foreground="{DynamicResource MutedTextBrush}"
+                                   Text="{Binding Source={StaticResource ToolTexts}, Path=AppHeaderSubtitle}" />
                     </StackPanel>
 
-                    <Border Grid.Column="1" Padding="12,8" Background="#1E293B" CornerRadius="8">
-                        <TextBlock Foreground="#E2E8F0" Text="{Binding StatusText}" />
+                    <StackPanel Grid.Column="1"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <TextBlock Margin="0,0,8,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource InverseSecondaryTextBrush}"
+                                   Text="{Binding Source={StaticResource ToolTexts}, Path=ThemeLabel}" />
+                        <ComboBox Width="120"
+                                  ItemsSource="{Binding ThemeOptions}"
+                                  SelectedItem="{Binding SelectedThemeOption}"
+                                  DisplayMemberPath="DisplayName" />
+                    </StackPanel>
+
+                    <Border Grid.Column="3"
+                            Padding="12,8"
+                            Background="{DynamicResource HeaderCardBrush}"
+                            CornerRadius="8">
+                        <TextBlock Foreground="{DynamicResource InverseSecondaryTextBrush}" Text="{Binding StatusText}" />
                     </Border>
                 </Grid>
             </Border>
 
-            <StatusBar DockPanel.Dock="Bottom" Padding="8,4" Background="#E2E8F0">
+            <StatusBar DockPanel.Dock="Bottom" Padding="8,4" Background="{DynamicResource StatusBarBackgroundBrush}">
                 <StatusBarItem Content="{Binding PacketBuilder.CurrentPacketSummary}" />
             </StatusBar>
 
             <TabControl Margin="16">
-                <TabItem Header="Packet Builder">
+                <TabItem Header="{Binding Source={StaticResource ToolTexts}, Path=TabPacketBuilder}">
                     <views:PacketBuilderView DataContext="{Binding PacketBuilder}" />
                 </TabItem>
-                <TabItem Header="Send History">
+                <TabItem Header="{Binding Source={StaticResource ToolTexts}, Path=TabSendHistory}">
                     <views:PacketHistoryTabView DataContext="{Binding SentHistory}" />
                 </TabItem>
-                <TabItem Header="Receive History">
+                <TabItem Header="{Binding Source={StaticResource ToolTexts}, Path=TabReceiveHistory}">
                     <views:PacketHistoryTabView DataContext="{Binding ReceiveHistory}" />
                 </TabItem>
-                <TabItem Header="Packet Registry Browser">
+                <TabItem Header="{Binding Source={StaticResource ToolTexts}, Path=TabPacketRegistryBrowser}">
                     <views:PacketRegistryBrowserView DataContext="{Binding PacketRegistryBrowser}" />
                 </TabItem>
             </TabControl>
