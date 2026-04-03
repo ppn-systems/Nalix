@@ -30,7 +30,7 @@
                     <StackPanel>
                         <TextBlock FontSize="24"
                                    FontWeight="SemiBold"
-                                   Foreground="{DynamicResource InversePrimaryTextBrush}"
+                                   Foreground="{DynamicResource AccentBrush}"
                                    Text="{Binding Source={StaticResource ToolTexts}, Path=AppHeaderTitle}" />
                         <TextBlock Margin="0,4,0,0"
                                    Foreground="{DynamicResource MutedTextBrush}"
@@ -42,7 +42,7 @@
                                 VerticalAlignment="Center">
                         <TextBlock Margin="0,0,8,0"
                                    VerticalAlignment="Center"
-                                   Foreground="{DynamicResource InverseSecondaryTextBrush}"
+                                   Foreground="{DynamicResource AccentBrush}"
                                    Text="{Binding Source={StaticResource ToolTexts}, Path=ThemeLabel}" />
                         <ComboBox Width="120"
                                   ItemsSource="{Binding ThemeOptions}"
@@ -53,6 +53,8 @@
                     <Border Grid.Column="3"
                             Padding="12,8"
                             Background="{DynamicResource HeaderCardBrush}"
+                            BorderBrush="{DynamicResource AccentSoftBrush}"
+                            BorderThickness="1"
                             CornerRadius="8">
                         <TextBlock Foreground="{DynamicResource InverseSecondaryTextBrush}" Text="{Binding StatusText}" />
                     </Border>

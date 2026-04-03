@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
@@ -20,6 +21,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase
 {
     private readonly IPacketCatalogService _catalogService;
     private readonly ITcpClientService _tcpClientService;
+    private readonly IFileDialogService _fileDialogService;
     private readonly PacketToolTextConfig _texts;
     private readonly Action<string, string> _showHexViewer;
     private FrameBase? _currentPacket;
@@ -39,10 +41,11 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     /// <param name="catalogService">The packet catalog service.</param>
     /// <param name="tcpClientService">The TCP client service.</param>
     /// <param name="showHexViewer">The callback used to open the shared hex viewer.</param>
-    public PacketBuilderViewModel(IPacketCatalogService catalogService, ITcpClientService tcpClientService, PacketToolTextConfig texts, Action<string, string> showHexViewer)
+    public PacketBuilderViewModel(IPacketCatalogService catalogService, ITcpClientService tcpClientService, IFileDialogService fileDialogService, PacketToolTextConfig texts, Action<string, string> showHexViewer)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
         _tcpClientService = tcpClientService ?? throw new ArgumentNullException(nameof(tcpClientService));
+        _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
         _texts = texts ?? throw new ArgumentNullException(nameof(texts));
         _showHexViewer = showHexViewer ?? throw new ArgumentNullException(nameof(showHexViewer));
         _resolutionText = _texts.PlaceholderCurrentPacketSummary;
@@ -56,6 +59,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase
 
         this.ConnectCommand = new AsyncRelayCommand(this.ConnectAsync, this.CanConnect);
         this.DisconnectCommand = new AsyncRelayCommand(this.DisconnectAsync, this.CanDisconnect);
+        this.LoadPacketAssemblyCommand = new RelayCommand(this.LoadPacketAssembly);
         this.ResetPacketCommand = new RelayCommand(this.ResetPacket, this.CanResetPacket);
         this.SerializePacketCommand = new RelayCommand(this.SerializePacket, this.CanSerializePacket);
         this.SendPacketCommand = new AsyncRelayCommand(this.SendPacketAsync, this.CanSendPacket);
@@ -92,6 +96,11 @@ public sealed class PacketBuilderViewModel : ViewModelBase
     /// Gets the disconnect command.
     /// </summary>
     public AsyncRelayCommand DisconnectCommand { get; }
+
+    /// <summary>
+    /// Gets the load assembly command.
+    /// </summary>
+    public RelayCommand LoadPacketAssemblyCommand { get; }
 
     /// <summary>
     /// Gets the reset command.
@@ -326,6 +335,40 @@ public sealed class PacketBuilderViewModel : ViewModelBase
         this.RaiseStatusRequested(_texts.StatusPacketEditorReset);
     }
 
+    private void LoadPacketAssembly()
+    {
+        string? assemblyPath = _fileDialogService.PickPacketAssembly(_texts.PacketAssemblyDialogTitle, _texts.PacketAssemblyDialogFilter);
+        if (string.IsNullOrWhiteSpace(assemblyPath))
+        {
+            return;
+        }
+
+        int previousCount = this.PacketTypes.Count;
+        PacketTypeDescriptor? previousSelection = this.SelectedPacketType;
+
+        try
+        {
+            PacketCatalog catalog = _catalogService.LoadPacketAssembly(assemblyPath);
+            this.RefreshPacketTypes(catalog.PacketTypes, previousSelection);
+
+            int addedCount = Math.Max(0, this.PacketTypes.Count - previousCount);
+            string fileName = Path.GetFileName(assemblyPath);
+            this.RaiseStatusRequested(
+                addedCount > 0
+                    ? string.Format(CultureInfo.CurrentCulture, _texts.StatusPacketAssemblyLoadedFormat, fileName, this.PacketTypes.Count)
+                    : string.Format(CultureInfo.CurrentCulture, _texts.StatusPacketAssemblyNoNewTypesFormat, fileName));
+
+            if (addedCount > 0 && this.IsConnected)
+            {
+                this.RaiseStatusRequested(_texts.StatusPacketAssemblyReconnectRequired);
+            }
+        }
+        catch (Exception exception)
+        {
+            this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusPacketAssemblyLoadFailedFormat, exception.Message));
+        }
+    }
+
     private void SerializePacket()
     {
         if (this.TryRefreshSerializedPacket(out string hex) && _currentPacket is not null)
@@ -362,6 +405,54 @@ public sealed class PacketBuilderViewModel : ViewModelBase
 
         this.ShowPacket(packet, descriptor, isReadOnly);
         this.ResolutionText = string.Format(CultureInfo.CurrentCulture, _texts.StatusLoadedPacketBuilderFormat, descriptor.FullName);
+    }
+
+    private void RefreshPacketTypes(System.Collections.Generic.IReadOnlyList<PacketTypeDescriptor> packetTypes, PacketTypeDescriptor? previousSelection)
+    {
+        this.PacketTypes.Clear();
+        foreach (PacketTypeDescriptor descriptor in packetTypes)
+        {
+            this.PacketTypes.Add(descriptor);
+        }
+
+        PacketTypeDescriptor? selection = previousSelection is null
+            ? this.PacketTypes.FirstOrDefault()
+            : this.PacketTypes.FirstOrDefault(descriptor => descriptor.PacketType == previousSelection.PacketType)
+                ?? this.PacketTypes.FirstOrDefault();
+
+        _suppressAutoLoad = true;
+        try
+        {
+            this.SelectedPacketType = selection;
+        }
+        finally
+        {
+            _suppressAutoLoad = false;
+        }
+
+        if (selection is null)
+        {
+            _currentPacket = null;
+            this.CurrentPacketIsReadOnly = false;
+            this.CurrentProperties.Clear();
+            this.CurrentPacketTitle = _texts.PlaceholderNoPacketLoaded;
+            this.CurrentPacketSummary = _texts.PlaceholderCurrentPacketSummary;
+            this.ResolutionText = _texts.PlaceholderCurrentPacketSummary;
+            return;
+        }
+
+        if (_currentPacket is not null && selection.PacketType == _currentPacket.GetType())
+        {
+            PacketTypeDescriptor activeDescriptor = selection;
+            this.RebuildPropertyNodes(_currentPacket, activeDescriptor, this.CurrentPacketIsReadOnly);
+            _ = this.TryRefreshSerializedPacket(out _);
+            return;
+        }
+
+        if (this.SelectedPacketType is not null)
+        {
+            this.LoadDescriptor(this.SelectedPacketType, false);
+        }
     }
 
     private void RebuildPropertyNodes(FrameBase packet, PacketTypeDescriptor descriptor, bool isReadOnly)

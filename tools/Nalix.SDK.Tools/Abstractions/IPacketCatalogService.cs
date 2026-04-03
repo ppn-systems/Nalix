@@ -15,6 +15,13 @@ public interface IPacketCatalogService
     PacketCatalog Catalog { get; }
 
     /// <summary>
+    /// Loads packet types from a user-selected assembly and refreshes the runtime catalog.
+    /// </summary>
+    /// <param name="assemblyPath">The full assembly path.</param>
+    /// <returns>The refreshed packet catalog.</returns>
+    PacketCatalog LoadPacketAssembly(string assemblyPath);
+
+    /// <summary>
     /// Finds a packet descriptor by concrete type.
     /// </summary>
     /// <param name="packetType">The packet type to find.</param>

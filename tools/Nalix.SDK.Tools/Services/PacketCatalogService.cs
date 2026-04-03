@@ -19,7 +19,7 @@ namespace Nalix.SDK.Tools.Services;
 /// </summary>
 public sealed class PacketCatalogService : IPacketCatalogService
 {
-    private readonly IReadOnlyDictionary<Type, PacketTypeDescriptor> _descriptorByType;
+    private IReadOnlyDictionary<Type, PacketTypeDescriptor> _descriptorByType = new Dictionary<Type, PacketTypeDescriptor>();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketCatalogService"/> class.
@@ -28,11 +28,29 @@ public sealed class PacketCatalogService : IPacketCatalogService
     {
         this.LoadNalixAssemblies();
         this.Catalog = this.BuildCatalog();
-        _descriptorByType = this.Catalog.PacketTypes.ToDictionary(static descriptor => descriptor.PacketType);
     }
 
     /// <inheritdoc/>
-    public PacketCatalog Catalog { get; }
+    public PacketCatalog Catalog { get; private set; }
+
+    /// <inheritdoc/>
+    public PacketCatalog LoadPacketAssembly(string assemblyPath)
+    {
+        if (string.IsNullOrWhiteSpace(assemblyPath))
+        {
+            throw new ArgumentException("The assembly path cannot be null or whitespace.", nameof(assemblyPath));
+        }
+
+        string fullPath = Path.GetFullPath(assemblyPath);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("The selected packet assembly could not be found.", fullPath);
+        }
+
+        this.LoadAssembly(fullPath);
+        this.Catalog = this.BuildCatalog();
+        return this.Catalog;
+    }
 
     /// <inheritdoc/>
     public PacketTypeDescriptor? FindByType(Type packetType)
@@ -67,20 +85,48 @@ public sealed class PacketCatalogService : IPacketCatalogService
         string baseDirectory = AppContext.BaseDirectory;
         foreach (string path in Directory.EnumerateFiles(baseDirectory, "Nalix*.dll", SearchOption.TopDirectoryOnly))
         {
-            try
-            {
-                string assemblyName = Path.GetFileNameWithoutExtension(path);
-                if (AppDomain.CurrentDomain.GetAssemblies().Any(assembly => string.Equals(assembly.GetName().Name, assemblyName, StringComparison.OrdinalIgnoreCase)))
-                {
-                    continue;
-                }
+            this.TryLoadAssembly(path);
+        }
+    }
 
-                _ = AssemblyLoadContext.Default.LoadFromAssemblyPath(path);
-            }
-            catch
+    private void LoadAssembly(string assemblyPath)
+    {
+        if (!this.TryLoadAssembly(assemblyPath))
+        {
+            AssemblyName expectedAssemblyName = AssemblyName.GetAssemblyName(assemblyPath);
+            bool alreadyLoaded = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Any(assembly => string.Equals(assembly.GetName().Name, expectedAssemblyName.Name, StringComparison.OrdinalIgnoreCase));
+
+            if (!alreadyLoaded)
             {
-                // Best-effort load only; skip assemblies that cannot be loaded.
+                _ = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);
             }
+        }
+    }
+
+    private bool TryLoadAssembly(string assemblyPath)
+    {
+        try
+        {
+            string fullPath = Path.GetFullPath(assemblyPath);
+            AssemblyName expectedAssemblyName = AssemblyName.GetAssemblyName(fullPath);
+            bool alreadyLoaded = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .Any(assembly => string.Equals(assembly.GetName().Name, expectedAssemblyName.Name, StringComparison.OrdinalIgnoreCase));
+
+            if (alreadyLoaded)
+            {
+                return false;
+            }
+
+            _ = AssemblyLoadContext.Default.LoadFromAssemblyPath(fullPath);
+            return true;
+        }
+        catch
+        {
+            // Best-effort load only; skip assemblies that cannot be loaded.
+            return false;
         }
     }
 
@@ -121,11 +167,14 @@ public sealed class PacketCatalogService : IPacketCatalogService
                 })
         ];
 
-        return new PacketCatalog
+        PacketCatalog catalog = new()
         {
             Registry = registry,
             PacketTypes = new ReadOnlyCollection<PacketTypeDescriptor>(normalizedDescriptors)
         };
+
+        _descriptorByType = catalog.PacketTypes.ToDictionary(static descriptor => descriptor.PacketType);
+        return catalog;
     }
 
     private PacketTypeDescriptor BuildDescriptor(Type packetType)

@@ -41,6 +41,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="80" />
@@ -56,9 +57,14 @@
                                   SelectedItem="{Binding SelectedPacketType}" />
                         <TextBlock Grid.Row="1"
                                    Grid.ColumnSpan="2"
+                                   Margin="0,0,0,10"
                                    Foreground="{DynamicResource SecondaryTextBrush}"
                                    TextWrapping="Wrap"
                                    Text="{Binding Source={StaticResource ToolTexts}, Path=PacketSelectionHint}" />
+                        <Button Grid.Row="2"
+                                Grid.ColumnSpan="2"
+                                Command="{Binding LoadPacketAssemblyCommand}"
+                                Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonLoadPacketDll}" />
                     </Grid>
                 </GroupBox>
 

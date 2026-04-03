@@ -17,7 +17,7 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string ThemeLight { get; set; } = "Light";
 
-    public string ThemeDark { get; set; } = "Dark";
+    public string ThemeDark { get; set; } = "Dracula";
 
     public string TabPacketBuilder { get; set; } = "Packet Builder";
 
@@ -41,7 +41,13 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string LabelType { get; set; } = "Type";
 
+    public string ButtonLoadPacketDll { get; set; } = "Load Packet DLL";
+
     public string PacketSelectionHint { get; set; } = "Packet type is selected explicitly by MagicNumber identity.";
+
+    public string PacketAssemblyDialogTitle { get; set; } = "Select packet assembly";
+
+    public string PacketAssemblyDialogFilter { get; set; } = "Assembly files (*.dll)|*.dll|All files (*.*)|*.*";
 
     public string GroupActions { get; set; } = "Actions";
 
@@ -100,6 +106,14 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
     public string StatusSerializationFailed { get; set; } = "Serialization failed for the current packet.";
 
     public string StatusLoadedPacketBuilderFormat { get; set; } = "Loaded {0} into the packet builder. Packet identity is defined by MagicNumber.";
+
+    public string StatusPacketAssemblyLoadedFormat { get; set; } = "Loaded packet assembly {0}. Registry now contains {1:N0} packet types.";
+
+    public string StatusPacketAssemblyNoNewTypesFormat { get; set; } = "Loaded assembly {0}, but no new packet types were discovered.";
+
+    public string StatusPacketAssemblyReconnectRequired { get; set; } = "New packet types were loaded. Reconnect to apply the updated registry to the active TCP session.";
+
+    public string StatusPacketAssemblyLoadFailedFormat { get; set; } = "Unable to load packet assembly: {0}";
 
     public string StatusLoadedReceivedSnapshotFormat { get; set; } = "Loaded received packet snapshot for {0} in read-only mode.";
 

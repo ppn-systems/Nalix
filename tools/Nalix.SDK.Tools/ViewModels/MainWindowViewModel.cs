@@ -27,17 +27,19 @@ public sealed class MainWindowViewModel : ViewModelBase
         IPacketCatalogService catalogService,
         ITcpClientService tcpClientService,
         IAppConfigurationService configurationService,
-        IThemeService themeService)
+        IThemeService themeService,
+        IFileDialogService fileDialogService)
     {
         _catalogService = catalogService ?? throw new ArgumentNullException(nameof(catalogService));
         ArgumentNullException.ThrowIfNull(tcpClientService);
         _configurationService = configurationService ?? throw new ArgumentNullException(nameof(configurationService));
         _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+        ArgumentNullException.ThrowIfNull(fileDialogService);
         _texts = _configurationService.Texts;
         _statusText = _texts.StatusReady;
 
         this.HexViewer = new HexViewerViewModel(_texts);
-        this.PacketBuilder = new PacketBuilderViewModel(_catalogService, tcpClientService, _texts, this.ShowHexViewer);
+        this.PacketBuilder = new PacketBuilderViewModel(_catalogService, tcpClientService, fileDialogService, _texts, this.ShowHexViewer);
         this.PacketRegistryBrowser = new PacketRegistryBrowserViewModel(this.PacketBuilder.PacketTypes, _texts);
         this.SentHistory = new PacketHistoryTabViewModel(
             _texts.GroupSentPackets,
