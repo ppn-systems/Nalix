@@ -221,6 +221,80 @@ public sealed class TaskManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task ScheduleWorkerWhenHigherPriorityIsQueuedStartsBeforeLowerPriority()
+    {
+        using TaskManager manager = this.CreateManager(new TaskManagerOptions
+        {
+            CleanupInterval = TimeSpan.FromSeconds(5),
+            DynamicAdjustmentEnabled = false,
+            MaxWorkers = 1,
+            IsEnableLatency = true
+        });
+
+        TaskCompletionSource<bool> blockerStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> releaseBlocker = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> highStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> lowStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
+        List<string> executionOrder = [];
+
+        _ = manager.ScheduleWorker(
+            "worker.blocker",
+            "group-priority",
+            async (context, cancellationToken) =>
+            {
+                blockerStarted.TrySetResult(true);
+                await releaseBlocker.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
+            },
+            new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
+
+        _ = await blockerStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        DateTime enqueueStartedUtc = DateTime.UtcNow;
+
+        IWorkerHandle low = manager.ScheduleWorker(
+            "worker.low",
+            "group-priority",
+            (context, cancellationToken) =>
+            {
+                executionOrder.Add("low");
+                lowStarted.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            },
+            new WorkerOptions
+            {
+                Priority = WorkerPriority.LOW,
+                RetainFor = TimeSpan.FromMinutes(1)
+            });
+
+        IWorkerHandle high = manager.ScheduleWorker(
+            "worker.high",
+            "group-priority",
+            (context, cancellationToken) =>
+            {
+                executionOrder.Add("high");
+                highStarted.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            },
+            new WorkerOptions
+            {
+                Priority = WorkerPriority.HIGH,
+                RetainFor = TimeSpan.FromMinutes(1)
+            });
+
+        Assert.True(DateTime.UtcNow - enqueueStartedUtc < TimeSpan.FromMilliseconds(250));
+        Assert.False(low.IsRunning);
+        Assert.False(high.IsRunning);
+
+        _ = releaseBlocker.TrySetResult(true);
+
+        _ = await highStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await lowStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await TaskManagerTestHost.WaitUntilAsync(() => low.TotalRuns == 1 && high.TotalRuns == 1, TimeSpan.FromSeconds(2));
+
+        Assert.Equal(["high", "low"], executionOrder);
+    }
+
+    [Fact]
     public async Task ScheduleWorkerWhenCompletionCallbackThrowsIncrementsWorkerErrorCount()
     {
         using TaskManager manager = this.CreateManager();
@@ -561,5 +635,5 @@ public sealed class TaskManagerTests : IDisposable
         _ = Assert.Throws<ObjectDisposedException>(() => manager.ScheduleRecurring("after-dispose", TimeSpan.FromMilliseconds(10), _ => ValueTask.CompletedTask));
     }
 
-    private TaskManager CreateManager() => _host.CreateManager();
+    private TaskManager CreateManager(TaskManagerOptions? options = null) => _host.CreateManager(options);
 }

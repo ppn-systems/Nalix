@@ -20,7 +20,8 @@ public partial class TaskManager
         string name,
         string group,
         IWorkerOptions opt,
-        CancellationTokenSource cts) : IWorkerHandle
+        CancellationTokenSource cts,
+        Func<IWorkerContext, CancellationToken, ValueTask> work) : IWorkerHandle
     {
         #region Backing fields (thread-safe)
 
@@ -74,6 +75,8 @@ public partial class TaskManager
 
         public CancellationTokenSource Cts { get; } = cts;
 
+        public Func<IWorkerContext, CancellationToken, ValueTask> Work { get; } = work;
+
         public string? LastNote
         {
             get => Volatile.Read(ref field);
@@ -125,6 +128,8 @@ public partial class TaskManager
                 _ = Interlocked.Exchange(ref _completedUtcTicks, t);
             }
         }
+
+        internal bool HasCompleted => Interlocked.Read(ref _completedUtcTicks) != 0;
 
         #endregion Properties
 

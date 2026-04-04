@@ -13,9 +13,9 @@ internal sealed class TaskManagerTestHost : IDisposable
 {
     private readonly List<TaskManager> _managers = [];
 
-    public TaskManager CreateManager()
+    public TaskManager CreateManager(TaskManagerOptions? options = null)
     {
-        TaskManager manager = new(new TaskManagerOptions
+        TaskManager manager = new(options ?? new TaskManagerOptions
         {
             CleanupInterval = TimeSpan.FromSeconds(5),
             DynamicAdjustmentEnabled = false,
