@@ -6,8 +6,9 @@
 		<PackageProjectUrl>https://github.com/ppn-systems/Nalix</PackageProjectUrl>
 
 		<PackageTags>Nalix,.NET 10,library,network,security</PackageTags>
-		<SignAssembly>true</SignAssembly>
-		<AssemblyOriginatorKeyFile>$(RepositoryRoot)Nalix.snk</AssemblyOriginatorKeyFile>
+		<AssemblyOriginatorKeyFile Condition="Exists('$(MSBuildThisFileDirectory)Nalix.snk')">$(MSBuildThisFileDirectory)Nalix.snk</AssemblyOriginatorKeyFile>
+		<AssemblyOriginatorKeyFile Condition="'$(AssemblyOriginatorKeyFile)' == '' AND Exists('$(RepositoryRoot)Nalix.snk')">$(RepositoryRoot)Nalix.snk</AssemblyOriginatorKeyFile>
+		<SignAssembly Condition="'$(AssemblyOriginatorKeyFile)' != ''">true</SignAssembly>
 	</PropertyGroup>
 
 	<ItemGroup Label="Package Properties">
