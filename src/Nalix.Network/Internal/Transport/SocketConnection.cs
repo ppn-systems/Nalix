@@ -492,7 +492,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                         {
                             assembled.Retain();
                             args.Initialize(assembled, _cachedArgs.Connection);
-                            AsyncCallback.Invoke(_callbackProcess, _sender, args);
+                            AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true);
 #if DEBUG
                             s_logger?.Debug(
                                 $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
@@ -525,7 +525,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                     {
                         lease.Retain();
                         args.Initialize(lease, _cachedArgs.Connection);
-                        bool queued = AsyncCallback.Invoke(_callbackProcess, _sender, args);
+                        bool queued = AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true);
 #if DEBUG
                         s_logger?.Debug(
                             $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +

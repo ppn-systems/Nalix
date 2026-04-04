@@ -43,18 +43,33 @@ internal sealed class PooledConnectEventContext : IPoolable
     public EventHandler<IConnectEventArgs>? Callback;
 
     /// <summary>
+    /// Indicates whether completing this callback should release one per-connection
+    /// pending-packet slot that was reserved by the receive loop.
+    /// </summary>
+    public bool ReleasePendingPacketOnCompletion;
+
+    /// <summary>
     /// Initializes the pooled wrapper with the callback, sender, and arguments
     /// so they can be passed to the worker thread without allocating a closure.
     /// </summary>
     /// <param name="callback">The event handler to invoke.</param>
     /// <param name="sender">The source of the event.</param>
     /// <param name="args">The event arguments.</param>
+    /// <param name="releasePendingPacketOnCompletion">
+    /// <see langword="true"/> when this callback corresponds to a receive-path
+    /// packet that already reserved one pending slot.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Initialize(EventHandler<IConnectEventArgs> callback, object? sender, IConnectEventArgs args)
+    public void Initialize(
+        EventHandler<IConnectEventArgs> callback,
+        object? sender,
+        IConnectEventArgs args,
+        bool releasePendingPacketOnCompletion = false)
     {
         Args = args;
         Sender = sender;
         Callback = callback;
+        ReleasePendingPacketOnCompletion = releasePendingPacketOnCompletion;
     }
 
     /// <inheritdoc/>
@@ -67,6 +82,7 @@ internal sealed class PooledConnectEventContext : IPoolable
         Args = default!;
         Sender = null;
         Callback = null;
+        ReleasePendingPacketOnCompletion = false;
     }
 
     /// <inheritdoc/>

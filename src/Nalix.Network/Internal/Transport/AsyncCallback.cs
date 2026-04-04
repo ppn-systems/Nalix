@@ -145,13 +145,18 @@ internal static class AsyncCallback
     /// <param name="callback">The event handler to invoke.</param>
     /// <param name="sender">The sender object (typically an <see cref="IConnection"/>).</param>
     /// <param name="args">The event arguments.</param>
+    /// <param name="releasePendingPacketOnCompletion">
+    /// <see langword="true"/> when the callback corresponds to a receive-path
+    /// packet that already reserved one per-connection pending slot.
+    /// </param>
     /// <returns><see langword="true"/> if the callback was queued; <see langword="false"/> if dropped.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Invoke(
         EventHandler<IConnectEventArgs>? callback,
         object? sender,
-        IConnectEventArgs args)
+        IConnectEventArgs args,
+        bool releasePendingPacketOnCompletion = false)
     {
         if (callback is null)
         {
@@ -195,7 +200,7 @@ internal static class AsyncCallback
 
         Interlocked.Increment(ref s_totalInvoked);
 
-        return QUEUE(s_invokeNormal, callback, sender, args, isHigh: false);
+        return QUEUE(s_invokeNormal, callback, sender, args, isHigh: false, releasePendingPacketOnCompletion);
     }
 
     /// <summary>
@@ -223,7 +228,7 @@ internal static class AsyncCallback
 
         _ = Interlocked.Increment(ref s_totalInvoked);
 
-        return QUEUE(s_invokeHigh, callback, sender, args, isHigh: true);
+        return QUEUE(s_invokeHigh, callback, sender, args, isHigh: true, releasePendingPacketOnCompletion: false);
     }
 
     /// <summary>Gets diagnostic statistics about callback processing.</summary>
@@ -250,10 +255,11 @@ internal static class AsyncCallback
         EventHandler<IConnectEventArgs> callback,
         object? sender,
         IConnectEventArgs args,
-        bool isHigh)
+        bool isHigh,
+        bool releasePendingPacketOnCompletion)
     {
         PooledConnectEventContext wrapper = PooledConnectEventContext.Get();
-        wrapper.Initialize(callback, sender, args);
+        wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
         if (!ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false))
         {
@@ -374,7 +380,7 @@ internal static class AsyncCallback
         }
         finally
         {
-            if (w.Sender is Connection conn)
+            if (w.ReleasePendingPacketOnCompletion && w.Sender is Connection conn)
             {
                 conn.ReleasePendingPacket();
             }
