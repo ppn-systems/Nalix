@@ -1,5 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+
 using System.Diagnostics;
 using Nalix.Framework.Time;
 using Xunit;
@@ -7,17 +8,19 @@ using Xunit;
 namespace Nalix.Framework.Tests.Time;
 
 [Collection("ClockTests")]
-public class ClockBasicTests
+public sealed class ClockBasicTests
 {
     private static void BusyWaitMs(double ms)
     {
         long ticks = (long)(ms / 1000.0 * Stopwatch.Frequency);
         long start = Stopwatch.GetTimestamp();
-        while (Stopwatch.GetTimestamp() - start < ticks) { }
+        while (Stopwatch.GetTimestamp() - start < ticks)
+        {
+        }
     }
 
     [Fact]
-    public void UnixTimeGettersIncreaseAndAgree()
+    public void UnixTimeGettersIncreaseAndStayConsistent()
     {
         long s1 = Clock.UnixSecondsNow();
         long ms1 = Clock.UnixMillisecondsNow();
@@ -36,9 +39,7 @@ public class ClockBasicTests
         Assert.True(us2 > us1);
         Assert.True(ticks2 > ticks1);
 
-        // Quan hệ gần đúng
         Assert.InRange(ms2 - ms1, 2, 1000);
         Assert.InRange(us2 - us1, 2000, 1_000_000);
-        Assert.True(ticks2 > ticks1);
     }
 }

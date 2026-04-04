@@ -7,21 +7,21 @@ using Xunit;
 
 namespace Nalix.Framework.Tests.Serialization;
 
-public class LiteSerializerGuardsTests
+public sealed class LiteSerializerGuardTests
 {
     [Fact]
-    public void DeserializeEmptyBufferThrowsArgumentException()
+    public void Deserialize_EmptyBuffer_ThrowsSerializationFailureException()
     {
         byte[] empty = [];
+        int dummy = default;
 
-        int dummy = 0;
         _ = Assert.Throws<SerializationFailureException>(() => LiteSerializer.Deserialize(empty, ref dummy));
     }
 
     [Fact]
-    public void SerializeToProvidedBufferNullBufferThrows()
+    public void SerializeToProvidedBuffer_NullBuffer_ThrowsArgumentNullException()
     {
         int value = 123;
-        _ = Assert.Throws<ArgumentNullException>(() => LiteSerializer.Serialize(in value, null));
+        _ = Assert.Throws<ArgumentNullException>(() => LiteSerializer.Serialize(in value, null!));
     }
 }
