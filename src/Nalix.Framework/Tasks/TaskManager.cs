@@ -230,6 +230,8 @@ public sealed partial class TaskManager : ITaskManager
             {
                 bool acquired = false;
                 CancellationToken ct = cts.Token;
+                bool completedSuccessfully = false;
+                bool wasCancelled = false;
 
                 try
                 {
@@ -279,17 +281,15 @@ public sealed partial class TaskManager : ITaskManager
                     {
                         await work(new WorkerContext(st, this), ct).ConfigureAwait(false);
                     }
-
-                    st.MarkStop();
+                    completedSuccessfully = true;
                 }
                 catch (OperationCanceledException) when (cts.IsCancellationRequested)
                 {
-                    st.MarkStop();
+                    wasCancelled = true;
                 }
                 catch (Exception ex)
                 {
                     failure = ex;
-                    st.MarkError(ex);
                     _ = Interlocked.Increment(ref _workerErrorCount);
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -314,6 +314,15 @@ public sealed partial class TaskManager : ITaskManager
 
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Warn($"[FW.{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
+                    }
+
+                    if (failure is not null)
+                    {
+                        st.MarkError(failure);
+                    }
+                    else if (completedSuccessfully || wasCancelled)
+                    {
+                        st.MarkStop();
                     }
 
                     if (gate is not null && acquired)
