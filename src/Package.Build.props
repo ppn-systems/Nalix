@@ -1,16 +1,13 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<PropertyGroup Label="Package Properties">
+	<PropertyGroup Label="Package Properties" Condition="'$(Configuration)' == 'Release'">
 		<PackageIcon>nalix.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/ppn-systems/Nalix</PackageProjectUrl>
 
 		<PackageTags>Nalix,.NET 10,library,network,security</PackageTags>
-
-		<PropertyGroup Condition="'$(Configuration)' == 'Release'">
-			<SignAssembly>true</SignAssembly>
-			<AssemblyOriginatorKeyFile>$(SolutionDir)Nalix.snk</AssemblyOriginatorKeyFile>
-		</PropertyGroup>
+		<SignAssembly>true</SignAssembly>
+		<AssemblyOriginatorKeyFile>$(SolutionDir)Nalix.snk</AssemblyOriginatorKeyFile>
 	</PropertyGroup>
 
 	<ItemGroup Label="Package Properties">
