@@ -12,7 +12,6 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Formatters.Automatic;
-using Nalix.Framework.Serialization.Internal;
 using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.Serialization;
