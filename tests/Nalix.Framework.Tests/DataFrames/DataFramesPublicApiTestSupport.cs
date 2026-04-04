@@ -1,8 +1,6 @@
-#nullable enable
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -44,34 +42,34 @@ public sealed partial class DataFramesPublicApiTests
     }
 
     public static TheoryData<TextFrameKind> TextFrameInitializeOverflowCases()
-        => new()
-        {
+        =>
+        [
             TextFrameKind.Text256,
             TextFrameKind.Text512,
             TextFrameKind.Text1024
-        };
+        ];
 
     public static TheoryData<TextFrameKind> TextFrameResetCases()
     {
-        return new TheoryData<TextFrameKind>
-        {
+        return
+        [
             TextFrameKind.Text256,
             TextFrameKind.Text512,
             TextFrameKind.Text1024
-        };
+        ];
     }
 
     public static TheoryData<PacketRoundTripKind> PacketRoundTripCases()
     {
-        return new TheoryData<PacketRoundTripKind>
-        {
+        return
+        [
             PacketRoundTripKind.Control,
             PacketRoundTripKind.Directive,
             PacketRoundTripKind.Handshake,
             PacketRoundTripKind.Text256,
             PacketRoundTripKind.Text512,
             PacketRoundTripKind.Text1024
-        };
+        ];
     }
 
     public static IEnumerable<object[]> PacketSerializeBufferTooSmallCases()
@@ -236,65 +234,65 @@ public sealed partial class DataFramesPublicApiTests
         switch (packetKind)
         {
             case PacketRoundTripKind.Control:
-            {
-                Control expectedControl = Assert.IsType<Control>(expected);
-                Control actualControl = Assert.IsType<Control>(actual);
-                Assert.Equal(expectedControl.MagicNumber, actualControl.MagicNumber);
-                Assert.Equal(expectedControl.OpCode, actualControl.OpCode);
-                Assert.Equal(expectedControl.Type, actualControl.Type);
-                Assert.Equal(expectedControl.Reason, actualControl.Reason);
-                Assert.Equal(expectedControl.Protocol, actualControl.Protocol);
-                Assert.Equal(expectedControl.SequenceId, actualControl.SequenceId);
-                break;
-            }
+                {
+                    Control expectedControl = Assert.IsType<Control>(expected);
+                    Control actualControl = Assert.IsType<Control>(actual);
+                    Assert.Equal(expectedControl.MagicNumber, actualControl.MagicNumber);
+                    Assert.Equal(expectedControl.OpCode, actualControl.OpCode);
+                    Assert.Equal(expectedControl.Type, actualControl.Type);
+                    Assert.Equal(expectedControl.Reason, actualControl.Reason);
+                    Assert.Equal(expectedControl.Protocol, actualControl.Protocol);
+                    Assert.Equal(expectedControl.SequenceId, actualControl.SequenceId);
+                    break;
+                }
             case PacketRoundTripKind.Directive:
-            {
-                Directive expectedDirective = Assert.IsType<Directive>(expected);
-                Directive actualDirective = Assert.IsType<Directive>(actual);
-                Assert.Equal(expectedDirective.OpCode, actualDirective.OpCode);
-                Assert.Equal(expectedDirective.Type, actualDirective.Type);
-                Assert.Equal(expectedDirective.Reason, actualDirective.Reason);
-                Assert.Equal(expectedDirective.Action, actualDirective.Action);
-                Assert.Equal(expectedDirective.Control, actualDirective.Control);
-                Assert.Equal(expectedDirective.Arg0, actualDirective.Arg0);
-                Assert.Equal(expectedDirective.Arg1, actualDirective.Arg1);
-                Assert.Equal(expectedDirective.Arg2, actualDirective.Arg2);
-                Assert.Equal(expectedDirective.SequenceId, actualDirective.SequenceId);
-                break;
-            }
+                {
+                    Directive expectedDirective = Assert.IsType<Directive>(expected);
+                    Directive actualDirective = Assert.IsType<Directive>(actual);
+                    Assert.Equal(expectedDirective.OpCode, actualDirective.OpCode);
+                    Assert.Equal(expectedDirective.Type, actualDirective.Type);
+                    Assert.Equal(expectedDirective.Reason, actualDirective.Reason);
+                    Assert.Equal(expectedDirective.Action, actualDirective.Action);
+                    Assert.Equal(expectedDirective.Control, actualDirective.Control);
+                    Assert.Equal(expectedDirective.Arg0, actualDirective.Arg0);
+                    Assert.Equal(expectedDirective.Arg1, actualDirective.Arg1);
+                    Assert.Equal(expectedDirective.Arg2, actualDirective.Arg2);
+                    Assert.Equal(expectedDirective.SequenceId, actualDirective.SequenceId);
+                    break;
+                }
             case PacketRoundTripKind.Handshake:
-            {
-                Handshake expectedHandshake = Assert.IsType<Handshake>(expected);
-                Handshake actualHandshake = Assert.IsType<Handshake>(actual);
-                Assert.Equal(expectedHandshake.OpCode, actualHandshake.OpCode);
-                Assert.Equal(expectedHandshake.Protocol, actualHandshake.Protocol);
-                Assert.Equal(expectedHandshake.Data, actualHandshake.Data);
-                break;
-            }
+                {
+                    Handshake expectedHandshake = Assert.IsType<Handshake>(expected);
+                    Handshake actualHandshake = Assert.IsType<Handshake>(actual);
+                    Assert.Equal(expectedHandshake.OpCode, actualHandshake.OpCode);
+                    Assert.Equal(expectedHandshake.Protocol, actualHandshake.Protocol);
+                    Assert.Equal(expectedHandshake.Data, actualHandshake.Data);
+                    break;
+                }
             case PacketRoundTripKind.Text256:
-            {
-                Text256 expectedText = Assert.IsType<Text256>(expected);
-                Text256 actualText = Assert.IsType<Text256>(actual);
-                Assert.Equal(expectedText.Content, actualText.Content);
-                Assert.Equal(expectedText.Protocol, actualText.Protocol);
-                break;
-            }
+                {
+                    Text256 expectedText = Assert.IsType<Text256>(expected);
+                    Text256 actualText = Assert.IsType<Text256>(actual);
+                    Assert.Equal(expectedText.Content, actualText.Content);
+                    Assert.Equal(expectedText.Protocol, actualText.Protocol);
+                    break;
+                }
             case PacketRoundTripKind.Text512:
-            {
-                Text512 expectedText = Assert.IsType<Text512>(expected);
-                Text512 actualText = Assert.IsType<Text512>(actual);
-                Assert.Equal(expectedText.Content, actualText.Content);
-                Assert.Equal(expectedText.Protocol, actualText.Protocol);
-                break;
-            }
+                {
+                    Text512 expectedText = Assert.IsType<Text512>(expected);
+                    Text512 actualText = Assert.IsType<Text512>(actual);
+                    Assert.Equal(expectedText.Content, actualText.Content);
+                    Assert.Equal(expectedText.Protocol, actualText.Protocol);
+                    break;
+                }
             case PacketRoundTripKind.Text1024:
-            {
-                Text1024 expectedText = Assert.IsType<Text1024>(expected);
-                Text1024 actualText = Assert.IsType<Text1024>(actual);
-                Assert.Equal(expectedText.Content, actualText.Content);
-                Assert.Equal(expectedText.Protocol, actualText.Protocol);
-                break;
-            }
+                {
+                    Text1024 expectedText = Assert.IsType<Text1024>(expected);
+                    Text1024 actualText = Assert.IsType<Text1024>(actual);
+                    Assert.Equal(expectedText.Content, actualText.Content);
+                    Assert.Equal(expectedText.Protocol, actualText.Protocol);
+                    break;
+                }
             default:
                 throw new InvalidOperationException("Unexpected packet round-trip kind.");
         }

@@ -1,12 +1,11 @@
-#nullable enable
 
 using System;
 using System.IO;
 using System.Text;
 using System.Threading;
 using Nalix.Framework.DataFrames.Chunks;
-using Nalix.Framework.Options;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames;

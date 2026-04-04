@@ -34,21 +34,21 @@ public sealed class PooledSocketReceiveContextTests
         byte[] secondPayload = [5, 6];
 
         ValueTask<int> firstReceive = receiveContext.ReceiveAsync(server, buffer, 0, buffer.Length);
-        firstReceive.IsCompleted.Should().BeFalse();
+        _ = firstReceive.IsCompleted.Should().BeFalse();
 
         _ = await client.SendAsync(firstPayload, SocketFlags.None);
 
         int firstRead = await firstReceive;
-        firstRead.Should().Be(firstPayload.Length);
-        buffer[0..firstRead].Should().Equal(firstPayload);
+        _ = firstRead.Should().Be(firstPayload.Length);
+        _ = buffer[0..firstRead].Should().Equal(firstPayload);
 
         ValueTask<int> secondReceive = receiveContext.ReceiveAsync(server, buffer, 0, buffer.Length);
-        secondReceive.IsCompleted.Should().BeFalse();
+        _ = secondReceive.IsCompleted.Should().BeFalse();
 
         _ = await client.SendAsync(secondPayload, SocketFlags.None);
 
         int secondRead = await secondReceive;
-        secondRead.Should().Be(secondPayload.Length);
-        buffer[0..secondRead].Should().Equal(secondPayload);
+        _ = secondRead.Should().Be(secondPayload.Length);
+        _ = buffer[0..secondRead].Should().Equal(secondPayload);
     }
 }

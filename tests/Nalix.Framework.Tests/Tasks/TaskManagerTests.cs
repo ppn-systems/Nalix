@@ -1,7 +1,5 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -185,7 +183,7 @@ public sealed class TaskManagerTests : IDisposable
 
             try
             {
-                await releaseFirst.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
+                _ = await releaseFirst.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -242,8 +240,8 @@ public sealed class TaskManagerTests : IDisposable
             "group-priority",
             async (context, cancellationToken) =>
             {
-                blockerStarted.TrySetResult(true);
-                await releaseBlocker.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
+                _ = blockerStarted.TrySetResult(true);
+                _ = await releaseBlocker.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
             },
             new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
 
@@ -257,7 +255,7 @@ public sealed class TaskManagerTests : IDisposable
             (context, cancellationToken) =>
             {
                 executionOrder.Add("low");
-                lowStarted.TrySetResult(true);
+                _ = lowStarted.TrySetResult(true);
                 return ValueTask.CompletedTask;
             },
             new WorkerOptions
@@ -272,7 +270,7 @@ public sealed class TaskManagerTests : IDisposable
             (context, cancellationToken) =>
             {
                 executionOrder.Add("high");
-                highStarted.TrySetResult(true);
+                _ = highStarted.TrySetResult(true);
                 return ValueTask.CompletedTask;
             },
             new WorkerOptions
@@ -288,7 +286,7 @@ public sealed class TaskManagerTests : IDisposable
         _ = releaseBlocker.TrySetResult(true);
 
         _ = await highStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        await lowStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        _ = await lowStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
         await TaskManagerTestHost.WaitUntilAsync(() => low.TotalRuns == 1 && high.TotalRuns == 1, TimeSpan.FromSeconds(2));
 
         Assert.Equal(["high", "low"], executionOrder);
@@ -541,7 +539,7 @@ public sealed class TaskManagerTests : IDisposable
                 _ = entered.TrySetResult(true);
                 try
                 {
-                    await release.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
+                    _ = await release.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
                 }
                 finally
                 {

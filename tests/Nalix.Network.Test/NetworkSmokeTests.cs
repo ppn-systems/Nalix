@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Nalix.Common.Networking;
 using Nalix.Network.Options;
@@ -70,7 +71,7 @@ public sealed class NetworkSmokeTests
 
         _ = limiter.Evaluate(new TestEndpoint("192.168.1.10"));
 
-        var report = limiter.GenerateReportData();
+        IDictionary<string, object> report = limiter.GenerateReportData();
 
         Assert.Equal(3, report["CapacityTokens"]);
         Assert.Equal(1, report["TrackedEndpoints"]);

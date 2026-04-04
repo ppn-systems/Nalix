@@ -1,4 +1,3 @@
-#nullable enable
 
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Memory.Buffers;

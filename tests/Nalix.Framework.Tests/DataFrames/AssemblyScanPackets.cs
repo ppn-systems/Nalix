@@ -1,11 +1,10 @@
-#nullable enable
 
 using System;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
 using Nalix.Framework.DataFrames;
 
-namespace Nalix.Framework.Tests.DataFrames.AssemblyScan
+namespace Nalix.Framework.Tests.DataFrames
 {
     /// <summary>
     /// Test-only packet for namespace scanning.

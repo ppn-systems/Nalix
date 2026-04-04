@@ -1,6 +1,5 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using System.Collections.Generic;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Xunit;
@@ -65,7 +64,7 @@ public sealed class LiteSerializerObjectTests
         Assert.NotNull(output.Child);
         Assert.Equal(10, output.Child.Id);
         Assert.Equal("Child", output.Child.Name);
-        Assert.Equal(new List<string> { "x", "y" }, output.Child.Tags);
+        Assert.Equal(["x", "y"], output.Child.Tags);
         Assert.Empty(output.Tags);
     }
 

@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 using Xunit;
 using TransportAsyncCallback = Nalix.Network.Internal.Transport.AsyncCallback;
@@ -41,13 +41,13 @@ public sealed class AsyncCallbackDispatchTests
         {
             if (e is null)
             {
-                processObserved.TrySetException(new InvalidOperationException("Process callback args were null."));
+                _ = processObserved.TrySetException(new InvalidOperationException("Process callback args were null."));
                 return;
             }
 
-            e.Lease.Should().NotBeNull();
-            e.Lease!.Length.Should().Be(3);
-            processObserved.TrySetResult();
+            _ = e.Lease.Should().NotBeNull();
+            _ = e.Lease!.Length.Should().Be(3);
+            _ = processObserved.TrySetResult();
         };
 
         TransportAsyncCallback.ResetStatistics();
@@ -58,10 +58,10 @@ public sealed class AsyncCallbackDispatchTests
         await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         (int pendingNormal, long dropped, long total) = TransportAsyncCallback.GetStatistics();
-        pendingNormal.Should().Be(0);
-        dropped.Should().Be(0);
-        total.Should().Be(1);
-        connection.Socket.PendingPackets.Should().Be(0);
+        _ = pendingNormal.Should().Be(0);
+        _ = dropped.Should().Be(0);
+        _ = total.Should().Be(1);
+        _ = connection.Socket.PendingPackets.Should().Be(0);
     }
 
     [Fact]
@@ -88,24 +88,24 @@ public sealed class AsyncCallbackDispatchTests
 
         TransportAsyncCallback.ResetStatistics();
 
-        connection.TCP.Send(new byte[] { 7, 8, 9, 10 });
+        connection.TCP.Send([7, 8, 9, 10]);
 
         byte[] receivedFrame = new byte[32];
         int bytesRead = await clientSocket.ReceiveAsync(receivedFrame, SocketFlags.None);
-        bytesRead.Should().BeGreaterThan(0);
+        _ = bytesRead.Should().BeGreaterThan(0);
 
         await postObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         (int pendingNormal, long dropped, long total) = TransportAsyncCallback.GetStatistics();
-        pendingNormal.Should().Be(0);
-        dropped.Should().Be(0);
-        total.Should().Be(1);
-        connection.Socket.PendingPackets.Should().Be(0);
+        _ = pendingNormal.Should().Be(0);
+        _ = dropped.Should().Be(0);
+        _ = total.Should().Be(1);
+        _ = connection.Socket.PendingPackets.Should().Be(0);
     }
 
     private static void EnsureLoggerRegistered()
     {
-        InstanceManager.Instance.WithLogging(NullLogger.Instance);
+        _ = InstanceManager.Instance.WithLogging(NullLogger.Instance);
         InstanceManager.Instance.Register<ILogger>(NullLogger.Instance);
     }
 }

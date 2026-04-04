@@ -1,11 +1,10 @@
-#nullable enable
 
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Memory.Pools;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Memory;

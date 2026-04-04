@@ -17,10 +17,7 @@ public sealed class InstanceManagerTests : IDisposable
 {
     private readonly InstanceManager _manager = new();
 
-    public InstanceManagerTests()
-    {
-        _manager.Clear(dispose: true);
-    }
+    public InstanceManagerTests() => _manager.Clear(dispose: true);
 
     public void Dispose()
     {

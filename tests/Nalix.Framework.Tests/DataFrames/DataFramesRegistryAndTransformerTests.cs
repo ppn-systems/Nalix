@@ -1,7 +1,5 @@
-#nullable enable
 
 using System;
-using System.IO;
 using System.Linq;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;

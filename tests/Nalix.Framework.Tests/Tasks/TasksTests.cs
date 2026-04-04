@@ -1,4 +1,3 @@
-#nullable enable
 
 using Nalix.Framework.Tasks;
 using Xunit;
