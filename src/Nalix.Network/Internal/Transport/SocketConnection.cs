@@ -83,6 +83,7 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     private int _packetCount;
     private int _openFragmentStreams;
     private int _pendingProcessCallbacks;
+    private Task? _receiveLoopTask;
 
     /// <summary>
     /// 0 = no, 1 = yes
@@ -231,7 +232,10 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
         CancellationTokenSource linked =
             CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, cancellationToken);
 
-        _ = this.SAEA_RECEIVE_LOOP_ASYNC(linked.Token).ContinueWith(static (t, state) =>
+        Task receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(linked.Token);
+        _receiveLoopTask = receiveLoopTask;
+
+        _ = receiveLoopTask.ContinueWith(static (t, state) =>
         {
             (ILogger l, CancellationTokenSource link) =
                 ((ILogger, CancellationTokenSource))state!;
@@ -597,11 +601,41 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
 
             try { _socket.Close(); } catch { /* ignore */ }
 
+            Task? receiveLoopTask = _receiveLoopTask;
+            bool receiveLoopStopped = true;
+            if (receiveLoopTask is not null)
+            {
+                try
+                {
+                    receiveLoopStopped = receiveLoopTask.Wait(TimeSpan.FromSeconds(5));
+                }
+                catch (AggregateException ex) when (IS_BENIGN_DISCONNECT(ex))
+                {
+                    receiveLoopStopped = true;
+                }
+
+                if (!receiveLoopStopped)
+                {
+                    s_logger?.Warn(
+                        $"[NW.{nameof(SocketConnection)}:{nameof(Dispose)}] receive-loop-timeout ep={FORMAT_ENDPOINT(_socket)}");
+                }
+            }
+
+            _receiveLoopTask = null;
+
             // 3. Return the pooled receive context only after the socket can no
             //    longer use it.
             if (_recvCtx is not null)
             {
-                s_pool.Return(_recvCtx);
+                if (receiveLoopStopped)
+                {
+                    s_pool.Return(_recvCtx);
+                }
+                else
+                {
+                    s_logger?.Warn(
+                        $"[NW.{nameof(SocketConnection)}:{nameof(Dispose)}] recvctx-not-returned ep={FORMAT_ENDPOINT(_socket)}");
+                }
 
                 _recvCtx = null!;
             }
