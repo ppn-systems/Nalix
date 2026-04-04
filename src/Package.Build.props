@@ -7,7 +7,7 @@
 
 		<PackageTags>Nalix,.NET 10,library,network,security</PackageTags>
 		<SignAssembly>true</SignAssembly>
-		<AssemblyOriginatorKeyFile>$(SolutionDir)Nalix.snk</AssemblyOriginatorKeyFile>
+		<AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)..\..\Nalix.snk</AssemblyOriginatorKeyFile>
 	</PropertyGroup>
 
 	<ItemGroup Label="Package Properties">
