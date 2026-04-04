@@ -16,6 +16,7 @@ internal static partial class TypeMetadata
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetNestedSize<T>(T value, out int size) => TryGetNestedSize(typeof(T), value, out size);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetNestedSize(Type declaredType, object? value, out int size)
     {
         ArgumentNullException.ThrowIfNull(declaredType);
@@ -93,6 +94,7 @@ internal static partial class TypeMetadata
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetArraySize(Type arrayType, Array? array, out int size)
     {
         size = 0;
@@ -133,6 +135,7 @@ internal static partial class TypeMetadata
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetListSize(Type declaredType, object? value, out int size)
     {
         size = 0;
@@ -194,6 +197,7 @@ internal static partial class TypeMetadata
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetDictionarySize(Type declaredType, object? value, out int size)
     {
         size = 0;
@@ -230,6 +234,7 @@ internal static partial class TypeMetadata
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetMemorySize(Type declaredType, object? value, out int size)
     {
         size = 0;
@@ -250,6 +255,7 @@ internal static partial class TypeMetadata
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetFixedSize(Type type, out int size)
     {
         if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
@@ -307,6 +313,7 @@ internal static partial class TypeMetadata
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryGetObjectSize(Type declaredType, object value, out int size)
     {
         size = 0;
@@ -355,9 +362,10 @@ internal static partial class TypeMetadata
 
     private static class RuntimeUnsafe
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int SizeOfHelper(Type type)
             => (int)typeof(System.Runtime.CompilerServices.Unsafe)
-                .GetMethod(nameof(System.Runtime.CompilerServices.Unsafe.SizeOf), BindingFlags.Public | BindingFlags.Static)!
+                .GetMethod(nameof(Unsafe.SizeOf), BindingFlags.Public | BindingFlags.Static)!
                 .MakeGenericMethod(type)
                 .Invoke(null, null)!;
     }
