@@ -7,8 +7,10 @@
 
 		<PackageTags>Nalix,.NET 10,library,network,security</PackageTags>
 
-		<SignAssembly Condition="'$(Configuration)' == 'Release'">true</SignAssembly>
-		<AssemblyOriginatorKeyFile Condition="'$(Configuration)' == 'Release'">..\Nalix.snk</AssemblyOriginatorKeyFile>
+		<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+			<SignAssembly>true</SignAssembly>
+			<AssemblyOriginatorKeyFile>$(SolutionDir)Nalix.snk</AssemblyOriginatorKeyFile>
+		</PropertyGroup>
 	</PropertyGroup>
 
 	<ItemGroup Label="Package Properties">
