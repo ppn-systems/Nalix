@@ -5,21 +5,20 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
 
 /// <summary>
 /// Orchestrates multiple <see cref="SlabBucket"/> instances — one per configured buffer
-/// size class — providing best-fit segment lookup and unified lifecycle management.
+/// size class — providing best-fit buffer lookup and unified lifecycle management.
 /// </summary>
 /// <remarks>
-/// This is the slab-side counterpart of <see cref="BufferPoolCollection"/>.
-/// <see cref="BufferPoolCollection"/> manages per-buffer pinned arrays for the
-/// <c>byte[]</c> API (BufferPoolManager.Rent),
-/// while <see cref="SlabPoolManager"/> manages slab-backed segments for the
-/// <see cref="ArraySegment{T}"/> API (BufferPoolManager.RentSegment).
+/// This unified manager handles both <see cref="ArraySegment{T}"/> and raw <c>byte[]</c> 
+/// requests by utilizing standalone pinned slabs.
 /// </remarks>
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
@@ -32,7 +31,11 @@ internal sealed class SlabPoolManager : IDisposable
     private readonly Dictionary<int, SlabBucket> _buckets;
 
     private readonly Lock _lock;
+    private int[]? _fastBucketMap; // Fast lookup for sizes up to 4KB
     private bool _disposed;
+
+    /// <summary>Occurs when any bucket managed by this pool manager needs to resize.</summary>
+    public event Action<SlabBucket, BufferPoolResizeDirection>? ResizeOccurred;
 
     /// <summary>
     /// Initializes a new <see cref="SlabPoolManager"/>.
@@ -60,53 +63,50 @@ internal sealed class SlabPoolManager : IDisposable
             }
 
             SlabBucket bucket = new(segmentSize, initialCapacity);
+            bucket.ResizeOccurred += (b, d) => this.ResizeOccurred?.Invoke(b, d);
             _buckets[segmentSize] = bucket;
             this.RebuildSortedKeys();
         }
     }
 
+
     /// <summary>
-    /// Rents a segment of at least the requested size using best-fit lookup.
+    /// Rents a standalone array of at least the requested size.
     /// </summary>
-    /// <param name="size">The minimum segment size required.</param>
-    /// <param name="segment">The rented segment, or <c>default</c> if no bucket matches.</param>
-    /// <returns><c>true</c> if a segment was rented; <c>false</c> if no suitable bucket exists.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryRent(int size, out ArraySegment<byte> segment)
+    public bool TryRent(int size, [NotNullWhen(true)] out byte[]? array)
     {
         int bucketSize = this.FindBestFitSize(size);
         if (bucketSize > 0 && _buckets.TryGetValue(bucketSize, out SlabBucket? bucket))
         {
-            segment = bucket.Rent();
+            array = bucket.Rent();
             return true;
         }
 
-        segment = default;
+        array = null;
         return false;
     }
 
     /// <summary>
-    /// Returns a segment to its owning bucket based on segment count.
+    /// Returns a raw array to its owning bucket based on array length.
     /// </summary>
-    /// <param name="segment">The segment to return.</param>
-    /// <returns><c>true</c> if the segment was accepted by a bucket; <c>false</c> otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReturn(ArraySegment<byte> segment)
+    public bool TryReturn(byte[]? array)
     {
-        if (segment.Array is null)
+        if (array is null)
         {
             return false;
         }
 
-        // Route by Count — each slab segment has Count == bucket.SegmentSize.
-        if (_buckets.TryGetValue(segment.Count, out SlabBucket? bucket))
+        if (_buckets.TryGetValue(array.Length, out SlabBucket? bucket))
         {
-            bucket.Return(segment);
+            bucket.Return(array);
             return true;
         }
 
         return false;
     }
+
 
     /// <summary>
     /// Gets all registered buckets for diagnostics and reporting.
@@ -124,6 +124,18 @@ internal sealed class SlabPoolManager : IDisposable
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindBestFitSize(int size)
+    {
+        // O(1) Fast path for common small sizes
+        if (size is > 0 and <= 4096)
+        {
+            return _fastBucketMap?[size] ?? this.BINARY_SEARCH_BEST_FIT(size);
+        }
+
+        return this.BINARY_SEARCH_BEST_FIT(size);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int BINARY_SEARCH_BEST_FIT(int size)
     {
         int[] keys = _sortedSizes;
         if (keys.Length == 0)
@@ -157,6 +169,14 @@ internal sealed class SlabPoolManager : IDisposable
 
         Array.Sort(keys);
         _sortedSizes = keys;
+
+        // Build fast lookup map for sizes 0..4096
+        int[] map = new int[4097];
+        for (int s = 1; s <= 4096; s++)
+        {
+            map[s] = this.BINARY_SEARCH_BEST_FIT(s);
+        }
+        _fastBucketMap = map;
     }
 
     /// <inheritdoc/>
