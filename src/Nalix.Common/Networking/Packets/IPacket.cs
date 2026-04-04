@@ -6,7 +6,6 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
-
 namespace Nalix.Common.Networking.Packets;
 
 /// <summary>

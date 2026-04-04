@@ -13,8 +13,19 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
-public sealed class Directive : PacketBase<Directive>, IPacketReasoned
+public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSizeSerializable
 {
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public static int Size => PacketConstants.HeaderSize
+        + sizeof(ControlType)
+        + sizeof(ProtocolReason)
+        + sizeof(ProtocolAdvice)
+        + sizeof(ControlFlags)
+        + sizeof(uint)
+        + sizeof(uint)
+        + sizeof(ushort);
+
     /// <summary>
     /// Gets or sets the directive type.
     /// </summary>

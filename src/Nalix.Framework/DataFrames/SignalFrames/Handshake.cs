@@ -104,5 +104,6 @@ public sealed class Handshake : PacketBase<Handshake>
         /// </summary>
         [SerializeDynamicSize(DynamicSize * 2)]
         public byte[] Signature { get; set; } = Array.Empty<byte>();
+
     }
 }

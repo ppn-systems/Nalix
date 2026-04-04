@@ -22,9 +22,6 @@ public abstract class FrameBase : IPacket
     /// </summary>
     [SerializeIgnore] public abstract int Length { get; }
 
-    /// <inheritdoc/>
-    [SerializeIgnore] int IPacket.Length => this.Length;
-
     /// <summary>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
