@@ -45,6 +45,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     private int _closeSignaled;
     private long _bytesSent;
     private long _argsPoolMask; // Bitmask for free/busy status.
+    private long _contextPoolMask;
+
+    private IObjectMap<string, object>? _attributes;
+    private IConnection.ITransport? _tcp;
+    private SlidingWindow? _udpReplayWindow;
 
     private volatile bool _disposed;
 
@@ -54,10 +59,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     // Per-connection local pool for packet arguments to avoid global pool contention.
     // Size 8 matches the default MaxPerConnectionPendingPackets.
-    private readonly ConnectionEventArgs[] _argsPool;
+    private ConnectionEventArgs[]? _argsPool;
 
-    private readonly PooledConnectEventContext[] _contextPool;
-    private long _contextPoolMask;
+    private PooledConnectEventContext[]? _contextPool;
 
     /// <summary>
     /// Tracks the current timeout task in the TimingWheel.
@@ -86,31 +90,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."));
 
         _args = new ConnectionEventArgs(this);
-        _argsPool = new ConnectionEventArgs[8];
-        for (int i = 0; i < _argsPool.Length; i++)
-        {
-            _argsPool[i] = new ConnectionEventArgs(this)
-            {
-                OnDisposedCallback = this.ReturnEventArgsSync
-            };
-        }
-
-        _contextPool = new PooledConnectEventContext[8];
-        for (int i = 0; i < _contextPool.Length; i++)
-        {
-            _contextPool[i] = new PooledConnectEventContext
-            {
-                OnDisposedCallback = this.ReturnContextSync
-            };
-        }
 
         this.Socket = new SocketConnection(socket, logger);
 
         // Wire the socket-level events into the connection-level callback pipeline.
         this.Socket.SetCallback(this, _args, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
-
-        this.TCP = new SocketTcpTransport(this);
-        this.Attributes = ObjectMap<string, object>.Rent();
 
         _logger?.Trace($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
     }
@@ -126,7 +110,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     public ISnowflake ID { get; }
 
     /// <inheritdoc/>
-    public IConnection.ITransport TCP { get; }
+    public IConnection.ITransport TCP => _tcp ??= new SocketTcpTransport(this);
 
     /// <inheritdoc/>
     public IConnection.ITransport UDP => this.UdpTransport ?? throw new InternalErrorException("UDP transport has not been created yet.");
@@ -135,7 +119,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     public INetworkEndpoint NetworkEndpoint { get; }
 
     /// <inheritdoc />
-    public IObjectMap<string, object> Attributes { get; }
+    public IObjectMap<string, object> Attributes => _attributes ??= ObjectMap<string, object>.Rent();
 
     /// <inheritdoc />
     public int ErrorCount => _errorCount;
@@ -187,7 +171,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     internal SocketUdpTransport? UdpTransport { get; private set; }
 
-    internal SlidingWindow UdpReplayWindow { get; } = new(s_options.UdpReplayWindowSize);
+    internal SlidingWindow UdpReplayWindow => _udpReplayWindow ??= new(s_options.UdpReplayWindowSize);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -293,7 +277,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
             // Return pooled metadata first so the connection does not keep
             // borrowed state alive after disposal begins.
-            this.Attributes.Return();
+            _attributes?.Return();
+            _attributes = null;
 
             this.Disconnect();
 
@@ -333,6 +318,18 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// </summary>
     internal ConnectionEventArgs? AcquireEventArgs()
     {
+        if (_argsPool == null)
+        {
+            lock (this)
+            {
+                if (_argsPool == null)
+                {
+                    _argsPool = new ConnectionEventArgs[8];
+                    for (int i = 0; i < 8; i++) _argsPool[i] = new ConnectionEventArgs(this);
+                }
+            }
+        }
+
         for (int i = 0; i < 8; i++)
         {
             long bit = 1L << i;
@@ -345,8 +342,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         return null;
     }
 
-    private void ReturnEventArgsSync(ConnectionEventArgs args)
+    internal void ReturnEventArgsInternal(ConnectionEventArgs args)
     {
+        if (_argsPool == null) return;
+
         for (int i = 0; i < 8; i++)
         {
             if (ReferenceEquals(_argsPool[i], args))
@@ -365,6 +364,18 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// </summary>
     internal PooledConnectEventContext? AcquireContext()
     {
+        if (_contextPool == null)
+        {
+            lock (this)
+            {
+                if (_contextPool == null)
+                {
+                    _contextPool = new PooledConnectEventContext[8];
+                    for (int i = 0; i < 8; i++) _contextPool[i] = new PooledConnectEventContext { LocalOwner = this };
+                }
+            }
+        }
+
         for (int i = 0; i < 8; i++)
         {
             long bit = 1L << i;
@@ -379,8 +390,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         return null;
     }
 
-    private void ReturnContextSync(PooledConnectEventContext context)
+    internal void ReturnContextInternal(PooledConnectEventContext context)
     {
+        if (_contextPool == null) return;
+
         for (int i = 0; i < 8; i++)
         {
             if (ReferenceEquals(_contextPool[i], context))

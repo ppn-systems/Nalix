@@ -44,15 +44,6 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
             throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
         }
 
-        if (packetLength < BufferLease.StackAllocThreshold)
-        {
-            Span<byte> buffer = stackalloc byte[packetLength + (packetLength / 20)];
-            int bytesWritten = packet.Serialize(buffer);
-            _outer.AddBytesSent(bytesWritten);
-            this.Send(buffer[..bytesWritten]);
-            return;
-        }
-
         using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
         int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
         lease.CommitLength(bytesWrittenHeap);
@@ -74,21 +65,13 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public async Task SendAsync(IPacket packet, CancellationToken cancellationToken = default)
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
+    public async ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default)
     {
         int packetLength = packet.Length;
         if (packetLength == 0)
         {
             throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
-        }
-
-        if (packetLength < BufferLease.StackAllocThreshold)
-        {
-            Span<byte> buffer = stackalloc byte[packetLength + (packetLength / 20)];
-            int bytesWritten = packet.Serialize(buffer);
-            _outer.AddBytesSent(bytesWritten);
-            await this.SendAsync(new ReadOnlyMemory<byte>(buffer[..bytesWritten].ToArray()), cancellationToken).ConfigureAwait(false);
-            return;
         }
 
         using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
@@ -100,7 +83,7 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public async Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
+    public async ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
         if (message.IsEmpty)
         {

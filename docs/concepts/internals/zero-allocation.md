@@ -88,15 +88,15 @@ This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ looku
 
 ## 3. The Pooling Pipeline
 
-### Buffer Leasing (Slab-Based)
-Incoming data is always stored in a `BufferLease` backed by a large, pre-allocated memory slab (`ArraySegment<byte>`). This eliminates **POH (Pinned Object Heap)** churn by allocating large blocks of memory once and carving them into segments.
+### Buffer Leasing (Standalone Slabs)
+Incoming data is always stored in a `BufferLease` backed by standalone pinned `byte[]` arrays allocated on the **Pinned Object Heap (POH)**. This eliminates slicing overhead and ensures zero-offset access for all frames.
 
-To further eliminate overhead, `BufferLease` instances (shells) are themselves pooled using a lock-free free-list. The depth of this free-list is tracked via an **O(1) atomic counter**, avoiding the linear-time cost of `ConcurrentStack.Count` in high-throughput hot paths.
+To further eliminate overhead, `BufferLease` instances (shells) are themselves pooled using a lock-free free-list with an **O(1) atomic counter**.
 
 ```csharp
-// Optimized buffer leasing
-using var lease = bufferPool.RentSegment(1024);
-// Use lease.Span for zero-copy slicing
+// Optimized buffer rental
+byte[] buffer = bufferPool.Rent(1024);
+// Always starts at index 0
 ```
 
 ### Pattern: High-Performance Handler
@@ -126,6 +126,14 @@ public ValueTask HandleUpdate(IPacketContext<HighFreqUpdate> context)
 ## 4. Zero-Allocation Error Handling
 
 Exception handling can be expensive. In the hot path, Nalix provides mechanisms to track errors without triggering heap noise.
+
+### Zero-Allocation Exception Caching
+
+Standard exceptions are expensive due to stack trace generation. Nalix uses a **Cached Exception Pattern** via the `NetworkErrors` class for common transport failures (e.g., `ConnectionReset`, `SendFailed`, `MessageTooLarge`).
+
+- **Static Instances**: Common exceptions are pre-instantiated as static readonly fields.
+- **Overridden StackTrace**: These cached exceptions override the `StackTrace` property to return a static string, bypassing the expensive stack crawl entirely.
+- **Socket Error Mapping**: `NetworkErrors.GetSocketError(SocketError)` returns a cached `SocketException` for standard OS errors, ensuring that even low-level networking failures don't trigger allocations.
 
 ### Global Error Hook
 Instead of per-packet `try-catch` blocks in your handlers, use the global observer:

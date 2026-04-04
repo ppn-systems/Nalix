@@ -46,7 +46,7 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        Task SendAsync(IPacket packet, CancellationToken cancellationToken = default);
+        ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -57,7 +57,7 @@ public partial interface IConnection
         /// <remarks>
         /// If the connection has been authenticated, the data will be encrypted before sending.
         /// </remarks>
-        Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
+        ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Starts receiving data from the connection.
