@@ -13,7 +13,8 @@
 
 	<ItemGroup Label="Package Properties">
 		<None Include="..\..\LICENSE" Pack="true" PackagePath="" Condition="Exists('..\..\LICENSE') AND '$(Configuration)' != 'Debug'" />
-		<None Include="..\..\README.md" Pack="true" PackagePath="" Condition="Exists('..\..\README.md') AND '$(Configuration)' != 'Debug'" />
+		<None Include="$(MSBuildProjectDirectory)\README.md" Pack="true" PackagePath="" Condition="Exists('$(MSBuildProjectDirectory)\README.md') AND '$(Configuration)' != 'Debug'" />
+		<None Include="..\..\README.md" Pack="true" PackagePath="" Condition="!Exists('$(MSBuildProjectDirectory)\README.md') AND Exists('..\..\README.md') AND '$(Configuration)' != 'Debug'" />
 		<None Include="..\..\docs\assets\nalix.png" Pack="true" PackagePath="\" Condition="Exists('..\..\docs\assets\nalix.png') AND '$(Configuration)' != 'Debug'" />
 	</ItemGroup>
 </Project>
