@@ -52,6 +52,7 @@ public sealed partial class TaskManager : ITaskManager, ITraceable
     private long _workerExecutionCount;
     private long _recurringExecutionCount;
     private long _workerScheduleSequence;
+    private int _runningWorkerCount;
     private int _workerErrorCount;
     private int _recurringErrorCount;
 
@@ -84,7 +85,7 @@ public sealed partial class TaskManager : ITaskManager, ITraceable
         {
             int recurring = _recurring.Count;
             int totalWorkers = _workers.Count;
-            int runningWorkers = this.COUNT_RUNNING_WORKERS();
+            int runningWorkers = Volatile.Read(ref _runningWorkerCount);
             return $"Workers: {runningWorkers} running / {totalWorkers} total | Recurring: {recurring}";
         }
     }
@@ -210,13 +211,7 @@ public sealed partial class TaskManager : ITaskManager, ITraceable
 
         ArgumentNullException.ThrowIfNull(work);
 
-        TimingScope scope = default;
         options ??= new WorkerOptions();
-
-        if (_options.IsEnableLatency)
-        {
-            scope = TimingScope.Start();
-        }
 
         ISnowflake id = Snowflake.NewId(options.IdType, options.MachineId);
         CancellationTokenSource cts = options.CancellationToken.CanBeCanceled
@@ -231,26 +226,15 @@ public sealed partial class TaskManager : ITaskManager, ITraceable
             throw new InternalErrorException($"[{nameof(TaskManager)}:{nameof(ScheduleWorker)}] cannot add worker");
         }
 
-        try
+        bool startedFast = this.TRY_START_WORKER_FAST(st);
+        if (!startedFast)
         {
-            bool startedFast = this.TRY_START_WORKER_FAST(st);
-            if (!startedFast)
-            {
-                this.ENQUEUE_WORKER(st);
-            }
-
-            this.TRACE($"[FW.{nameof(TaskManager)}] worker-{(startedFast ? "start-fast" : "queued")} id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
-
-            return st;
+            this.ENQUEUE_WORKER(st);
         }
-        finally
-        {
-            if (_options.IsEnableLatency)
-            {
-                _ = Interlocked.Increment(ref _workerExecutionCount);
-                _ = Interlocked.Add(ref _workerExecutionTicks, (long)scope.GetElapsedMilliseconds());
-            }
-        }
+
+        this.TRACE($"[FW.{nameof(TaskManager)}] worker-{(startedFast ? "start-fast" : "queued")} id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
+
+        return st;
     }
 
     /// <inheritdoc/>
@@ -267,15 +251,9 @@ public sealed partial class TaskManager : ITaskManager, ITraceable
         ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero);
 
-        TimingScope scope = default;
         options ??= new RecurringOptions();
         CancellationTokenSource cts = new();
         RecurringState st = new(name, interval, options, cts);
-
-        if (_options.IsEnableLatency)
-        {
-            scope = TimingScope.Start();
-        }
 
         if (!_recurring.TryAdd(name, st))
         {
@@ -283,21 +261,10 @@ public sealed partial class TaskManager : ITaskManager, ITraceable
             throw new InternalErrorException($"[{nameof(TaskManager)}] duplicate recurring name: {name}");
         }
 
-        try
-        {
-            st.Task = Task.Run(() => this.RECURRING_LOOP_ASYNC(st, work), cts.Token);
+        st.Task = Task.Run(() => this.RECURRING_LOOP_ASYNC(st, work), cts.Token);
 
-            this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
-            return st;
-        }
-        finally
-        {
-            if (_options.IsEnableLatency)
-            {
-                _ = Interlocked.Add(ref _recurringExecutionTicks, (long)scope.GetElapsedMilliseconds());
-                _ = Interlocked.Increment(ref _recurringExecutionCount);
-            }
-        }
+        this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
+        return st;
     }
 
     /// <inheritdoc/>
@@ -536,7 +503,7 @@ public sealed partial class TaskManager : ITaskManager, ITraceable
     public string GenerateReport()
     {
         StringBuilder sb = new(2048);
-        int runningWorkers = this.COUNT_RUNNING_WORKERS();
+        int runningWorkers = Volatile.Read(ref _runningWorkerCount);
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={runningWorkers})");
         _ = sb.AppendLine();
@@ -744,7 +711,7 @@ public sealed partial class TaskManager : ITaskManager, ITraceable
     /// <returns>A dictionary containing the report data.</returns>
     public IDictionary<string, object> GetReportData()
     {
-        int runningWorkers = this.COUNT_RUNNING_WORKERS();
+        int runningWorkers = Volatile.Read(ref _runningWorkerCount);
 
         Dictionary<string, object> data = new(16, StringComparer.Ordinal)
         {

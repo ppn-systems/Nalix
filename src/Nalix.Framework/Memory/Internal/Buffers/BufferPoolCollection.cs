@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -121,6 +122,10 @@ internal sealed class BufferPoolCollection : IDisposable
     /// </summary>
     public IReadOnlyCollection<BufferPoolShared> GetAllPools()
         => [.. _pools.Values]; // real snapshot, avoids invalid cast
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryGetPool(int bufferSize, [NotNullWhen(true)] out BufferPoolShared? pool)
+        => _pools.TryGetValue(bufferSize, out pool);
 
     #endregion Pool Management
 

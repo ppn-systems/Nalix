@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Runtime.ExceptionServices;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -435,14 +436,14 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             }
         };
 
-        // Pool detail
-        List<BufferPoolShared> poolsSnapshot = [.. _poolManager.GetAllPools()];
-        poolsSnapshot.Sort(static (a, b) =>
-            a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
-
-        List<Dictionary<string, object>> poolDetails = new(poolsSnapshot.Count);
-        foreach (BufferPoolShared pool in poolsSnapshot)
+        List<Dictionary<string, object>> poolDetails = new(_bufferAllocations.Length);
+        foreach ((int bufferSize, _) in _bufferAllocations)
         {
+            if (!_poolManager.TryGetPool(bufferSize, out BufferPoolShared? pool))
+            {
+                continue;
+            }
+
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
             int inUse = info.TotalBuffers - info.FreeBuffers;
             double usage = info.GetUsageRatio() * 100.0;
@@ -544,7 +545,8 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Error($"[SH.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}", ex);
-        throw ex;
+        ExceptionDispatchInfo.Capture(ex).Throw();
+        throw new InvalidOperationException("Unreachable");
     }
 
     /// <summary>

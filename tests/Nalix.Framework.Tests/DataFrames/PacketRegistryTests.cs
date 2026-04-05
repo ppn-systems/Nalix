@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
@@ -230,5 +231,42 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.NotEqual(a, b);
         Assert.NotEqual(a, c);
         Assert.NotEqual(b, c);
+    }
+
+    [Fact]
+    public void CreateCatalogWhenPacketDeserializeBindingIsMissingThrowsImmediately()
+    {
+        PacketRegistryFactory factory = new();
+        _ = factory.RegisterAllPackets(typeof(BrokenPacket).Assembly);
+        _ = factory.IncludeNamespace(typeof(BrokenPacket).Namespace!);
+
+        InternalErrorException ex = Assert.Throws<InternalErrorException>(() => factory.CreateCatalog());
+
+        Assert.Contains(typeof(BrokenPacket).FullName!, ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Deserialize", ex.Message, StringComparison.Ordinal);
+    }
+
+    private sealed class BrokenPacket : IPacket
+    {
+        public int Length => PacketConstants.HeaderSize;
+        public uint MagicNumber { get; set; }
+        public ushort OpCode { get; set; }
+        public PacketFlags Flags { get; set; }
+        public PacketPriority Priority { get; set; }
+        public ProtocolType Protocol { get; set; }
+        public uint SequenceId => 0;
+
+        public byte[] Serialize() => new byte[PacketConstants.HeaderSize];
+
+        public int Serialize(Span<byte> buffer)
+        {
+            if (buffer.Length < PacketConstants.HeaderSize)
+            {
+                throw new ArgumentException("buffer too small", nameof(buffer));
+            }
+
+            buffer[..PacketConstants.HeaderSize].Clear();
+            return PacketConstants.HeaderSize;
+        }
     }
 }
