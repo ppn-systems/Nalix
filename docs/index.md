@@ -5,6 +5,7 @@ Nalix is a .NET networking stack for building TCP and UDP systems with a shared 
 The docs are organized around the parts people actually use:
 
 - `Nalix.Network` for listeners, connections, dispatch, middleware, and server-side limits
+- `Nalix.Network.Hosting` for fluent server bootstrap and managed host lifecycle
 - `Nalix.SDK` for client TCP sessions, request helpers, handshakes, and directives
 - `Nalix.Framework` for configuration, service registration, and background workers
 - `Nalix.Common` and `Nalix.Framework` for contracts, packet attributes, built-in frames, and shared runtime helpers
@@ -21,6 +22,7 @@ If you are new to the project, read in this order:
 If you are building a server, continue with:
 
 - [Nalix.Network](./packages/nalix-network.md)
+- [Nalix.Network.Hosting](./packages/nalix-network-hosting.md)
 - [Architecture](./concepts/architecture.md)
 - [Server Blueprint](./guides/server-blueprint.md)
 
