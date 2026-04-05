@@ -45,6 +45,7 @@ You can use:
 - `StartAsync(...)` when something else manages the process lifetime
 - `RunAsync(...)` when you want the host to stay active until cancellation
 - `StopAsync(...)` for graceful shutdown
+- `Activate(...)` / `Deactivate(...)` when you need to plug into Nalix activation contracts
 
 ### `INetworkBuilder`
 
@@ -58,6 +59,8 @@ The builder exposes fluent methods for the common bootstrap concerns:
 - `AddPacketMetadataProvider<TProvider>(...)`
 - `ConfigurePacketDispatcher(...)`
 - `AddTcpServer<TProtocol>(...)`
+
+For a method-by-method breakdown, see the dedicated API page: [Network Hosting](../api/network/runtime/network-hosting.md).
 
 The host currently focuses on TCP server startup. The builder registers protocol factories and creates listener hosts during startup.
 
@@ -134,7 +137,8 @@ In other words, this package simplifies bootstrap, but it does not replace the u
 Read these next if you are using the hosting package:
 
 1. [Nalix.Network](./nalix-network.md)
-2. [Server Blueprint](../guides/server-blueprint.md)
-3. [Packet Dispatch](../api/routing/packet-dispatch.md)
-4. [Packet Registry](../api/framework/packets/packet-registry.md)
-5. [Configuration](../api/framework/runtime/configuration.md)
+2. [Network Hosting API](../api/network/runtime/network-hosting.md)
+3. [Server Blueprint](../guides/server-blueprint.md)
+4. [Packet Dispatch](../api/routing/packet-dispatch.md)
+5. [Packet Registry](../api/framework/packets/packet-registry.md)
+6. [Configuration](../api/framework/runtime/configuration.md)

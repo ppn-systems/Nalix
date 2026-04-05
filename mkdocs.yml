@@ -194,6 +194,7 @@ nav:
         - Policy Rate Limiter: api/middleware/policy-rate-limiter.md
         - Token Bucket Limiter: api/middleware/token-bucket-limiter.md
       - Network:
+        - Hosting: api/network/runtime/network-hosting.md
         - Protocol: api/network/runtime/protocol.md
         - TCP Listener: api/network/runtime/tcp-listener.md
         - UDP Listener: api/network/runtime/udp-listener.md
