@@ -307,7 +307,9 @@ public sealed class TaskManagerTests : IDisposable
                 OnCompleted = _ => throw new InvalidOperationException("callback failure")
             });
 
-        await TaskManagerTestHost.WaitUntilAsync(() => !handle.IsRunning && handle.TotalRuns == 1, TimeSpan.FromSeconds(2));
+        await TaskManagerTestHost.WaitUntilAsync(
+            () => !handle.IsRunning && handle.TotalRuns == 1 && manager.WorkerErrorCount == 1,
+            TimeSpan.FromSeconds(2));
 
         Assert.Equal(1, manager.WorkerErrorCount);
     }
@@ -455,7 +457,9 @@ public sealed class TaskManagerTests : IDisposable
                 OnFailed = (_, _) => throw new InvalidOperationException("failure callback")
             });
 
-        await TaskManagerTestHost.WaitUntilAsync(() => !handle.IsRunning && handle.TotalRuns == 1, TimeSpan.FromSeconds(2));
+        await TaskManagerTestHost.WaitUntilAsync(
+            () => !handle.IsRunning && handle.TotalRuns == 1 && manager.WorkerErrorCount == 2,
+            TimeSpan.FromSeconds(2));
 
         Assert.Equal(2, manager.WorkerErrorCount);
     }
