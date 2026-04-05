@@ -57,7 +57,7 @@ header.WriteTo(buffer);
 
 ## FragmentAssembler
 
-`FragmentAssembler` collects chunks for one connection-side receive path and yields a reassembled `BufferLease` when the final fragment arrives.
+`FragmentAssembler` collects chunks for one connection-side receive path and yields a `FragmentAssemblyResult` when the final fragment arrives.
 
 ### Key behavior
 
@@ -65,7 +65,7 @@ header.WriteTo(buffer);
 - tracks one `StreamState` per `StreamId`
 - starts a stream only when chunk `0` arrives
 - evicts timed-out or inconsistent streams
-- returns a pooled `BufferLease` that the caller must dispose
+- returns a small result struct whose `Lease` is the pooled accumulation buffer
 - throws for invalid headers, inconsistent chunk counts, and out-of-order delivery
 
 ## Basic usage
@@ -73,14 +73,14 @@ header.WriteTo(buffer);
 ```csharp
 if (FragmentAssembler.IsFragmentedFrame(payload, out FragmentHeader header))
 {
-    BufferLease? assembled = assembler.Add(
+    FragmentAssemblyResult? assembled = assembler.Add(
         header,
         payload[FragmentHeader.WireSize..],
         out bool evicted);
 
     if (assembled is not null)
     {
-        using (assembled)
+        using (assembled.Value.Lease)
         {
             // Process the full payload
         }
@@ -100,7 +100,7 @@ if (FragmentAssembler.IsFragmentedFrame(payload, out FragmentHeader header))
 
 - starting a fragment stream from a chunk other than `0`
 - forgetting to call `EvictExpired()` in a long-lived receive loop
-- reusing a `BufferLease` after the assembler already returned it
+- reusing the returned `Lease` after it was already disposed
 
 ## FragmentOptions
 
@@ -135,7 +135,7 @@ flowchart LR
     C --> D["Transport send"]
     D --> E["Receive loop"]
     E --> F["FragmentAssembler"]
-    F --> G["Reassembled BufferLease"]
+    F --> G["FragmentAssemblyResult + pooled Lease"]
 ```
 
 ## Related APIs

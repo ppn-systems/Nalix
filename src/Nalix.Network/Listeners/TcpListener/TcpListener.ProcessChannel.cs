@@ -83,12 +83,12 @@ public abstract partial class TcpListenerBase
     /// </summary>
     private void STOP_PROCESS_CHANNEL()
     {
-        // TryComplete() -> đánh dấu channel là "đã đóng" (sẽ không nhận thêm item mới).
-        // Consumer thread sẽ drain hết item còn lại rồi thoát khỏi vòng lặp.
+        // TryComplete() -> marks the channel as "closed" (will not accept any new items).
+        // The consumer thread will drain the remaining items and then exit the loop.
         _ = (_processChannel?.Writer.TryComplete());
 
-        // Join với timeout 5 giây -> tránh block vô hạn nếu consumer thread bị treo.
-        // WHY 5s: Đủ để consumer drain hết item còn lại trong queue khi shutdown.
+        // Join with a 5-second timeout -> avoids an infinite block if the consumer thread freezes.
+        // WHY 5 seconds: Enough time for the consumer to drain all remaining items in the queue when shutting down.
         _ = (_processThread?.Join(millisecondsTimeout: 5_000));
     }
 
@@ -108,8 +108,9 @@ public abstract partial class TcpListenerBase
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
         {
-            s_logger?.Warn("[NW.{Class}:{Action}] process-channel-unavailable remote={RemoteEndPoint} port={Port}",
-                nameof(TcpListenerBase), nameof(DISPATCH_CONNECTION), connection?.NetworkEndpoint.ToString() ?? "<null>", _port);
+            s_logger?.Warn(
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
+                $"process-channel-unavailable remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
 
             ArgumentNullException.ThrowIfNull(connection);
             connection.Close();
@@ -118,8 +119,9 @@ public abstract partial class TcpListenerBase
 
         if (processChannel.Writer.TryWrite(connection))
         {
-            s_logger?.Trace("[NW.{Class}:{Action}] queued remote={RemoteEndPoint} port={Port}",
-                nameof(TcpListenerBase), nameof(DISPATCH_CONNECTION), connection?.NetworkEndpoint.ToString() ?? "<null>", _port);
+            s_logger?.Trace(
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
+                $"queued remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
 
             return;
         }
@@ -132,8 +134,9 @@ public abstract partial class TcpListenerBase
         //   optimize ProcessConnection for faster execution.
         this.Metrics.RECORD_REJECTED();
 
-        s_logger?.Warn("[NW.{Class}:{Action}] channel-full remote={RemoteEndPoint} port={Port} — dropped",
-            nameof(TcpListenerBase), nameof(DISPATCH_CONNECTION), connection?.NetworkEndpoint.ToString() ?? "<null>", _port);
+        s_logger?.Warn(
+            $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
+            $"channel-full remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port} - dropped");
 
         ArgumentNullException.ThrowIfNull(connection);
         connection.Close();
@@ -145,8 +148,9 @@ public abstract partial class TcpListenerBase
 
     private void PROCESS_CHANNEL_LOOP(CancellationToken cancellationToken)
     {
-        s_logger?.Trace("[NW.{Class}:{Action}] thread-started port={Port} priority={Priority}",
-            nameof(TcpListenerBase), nameof(PROCESS_CHANNEL_LOOP), _port, Thread.CurrentThread.Priority);
+        s_logger?.Trace(
+            $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
+            $"thread-started port={_port} priority={Thread.CurrentThread.Priority}");
 
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
@@ -220,7 +224,9 @@ public abstract partial class TcpListenerBase
             this.INVOKE_PROCESS(connection);
         }
 
-        s_logger?.Trace("[NW.{Class}:{Action}] thread-exited port={Port}", nameof(TcpListenerBase), nameof(PROCESS_CHANNEL_LOOP), _port);
+        s_logger?.Trace(
+            $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP)}] " +
+            $"thread-exited port={_port}");
     }
 
     /// <summary>
@@ -242,8 +248,10 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex)
         {
-            s_logger?.Error(ex, "[NW.{Class}:{Action}] error remote={RemoteEndPoint} port={Port}",
-                nameof(TcpListenerBase), nameof(INVOKE_PROCESS), connection?.NetworkEndpoint.ToString() ?? "<null>", _port);
+            s_logger?.Error(
+                ex,
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] " +
+                $"error remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
 
             ArgumentNullException.ThrowIfNull(connection);
             connection.Close();

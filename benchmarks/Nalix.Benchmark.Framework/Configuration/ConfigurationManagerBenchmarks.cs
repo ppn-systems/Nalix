@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using Nalix.Framework.Configuration;
@@ -116,10 +117,22 @@ public class ConfigurationManagerBenchmarks
 
     // IterationSetup cho SetConfigFilePath benchmarks: reset về pathA trước mỗi lần đo pathB
     [IterationSetup(Target = nameof(SetConfigFilePath_NoReload))]
-    public void ResetToPathA_NoReload() => _manager.SetConfigFilePath(_iniPathA, autoReload: false);
+    public void ResetToPathA_NoReload()
+    {
+        if (!string.Equals(_manager.ConfigFilePath, _iniPathA, StringComparison.OrdinalIgnoreCase))
+        {
+            _manager.SetConfigFilePath(_iniPathA, autoReload: false);
+        }
+    }
 
     [IterationSetup(Target = nameof(SetConfigFilePath_WithReload))]
-    public void ResetToPathA_WithReload() => _manager.SetConfigFilePath(_iniPathA, autoReload: false);
+    public void ResetToPathA_WithReload()
+    {
+        if (!string.Equals(_manager.ConfigFilePath, _iniPathA, StringComparison.OrdinalIgnoreCase))
+        {
+            _manager.SetConfigFilePath(_iniPathA, autoReload: false);
+        }
+    }
 
     // -----------------------------------------------------------------------
     // GROUP 1 — Get<TClass>

@@ -1,5 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -49,8 +50,8 @@ internal class Program
             shutdown.Cancel();
         };
 
-        Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
-        Console.WriteLine("Press Ctrl+C to stop.");
+        //Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
+        //Console.WriteLine("Press Ctrl+C to stop.");
 
         await host.RunAsync(shutdown.Token).ConfigureAwait(false);
     }

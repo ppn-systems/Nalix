@@ -27,30 +27,37 @@ internal static class AnsiColors
     /// Black text
     /// </summary>
     public const string Black = "\u001b[30m";
+
     /// <summary>
     /// Red text
     /// </summary>
     public const string Red = "\u001b[31m";
+
     /// <summary>
     /// Green text
     /// </summary>
     public const string Green = "\u001b[32m";
+
     /// <summary>
     /// Yellow text
     /// </summary>
     public const string Yellow = "\u001b[33m";
+
     /// <summary>
     /// Blue text
     /// </summary>
     public const string Blue = "\u001b[34m";
+
     /// <summary>
     /// Magenta text
     /// </summary>
     public const string Magenta = "\u001b[35m";
+
     /// <summary>
     /// Cyan text
     /// </summary>
     public const string Cyan = "\u001b[36m";
+
     /// <summary>
     /// White text
     /// </summary>
@@ -65,14 +72,17 @@ internal static class AnsiColors
     /// Dark gray text
     /// </summary>
     public const string DarkGray = "\u001b[38;5;240m";
+
     /// <summary>
     /// Orange text
     /// </summary>
     public const string Orange = "\u001b[38;5;208m";
+
     /// <summary>
     /// Pink text
     /// </summary>
     public const string Pink = "\u001b[38;5;205m";
+
     /// <summary>
     /// Light blue text
     /// </summary>
@@ -81,14 +91,17 @@ internal static class AnsiColors
     /// Light green text
     /// </summary>
     public const string LightGreen = "\u001b[38;5;120m";
+
     /// <summary>
     /// Light yellow text
     /// </summary>
     public const string LightYellow = "\u001b[38;5;228m";
+
     /// <summary>
     /// Light cyan text
     /// </summary>
     public const string LightCyan = "\u001b[38;5;51m";
+
     /// <summary>
     /// Light magenta text
     /// </summary>

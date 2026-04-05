@@ -1,18 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<OutputType>Exe</OutputType>
-		<TargetFramework>net10.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<TargetFramework>net10.0</TargetFramework>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Network.Hosting\Nalix.Network.Hosting.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
+		<PackageReference Include="Nalix.Logging" Version="12.0.2" />
+		<PackageReference Include="Nalix.Network.Hosting" Version="12.0.2" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
 	</ItemGroup>
 

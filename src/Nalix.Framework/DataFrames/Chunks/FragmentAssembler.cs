@@ -12,7 +12,7 @@ using Nalix.Framework.Memory.Buffers;
 namespace Nalix.Framework.DataFrames.Chunks;
 
 /// <summary>
-/// Reassembly engine: collects each received chunk and returns a complete <see cref="BufferLease"/>
+/// Reassembly engine: collects each received chunk and returns a complete reassembly result
 /// when the last chunk arrives.
 ///
 /// <para>
@@ -24,8 +24,9 @@ namespace Nalix.Framework.DataFrames.Chunks;
 /// No locking required as TCP ensures order and only a single goroutine reads from the socket.</para>
 ///
 /// <para><b>Ownership after reassembly:</b>
-/// <see cref="Add"/> returns a <see cref="BufferLease"/> newly rented from the pool.
-/// <b>The caller must Dispose the lease</b> after handling.</para>
+/// <see cref="Add"/> returns a <see cref="FragmentAssemblyResult"/> that transfers ownership of the
+/// pooled <see cref="BufferLease"/> already used during accumulation.
+/// <b>The caller must Dispose the returned lease</b> after handling.</para>
 ///
 /// <para><b>Chunks must arrive in order</b> (TCP guarantees this) and not be duplicated.
 /// If you need out-of-order support, expand <c>StreamState</c> with a bitmap per slot.</para>
@@ -45,7 +46,7 @@ public sealed class FragmentAssembler : IDisposable
 
     private sealed class StreamState : IDisposable
     {
-        internal byte[] AccumBuffer;     // Buffer for accumulating payload
+        internal BufferLease AccumLease; // Buffer for accumulating payload
         internal int WrittenBytes;       // Number of bytes written
         internal int ReceivedCount;      // Number of chunks received
         internal ushort TotalChunks;     // Total number of chunks expected
@@ -54,7 +55,7 @@ public sealed class FragmentAssembler : IDisposable
         internal StreamState(ushort totalChunks, int estimatedBytes)
         {
             TotalChunks = totalChunks;
-            AccumBuffer = BufferLease.ByteArrayPool.Rent(estimatedBytes);
+            AccumLease = BufferLease.Rent(estimatedBytes);
             WrittenBytes = 0;
             ReceivedCount = 0;
             LastActivityMs = Environment.TickCount64;
@@ -62,11 +63,7 @@ public sealed class FragmentAssembler : IDisposable
 
         public void Dispose()
         {
-            byte[]? buf = Interlocked.Exchange(ref AccumBuffer!, null!);
-            if (buf is not null)
-            {
-                BufferLease.ByteArrayPool.Return(buf);
-            }
+            Interlocked.Exchange(ref AccumLease!, null!)?.Dispose();
         }
     }
 
@@ -116,12 +113,12 @@ public sealed class FragmentAssembler : IDisposable
     /// </param>
     /// <param name="streamEvicted"></param>
     /// <returns>
-    /// A complete <see cref="BufferLease"/> when the stream is finished; otherwise <see langword="null"/>
+    /// A complete <see cref="FragmentAssemblyResult"/> when the stream is finished; otherwise <see langword="null"/>
     /// while waiting for more chunks or when the stream was evicted as part of normal policy enforcement.
     /// </returns>
     /// <exception cref="ObjectDisposedException">Thrown when the assembler has already been disposed.</exception>
     /// <exception cref="InvalidDataException">Thrown when the fragment header is invalid, inconsistent, or arrives out of order.</exception>
-    public BufferLease? Add(in FragmentHeader header, ReadOnlySpan<byte> chunkBody, out bool streamEvicted)
+    public FragmentAssemblyResult? Add(in FragmentHeader header, ReadOnlySpan<byte> chunkBody, out bool streamEvicted)
     {
         streamEvicted = false;
 
@@ -190,22 +187,24 @@ public sealed class FragmentAssembler : IDisposable
         }
 
         // ── Grow buffer if needed ────────────────────────────────────────
-        if (state.WrittenBytes + chunkBody.Length > state.AccumBuffer.Length)
+        if (state.WrittenBytes + chunkBody.Length > state.AccumLease.Capacity)
         {
             int newCap = Math.Max(
-                state.AccumBuffer.Length * 2,
+                state.AccumLease.Capacity * 2,
                 state.WrittenBytes + chunkBody.Length);
 
-            byte[] newBuf = BufferLease.ByteArrayPool.Rent(newCap);
-            state.AccumBuffer.AsSpan(0, state.WrittenBytes).CopyTo(newBuf);
-            BufferLease.ByteArrayPool.Return(state.AccumBuffer);
-            state.AccumBuffer = newBuf;
+            BufferLease newLease = BufferLease.Rent(newCap);
+            state.AccumLease.Span[..state.WrittenBytes].CopyTo(newLease.SpanFull);
+            newLease.CommitLength(state.WrittenBytes);
+            state.AccumLease.Dispose();
+            state.AccumLease = newLease;
         }
 
         // ── Append chunk body ────────────────────────────────────────────
         // TCP guarantees in-order delivery so end-appending is correct
-        chunkBody.CopyTo(state.AccumBuffer.AsSpan(state.WrittenBytes));
+        chunkBody.CopyTo(state.AccumLease.SpanFull[state.WrittenBytes..]);
         state.WrittenBytes += chunkBody.Length;
+        state.AccumLease.CommitLength(state.WrittenBytes);
         state.ReceivedCount += 1;
 
         // ── Check if stream is complete ──────────────────────────────────
@@ -215,16 +214,12 @@ public sealed class FragmentAssembler : IDisposable
         }
 
         // ── Stream done: hand over buffer to caller (zero-copy) ──────────
-        int finalLen = state.WrittenBytes;
-        byte[] finalBuf = state.AccumBuffer;
-
-        // Separate ownership from state BEFORE remove,
-        // so Dispose for state does not return buffer to pool again
-        state.AccumBuffer = null!;
+        BufferLease finalLease = state.AccumLease;
+        state.AccumLease = null!;
         _ = _streams.Remove(header.StreamId);
-        // No need to call state.Dispose() because AccumBuffer is now null
+        // No need to call state.Dispose() because AccumLease is now null
 
-        return BufferLease.FromRented(finalBuf, finalLen);
+        return new FragmentAssemblyResult(finalLease);
     }
 
     /// <summary>

@@ -486,17 +486,18 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
                             $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_sender?.NetworkEndpoint.Address}");
 #endif
 
-                        BufferLease? assembled = _fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
+                        FragmentAssemblyResult? assembled = _fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
 
                         if (assembled is not null)
                         {
-                            assembled.Retain();
-                            args.Initialize(assembled, _cachedArgs.Connection);
+                            BufferLease assembledLease = assembled.Value.Lease;
+                            assembledLease.Retain();
+                            args.Initialize(assembledLease, _cachedArgs.Connection);
                             AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true);
 #if DEBUG
                             s_logger?.Debug(
                                 $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                                $"fragment-assembled stream={header.StreamId} totalLen={assembled.Length} " +
+                                $"fragment-assembled stream={header.StreamId} totalLen={assembled.Value.Length} " +
                                 $"ep={_sender?.NetworkEndpoint.Address}");
 #endif
                             // The stream is complete, so release one open-stream slot

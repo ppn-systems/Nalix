@@ -211,8 +211,104 @@ public static class NLogixExtensions
             return;
         }
 
-        string rendered = string.Format(CultureInfo.InvariantCulture, format, args);
+        string rendered = string.Format(CultureInfo.InvariantCulture, NormalizeFormatString(format, args.Length), args);
         LogMessageCore(logger, level, eventId, rendered, exception);
+    }
+
+    private static string NormalizeFormatString(string format, int argumentCount)
+    {
+        if (argumentCount == 0 || format.IndexOf('{') < 0)
+        {
+            return format;
+        }
+
+        System.Text.StringBuilder builder = new(format.Length + 16);
+        int nextArgumentIndex = 0;
+
+        for (int i = 0; i < format.Length; i++)
+        {
+            char c = format[i];
+
+            if (c == '{')
+            {
+                if (i + 1 < format.Length && format[i + 1] == '{')
+                {
+                    builder.Append("{{");
+                    i++;
+                    continue;
+                }
+
+                int close = format.IndexOf('}', i + 1);
+                if (close < 0)
+                {
+                    builder.Append(c);
+                    continue;
+                }
+
+                ReadOnlySpan<char> token = format.AsSpan(i + 1, close - i - 1);
+                int separatorIndex = token.IndexOfAny(',', ':');
+                ReadOnlySpan<char> namePart = separatorIndex >= 0 ? token[..separatorIndex] : token;
+
+                if (TryParseIndexedPlaceholder(namePart, out _))
+                {
+                    builder.Append('{');
+                    builder.Append(token);
+                    builder.Append('}');
+                }
+                else if (nextArgumentIndex < argumentCount)
+                {
+                    builder.Append('{');
+                    builder.Append(nextArgumentIndex.ToString(CultureInfo.InvariantCulture));
+                    if (separatorIndex >= 0)
+                    {
+                        builder.Append(token[separatorIndex..]);
+                    }
+                    builder.Append('}');
+                    nextArgumentIndex++;
+                }
+                else
+                {
+                    builder.Append('{');
+                    builder.Append(token);
+                    builder.Append('}');
+                }
+
+                i = close;
+                continue;
+            }
+
+            if (c == '}' && i + 1 < format.Length && format[i + 1] == '}')
+            {
+                builder.Append("}}");
+                i++;
+                continue;
+            }
+
+            builder.Append(c);
+        }
+
+        return builder.ToString();
+    }
+
+    private static bool TryParseIndexedPlaceholder(ReadOnlySpan<char> value, out int index)
+    {
+        index = 0;
+        if (value.IsEmpty)
+        {
+            return false;
+        }
+
+        foreach (char c in value)
+        {
+            if (!char.IsAsciiDigit(c))
+            {
+                return false;
+            }
+
+            index = (index * 10) + (c - '0');
+        }
+
+        return true;
     }
 
     private static void LogMessage(ILogger logger, LogLevel level, EventId? eventId, string message, Exception? exception)

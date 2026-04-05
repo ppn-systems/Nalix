@@ -120,14 +120,19 @@ internal class AnsiColorFormatter : INLogixFormatter
               .Append(AnsiColors.White)
               .Append(']')
               .Append(' ')
+              .Append('[')
               .Append(AnsiColors.GetForLevel(logLevel))
-              .Append('[').Append(LogLevelShortNames.GetShortName(logLevel)).Append(']')
+              .Append(LogLevelShortNames.GetShortName(logLevel))
+              .Append(AnsiColors.White)
+              .Append(']')
               .Append(AnsiColors.White);
 
         if (eventId != default)
         {
             _ = sb.Append(' ')
-                  .Append(AnsiColors.Cyan).Append('[').Append(eventId.Id);
+                  .Append('[')
+                  .Append(AnsiColors.Cyan)
+                  .Append(eventId.Id);
 
             if (!string.IsNullOrEmpty(eventId.Name))
             {
@@ -135,8 +140,8 @@ internal class AnsiColorFormatter : INLogixFormatter
                       .Append(AnsiColors.DarkGray).Append(eventId.Name);
             }
 
-            _ = sb.Append(']')
-                  .Append(AnsiColors.White);
+            _ = sb.Append(AnsiColors.White)
+                  .Append(']');
         }
 
         _ = sb.Append(AnsiColors.DarkGray)
@@ -146,8 +151,9 @@ internal class AnsiColorFormatter : INLogixFormatter
 
         if (exception is not null)
         {
-            _ = sb.Append(AnsiColors.Red)
+            _ = sb.Append(AnsiColors.Magenta)
                   .Append(" - Exception: ")
+                  .Append(AnsiColors.Red)
                   .Append(exception)
                   .Append(AnsiColors.White);
         }
