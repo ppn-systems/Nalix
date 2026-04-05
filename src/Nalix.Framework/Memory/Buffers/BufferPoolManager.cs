@@ -162,16 +162,16 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         int minBufferSize = _bufferAllocations[0].BufferSize;
         int maxBufferSize = _bufferAllocations[0].BufferSize;
-        foreach (var alloc in _bufferAllocations)
+        foreach ((int BufferSize, double Allocation) in _bufferAllocations)
         {
-            if (alloc.BufferSize < minBufferSize)
+            if (BufferSize < minBufferSize)
             {
-                minBufferSize = alloc.BufferSize;
+                minBufferSize = BufferSize;
             }
 
-            if (alloc.BufferSize > maxBufferSize)
+            if (BufferSize > maxBufferSize)
             {
-                maxBufferSize = alloc.BufferSize;
+                maxBufferSize = BufferSize;
             }
         }
 
@@ -179,8 +179,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         this.MaxBufferSize = maxBufferSize;
 
         _poolManager = new BufferPoolCollection(bufferConfig: config);
-        _poolManager.EventShrink += this.SHRINK_BUFFER_POOL_SIZE;
-        _poolManager.EventIncrease += this.INCREASE_BUFFER_POOL_SIZE;
+        _poolManager.ResizeOccurred += this.HANDLE_BUFFER_POOL_RESIZE;
 
         this.ALLOCATE_BUFFERS();
 
@@ -410,7 +409,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// formatted text report.
     /// </summary>
     /// <returns>A dictionary describing the state of the BufferPoolManager.</returns>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         Dictionary<string, object> data = new(16, StringComparer.Ordinal)
         {
@@ -437,7 +436,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         };
 
         // Pool detail
-        List<BufferPoolShared> poolsSnapshot = new(_poolManager.GetAllPools());
+        List<BufferPoolShared> poolsSnapshot = [.. _poolManager.GetAllPools()];
         poolsSnapshot.Sort(static (a, b) =>
             a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
 
@@ -938,6 +937,19 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool SHOULD_APPLY_SHRINK(in BufferPoolState poolInfo, int buffersToShrink) => buffersToShrink > 0 && poolInfo.FreeBuffers >= buffersToShrink;
 
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void HANDLE_BUFFER_POOL_RESIZE(BufferPoolShared pool, BufferPoolResizeDirection direction)
+    {
+        if (direction == BufferPoolResizeDirection.Increase)
+        {
+            this.INCREASE_BUFFER_POOL_SIZE(pool);
+            return;
+        }
+
+        this.SHRINK_BUFFER_POOL_SIZE(pool);
+    }
+
     #endregion Private: Resize Strategies
 
     #region Private: Reporting
@@ -976,7 +988,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _ = sb.AppendLine("SIZE     | Total  | Free   | In Use  | Usage %  | MissRate");
         _ = sb.AppendLine("----------------------------------------------------------------------");
 
-        List<BufferPoolShared> pools = new(_poolManager.GetAllPools());
+        List<BufferPoolShared> pools = [.. _poolManager.GetAllPools()];
         pools.Sort(static (a, b) => a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
 
         foreach (BufferPoolShared pool in pools)
@@ -1003,7 +1015,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _ = sb.AppendLine("SIZE     | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
         _ = sb.AppendLine("----------------------------------------------------------------------");
 
-        List<BufferPoolShared> pools = new(_poolManager.GetAllPools());
+        List<BufferPoolShared> pools = [.. _poolManager.GetAllPools()];
         pools.Sort(static (a, b) => a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
 
         foreach (BufferPoolShared pool in pools)

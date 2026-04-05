@@ -598,7 +598,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     /// <summary>
     /// Generates a key-value diagnostic summary of the concurrency gate and per-opcode state.
     /// </summary>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         List<KeyValuePair<ushort, Entry>> entries = [.. s_table];
         entries.Sort((a, b) =>

@@ -19,7 +19,7 @@ namespace Nalix.Framework.Memory.Pools;
 /// intentionally simple: rent fast, reset on return, and discard when full.
 /// </remarks>
 /// <param name="defaultMaxItemsPerType">The default maximum number of items to keep per pooled type.</param>
-public sealed class ObjectPool(int defaultMaxItemsPerType)
+public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
 {
     #region Constants
 

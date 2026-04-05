@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
@@ -30,7 +31,7 @@ namespace Nalix.Framework.Tasks;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("TaskManager (Workers={_workers.Count}, Recurring={_recurring.Count})")]
-public sealed partial class TaskManager : ITaskManager
+public sealed partial class TaskManager : ITaskManager, ITraceable
 {
     #region Fields
 
@@ -42,7 +43,7 @@ public sealed partial class TaskManager : ITaskManager
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, WorkerState> _workers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, RecurringState> _recurring;
     private readonly PriorityQueue<WorkerState, (int priorityKey, long sequence)> _pendingWorkers;
-    private readonly object _pendingWorkersLock;
+    private readonly Lock _pendingWorkersLock;
     private readonly CancellationTokenSource _workerDispatcherCts;
     private readonly Task _workerDispatcherTask;
 
@@ -58,6 +59,15 @@ public sealed partial class TaskManager : ITaskManager
     private volatile int _currentConcurrencyLimit;
 
     #endregion Fields
+
+    #region Events
+
+    /// <summary>
+    /// Raised for lightweight lifecycle notifications.
+    /// </summary>
+    public event Action<string>? TraceOccurred;
+
+    #endregion Events
 
     #region Properties
 
@@ -168,8 +178,7 @@ public sealed partial class TaskManager : ITaskManager
             );
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}] init cleanup-iv={_options.CleanupInterval.TotalSeconds:F0}s concurrency={_currentConcurrencyLimit}");
+        this.TRACE($"[FW.{nameof(TaskManager)}] init cleanup-iv={_options.CleanupInterval.TotalSeconds:F0}s concurrency={_currentConcurrencyLimit}");
     }
 
     /// <summary>
@@ -230,8 +239,7 @@ public sealed partial class TaskManager : ITaskManager
                 this.ENQUEUE_WORKER(st);
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.{nameof(TaskManager)}] worker-{(startedFast ? "start-fast" : "queued")} id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
+            this.TRACE($"[FW.{nameof(TaskManager)}] worker-{(startedFast ? "start-fast" : "queued")} id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
 
             return st;
         }
@@ -279,9 +287,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             st.Task = Task.Run(() => this.RECURRING_LOOP_ASYNC(st, work), cts.Token);
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} " +
-                                           $"iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
+            this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
             return st;
         }
         finally
@@ -339,8 +345,7 @@ public sealed partial class TaskManager : ITaskManager
         }
         if (n > 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
+            this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
         }
 
         return n;
@@ -372,8 +377,7 @@ public sealed partial class TaskManager : ITaskManager
             }
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
+        this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
     }
 
     /// <inheritdoc/>
@@ -393,8 +397,7 @@ public sealed partial class TaskManager : ITaskManager
         }
         if (n > 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
+            this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
         }
 
         return n;
@@ -460,8 +463,7 @@ public sealed partial class TaskManager : ITaskManager
             }
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
+        this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
     }
 
     /// <inheritdoc/>
@@ -670,16 +672,16 @@ public sealed partial class TaskManager : ITaskManager
         foreach (string groupName in groupNames)
         {
             string gname = PadName(groupName, 28);
-            (int running, int total) stats = perGroup[groupName];
+            (int running, int total) = perGroup[groupName];
             if (_groupGates.TryGetValue(groupName, out Gate? gate))
             {
                 int capacity = gate.Capacity;
                 int used = capacity - gate.SemaphoreSlim.CurrentCount;
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {stats.running,7} | {stats.total,5} | {used}/{capacity}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {running,7} | {total,5} | {used}/{capacity}");
             }
             else
             {
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {stats.running,7} | {stats.total,5} | -");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {running,7} | {total,5} | -");
             }
         }
         _ = sb.AppendLine("------------------------------------------------------------");
@@ -740,7 +742,7 @@ public sealed partial class TaskManager : ITaskManager
     /// Generates report data as key-value pairs describing the current state.
     /// </summary>
     /// <returns>A dictionary containing the report data.</returns>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         int runningWorkers = this.COUNT_RUNNING_WORKERS();
 
@@ -867,15 +869,15 @@ public sealed partial class TaskManager : ITaskManager
         Dictionary<string, object> perGroup = new(groupCounts.Count, StringComparer.Ordinal);
         foreach (string groupName in groupNames)
         {
-            (int running, int total) stats = groupCounts[groupName];
+            (int running, int total) = groupCounts[groupName];
             string concurrency = _groupGates.TryGetValue(groupName, out Gate? gate)
                 ? $"{gate.Capacity - gate.SemaphoreSlim.CurrentCount}/{gate.Capacity}"
                 : "-";
 
             perGroup[groupName] = new Dictionary<string, object>(3, StringComparer.Ordinal)
             {
-                ["Running"] = stats.running,
-                ["Total"] = stats.total,
+                ["Running"] = running,
+                ["Total"] = total,
                 ["Concurrency"] = concurrency
             };
         }
@@ -933,7 +935,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             _workerDispatcherCts.Cancel();
             _ = _pendingWorkersSignal.Release();
-            _workerDispatcherTask.Wait(TimeSpan.FromSeconds(2));
+            _ = _workerDispatcherTask.Wait(TimeSpan.FromSeconds(2));
         }
         catch (Exception ex)
         {
@@ -1088,8 +1090,7 @@ public sealed partial class TaskManager : ITaskManager
                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-dispatcher-cts-dispose-error msg={ex.Message}");
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] disposed");
+        this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] disposed");
 
         GC.SuppressFinalize(this);
     }

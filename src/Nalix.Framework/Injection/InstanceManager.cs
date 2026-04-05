@@ -686,7 +686,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     public string GenerateReport()
     {
         StringBuilder sb = new(1024);
-        HashSet<RuntimeTypeHandle> activatorTargets = BUILD_ACTIVATOR_TARGETS();
+        HashSet<RuntimeTypeHandle> activatorTargets = this.BUILD_ACTIVATOR_TARGETS();
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CachedInstanceCount: {this.CachedInstanceCount}");
@@ -721,9 +721,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     /// <summary>
     /// Returns a key-value summary of all cached instances (for diagnostics/monitoring).
     /// </summary>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
-        HashSet<RuntimeTypeHandle> activatorTargets = BUILD_ACTIVATOR_TARGETS();
+        HashSet<RuntimeTypeHandle> activatorTargets = this.BUILD_ACTIVATOR_TARGETS();
 
         Dictionary<string, object> result = new(4, StringComparer.Ordinal)
         {
@@ -830,7 +830,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private HashSet<RuntimeTypeHandle> BUILD_ACTIVATOR_TARGETS()
     {
-        HashSet<RuntimeTypeHandle> targets = new();
+        HashSet<RuntimeTypeHandle> targets = [];
         foreach (ActivatorKey key in _activatorCache.Keys)
         {
             _ = targets.Add(key.Target);

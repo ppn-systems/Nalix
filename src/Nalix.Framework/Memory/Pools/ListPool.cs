@@ -3,6 +3,8 @@
 
 #pragma warning disable CA1000 
 
+using Nalix.Common.Abstractions;
+
 namespace Nalix.Framework.Memory.Pools;
 
 /// <summary>
@@ -15,7 +17,7 @@ namespace Nalix.Framework.Memory.Pools;
 /// </remarks>
 /// <param name="maxPoolSize">The maximum number of lists to keep in the pool.</param>
 /// <param name="initialCapacity">The initial capacity of new lists.</param>
-public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
+public sealed class ListPool<T>(int maxPoolSize, int initialCapacity) : ITraceable
 {
     #region Constants
 

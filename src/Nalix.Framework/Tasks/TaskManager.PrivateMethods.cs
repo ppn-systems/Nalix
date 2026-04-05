@@ -88,8 +88,7 @@ public partial class TaskManager
 
             if (_workers.TryRemove(st.Id, out _))
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(TaskManager)}] cleanup-remove-ok id={st.Id}");
+                this.TRACE($"[FW.{nameof(TaskManager)}] cleanup-remove-ok id={st.Id}");
                 try
                 {
                     st.Cts.Dispose();
@@ -333,8 +332,7 @@ public partial class TaskManager
             }
         });
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
+        this.TRACE($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -415,8 +413,7 @@ public partial class TaskManager
                     // A zero-timeout acquire keeps the scheduler from overlapping the same recurring job.
                     if (!await s.Gate.WaitAsync(0, ct).ConfigureAwait(false))
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[FW.{nameof(TaskManager)}:Internal] gate-acquire-fail name={s.Name}");
+                        this.TRACE($"[FW.{nameof(TaskManager)}:Internal] gate-acquire-fail name={s.Name}");
                         next += step;
                         continue;
                     }
@@ -519,6 +516,9 @@ public partial class TaskManager
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void TRACE(string message) => TraceOccurred?.Invoke(message);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int COUNT_RUNNING_WORKERS()
 
     {
@@ -569,8 +569,7 @@ public partial class TaskManager
                 {
                     g.SemaphoreSlim.Dispose();
 
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={st.Group}");
+                    this.TRACE($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={st.Group}");
                 }
                 catch (Exception ex)
                 {
@@ -606,8 +605,7 @@ public partial class TaskManager
 
                 if (cpuUsage > threshHigh)
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Debug($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}% threshold={threshHigh:F1}%");
+                    this.TRACE($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}% threshold={threshHigh:F1}%");
                 }
 
                 // --- Hysteresis: tích streak, chỉ hành động khi đủ N lần liên tiếp ---
@@ -767,16 +765,14 @@ public partial class TaskManager
                     if (!_globalConcurrencyGate.Wait(0))
                     {
                         // Không còn slot rảnh -> revert về số đã thu hồi được thực tế
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[FW.TaskManager.Internal] concurrency-partial-retreat from={previousLimit} to={previousLimit - i}");
+                        this.TRACE($"[FW.TaskManager.Internal] concurrency-partial-retreat from={previousLimit} to={previousLimit - i}");
                         _currentConcurrencyLimit = previousLimit - i;
                         break;
                     }
                 }
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
+            this.TRACE($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
         }
         catch (Exception ex)
         {

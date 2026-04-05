@@ -14,6 +14,21 @@ using Nalix.Framework.Memory.Buffers;
 namespace Nalix.Framework.Memory.Internal.Buffers;
 
 /// <summary>
+/// Describes the direction of a buffer pool resize event.
+/// </summary>
+public enum BufferPoolResizeDirection
+{
+    /// <summary>
+    /// Indicates the pool is expanding capacity.
+    /// </summary>
+    Increase = 0,
+    /// <summary>
+    /// Indicates the pool is reducing capacity.
+    /// </summary>
+    Shrink = 1,
+}
+
+/// <summary>
 /// Manages shared buffer pools and emits resize signals based on observed usage.
 /// </summary>
 [DebuggerNonUserCode]
@@ -59,14 +74,9 @@ internal sealed class BufferPoolCollection : IDisposable
     #region Events
 
     /// <summary>
-    /// Event triggered when buffer pool needs to increase capacity.
+    /// Event triggered when buffer pool needs to resize.
     /// </summary>
-    public event Action<BufferPoolShared>? EventIncrease;
-
-    /// <summary>
-    /// Event triggered when buffer pool needs to decrease capacity.
-    /// </summary>
-    public event Action<BufferPoolShared>? EventShrink;
+    public event Action<BufferPoolShared, BufferPoolResizeDirection>? ResizeOccurred;
 
     #endregion Events
 
@@ -293,7 +303,7 @@ internal sealed class BufferPoolCollection : IDisposable
             return false;
         }
 
-        EventIncrease?.Invoke(pool);
+        ResizeOccurred?.Invoke(pool, BufferPoolResizeDirection.Increase);
         pool.IncreaseCapacity(step);
         _cooldowns[state.BufferSize] = now;
 
@@ -353,7 +363,7 @@ internal sealed class BufferPoolCollection : IDisposable
         int minIncrease = _config.MinimumIncrease;
         int step = Math.Max(minIncrease, free / 4); // conservative
 
-        EventShrink?.Invoke(pool);
+        ResizeOccurred?.Invoke(pool, BufferPoolResizeDirection.Shrink);
         pool.DecreaseCapacity(step);
         _cooldowns[state.BufferSize] = now;
     }

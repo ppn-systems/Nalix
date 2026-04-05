@@ -622,7 +622,7 @@ public sealed class ObjectPoolManager : IReportable
     /// Generates a key-value diagnostic report of the object pool manager and all pools.
     /// </summary>
     /// <returns>A dictionary describing the state of the ObjectPoolManager.</returns>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         Dictionary<string, object> data = new(13, StringComparer.Ordinal)
         {
