@@ -549,7 +549,7 @@ public partial class TaskManager
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TRACE(string message) => TraceOccurred?.Invoke(message);
+    private void TRACE(string message) => InstanceManager.Instance.GetExistingInstance<ILogger>()?.Trace(message);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int COUNT_RUNNING_WORKERS()

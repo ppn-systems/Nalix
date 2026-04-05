@@ -12,7 +12,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
@@ -20,7 +19,6 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
-using Nalix.Framework.Time;
 
 namespace Nalix.Framework.Tasks;
 
@@ -31,44 +29,35 @@ namespace Nalix.Framework.Tasks;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("TaskManager (Workers={_workers.Count}, Recurring={_recurring.Count})")]
-public sealed partial class TaskManager : ITaskManager, ITraceable
+public sealed partial class TaskManager : ITaskManager
 {
     #region Fields
 
-    private readonly TaskManagerOptions _options;
     private readonly Timer _cleanupTimer;
-    private readonly SemaphoreSlim _globalConcurrencyGate;
+    private readonly Lock _pendingWorkersLock;
+    private readonly Task _workerDispatcherTask;
+    private readonly TaskManagerOptions _options;
     private readonly SemaphoreSlim _pendingWorkersSignal;
+    private readonly SemaphoreSlim _globalConcurrencyGate;
+    private readonly CancellationTokenSource _workerDispatcherCts;
+    private readonly PriorityQueue<WorkerState, (int priorityKey, long sequence)> _pendingWorkers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Gate> _groupGates;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, WorkerState> _workers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, RecurringState> _recurring;
-    private readonly PriorityQueue<WorkerState, (int priorityKey, long sequence)> _pendingWorkers;
-    private readonly Lock _pendingWorkersLock;
-    private readonly CancellationTokenSource _workerDispatcherCts;
-    private readonly Task _workerDispatcherTask;
 
-    private long _workerExecutionTicks;
-    private long _recurringExecutionTicks;
-    private long _workerExecutionCount;
-    private long _recurringExecutionCount;
-    private long _workerScheduleSequence;
-    private int _runningWorkerCount;
     private int _workerErrorCount;
+    private int _runningWorkerCount;
     private int _recurringErrorCount;
+    private long _workerExecutionTicks;
+    private long _workerExecutionCount;
+    private long _workerScheduleSequence;
+    private long _recurringExecutionTicks;
+    private long _recurringExecutionCount;
 
     private volatile bool _disposed;
     private volatile int _currentConcurrencyLimit;
 
     #endregion Fields
-
-    #region Events
-
-    /// <summary>
-    /// Raised for lightweight lifecycle notifications.
-    /// </summary>
-    public event Action<string>? TraceOccurred;
-
-    #endregion Events
 
     #region Properties
 

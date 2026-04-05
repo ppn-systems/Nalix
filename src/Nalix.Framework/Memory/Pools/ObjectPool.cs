@@ -19,7 +19,7 @@ namespace Nalix.Framework.Memory.Pools;
 /// intentionally simple: rent fast, reset on return, and discard when full.
 /// </remarks>
 /// <param name="defaultMaxItemsPerType">The default maximum number of items to keep per pooled type.</param>
-public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
+public sealed class ObjectPool(int defaultMaxItemsPerType)
 {
     #region Constants
 
@@ -60,11 +60,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
     /// Gets the singleton instance of the object pool.
     /// </summary>
     public static ObjectPool Default { get; } = new();
-
-    /// <summary>
-    /// Event for trace information.
-    /// </summary>
-    public event Action<string>? TraceOccurred;
 
     /// <summary>
     /// Gets the total number of objects created across all pooled types.
@@ -157,8 +152,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
         _ = System.Threading.Interlocked.Increment(ref _totalCreated);
         _ = System.Threading.Interlocked.Increment(ref _totalRented);
 
-        TraceOccurred?.Invoke($"Get<{type.Name}>: Created new instance (TotalCreated={this.TotalCreatedCount})");
-
         return newObj;
     }
 
@@ -193,7 +186,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
         }
 
         // Capacity reached: discard instead of growing without bound.
-        TraceOccurred?.Invoke($"Return<{type.Name}>: Pools at capacity, object discarded");
     }
 
     /// <summary>
@@ -232,11 +224,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
             }
         }
 
-        if (created > 0)
-        {
-            TraceOccurred?.Invoke($"Prealloc<{type.Name}>: Added {created} instances to pool");
-        }
-
         return created;
     }
 
@@ -259,13 +246,11 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
         if (_typePools.TryGetValue(type, out TypePool? typePool))
         {
             typePool.SetMaxCapacity(maxCapacity);
-            TraceOccurred?.Invoke($"SetMaxCapacity<{type.Name}>: Set to {maxCapacity}");
             return true;
         }
 
         // Create a new pool with the specified capacity
         _typePools[type] = new TypePool(maxCapacity);
-        TraceOccurred?.Invoke($"SetMaxCapacity<{type.Name}>: Created new pool with capacity {maxCapacity}");
         return true;
     }
 
@@ -319,7 +304,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
             removedCount += pool.Clear();
         }
 
-        TraceOccurred?.Invoke($"Dispose: Removed {removedCount} objects from all pools");
         return removedCount;
     }
 
@@ -336,7 +320,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
         if (_typePools.TryGetValue(type, out TypePool? typePool))
         {
             int removedCount = typePool.Clear();
-            TraceOccurred?.Invoke($"ClearType<{type.Name}>: Removed {removedCount} objects");
             return removedCount;
         }
 
@@ -366,11 +349,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
             removedCount += pool.Trim(percentage);
         }
 
-        if (removedCount > 0)
-        {
-            TraceOccurred?.Invoke($"Trim({percentage}%): Removed {removedCount} objects from all pools");
-        }
-
         return removedCount;
     }
 
@@ -386,7 +364,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
         _ = System.Threading.Interlocked.Exchange(ref _totalReturned, 0);
         _uptime.Restart();
 
-        TraceOccurred?.Invoke("ResetStatistics: Pools statistics reset");
     }
 
     /// <summary>
@@ -441,11 +418,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
             }
         }
 
-        if (returnedCount > 0)
-        {
-            TraceOccurred?.Invoke($"ReturnMultiple<{type.Name}>: Returned {returnedCount} objects to pool");
-        }
-
         return returnedCount;
     }
 
@@ -470,8 +442,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType) : ITraceable
         {
             result.Add(this.Get<T>());
         }
-
-        TraceOccurred?.Invoke($"GetMultiple<{type.Name}>: Got {count} objects from pool");
 
         return result;
     }

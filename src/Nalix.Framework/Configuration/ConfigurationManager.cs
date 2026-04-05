@@ -12,7 +12,7 @@ using System.Security;
 using System.Threading;
 using Nalix.Common.Environment;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Abstractions;
+using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
@@ -41,7 +41,7 @@ namespace Nalix.Framework.Configuration;
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, ITraceable
+public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 {
     #region Fields
 
@@ -80,16 +80,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, 
     private FileSystemWatcher? _configFileWatcher;
 
     #endregion Fields
-
-    #region Events
-
-    /// <summary>
-    /// Raised when configuration state changes and callers want a lightweight signal
-    /// without using a logger.
-    /// </summary>
-    public event Action<string>? TraceOccurred;
-
-    #endregion Events
 
     #region Properties
 
@@ -226,7 +216,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, 
                 _directoryChecked = false;
                 _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
 
-                this.TRACE($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}'");
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}'");
 
                 if (autoReload && !_configContainerDict.IsEmpty)
                 {
@@ -244,7 +235,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, 
 
                         this.LastReloadTime = DateTime.UtcNow;
 
-                        this.TRACE($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] auto-reload-ok count={_configContainerDict.Count}");
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] auto-reload-ok count={_configContainerDict.Count}");
 
                         pathToWatch = normalizedPath;
                     }
@@ -321,7 +313,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, 
                 TClass container = new();
                 container.Initialize(iniSnapshot.Value);
 
-                this.TRACE($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
 
                 return container;
             }, LazyThreadSafetyMode.ExecutionAndPublication)
@@ -437,7 +430,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, 
                 _configLock.ExitWriteLock();
             }
 
-            this.TRACE($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
         }
         catch (ObjectDisposedException) when (_isDisposed)
         {
@@ -482,7 +476,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
-        this.TRACE($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
 
         return _configContainerDict.TryRemove(typeof(TClass), out _);
     }
@@ -497,7 +492,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void ClearAll()
     {
-        this.TRACE($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
 
         _configContainerDict.Clear();
     }
@@ -524,7 +520,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, 
             try
             {
                 snapshot.Value.Flush();
-                this.TRACE($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
             }
             catch (Exception)
             {
@@ -645,9 +642,6 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>, 
             return new IniConfig(filePath);
         }, LazyThreadSafetyMode.ExecutionAndPublication);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TRACE(string message) => TraceOccurred?.Invoke(message);
 
     private void VALIDATE_CONFIG_PATH(string pathToValidate)
     {

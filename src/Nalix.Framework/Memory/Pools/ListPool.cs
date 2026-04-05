@@ -3,8 +3,6 @@
 
 #pragma warning disable CA1000 
 
-using Nalix.Common.Abstractions;
-
 namespace Nalix.Framework.Memory.Pools;
 
 /// <summary>
@@ -17,7 +15,7 @@ namespace Nalix.Framework.Memory.Pools;
 /// </remarks>
 /// <param name="maxPoolSize">The maximum number of lists to keep in the pool.</param>
 /// <param name="initialCapacity">The initial capacity of new lists.</param>
-public sealed class ListPool<T>(int maxPoolSize, int initialCapacity) : ITraceable
+public sealed class ListPool<T>(int maxPoolSize, int initialCapacity)
 {
     #region Constants
 
@@ -54,11 +52,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity) : ITraceab
     #endregion Fields
 
     #region Properties
-
-    /// <summary>
-    /// Event for trace information.
-    /// </summary>
-    public event System.Action<string>? TraceOccurred;
 
     /// <summary>
     /// Gets the singleton instance of the <see cref="ListPool{T}"/>.
@@ -144,7 +137,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity) : ITraceab
         System.Collections.Generic.List<T> newList = new(capacity);
 
         _ = System.Threading.Interlocked.Increment(ref _created);
-        TraceOccurred?.Invoke($"Rent(): Created new List<{typeof(T).Name}> instance (Capacity={capacity}, TotalCreated={this.CreatedCount})");
 
         return newList;
     }
@@ -177,7 +169,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity) : ITraceab
         {
             // The list will be garbage collected since we're not storing it
             _ = System.Threading.Interlocked.Increment(ref _trimmed);
-            TraceOccurred?.Invoke($"Return(): Pools size limit reached, discarding list (MaxSize={_maxPoolSize}, Trimmed={this.TrimmedCount})");
         }
     }
 
@@ -208,7 +199,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity) : ITraceab
             _ = System.Threading.Interlocked.Increment(ref _created);
         }
 
-        TraceOccurred?.Invoke($"Prealloc(): Created {preallocationCount} List<{typeof(T).Name}> instances (Capacity={listCapacity})");
     }
 
     /// <summary>
@@ -229,7 +219,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity) : ITraceab
         if (trimCount > 0)
         {
             _ = System.Threading.Interlocked.Add(ref _trimmed, trimCount);
-            TraceOccurred?.Invoke($"Trim(): Removed {trimCount} List<{typeof(T).Name}> instances from pool");
         }
 
         return trimCount;
@@ -246,7 +235,6 @@ public sealed class ListPool<T>(int maxPoolSize, int initialCapacity) : ITraceab
         while (_listBag.TryTake(out _)) { }
 
         _ = System.Threading.Interlocked.Add(ref _trimmed, count);
-        TraceOccurred?.Invoke($"Dispose(): Removed all {count} List<{typeof(T).Name}> instances from pool");
 
         return count;
     }
