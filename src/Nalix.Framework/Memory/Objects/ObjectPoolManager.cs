@@ -642,11 +642,7 @@ public sealed class ObjectPoolManager : IReportable
             ["NetObjects"] = this.TotalGetOperations - this.TotalReturnOperations,
         };
 
-        List<KeyValuePair<Type, ObjectPool>> sortedPools = new(_poolDict.Count);
-        foreach (KeyValuePair<Type, ObjectPool> kvp in _poolDict)
-        {
-            sortedPools.Add(kvp);
-        }
+        List<KeyValuePair<Type, ObjectPool>> sortedPools = [.. _poolDict];
 
         sortedPools.Sort((a, b) => string.CompareOrdinal(a.Key.Name, b.Key.Name));
 
