@@ -157,7 +157,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
          + Environment.NewLine + $"- Dropped:  {this.EntriesDroppedCount:N0}"
          + Environment.NewLine + $"- Queue:    ~{this.QueuedEntryCount:N0}/{_maxQueueSize}";
 
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         return new Dictionary<string, object>(StringComparer.Ordinal)
         {

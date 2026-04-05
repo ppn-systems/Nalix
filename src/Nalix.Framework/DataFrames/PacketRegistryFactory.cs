@@ -60,13 +60,8 @@ public sealed class PacketRegistryFactory
 
     private readonly HashSet<Type> _explicitPacketTypes = [];
     private readonly HashSet<Assembly> _assemblies = [];
-
-    // Namespace filter table:
-    //   key   = namespace string
-    //   value = true when the namespace should match recursively
-    // Exact matches are cheaper, but recursive matches are useful when a whole
-    // packet family lives under a shared root namespace.
-    private readonly Dictionary<string, bool> _namespaceScan = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _exactNamespaces = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _recursiveNamespaces = new(StringComparer.Ordinal);
 
     #endregion Fields
 
@@ -210,9 +205,9 @@ public sealed class PacketRegistryFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(ns);
 
         // If already registered as recursive, keep recursive (superset).
-        if (!_namespaceScan.TryGetValue(ns, out bool existing) || !existing)
+        if (!_recursiveNamespaces.Contains(ns))
         {
-            _namespaceScan[ns] = false;
+            _ = _exactNamespaces.Add(ns);
         }
 
         TRACE($"include-ns ns={ns} recursive=false");
@@ -238,8 +233,8 @@ public sealed class PacketRegistryFactory
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootNs);
 
-        // Recursive always wins over non-recursive for the same key.
-        _namespaceScan[rootNs] = true;
+        _ = _exactNamespaces.Remove(rootNs);
+        _ = _recursiveNamespaces.Add(rootNs);
 
         TRACE($"include-ns ns={rootNs} recursive=true");
         return this;
@@ -264,7 +259,9 @@ public sealed class PacketRegistryFactory
         // ── 1. Collect candidates ────────────────────────────────────────────────
         HashSet<Type> candidates = [.. _explicitPacketTypes];
 
-        TRACE($"build-start asm={_assemblies.Count} explicit={_explicitPacketTypes.Count} ns={_namespaceScan.Count}");
+        TRACE($"build-start asm={_assemblies.Count} explicit={_explicitPacketTypes.Count} ns={_exactNamespaces.Count + _recursiveNamespaces.Count}");
+
+        Dictionary<uint, Type> magicTypes = new(candidates.Count);
 
         foreach (Assembly asm in _assemblies)
         {
@@ -304,7 +301,8 @@ public sealed class PacketRegistryFactory
 
                 // Namespace filter: only include if the type's namespace matches
                 // a registered namespace entry (exact or recursive prefix).
-                if (_namespaceScan.Count > 0 && !this.MATCHES_NAMESPACE_FILTER(typeNs))
+                if ((_exactNamespaces.Count != 0 || _recursiveNamespaces.Count != 0) &&
+                    !this.MATCHES_NAMESPACE_FILTER(typeNs))
                 {
                     TRACE($"skip reason=ns-mismatch type={type.Name} ns={typeNs}");
                     continue;
@@ -331,9 +329,9 @@ public sealed class PacketRegistryFactory
                 [typeof(ReadOnlySpan<byte>)]) ?? throw new InternalErrorException(
                     $"Packet type {type.FullName} does not implement " +
                     $"the required static Deserialize(ReadOnlySpan<byte>) method.");
-            if (deserializers.TryGetValue(key, out PacketDeserializer? existing))
+            if (deserializers.ContainsKey(key))
             {
-                Type existingType = FIND_TYPE_BY_MAGIC(key);
+                Type existingType = magicTypes[key];
 
                 throw new InternalErrorException(
                     $"[PacketRegistryFactory] Hash collision detected!\n" +
@@ -351,8 +349,9 @@ public sealed class PacketRegistryFactory
             }
             catch (Exception ex)
             {
-                TRACE($"bind-deserialize-fail type={type.Name} err={ex.Message}");
-                continue;
+                throw new InternalErrorException(
+                    $"Failed to bind deserialize pointer for packet type '{type.FullName}'.",
+                    ex);
             }
 
             Type tbl = typeof(PacketFunctionTable<>).MakeGenericType(type);
@@ -363,18 +362,21 @@ public sealed class PacketRegistryFactory
             }
             catch (Exception ex)
             {
-                TRACE($"get-method-fail type={type.Name} method=InvokeDeserialize err={ex.Message}");
-                continue;
+                throw new InternalErrorException(
+                    $"Failed to resolve deserialize trampoline for packet type '{type.FullName}'.",
+                    ex);
             }
 
             try
             {
                 deserializers[key] = (PacketDeserializer)Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
+                magicTypes[key] = type;
             }
             catch (Exception ex)
             {
-                TRACE($"delegate-create-fail type={type.Name} err={ex.Message}");
-                continue;
+                throw new InternalErrorException(
+                    $"Failed to create deserialize delegate for packet type '{type.FullName}'.",
+                    ex);
             }
         }
 
@@ -425,26 +427,23 @@ public sealed class PacketRegistryFactory
             return false;
         }
 
-        foreach (KeyValuePair<string, bool> entry in _namespaceScan)
+        if (_exactNamespaces.Contains(typeNs))
         {
-            string ns = entry.Key;
-            bool recursive = entry.Value;
+            return true;
+        }
 
-            if (recursive)
+        foreach (string ns in _recursiveNamespaces)
+        {
+            if (typeNs.Equals(ns, StringComparison.Ordinal))
             {
-                // Exact match OR proper sub-namespace (starts with "ns.")
-                if (typeNs.Equals(ns, StringComparison.Ordinal) ||
-                    typeNs.StartsWith(ns + ".", StringComparison.Ordinal))
-                {
-                    return true;
-                }
+                return true;
             }
-            else
+
+            if (typeNs.Length > ns.Length &&
+                typeNs.StartsWith(ns, StringComparison.Ordinal) &&
+                typeNs[ns.Length] == '.')
             {
-                if (typeNs.Equals(ns, StringComparison.Ordinal))
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
@@ -503,27 +502,6 @@ public sealed class PacketRegistryFactory
         }
 
         return null;
-    }
-
-    /// <summary>
-    /// Reverse-lookup helper: given a magic number, find which type is currently
-    /// registered for it. Used to produce clear duplicate-magic error messages.
-    /// </summary>
-    [RequiresUnreferencedCode("Calls Nalix.Framework.DataFrames.PacketRegistryFactory.SAFE_GET_TYPES(Assembly)")]
-    private static Type FIND_TYPE_BY_MAGIC(uint magic)
-    {
-        // Only called on duplicate detection (rare, startup-only) — linear scan is fine.
-        foreach (Type t in Enumerable.Where(Enumerable
-                                     .SelectMany(AppDomain.CurrentDomain
-                                     .GetAssemblies(), SAFE_GET_TYPES), t => t.IsClass && !t.IsAbstract && typeof(IPacket)
-                                     .IsAssignableFrom(t)))
-        {
-            if (Compute(t) == magic)
-            {
-                return t;
-            }
-        }
-        return typeof(object); // fallback, should never happen
     }
 
     // ── Logger helpers ────────────────────────────────────────────────────────
