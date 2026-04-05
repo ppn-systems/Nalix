@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -161,8 +160,23 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         _bufferAllocations = BufferConfig.ParseBufferAllocations(config.BufferAllocations);
 
-        this.MinBufferSize = Enumerable.Min(_bufferAllocations, alloc => alloc.BufferSize);
-        this.MaxBufferSize = Enumerable.Max(_bufferAllocations, alloc => alloc.BufferSize);
+        int minBufferSize = _bufferAllocations[0].BufferSize;
+        int maxBufferSize = _bufferAllocations[0].BufferSize;
+        foreach (var alloc in _bufferAllocations)
+        {
+            if (alloc.BufferSize < minBufferSize)
+            {
+                minBufferSize = alloc.BufferSize;
+            }
+
+            if (alloc.BufferSize > maxBufferSize)
+            {
+                maxBufferSize = alloc.BufferSize;
+            }
+        }
+
+        this.MinBufferSize = minBufferSize;
+        this.MaxBufferSize = maxBufferSize;
 
         _poolManager = new BufferPoolCollection(bufferConfig: config);
         _poolManager.EventShrink += this.SHRINK_BUFFER_POOL_SIZE;
@@ -336,12 +350,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
         if (size > this.MaxBufferSize)
         {
-            return Enumerable.Last(_bufferAllocations).Allocation;
+            return _bufferAllocations[^1].Allocation;
         }
 
         if (size <= this.MinBufferSize)
         {
-            return Enumerable.First(_bufferAllocations).Allocation;
+            return _bufferAllocations[0].Allocation;
         }
 
         int left = 0;
@@ -368,7 +382,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
         return left < _bufferAllocations.Length ? _bufferAllocations[left].Allocation
-                                                : Enumerable.Last(_bufferAllocations).Allocation;
+                                                : _bufferAllocations[^1].Allocation;
     }
 
     /// <summary>
@@ -398,7 +412,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <returns>A dictionary describing the state of the BufferPoolManager.</returns>
     public IDictionary<string, object> GenerateReportData()
     {
-        Dictionary<string, object> data = new(StringComparer.Ordinal)
+        Dictionary<string, object> data = new(16, StringComparer.Ordinal)
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["Initialized"] = _isInitialized,
@@ -413,7 +427,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             ["TrimIntervalMinutes"] = _config.TrimIntervalMinutes,
             ["DeepTrimIntervalMinutes"] = _config.DeepTrimIntervalMinutes,
             ["TrimCycleCount"] = _trimCycleCount,
-            ["ShrinkSafetyPolicy"] = new Dictionary<string, object>
+            ["ShrinkSafetyPolicy"] = new Dictionary<string, object>(4, StringComparer.Ordinal)
             {
                 ["MinimumRetentionPercent"] = _shrinkPolicy.MinimumRetentionPercent,
                 ["MaxSingleShrinkStep"] = _shrinkPolicy.MaxSingleShrinkStep,
@@ -423,34 +437,37 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         };
 
         // Pool detail
-        List<Dictionary<string, object>> poolDetails = [.. _poolManager.GetAllPools()
-            .OrderBy(p => p.GetPoolInfoRef().BufferSize)
-            .Select(pool =>
+        List<BufferPoolShared> poolsSnapshot = new(_poolManager.GetAllPools());
+        poolsSnapshot.Sort(static (a, b) =>
+            a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
+
+        List<Dictionary<string, object>> poolDetails = new(poolsSnapshot.Count);
+        foreach (BufferPoolShared pool in poolsSnapshot)
+        {
+            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+            int inUse = info.TotalBuffers - info.FreeBuffers;
+            double usage = info.GetUsageRatio() * 100.0;
+            double miss = info.GetMissRate() * 100.0;
+            _ = _metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics);
+
+            string bytesReturned = metrics.TotalBytesReturned > 1_000_000
+                ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
+                : $"{metrics.TotalBytesReturned / 1024}KB";
+
+            poolDetails.Add(new Dictionary<string, object>(10, StringComparer.Ordinal)
             {
-                ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
-                int inUse = info.TotalBuffers - info.FreeBuffers;
-                double usage = info.GetUsageRatio() * 100.0;
-                double miss = info.GetMissRate() * 100.0;
-                _ = _metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics);
-
-                string bytesReturned = metrics.TotalBytesReturned > 1_000_000
-                    ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
-                    : $"{metrics.TotalBytesReturned / 1024}KB";
-
-                return new Dictionary<string, object>
-                {
-                    ["BufferSize"] = info.BufferSize,
-                    ["Total"] = info.TotalBuffers,
-                    ["Free"] = info.FreeBuffers,
-                    ["InUse"] = inUse,
-                    ["UsageRatio"] = usage,
-                    ["MissRate"] = miss,
-                    ["ShrinkAttempted"] = metrics.ShrinkAttempted,
-                    ["ShrinkSkipped"] = metrics.ShrinkSkipped,
-                    ["ExpandAttempted"] = metrics.ExpandAttempted,
-                    ["BytesReturned"] = bytesReturned
-                };
-            })];
+                ["BufferSize"] = info.BufferSize,
+                ["Total"] = info.TotalBuffers,
+                ["Free"] = info.FreeBuffers,
+                ["InUse"] = inUse,
+                ["UsageRatio"] = usage,
+                ["MissRate"] = miss,
+                ["ShrinkAttempted"] = metrics.ShrinkAttempted,
+                ["ShrinkSkipped"] = metrics.ShrinkSkipped,
+                ["ExpandAttempted"] = metrics.ExpandAttempted,
+                ["BytesReturned"] = bytesReturned
+            });
+        }
 
         data["Pools"] = poolDetails;
         return data;
@@ -959,7 +976,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _ = sb.AppendLine("SIZE     | Total  | Free   | In Use  | Usage %  | MissRate");
         _ = sb.AppendLine("----------------------------------------------------------------------");
 
-        foreach (BufferPoolShared? pool in Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
+        List<BufferPoolShared> pools = new(_poolManager.GetAllPools());
+        pools.Sort(static (a, b) => a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
+
+        foreach (BufferPoolShared pool in pools)
         {
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
 
@@ -983,7 +1003,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _ = sb.AppendLine("SIZE     | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
         _ = sb.AppendLine("----------------------------------------------------------------------");
 
-        foreach (BufferPoolShared? pool in Enumerable.OrderBy(_poolManager.GetAllPools(), p => p.GetPoolInfoRef().BufferSize))
+        List<BufferPoolShared> pools = new(_poolManager.GetAllPools());
+        pools.Sort(static (a, b) => a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
+
+        foreach (BufferPoolShared pool in pools)
         {
             ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
 

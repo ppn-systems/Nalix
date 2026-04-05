@@ -280,20 +280,8 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     {
         Type type = typeof(T);
         return _typePools.TryGetValue(type, out TypePool? typePool)
-            ? new Dictionary<string, object>
-            {
-                ["TypeName"] = type.Name,
-                ["AvailableCount"] = typePool.AvailableCount,
-                ["MaxCapacity"] = typePool.MaxCapacity,
-                ["IsActive"] = true
-            }
-            : new Dictionary<string, object>
-            {
-                ["TypeName"] = type.Name,
-                ["AvailableCount"] = 0,
-                ["MaxCapacity"] = _defaultMaxItemsPerType,
-                ["IsActive"] = false
-            };
+            ? CREATE_TYPE_INFO(type.Name, typePool.AvailableCount, typePool.MaxCapacity, true)
+            : CREATE_TYPE_INFO(type.Name, 0, _defaultMaxItemsPerType, false);
     }
 
     /// <summary>
@@ -304,7 +292,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, object> GetStatistics()
     {
-        return new Dictionary<string, object>
+        return new Dictionary<string, object>(8, StringComparer.Ordinal)
         {
             ["TotalCreatedCount"] = this.TotalCreatedCount,
             ["TotalAvailableCount"] = this.TotalAvailableCount,
@@ -411,18 +399,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         Dictionary<string, object>> GetAllTypeInfo()
     {
         List<
-            Dictionary<string, object>> result = [];
+            Dictionary<string, object>> result = new(_typePools.Count);
 
         foreach (KeyValuePair<Type, TypePool> kvp in _typePools)
         {
             TypePool typePool = kvp.Value;
-            result.Add(new Dictionary<string, object>
-            {
-                ["TypeName"] = kvp.Key.Name,
-                ["AvailableCount"] = typePool.AvailableCount,
-                ["MaxCapacity"] = typePool.MaxCapacity,
-                ["IsActive"] = true
-            });
+            result.Add(CREATE_TYPE_INFO(kvp.Key.Name, typePool.AvailableCount, typePool.MaxCapacity, true));
         }
 
         return result;
@@ -506,21 +488,22 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     internal Dictionary<string, object> GetTypeInfoByType(Type type)
     {
         return _typePools.TryGetValue(type, out TypePool? typePool)
-            ? new Dictionary<string, object>
-            {
-                ["TypeName"] = type.Name,
-                ["AvailableCount"] = typePool.AvailableCount,
-                ["MaxCapacity"] = typePool.MaxCapacity,
-                ["IsActive"] = true
-            }
-            : new Dictionary<string, object>
-            {
-                ["TypeName"] = type.Name,
-                ["AvailableCount"] = 0,
-                ["MaxCapacity"] = _defaultMaxItemsPerType,
-                ["IsActive"] = false
-            };
+            ? CREATE_TYPE_INFO(type.Name, typePool.AvailableCount, typePool.MaxCapacity, true)
+            : CREATE_TYPE_INFO(type.Name, 0, _defaultMaxItemsPerType, false);
     }
 
     #endregion Public Methods
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static Dictionary<string, object> CREATE_TYPE_INFO(string typeName, int availableCount, int maxCapacity, bool isActive)
+    {
+        return new Dictionary<string, object>(4, StringComparer.Ordinal)
+        {
+            ["TypeName"] = typeName,
+            ["AvailableCount"] = availableCount,
+            ["MaxCapacity"] = maxCapacity,
+            ["IsActive"] = isActive
+        };
+    }
 }

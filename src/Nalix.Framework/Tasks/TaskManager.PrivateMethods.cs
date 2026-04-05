@@ -716,6 +716,21 @@ public partial class TaskManager
         return Math.Min(cpuUsagePercent, processorCount * 100.0);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int COUNT_RUNNING_THREADS(Process proc)
+    {
+        int running = 0;
+        foreach (ProcessThread thread in proc.Threads)
+        {
+            if (thread.ThreadState == System.Diagnostics.ThreadState.Running)
+            {
+                running++;
+            }
+        }
+
+        return running;
+    }
+
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ADJUST_CONCURRENCY(int newLimit)
