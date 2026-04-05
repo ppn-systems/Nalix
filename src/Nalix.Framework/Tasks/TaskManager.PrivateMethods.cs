@@ -551,11 +551,6 @@ public partial class TaskManager
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void TRACE(string message) => InstanceManager.Instance.GetExistingInstance<ILogger>()?.Trace(message);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int COUNT_RUNNING_WORKERS()
-
-        => Volatile.Read(ref _runningWorkerCount);
-
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void RETAIN_OR_REMOVE(WorkerState st)
     {
