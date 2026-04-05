@@ -39,13 +39,6 @@ public class BufferPoolBenchmarks : NalixBenchmarkBase
         return buffer;
     }
 
-    [Benchmark]
-    public ArraySegment<byte> RentAndReturnSegment()
-    {
-        ArraySegment<byte> segment = _manager.RentSegment(BufferSize);
-        _manager.Return(segment);
-        return segment;
-    }
 
     [Benchmark]
     public double QueryAllocationRate() => _manager.GetAllocationForSize(BufferSize);
