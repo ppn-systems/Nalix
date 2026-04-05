@@ -190,5 +190,4 @@ public abstract partial class ConfigurationLoader
     }
 
     #endregion Private Methods
-
 }
