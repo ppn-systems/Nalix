@@ -1,3 +1,6 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
@@ -28,7 +31,7 @@ public sealed class PacketCatalogService : IPacketCatalogService
     /// </summary>
     public PacketCatalogService()
     {
-        _probeDirectories.Add(AppContext.BaseDirectory);
+        _ = _probeDirectories.Add(AppContext.BaseDirectory);
         AssemblyLoadContext.Default.Resolving += this.ResolveAssembly;
         this.LoadNalixAssemblies();
         this.Catalog = this.BuildCatalog();
@@ -96,7 +99,7 @@ public sealed class PacketCatalogService : IPacketCatalogService
         string baseDirectory = AppContext.BaseDirectory;
         foreach (string path in Directory.EnumerateFiles(baseDirectory, "Nalix*.dll", SearchOption.TopDirectoryOnly))
         {
-            this.TryLoadAssembly(path);
+            _ = this.TryLoadAssembly(path);
         }
     }
 

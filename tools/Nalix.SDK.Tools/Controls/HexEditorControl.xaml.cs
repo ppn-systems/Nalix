@@ -1,3 +1,6 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Globalization;
 using System.IO;
@@ -5,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Microsoft.Win32;
+using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Extensions;
 using Nalix.SDK.Tools.Services;
 
@@ -60,7 +64,7 @@ public partial class HexEditorControl : UserControl
             return;
         }
 
-        var texts = ToolResourceHelper.GetTexts();
+        PacketToolTextConfig texts = ToolResourceHelper.GetTexts();
         _isUpdating = true;
         try
         {
@@ -82,7 +86,7 @@ public partial class HexEditorControl : UserControl
             return;
         }
 
-        var texts = ToolResourceHelper.GetTexts();
+        PacketToolTextConfig texts = ToolResourceHelper.GetTexts();
         try
         {
             byte[] parsed = HexExtensions.ParseHex(HexTextBox.Text);
@@ -119,7 +123,7 @@ public partial class HexEditorControl : UserControl
 
     private void ImportButton_Click(object sender, RoutedEventArgs e)
     {
-        var texts = ToolResourceHelper.GetTexts();
+        PacketToolTextConfig texts = ToolResourceHelper.GetTexts();
         OpenFileDialog dialog = new()
         {
             Filter = texts.HexDialogFilter,
@@ -136,7 +140,7 @@ public partial class HexEditorControl : UserControl
 
     private void ExportButton_Click(object sender, RoutedEventArgs e)
     {
-        var texts = ToolResourceHelper.GetTexts();
+        PacketToolTextConfig texts = ToolResourceHelper.GetTexts();
         SaveFileDialog dialog = new()
         {
             Filter = texts.HexDialogFilter,

@@ -1,10 +1,12 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.Input;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Models;
-using System.Linq;
 
 namespace Nalix.SDK.Tools.ViewModels;
 
