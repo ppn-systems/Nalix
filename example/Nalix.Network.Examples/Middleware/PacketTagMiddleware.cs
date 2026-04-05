@@ -4,8 +4,6 @@
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Examples.Attributes;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
 
 namespace Nalix.Network.Examples.Middleware;
 
@@ -19,7 +17,7 @@ public sealed class PacketTagMiddleware : IPacketMiddleware<IPacket>
     /// <summary>
     /// Executes the middleware stage.
     /// </summary>
-    public async ValueTask InvokeAsync(PacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
+    public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
         if (!context.Attributes.CustomAttributes.TryGetValue(typeof(PacketTagAttribute), out Attribute? attribute) ||
             attribute is not PacketTagAttribute tagAttribute)

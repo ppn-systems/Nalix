@@ -322,7 +322,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                     context,
                     DiagnosticDescriptors.SerializeIgnoreConflictsWithOrder, // wait, should be a new conflict descriptor
                     member,
-                    member.Name); 
+                    member.Name);
             }
 
             int? finalOrder = headerOrder ?? order;

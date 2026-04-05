@@ -35,9 +35,9 @@ namespace Nalix.Network.Connections;
 /// plus a <see cref="System.Collections.Concurrent.ConcurrentQueue{T}"/> for rate-window tracking.
 /// Supports automatic cleanup of stale entries to bound memory usage.
 /// </summary>
-[DebuggerNonUserCode]
 [SkipLocalsInit]
-internal sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable, IWithLogging<ConnectionGuard>
+[DebuggerNonUserCode]
+public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable, IWithLogging<ConnectionGuard>
 {
     #region Constants
 

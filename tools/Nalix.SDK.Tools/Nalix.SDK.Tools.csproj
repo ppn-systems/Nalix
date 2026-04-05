@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <LangVersion>12.0</LangVersion>
+    <RootNamespace>Nalix.SDK.Tools</RootNamespace>
+    <AssemblyName>Nalix.SDK.Tools</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
+    <ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
+    <ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+</Project>

@@ -19,14 +19,24 @@ namespace Nalix.SDK.Transport;
 /// </remarks>
 public abstract class TransportSession : IDisposable
 {
-    /// <summary>Gets the transport options used by the session.</summary>
+    #region Properties
+
+    /// <summary>
+    /// Gets the transport options used by the session.
+    /// </summary>
     public abstract TransportOptions Options { get; }
 
-    /// <summary>Gets the packet registry (catalog) used by this session.</summary>
+    /// <summary>
+    /// Gets the packet registry (catalog) used by this session.
+    /// </summary>
     public abstract IPacketRegistry Catalog { get; }
 
-    /// <summary>Gets a value indicating whether the session is currently connected.</summary>
+    /// <summary>
+    /// Gets a value indicating whether the session is currently connected.
+    /// </summary>
     public abstract bool IsConnected { get; }
+
+    #endregion Properties
 
     #region Events
 

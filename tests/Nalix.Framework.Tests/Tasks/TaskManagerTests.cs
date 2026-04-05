@@ -1,7 +1,5 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-#nullable enable
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,23 +19,11 @@ namespace Nalix.Framework.Tests.Tasks;
 /// </summary>
 public sealed class TaskManagerTests : IDisposable
 {
-    private readonly List<TaskManager> _managers = [];
+    private readonly TaskManagerTestHost _host = new();
 
     /// <inheritdoc />
     public void Dispose()
-    {
-        foreach (TaskManager manager in _managers)
-        {
-            try
-            {
-                manager.Dispose();
-            }
-            catch
-            {
-                // Test cleanup should be best-effort.
-            }
-        }
-    }
+        => _host.Dispose();
 
     [Fact]
     public void ConstructorWithExplicitOptionsInitializesEmptyState()
@@ -118,7 +104,7 @@ public sealed class TaskManagerTests : IDisposable
     public async Task ScheduleWorkerWhenWorkCompletesUpdatesHandleAndLookups()
     {
         using TaskManager manager = this.CreateManager();
-        TaskCompletionSource<IWorkerHandle> completion = CreateCompletionSource<IWorkerHandle>();
+        TaskCompletionSource<IWorkerHandle> completion = TaskManagerTestHost.CreateCompletionSource<IWorkerHandle>();
 
         IWorkerHandle handle = manager.ScheduleWorker(
             "worker.complete",
@@ -138,7 +124,7 @@ public sealed class TaskManagerTests : IDisposable
         IWorkerHandle completedHandle = await completion.Task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.Same(handle, completedHandle);
 
-        await WaitUntilAsync(
+        await TaskManagerTestHost.WaitUntilAsync(
             () => !handle.IsRunning && handle.TotalRuns == 1,
             TimeSpan.FromSeconds(2));
 
@@ -170,7 +156,7 @@ public sealed class TaskManagerTests : IDisposable
                 RetainFor = TimeSpan.FromMinutes(1)
             });
 
-        await WaitUntilAsync(
+        await TaskManagerTestHost.WaitUntilAsync(
             () => !handle.IsRunning && handle.TotalRuns == 1,
             TimeSpan.FromSeconds(2));
 
@@ -178,11 +164,180 @@ public sealed class TaskManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task ScheduleWorkerWhenGroupConcurrencyLimitIsOneRunsWorkersSequentially()
+    {
+        using TaskManager manager = this.CreateManager();
+        TaskCompletionSource<bool> firstStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> releaseFirst = TaskManagerTestHost.CreateCompletionSource<bool>();
+        int running = 0;
+        int maxRunning = 0;
+
+        ValueTask Work(IWorkerContext context, CancellationToken cancellationToken)
+            => RunWorkAsync(cancellationToken);
+
+        async ValueTask RunWorkAsync(CancellationToken cancellationToken)
+        {
+            int current = Interlocked.Increment(ref running);
+            maxRunning = Math.Max(maxRunning, current);
+            _ = firstStarted.TrySetResult(true);
+
+            try
+            {
+                _ = await releaseFirst.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            finally
+            {
+                _ = Interlocked.Decrement(ref running);
+            }
+        }
+
+        IWorkerHandle first = manager.ScheduleWorker(
+            "worker.seq.1",
+            "group-seq",
+            Work,
+            new WorkerOptions { GroupConcurrencyLimit = 1, RetainFor = TimeSpan.FromMinutes(1) });
+
+        _ = await firstStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        IWorkerHandle second = manager.ScheduleWorker(
+            "worker.seq.2",
+            "group-seq",
+            Work,
+            new WorkerOptions { GroupConcurrencyLimit = 1, RetainFor = TimeSpan.FromMinutes(1) });
+
+        await Task.Delay(100).ConfigureAwait(true);
+        Assert.True(first.IsRunning);
+        Assert.False(second.IsRunning);
+
+        _ = releaseFirst.TrySetResult(true);
+
+        await TaskManagerTestHost.WaitUntilAsync(() => !first.IsRunning && !second.IsRunning && second.TotalRuns == 1, TimeSpan.FromSeconds(2));
+        Assert.Equal(1, maxRunning);
+    }
+
+    [Fact]
+    public async Task ScheduleWorkerWhenHigherPriorityIsQueuedStartsBeforeLowerPriority()
+    {
+        using TaskManager manager = this.CreateManager(new TaskManagerOptions
+        {
+            CleanupInterval = TimeSpan.FromSeconds(5),
+            DynamicAdjustmentEnabled = false,
+            MaxWorkers = 1,
+            IsEnableLatency = true
+        });
+
+        TaskCompletionSource<bool> blockerStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> releaseBlocker = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> highStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> lowStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
+        List<string> executionOrder = [];
+
+        _ = manager.ScheduleWorker(
+            "worker.blocker",
+            "group-priority",
+            async (context, cancellationToken) =>
+            {
+                _ = blockerStarted.TrySetResult(true);
+                _ = await releaseBlocker.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
+            },
+            new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
+
+        _ = await blockerStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        DateTime enqueueStartedUtc = DateTime.UtcNow;
+
+        IWorkerHandle low = manager.ScheduleWorker(
+            "worker.low",
+            "group-priority",
+            (context, cancellationToken) =>
+            {
+                executionOrder.Add("low");
+                _ = lowStarted.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            },
+            new WorkerOptions
+            {
+                Priority = WorkerPriority.LOW,
+                RetainFor = TimeSpan.FromMinutes(1)
+            });
+
+        IWorkerHandle high = manager.ScheduleWorker(
+            "worker.high",
+            "group-priority",
+            (context, cancellationToken) =>
+            {
+                executionOrder.Add("high");
+                _ = highStarted.TrySetResult(true);
+                return ValueTask.CompletedTask;
+            },
+            new WorkerOptions
+            {
+                Priority = WorkerPriority.HIGH,
+                RetainFor = TimeSpan.FromMinutes(1)
+            });
+
+        Assert.True(DateTime.UtcNow - enqueueStartedUtc < TimeSpan.FromMilliseconds(250));
+        Assert.False(low.IsRunning);
+        Assert.False(high.IsRunning);
+
+        _ = releaseBlocker.TrySetResult(true);
+
+        _ = await highStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        _ = await lowStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await TaskManagerTestHost.WaitUntilAsync(() => low.TotalRuns == 1 && high.TotalRuns == 1, TimeSpan.FromSeconds(2));
+
+        Assert.Equal(["high", "low"], executionOrder);
+    }
+
+    [Fact]
+    public async Task ScheduleWorkerWhenCompletionCallbackThrowsIncrementsWorkerErrorCount()
+    {
+        using TaskManager manager = this.CreateManager();
+
+        IWorkerHandle handle = manager.ScheduleWorker(
+            "worker.callback.complete",
+            "group-a",
+            (_, _) => ValueTask.CompletedTask,
+            new WorkerOptions
+            {
+                RetainFor = TimeSpan.FromMinutes(1),
+                OnCompleted = _ => throw new InvalidOperationException("callback failure")
+            });
+
+        await TaskManagerTestHost.WaitUntilAsync(() => !handle.IsRunning && handle.TotalRuns == 1, TimeSpan.FromSeconds(2));
+
+        Assert.Equal(1, manager.WorkerErrorCount);
+    }
+
+    [Fact]
+    public async Task ScheduleWorkerWhenFailureCallbackThrowsIncrementsWorkerErrorCountAgain()
+    {
+        using TaskManager manager = this.CreateManager();
+
+        IWorkerHandle handle = manager.ScheduleWorker(
+            "worker.callback.fail",
+            "group-a",
+            (_, _) => ValueTask.FromException(new InvalidOperationException("worker failure")),
+            new WorkerOptions
+            {
+                RetainFor = TimeSpan.FromMinutes(1),
+                OnFailed = (_, _) => throw new InvalidOperationException("failure callback")
+            });
+
+        await TaskManagerTestHost.WaitUntilAsync(() => !handle.IsRunning && handle.TotalRuns == 1, TimeSpan.FromSeconds(2));
+
+        Assert.Equal(2, manager.WorkerErrorCount);
+    }
+
+    [Fact]
     public async Task CancelWorkerWhenWorkerExistsReturnsTrue()
     {
         using TaskManager manager = this.CreateManager();
-        TaskCompletionSource<bool> started = CreateCompletionSource<bool>();
-        TaskCompletionSource<bool> cancelled = CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> started = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> cancelled = TaskManagerTestHost.CreateCompletionSource<bool>();
 
         IWorkerHandle handle = manager.ScheduleWorker(
             "worker.cancel",
@@ -225,8 +380,8 @@ public sealed class TaskManagerTests : IDisposable
     public async Task CancelAllWorkersAndCancelGroupReturnExpectedCounts()
     {
         using TaskManager manager = this.CreateManager();
-        TaskCompletionSource<bool> groupAStarted = CreateCompletionSource<bool>();
-        TaskCompletionSource<bool> groupBStarted = CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> groupAStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> groupBStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
 
         _ = manager.ScheduleWorker(
             "worker.a",
@@ -263,7 +418,7 @@ public sealed class TaskManagerTests : IDisposable
     public async Task GetWorkersWhenFilteredByGroupAndRunningStateReturnsExpectedWorkers()
     {
         using TaskManager manager = this.CreateManager();
-        TaskCompletionSource<bool> runningWorkerStarted = CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> runningWorkerStarted = TaskManagerTestHost.CreateCompletionSource<bool>();
 
         IWorkerHandle completedWorker = manager.ScheduleWorker(
             "worker.completed",
@@ -282,7 +437,7 @@ public sealed class TaskManagerTests : IDisposable
             new WorkerOptions { RetainFor = TimeSpan.FromMinutes(1) });
 
         _ = await runningWorkerStarted.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        await WaitUntilAsync(() => !completedWorker.IsRunning, TimeSpan.FromSeconds(2));
+        await TaskManagerTestHost.WaitUntilAsync(() => !completedWorker.IsRunning, TimeSpan.FromSeconds(2));
 
         IReadOnlyCollection<IWorkerHandle> runningOnly = manager.GetWorkers();
         IReadOnlyCollection<IWorkerHandle> allInGroupA = manager.GetWorkers(runningOnly: false, group: "group-a");
@@ -336,7 +491,7 @@ public sealed class TaskManagerTests : IDisposable
     public async Task ScheduleRecurringWhenScheduledRunsLookupAndCancelWork()
     {
         using TaskManager manager = this.CreateManager();
-        TaskCompletionSource<bool> executed = CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> executed = TaskManagerTestHost.CreateCompletionSource<bool>();
 
         IRecurringHandle handle = manager.ScheduleRecurring(
             "recurring.run",
@@ -353,7 +508,7 @@ public sealed class TaskManagerTests : IDisposable
             });
 
         _ = await executed.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        await WaitUntilAsync(() => handle.TotalRuns > 0, TimeSpan.FromSeconds(2));
+        await TaskManagerTestHost.WaitUntilAsync(() => handle.TotalRuns > 0, TimeSpan.FromSeconds(2));
 
         Assert.True(manager.TryGetRecurring("recurring.run", out IRecurringHandle? foundHandle));
         Assert.Same(handle, foundHandle);
@@ -366,10 +521,51 @@ public sealed class TaskManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task ScheduleRecurringWhenNonReentrantIsTrueDoesNotOverlapRuns()
+    {
+        using TaskManager manager = this.CreateManager();
+        TaskCompletionSource<bool> entered = TaskManagerTestHost.CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> release = TaskManagerTestHost.CreateCompletionSource<bool>();
+        int running = 0;
+        int maxRunning = 0;
+
+        IRecurringHandle handle = manager.ScheduleRecurring(
+            "recurring.nonreentrant",
+            TimeSpan.FromMilliseconds(20),
+            async cancellationToken =>
+            {
+                int current = Interlocked.Increment(ref running);
+                maxRunning = Math.Max(maxRunning, current);
+                _ = entered.TrySetResult(true);
+                try
+                {
+                    _ = await release.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken).ConfigureAwait(true);
+                }
+                finally
+                {
+                    _ = Interlocked.Decrement(ref running);
+                }
+            },
+            new RecurringOptions
+            {
+                Jitter = TimeSpan.Zero,
+                NonReentrant = true
+            });
+
+        _ = await entered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await Task.Delay(120).ConfigureAwait(true);
+        _ = release.TrySetResult(true);
+        await TaskManagerTestHost.WaitUntilAsync(() => handle.TotalRuns >= 1 && !handle.IsRunning, TimeSpan.FromSeconds(2));
+
+        Assert.Equal(1, maxRunning);
+        manager.CancelRecurring(handle.Name);
+    }
+
+    [Fact]
     public async Task GenerateReportWhenWorkersAndRecurringTasksExistContainsSummaryAndNames()
     {
         using TaskManager manager = this.CreateManager();
-        TaskCompletionSource<bool> recurringExecuted = CreateCompletionSource<bool>();
+        TaskCompletionSource<bool> recurringExecuted = TaskManagerTestHost.CreateCompletionSource<bool>();
 
         IWorkerHandle worker = manager.ScheduleWorker(
             "worker.report",
@@ -392,7 +588,7 @@ public sealed class TaskManagerTests : IDisposable
             });
 
         _ = await recurringExecuted.Task.WaitAsync(TimeSpan.FromSeconds(2));
-        await WaitUntilAsync(() => worker.TotalRuns == 1, TimeSpan.FromSeconds(2));
+        await TaskManagerTestHost.WaitUntilAsync(() => worker.TotalRuns == 1, TimeSpan.FromSeconds(2));
 
         string report = manager.GenerateReport();
 
@@ -437,37 +633,5 @@ public sealed class TaskManagerTests : IDisposable
         _ = Assert.Throws<ObjectDisposedException>(() => manager.ScheduleRecurring("after-dispose", TimeSpan.FromMilliseconds(10), _ => ValueTask.CompletedTask));
     }
 
-    private TaskManager CreateManager()
-    {
-        TaskManager manager = new(new TaskManagerOptions
-        {
-            CleanupInterval = TimeSpan.FromSeconds(5),
-            DynamicAdjustmentEnabled = false,
-            MaxWorkers = 8,
-            IsEnableLatency = true
-        });
-
-        _managers.Add(manager);
-        return manager;
-    }
-
-    private static TaskCompletionSource<T> CreateCompletionSource<T>()
-        => new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
-    {
-        DateTime deadline = DateTime.UtcNow.Add(timeout);
-
-        while (DateTime.UtcNow < deadline)
-        {
-            if (condition())
-            {
-                return;
-            }
-
-            await Task.Delay(20).ConfigureAwait(false);
-        }
-
-        Assert.True(condition(), "The expected condition was not satisfied before the timeout elapsed.");
-    }
+    private TaskManager CreateManager(TaskManagerOptions? options = null) => _host.CreateManager(options);
 }

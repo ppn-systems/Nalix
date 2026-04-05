@@ -113,7 +113,7 @@ public sealed class LZ4CodecTests
         // Act
         LZ4Codec.Decode(
             compressed.AsSpan(0, writtenCompressed),
-            out BufferLease lease,
+            out BufferLease? lease,
             out int bytesWritten);
 
         Assert.NotNull(lease);

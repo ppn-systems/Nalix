@@ -6,14 +6,13 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Injection;
 using Nalix.Logging;
-using Nalix.Logging.Configuration;
+using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
-using Nalix.Network.Configurations;
 using Nalix.Network.Examples.Attributes;
 using Nalix.Network.Examples.Handlers;
 using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
-using Nalix.Network.Middleware.Inbound;
+using Nalix.Network.Options;
 using Nalix.Network.Routing;
 
 internal class Program
@@ -36,7 +35,7 @@ internal class Program
 
         // This sets the listening port used by the server example.
         NetworkSocketOptions listenerOptions = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        listenerOptions.Port = 12345;
+        listenerOptions.Port = 57206;
 
         // Register the custom metadata provider so handler annotations are visible to the packet pipeline.
         PacketMetadataProviders.Register(new PacketTagMetadataProvider());
@@ -48,7 +47,6 @@ internal class Program
             // Timeout middleware should run before custom logic so slow handlers
             // are rejected consistently.
             _ = dispatchOptions.WithLogging(logger);
-            _ = dispatchOptions.WithMiddleware(new TimeoutMiddleware());
 
             // Custom middleware can inspect attributes added by the metadata provider.
             _ = dispatchOptions.WithMiddleware(new PacketTagMiddleware());
@@ -70,8 +68,6 @@ internal class Program
         listener.Activate();
         channel.Activate();
 
-        // Print a small runtime report so the user can confirm the listener is alive.
-        Console.WriteLine(listener.GenerateReport());
         _ = Console.ReadLine();
     }
 }

@@ -38,14 +38,20 @@ public sealed partial class TaskManager : ITaskManager
     private readonly TaskManagerOptions _options;
     private readonly Timer _cleanupTimer;
     private readonly SemaphoreSlim _globalConcurrencyGate;
+    private readonly SemaphoreSlim _pendingWorkersSignal;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Gate> _groupGates;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, WorkerState> _workers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, RecurringState> _recurring;
+    private readonly PriorityQueue<WorkerState, (int priorityKey, long sequence)> _pendingWorkers;
+    private readonly object _pendingWorkersLock;
+    private readonly CancellationTokenSource _workerDispatcherCts;
+    private readonly Task _workerDispatcherTask;
 
     private long _workerExecutionTicks;
     private long _recurringExecutionTicks;
     private long _workerExecutionCount;
     private long _recurringExecutionCount;
+    private long _workerScheduleSequence;
     private int _workerErrorCount;
     private int _recurringErrorCount;
 
@@ -135,8 +141,13 @@ public sealed partial class TaskManager : ITaskManager
         _workers = new();
         _recurring = new();
         _groupGates = new(StringComparer.Ordinal);
+        _pendingWorkers = new();
+        _pendingWorkersLock = new();
+        _pendingWorkersSignal = new SemaphoreSlim(0, int.MaxValue);
+        _workerDispatcherCts = new();
         _currentConcurrencyLimit = _options.MaxWorkers;
         _globalConcurrencyGate = new SemaphoreSlim(_currentConcurrencyLimit, _options.MaxWorkers);
+        _workerDispatcherTask = Task.Run(() => this.WORKER_DISPATCH_LOOP_ASYNC(_workerDispatcherCts.Token));
 
         _cleanupTimer = new Timer(static s =>
         {
@@ -194,9 +205,6 @@ public sealed partial class TaskManager : ITaskManager
         TimingScope scope = default;
         options ??= new WorkerOptions();
 
-        // Reserve one global worker slot before we allocate IDs and start the task.
-        _globalConcurrencyGate.Wait();
-
         if (_options.IsEnableLatency)
         {
             scope = TimingScope.Start();
@@ -207,137 +215,24 @@ public sealed partial class TaskManager : ITaskManager
             ? CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken)
             : new CancellationTokenSource();
 
-        WorkerState st = new(id, name, group, options, cts);
+        WorkerState st = new(id, name, group, options, cts, work);
 
         if (!_workers.TryAdd(id, st))
         {
+            cts.Dispose();
             throw new InternalErrorException($"[{nameof(TaskManager)}:{nameof(ScheduleWorker)}] cannot add worker");
         }
 
-        // A per-group gate is only created when the caller asks for a group cap.
-        Gate? gate = null;
-        Exception? failure = null;
-
-        if (options.GroupConcurrencyLimit is int cap && cap > 0)
-        {
-            gate = _groupGates.GetOrAdd(group, _ => new Gate(new SemaphoreSlim(cap, cap), cap));
-        }
-
-        // The worker body is launched on the thread pool so scheduling stays non-blocking.
         try
         {
-            st.Task = Task.Run(async () =>
+            bool startedFast = this.TRY_START_WORKER_FAST(st);
+            if (!startedFast)
             {
-                bool acquired = false;
-                CancellationToken ct = cts.Token;
-
-                try
-                {
-                    if (gate is not null)
-                    {
-                        if (options.TryAcquireSlotImmediately)
-                        {
-                            acquired = await gate.SemaphoreSlim.WaitAsync(0, ct)
-                                                               .ConfigureAwait(false);
-                            if (!acquired)
-                            {
-                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                        .Warn($"[FW.{nameof(TaskManager)}] worker-reject name={name} group={group} reason=group-cap");
-
-                                _ = _workers.TryRemove(id, out _);
-                                try
-                                {
-                                    cts.Dispose();
-                                }
-                                catch (Exception ex)
-                                {
-                                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                            .Warn($"[FW.{nameof(TaskManager)}] cts-dispose-error-reject id={id} msg={ex.Message}");
-                                }
-
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            await gate.SemaphoreSlim.WaitAsync(ct)
-                                                    .ConfigureAwait(false);
-                            acquired = true;
-                        }
-                    }
-
-                    st.MarkStart();
-                    WorkerContext ctx = new(st, this);
-
-                    if (options.ExecutionTimeout is { } to && to > TimeSpan.Zero)
-                    {
-                        using CancellationTokenSource wcts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                        wcts.CancelAfter(to);
-                        await work(new WorkerContext(st, this), wcts.Token).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await work(new WorkerContext(st, this), ct).ConfigureAwait(false);
-                    }
-
-                    st.MarkStop();
-                }
-                catch (OperationCanceledException) when (cts.IsCancellationRequested)
-                {
-                    st.MarkStop();
-                }
-                catch (Exception ex)
-                {
-                    failure = ex;
-                    st.MarkError(ex);
-                    _ = Interlocked.Increment(ref _workerErrorCount);
-
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[FW.{nameof(TaskManager)}] worker-error id={id} name={name} msg={ex.Message}");
-                }
-                finally
-                {
-                    try
-                    {
-                        if (failure is null)
-                        {
-                            (options as WorkerOptions)?.OnCompleted?.Invoke(st);
-                        }
-                        else
-                        {
-                            (options as WorkerOptions)?.OnFailed?.Invoke(st, failure);
-                        }
-                    }
-                    catch (Exception cbex)
-                    {
-                        _ = Interlocked.Increment(ref _workerErrorCount);
-
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Warn($"[FW.{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
-                    }
-
-                    if (gate is not null && acquired)
-                    {
-                        try
-                        {
-                            _ = gate.SemaphoreSlim.Release();
-                        }
-                        catch (Exception ex)
-                        {
-                            _ = Interlocked.Increment(ref _workerErrorCount);
-
-                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                    .Warn($"[FW.{nameof(TaskManager)}] gate-release-error id={id} msg={ex.Message}");
-                        }
-                    }
-
-                    this.RETAIN_OR_REMOVE(st);
-                    _ = _globalConcurrencyGate.Release();
-                }
-            }, cts.Token);
+                this.ENQUEUE_WORKER(st);
+            }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} tag={options.Tag ?? "-"}");
+                                    .Debug($"[FW.{nameof(TaskManager)}] worker-{(startedFast ? "start-fast" : "queued")} id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
 
             return st;
         }
@@ -953,6 +848,18 @@ public sealed partial class TaskManager : ITaskManager
 
         try
         {
+            _workerDispatcherCts.Cancel();
+            _ = _pendingWorkersSignal.Release();
+            _workerDispatcherTask.Wait(TimeSpan.FromSeconds(2));
+        }
+        catch (Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-dispatcher-stop-error msg={ex.Message}");
+        }
+
+        try
+        {
             _cleanupTimer?.Dispose();
         }
         catch (Exception ex)
@@ -1077,6 +984,26 @@ public sealed partial class TaskManager : ITaskManager
         }
 
         _groupGates.Clear();
+
+        try
+        {
+            _pendingWorkersSignal.Dispose();
+        }
+        catch (Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] pending-signal-dispose-error msg={ex.Message}");
+        }
+
+        try
+        {
+            _workerDispatcherCts.Dispose();
+        }
+        catch (Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-dispatcher-cts-dispose-error msg={ex.Message}");
+        }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] disposed");

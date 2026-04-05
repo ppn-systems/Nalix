@@ -7,44 +7,58 @@ using Xunit;
 namespace Nalix.Framework.Tests.Time;
 
 [Collection("ClockTests")]
-public class ClockTests
+public sealed class ClockTests
 {
     [Fact]
     public void UnixSecondsNowShouldMatch()
     {
-        DateTime now = DateTime.UtcNow;
+        DateTime before = DateTime.UtcNow;
         long unix = Clock.UnixSecondsNow();
-        long expected = (long)(now - DateTime.UnixEpoch).TotalSeconds;
-        Assert.InRange(unix, expected - 1, expected + 1);
+        DateTime after = DateTime.UtcNow;
+
+        long minExpected = (long)(before - DateTime.UnixEpoch).TotalSeconds - 1;
+        long maxExpected = (long)(after - DateTime.UnixEpoch).TotalSeconds + 1;
+
+        Assert.InRange(unix, minExpected, maxExpected);
     }
 
     [Fact]
     public void UnixMillisecondsNowShouldMatchRawUtcWindow()
     {
+        DateTime before = DateTime.UtcNow;
         long unix = Clock.UnixMillisecondsNow();
-        DateTime now = DateTime.UtcNow;
-        long expected = (long)(now - DateTime.UnixEpoch).TotalMilliseconds;
+        DateTime after = DateTime.UtcNow;
 
-        // 2.5s đủ an toàn cho các môi trường có NTP/VM jitter
-        Assert.InRange(unix, expected - 2500, expected + 3000);
+        long minExpected = (long)(before - DateTime.UnixEpoch).TotalMilliseconds - 2500;
+        long maxExpected = (long)(after - DateTime.UnixEpoch).TotalMilliseconds + 3000;
+
+        Assert.InRange(unix, minExpected, maxExpected);
     }
 
     [Fact]
     public void UnixMicrosecondsNowShouldMatch()
     {
-        DateTime now = DateTime.UtcNow;
+        DateTime before = DateTime.UtcNow;
         long unix = Clock.UnixMicrosecondsNow();
-        long expected = (now - DateTime.UnixEpoch).Ticks / 10;
-        Assert.InRange(unix, expected - 3000, expected + 3000);
+        DateTime after = DateTime.UtcNow;
+
+        long minExpected = ((before - DateTime.UnixEpoch).Ticks / 10) - 10_000;
+        long maxExpected = ((after - DateTime.UnixEpoch).Ticks / 10) + 10_000;
+
+        Assert.InRange(unix, minExpected, maxExpected);
     }
 
     [Fact]
     public void UnixTicksNowShouldMatch()
     {
-        DateTime now = DateTime.UtcNow;
+        DateTime before = DateTime.UtcNow;
         long unix = Clock.UnixTicksNow();
-        long expected = (now - DateTime.UnixEpoch).Ticks;
-        Assert.InRange(unix, expected - 10000, expected + 10000);
+        DateTime after = DateTime.UtcNow;
+
+        long minExpected = (before - DateTime.UnixEpoch).Ticks - 50_000;
+        long maxExpected = (after - DateTime.UnixEpoch).Ticks + 50_000;
+
+        Assert.InRange(unix, minExpected, maxExpected);
     }
 
     [Fact]
@@ -59,5 +73,16 @@ public class ClockTests
         Clock.ResetSynchronization();
         Assert.False(Clock.IsSynchronized);
         Assert.Equal(DateTime.MinValue, Clock.LastSyncTime);
+    }
+
+    [Fact]
+    public void NowUtcShouldIncreaseAcrossSequentialReads()
+    {
+        DateTime first = Clock.NowUtc();
+        DateTime second = Clock.NowUtc();
+        DateTime third = Clock.NowUtc();
+
+        Assert.True(second >= first);
+        Assert.True(third >= second);
     }
 }

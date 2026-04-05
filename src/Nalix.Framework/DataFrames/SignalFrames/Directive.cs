@@ -13,37 +13,62 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
-public sealed class Directive : PacketBase<Directive>, IPacketReasoned
+public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSizeSerializable
 {
-    /// <summary>Gets or sets the directive type.</summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 0)]
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public static int Size => PacketConstants.HeaderSize
+        + sizeof(ControlType)
+        + sizeof(ProtocolReason)
+        + sizeof(ProtocolAdvice)
+        + sizeof(ControlFlags)
+        + sizeof(uint)
+        + sizeof(uint)
+        + sizeof(ushort);
+
+    /// <summary>
+    /// Gets or sets the directive type.
+    /// </summary>
+    [SerializeOrder(0)]
     public ControlType Type { get; set; }
 
-    /// <summary>Gets or sets the reason for the directive.</summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 1)]
+    /// <summary>
+    /// Gets or sets the reason for the directive.
+    /// </summary>
+    [SerializeOrder(1)]
     public ProtocolReason Reason { get; set; }
 
-    /// <summary>Gets or sets the suggested action for the client.</summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 2)]
+    /// <summary>
+    /// Gets or sets the suggested action for the client.
+    /// </summary>
+    [SerializeOrder(2)]
     public ProtocolAdvice Action { get; set; }
 
-    /// <summary>Gets or sets directive flags.</summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 3)]
+    /// <summary>
+    /// Gets or sets directive flags.
+    /// </summary>
+    [SerializeOrder(3)]
     public ControlFlags Control { get; set; }
 
     /// <summary>Gets or sets the first directive argument.</summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 4)]
+    [SerializeOrder(4)]
     public uint Arg0 { get; set; }
 
-    /// <summary>Gets or sets the second directive argument.</summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 5)]
+    /// <summary>
+    /// Gets or sets the second directive argument.
+    /// </summary>
+    [SerializeOrder(5)]
     public uint Arg1 { get; set; }
 
-    /// <summary>Gets or sets the third directive argument.</summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 6)]
+    /// <summary>
+    /// Gets or sets the third directive argument.
+    /// </summary>
+    [SerializeOrder(6)]
     public ushort Arg2 { get; set; }
 
-    /// <summary>Initializes a new instance with default values.</summary>
+    /// <summary>
+    /// Initializes a new instance with default values.
+    /// </summary>
     public Directive()
     {
         this.Protocol = ProtocolType.TCP;
@@ -113,5 +138,6 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned
     /// </summary>
     /// <returns>String describing the Directive packet.</returns>
     public override string ToString()
-        => $"Directive [SequenceId={this.SequenceId}, Type={this.Type}, Reason={this.Reason}, Action={this.Action}, Control={this.Control}, Arg0={this.Arg0}, Arg1={this.Arg1}, Arg2={this.Arg2}, OpCode={this.OpCode}, Priority={this.Priority}, Protocol={this.Protocol}]";
+        => $"Directive [SequenceId={this.SequenceId}, Type={this.Type}, Reason={this.Reason}, Action={this.Action}, Control={this.Control}, " +
+           $"Arg0={this.Arg0}, Arg1={this.Arg1}, Arg2={this.Arg2}, OpCode={this.OpCode}, Priority={this.Priority}, Protocol={this.Protocol}]";
 }

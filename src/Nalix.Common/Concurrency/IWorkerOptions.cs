@@ -31,6 +31,11 @@ public interface IWorkerOptions
     SnowflakeType IdType { get; init; }
 
     /// <summary>
+    /// Gets the dispatch priority for this worker while it is waiting in the scheduler queue.
+    /// </summary>
+    WorkerPriority Priority { get; init; }
+
+    /// <summary>
     /// Gets the action to invoke when the worker has completed successfully.
     /// </summary>
     Action<IWorkerHandle>? OnCompleted { get; }

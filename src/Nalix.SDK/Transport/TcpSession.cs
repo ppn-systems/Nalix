@@ -5,7 +5,6 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
@@ -18,11 +17,9 @@ namespace Nalix.SDK.Transport;
 /// <summary>
 /// Provides a TCP transport session built on <see cref="FRAME_READER"/> and <see cref="FRAME_SENDER"/>.
 /// </summary>
-public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
+public class TcpSession : TransportSession
 {
     #region Fields
-
-    private ILogger? _logger;
 
     // Low-level components for reading and sending frames
     private readonly FRAME_SENDER _sender;
@@ -33,6 +30,8 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     private int _disposed;
 
     #endregion Fields
+
+    #region Properties
 
     /// <summary>Gets the fixed framing header size in bytes.</summary>
     public const int HeaderSize = 2;
@@ -45,6 +44,8 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
 
     /// <inheritdoc/>
     public override bool IsConnected => _socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
+
+    #endregion Properties
 
     #region Events
 
@@ -70,26 +71,19 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     /// <summary>Initializes a new instance of the <see cref="TcpSession"/> class.</summary>
     /// <param name="options">The transport options for this session.</param>
     /// <param name="catalog">The packet registry used to resolve packet metadata.</param>
-    /// <param name="logger">The optional logger used for transport diagnostics.</param>
-    public TcpSession(TransportOptions options, IPacketRegistry catalog, ILogger? logger = null)
+    public TcpSession(TransportOptions options, IPacketRegistry catalog)
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
         this.Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        _logger = logger;
 
         // Initialize frame helpers with a factory to get the latest socket instance
         _sender = new FRAME_SENDER(() => _socket!, options, this.HandleError);
         _reader = new FRAME_READER(() => _socket!, options, this.HandleReceiveMessage, this.HandleError);
     }
 
-    /// <inheritdoc/>
-    public TcpSession WithLogging(ILogger logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        return this;
-    }
-
     #endregion Constructor
+
+    #region APIs
 
     /// <inheritdoc/>
     public override async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
@@ -110,8 +104,6 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
             // Initialize socket with NoDelay to reduce latency
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
             await _socket.ConnectAsync(effectiveHost, effectivePort, ct).ConfigureAwait(false);
-            Log.Connected(_logger, effectiveHost, effectivePort);
-
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
             // Start background worker for reading frames
@@ -120,7 +112,6 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
         }
         catch (Exception ex)
         {
-            Log.ConnectFailed(_logger, effectiveHost, effectivePort, ex);
             this.OnError?.Invoke(this, ex);
             throw new NetworkException($"Connection failed: {ex.Message}", ex);
         }
@@ -144,8 +135,7 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
             try { if (_socket.Connected) { _socket.Shutdown(SocketShutdown.Both); } } catch (SocketException) { }
             _socket.Dispose();
             _socket = null;
-            Log.Disconnected(_logger);
-            this.OnDisconnected?.Invoke(this, null!);
+            this.OnDisconnected?.Invoke(this, new InvalidOperationException("The TCP session was disconnected."));
         }
 
         return Task.CompletedTask;
@@ -171,6 +161,30 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
     /// <inheritdoc/>
     public override Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default) => _sender.SendAsync(payload, null, ct);
 
+    /// <inheritdoc/>
+    public override void Dispose()
+    {
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+        {
+            return;
+        }
+
+        _ = this.DisconnectAsync();
+        _sender.Dispose();
+        _reader.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    #endregion APIs
+
+    #region Private
+
+    private void HandleError(Exception ex)
+    {
+        this.OnError?.Invoke(this, ex);
+        _ = this.DisconnectAsync();
+    }
+
     /// <summary>
     /// Handles messages received by <see cref="FRAME_READER"/>.
     /// </summary>
@@ -188,7 +202,7 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
                 _ = Task.Run(async () =>
                 {
                     try { await handler(lease.Memory).ConfigureAwait(false); }
-                    catch (Exception ex) { Log.AsyncHandlerFaulted(_logger, ex); }
+                    catch (Exception ex) { this.OnError?.Invoke(this, ex); }
                     finally { lease.Dispose(); }
                 });
             }
@@ -200,50 +214,10 @@ public partial class TcpSession : TransportSession, IWithLogging<TcpSession>
         }
         catch (Exception ex)
         {
-            Log.MessageDeliveryFaulted(_logger, ex);
+            this.OnError?.Invoke(this, ex);
             lease.Dispose();
         }
     }
 
-    private void HandleError(Exception ex)
-    {
-        Log.TransportError(_logger, ex);
-        this.OnDisconnected?.Invoke(this, ex);
-        _ = this.DisconnectAsync();
-    }
-
-    /// <inheritdoc/>
-    public override void Dispose()
-    {
-        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-        {
-            return;
-        }
-
-        _ = this.DisconnectAsync();
-        _sender.Dispose();
-        _reader.Dispose();
-        GC.SuppressFinalize(this);
-    }
-
-    private static partial class Log
-    {
-        [LoggerMessage(1, LogLevel.Information, "[TCP] Connected to {Host}:{Port}")]
-        public static partial void Connected(ILogger? logger, string host, int port);
-
-        [LoggerMessage(2, LogLevel.Error, "[TCP] Failed to connect to {Host}:{Port}")]
-        public static partial void ConnectFailed(ILogger? logger, string host, int port, Exception ex);
-
-        [LoggerMessage(3, LogLevel.Information, "[TCP] Disconnected.")]
-        public static partial void Disconnected(ILogger? logger);
-
-        [LoggerMessage(4, LogLevel.Error, "[TCP] Async handler faulted.")]
-        public static partial void AsyncHandlerFaulted(ILogger? logger, Exception ex);
-
-        [LoggerMessage(5, LogLevel.Error, "[TCP] Message delivery faulted.")]
-        public static partial void MessageDeliveryFaulted(ILogger? logger, Exception ex);
-
-        [LoggerMessage(6, LogLevel.Error, "[TCP] Transport error occurred.")]
-        public static partial void TransportError(ILogger? logger, Exception ex);
-    }
+    #endregion Private
 }

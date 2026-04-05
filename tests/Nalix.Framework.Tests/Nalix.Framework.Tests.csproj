@@ -5,27 +5,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="FluentAssertions" Version="8.8.0" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+		<PackageReference Include="FluentAssertions" Version="8.9.0" />
 		<PackageReference Include="Moq" Version="4.20.72" />
-		<PackageReference Include="xunit" Version="2.9.3" />
-		<PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
 		<PackageReference Include="Xunit.SkippableFact" Version="1.5.61" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<Reference Include="Nalix.Common">
-			<HintPath>..\..\build\bin\$(Configuration)\net10.0\Nalix.Common.dll</HintPath>
-		</Reference>
-		<Reference Include="Nalix.Framework">
-			<HintPath>..\..\build\bin\$(Configuration)\net10.0\Nalix.Framework.dll</HintPath>
-		</Reference>
-		<Reference Include="Nalix.Logging">
-			<HintPath>..\..\build\bin\$(Configuration)\net10.0\Nalix.Logging.dll</HintPath>
-		</Reference>
+		<ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
 	</ItemGroup>
 
 </Project>

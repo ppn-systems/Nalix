@@ -1,5 +1,4 @@
 <Solution>
   <Project Path="Nalix.Examples/Nalix.Examples.csproj" />
   <Project Path="Nalix.Network.Examples/Nalix.Network.Examples.csproj" />
-  <Project Path="Nalix.SDK.Examples/Nalix.SDK.Examples.csproj" Id="7afa67c5-8e32-4f6b-a576-9f700bd8afed" />
 </Solution>

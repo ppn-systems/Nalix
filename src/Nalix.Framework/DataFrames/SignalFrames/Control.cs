@@ -15,30 +15,38 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// </summary>
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned
+public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned, IFixedSizeSerializable
 {
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public static int Size => PacketConstants.HeaderSize
+        + sizeof(ProtocolReason)
+        + sizeof(ControlType)
+        + sizeof(long)
+        + sizeof(long);
+
     /// <summary>
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 0)]
+    [SerializeOrder(0)]
     public ProtocolReason Reason { get; set; }
 
     /// <summary>
     /// Gets or sets the binary content of the packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 1)]
+    [SerializeOrder(1)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the timestamp associated with this packet.s
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 2)]
+    [SerializeOrder(2)]
     public long Timestamp { get; set; }
 
     /// <summary>
     /// Gets or sets the monotonic timestamp (in ticks) for RTT measurement.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Region + 3)]
+    [SerializeOrder(3)]
     public long MonoTicks { get; set; }
 
     /// <summary>

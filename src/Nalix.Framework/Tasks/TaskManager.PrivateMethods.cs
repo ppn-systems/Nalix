@@ -66,6 +66,11 @@ public partial class TaskManager
             WorkerState st = kv.Value;
             TimeSpan? keep = st.Options.RetainFor;
 
+            if (!st.HasCompleted)
+            {
+                continue;
+            }
+
             if (keep is null || keep <= TimeSpan.Zero)
             {
                 continue;
@@ -99,6 +104,238 @@ public partial class TaskManager
     }
 
     #endregion Internal Cleanup
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private void ENQUEUE_WORKER(WorkerState worker)
+    {
+        long sequence = Interlocked.Increment(ref _workerScheduleSequence);
+        (int priorityKey, long sequence) priority = (-(int)worker.Options.Priority, sequence);
+
+        lock (_pendingWorkersLock)
+        {
+            _pendingWorkers.Enqueue(worker, priority);
+        }
+
+        _ = _pendingWorkersSignal.Release();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private bool TRY_START_WORKER_FAST(WorkerState worker)
+    {
+        lock (_pendingWorkersLock)
+        {
+            if (_pendingWorkers.Count != 0)
+            {
+                return false;
+            }
+
+            if (!_globalConcurrencyGate.Wait(0))
+            {
+                return false;
+            }
+        }
+
+        this.START_WORKER_EXECUTION(worker);
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private async Task WORKER_DISPATCH_LOOP_ASYNC(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await _pendingWorkersSignal.WaitAsync(ct).ConfigureAwait(false);
+                await _globalConcurrencyGate.WaitAsync(ct).ConfigureAwait(false);
+
+                WorkerState? worker = null;
+
+                try
+                {
+                    lock (_pendingWorkersLock)
+                    {
+                        if (_pendingWorkers.Count > 0)
+                        {
+                            worker = _pendingWorkers.Dequeue();
+                        }
+                    }
+
+                    if (worker is null)
+                    {
+                        _ = _globalConcurrencyGate.Release();
+                        continue;
+                    }
+
+                    this.START_WORKER_EXECUTION(worker);
+                }
+                catch (Exception ex)
+                {
+                    _ = _globalConcurrencyGate.Release();
+
+                    if (worker is not null)
+                    {
+                        worker.MarkError(ex);
+                        _ = Interlocked.Increment(ref _workerErrorCount);
+                        this.RETAIN_OR_REMOVE(worker);
+                    }
+
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Error($"[FW.{nameof(TaskManager)}] worker-dispatch-error msg={ex.Message}");
+                }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(TaskManager)}] worker-dispatch-loop-error msg={ex.Message}");
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private void START_WORKER_EXECUTION(WorkerState st)
+    {
+        string name = st.Name;
+        string group = st.Group;
+        ISnowflake id = st.Id;
+        IWorkerOptions options = st.Options;
+        CancellationTokenSource cts = st.Cts;
+        WorkerOptions? concreteOptions = options as WorkerOptions;
+
+        Gate? gate = null;
+        if (options.GroupConcurrencyLimit is int cap && cap > 0)
+        {
+            gate = _groupGates.GetOrAdd(group, _ => new Gate(new SemaphoreSlim(cap, cap), cap));
+        }
+
+        st.Task = Task.Run(async () =>
+        {
+            bool acquired = false;
+            CancellationToken ct = cts.Token;
+            bool completedSuccessfully = false;
+            bool wasCancelled = false;
+            Exception? failure = null;
+
+            try
+            {
+                if (gate is not null)
+                {
+                    if (options.TryAcquireSlotImmediately)
+                    {
+                        acquired = await gate.SemaphoreSlim.WaitAsync(0, ct)
+                                                           .ConfigureAwait(false);
+                        if (!acquired)
+                        {
+                            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                    .Warn($"[FW.{nameof(TaskManager)}] worker-reject name={name} group={group} reason=group-cap");
+
+                            _ = _workers.TryRemove(id, out _);
+                            try
+                            {
+                                cts.Dispose();
+                            }
+                            catch (Exception ex)
+                            {
+                                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                        .Warn($"[FW.{nameof(TaskManager)}] cts-dispose-error-reject id={id} msg={ex.Message}");
+                            }
+
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        await gate.SemaphoreSlim.WaitAsync(ct)
+                                                .ConfigureAwait(false);
+                        acquired = true;
+                    }
+                }
+
+                st.MarkStart();
+                WorkerContext ctx = new(st, this);
+
+                if (options.ExecutionTimeout is { } to && to > TimeSpan.Zero)
+                {
+                    using CancellationTokenSource wcts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    wcts.CancelAfter(to);
+                    await st.Work(ctx, wcts.Token).ConfigureAwait(false);
+                }
+                else
+                {
+                    await st.Work(ctx, ct).ConfigureAwait(false);
+                }
+
+                completedSuccessfully = true;
+            }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested)
+            {
+                wasCancelled = true;
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+                _ = Interlocked.Increment(ref _workerErrorCount);
+
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[FW.{nameof(TaskManager)}] worker-error id={id} name={name} msg={ex.Message}");
+            }
+            finally
+            {
+                try
+                {
+                    if (failure is null)
+                    {
+                        concreteOptions?.OnCompleted?.Invoke(st);
+                    }
+                    else
+                    {
+                        concreteOptions?.OnFailed?.Invoke(st, failure);
+                    }
+                }
+                catch (Exception cbex)
+                {
+                    _ = Interlocked.Increment(ref _workerErrorCount);
+
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}] worker-callback-error id={id} msg={cbex.Message}");
+                }
+
+                if (failure is not null)
+                {
+                    st.MarkError(failure);
+                }
+                else if (completedSuccessfully || wasCancelled)
+                {
+                    st.MarkStop();
+                }
+
+                if (gate is not null && acquired)
+                {
+                    try
+                    {
+                        _ = gate.SemaphoreSlim.Release();
+                    }
+                    catch (Exception ex)
+                    {
+                        _ = Interlocked.Increment(ref _workerErrorCount);
+
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[FW.{nameof(TaskManager)}] gate-release-error id={id} msg={ex.Message}");
+                    }
+                }
+
+                this.RETAIN_OR_REMOVE(st);
+                _ = _globalConcurrencyGate.Release();
+            }
+        });
+
+        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                .Debug($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private async Task RECURRING_LOOP_ASYNC(

@@ -22,38 +22,35 @@ public abstract class FrameBase : IPacket
     /// </summary>
     [SerializeIgnore] public abstract int Length { get; }
 
-    /// <inheritdoc/>
-    [SerializeIgnore] int IPacket.Length => this.Length;
-
     /// <summary>
     /// Gets the magic number used to identify the packet format.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.MagicNumber)] public uint MagicNumber { get; set; }
+    [SerializeHeader(PacketHeaderOffset.MagicNumber)] public uint MagicNumber { get; set; }
 
     /// <summary>
     /// Gets the operation code (OpCode) of this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.OpCode)] public ushort OpCode { get; set; }
+    [SerializeHeader(PacketHeaderOffset.OpCode)] public ushort OpCode { get; set; }
 
     /// <summary>
     /// Gets the flags associated with this packet.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Flags)] public PacketFlags Flags { get; set; }
+    [SerializeHeader(PacketHeaderOffset.Flags)] public PacketFlags Flags { get; set; }
 
     /// <summary>
     /// Gets the packet priority.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Priority)] public PacketPriority Priority { get; set; }
+    [SerializeHeader(PacketHeaderOffset.Priority)] public PacketPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.Transport)] public ProtocolType Protocol { get; set; }
+    [SerializeHeader(PacketHeaderOffset.Transport)] public ProtocolType Protocol { get; set; }
 
     /// <summary>
     /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
     /// </summary>
-    [SerializeOrder(PacketHeaderOffset.SequenceId)] public uint SequenceId { get; set; }
+    [SerializeHeader(PacketHeaderOffset.SequenceId)] public uint SequenceId { get; set; }
 
     /// <inheritdoc/>
     public abstract void ResetForPool();

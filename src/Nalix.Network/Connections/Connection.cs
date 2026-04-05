@@ -254,7 +254,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             return;
         }
 
-        _ = Internal.Transport.AsyncCallback.Invoke(self._onProcessEvent, self, e);
+        self._onProcessEvent?.Invoke(self, e);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -265,7 +265,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             return;
         }
 
-        _ = Internal.Transport.AsyncCallback.Invoke(self._onPostProcessEvent, self, e);
+        self._onPostProcessEvent?.Invoke(self, e);
     }
 
     #endregion Event Bridges

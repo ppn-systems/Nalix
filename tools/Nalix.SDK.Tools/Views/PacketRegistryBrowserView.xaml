@@ -1,0 +1,149 @@
+<UserControl x:Class="Nalix.SDK.Tools.Views.PacketRegistryBrowserView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="clr-namespace:Nalix.SDK.Tools.Models">
+    <UserControl.Resources>
+        <Style x:Key="RegistryTreePrimaryTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TreeViewItem}, Path=IsSelected}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="RegistryTreeTypeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource RegistryTreePrimaryTextStyle}">
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+        </Style>
+        <HierarchicalDataTemplate DataType="{x:Type models:PacketPropertyDefinition}"
+                                  ItemsSource="{Binding Children}">
+            <Grid HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="RegistryPropertyColumn" />
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="RegistryTypeColumn" />
+                </Grid.ColumnDefinitions>
+                <TextBlock MinWidth="180"
+                           FontWeight="SemiBold"
+                           Style="{StaticResource RegistryTreePrimaryTextStyle}"
+                           Text="{Binding DisplayName}" />
+                <TextBlock Grid.Column="1"
+                           MinWidth="150"
+                           Margin="20,0,0,0"
+                           Style="{StaticResource RegistryTreeTypeTextStyle}"
+                           Text="{Binding PropertyType.Name}"
+                           TextWrapping="NoWrap" />
+            </Grid>
+        </HierarchicalDataTemplate>
+        <Style x:Key="RegistryTreeItemStyle" TargetType="TreeViewItem">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="Padding" Value="3,2" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+                </Trigger>
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsSelected" Value="True" />
+                        <Condition Property="IsSelectionActive" Value="False" />
+                    </MultiTrigger.Conditions>
+                    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+                </MultiTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <GroupBox Header="{Binding Source={StaticResource ToolTexts}, Path=GroupRegisteredPackets}">
+            <DockPanel Margin="12">
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                    <TextBlock Margin="0,0,0,4"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               Text="{Binding Source={StaticResource ToolTexts}, Path=LabelRegistrySearch}" />
+                    <TextBox Margin="0,0,0,8"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{Binding Source={StaticResource ToolTexts}, Path=RegistrySearchPlaceholder}" />
+                    <UniformGrid Columns="2">
+                        <Button Margin="0,0,8,0"
+                                Command="{Binding LoadPacketAssemblyCommand}"
+                                Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonLoadPacketDll}" />
+                        <Button Command="{Binding ToggleFavoriteCommand}"
+                                Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonFavoritePacket}" />
+                    </UniformGrid>
+                    <CheckBox Margin="0,8,0,0"
+                              Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonFavoritesOnly}"
+                              IsChecked="{Binding FavoritesOnly}" />
+                </StackPanel>
+                <ListBox FontFamily="Consolas"
+                         DisplayMemberPath="DisplayText"
+                         ItemsSource="{Binding Entries}"
+                         SelectedItem="{Binding SelectedEntry}" />
+            </DockPanel>
+        </GroupBox>
+
+        <Border Grid.Column="2"
+                Padding="16"
+                Background="{DynamicResource SurfaceBrush}"
+                CornerRadius="10"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <TextBlock FontSize="22" FontWeight="SemiBold" Text="{Binding SelectedPacketType.Name}" />
+                <TextBlock Grid.Row="1"
+                           Margin="0,6,0,14"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           TextWrapping="Wrap"
+                           Text="{Binding SelectedPacketDetailSummary}" />
+                <Border Grid.Row="2"
+                        Padding="12"
+                        Background="{DynamicResource SurfaceAltBrush}"
+                        CornerRadius="8"
+                        BorderBrush="{DynamicResource BorderStrongBrush}"
+                        BorderThickness="1">
+                    <Grid Grid.IsSharedSizeScope="True">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="RegistryPropertyColumn" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="RegistryTypeColumn" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock MinWidth="180"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Text="{Binding Source={StaticResource ToolTexts}, Path=RegistryPropertyHeader}" />
+                            <TextBlock Grid.Column="1"
+                                       MinWidth="150"
+                                       Margin="20,0,0,0"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource PrimaryTextBrush}"
+                                       Text="{Binding Source={StaticResource ToolTexts}, Path=RegistryTypeHeader}" />
+                        </Grid>
+
+                        <TreeView Grid.Row="1"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  Padding="0"
+                                  ItemContainerStyle="{StaticResource RegistryTreeItemStyle}"
+                                  ItemsSource="{Binding SelectedPacketType.Properties}" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

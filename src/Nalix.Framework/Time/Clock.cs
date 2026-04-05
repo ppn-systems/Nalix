@@ -20,17 +20,17 @@ public static partial class Clock
     #region Constants and Fields
 
     // Baseline values used to anchor the monotonic stopwatch to UTC time.
-    private static readonly DateTime UtcBase;
-    private static readonly long UtcBaseTicks;
-    private static readonly double DriftSmoothing;
-    private static readonly Stopwatch UtcStopwatch;
+    private static readonly DateTime s_utcBase;
+    private static readonly long s_utcBaseTicks;
+    private static readonly double s_driftSmoothing;
+    private static readonly Stopwatch s_utcStopwatch;
 
     // Synchronization state: offset, drift correction, and last sync markers.
-    private static long _timeOffset;
-    private static double _driftCorrection;
-    private static long _lastSyncMonoTicks;
-    private static DateTime _lastExternalTime;
-    private static readonly double _swToDateTimeTicks;
+    private static long s_timeOffset;
+    private static double s_driftCorrection;
+    private static long s_lastSyncMonoTicks;
+    private static DateTime s_lastExternalTime;
+    private static readonly double s_swToDateTimeTicks;
 
     #endregion Constants and Fields
 
@@ -57,19 +57,19 @@ public static partial class Clock
 
     static Clock()
     {
-        _timeOffset = 0; // UTC offset relative to the monotonic estimate, in ticks.
-        _driftCorrection = 1.0; // Drift multiplier applied to elapsed stopwatch time.
-        _swToDateTimeTicks = (double)TimeSpan.TicksPerSecond / Stopwatch.Frequency;
+        s_timeOffset = 0; // UTC offset relative to the monotonic estimate, in ticks.
+        s_driftCorrection = 1.0; // Drift multiplier applied to elapsed stopwatch time.
+        s_swToDateTimeTicks = (double)TimeSpan.TicksPerSecond / Stopwatch.Frequency;
 
         // The initial estimate is based on the current UTC time and then refined
         // by later synchronization calls.
-        DriftSmoothing = 0.1;
+        s_driftSmoothing = 0.1;
         IsSynchronized = false;
-        UtcBase = DateTime.UtcNow;
+        s_utcBase = DateTime.UtcNow;
 
-        UtcBaseTicks = UtcBase.Ticks;
+        s_utcBaseTicks = s_utcBase.Ticks;
         LastSyncTime = DateTime.MinValue;
-        UtcStopwatch = Stopwatch.StartNew();
+        s_utcStopwatch = Stopwatch.StartNew();
     }
 
     #endregion Constructors
@@ -102,17 +102,17 @@ public static partial class Clock
 
         long nowMono = Stopwatch.GetTimestamp();
 
-        DateTime prevExt = _lastExternalTime;
+        DateTime prevExt = s_lastExternalTime;
 
         IsSynchronized = true;
         LastSyncTime = externalTime;
 
-        Volatile.Write(ref _timeOffset, (long)(diffMs * TimeSpan.TicksPerMillisecond));
+        Volatile.Write(ref s_timeOffset, (long)(diffMs * TimeSpan.TicksPerMillisecond));
 
         if (prevExt != DateTime.MinValue)
         {
             double extElapsed = (externalTime - prevExt).TotalSeconds;
-            long deltaMono = nowMono - _lastSyncMonoTicks;
+            long deltaMono = nowMono - s_lastSyncMonoTicks;
 
             double monoElapsed = deltaMono / (double)Stopwatch.Frequency;
             // Update the drift estimate only when enough monotonic time has passed
@@ -120,16 +120,16 @@ public static partial class Clock
             if (monoElapsed > 60.0)
             {
                 double drift = extElapsed / monoElapsed;
-                double dc = _driftCorrection;
+                double dc = s_driftCorrection;
                 // Smooth the correction so one noisy sync sample does not swing the
                 // clock estimate too aggressively.
-                dc += (drift - dc) * DriftSmoothing;
-                Volatile.Write(ref _driftCorrection, dc);
+                dc += (drift - dc) * s_driftSmoothing;
+                Volatile.Write(ref s_driftCorrection, dc);
             }
         }
 
-        _lastExternalTime = externalTime;
-        _lastSyncMonoTicks = nowMono;
+        s_lastExternalTime = externalTime;
+        s_lastSyncMonoTicks = nowMono;
 
         return diffMs;
     }
@@ -193,8 +193,8 @@ public static partial class Clock
     {
         // Clear both the offset and the drift estimate so future reads fall back
         // to the local system clock until a new synchronization arrives.
-        _ = Interlocked.Exchange(ref _timeOffset, 0);
-        _ = Interlocked.Exchange(ref _driftCorrection, 1.0);
+        _ = Interlocked.Exchange(ref s_timeOffset, 0);
+        _ = Interlocked.Exchange(ref s_driftCorrection, 1.0);
 
         IsSynchronized = false;
         LastSyncTime = DateTime.MinValue;
@@ -203,7 +203,7 @@ public static partial class Clock
     /// <summary>Gets the estimated clock drift rate.</summary>
     /// <returns>A value greater than 1.0 indicates the local clock is slower than the reference clock.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static double DriftRate() => Volatile.Read(ref _driftCorrection);
+    public static double DriftRate() => Volatile.Read(ref s_driftCorrection);
 
     /// <summary>Gets the current error estimate between synchronized time and system time, in milliseconds.</summary>
     /// <returns>The current error estimate, in milliseconds.</returns>

@@ -1,5 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+
 using System.Security.Cryptography;
 using Nalix.Framework.Security.Aead;
 using Xunit;
@@ -9,7 +10,7 @@ namespace Nalix.Framework.Tests.Cryptography;
 /// <summary>
 /// Unit tests for Salsa20Poly1305 AEAD implementation.
 /// </summary>
-public class Salsa20Poly1305Tests
+public sealed class Salsa20Poly1305Tests
 {
     private static byte[] RandomBytes(int length)
     {
@@ -24,11 +25,10 @@ public class Salsa20Poly1305Tests
     [Theory]
     [InlineData(16)]
     [InlineData(32)]
-    public void EncryptDecryptRoundTripSpan(int keySize)
+    public void EncryptThenDecryptWithSpanApiRoundTripsPayload(int keySize)
     {
-        // Arrange
         byte[] key = RandomBytes(keySize);
-        byte[] nonce = RandomBytes(8); // Salsa20 nonce size (8)
+        byte[] nonce = RandomBytes(8);
         byte[] plaintext = RandomBytes(128);
         byte[] aad = RandomBytes(20);
 
@@ -36,15 +36,12 @@ public class Salsa20Poly1305Tests
         byte[] tag = new byte[Salsa20Poly1305.TagSize];
         byte[] recovered = new byte[plaintext.Length];
 
-        // Act: encrypt (Span API)
         int ctWritten = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ciphertext, tag);
         Assert.Equal(plaintext.Length, ctWritten);
 
-        // Act: decrypt (Span API)
         int ptWritten = Salsa20Poly1305.Decrypt(key, nonce, ciphertext, aad, tag, recovered);
         Assert.Equal(plaintext.Length, ptWritten);
 
-        // Assert: plaintext matches
         Assert.Equal(plaintext, recovered);
     }
 
@@ -52,9 +49,8 @@ public class Salsa20Poly1305Tests
     /// Tampering with the authentication tag should cause Span-based decryption to return a negative value.
     /// </summary>
     [Fact]
-    public void DecryptTamperedTagReturnsNegativeSpan()
+    public void DecryptWhenTagIsTamperedReturnsNegativeResult()
     {
-        // Arrange
         byte[] key = RandomBytes(32);
         byte[] nonce = RandomBytes(8);
         byte[] plaintext = RandomBytes(32);
@@ -64,17 +60,11 @@ public class Salsa20Poly1305Tests
         byte[] tag = new byte[Salsa20Poly1305.TagSize];
 
         _ = Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, ciphertext, tag);
-
-        // Tamper with tag
         tag[0] ^= 0xFF;
-
-        // Destination buffer for plaintext
         byte[] recovered = new byte[plaintext.Length];
 
-        // Act
         int result = Salsa20Poly1305.Decrypt(key, nonce, ciphertext, aad, tag, recovered);
 
-        // Assert: decryption should fail (method returns negative according to implementation)
         Assert.True(result < 0, "Span-based Decrypt should return a negative value on authentication failure.");
     }
 }

@@ -8,6 +8,7 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Formatters.Automatic;
@@ -99,7 +100,8 @@ public static class LiteSerializer
         else if (kind is TypeKind.FixedSizeSerializable)
         {
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
-            DataWriter writer = (size > 512) ? new(size) : new(512);
+            int capacity = GetExactLengthOrDefault(value, size > 0 ? size : 512);
+            DataWriter writer = new(capacity);
 
             try
             {
@@ -114,7 +116,8 @@ public static class LiteSerializer
         else if (kind is TypeKind.None)
         {
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
-            DataWriter writer = (size > 512) ? new(size) : new(512);
+            int capacity = GetExactLengthOrDefault(value, 512);
+            DataWriter writer = new(capacity);
 
             try
             {
@@ -177,9 +180,11 @@ public static class LiteSerializer
 
         if (kind is TypeKind.FixedSizeSerializable)
         {
-            if (buffer.Length < fixedSize)
+            int required = fixedSize;
+
+            if (buffer.Length < required)
             {
-                throw new SerializationFailureException($"Buffer too small. Required: {fixedSize}, Actual: {buffer.Length}");
+                throw new SerializationFailureException($"Buffer too small. Required: {required}, Actual: {buffer.Length}");
             }
 
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
@@ -195,7 +200,6 @@ public static class LiteSerializer
                 writer.Dispose();
             }
         }
-
         throw new SerializationFailureException(
             $"Array-based serialization is not supported for type {typeof(T)}. Use Serialize<T>(in T) to get byte[] instead.");
     }
@@ -333,6 +337,16 @@ public static class LiteSerializer
         // (because Span-based DataWriter cannot Expand()).
         if (kind is TypeKind.None)
         {
+            int required = value is IPacket packet
+                ? packet.Length
+                : GetExactLengthOrThrow(value);
+            if (buffer.Length < required)
+            {
+                throw new SerializationFailureException(
+                    $"Buffer too small for variable-length type '{typeof(T)}'. " +
+                    $"Required: {required}, Actual: {buffer.Length}.");
+            }
+
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
 
             // DataWriter(Span<byte>) wraps the span directly — no renting, no pool.
@@ -696,6 +710,44 @@ public static class LiteSerializer
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
         => TypeMetadata.IsReferenceOrNullable<T>() &&
            TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out _) is not TypeKind.UnmanagedSZArray;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetExactLengthOrDefault<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value, int fallback)
+    {
+        try
+        {
+            return GetExactLengthOrThrow(value);
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetExactLengthOrThrow<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
+    {
+        if (RootFormatterCache<T>.ThrowsOnNull && value is null)
+        {
+            throw new SerializationFailureException(
+                $"Cannot serialize null reference type '{typeof(T).FullName}' without an explicit nullable wrapper.");
+        }
+
+        if (value is IPacket packet)
+        {
+            return packet.Length;
+        }
+
+        if (TypeMetadata.TryGetNestedSize(value, out int length))
+        {
+            return length;
+        }
+
+        throw new SerializationFailureException(
+            $"Unable to determine exact serialized length for type '{typeof(T).FullName}'.");
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> ResolveRootFormatter<
