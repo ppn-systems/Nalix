@@ -42,11 +42,16 @@ public abstract partial class TcpListenerBase
         {
             this.DoAccept(connection);
 
-            s_logger?.Trace("[NW.{Class}:{Action}] new={Endpoint}", nameof(TcpListenerBase), nameof(ProcessConnection), connection.NetworkEndpoint);
+            s_logger?.Trace(
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] " +
+                $"new={connection.NetworkEndpoint}");
         }
         catch (Exception ex)
         {
-            s_logger?.Error(ex, "[NW.{Class}:{Action}] process-error={Endpoint}", nameof(TcpListenerBase), nameof(ProcessConnection), connection.NetworkEndpoint);
+            s_logger?.Error(
+                ex,
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] " +
+                $"process-error={connection.NetworkEndpoint}");
 
             // Close the connection immediately if an error occurs -> prevent resource leaks.
             // WHY close here: If OnAccept throws an error, the connection has not been registered to any
@@ -91,7 +96,9 @@ public abstract partial class TcpListenerBase
         args.Connection.OnProcessEvent -= _protocol.ProcessMessage;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
 
-        s_logger?.Trace("[NW.{Class}:{Action}] close={Endpoint}", nameof(TcpListenerBase), nameof(HandleConnectionClose), args.Connection.NetworkEndpoint);
+        s_logger?.Trace(
+            $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] " +
+            $"close={args.Connection.NetworkEndpoint}");
         args.Connection.Dispose();
     }
 
@@ -191,7 +198,9 @@ public abstract partial class TcpListenerBase
         {
             // Log in Trace (not Error) because this is expected failure in error-recovery path.
             // WHY not rethrow: Currently in cleanup path -> the second exception will obscure the original exception.
-            s_logger?.Trace("[NW.{Class}:{Action}] accept-error ex={Error}", nameof(TcpListenerBase), "Internal", ex.Message);
+            s_logger?.Trace(
+                $"[NW.{nameof(TcpListenerBase)}:Internal] " +
+                $"accept-error ex={ex.Message}");
         }
     }
 
@@ -246,8 +255,9 @@ public abstract partial class TcpListenerBase
             {
                 // SocketError check first — cheapest path, no pattern match required.
                 // This is an early exit for all OS-level errors (Interrupted, OperationAborted, etc.)
-                s_logger?.Warn("[NW.{Class}:{Action}] accept-failed={SocketError}",
-                    nameof(TcpListenerBase), nameof(HandleAccept), args.SocketError);
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
+                    $"accept-failed={args.SocketError}");
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
                 return;
@@ -258,8 +268,9 @@ public abstract partial class TcpListenerBase
                 // SocketError == Success but AcceptSocket null — a rare case,
                 // usually due to a race between Close() and Completed callbacks.
                 // No socket to log endpoint, logging warning is sufficient.
-                s_logger?.Warn("[NW.{Class}:{Action}] accept-socket-null port={Port}",
-                    nameof(TcpListenerBase), nameof(HandleAccept), _port);
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
+                    $"accept-socket-null port={_port}");
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
                 return;
@@ -287,8 +298,9 @@ public abstract partial class TcpListenerBase
             catch (ObjectDisposedException)
             {
                 // Listener is disposed of while accept is running -> this is expected shutdown case.
-                s_logger?.Warn("[NW.{Class}:{Action}] disposed-during-accept remote={RemoteEndPoint}",
-                    nameof(TcpListenerBase), nameof(HandleAccept), socket.RemoteEndPoint?.ToString() ?? "<null>");
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
+                    $"disposed-during-accept remote={socket.RemoteEndPoint?.ToString() ?? "<null>"}");
 
                 SafeCloseSocket(socket);
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -296,7 +308,10 @@ public abstract partial class TcpListenerBase
             catch (Exception ex)
             {
                 this.Metrics.RECORD_ERROR();
-                s_logger?.Error(ex, "[NW.{Class}:{Action}] accept-error port={Port}", nameof(TcpListenerBase), nameof(HandleAccept), _port);
+                s_logger?.Error(
+                    ex,
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
+                    $"accept-error port={_port}");
 
                 SafeCloseSocket(socket);
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -461,7 +476,10 @@ public abstract partial class TcpListenerBase
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                s_logger?.Error(ex, "[NW.{Class}:{Action}] accept-error port={Port}", nameof(TcpListenerBase), nameof(AcceptNext), _port);
+                s_logger?.Error(
+                    ex,
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] " +
+                    $"accept-error port={_port}");
 
                 // Delay 50ms to avoid CPU spinning during persistent errors (eg, file descriptor explosion).
                 // WHY GetAwaiter().GetResult(): This is sync context -> blocking is correct.
@@ -544,7 +562,9 @@ public abstract partial class TcpListenerBase
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 // Token cancelled -> shutdown graceful -> exit loop.
-                s_logger?.Trace("[NW.{Class}:{Action}] shutdown-requested port={Port}", nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), _port);
+                s_logger?.Trace(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
+                    $"shutdown-requested port={_port}");
                 break;
             }
             catch (NetworkException)
@@ -568,8 +588,9 @@ public abstract partial class TcpListenerBase
                 }
 
                 this.Metrics.RECORD_ERROR();
-                s_logger?.Warn("[NW.{Class}:{Action}] transient-socket-error={SocketError} port={Port}",
-                    nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), ex.SocketErrorCode, _port);
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
+                    $"transient-socket-error={ex.SocketErrorCode} port={_port}");
 
                 // Transient OS-level error -> record metric + delay + retry.
                 // WHY 50ms: Longer than NetworkException delay because OS-level errors often require a recovery time.
@@ -580,22 +601,28 @@ public abstract partial class TcpListenerBase
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 this.Metrics.RECORD_ERROR();
-                s_logger?.Error(ex, "[NW.{Class}:{Action}] accept-error port={Port}", nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), _port);
+                s_logger?.Error(
+                    ex,
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
+                    $"accept-error port={_port}");
 
                 // Unexpected error -> record + log + delay 50ms to avoid CPU spin.
                 await Task.Delay(50, cancellationToken).ConfigureAwait(false);
                 continue;
             }
 
-            s_logger?.Trace("[NW.{Class}:{Action}] accepted remote={RemoteEndPoint} port={Port}",
-                nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), connection.NetworkEndpoint, _port);
+            s_logger?.Trace(
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
+                $"accepted remote={connection.NetworkEndpoint} port={_port}");
 
             // Send the connection to process channel -> consumer thread for processing.
             this.DISPATCH_CONNECTION(connection);
             ctx.Advance(1, note: "accepted");
         }
 
-        s_logger?.Trace("[NW.{Class}:{Action}] loop-exited port={Port}", nameof(TcpListenerBase), nameof(AcceptConnectionsAsync), _port);
+        s_logger?.Trace(
+            $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
+            $"loop-exited port={_port}");
     }
 
     /// <summary>
@@ -721,10 +748,15 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    /// <inheritdoc/>
+    /// <param name="connection">
+    /// The fully initialized <see cref="IConnection"/> instance representing the accepted client.
+    /// Must not be <see langword="null"/>.
+    /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void DoAccept(IConnection c)
+    protected void DoAccept(IConnection connection)
     {
-        _protocol.OnAccept(c, _cancellationToken);
+        _protocol.OnAccept(connection, _cancellationToken);
         this.Metrics.RECORD_ACCEPTED();
     }
 

@@ -75,14 +75,14 @@ Its job is to:
 - detect fragmented frames
 - reassemble full payloads through `FragmentAssembler`
 - decrypt and decompress after reassembly
-- deliver the finished `BufferLease` upward
+- deliver the finished pooled lease upward
 
 ## Ownership model
 
 Ownership is important on the receive path:
 
 - `FRAME_READER` creates the `BufferLease`
-- if the frame is fragmented, chunk data is copied into the assembler and the chunk lease is disposed immediately
+- if the frame is fragmented, chunk data is copied into the assembler's pooled lease and the chunk lease is disposed immediately
 - for a complete frame, `FRAME_READER` passes the lease to the session callback
 - the upper layer becomes the sole owner and must dispose it
 
