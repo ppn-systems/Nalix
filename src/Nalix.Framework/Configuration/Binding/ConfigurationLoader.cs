@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
 
@@ -29,7 +29,7 @@ namespace Nalix.Framework.Configuration.Binding;
 /// </remarks>
 [SkipLocalsInit]
 [DebuggerDisplay("{GetType().Name,nq} (Initialized = {IsInitialized})")]
-public abstract partial class ConfigurationLoader
+public abstract partial class ConfigurationLoader : ITraceable
 {
     #region Fields
 
@@ -76,6 +76,15 @@ public abstract partial class ConfigurationLoader
     public DateTime LastInitializationTime { get; private set; }
 
     #endregion Properties
+
+    #region Events
+
+    /// <summary>
+    /// Raised when configuration loading emits a lightweight trace message.
+    /// </summary>
+    public event Action<string>? TraceOccurred;
+
+    #endregion Events
 
     #region Constructor
 
@@ -139,8 +148,7 @@ public abstract partial class ConfigurationLoader
         ConfigurationMetadata metadata = GetOrCreateMetadata(type);
         string section = GetSectionName(type);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
+        this.TRACE($"[FW.{nameof(ConfigurationLoader)}:Internal] init type={type.Name} section={section}");
 
         // Write the section-level comment before the first property is processed.
         // IniConfig.WriteComment is a no-op when the section already exists, so the
@@ -157,8 +165,7 @@ public abstract partial class ConfigurationLoader
                 if (value == null ||
                    (value is string strValue && string.IsNullOrEmpty(strValue)))
                 {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Trace($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
+                    this.TRACE($"[FW.{nameof(ConfigurationLoader)}:Internal] missing-value section={section} key={propertyInfo.Name}");
 
                     // HandleEmptyValue writes the comment and default value for new
                     // keys so newly discovered settings are self-documenting.
@@ -190,4 +197,7 @@ public abstract partial class ConfigurationLoader
     }
 
     #endregion Private Methods
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void TRACE(string message) => TraceOccurred?.Invoke(message);
 }
