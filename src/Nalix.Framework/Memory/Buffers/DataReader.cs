@@ -96,7 +96,9 @@ public unsafe struct DataReader : IDisposable
     /// <exception cref="OutOfMemoryException">Thrown when the span copy cannot be allocated.</exception>
     public DataReader(ReadOnlySpan<byte> span)
     {
-        _tempArray = span.ToArray();
+        byte[] temp = GC.AllocateUninitializedArray<byte>(span.Length);
+        span.CopyTo(temp);
+        _tempArray = temp;
         _pin = GCHandle.Alloc(_tempArray, GCHandleType.Pinned);
         _ptr = (byte*)_pin.AddrOfPinnedObject();
         this.BytesRemaining = _tempArray.Length;
@@ -123,7 +125,8 @@ public unsafe struct DataReader : IDisposable
         else
         {
             // fallback: allocate + copy
-            byte[] temp = memory.ToArray();
+            byte[] temp = GC.AllocateUninitializedArray<byte>(memory.Length);
+            memory.Span.CopyTo(temp);
             _pin = GCHandle.Alloc(temp, GCHandleType.Pinned);
             _ptr = (byte*)_pin.AddrOfPinnedObject();
             this.BytesRemaining = temp.Length;

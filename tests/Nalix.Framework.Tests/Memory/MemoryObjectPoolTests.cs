@@ -102,7 +102,7 @@ public sealed partial class MemoryTests
         int preallocated = manager.Prealloc<TestPoolable>(2);
         bool setCapacity = manager.SetMaxCapacity<TestPoolable>(4);
         Dictionary<string, object> typeInfo = manager.GetTypeInfo<TestPoolable>();
-        IDictionary<string, object> reportData = manager.GenerateReportData();
+        IDictionary<string, object> reportData = manager.GetReportData();
         string report = manager.GenerateReport();
 
         Assert.Equal(0, second.Value);

@@ -249,19 +249,19 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    // These SocketError occur when the listener is shutting down normally:
+    // Shutdown -> socket.Shutdown() is called.
+    // TimedOut -> accept timeout (if a socket timeout is set).
+    // NotSocket -> The socket was closed before accepting.
+    // WouldBlock -> non-blocking socket without pending connection.
+    // Interrupted -> accept is interrupted by signal/close.
+    // InvalidArgument -> invalid sockets args (usually after Close).
+    // OperationAborted -> async operation is destroyed (usually when Dispose).
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsIgnorableAcceptError(
         SocketError code,
         CancellationToken token)
-        // These SocketError occur when the listener is shutting down normally:
-        // Shutdown -> socket.Shutdown() is called.
-        // TimedOut -> accept timeout (if a socket timeout is set).
-        // NotSocket -> The socket was closed before accepting.
-        // WouldBlock -> non-blocking socket without pending connection.
-        // Interrupted -> accept is interrupted by signal/close.
-        // InvalidArgument -> invalid sockets args (usually after Close).
-        // OperationAborted -> async operation is destroyed (usually when Dispose).
         => token.IsCancellationRequested || code
         is SocketError.Shutdown
         or SocketError.TimedOut

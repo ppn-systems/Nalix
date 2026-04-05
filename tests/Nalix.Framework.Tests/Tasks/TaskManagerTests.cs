@@ -313,6 +313,134 @@ public sealed class TaskManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task ScheduleWorkerCompletionCallbackObservesFinalWorkerState()
+    {
+        using TaskManager manager = this.CreateManager();
+        TaskCompletionSource<(bool IsRunning, long TotalRuns, DateTimeOffset? LastHeartbeatUtc)> callbackState =
+            TaskManagerTestHost.CreateCompletionSource<(bool, long, DateTimeOffset?)>();
+
+        _ = manager.ScheduleWorker(
+            "worker.callback.state",
+            "group-a",
+            (_, _) => ValueTask.CompletedTask,
+            new WorkerOptions
+            {
+                RetainFor = TimeSpan.FromMinutes(1),
+                OnCompleted = worker => callbackState.TrySetResult((worker.IsRunning, worker.TotalRuns, worker.LastHeartbeatUtc))
+            });
+
+        (bool isRunning, long totalRuns, DateTimeOffset? lastHeartbeatUtc) =
+            await callbackState.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.False(isRunning);
+        Assert.Equal(1, totalRuns);
+        Assert.NotNull(lastHeartbeatUtc);
+    }
+
+    [Fact]
+    public async Task ScheduleWorkerAverageExecutionTimeTracksRuntimeInsteadOfEnqueueTime()
+    {
+        using TaskManager manager = this.CreateManager(new TaskManagerOptions
+        {
+            CleanupInterval = TimeSpan.FromSeconds(5),
+            DynamicAdjustmentEnabled = false,
+            IsEnableLatency = true,
+            MaxWorkers = 1
+        });
+
+        TaskCompletionSource<IWorkerHandle> completion = TaskManagerTestHost.CreateCompletionSource<IWorkerHandle>();
+
+        _ = manager.ScheduleWorker(
+            "worker.latency",
+            "group-latency",
+            async (_, cancellationToken) =>
+            {
+                await Task.Delay(120, cancellationToken).ConfigureAwait(true);
+            },
+            new WorkerOptions
+            {
+                RetainFor = TimeSpan.FromMinutes(1),
+                OnCompleted = worker => completion.TrySetResult(worker)
+            });
+
+        _ = await completion.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        await TaskManagerTestHost.WaitUntilAsync(
+            () => manager.GetWorkers(runningOnly: false).Count == 1 && manager.AverageWorkerExecutionTime >= 100,
+            TimeSpan.FromSeconds(2));
+
+        Assert.InRange(manager.AverageWorkerExecutionTime, 100, 1000);
+    }
+
+    [Fact]
+    public void ScheduleWorkerWhenGroupConcurrencyLimitConflictsThrowsInvalidOperationException()
+    {
+        using TaskManager manager = this.CreateManager();
+
+        _ = manager.ScheduleWorker(
+            "worker.group.limit.1",
+            "group-conflict",
+            async (_, cancellationToken) =>
+            {
+                await Task.Delay(50, cancellationToken).ConfigureAwait(true);
+            },
+            new WorkerOptions
+            {
+                GroupConcurrencyLimit = 1,
+                RetainFor = TimeSpan.FromMinutes(1)
+            });
+
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
+            manager.ScheduleWorker(
+                "worker.group.limit.2",
+                "group-conflict",
+                (_, _) => ValueTask.CompletedTask,
+                new WorkerOptions
+                {
+                    GroupConcurrencyLimit = 2,
+                    RetainFor = TimeSpan.FromMinutes(1)
+                }));
+
+        Assert.Contains("group-conflict", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CleanupWorkersRemovesUnusedGroupGateAfterRetentionExpires()
+    {
+        using TaskManager manager = this.CreateManager(new TaskManagerOptions
+        {
+            CleanupInterval = TimeSpan.FromSeconds(1),
+            DynamicAdjustmentEnabled = false,
+            MaxWorkers = 4,
+            IsEnableLatency = true
+        });
+
+        TaskCompletionSource<IWorkerHandle> completion = TaskManagerTestHost.CreateCompletionSource<IWorkerHandle>();
+
+        IWorkerHandle handle = manager.ScheduleWorker(
+            "worker.cleanup.gate",
+            "group-cleanup",
+            (_, _) => ValueTask.CompletedTask,
+            new WorkerOptions
+            {
+                GroupConcurrencyLimit = 1,
+                RetainFor = TimeSpan.FromMilliseconds(150),
+                OnCompleted = worker => completion.TrySetResult(worker)
+            });
+
+        _ = await completion.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await TaskManagerTestHost.WaitUntilAsync(() => !handle.IsRunning && handle.TotalRuns == 1, TimeSpan.FromSeconds(2));
+        await TaskManagerTestHost.WaitUntilAsync(
+            () =>
+            {
+                IDictionary<string, object> data = manager.GetReportData();
+                return data["WorkersByGroup"] is Dictionary<string, object> workersByGroup &&
+                       !workersByGroup.ContainsKey("group-cleanup");
+            },
+            TimeSpan.FromSeconds(4));
+    }
+
+    [Fact]
     public async Task ScheduleWorkerWhenFailureCallbackThrowsIncrementsWorkerErrorCountAgain()
     {
         using TaskManager manager = this.CreateManager();

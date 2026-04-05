@@ -20,5 +20,5 @@ public interface IReportable
     /// Generates report data as key-value pairs describing the current state.
     /// </summary>
     /// <returns>A dictionary containing the report data.</returns>
-    IDictionary<string, object> GenerateReportData();
+    IDictionary<string, object> GetReportData();
 }

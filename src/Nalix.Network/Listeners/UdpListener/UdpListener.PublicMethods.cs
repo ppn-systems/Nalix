@@ -248,7 +248,7 @@ public abstract partial class UdpListenerBase : IListener
     /// Generates status report data as key-value pairs describing the current listener state.
     /// </summary>
     /// <returns>A dictionary containing the report data.</returns>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         Dictionary<string, object> data = new(StringComparer.Ordinal)
         {

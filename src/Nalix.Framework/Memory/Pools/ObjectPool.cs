@@ -62,11 +62,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     public static ObjectPool Default { get; } = new();
 
     /// <summary>
-    /// Event for trace information.
-    /// </summary>
-    public event Action<string>? TraceOccurred;
-
-    /// <summary>
     /// Gets the total number of objects created across all pooled types.
     /// </summary>
     public long TotalCreatedCount
@@ -157,8 +152,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         _ = System.Threading.Interlocked.Increment(ref _totalCreated);
         _ = System.Threading.Interlocked.Increment(ref _totalRented);
 
-        TraceOccurred?.Invoke($"Get<{type.Name}>: Created new instance (TotalCreated={this.TotalCreatedCount})");
-
         return newObj;
     }
 
@@ -193,7 +186,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         }
 
         // Capacity reached: discard instead of growing without bound.
-        TraceOccurred?.Invoke($"Return<{type.Name}>: Pools at capacity, object discarded");
     }
 
     /// <summary>
@@ -232,11 +224,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             }
         }
 
-        if (created > 0)
-        {
-            TraceOccurred?.Invoke($"Prealloc<{type.Name}>: Added {created} instances to pool");
-        }
-
         return created;
     }
 
@@ -259,13 +246,11 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         if (_typePools.TryGetValue(type, out TypePool? typePool))
         {
             typePool.SetMaxCapacity(maxCapacity);
-            TraceOccurred?.Invoke($"SetMaxCapacity<{type.Name}>: Set to {maxCapacity}");
             return true;
         }
 
         // Create a new pool with the specified capacity
         _typePools[type] = new TypePool(maxCapacity);
-        TraceOccurred?.Invoke($"SetMaxCapacity<{type.Name}>: Created new pool with capacity {maxCapacity}");
         return true;
     }
 
@@ -280,20 +265,8 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     {
         Type type = typeof(T);
         return _typePools.TryGetValue(type, out TypePool? typePool)
-            ? new Dictionary<string, object>
-            {
-                ["TypeName"] = type.Name,
-                ["AvailableCount"] = typePool.AvailableCount,
-                ["MaxCapacity"] = typePool.MaxCapacity,
-                ["IsActive"] = true
-            }
-            : new Dictionary<string, object>
-            {
-                ["TypeName"] = type.Name,
-                ["AvailableCount"] = 0,
-                ["MaxCapacity"] = _defaultMaxItemsPerType,
-                ["IsActive"] = false
-            };
+            ? CREATE_TYPE_INFO(type.Name, typePool.AvailableCount, typePool.MaxCapacity, true)
+            : CREATE_TYPE_INFO(type.Name, 0, _defaultMaxItemsPerType, false);
     }
 
     /// <summary>
@@ -304,7 +277,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public Dictionary<string, object> GetStatistics()
     {
-        return new Dictionary<string, object>
+        return new Dictionary<string, object>(8, StringComparer.Ordinal)
         {
             ["TotalCreatedCount"] = this.TotalCreatedCount,
             ["TotalAvailableCount"] = this.TotalAvailableCount,
@@ -331,7 +304,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             removedCount += pool.Clear();
         }
 
-        TraceOccurred?.Invoke($"Dispose: Removed {removedCount} objects from all pools");
         return removedCount;
     }
 
@@ -348,7 +320,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         if (_typePools.TryGetValue(type, out TypePool? typePool))
         {
             int removedCount = typePool.Clear();
-            TraceOccurred?.Invoke($"ClearType<{type.Name}>: Removed {removedCount} objects");
             return removedCount;
         }
 
@@ -378,11 +349,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             removedCount += pool.Trim(percentage);
         }
 
-        if (removedCount > 0)
-        {
-            TraceOccurred?.Invoke($"Trim({percentage}%): Removed {removedCount} objects from all pools");
-        }
-
         return removedCount;
     }
 
@@ -398,7 +364,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         _ = System.Threading.Interlocked.Exchange(ref _totalReturned, 0);
         _uptime.Restart();
 
-        TraceOccurred?.Invoke("ResetStatistics: Pools statistics reset");
     }
 
     /// <summary>
@@ -411,18 +376,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         Dictionary<string, object>> GetAllTypeInfo()
     {
         List<
-            Dictionary<string, object>> result = [];
+            Dictionary<string, object>> result = new(_typePools.Count);
 
         foreach (KeyValuePair<Type, TypePool> kvp in _typePools)
         {
             TypePool typePool = kvp.Value;
-            result.Add(new Dictionary<string, object>
-            {
-                ["TypeName"] = kvp.Key.Name,
-                ["AvailableCount"] = typePool.AvailableCount,
-                ["MaxCapacity"] = typePool.MaxCapacity,
-                ["IsActive"] = true
-            });
+            result.Add(CREATE_TYPE_INFO(kvp.Key.Name, typePool.AvailableCount, typePool.MaxCapacity, true));
         }
 
         return result;
@@ -459,11 +418,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             }
         }
 
-        if (returnedCount > 0)
-        {
-            TraceOccurred?.Invoke($"ReturnMultiple<{type.Name}>: Returned {returnedCount} objects to pool");
-        }
-
         return returnedCount;
     }
 
@@ -489,8 +443,6 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             result.Add(this.Get<T>());
         }
 
-        TraceOccurred?.Invoke($"GetMultiple<{type.Name}>: Got {count} objects from pool");
-
         return result;
     }
 
@@ -506,21 +458,22 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     internal Dictionary<string, object> GetTypeInfoByType(Type type)
     {
         return _typePools.TryGetValue(type, out TypePool? typePool)
-            ? new Dictionary<string, object>
-            {
-                ["TypeName"] = type.Name,
-                ["AvailableCount"] = typePool.AvailableCount,
-                ["MaxCapacity"] = typePool.MaxCapacity,
-                ["IsActive"] = true
-            }
-            : new Dictionary<string, object>
-            {
-                ["TypeName"] = type.Name,
-                ["AvailableCount"] = 0,
-                ["MaxCapacity"] = _defaultMaxItemsPerType,
-                ["IsActive"] = false
-            };
+            ? CREATE_TYPE_INFO(type.Name, typePool.AvailableCount, typePool.MaxCapacity, true)
+            : CREATE_TYPE_INFO(type.Name, 0, _defaultMaxItemsPerType, false);
     }
 
     #endregion Public Methods
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static Dictionary<string, object> CREATE_TYPE_INFO(string typeName, int availableCount, int maxCapacity, bool isActive)
+    {
+        return new Dictionary<string, object>(4, StringComparer.Ordinal)
+        {
+            ["TypeName"] = typeName,
+            ["AvailableCount"] = availableCount,
+            ["MaxCapacity"] = maxCapacity,
+            ["IsActive"] = isActive
+        };
+    }
 }

@@ -29,7 +29,7 @@ namespace Nalix.Framework.Injection;
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposable, IReportable
+public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLogging<InstanceManager>, IDisposable, IReportable
 {
     #region Fields
 
@@ -686,6 +686,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     public string GenerateReport()
     {
         StringBuilder sb = new(1024);
+        HashSet<RuntimeTypeHandle> activatorTargets = this.BUILD_ACTIVATOR_TARGETS();
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CachedInstanceCount: {this.CachedInstanceCount}");
@@ -708,35 +709,23 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             }
 
             bool isDisposable = instance is IDisposable;
-            string source = ACTIVATOR_CACHE_CONTAINS(type) ? "ActivatorCache" : "ManualRegister";
+            string source = activatorTargets.Contains(type.TypeHandle) ? "ActivatorCache" : "ManualRegister";
 
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName.PadRight(45)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
         }
 
         _ = sb.AppendLine("----------------------------------------------------------------------");
         return sb.ToString();
-
-        bool ACTIVATOR_CACHE_CONTAINS(Type t)
-        {
-            // Quick scan by key prefix (Target == t) — cheap since dictionary is relatively small.
-            foreach (ActivatorKey k in _activatorCache.Keys)
-            {
-                if (k.Target.Equals(t.TypeHandle))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
     }
 
     /// <summary>
     /// Returns a key-value summary of all cached instances (for diagnostics/monitoring).
     /// </summary>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
-        Dictionary<string, object> result = new()
+        HashSet<RuntimeTypeHandle> activatorTargets = this.BUILD_ACTIVATOR_TARGETS();
+
+        Dictionary<string, object> result = new(4, StringComparer.Ordinal)
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["CachedInstanceCount"] = this.CachedInstanceCount,
@@ -744,7 +733,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             ["InstanceCacheHitCount"] = Volatile.Read(ref _instanceCacheHitCount),
         };
 
-        List<Dictionary<string, object>> instances = [];
+        List<Dictionary<string, object>> instances = new(_instanceCache.Count);
 
         foreach (KeyValuePair<RuntimeTypeHandle, object> kvp in _instanceCache)
         {
@@ -757,9 +746,9 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
             }
 
             bool isDisposable = instance is IDisposable;
-            string source = ACTIVATOR_CACHE_CONTAINS(type) ? "ActivatorCache" : "ManualRegister";
+            string source = activatorTargets.Contains(type.TypeHandle) ? "ActivatorCache" : "ManualRegister";
 
-            instances.Add(new Dictionary<string, object>
+            instances.Add(new Dictionary<string, object>(3, StringComparer.Ordinal)
             {
                 ["Type"] = typeName,
                 ["IsDisposable"] = isDisposable,
@@ -770,19 +759,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
         result["Instances"] = instances;
 
         return result;
-
-        bool ACTIVATOR_CACHE_CONTAINS(Type t)
-        {
-            // Quick scan by key prefix (Target == t)
-            foreach (ActivatorKey k in _activatorCache.Keys)
-            {
-                if (k.Target.Equals(t.TypeHandle))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
     }
 
     #endregion IReportable
@@ -850,6 +826,18 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IDisposabl
     }
 
     private readonly record struct LogMessageState(string Message);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private HashSet<RuntimeTypeHandle> BUILD_ACTIVATOR_TARGETS()
+    {
+        HashSet<RuntimeTypeHandle> targets = [];
+        foreach (ActivatorKey key in _activatorCache.Keys)
+        {
+            _ = targets.Add(key.Target);
+        }
+
+        return targets;
+    }
 
     private static class GenericSlot<T>
     {

@@ -306,7 +306,7 @@ public abstract partial class TcpListenerBase
     /// This shape is easier for automation and structured logging to consume.
     /// </summary>
     /// <returns>A dictionary containing the report data.</returns>
-    public virtual IDictionary<string, object> GenerateReportData()
+    public virtual IDictionary<string, object> GetReportData()
     {
         ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
 

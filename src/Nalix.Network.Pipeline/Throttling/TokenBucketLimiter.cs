@@ -249,7 +249,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     /// <summary>
     /// Generates a key-value diagnostic summary of the token bucket limiter, tracked endpoints, and state.
     /// </summary>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         long now = Stopwatch.GetTimestamp();
 

@@ -10,9 +10,9 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Environment;
 using Nalix.Common.Exceptions;
+using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Configuration.Internal;
 using Nalix.Framework.Injection;
@@ -217,8 +217,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                    .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                          $"path-changed from='{oldPath}' to='{normalizedPath}'");
+                                        .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}'");
 
                 if (autoReload && !_configContainerDict.IsEmpty)
                 {
@@ -237,8 +236,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                         this.LastReloadTime = DateTime.UtcNow;
 
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] " +
-                                                      $"auto-reload-ok count={_configContainerDict.Count}");
+                                                .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] auto-reload-ok count={_configContainerDict.Count}");
 
                         pathToWatch = normalizedPath;
                     }
@@ -316,7 +314,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 container.Initialize(iniSnapshot.Value);
 
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
+                                        .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
 
                 return container;
             }, LazyThreadSafetyMode.ExecutionAndPublication)
@@ -433,7 +431,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             }
 
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
+                                    .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
         }
         catch (ObjectDisposedException) when (_isDisposed)
         {
@@ -479,7 +477,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
+                                .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
 
         return _configContainerDict.TryRemove(typeof(TClass), out _);
     }
@@ -495,7 +493,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     public void ClearAll()
     {
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
+                                .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
 
         _configContainerDict.Clear();
     }
@@ -523,12 +521,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             {
                 snapshot.Value.Flush();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
+                                        .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushErr msg={ex.Message}", ex);
                 throw;
             }
         }

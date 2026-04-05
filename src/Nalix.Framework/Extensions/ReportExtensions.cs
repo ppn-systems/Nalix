@@ -3,11 +3,8 @@
 
 using System;
 using System.IO;
-using System.Linq;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Environment;
-using Nalix.Framework.Injection;
 
 namespace Nalix.Framework.Extensions;
 
@@ -20,10 +17,17 @@ public static class ReportExtensions
 
     static ReportExtensions()
     {
-        s_reportDir = Path.GetFullPath(Path
-                          .Combine(Directories.DataDirectory, "reports"));
+        try
+        {
+            s_reportDir = Path.GetFullPath(Path
+                              .Combine(Directories.DataDirectory, "reports"));
 
-        _ = Directory.CreateDirectory(s_reportDir);
+            _ = Directory.CreateDirectory(s_reportDir);
+        }
+        catch
+        {
+            s_reportDir = Path.Combine(AppContext.BaseDirectory, "reports");
+        }
     }
 
     /// <summary>
@@ -34,50 +38,35 @@ public static class ReportExtensions
     /// <returns>The full path of the saved report file.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="this"/> is null.</exception>
     /// <remarks>
-    /// File-system errors are logged internally; the method still returns the intended output path.
+    /// File-system errors are allowed to propagate to the caller.
     /// </remarks>
     public static string SaveReportToFile(this IReportable @this, string prefix = "null")
     {
         ArgumentNullException.ThrowIfNull(@this, nameof(@this));
-
+        string safePrefix = SANITIZE_FILE_NAME_SEGMENT(prefix?.ToLowerInvariant() ?? "null");
         string report = @this.GenerateReport();
-        string safePrefix = prefix?.ToLowerInvariant() ?? "null";
-
-        _ = Directory.CreateDirectory(s_reportDir);
-
         string filePath = Path.Combine(s_reportDir, $"{safePrefix}-report-{DateTime.UtcNow:yyyyMMdd-HHmm}.txt");
 
-        try
-        {
-            File.WriteAllText(filePath, report);
-
-            // Select last 3 segments, or fewer if there are less than 3
-            string[] segments = filePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-            int segmentCount = segments.Length;
-            string lastSegments = string.Join(Path.DirectorySeparatorChar
-                                                      .ToString(), Enumerable
-                                                      .Skip(segments, Math
-                                                      .Max(0, segmentCount - 3)));
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[RP.{@this.GetType().Name}] report-saved path={lastSegments}");
-        }
-        catch (IOException ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
-        }
-        catch (NotSupportedException ex)
-        {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Error($"[RP.{@this.GetType().Name}] failed-save-report", ex);
-        }
+        _ = Directory.CreateDirectory(s_reportDir);
+        File.WriteAllText(filePath, report);
 
         return filePath;
+    }
+
+    private static string SANITIZE_FILE_NAME_SEGMENT(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "null";
+        }
+
+        char[] invalidChars = Path.GetInvalidFileNameChars();
+        char[] result = value.ToCharArray();
+        for (int i = 0; i < result.Length; i++)
+        {
+            result[i] = Array.IndexOf(invalidChars, result[i]) >= 0 ? '_' : result[i];
+        }
+
+        return new string(result);
     }
 }

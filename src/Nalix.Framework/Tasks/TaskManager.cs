@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -20,7 +19,6 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
-using Nalix.Framework.Time;
 
 namespace Nalix.Framework.Tasks;
 
@@ -35,25 +33,26 @@ public sealed partial class TaskManager : ITaskManager
 {
     #region Fields
 
-    private readonly TaskManagerOptions _options;
     private readonly Timer _cleanupTimer;
-    private readonly SemaphoreSlim _globalConcurrencyGate;
+    private readonly Lock _pendingWorkersLock;
+    private readonly Task _workerDispatcherTask;
+    private readonly TaskManagerOptions _options;
     private readonly SemaphoreSlim _pendingWorkersSignal;
+    private readonly SemaphoreSlim _globalConcurrencyGate;
+    private readonly CancellationTokenSource _workerDispatcherCts;
+    private readonly PriorityQueue<WorkerState, (int priorityKey, long sequence)> _pendingWorkers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Gate> _groupGates;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ISnowflake, WorkerState> _workers;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, RecurringState> _recurring;
-    private readonly PriorityQueue<WorkerState, (int priorityKey, long sequence)> _pendingWorkers;
-    private readonly object _pendingWorkersLock;
-    private readonly CancellationTokenSource _workerDispatcherCts;
-    private readonly Task _workerDispatcherTask;
 
-    private long _workerExecutionTicks;
-    private long _recurringExecutionTicks;
-    private long _workerExecutionCount;
-    private long _recurringExecutionCount;
-    private long _workerScheduleSequence;
     private int _workerErrorCount;
+    private int _runningWorkerCount;
     private int _recurringErrorCount;
+    private long _workerExecutionTicks;
+    private long _workerExecutionCount;
+    private long _workerScheduleSequence;
+    private long _recurringExecutionTicks;
+    private long _recurringExecutionCount;
 
     private volatile bool _disposed;
     private volatile int _currentConcurrencyLimit;
@@ -75,7 +74,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             int recurring = _recurring.Count;
             int totalWorkers = _workers.Count;
-            int runningWorkers = _workers.Values.Count(w => w.IsRunning);
+            int runningWorkers = Volatile.Read(ref _runningWorkerCount);
             return $"Workers: {runningWorkers} running / {totalWorkers} total | Recurring: {recurring}";
         }
     }
@@ -169,8 +168,7 @@ public sealed partial class TaskManager : ITaskManager
             );
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}] init cleanup-iv={_options.CleanupInterval.TotalSeconds:F0}s concurrency={_currentConcurrencyLimit}");
+        this.TRACE($"[FW.{nameof(TaskManager)}] init cleanup-iv={_options.CleanupInterval.TotalSeconds:F0}s concurrency={_currentConcurrencyLimit}");
     }
 
     /// <summary>
@@ -202,13 +200,7 @@ public sealed partial class TaskManager : ITaskManager
 
         ArgumentNullException.ThrowIfNull(work);
 
-        TimingScope scope = default;
         options ??= new WorkerOptions();
-
-        if (_options.IsEnableLatency)
-        {
-            scope = TimingScope.Start();
-        }
 
         ISnowflake id = Snowflake.NewId(options.IdType, options.MachineId);
         CancellationTokenSource cts = options.CancellationToken.CanBeCanceled
@@ -223,27 +215,15 @@ public sealed partial class TaskManager : ITaskManager
             throw new InternalErrorException($"[{nameof(TaskManager)}:{nameof(ScheduleWorker)}] cannot add worker");
         }
 
-        try
+        bool startedFast = this.TRY_START_WORKER_FAST(st);
+        if (!startedFast)
         {
-            bool startedFast = this.TRY_START_WORKER_FAST(st);
-            if (!startedFast)
-            {
-                this.ENQUEUE_WORKER(st);
-            }
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.{nameof(TaskManager)}] worker-{(startedFast ? "start-fast" : "queued")} id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
-
-            return st;
+            this.ENQUEUE_WORKER(st);
         }
-        finally
-        {
-            if (_options.IsEnableLatency)
-            {
-                _ = Interlocked.Increment(ref _workerExecutionCount);
-                _ = Interlocked.Add(ref _workerExecutionTicks, (long)scope.GetElapsedMilliseconds());
-            }
-        }
+
+        this.TRACE($"[FW.{nameof(TaskManager)}] worker-{(startedFast ? "start-fast" : "queued")} id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
+
+        return st;
     }
 
     /// <inheritdoc/>
@@ -260,15 +240,9 @@ public sealed partial class TaskManager : ITaskManager
         ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero);
 
-        TimingScope scope = default;
         options ??= new RecurringOptions();
         CancellationTokenSource cts = new();
         RecurringState st = new(name, interval, options, cts);
-
-        if (_options.IsEnableLatency)
-        {
-            scope = TimingScope.Start();
-        }
 
         if (!_recurring.TryAdd(name, st))
         {
@@ -276,23 +250,10 @@ public sealed partial class TaskManager : ITaskManager
             throw new InternalErrorException($"[{nameof(TaskManager)}] duplicate recurring name: {name}");
         }
 
-        try
-        {
-            st.Task = Task.Run(() => this.RECURRING_LOOP_ASYNC(st, work), cts.Token);
+        st.Task = Task.Run(() => this.RECURRING_LOOP_ASYNC(st, work), cts.Token);
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Debug($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} " +
-                                           $"iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
-            return st;
-        }
-        finally
-        {
-            if (_options.IsEnableLatency)
-            {
-                _ = Interlocked.Add(ref _recurringExecutionTicks, (long)scope.GetElapsedMilliseconds());
-                _ = Interlocked.Increment(ref _recurringExecutionCount);
-            }
-        }
+        this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
+        return st;
     }
 
     /// <inheritdoc/>
@@ -340,8 +301,7 @@ public sealed partial class TaskManager : ITaskManager
         }
         if (n > 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
+            this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(CancelAllWorkers)}] cancel-all-workers count={n}");
         }
 
         return n;
@@ -373,8 +333,7 @@ public sealed partial class TaskManager : ITaskManager
             }
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
+        this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] worker-cancel id={id} name={st.Name} group={st.Group}");
     }
 
     /// <inheritdoc/>
@@ -394,8 +353,7 @@ public sealed partial class TaskManager : ITaskManager
         }
         if (n > 0)
         {
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
+            this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(CancelGroup)}] group-cancel group={group} count={n}");
         }
 
         return n;
@@ -461,8 +419,7 @@ public sealed partial class TaskManager : ITaskManager
             }
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
+        this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cancel recurring name={name}");
     }
 
     /// <inheritdoc/>
@@ -535,8 +492,9 @@ public sealed partial class TaskManager : ITaskManager
     public string GenerateReport()
     {
         StringBuilder sb = new(2048);
+        int runningWorkers = Volatile.Read(ref _runningWorkerCount);
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] TaskManager:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={this.COUNT_RUNNING_WORKERS()})");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring: {_recurring.Count} | Workers: {_workers.Count} (running={runningWorkers})");
         _ = sb.AppendLine();
 
         // ========== CPU Monitoring Section ==========
@@ -577,7 +535,7 @@ public sealed partial class TaskManager : ITaskManager
 
             _ = sb.AppendLine("Process Health:");
             _ = sb.AppendLine("---------------------------------------------------------------------");
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Threads                           : {proc.Threads.Count} (running: {proc.Threads.Cast<ProcessThread>().Count(t => t.ThreadState == System.Diagnostics.ThreadState.Running)})");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Threads                           : {proc.Threads.Count} (running: {COUNT_RUNNING_THREADS(proc)})");
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Handles                           : {proc.HandleCount:N0}");
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GC Collections                    : Gen0={GC.CollectionCount(0):N0} | Gen1={GC.CollectionCount(1):N0} | Gen2={GC.CollectionCount(2):N0}");
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Managed Heap                      : {GC.GetTotalMemory(false) / 1048576:N0} MB");
@@ -600,14 +558,21 @@ public sealed partial class TaskManager : ITaskManager
         _ = sb.AppendLine();
 
         // Recurring summary
+        List<RecurringState> recurringSnapshot = new(_recurring.Count);
+        foreach (KeyValuePair<string, RecurringState> kv in _recurring)
+        {
+            recurringSnapshot.Add(kv.Value);
+        }
+
+        recurringSnapshot.Sort(static (a, b) => b.ConsecutiveFailures.CompareTo(a.ConsecutiveFailures));
+
         _ = sb.AppendLine("Recurring:");
         _ = sb.AppendLine("---------------------------------------------------------------------------------------------------------------------------------");
         _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC             |  Interval | Tag        ");
         _ = sb.AppendLine("---------------------------------------------------------------------------------------------------------------------------------");
-        foreach (KeyValuePair<string, RecurringState> kv in _recurring)
+        foreach (RecurringState s in recurringSnapshot)
         {
-            RecurringState s = kv.Value;
-            string nm = PadName(kv.Key, 28);
+            string nm = PadName(s.Name, 28);
             string runs = s.TotalRuns.ToString(CultureInfo.InvariantCulture).PadLeft(8);
             string fails = s.ConsecutiveFailures.ToString(CultureInfo.InvariantCulture).PadLeft(5);
             string run = s.IsRunning ? "yes" : " no";
@@ -624,8 +589,10 @@ public sealed partial class TaskManager : ITaskManager
         _ = sb.AppendLine("------------------------------------------------------------------------------");
         _ = sb.AppendLine("Name                         | Fails    | LastRun              | Tag          ");
         _ = sb.AppendLine("------------------------------------------------------------------------------");
-        foreach (RecurringState r in _recurring.Values.OrderByDescending(r => r.ConsecutiveFailures).Take(5))
+        int topRecurringCount = recurringSnapshot.Count < 5 ? recurringSnapshot.Count : 5;
+        for (int i = 0; i < topRecurringCount; i++)
         {
+            RecurringState r = recurringSnapshot[i];
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{PadName(r.Name, 28)} | {r.ConsecutiveFailures,8} | {r.LastRunUtc?.ToString("u"),-20} | {r.Options.Tag ?? "-"}");
         }
         _ = sb.AppendLine("------------------------------------------------------------------------------");
@@ -636,25 +603,41 @@ public sealed partial class TaskManager : ITaskManager
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine("Group                        | Running | Total | Concurrency");
         _ = sb.AppendLine("------------------------------------------------------------");
-        System.Collections.Concurrent.ConcurrentDictionary<string, (int running, int total)> perGroup = new(StringComparer.Ordinal);
+        Dictionary<string, (int running, int total)> perGroup = new(StringComparer.Ordinal);
         foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
-            string g = kv.Value.Group;
-            _ = perGroup.AddOrUpdate(g, _ => (kv.Value.IsRunning ? 1 : 0, 1),
-                (_, t) => (t.running + (kv.Value.IsRunning ? 1 : 0), t.total + 1));
-        }
-        foreach (KeyValuePair<string, (int running, int total)> gkv in perGroup)
-        {
-            string gname = PadName(gkv.Key, 28);
-            if (_groupGates.TryGetValue(gkv.Key, out Gate? gate))
+            WorkerState worker = kv.Value;
+            if (perGroup.TryGetValue(worker.Group, out (int running, int total) stats))
             {
-                int total = gate.Capacity;
-                int used = total - gate.SemaphoreSlim.CurrentCount;
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | {used}/{total}");
+                perGroup[worker.Group] = (stats.running + (worker.IsRunning ? 1 : 0), stats.total + 1);
             }
             else
             {
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {gkv.Value.running,7} | {gkv.Value.total,5} | -");
+                perGroup[worker.Group] = (worker.IsRunning ? 1 : 0, 1);
+            }
+        }
+
+        List<string> groupNames = new(perGroup.Count);
+        foreach (KeyValuePair<string, (int running, int total)> gkv in perGroup)
+        {
+            groupNames.Add(gkv.Key);
+        }
+
+        groupNames.Sort(StringComparer.Ordinal);
+
+        foreach (string groupName in groupNames)
+        {
+            string gname = PadName(groupName, 28);
+            (int running, int total) = perGroup[groupName];
+            if (_groupGates.TryGetValue(groupName, out Gate? gate))
+            {
+                int capacity = gate.Capacity;
+                int used = capacity - gate.SemaphoreSlim.CurrentCount;
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {running,7} | {total,5} | {used}/{capacity}");
+            }
+            else
+            {
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{gname} | {running,7} | {total,5} | -");
             }
         }
         _ = sb.AppendLine("------------------------------------------------------------");
@@ -665,7 +648,12 @@ public sealed partial class TaskManager : ITaskManager
         _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------------");
         _ = sb.AppendLine("Id             | Naming                       | Group                        | Age     | Progress |  LastBeat");
         _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------------");
-        List<WorkerState> top = [.. _workers.Values];
+        List<WorkerState> top = new(_workers.Count);
+        foreach (WorkerState worker in _workers.Values)
+        {
+            top.Add(worker);
+        }
+
         top.Sort(static (a, b) => a.StartedUtc.CompareTo(b.StartedUtc)); // oldest first
         int show = 0;
         foreach (WorkerState w in top)
@@ -710,14 +698,16 @@ public sealed partial class TaskManager : ITaskManager
     /// Generates report data as key-value pairs describing the current state.
     /// </summary>
     /// <returns>A dictionary containing the report data.</returns>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
-        Dictionary<string, object> data = new(StringComparer.Ordinal)
+        int runningWorkers = Volatile.Read(ref _runningWorkerCount);
+
+        Dictionary<string, object> data = new(16, StringComparer.Ordinal)
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["RecurringCount"] = _recurring.Count,
             ["WorkersTotal"] = _workers.Count,
-            ["WorkersRunning"] = _workers.Values.Count(w => w.IsRunning),
+            ["WorkersRunning"] = runningWorkers,
 
             // CPU/Concurrency section
             ["DynamicAdjustmentEnabled"] = _options.DynamicAdjustmentEnabled,
@@ -733,17 +723,17 @@ public sealed partial class TaskManager : ITaskManager
         {
             Process proc = Process.GetCurrentProcess();
             proc.Refresh();
-            data["Memory"] = new Dictionary<string, long>
+            data["Memory"] = new Dictionary<string, long>(3, StringComparer.Ordinal)
             {
                 ["WorkingSetMB"] = proc.WorkingSet64 / (1024 * 1024),
                 ["PrivateMB"] = proc.PrivateMemorySize64 / (1024 * 1024),
                 ["VirtualMB"] = proc.VirtualMemorySize64 / (1024 * 1024)
             };
 
-            data["Process"] = new Dictionary<string, object>
+            data["Process"] = new Dictionary<string, object>(8, StringComparer.Ordinal)
             {
                 ["Threads"] = proc.Threads.Count,
-                ["ThreadsRunning"] = proc.Threads.Cast<ProcessThread>().Count(t => t.ThreadState == System.Diagnostics.ThreadState.Running),
+                ["ThreadsRunning"] = COUNT_RUNNING_THREADS(proc),
                 ["Handles"] = proc.HandleCount,
                 ["GCGen0"] = GC.CollectionCount(0),
                 ["GCGen1"] = GC.CollectionCount(1),
@@ -767,58 +757,106 @@ public sealed partial class TaskManager : ITaskManager
         data["RecurringErrorCount"] = this.RecurringErrorCount;
 
         // Recurring summary
-        data["Recurring"] = _recurring.Values.Select(s => new Dictionary<string, object>
+        List<RecurringState> recurringSnapshot = new(_recurring.Count);
+        foreach (RecurringState recurring in _recurring.Values)
         {
-            ["Name"] = s.Name,
-            ["TotalRuns"] = s.TotalRuns,
-            ["ConsecutiveFailures"] = s.ConsecutiveFailures,
-            ["IsRunning"] = s.IsRunning,
-            ["LastRunUtc"] = s.LastRunUtc ?? DateTimeOffset.MinValue,
-            ["NextRunUtc"] = s.NextRunUtc ?? DateTimeOffset.MinValue,
-            ["IntervalMs"] = s.Interval.TotalMilliseconds,
-            ["Tag"] = s.Options.Tag ?? "N/A"
-        }).ToList();
+            recurringSnapshot.Add(recurring);
+        }
+
+        List<Dictionary<string, object>> recurringData = new(recurringSnapshot.Count);
+        foreach (RecurringState s in recurringSnapshot)
+        {
+            recurringData.Add(new Dictionary<string, object>(8, StringComparer.Ordinal)
+            {
+                ["Name"] = s.Name,
+                ["TotalRuns"] = s.TotalRuns,
+                ["ConsecutiveFailures"] = s.ConsecutiveFailures,
+                ["IsRunning"] = s.IsRunning,
+                ["LastRunUtc"] = s.LastRunUtc ?? DateTimeOffset.MinValue,
+                ["NextRunUtc"] = s.NextRunUtc ?? DateTimeOffset.MinValue,
+                ["IntervalMs"] = s.Interval.TotalMilliseconds,
+                ["Tag"] = s.Options.Tag ?? "N/A"
+            });
+        }
+
+        data["Recurring"] = recurringData;
 
         // Top 5 Recurring by failures
-        data["TopRecurringByFailures"] = _recurring.Values
-            .OrderByDescending(r => r.ConsecutiveFailures)
-            .Take(5)
-            .Select(r => new Dictionary<string, object>
+        recurringSnapshot.Sort(static (a, b) => b.ConsecutiveFailures.CompareTo(a.ConsecutiveFailures));
+        int topRecurringCount = recurringSnapshot.Count < 5 ? recurringSnapshot.Count : 5;
+        List<Dictionary<string, object>> topRecurring = new(topRecurringCount);
+        for (int i = 0; i < topRecurringCount; i++)
+        {
+            RecurringState r = recurringSnapshot[i];
+            topRecurring.Add(new Dictionary<string, object>(4, StringComparer.Ordinal)
             {
                 ["Name"] = r.Name,
                 ["ConsecutiveFailures"] = r.ConsecutiveFailures,
                 ["LastRunUtc"] = r.LastRunUtc ?? DateTimeOffset.MinValue,
                 ["Tag"] = r.Options.Tag ?? "N/A"
-            }).ToList();
+            });
+        }
+
+        data["TopRecurringByFailures"] = topRecurring;
 
         // Workers by group
-        Dictionary<string, object> perGroup = new(StringComparer.Ordinal);
+        Dictionary<string, (int running, int total)> groupCounts = new(StringComparer.Ordinal);
         foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
             WorkerState st = kv.Value;
-            if (!perGroup.TryGetValue(st.Group, out object? v))
+            if (groupCounts.TryGetValue(st.Group, out (int running, int total) stats))
             {
-                perGroup[st.Group] = new { Running = 0, Total = 0, Concurrency = "" };
-                v = perGroup[st.Group];
+                groupCounts[st.Group] = (stats.running + (st.IsRunning ? 1 : 0), stats.total + 1);
             }
-            dynamic rec = v;
-            perGroup[st.Group] = new
+            else
             {
-                Running = rec.Running + (st.IsRunning ? 1 : 0),
-                Total = rec.Total + 1,
-                Concurrency = _groupGates.TryGetValue(st.Group, out Gate? gate)
-                    ? $"{gate.Capacity - gate.SemaphoreSlim.CurrentCount}/{gate.Capacity}"
-                    : "-"
+                groupCounts[st.Group] = (st.IsRunning ? 1 : 0, 1);
+            }
+        }
+
+        List<string> groupNames = new(groupCounts.Count);
+        foreach (KeyValuePair<string, (int running, int total)> kv in groupCounts)
+        {
+            groupNames.Add(kv.Key);
+        }
+
+        groupNames.Sort(StringComparer.Ordinal);
+
+        Dictionary<string, object> perGroup = new(groupCounts.Count, StringComparer.Ordinal);
+        foreach (string groupName in groupNames)
+        {
+            (int running, int total) = groupCounts[groupName];
+            string concurrency = _groupGates.TryGetValue(groupName, out Gate? gate)
+                ? $"{gate.Capacity - gate.SemaphoreSlim.CurrentCount}/{gate.Capacity}"
+                : "-";
+
+            perGroup[groupName] = new Dictionary<string, object>(3, StringComparer.Ordinal)
+            {
+                ["Running"] = running,
+                ["Total"] = total,
+                ["Concurrency"] = concurrency
             };
         }
+
         data["WorkersByGroup"] = perGroup;
 
         // Top running workers (by age, max 50)
-        data["TopRunningWorkers"] = _workers.Values
-            .Where(w => w.IsRunning)
-            .OrderBy(w => w.StartedUtc)
-            .Take(50)
-            .Select(w => new Dictionary<string, object>
+        List<WorkerState> runningSnapshot = new(_workers.Count);
+        foreach (WorkerState worker in _workers.Values)
+        {
+            if (worker.IsRunning)
+            {
+                runningSnapshot.Add(worker);
+            }
+        }
+
+        runningSnapshot.Sort(static (a, b) => a.StartedUtc.CompareTo(b.StartedUtc));
+        int topRunningCount = runningSnapshot.Count < 50 ? runningSnapshot.Count : 50;
+        List<Dictionary<string, object>> topRunning = new(topRunningCount);
+        for (int i = 0; i < topRunningCount; i++)
+        {
+            WorkerState w = runningSnapshot[i];
+            topRunning.Add(new Dictionary<string, object>(6, StringComparer.Ordinal)
             {
                 ["Id"] = w.Id.ToString() ?? "N/A",
                 ["Name"] = w.Name,
@@ -826,7 +864,10 @@ public sealed partial class TaskManager : ITaskManager
                 ["StartedUtc"] = w.StartedUtc,
                 ["Progress"] = w.Progress,
                 ["LastHeartbeatUtc"] = w.LastHeartbeatUtc ?? DateTimeOffset.MinValue,
-            }).ToList();
+            });
+        }
+
+        data["TopRunningWorkers"] = topRunning;
 
         return data;
     }
@@ -850,7 +891,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             _workerDispatcherCts.Cancel();
             _ = _pendingWorkersSignal.Release();
-            _workerDispatcherTask.Wait(TimeSpan.FromSeconds(2));
+            _ = _workerDispatcherTask.Wait(TimeSpan.FromSeconds(2));
         }
         catch (Exception ex)
         {
@@ -1005,8 +1046,7 @@ public sealed partial class TaskManager : ITaskManager
                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-dispatcher-cts-dispose-error msg={ex.Message}");
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] disposed");
+        this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] disposed");
 
         GC.SuppressFinalize(this);
     }

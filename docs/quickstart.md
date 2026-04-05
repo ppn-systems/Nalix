@@ -17,6 +17,7 @@ dotnet add package Nalix.Framework
 dotnet add package Nalix.Common
 dotnet add package Nalix.Framework
 dotnet add package Nalix.Network
+dotnet add package Nalix.Network.Hosting
 dotnet add package Nalix.Logging
 dotnet add package Nalix.Network.Pipeline
 ```
@@ -40,7 +41,6 @@ QuickStart/
         PingResponse.cs
     QuickStart.Server/
       Handlers/PingHandlers.cs
-      Listeners/QuickStartTcpListener.cs
       Protocols/QuickStartProtocol.cs
       Program.cs
     QuickStart.Client/
@@ -141,9 +141,9 @@ namespace QuickStart.Server.Protocols;
 
 public sealed class QuickStartProtocol : Protocol
 {
-    private readonly PacketDispatchChannel _dispatch;
+    private readonly IPacketDispatch _dispatch;
 
-    public QuickStartProtocol(PacketDispatchChannel dispatch)
+    public QuickStartProtocol(IPacketDispatch dispatch)
     {
         _dispatch = dispatch;
         this.SetConnectionAcceptance(true);
@@ -154,64 +154,45 @@ public sealed class QuickStartProtocol : Protocol
 }
 ```
 
-### `QuickStartTcpListener.cs`
-
-```csharp
-using Nalix.Common.Networking;
-using Nalix.Network.Listeners.Tcp;
-
-namespace QuickStart.Server.Listeners;
-
-public sealed class QuickStartTcpListener : TcpListenerBase
-{
-    public QuickStartTcpListener(ushort port, IProtocol protocol) : base(port, protocol) { }
-}
-```
-
 ### `Program.cs`
 
 ```csharp
-using Nalix.Common.Diagnostics;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.Injection;
 using Nalix.Logging;
-using Nalix.Network.Routing;
+using Nalix.Network.Hosting;
+using Nalix.Network.Options;
 using QuickStart.Contracts.Packets;
 using QuickStart.Server.Handlers;
-using QuickStart.Server.Listeners;
 using QuickStart.Server.Protocols;
 
 const ushort Port = 57206;
 
 ILogger logger = NLogix.Host.Instance;
-PacketRegistryFactory factory = new();
-factory.RegisterPacket<PingRequest>()
-       .RegisterPacket<PingResponse>();
 
-IPacketRegistry packetRegistry = factory.CreateCatalog();
+using NetworkHost host = NetworkHost.CreateBuilder()
+    .UseLogger(logger)
+    .Configure<NetworkSocketOptions>(options =>
+    {
+        options.Port = Port;
+        options.Backlog = 512;
+    })
+    .AddPacketsFromAssemblyContaining<PingRequest>()
+    .AddPacketsFromAssemblyContaining<PingResponse>()
+    .AddPacketHandlersFromAssemblyContaining<PingHandlers>()
+    .AddTcpServer<QuickStartProtocol>()
+    .Build();
 
-InstanceManager.Instance.Register<ILogger>(logger);
-InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
+using CancellationTokenSource shutdown = new();
 
-using PacketDispatchChannel dispatch = new(options =>
+Console.CancelKeyPress += (_, eventArgs) =>
 {
-    options.WithLogging(logger)
-           .WithHandler(() => new PingHandlers());
-});
-
-using QuickStartProtocol protocol = new(dispatch);
-using QuickStartTcpListener listener = new(Port, protocol);
-
-dispatch.Activate();
-listener.Activate();
+    eventArgs.Cancel = true;
+    shutdown.Cancel();
+};
 
 Console.WriteLine($"Server running on tcp://127.0.0.1:{Port}");
-Console.WriteLine("Press ENTER to stop.");
-Console.ReadLine();
+Console.WriteLine("Press Ctrl+C to stop.");
 
-listener.Deactivate();
-dispatch.Dispose();
+await host.RunAsync(shutdown.Token);
 ```
 
 ## 3. Client Test
@@ -290,7 +271,7 @@ sequenceDiagram
 
 ## Quick Notes
 
-- Register `IPacketRegistry` before creating `PacketDispatchChannel`.
+- `Nalix.Network.Hosting` wraps packet registry setup, dispatch creation, and TCP listener lifecycle for you.
 - Keep `QuickStart.Contracts` shared by both sides.
 - `SetConnectionAcceptance(true)` is required.
 - `TcpSession` can be created with the same packet registry used by the server.

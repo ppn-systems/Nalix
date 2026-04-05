@@ -276,7 +276,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// </summary>
     /// <exception cref="FormatException">Thrown when diagnostic formatting of packet metadata fails.</exception>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
         return new Dictionary<string, object>
         {

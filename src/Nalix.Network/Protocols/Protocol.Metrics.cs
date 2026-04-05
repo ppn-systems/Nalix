@@ -61,7 +61,7 @@ public abstract partial class Protocol : IReportable
     /// Generates protocol report data as key-value pairs for machine consumption.
     /// </summary>
     /// <returns>A dictionary containing the protocol report data.</returns>
-    public virtual IDictionary<string, object> GenerateReportData()
+    public virtual IDictionary<string, object> GetReportData()
     {
         return new Dictionary<string, object>(StringComparer.Ordinal)
         {

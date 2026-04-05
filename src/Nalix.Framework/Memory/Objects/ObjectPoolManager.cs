@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -593,8 +592,13 @@ public sealed class ObjectPoolManager : IReportable
             _ = sb.AppendLine("TYPE                     | Consecutive Failures | Last Access");
             _ = sb.AppendLine("----------------------------------------------------------------------");
 
-            foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict.Where(x => x.Value.ConsecutiveFailures > 0))
+            foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict)
             {
+                if (kvp.Value.ConsecutiveFailures <= 0)
+                {
+                    continue;
+                }
+
                 string typeName = kvp.Key.Name.Length > 24
                     ? $"{kvp.Key.Name.AsSpan(0, 21)}..."
                     : kvp.Key.Name.PadRight(24);
@@ -618,9 +622,9 @@ public sealed class ObjectPoolManager : IReportable
     /// Generates a key-value diagnostic report of the object pool manager and all pools.
     /// </summary>
     /// <returns>A dictionary describing the state of the ObjectPoolManager.</returns>
-    public IDictionary<string, object> GenerateReportData()
+    public IDictionary<string, object> GetReportData()
     {
-        Dictionary<string, object> data = new(StringComparer.Ordinal)
+        Dictionary<string, object> data = new(13, StringComparer.Ordinal)
         {
             ["UtcNow"] = DateTime.UtcNow,
             ["UptimeSeconds"] = this.Uptime.TotalSeconds,
@@ -638,15 +642,20 @@ public sealed class ObjectPoolManager : IReportable
             ["NetObjects"] = this.TotalGetOperations - this.TotalReturnOperations,
         };
 
-        List<Dictionary<string, object>> pools = [];
+        List<KeyValuePair<Type, ObjectPool>> sortedPools = new(_poolDict.Count);
+        foreach (KeyValuePair<Type, ObjectPool> kvp in _poolDict)
+        {
+            sortedPools.Add(kvp);
+        }
 
-        List<KeyValuePair<Type, ObjectPool>> sortedPools = [.. _poolDict];
         sortedPools.Sort((a, b) => string.CompareOrdinal(a.Key.Name, b.Key.Name));
+
+        List<Dictionary<string, object>> pools = new(sortedPools.Count);
 
         foreach (KeyValuePair<Type, ObjectPool> kvp in sortedPools)
         {
             Dictionary<string, object> poolInfo = kvp.Value.GetStatistics();
-            Dictionary<string, object> poolDict = new()
+            Dictionary<string, object> poolDict = new(12, StringComparer.Ordinal)
             {
                 ["Type"] = kvp.Key.FullName ?? kvp.Key.Name,
                 ["Available"] = poolInfo.TryGetValue("AvailableCount", out object? available) ? available : 0,
@@ -675,15 +684,22 @@ public sealed class ObjectPoolManager : IReportable
 
         if (this.UnhealthyPoolCount > 0)
         {
-            List<Dictionary<string, object>> unhealthy = [.. _metricsDict
-                .Where(x => x.Value.ConsecutiveFailures > 0)
-                .Select(x => new Dictionary<string, object>
+            List<Dictionary<string, object>> unhealthy = [];
+            foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict)
+            {
+                if (kvp.Value.ConsecutiveFailures <= 0)
                 {
-                    ["Type"] = x.Key.FullName ?? x.Key.Name,
-                    ["ConsecutiveFailures"] = x.Value.ConsecutiveFailures,
-                    ["LastAccessUtc"] = x.Value.LastAccessUtc,
-                    ["Outstanding"] = x.Value.Outstanding
-                })];
+                    continue;
+                }
+
+                unhealthy.Add(new Dictionary<string, object>(4, StringComparer.Ordinal)
+                {
+                    ["Type"] = kvp.Key.FullName ?? kvp.Key.Name,
+                    ["ConsecutiveFailures"] = kvp.Value.ConsecutiveFailures,
+                    ["LastAccessUtc"] = kvp.Value.LastAccessUtc,
+                    ["Outstanding"] = kvp.Value.Outstanding
+                });
+            }
             data["UnhealthyPools"] = unhealthy;
         }
 
