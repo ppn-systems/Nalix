@@ -1,3 +1,6 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Globalization;
 using System.Text;
@@ -119,7 +122,7 @@ public static class HexExtensions
             for (int index = 0; index < lineLength; index++)
             {
                 byte current = bytes[offset + index];
-                _ = builder.Append(current >= 32 && current <= 126 ? (char)current : '.');
+                _ = builder.Append(current is >= 32 and <= 126 ? (char)current : '.');
             }
 
             _ = builder.AppendLine("|");

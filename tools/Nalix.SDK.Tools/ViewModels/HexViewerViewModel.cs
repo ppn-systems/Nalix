@@ -1,3 +1,6 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Windows;
 using CommunityToolkit.Mvvm.Input;
@@ -101,7 +104,7 @@ public sealed class HexViewerViewModel : ViewModelBase
     public void Show(string title, string hex)
     {
         this.Title = string.IsNullOrWhiteSpace(title) ? _texts.HexViewerTitle : title;
-        byte[] rawBytes = Nalix.SDK.Tools.Extensions.HexExtensions.ParseHex(hex);
+        byte[] rawBytes = HexExtensions.ParseHex(hex);
         this.CopyText = rawBytes.Length == 0 ? string.Empty : rawBytes.ToHexString();
         this.Hex = rawBytes.Length == 0 ? string.Empty : rawBytes.ToHexDump();
         this.IsVisible = !string.IsNullOrWhiteSpace(this.Hex);

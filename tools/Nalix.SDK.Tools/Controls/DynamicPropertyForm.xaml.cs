@@ -1,3 +1,6 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Windows;
@@ -5,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using Nalix.SDK.Tools.Abstractions;
+using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Models;
 using Nalix.SDK.Tools.Services;
 using Nalix.SDK.Tools.ViewModels;
@@ -87,7 +91,7 @@ public partial class DynamicPropertyForm : UserControl
 
         if (!hasAny)
         {
-            var texts = ToolResourceHelper.GetTexts();
+            PacketToolTextConfig texts = ToolResourceHelper.GetTexts();
             _ = HostPanel.Children.Add(new TextBlock
             {
                 Text = texts.DynamicFormEmptyMessage,
