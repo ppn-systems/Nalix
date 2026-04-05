@@ -1,7 +1,10 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Configuration;

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using Nalix.Framework.Configuration.Binding;
 
 namespace Nalix.SDK.Tools.Configuration;
@@ -27,7 +30,7 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string TabPacketRegistryBrowser { get; set; } = "Packet Registry Browser";
 
-    public string TabLog { get; set; } = "Log";
+    public string TabLog { get; set; } = "Logging";
 
     public string GroupConnection { get; set; } = "Connection";
 
