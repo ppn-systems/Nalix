@@ -55,7 +55,7 @@ public sealed class NetworkSmokeTests
     }
 
     [Fact]
-    public void GenerateReportData_AfterEvaluation_ContainsTrackedEndpointSummary()
+    public void GetReportData_AfterEvaluation_ContainsTrackedEndpointSummary()
     {
         TokenBucketOptions options = new()
         {
@@ -71,7 +71,7 @@ public sealed class NetworkSmokeTests
 
         _ = limiter.Evaluate(new TestEndpoint("192.168.1.10"));
 
-        IDictionary<string, object> report = limiter.GenerateReportData();
+        IDictionary<string, object> report = limiter.GetReportData();
 
         Assert.Equal(3, report["CapacityTokens"]);
         Assert.Equal(1, report["TrackedEndpoints"]);

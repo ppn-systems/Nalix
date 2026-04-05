@@ -15,8 +15,6 @@ public sealed partial class MemoryTests
     public void Get_ObjectPoolRoundTrip_ResetsReturnedInstance()
     {
         ObjectPool pool = new(defaultMaxItemsPerType: 8);
-        List<string> traces = [];
-        pool.TraceOccurred += traces.Add;
 
         TestPoolable instance = pool.Get<TestPoolable>();
         instance.Value = 42;
@@ -34,7 +32,6 @@ public sealed partial class MemoryTests
         Assert.Equal(pool.TypeCount, ((IReadOnlyCollection<Dictionary<string, object>>)pool.GetAllTypeInfo()).Count);
         Assert.Equal(pool.TotalCreatedCount, stats["TotalCreatedCount"]);
         Assert.NotNull(ObjectPool.Default);
-        Assert.NotNull(traces);
     }
 
     [Fact]
