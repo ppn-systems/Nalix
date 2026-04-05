@@ -1,0 +1,124 @@
+<UserControl x:Class="Nalix.SDK.Tools.Views.PacketHistoryTabView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Nalix.SDK.Tools.Controls">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="360" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <GroupBox Header="{Binding ListHeader}">
+            <DockPanel Margin="10">
+                <Button DockPanel.Dock="Bottom"
+                        Margin="0,10,0,0"
+                        Command="{Binding OpenSelectedPacketCommand}"
+                        Content="{Binding OpenButtonText}" />
+                <Button DockPanel.Dock="Bottom"
+                        Margin="0,10,0,0"
+                        Command="{Binding ComparePreviousCommand}"
+                        Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonComparePrevious}" />
+                <ListBox DisplayMemberPath="Summary"
+                         ItemsSource="{Binding Entries}"
+                         SelectedItem="{Binding SelectedEntry}">
+                    <ListBox.InputBindings>
+                        <MouseBinding Gesture="LeftDoubleClick"
+                                      Command="{Binding OpenSelectedPacketCommand}" />
+                    </ListBox.InputBindings>
+                </ListBox>
+            </DockPanel>
+        </GroupBox>
+
+        <Border Grid.Column="2"
+                Padding="16"
+                Background="{DynamicResource SurfaceBrush}"
+                CornerRadius="10"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.ColumnSpan="2" Margin="0,0,0,12">
+                    <TextBlock FontSize="20" FontWeight="SemiBold" Text="{Binding Detail.Title}" />
+                    <TextBlock Margin="0,6,0,0"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
+                               TextWrapping="Wrap"
+                               Text="{Binding Detail.Summary}" />
+                    <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                        <TextBlock FontWeight="SemiBold"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                   Text="{Binding Source={StaticResource ToolTexts}, Path=PacketLengthLabel}" />
+                        <TextBlock Margin="6,0,0,0"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   Text="{Binding Detail.LengthText}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <controls:DynamicPropertyForm ItemsSource="{Binding Detail.Properties}" />
+                </ScrollViewer>
+
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="16,0,0,0">
+                    <Button Width="100"
+                            Margin="0,0,0,8"
+                            HorizontalAlignment="Left"
+                            Command="{Binding Detail.CopyHexCommand}"
+                            Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonCopyHex}" />
+                    <TextBox Padding="10"
+                             VerticalAlignment="Stretch"
+                             AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             TextWrapping="Wrap"
+                             FontFamily="Consolas"
+                             IsReadOnly="True"
+                             Text="{Binding Detail.RawHex, Mode=OneWay}" />
+                </StackPanel>
+
+                <Border Grid.Row="2"
+                        Grid.ColumnSpan="2"
+                        Margin="0,14,0,0"
+                        Padding="12"
+                        Background="{DynamicResource SurfaceAltBrush}"
+                        CornerRadius="8"
+                        BorderBrush="{DynamicResource BorderStrongBrush}"
+                        BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock FontWeight="SemiBold"
+                                   Text="{Binding Source={StaticResource ToolTexts}, Path=GroupPacketDiff}" />
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,4,0,0"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding DiffSummary, Mode=OneWay}" />
+                        <TextBox Grid.Row="2"
+                                 Margin="0,8,0,0"
+                                 Padding="10"
+                                 AcceptsReturn="True"
+                                 IsReadOnly="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 FontFamily="Consolas"
+                                 TextWrapping="Wrap"
+                                 Text="{Binding DiffText, Mode=OneWay}" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -9,13 +9,20 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
 
-		<Description>
-			<![CDATA[]]>
-		</Description>
+		<Description><![CDATA[
+Nalix.Network.Pipeline provides reusable middleware, throttling, and timekeeping components for the Nalix networking stack. It includes inbound packet middleware for permissions, rate limiting, concurrency control, and timeout handling, along with supporting primitives for traffic shaping and clock coordination.
 
-		<PackageReleaseNotes>
-			<![CDATA[]]>
-		</PackageReleaseNotes>
+This package is intended for applications and infrastructure that want finer control over request processing pipelines without taking a dependency on the full networking runtime surface.
+		]]></Description>
+
+		<PackageReleaseNotes><![CDATA[
+- Added inbound middleware for permission checks, rate limiting, concurrency gates, and timeout enforcement.
+- Introduced reusable throttling primitives including TokenBucketLimiter, PolicyRateLimiter, and ConcurrencyGate.
+- Added configurable token-bucket options to simplify traffic-shaping setup.
+- Included TimeSynchronizer for clock coordination in distributed networking scenarios.
+- Improved modularity so pipeline and throttling features can be consumed independently from the broader transport runtime.
+- General cleanup, packaging polish, and documentation improvements.
+		]]></PackageReleaseNotes>
 
 	</PropertyGroup>
 
@@ -28,8 +35,15 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" 
+			  Pack="true" 
+			  PackagePath="analyzers/dotnet/cs" 
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
 
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll"
+			  Pack="true" 
+			  PackagePath="analyzers/dotnet/cs" 
+			  Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
 	</ItemGroup>
 </Project>
+

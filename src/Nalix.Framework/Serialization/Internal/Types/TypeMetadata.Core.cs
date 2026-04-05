@@ -27,7 +27,7 @@ internal static partial class TypeMetadata
         _ = typeof(IFixedSizeSerializable);
         s_isReferenceOrContainsReferencesMethod = typeof(RuntimeHelpers)
             .GetMethod(nameof(RuntimeHelpers.IsReferenceOrContainsReferences))!;
-        s_unsafeSizeOfMethod = typeof(Unsafe).GetMethod(nameof(Unsafe.SizeOf), BindingFlags.Public | BindingFlags.Static)!;
+        s_unsafeSizeOfMethod = typeof(System.Runtime.CompilerServices.Unsafe).GetMethod(nameof(Unsafe.SizeOf), BindingFlags.Public | BindingFlags.Static)!;
 
         s_isRefCache = new();
         s_sizeOfFnCache = new();

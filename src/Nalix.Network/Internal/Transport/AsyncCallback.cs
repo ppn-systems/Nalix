@@ -145,13 +145,18 @@ internal static class AsyncCallback
     /// <param name="callback">The event handler to invoke.</param>
     /// <param name="sender">The sender object (typically an <see cref="IConnection"/>).</param>
     /// <param name="args">The event arguments.</param>
+    /// <param name="releasePendingPacketOnCompletion">
+    /// <see langword="true"/> when the callback corresponds to a receive-path
+    /// packet that already reserved one per-connection pending slot.
+    /// </param>
     /// <returns><see langword="true"/> if the callback was queued; <see langword="false"/> if dropped.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Invoke(
         EventHandler<IConnectEventArgs>? callback,
         object? sender,
-        IConnectEventArgs args)
+        IConnectEventArgs args,
+        bool releasePendingPacketOnCompletion = false)
     {
         if (callback is null)
         {
@@ -161,10 +166,7 @@ internal static class AsyncCallback
             return false;
         }
 
-        // ── Global backpressure check ──────────────────────────────────────────
-        int globalPending = Volatile.Read(ref s_pendingNormal);
-
-        if (globalPending >= s_opts.MaxPendingNormalCallbacks)
+        if (!TRY_RESERVE_GLOBAL_SLOT(out int globalPending))
         {
             // Drop the callback before queuing work so one overloaded server path
             // cannot keep piling up work items and consuming the entire normal lane.
@@ -178,23 +180,15 @@ internal static class AsyncCallback
         // healthy peers.
         if (args.NetworkEndpoint is not null)
         {
-            int ipPending = s_perIpPending.GetOrAdd(args.NetworkEndpoint, 0);
-
-            if (ipPending >= s_opts.MaxPendingPerIp)
+            if (!TRY_RESERVE_ENDPOINT_SLOT(args.NetworkEndpoint, out int ipPending))
             {
                 // Apply per-IP fairness first so a single remote endpoint cannot
                 // monopolize the queue even if there is still global headroom.
+                RELEASE_GLOBAL_SLOT();
                 Interlocked.Increment(ref s_droppedCallbacks);
                 s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={args.NetworkEndpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
                 return false;
             }
-
-            // Reserve the per-IP slot atomically.
-            s_perIpPending.AddOrUpdate(
-                args.NetworkEndpoint,
-                addValueFactory: static (_, _) => 1,
-                updateValueFactory: static (_, current, _) => current + 1,
-                factoryArgument: 0);
         }
 
         // ── Warn when approaching global limit ────────────────────────────────
@@ -204,10 +198,9 @@ internal static class AsyncCallback
             s_logger?.Warn($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
         }
 
-        Interlocked.Increment(ref s_pendingNormal);
         Interlocked.Increment(ref s_totalInvoked);
 
-        return QUEUE(s_invokeNormal, callback, sender, args, isHigh: false);
+        return QUEUE(s_invokeNormal, callback, sender, args, isHigh: false, releasePendingPacketOnCompletion);
     }
 
     /// <summary>
@@ -235,7 +228,7 @@ internal static class AsyncCallback
 
         _ = Interlocked.Increment(ref s_totalInvoked);
 
-        return QUEUE(s_invokeHigh, callback, sender, args, isHigh: true);
+        return QUEUE(s_invokeHigh, callback, sender, args, isHigh: true, releasePendingPacketOnCompletion: false);
     }
 
     /// <summary>Gets diagnostic statistics about callback processing.</summary>
@@ -262,10 +255,11 @@ internal static class AsyncCallback
         EventHandler<IConnectEventArgs> callback,
         object? sender,
         IConnectEventArgs args,
-        bool isHigh)
+        bool isHigh,
+        bool releasePendingPacketOnCompletion)
     {
         PooledConnectEventContext wrapper = PooledConnectEventContext.Get();
-        wrapper.Initialize(callback, sender, args);
+        wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
         if (!ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false))
         {
@@ -274,16 +268,11 @@ internal static class AsyncCallback
             {
                 // Roll back the reservation so counters stay consistent if the queue
                 // rejects the work item after we already reserved capacity.
-                _ = Interlocked.Decrement(ref s_pendingNormal);
+                RELEASE_GLOBAL_SLOT();
 
                 if (args.NetworkEndpoint is not null)
                 {
-                    _ = s_perIpPending.AddOrUpdate(
-                        args.NetworkEndpoint,
-                        addValueFactory: static (_, _) => 0,
-                        updateValueFactory: static (_, current, _) =>
-                            current > 1 ? current - 1 : 0,
-                        factoryArgument: 0);
+                    RELEASE_ENDPOINT_SLOT(args.NetworkEndpoint);
                 }
             }
 
@@ -299,6 +288,86 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TRY_RESERVE_GLOBAL_SLOT(out int pendingAfter)
+    {
+        while (true)
+        {
+            int observed = Volatile.Read(ref s_pendingNormal);
+            if (observed >= s_opts.MaxPendingNormalCallbacks)
+            {
+                pendingAfter = observed;
+                return false;
+            }
+
+            pendingAfter = observed + 1;
+            if (Interlocked.CompareExchange(ref s_pendingNormal, pendingAfter, observed) == observed)
+            {
+                return true;
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RELEASE_GLOBAL_SLOT() => _ = Interlocked.Decrement(ref s_pendingNormal);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool TRY_RESERVE_ENDPOINT_SLOT(INetworkEndpoint endpoint, out int pendingAfter)
+    {
+        while (true)
+        {
+            if (!s_perIpPending.TryGetValue(endpoint, out int current))
+            {
+                if (s_perIpPending.TryAdd(endpoint, 1))
+                {
+                    pendingAfter = 1;
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (current >= s_opts.MaxPendingPerIp)
+            {
+                pendingAfter = current;
+                return false;
+            }
+
+            pendingAfter = current + 1;
+            if (s_perIpPending.TryUpdate(endpoint, pendingAfter, current))
+            {
+                return true;
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RELEASE_ENDPOINT_SLOT(INetworkEndpoint endpoint)
+    {
+        while (true)
+        {
+            if (!s_perIpPending.TryGetValue(endpoint, out int current))
+            {
+                return;
+            }
+
+            if (current <= 1)
+            {
+                if (s_perIpPending.TryRemove(new KeyValuePair<INetworkEndpoint, int>(endpoint, current)))
+                {
+                    return;
+                }
+
+                continue;
+            }
+
+            if (s_perIpPending.TryUpdate(endpoint, current - 1, current))
+            {
+                return;
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void EXECUTE_AND_RETURN(PooledConnectEventContext w)
     {
         try
@@ -311,7 +380,7 @@ internal static class AsyncCallback
         }
         finally
         {
-            if (w.Sender is Connection conn)
+            if (w.ReleasePendingPacketOnCompletion && w.Sender is Connection conn)
             {
                 conn.ReleasePendingPacket();
             }
