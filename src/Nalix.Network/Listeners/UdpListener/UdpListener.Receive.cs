@@ -154,10 +154,27 @@ public abstract partial class UdpListenerBase
                 _ = Interlocked.Increment(ref _rxPackets);
                 _ = Interlocked.Add(ref _rxBytes, lease.Length);
 
-                BufferLease payloadLease = BufferLease.CopyFrom(payload);
-                lease.Dispose();
+                // Use the Protocol for processing even in the fast path
+                if (lease.ReleaseOwnership(out byte[]? fastBuffer, out int fastStart, out int fastLength))
+                {
+                    BufferLease fastPayload = BufferLease.TakeOwnership(fastBuffer!, fastStart + Snowflake.Size, fastLength - Snowflake.Size);
+                    ConnectionEventArgs fastArgs = s_pool.Get<ConnectionEventArgs>();
+                    fastArgs.Initialize(fastPayload, connection);
 
-                connection.InjectIncoming(payloadLease);
+                    try
+                    {
+                        _protocol.ProcessMessage(this, fastArgs);
+                    }
+                    catch (Exception ex)
+                    {
+                        s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] fastpath-protocol-error id={connection.ID} msg={ex.Message}");
+                        fastArgs.Dispose();
+                    }
+                }
+                else
+                {
+                    lease.Dispose();
+                }
                 return;
             }
 
@@ -217,15 +234,35 @@ public abstract partial class UdpListenerBase
         _ = Interlocked.Increment(ref _rxPackets);
         _ = Interlocked.Add(ref _rxBytes, lease.Length);
 
-        BufferLease accepted = BufferLease.CopyFrom(payload);
-        lease.Dispose();
+        // Strip the 7-byte Session Token and wrap the remaining payload into a new lease.
+        // We take ownership of the underlying buffer from the original lease but only for the payload slice.
+        if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length))
+        {
+            lease.Dispose();
+            return;
+        }
 
-        connection.InjectIncoming(accepted);
+        // Create a new lease for the payload (7 bytes offset)
+        BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
+
+        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        args.Initialize(incomingLease, connection);
+
+        try
+        {
+            // Route through Protocol for standardized processing (decryption, framing, etc.)
+            _protocol.ProcessMessage(this, args);
+        }
+        catch (Exception ex)
+        {
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] protocol-error id={connection.ID} msg={ex.Message}");
+            args.Dispose();
+        }
 
 #if DEBUG
         s_logger?.Trace(
             $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-            $"bound+inject id={connection.ID} ep={remoteEndPoint} size={accepted.Length}");
+            $"bound+protocol id={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
 #endif
     }
 

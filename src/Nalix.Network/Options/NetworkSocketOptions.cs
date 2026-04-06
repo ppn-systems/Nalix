@@ -125,6 +125,10 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Default 128 matches the typical TCP backlog.
     /// </para>
     /// </summary>
+    [IniComment("Maximum accepted connections that may queue in the channel while the consumer thread is busy (tune to ~2 × burst rate × ProcessConnection latency in ms, default 128)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ProcessChannelCapacity must be at least 1.")]
+    public int ProcessChannelCapacity { get; set; } = 128;
+
     /// <summary>
     /// Gets or sets the maximum size (in bytes) allowed for a single UDP datagram.
     /// Default 1400 avoids IP fragmentation.

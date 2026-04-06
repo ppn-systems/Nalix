@@ -37,8 +37,11 @@ public abstract partial class UdpListenerBase
 
     #region Fields
 
+    internal static NetworkSocketOptions Config => s_config;
+
     private static readonly NetworkSocketOptions s_config;
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly Nalix.Framework.Memory.Objects.ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<Nalix.Framework.Memory.Objects.ObjectPoolManager>();
 
     private readonly ushort _port;
     private readonly IProtocol _protocol;
