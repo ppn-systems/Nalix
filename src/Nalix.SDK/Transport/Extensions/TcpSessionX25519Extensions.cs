@@ -11,20 +11,31 @@ using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Primitives;
+using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Extensions;
 
 /// <summary>
-/// Provides extension methods for performing cryptographic handshakes over a TransportSession.
+/// Provides extension methods for performing cryptographic handshakes over a <see cref="TransportSession"/>.
 /// </summary>
 public static class TcpSessionX25519Extensions
 {
     /// <summary>
-    /// Performs the default X25519 client-side handshake synchronously over the connected <see cref="TransportSession"/>.
-    /// Derives the shared session key and automatically enables encryption for the session.
+    /// Performs the client-side X25519 handshake asynchronously over the connected <see cref="TransportSession"/>.
     /// </summary>
-    /// <param name="session">The established transport session.</param>
-    /// <param name="ct">The cancellation token.</param>
+    /// <remarks>
+    /// This method performs an anonymous Elliptic Curve Diffie-Hellman (ECDH) handshake using Curve25519.
+    /// It generates an ephemeral key pair, exchanges public keys with the server, verifies server proofs, 
+    /// and derives a shared session key.
+    /// Upon a successful handshake, the session's encryption settings (<see cref="TransportOptions.Secret"/>, 
+    /// <see cref="TransportOptions.Algorithm"/>, and <see cref="TransportOptions.EncryptionEnabled"/>) 
+    /// are automatically updated to enable secure communication using ChaCha20Poly1305.
+    /// </remarks>
+    /// <param name="session">The connected transport session to perform the handshake on.</param>
+    /// <param name="ct">A cancellation token that can be used to abort the handshake process.</param>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the session is not connected.</exception>
+    /// <exception cref="NetworkException">Thrown if the handshake fails due to malformed packets, invalid proofs, or key agreement failures.</exception>
     public static async Task HandshakeAsync(this TransportSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);

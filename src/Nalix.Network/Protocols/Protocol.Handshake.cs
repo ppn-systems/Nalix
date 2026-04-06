@@ -15,10 +15,19 @@ using Nalix.Framework.Security.Primitives;
 namespace Nalix.Network.Protocols;
 
 /// <summary>
-/// Default server-side handshake protocol for Nalix.
-/// It performs an anonymous X25519 handshake, derives a shared session key, and
-/// only forwards non-handshake packets to the dispatch pipeline once the session is established.
+/// Implements the default server-side X25519 handshake protocol for Nalix.
 /// </summary>
+/// <remarks>
+/// This protocol performs an anonymous Elliptic Curve Diffie-Hellman (ECDH) handshake using Curve25519. 
+/// It involves:
+/// <list type="bullet">
+/// <item>Receiving a CLIENT_HELLO with the client's public key and nonce.</item>
+/// <item>Responding with a SERVER_HELLO containing the server's ephemeral public key, nonce, and a proof.</item>
+/// <item>Verifying the client's CLIENT_FINISH proof.</item>
+/// <item>Deriving a shared session key used for symmetric encryption (ChaCha20Poly1305) after establishment.</item>
+/// </list>
+/// Once established, the handshake protocol unbinds itself from the connection's processing pipeline.
+/// </remarks>
 [DebuggerDisplay("Accepting={IsAccepting}, KeepConnectionOpen={KeepConnectionOpen}")]
 public sealed class ProtocolX25519 : Protocol
 {
