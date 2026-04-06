@@ -20,7 +20,7 @@ public sealed partial class Connection
 {
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public IConnection.IUdp GetOrCreateUDP(ref IPEndPoint iPEndPoint)
+    public IConnection.ITransport GetOrCreateUDP(ref IPEndPoint iPEndPoint)
     {
         ArgumentNullException.ThrowIfNull(iPEndPoint);
 
