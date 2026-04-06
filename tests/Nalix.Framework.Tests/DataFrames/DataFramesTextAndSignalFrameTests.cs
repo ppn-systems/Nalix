@@ -5,7 +5,6 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.DataFrames.SignalFrames;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames;

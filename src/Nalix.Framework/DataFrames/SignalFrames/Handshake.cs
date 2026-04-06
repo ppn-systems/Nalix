@@ -101,6 +101,10 @@ public sealed class Handshake : PacketBase<Handshake>
     /// Gets or sets the session token assigned by the server.
     /// Used primarily for UDP connection mapping.
     /// </summary>
+    /// <summary>
+    /// Gets or sets the session token assigned by the server.
+    /// Used primarily for UDP connection mapping.
+    /// </summary>
     [SerializeOrder(5)]
     public Snowflake SessionToken { get; set; }
 

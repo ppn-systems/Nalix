@@ -14,6 +14,7 @@ using Nalix.Common.Networking;
 using Nalix.Common.Security;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Transport;
 
@@ -211,7 +212,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         ConnectionEventArgs args = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<ConnectionEventArgs>();
         args.Initialize(lease, this);
 
-        AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true);
+        _ = Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true);
     }
 
     #endregion Methods

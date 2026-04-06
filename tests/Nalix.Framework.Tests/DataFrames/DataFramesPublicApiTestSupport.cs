@@ -7,7 +7,6 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.DataFrames.SignalFrames;
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames;
@@ -31,6 +30,18 @@ public sealed partial class DataFramesPublicApiTests
             PacketRoundTripKind.Directive,
             PacketRoundTripKind.Handshake
         ];
+    }
+
+    private static byte[] CreatePacketBytes(string payload)
+    {
+        byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
+        byte[] buffer = new byte[FrameTransformer.Offset + payloadBytes.Length];
+        
+        // Fill header with predictable dummy data that won't fail FrameTransformer checks
+        for (int i = 0; i < FrameTransformer.Offset; i++) buffer[i] = (byte)(i + 1);
+        
+        payloadBytes.CopyTo(buffer, FrameTransformer.Offset);
+        return buffer;
     }
 
     public static IEnumerable<object[]> PacketSerializeBufferTooSmallCases()
