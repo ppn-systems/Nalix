@@ -5,19 +5,30 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
 using Nalix.SDK.Tools.Models;
 
 namespace Nalix.SDK.Tools.Abstractions;
 
 /// <summary>
-/// Defines TCP client operations used by the packet tool.
+/// Defines network client operations used by the packet tool.
 /// </summary>
-public interface ITcpClientService : IDisposable
+public interface INetworkClientService : IDisposable
 {
     /// <summary>
-    /// Gets a value indicating whether the TCP client is connected.
+    /// Gets a value indicating whether the client is connected.
     /// </summary>
     bool IsConnected { get; }
+
+    /// <summary>
+    /// Gets the current transport protocol.
+    /// </summary>
+    ProtocolType Transport { get; }
+
+    /// <summary>
+    /// Gets the session token (Snowflake) if available.
+    /// </summary>
+    Nalix.Framework.Identifiers.Snowflake SessionToken { get; }
 
     /// <summary>
     /// Raised when the status text changes.
@@ -35,20 +46,20 @@ public interface ITcpClientService : IDisposable
     event EventHandler<PacketLogEntry>? PacketReceived;
 
     /// <summary>
-    /// Connects the TCP session.
+    /// Connects the network session (TCP or UDP).
     /// </summary>
     /// <param name="settings">The connection settings.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task ConnectAsync(ConnectionSettings settings, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Disconnects the TCP session.
+    /// Disconnects the active session.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task DisconnectAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Sends a packet through the active TCP session.
+    /// Sends a packet through the active session.
     /// </summary>
     /// <param name="packet">The packet to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>

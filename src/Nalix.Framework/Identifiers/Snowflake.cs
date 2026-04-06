@@ -260,6 +260,33 @@ public readonly partial struct Snowflake : ISnowflake
         }
     }
 
+    /// <summary>
+    /// Attempts to parse a hexadecimal string into a <see cref="Snowflake"/>.
+    /// </summary>
+    /// <param name="s">The hexadecimal string to parse (must be 14 characters).</param>
+    /// <param name="result">When this method returns, contains the parsed <see cref="Snowflake"/> if successful.</param>
+    /// <returns><c>true</c> if the string was parsed successfully; otherwise, <c>false</c>.</returns>
+    [Pure]
+    public static bool TryParse(string? s, out Snowflake result)
+    {
+        result = Empty;
+        if (string.IsNullOrWhiteSpace(s) || s.Length != Size * 2)
+        {
+            return false;
+        }
+
+        try
+        {
+            byte[] bytes = Convert.FromHexString(s);
+            result = FromBytes(bytes);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     #endregion Factory Methods
 
     #region Override
