@@ -17,16 +17,15 @@ namespace Nalix.SDK.Transport.Extensions;
 /// <summary>
 /// Provides extension methods for performing cryptographic handshakes over a TransportSession.
 /// </summary>
-public static class TransportSessionHandshakeExtensions
+public static class TcpSessionX25519Extensions
 {
     /// <summary>
     /// Performs the default X25519 client-side handshake synchronously over the connected <see cref="TransportSession"/>.
     /// Derives the shared session key and automatically enables encryption for the session.
     /// </summary>
     /// <param name="session">The established transport session.</param>
-    /// <param name="opCode">The opcode used to route handshake packets.</param>
     /// <param name="ct">The cancellation token.</param>
-    public static async Task HandshakeAsync(this TransportSession session, ushort opCode = 0, CancellationToken ct = default)
+    public static async Task HandshakeAsync(this TransportSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -38,7 +37,8 @@ public static class TransportSessionHandshakeExtensions
         X25519.X25519KeyPair clientKey = X25519.GenerateKeyPair();
         byte[] clientNonce = Csprng.GetBytes(Handshake.DynamicSize);
 
-        Handshake clientHello = new(opCode, HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
+        // OpCode ignore
+        Handshake clientHello = new(0, HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
 
         TaskCompletionSource<Handshake> serverHelloTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource<Handshake> serverFinishTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -49,11 +49,6 @@ public static class TransportSessionHandshakeExtensions
             {
                 // We attempt to deserialize all incoming packets during the handshake phase
                 Handshake packet = Handshake.Deserialize(lease.Span);
-
-                if (packet.OpCode != opCode)
-                {
-                    return;
-                }
 
                 switch (packet.Stage)
                 {
@@ -114,7 +109,7 @@ public static class TransportSessionHandshakeExtensions
 
             byte[] sessionKey = HandshakeCrypto.DeriveSessionKey(sharedSecret, clientNonce, serverHello.Nonce, transcriptHash);
 
-            Handshake clientFinish = new(opCode, HandshakeStage.CLIENT_FINISH, [], [], HandshakeCrypto.ComputeClientProof(sharedSecret, transcriptHash))
+            Handshake clientFinish = new(0, HandshakeStage.CLIENT_FINISH, [], [], HandshakeCrypto.ComputeClientProof(sharedSecret, transcriptHash))
             {
                 TranscriptHash = transcriptHash
             };
