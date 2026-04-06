@@ -14,7 +14,6 @@
 - connects a TCP socket to the configured server endpoint
 - serializes packets into framed payloads
 - raises sync and async message events
-- raises sync and async message events
 - exposes `OnConnected`, `OnDisconnected`, `OnMessageReceived`, and `OnError`
 - uses a background receive loop to process incoming frames
 
