@@ -9,7 +9,7 @@ namespace Nalix.Framework.Security.Primitives;
 /// low-level arithmetic and comparisons required by the algorithms.
 /// </summary>
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-internal static class BitwiseOperations
+public static class BitwiseOperations
 {
     /// <summary>
     /// Unchecked integer exclusive or (XOR) operation.
@@ -20,7 +20,7 @@ internal static class BitwiseOperations
     /// <returns>The result of (v XOR w).</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static uint XOr(uint v, uint w) => v ^ w;
+    internal static uint XOr(uint v, uint w) => v ^ w;
 
     /// <summary>
     /// Unchecked integer addition.
@@ -35,7 +35,7 @@ internal static class BitwiseOperations
     /// <returns>The result of (v + w) modulo 2^32.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static uint Add(uint v, uint w) => unchecked(v + w);
+    internal static uint Add(uint v, uint w) => unchecked(v + w);
 
     /// <summary>
     /// Adds one using unchecked integer addition.
@@ -49,7 +49,7 @@ internal static class BitwiseOperations
     /// <returns>The result of (v + 1) modulo 2^32.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static uint AddOne(uint v) => unchecked(v + 1);
+    internal static uint AddOne(uint v) => unchecked(v + 1);
 
     /// <summary>
     /// Unchecked integer subtraction.
@@ -61,7 +61,7 @@ internal static class BitwiseOperations
     /// <returns>The result of (v - w) modulo 2^32.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public static uint Subtract(uint v, uint w) => unchecked(v - w);
+    internal static uint Subtract(uint v, uint w) => unchecked(v - w);
 
     /// <summary>
     /// Compares two byte spans in a fixed-time manner to prevent timing attacks.

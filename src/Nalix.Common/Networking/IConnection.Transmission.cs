@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
@@ -20,28 +19,6 @@ public partial interface IConnection
     /// Gets the USER Datagram ProtocolType (UDP) transmission interface
     /// </summary>
     ITransport UDP { get; }
-
-    /// <summary>
-    /// Gets an existing UDP transport instance associated with this connection,
-    /// or creates and initializes a new one if it does not already exist.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The UDP transport is lazily created on first access and cached for subsequent calls.
-    /// </para>
-    /// <para>
-    /// The caller should not dispose the returned instance directly; its lifecycle
-    /// is managed by the owning connection and the object pool.
-    /// </para>
-    /// </remarks>
-    /// <returns>
-    /// An initialized <see cref="ITransport"/> instance bound to this connection.
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown if the underlying connection does not expose a valid
-    /// <see cref="IPEndPoint"/> required for UDP initialization.
-    /// </exception>
-    ITransport GetOrCreateUDP(ref IPEndPoint iPEndPoint);
 
     /// <summary>
     /// Represents a transport interface for sending data packets.

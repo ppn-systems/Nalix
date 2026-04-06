@@ -2,18 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers.Binary;
+using System.ComponentModel;
 using System.Diagnostics;
-using System.Security.Cryptography;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Asymmetric;
-using Nalix.Framework.Security.Hashing;
+using Nalix.Framework.Security.Primitives;
 
 namespace Nalix.Network.Protocols;
 
@@ -23,56 +20,46 @@ namespace Nalix.Network.Protocols;
 /// only forwards non-handshake packets to the dispatch pipeline once the session is established.
 /// </summary>
 [DebuggerDisplay("Accepting={IsAccepting}, KeepConnectionOpen={KeepConnectionOpen}")]
-public sealed class HandshakeProtocol : Protocol
+public sealed class ProtocolX25519 : Protocol
 {
+    #region Properties
+
     private const string StateAttributeKey = "nalix.handshake.state";
     private const string EstablishedAttributeKey = "nalix.handshake.established";
 
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    #endregion Properties
 
-    private static ReadOnlySpan<byte> SessionLabel => "nalix-handshake/session"u8;
-    private static ReadOnlySpan<byte> ServerProofLabel => "nalix-handshake/server-proof"u8;
-    private static ReadOnlySpan<byte> ClientProofLabel => "nalix-handshake/client-proof"u8;
-    private static ReadOnlySpan<byte> ServerFinishLabel => "nalix-handshake/server-finish"u8;
+    #region Constructor
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="HandshakeProtocol"/> class.
+    /// Initializes a new instance of the <see cref="ProtocolX25519"/> class.
     /// </summary>
-    public HandshakeProtocol()
+    public ProtocolX25519()
     {
         this.IsAccepting = true;
         this.KeepConnectionOpen = true;
     }
 
-    /// <summary>
-    /// Computes the server proof over the negotiated shared secret and transcript hash.
-    /// </summary>
-    public static byte[] ComputeServerProof(ReadOnlySpan<byte> sharedSecret, ReadOnlySpan<byte> transcriptHash)
-        => ComputeDigest(ServerProofLabel, sharedSecret, transcriptHash);
+    #endregion Constructor
+
+    #region Public APIs
 
     /// <summary>
-    /// Computes the client proof over the negotiated shared secret and transcript hash.
+    /// Binds this handshake protocol to a connection's processing event.
+    /// It will automatically unbind upon a successful handshake.
     /// </summary>
-    public static byte[] ComputeClientProof(ReadOnlySpan<byte> sharedSecret, ReadOnlySpan<byte> transcriptHash)
-        => ComputeDigest(ClientProofLabel, sharedSecret, transcriptHash);
+    public void Bind(IConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        connection.OnProcessEvent += this.ProcessMessage;
+    }
 
-    /// <summary>
-    /// Computes the final server acknowledgement proof over the negotiated shared secret and transcript hash.
-    /// </summary>
-    public static byte[] ComputeServerFinishProof(ReadOnlySpan<byte> sharedSecret, ReadOnlySpan<byte> transcriptHash)
-        => ComputeDigest(ServerFinishLabel, sharedSecret, transcriptHash);
+    #endregion Public APIs
 
-    /// <summary>
-    /// Derives the session key that should be assigned to <see cref="IConnection.Secret"/>.
-    /// </summary>
-    public static byte[] DeriveSessionKey(
-        ReadOnlySpan<byte> sharedSecret,
-        ReadOnlySpan<byte> clientNonce,
-        ReadOnlySpan<byte> serverNonce,
-        ReadOnlySpan<byte> transcriptHash)
-        => ComputeDigest(SessionLabel, sharedSecret, clientNonce, serverNonce, transcriptHash);
+    #region Overrides
 
     /// <inheritdoc />
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public override void ProcessMessage(object? sender, IConnectEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -95,6 +82,10 @@ public sealed class HandshakeProtocol : Protocol
         }
     }
 
+    #endregion Overrides
+
+    #region Private Methods
+
     private void HandleHandshake(IConnection connection, Handshake handshake)
     {
         switch (handshake.Stage)
@@ -107,13 +98,13 @@ public sealed class HandshakeProtocol : Protocol
                 this.HandleClientFinish(connection, handshake);
                 return;
             case HandshakeStage.NONE:
-                break;
             case HandshakeStage.SERVER_HELLO:
-                break;
             case HandshakeStage.SERVER_FINISH:
-                break;
+                this.Reject(connection, ProtocolReason.UNEXPECTED_MESSAGE);
+                return;
             case HandshakeStage.ERROR:
-                break;
+                connection.Disconnect("Handshake error received from peer.");
+                return;
             default:
                 this.Reject(connection, ProtocolReason.UNEXPECTED_MESSAGE);
                 return;
@@ -122,24 +113,28 @@ public sealed class HandshakeProtocol : Protocol
 
     private void HandleClientHello(IConnection connection, Handshake packet)
     {
-        if (!IsValidHelloPacket(packet))
+        // Verify the length and format of the client Key and Nonce
+        if (!HandshakeCrypto.IsValid(packet))
         {
             this.Reject(connection, ProtocolReason.MALFORMED_PACKET);
             return;
         }
 
+        // Generate ephemeral server keypair and derive shared secret (ECDH X25519)
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
         byte[] sharedSecret = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
-        if (IsAllZero(sharedSecret))
+        if (HandshakeCrypto.IsAllZero(sharedSecret))
         {
             this.Reject(connection, ProtocolReason.DECRYPTION_FAILED);
             return;
         }
 
         byte[] serverNonce = Csprng.GetBytes(Handshake.DynamicSize);
+        // Compute the transcript hash to authenticate the handshake state
         byte[] transcriptHash = Handshake.ComputeTranscriptHash(
-            ComposeTranscriptBuffer(packet.PublicKey, packet.Nonce, serverKey.PublicKey, serverNonce));
+            HandshakeCrypto.ComposeTranscriptBuffer(packet.PublicKey, packet.Nonce, serverKey.PublicKey, serverNonce));
 
+        // Save session context into Connection Attributes to verify at the FINISH stage
         HandshakeSessionState state = new()
         {
             ClientPublicKey = packet.PublicKey,
@@ -148,21 +143,23 @@ public sealed class HandshakeProtocol : Protocol
             ServerNonce = serverNonce,
             ServerPublicKey = serverKey.PublicKey,
             TranscriptHash = transcriptHash,
-            SessionKey = DeriveSessionKey(sharedSecret, packet.Nonce, serverNonce, transcriptHash)
+            SessionKey = HandshakeCrypto.DeriveSessionKey(sharedSecret, packet.Nonce, serverNonce, transcriptHash)
         };
 
         connection.Attributes[StateAttributeKey] = state;
 
-        Handshake reply = new(packet.OpCode, HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce, ComputeServerProof(sharedSecret, transcriptHash), packet.Protocol)
+        Handshake reply = new(packet.OpCode, HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce, HandshakeCrypto.ComputeServerProof(sharedSecret, transcriptHash), packet.Protocol)
         {
             TranscriptHash = transcriptHash
         };
 
+        // Send SERVER_HELLO response for the client to process
         connection.TCP.Send(reply);
     }
 
     private void HandleClientFinish(IConnection connection, Handshake packet)
     {
+        // State must have been created during the HELLO stage
         if (!TryGetState(connection, out HandshakeSessionState? state) || state is null)
         {
             this.Reject(connection, ProtocolReason.STATE_VIOLATION);
@@ -175,19 +172,22 @@ public sealed class HandshakeProtocol : Protocol
             return;
         }
 
-        if (!CryptographicOperations.FixedTimeEquals(packet.TranscriptHash, state.TranscriptHash))
+        if (!BitwiseOperations.FixedTimeEquals(packet.TranscriptHash, state.TranscriptHash))
         {
             this.Reject(connection, ProtocolReason.CHECKSUM_FAILED);
             return;
         }
 
-        byte[] expectedProof = ComputeClientProof(state.SharedSecret, state.TranscriptHash);
-        if (!CryptographicOperations.FixedTimeEquals(packet.Proof, expectedProof))
+        byte[] expectedProof = HandshakeCrypto.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
+
+        // Use a fixed-time equality check to prevent timing attacks
+        if (!BitwiseOperations.FixedTimeEquals(packet.Proof, expectedProof))
         {
             this.Reject(connection, ProtocolReason.SIGNATURE_INVALID);
             return;
         }
 
+        // Handshake successful - Assign session key and enable CipherSuite context on the connection
         connection.Secret = state.SessionKey;
         connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
         connection.Attributes[EstablishedAttributeKey] = true;
@@ -198,26 +198,26 @@ public sealed class HandshakeProtocol : Protocol
             HandshakeStage.SERVER_FINISH,
             [],
             [],
-            ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash),
+            HandshakeCrypto.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash),
             packet.Protocol)
         {
             TranscriptHash = state.TranscriptHash
         };
 
         connection.TCP.Send(reply);
+        connection.OnProcessEvent -= this.ProcessMessage;
     }
 
     private void Reject(IConnection connection, ProtocolReason reason)
     {
         try
         {
+            // Remove handshake event subscriber before rejecting the connection
+            connection.OnProcessEvent -= this.ProcessMessage;
+
             Control control = new();
             control.Initialize(opCode: 0, type: ControlType.ERROR, reasonCode: reason, transport: ProtocolType.TCP);
             connection.TCP.Send(control);
-        }
-        catch (Exception ex)
-        {
-            s_logger?.Debug($"[NW.{nameof(HandshakeProtocol)}] handshake-reject-send-failed id={connection.ID} ex={ex.Message}");
         }
         finally
         {
@@ -237,100 +237,6 @@ public sealed class HandshakeProtocol : Protocol
         return false;
     }
 
-    private static bool IsValidHelloPacket(Handshake packet)
-        => packet.PublicKey.Length == Handshake.DynamicSize && packet.Nonce.Length == Handshake.DynamicSize;
-
-    private static bool IsAllZero(ReadOnlySpan<byte> value)
-    {
-        for (int i = 0; i < value.Length; i++)
-        {
-            if (value[i] != 0)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static byte[] ComposeTranscriptBuffer(
-        ReadOnlySpan<byte> clientPublicKey,
-        ReadOnlySpan<byte> clientNonce,
-        ReadOnlySpan<byte> serverPublicKey,
-        ReadOnlySpan<byte> serverNonce)
-    {
-        int total = (sizeof(int) * 4)
-            + clientPublicKey.Length
-            + clientNonce.Length
-            + serverPublicKey.Length
-            + serverNonce.Length;
-
-        byte[] buffer = GC.AllocateUninitializedArray<byte>(total);
-        Span<byte> destination = buffer;
-        int offset = 0;
-
-        offset = WriteSegment(destination, offset, clientPublicKey);
-        offset = WriteSegment(destination, offset, clientNonce);
-        offset = WriteSegment(destination, offset, serverPublicKey);
-        _ = WriteSegment(destination, offset, serverNonce);
-
-        return buffer;
-    }
-
-    private static byte[] ComputeDigest(
-        ReadOnlySpan<byte> label,
-        ReadOnlySpan<byte> segment0,
-        ReadOnlySpan<byte> segment1)
-    {
-        int total = (sizeof(int) * 3) + label.Length + segment0.Length + segment1.Length;
-
-        byte[] buffer = GC.AllocateUninitializedArray<byte>(total);
-        Span<byte> destination = buffer;
-        int offset = 0;
-
-        offset = WriteSegment(destination, offset, label);
-        offset = WriteSegment(destination, offset, segment0);
-        _ = WriteSegment(destination, offset, segment1);
-
-        return Keccak256.HashData(buffer);
-    }
-
-    private static byte[] ComputeDigest(
-        ReadOnlySpan<byte> label,
-        ReadOnlySpan<byte> segment0,
-        ReadOnlySpan<byte> segment1,
-        ReadOnlySpan<byte> segment2,
-        ReadOnlySpan<byte> segment3)
-    {
-        int total = (sizeof(int) * 5)
-            + label.Length
-            + segment0.Length
-            + segment1.Length
-            + segment2.Length
-            + segment3.Length;
-
-        byte[] buffer = GC.AllocateUninitializedArray<byte>(total);
-        Span<byte> destination = buffer;
-        int offset = 0;
-
-        offset = WriteSegment(destination, offset, label);
-        offset = WriteSegment(destination, offset, segment0);
-        offset = WriteSegment(destination, offset, segment1);
-        offset = WriteSegment(destination, offset, segment2);
-        _ = WriteSegment(destination, offset, segment3);
-
-        return Keccak256.HashData(buffer);
-    }
-
-    private static int WriteSegment(Span<byte> destination, int offset, ReadOnlySpan<byte> value)
-    {
-        BinaryPrimitives.WriteInt32LittleEndian(destination[offset..], value.Length);
-        offset += sizeof(int);
-        value.CopyTo(destination[offset..]);
-        offset += value.Length;
-        return offset;
-    }
-
     private sealed class HandshakeSessionState
     {
         public byte[] ClientPublicKey { get; init; } = [];
@@ -341,4 +247,6 @@ public sealed class HandshakeProtocol : Protocol
         public byte[] TranscriptHash { get; init; } = [];
         public byte[] SessionKey { get; init; } = [];
     }
+
+    #endregion Private Methods
 }
