@@ -415,6 +415,11 @@ public sealed class PacketDispatchChannel
             {
                 return ValueTask.CompletedTask;
             }
+            catch (SerializationFailureException)
+            {
+                connection.IncrementErrorCount();
+                return ValueTask.CompletedTask;
+            }
             catch (Exception ex)
             {
                 connection.IncrementErrorCount();

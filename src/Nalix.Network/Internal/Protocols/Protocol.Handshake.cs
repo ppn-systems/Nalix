@@ -56,8 +56,12 @@ internal sealed class ProtocolX25519 : Protocol
             return;
         }
 
-        Handshake handshake = Handshake.Deserialize(args.Lease.Span);
-        this.HandleHandshake(args.Connection, handshake);
+        try
+        {
+            Handshake handshake = Handshake.Deserialize(args.Lease.Span);
+            this.HandleHandshake(args.Connection, handshake);
+        }
+        catch { }
     }
 
     /// <inheritdoc />
