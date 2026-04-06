@@ -70,19 +70,4 @@ public partial interface IConnection
         /// </remarks>
         void BeginReceive(CancellationToken cancellationToken = default);
     }
-
-    /// <summary>
-    /// Represents the Transmission CONTROL ProtocolType (TCP) transmission interface
-    /// for a network connection.
-    /// </summary>
-    [Obsolete("Use ITransport instead. This interface will be removed in a future version.")]
-    interface ITcp : ITransport { }
-
-    /// <summary>
-    /// Represents the USER Datagram ProtocolType (UDP) transmission interface
-    /// for a network connection.
-    /// </summary>
-    [Obsolete("Use ITransport instead. This interface will be removed in a future version.")]
-    interface IUdp : ITransport { }
-
 }

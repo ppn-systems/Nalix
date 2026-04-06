@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -10,57 +12,75 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Network.Connections;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
-    #region Constants
+    #region Enums
 
     /// <summary>
-    /// Milliseconds
+    /// Represents the lifecycle state of the UDP listener.
+    /// Transitions follow: STOPPED → STARTING → RUNNING → STOPPING → STOPPED.
     /// </summary>
-    private const int ReceiveTimeout = 500;
+    private enum ListenerState
+    {
+        STOPPED = 0,
+        STARTING = 1,
+        RUNNING = 2,
+        STOPPING = 3
+    }
 
-    #endregion Constants
+    #endregion Enums
 
     #region Fields
 
     private static readonly NetworkSocketOptions s_config;
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private readonly ushort _port;
     private readonly IProtocol _protocol;
     private readonly SemaphoreSlim _lock;
 
-    private UdpClient? _udpClient;
+    private Socket? _socket;
+    private EndPoint _anyEndPoint;
     private CancellationTokenSource? _cts;
     private CancellationToken _cancellationToken;
 
-    private int _isDisposed;
-    private volatile bool _isRunning;
-
     /// <summary>
-    /// Diagnostics fields
+    /// Fast-path endpoint binding cache. After the first successful token-based
+    /// lookup, the <c>EndPoint → Connection</c> mapping is cached so subsequent
+    /// packets from the same endpoint skip the <see cref="ConnectionHub"/> entirely.
     /// </summary>
+    private readonly ConcurrentDictionary<EndPoint, Connection> _endpointCache = new();
+
+    private int _state;
+    private int _isDisposed;
+    private int _stopInitiated;
+
+    // Diagnostic counters — grouped for clarity, accessed via Interlocked.
     private long _rxPackets;
     private long _rxBytes;
     private long _dropShort;
     private long _dropUnauth;
     private long _dropUnknown;
-
     private long _recvErrors;
-
-    private int _procSeq = -1;
 
     #endregion Fields
 
     #region Properties
 
     /// <summary>
+    /// Gets the current lifecycle state of the listener (thread-safe volatile read).
+    /// </summary>
+    private ListenerState State => (ListenerState)Volatile.Read(ref _state);
+
+    /// <summary>
     /// Gets a value indicating whether the UDP listener is currently running and listening for datagrams.
     /// </summary>
-    public bool IsListening => _isRunning;
+    public bool IsListening => this.State == ListenerState.RUNNING;
 
     #endregion Properties
 
@@ -73,12 +93,12 @@ public abstract partial class UdpListenerBase
         s_config.Validate();
     }
 
-
     /// <summary>
-    /// Initializes a new instance of the <see cref="UdpListenerBase"/> class with the specified port, protocol, buffer pool, and logger.
+    /// Initializes a new instance of the <see cref="UdpListenerBase"/> class with the specified port and protocol.
     /// </summary>
     /// <param name="port">The UDP port to listen on.</param>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="protocol"/> is <c>null</c>.</exception>
     [DebuggerStepThrough]
     protected UdpListenerBase(ushort port, IProtocol protocol)
     {
@@ -86,16 +106,17 @@ public abstract partial class UdpListenerBase
 
         _port = port;
         _protocol = protocol;
-
+        _state = (int)ListenerState.STOPPED;
         _lock = new SemaphoreSlim(1, 1);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
+        // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
+        _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
+
+        s_logger?.Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
     }
 
-
     /// <summary>
-    /// Initializes a new instance of the <see cref="UdpListenerBase"/> class using the configured port, protocol, buffer pool, and logger.
+    /// Initializes a new instance of the <see cref="UdpListenerBase"/> class using the configured port.
     /// </summary>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
     [DebuggerStepThrough]
@@ -120,7 +141,7 @@ public abstract partial class UdpListenerBase
     [DebuggerStepThrough]
     protected virtual void Dispose(bool disposing)
     {
-        // Atomic check-and-set: 0 -> 1
+        // Atomic check-and-set: 0 -> 1. Prevents double-dispose.
         if (Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
         {
             return;
@@ -128,23 +149,33 @@ public abstract partial class UdpListenerBase
 
         if (disposing)
         {
-            _cts?.Cancel();
-            _cts?.Dispose();
+            this.Deactivate();
+
+            try
+            {
+                _cts?.Cancel();
+                _cts?.Dispose();
+            }
+            catch { }
+
             _cts = null;
             _cancellationToken = default;
 
             try
             {
-                _udpClient?.Close();
-                _udpClient = null;
+                _socket?.Close();
+                _socket?.Dispose();
             }
             catch { }
 
+            _socket = null;
+            _endpointCache.Clear();
             _lock.Dispose();
+
+            _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed");
+        s_logger?.Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed port={_port}");
     }
 
     #endregion IDisposable
