@@ -53,4 +53,10 @@ public interface ITcpClientService : IDisposable
     /// <param name="packet">The packet to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task SendPacketAsync(IPacket packet, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Performs the cryptographic handshake to establish a secure session.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task HandshakeAsync(CancellationToken cancellationToken = default);
 }

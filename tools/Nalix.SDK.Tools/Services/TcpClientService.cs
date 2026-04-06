@@ -11,6 +11,7 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Models;
 using Nalix.SDK.Transport;
+using Nalix.SDK.Transport.Extensions;
 
 namespace Nalix.SDK.Tools.Services;
 
@@ -132,6 +133,19 @@ public sealed class TcpClientService : ITcpClientService
 
         this.Dispatch(() => this.PacketSent?.Invoke(this, entry));
         this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusPacketSentFormat, packet.GetType().Name, packet.OpCode));
+    }
+
+    /// <inheritdoc/>
+    public async Task HandshakeAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_session is null)
+        {
+            throw new InvalidOperationException(_configurationService.Texts.StatusTcpSessionNotConnected);
+        }
+
+        await _session.HandshakeAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>

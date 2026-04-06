@@ -67,6 +67,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         this.SerializePacketCommand = new RelayCommand(this.SerializePacket, this.CanSerializePacket);
         this.SendPacketCommand = new AsyncRelayCommand(this.SendPacketAsync, this.CanSendPacket);
         this.RepeatSendCommand = new AsyncRelayCommand(this.RepeatSendAsync, this.CanRepeatSend);
+        this.HandshakeCommand = new AsyncRelayCommand(this.HandshakeAsync, this.CanHandshake);
 
         _tcpClientService.StatusChanged += this.HandleStatusChanged;
 
@@ -120,6 +121,11 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     /// Gets the repeat send command.
     /// </summary>
     public AsyncRelayCommand RepeatSendCommand { get; }
+
+    /// <summary>
+    /// Gets the handshake command.
+    /// </summary>
+    public AsyncRelayCommand HandshakeCommand { get; }
 
     /// <summary>
     /// Gets or sets the connection host.
@@ -324,6 +330,8 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 
     private bool CanRepeatSend() => this.CanSendPacket() && this.TryParseRepeatOptions(out _, out _);
 
+    private bool CanHandshake() => this.IsConnected;
+
     private async Task ConnectAsync()
     {
         if (!this.TryParsePort(out ushort port))
@@ -357,6 +365,20 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         catch (Exception exception)
         {
             this.RaiseStatusRequested(exception.Message);
+        }
+    }
+
+    private async Task HandshakeAsync()
+    {
+        try
+        {
+            this.RaiseStatusRequested(_texts.StatusHandshakeStarted);
+            await _tcpClientService.HandshakeAsync().ConfigureAwait(true);
+            this.RaiseStatusRequested(_texts.StatusHandshakeSuccess);
+        }
+        catch (Exception exception)
+        {
+            this.RaiseStatusRequested(string.Format(CultureInfo.CurrentCulture, _texts.StatusHandshakeFailedFormat, exception.Message));
         }
     }
 
@@ -588,6 +610,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         this.SerializePacketCommand.NotifyCanExecuteChanged();
         this.SendPacketCommand.NotifyCanExecuteChanged();
         this.RepeatSendCommand.NotifyCanExecuteChanged();
+        this.HandshakeCommand.NotifyCanExecuteChanged();
     }
 
     /// <inheritdoc/>
