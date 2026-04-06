@@ -13,7 +13,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Compilation;
 using Nalix.Network.Middleware;
-using Nalix.Network.Middleware.Internal;
 
 namespace Nalix.Network.Routing;
 
@@ -63,10 +62,6 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
         _objectPool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
         this.NetworkPipeline = new NetworkBufferMiddlewarePipeline();
-
-        // Default middleware handles the most common transport steps before a packet reaches its handler.
-        this.NetworkPipeline.Use(new DecryptMiddleware());
-        this.NetworkPipeline.Use(new DecompressMiddleware());
     }
 
     #endregion Fields
