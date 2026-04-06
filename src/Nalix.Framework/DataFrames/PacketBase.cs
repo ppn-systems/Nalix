@@ -130,14 +130,14 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         foreach (PropertyMetadata meta in s_metadata.Value)
         {
             object? value = meta.GetValue(this);
+            if (value is null)
+            {
+                continue;
+            }
+
             if (meta.IsDynamic)
             {
-                if (!TypeMetadata.TryGetNestedSize(meta.Property.PropertyType, value, out int dynamicSize))
-                {
-                    return size;
-                }
-
-                size += dynamicSize;
+                size += this.GetDynamicSize(value);
                 continue;
             }
 
@@ -147,15 +147,79 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
                 continue;
             }
 
-            if (!TypeMetadata.TryGetNestedSize(meta.Property.PropertyType, value, out int estimatedSize))
-            {
-                return size;
-            }
-
-            size += estimatedSize;
+            // Reference types without [SerializeDynamicSize] (like string, byte[], nested IPacket)
+            size += this.GetDynamicSize(value);
         }
 
         return size;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int GetDynamicSize(object value)
+    {
+        if (value is string s)
+        {
+            return string.IsNullOrEmpty(s) ? 2 : 2 + Encoding.UTF8.GetByteCount(s);
+        }
+
+        if (value is byte[] b)
+        {
+            return b.Length == 0 ? 4 : 4 + b.Length;
+        }
+
+        if (value is IPacket p)
+        {
+            // Basic self-recursion guard as warned by the user.
+            // Complex cycle detection would be too expensive for a hot-path Length property.
+            if (ReferenceEquals(p, this))
+            {
+                return 0;
+            }
+
+            return p.Length;
+        }
+
+        if (value is Array arr)
+        {
+            // For other arrays (int[], float[], etc.), we need to know if the element is unmanaged.
+            Type? elementType = arr.GetType().GetElementType();
+            if (elementType != null && TypeMetadata.IsUnmanaged(elementType))
+            {
+                // We use 4 bytes for length prefix + (count * elementSize).
+                // Since we can't call TypeMetadata.UnsafeSizeOf (it's private), 
+                // we'll use a conservative fallback if we can't determine it easily.
+                // However, most packets should use specific types.
+                return 4 + (arr.Length * GetElementSize(elementType));
+            }
+        }
+
+        return 0;
+    }
+
+    private static int GetElementSize(Type type)
+    {
+        return Type.GetTypeCode(type) switch
+        {
+            TypeCode.Byte => 1,
+            TypeCode.SByte => 1,
+            TypeCode.Boolean => 1,
+            TypeCode.Char => 2,
+            TypeCode.Int16 => 2,
+            TypeCode.UInt16 => 2,
+            TypeCode.Int32 => 4,
+            TypeCode.UInt32 => 4,
+            TypeCode.Single => 4,
+            TypeCode.Int64 => 8,
+            TypeCode.UInt64 => 8,
+            TypeCode.Double => 8,
+            TypeCode.Decimal => 16,
+            TypeCode.Empty => 0,
+            TypeCode.Object => 1,
+            TypeCode.DBNull => 2,
+            TypeCode.DateTime => 8,
+            TypeCode.String => 8,
+            _ => 0
+        };
     }
 
     #endregion Length

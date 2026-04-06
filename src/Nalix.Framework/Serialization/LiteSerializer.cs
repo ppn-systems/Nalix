@@ -719,14 +719,14 @@ public static class LiteSerializer
                 $"Cannot serialize null reference type '{typeof(T).FullName}' without an explicit nullable wrapper.");
         }
 
-        if (value is IPacket packet)
+        if (value is IPacket p)
         {
-            return packet.Length;
+            return p.Length;
         }
 
-        if (TypeMetadata.TryGetNestedSize(value, out int length))
+        if (value is string s)
         {
-            return length;
+            return string.IsNullOrEmpty(s) ? 2 : 2 + System.Text.Encoding.UTF8.GetByteCount(s);
         }
 
         throw new SerializationFailureException(

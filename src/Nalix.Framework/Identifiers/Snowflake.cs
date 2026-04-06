@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using Nalix.Common.Identity;
 using Nalix.Common.Primitives;
+using Nalix.Common.Serialization;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Options;
 using Nalix.Framework.Time;
@@ -33,49 +34,61 @@ public readonly partial struct Snowflake : ISnowflake
     /// <summary>
     /// The size in bytes of the <see cref="Snowflake"/> structure.
     /// </summary>
+    [SerializeIgnore]
     public const byte Size = 7;
 
-    private readonly UInt56 __combined;
-    private static readonly ushort __machineId = LAZY_LOAD_MACHINE_ID();
-
-    private static int _sequence;
-    private static long _lastTimestampMs;
+    [SerializeIgnore]
     private const ushort MaxSequence = 0xFFFF; // 16-bit max = 65535
-    private static readonly Lock _generatorLock = new();
+
+    private readonly UInt56 _combined;
+
+    [SerializeIgnore]
+    private static readonly ushort s_machineId = LAZY_LOAD_MACHINE_ID();
+
+    [SerializeIgnore]
+    private static int s_sequence;
+    [SerializeIgnore]
+    private static long s_lastTimestampMs;
+
+    [SerializeIgnore]
+    private static readonly Lock s_generatorLock = new();
 
     #endregion Const
 
     #region Decomposition
 
     /// <inheritdoc/>
+    [SerializeIgnore]
     public uint Value
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            ulong raw = (ulong)__combined;
+            ulong raw = (ulong)_combined;
             return (uint)(raw & 0xFFFFFFFFUL);
         }
     }
 
     /// <inheritdoc/>
+    [SerializeIgnore]
     public ushort MachineId
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            ulong raw = (ulong)__combined;
+            ulong raw = (ulong)_combined;
             return (ushort)((raw >> 32) & 0xFFFFUL);
         }
     }
 
     /// <inheritdoc/>
+    [SerializeIgnore]
     public SnowflakeType Type
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            ulong raw = (ulong)__combined;
+            ulong raw = (ulong)_combined;
             return (SnowflakeType)((raw >> 48) & 0xFFUL);
         }
     }
@@ -87,10 +100,12 @@ public readonly partial struct Snowflake : ISnowflake
     /// <summary>
     /// Gets an empty <see cref="Snowflake"/> instance with all components set to zero.
     /// </summary>
+    [SerializeIgnore]
     public static Snowflake Empty => new(0, 0, 0);
 
     /// <inheritdoc/>
-    public bool IsEmpty => __combined == 0;
+    [SerializeIgnore]
+    public bool IsEmpty => _combined == 0;
 
     #endregion Public Properties
 
@@ -108,7 +123,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </remarks>
     [DebuggerHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Snowflake(uint value, ushort machineId, SnowflakeType type) => __combined = new UInt56((byte)type, machineId, value);
+    private Snowflake(uint value, ushort machineId, SnowflakeType type) => _combined = new UInt56((byte)type, machineId, value);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Snowflake"/> struct from a <see cref="UInt56"/> value.
@@ -119,7 +134,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// which is useful for deserialization scenarios. No validation is performed on the input.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Snowflake(UInt56 uInt56) => __combined = uInt56;
+    public Snowflake(UInt56 uInt56) => _combined = uInt56;
 
     #endregion Constructors
 
@@ -182,7 +197,7 @@ public readonly partial struct Snowflake : ISnowflake
     [DebuggerHidden]
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Snowflake NewId(SnowflakeType type) => NewId(type, __machineId);
+    public static Snowflake NewId(SnowflakeType type) => NewId(type, s_machineId);
 
     /// <summary>
     /// Creates a new <see cref="Snowflake"/> with the specified type and machine identifier.
@@ -209,7 +224,7 @@ public readonly partial struct Snowflake : ISnowflake
         {
             long now = Clock.EpochMillisecondsNow();
 
-            long last = Volatile.Read(ref _lastTimestampMs);
+            long last = Volatile.Read(ref s_lastTimestampMs);
 
             // Handle clock rollback
             if (now < last)
@@ -222,7 +237,7 @@ public readonly partial struct Snowflake : ISnowflake
             if (now == last)
             {
                 // same millisecond -> increment sequence
-                seq = Interlocked.Increment(ref _sequence) & 0x0FFF;
+                seq = Interlocked.Increment(ref s_sequence) & 0x0FFF;
 
                 if (seq == 0)
                 {
@@ -241,11 +256,11 @@ public readonly partial struct Snowflake : ISnowflake
             {
                 // new millisecond -> reset sequence
                 seq = 0;
-                _ = Interlocked.Exchange(ref _sequence, 0);
+                _ = Interlocked.Exchange(ref s_sequence, 0);
             }
 
             // try publish timestamp (CAS)
-            if (Interlocked.CompareExchange(ref _lastTimestampMs, now, last) != last)
+            if (Interlocked.CompareExchange(ref s_lastTimestampMs, now, last) != last)
             {
                 continue; // race -> retry
             }
@@ -302,7 +317,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode() => __combined.GetHashCode();
+    public override int GetHashCode() => _combined.GetHashCode();
 
     /// <summary>
     /// Determines whether this identifier is equal to the specified object.
