@@ -11,6 +11,7 @@
 - transport configuration through `Options`
 - the packet registry through `Catalog`
 - connection state through `IsConnected`
+- the protocol handler through `Protocol`
 - lifecycle events: `OnConnected`, `OnDisconnected`, `OnMessageReceived`, and `OnError`
 - transport operations: `ConnectAsync`, `DisconnectAsync`, `SendAsync`, and `Dispose`
 

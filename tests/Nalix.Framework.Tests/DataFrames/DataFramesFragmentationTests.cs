@@ -41,20 +41,18 @@ public sealed partial class DataFramesPublicApiTests
     }
 
     [Theory]
-    [InlineData(1400, 1400, 1400, true)]
-    [InlineData(0, 1400, 1400, false)]
-    [InlineData(1000, 1400, 1000, false)]
+    [InlineData(1400, 1400, true)]
+    [InlineData(0, 1400, false)]
+    [InlineData(1000, 1400, false)]
     public void ValidateWhenFragmentOptionsVaryMatchesExpectedValidity(
         int maxPayloadSize,
-        int chunkThreshold,
-        int chunkBodySize,
+        int maxChunkSize,
         bool shouldSucceed)
     {
         FragmentOptions options = new()
         {
             MaxPayloadSize = maxPayloadSize,
-            ChunkThreshold = chunkThreshold,
-            ChunkBodySize = chunkBodySize
+            MaxChunkSize = maxChunkSize
         };
 
         Exception? exception = Record.Exception(options.Validate);

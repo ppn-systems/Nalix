@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.ComponentModel;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -13,6 +14,7 @@ using Nalix.Common.Networking;
 using Nalix.Common.Security;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Transport;
 
@@ -29,7 +31,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     #region Fields
 
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly Lock _lock;
     private readonly ConnectionEventArgs _args;
@@ -128,15 +129,25 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// <inheritdoc />
     public void IncrementErrorCount() => Interlocked.Increment(ref _errorCount);
 
-    internal SocketConnection Socket { get; }
+    #endregion Properties
+
+    #region Internal
 
     internal bool IsDisposed => _disposed;
 
+    internal SocketConnection Socket { get; }
+
     internal SocketUdpTransport? UdpTransport { get; private set; }
 
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void ReleasePendingPacket() => this.Socket.OnPacketProcessed();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
     internal void SetUdpTransport(SocketUdpTransport transport) => this.UdpTransport = transport;
 
-    #endregion Properties
+    #endregion Internal
 
     #region Events
 
@@ -187,6 +198,22 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void Disconnect(string? reason = null) => this.Close(force: true);
+
+    /// <summary>
+    /// Manually triggers the receive-path process callback for a given buffer lease.
+    /// This is used exclusively for testing to simulate incoming packets without a real socket.
+    /// </summary>
+    /// <param name="lease">The buffer lease carrying the simulated packet payload.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void InjectIncoming(BufferLease lease)
+    {
+        this.Socket.IncrementPendingCallbacks();
+
+        ConnectionEventArgs args = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<ConnectionEventArgs>();
+        args.Initialize(lease, this);
+
+        _ = Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true);
+    }
 
     #endregion Methods
 

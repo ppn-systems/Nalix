@@ -188,6 +188,13 @@ internal sealed partial class SocketConnection(Socket socket) : IDisposable
     internal void OnPacketProcessed() => Interlocked.Decrement(ref _pendingProcessCallbacks);
 
     /// <summary>
+    /// Manually increments the per-connection pending counter.
+    /// Used by InjectIncoming in testing scenarios.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void IncrementPendingCallbacks() => Interlocked.Increment(ref _pendingProcessCallbacks);
+
+    /// <summary>
     /// Starts the SAEA-backed receive loop exactly once.
     /// The optional <paramref name="cancellationToken"/> participates in cooperative shutdown.
     /// </summary>

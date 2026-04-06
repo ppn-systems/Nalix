@@ -1,0 +1,28 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Nalix.Common -> E:\Cs\Nalix\src\Nalix.Common\bin\Debug\net10.0\Nalix.Common.dll
+  Nalix.Framework -> E:\Cs\Nalix\src\Nalix.Framework\bin\Debug\net10.0\Nalix.Framework.dll
+  Nalix.Logging -> E:\Cs\Nalix\src\Nalix.Logging\bin\Debug\net10.0\Nalix.Logging.dll
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(10,34): error CS0234: The type or namespace name 'TextFrames' does not exist in the namespace 'Nalix.Framework.DataFrames' (are you missing an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesTextAndSignalFrameTests.cs(8,34): error CS0234: The type or namespace name 'TextFrames' does not exist in the namespace 'Nalix.Framework.DataFrames' (are you missing an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(155,20): error CS0246: The type or namespace name 'Text256' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(165,20): error CS0246: The type or namespace name 'Text512' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(175,20): error CS0246: The type or namespace name 'Text1024' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(218,20): error CS0246: The type or namespace name 'Text256' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(225,20): error CS0246: The type or namespace name 'Text512' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(232,20): error CS0246: The type or namespace name 'Text1024' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+
+Build FAILED.
+
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(10,34): error CS0234: The type or namespace name 'TextFrames' does not exist in the namespace 'Nalix.Framework.DataFrames' (are you missing an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesTextAndSignalFrameTests.cs(8,34): error CS0234: The type or namespace name 'TextFrames' does not exist in the namespace 'Nalix.Framework.DataFrames' (are you missing an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(155,20): error CS0246: The type or namespace name 'Text256' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(165,20): error CS0246: The type or namespace name 'Text512' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(175,20): error CS0246: The type or namespace name 'Text1024' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(218,20): error CS0246: The type or namespace name 'Text256' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(225,20): error CS0246: The type or namespace name 'Text512' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+E:\Cs\Nalix\tests\Nalix.Framework.Tests\DataFrames\DataFramesPublicApiTestSupport.cs(232,20): error CS0246: The type or namespace name 'Text1024' could not be found (are you missing a using directive or an assembly reference?) [E:\Cs\Nalix\tests\Nalix.Framework.Tests\Nalix.Framework.Tests.csproj]
+    0 Warning(s)
+    8 Error(s)
+
+Time Elapsed 00:00:01.05

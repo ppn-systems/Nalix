@@ -18,6 +18,8 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="75" />
@@ -28,14 +30,20 @@
                         <TextBox Grid.Row="0" Grid.Column="1" Margin="8,0,0,8" Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" />
 
                         <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Source={StaticResource ToolTexts}, Path=LabelPort}" />
-                        <TextBox Grid.Row="1" Grid.Column="1" Margin="8,0,0,12" Text="{Binding PortText, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Margin="8,0,0,8" Text="{Binding PortText, UpdateSourceTrigger=PropertyChanged}" />
 
-                        <UniformGrid Grid.Row="2" Grid.ColumnSpan="2" Margin="0,0,0,8" Columns="2">
+                        <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Source={StaticResource ToolTexts}, Path=LabelTransport}" />
+                        <ComboBox Grid.Row="2" Grid.Column="1" Margin="8,0,0,8" ItemsSource="{Binding Transports}" SelectedItem="{Binding SelectedTransport}" />
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="{Binding Source={StaticResource ToolTexts}, Path=LabelSessionToken}" />
+                        <TextBox Grid.Row="3" Grid.Column="1" Margin="8,0,0,12" Text="{Binding SessionToken, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <UniformGrid Grid.Row="4" Grid.ColumnSpan="2" Margin="0,0,0,8" Columns="2">
                             <Button Margin="0,0,8,0" Command="{Binding ConnectCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonConnect}" />
                             <Button Command="{Binding DisconnectCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonDisconnect}" />
                         </UniformGrid>
 
-                        <Button Grid.Row="3" Grid.ColumnSpan="2" Command="{Binding HandshakeCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonHandshake}" />
+                        <Button Grid.Row="5" Grid.ColumnSpan="2" Command="{Binding HandshakeCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonHandshake}" />
                     </Grid>
                 </GroupBox>
 

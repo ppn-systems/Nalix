@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration.Binding;
+using Nalix.Framework.Identifiers;
 
 namespace Nalix.SDK.Options;
 
@@ -129,6 +130,19 @@ public sealed class TransportOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Enable packet encryption")]
     public bool EncryptionEnabled { get; set; } = false;
+
+    /// <summary>
+    /// The maximum size (in bytes) allowed for a single UDP datagram (including the 7-byte Token).
+    /// </summary>
+    [IniComment("Maximum allowed UDP datagram size in bytes (including header). Default 1400.")]
+    [Range(64, 65535, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65535.")]
+    public int MaxUdpDatagramSize { get; set; } = 1400;
+
+    /// <summary>
+    /// Gets the unique session token assigned by the server for UDP communication.
+    /// </summary>
+    [ConfiguredIgnore]
+    public Snowflake SessionToken { get; set; }
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
