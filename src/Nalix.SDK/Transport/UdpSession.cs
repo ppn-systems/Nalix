@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Options;
@@ -53,6 +55,9 @@ public class UdpSession : TransportSession
 
     /// <inheritdoc/>
     public override bool IsConnected => _socket != null && Volatile.Read(ref _disposed) == 0;
+
+    /// <inheritdoc/>
+    public override Nalix.Common.Networking.IProtocol? Protocol { get; set; }
 
     #endregion Properties
 
@@ -163,7 +168,7 @@ public class UdpSession : TransportSession
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
 
-        if (!this._sessionToken.HasValue)
+        if (!_sessionToken.HasValue)
         {
             throw new NetworkException("SessionToken must be set before sending UDP packets.");
         }
@@ -173,31 +178,37 @@ public class UdpSession : TransportSession
             throw new NetworkException($"UDP packet too large: {packet.Length + Snowflake.Size} bytes (including token). Max allowed is {this.Options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
         }
 
-        // Optimized path for small packets using stackalloc for the header + local buffer
-        if (packet.Length + Snowflake.Size < BufferLease.StackAllocThreshold)
+        // Step 1: Serialize the IPacket directly into a leasing buffer
+        using BufferLease src = BufferLease.Rent(packet.Length);
+        int written = packet.Serialize(src.Span);
+        src.CommitLength(written);
+
+        // Step 2: Transform (Compress -> Encrypt) using the built-in packet header
+        BufferLease transformed = this.TransformOutbound(src);
+
+        try
         {
-            Span<byte> buffer = stackalloc byte[packet.Length + Snowflake.Size];
+            // Step 3: Check MTU (Token + Packet)
+            if (transformed.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+            {
+                throw new NetworkException($"UDP packet too large after transformation: {transformed.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
+            }
 
-            // Prepend 7-byte Token
-            _ = _sessionToken.Value.TryWriteBytes(buffer[..Snowflake.Size]);
+            // Step 4: Final Envelope [Token + Packet]
+            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + transformed.Length);
+            _ = _sessionToken.Value.TryWriteBytes(finalLease.SpanFull[..Snowflake.Size]);
+            transformed.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
+            finalLease.CommitLength(Snowflake.Size + transformed.Length);
 
-            // Serialize payload
-            int written = packet.Serialize(buffer[Snowflake.Size..]);
-
-            await this.SendAsyncInternal(new ReadOnlyMemory<byte>(buffer[..(written + Snowflake.Size)].ToArray()), ct).ConfigureAwait(false);
-            return;
+            await this.SendAsyncInternal(finalLease.Memory, ct).ConfigureAwait(false);
         }
-
-        using BufferLease lease = BufferLease.Rent(packet.Length + Snowflake.Size);
-
-        // Write header
-        _ = _sessionToken.Value.TryWriteBytes(lease.SpanFull[..Snowflake.Size]);
-
-        // Serialize packet
-        int payloadWritten = packet.Serialize(lease.SpanFull[Snowflake.Size..]);
-        lease.CommitLength(payloadWritten + Snowflake.Size);
-
-        await this.SendAsyncInternal(lease.Memory, ct).ConfigureAwait(false);
+        finally
+        {
+            if (transformed != src)
+            {
+                transformed.Dispose();
+            }
+        }
     }
 
     /// <inheritdoc/>
@@ -205,24 +216,40 @@ public class UdpSession : TransportSession
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
 
-        if (!this._sessionToken.HasValue)
+        if (!_sessionToken.HasValue)
         {
             throw new NetworkException("SessionToken must be set before sending UDP packets.");
         }
 
-        if (payload.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+        // Step 1: Wrap raw payload into a BufferLease
+        using BufferLease src = BufferLease.Rent(payload.Length);
+        payload.Span.CopyTo(src.Span);
+        src.CommitLength(payload.Length);
+
+        // Step 2: Transform
+        BufferLease transformed = this.TransformOutbound(src);
+
+        try
         {
-            throw new NetworkException($"UDP payload too large: {payload.Length + Snowflake.Size} bytes (including token). Max allowed is {this.Options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
+            if (transformed.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+            {
+                throw new NetworkException($"UDP payload too large after transformation: {transformed.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
+            }
+
+            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + transformed.Length);
+            _ = _sessionToken.Value.TryWriteBytes(finalLease.SpanFull[..Snowflake.Size]);
+            transformed.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
+            finalLease.CommitLength(Snowflake.Size + transformed.Length);
+
+            await this.SendAsyncInternal(finalLease.Memory, ct).ConfigureAwait(false);
         }
-
-        // For raw payloads, we still need to prepend the 7-byte token
-        using BufferLease lease = BufferLease.Rent(payload.Length + Snowflake.Size);
-
-        _ = _sessionToken.Value.TryWriteBytes(lease.SpanFull[..Snowflake.Size]);
-        payload.Span.CopyTo(lease.SpanFull[Snowflake.Size..]);
-        lease.CommitLength(payload.Length + Snowflake.Size);
-
-        await this.SendAsyncInternal(lease.Memory, ct).ConfigureAwait(false);
+        finally
+        {
+            if (transformed != src)
+            {
+                transformed.Dispose();
+            }
+        }
     }
 
     #endregion APIs
@@ -269,9 +296,21 @@ public class UdpSession : TransportSession
                     continue;
                 }
 
-                // Wrap into BufferLease for the event pipeline
-                BufferLease lease = BufferLease.TakeOwnership(rawBuffer, 0, received);
-                this.OnMessageReceived?.Invoke(this, lease);
+                // Receive raw datagram — for UDP, we receive the packet directly [Flags + Payload]
+                // (Server-to-Client UDP does not include the 7-byte token)
+                BufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
+
+                // Transform (Decrypt -> Decompress)
+                BufferLease transformed = this.TransformInbound(datagram);
+
+                try
+                {
+                    this.OnMessageReceived?.Invoke(this, transformed);
+                }
+                finally
+                {
+                    transformed.Dispose();
+                }
             }
             catch (OperationCanceledException)
             {
@@ -291,6 +330,104 @@ public class UdpSession : TransportSession
     }
 
     #endregion Internal
+
+    #region Transformation
+
+    private BufferLease TransformOutbound(BufferLease src)
+    {
+        bool doEncrypt = this.Options.EncryptionEnabled;
+        bool doCompress = this.Options.CompressionEnabled && (src.Length - FrameTransformer.Offset) >= this.Options.CompressionThreshold;
+
+        BufferLease current = src;
+        current.Retain();
+
+        try
+        {
+            if (doCompress)
+            {
+                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCompressedSize(current.Length - FrameTransformer.Offset) + FrameTransformer.Offset);
+                try
+                {
+                    FrameTransformer.Compress(current, next);
+                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
+                    current.Dispose();
+                    current = next;
+                }
+                catch { next.Dispose(); throw; }
+            }
+
+            if (doEncrypt)
+            {
+                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, current.Length - FrameTransformer.Offset) + FrameTransformer.Offset);
+                try
+                {
+                    FrameTransformer.Encrypt(current, next, this.Options.Secret, this.Options.Algorithm);
+                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
+                    current.Dispose();
+                    current = next;
+                }
+                catch { next.Dispose(); throw; }
+            }
+
+            return current;
+        }
+        catch (System.Exception)
+        {
+            current.Dispose();
+            throw;
+        }
+    }
+
+    private BufferLease TransformInbound(BufferLease lease)
+    {
+        BufferLease current = lease;
+        current.Retain();
+
+        try
+        {
+            PacketFlags flags = current.Span.ReadFlagsLE();
+
+            if (flags.HasFlag(PacketFlags.ENCRYPTED))
+            {
+                BufferLease decrypted = BufferLease.Rent(FrameTransformer.GetPlaintextLength(current.Span) + FrameTransformer.Offset);
+                try
+                {
+                    FrameTransformer.Decrypt(current, decrypted, this.Options.Secret);
+                    // Do NOT write flags back yet if we expect more transformations
+                    // The flags are part of the original header
+                    current.Dispose();
+                    current = decrypted;
+                    flags = current.Span.ReadFlagsLE();
+                }
+                catch { decrypted.Dispose(); throw; }
+            }
+
+            if (flags.HasFlag(PacketFlags.COMPRESSED))
+            {
+                BufferLease decompressed = BufferLease.Rent(FrameTransformer.GetDecompressedLength(current.Span) + FrameTransformer.Offset);
+                try
+                {
+                    FrameTransformer.Decompress(current, decompressed);
+                    current.Dispose();
+                    current = decompressed;
+                }
+                catch { decompressed.Dispose(); throw; }
+            }
+
+            return current;
+        }
+        catch (System.Exception)
+        {
+            current.Dispose();
+            throw;
+        }
+        finally
+        {
+            lease.Dispose();
+        }
+    }
+
+    #endregion Transformation
 
     #region Dispose
 

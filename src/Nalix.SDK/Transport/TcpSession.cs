@@ -45,6 +45,9 @@ public class TcpSession : TransportSession
     /// <inheritdoc/>
     public override bool IsConnected => _socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
 
+    /// <inheritdoc/>
+    public override Nalix.Common.Networking.IProtocol? Protocol { get; set; }
+
     #endregion Properties
 
     #region Events
