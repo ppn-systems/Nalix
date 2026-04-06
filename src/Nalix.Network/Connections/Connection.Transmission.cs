@@ -27,7 +27,7 @@ public sealed partial class Connection
         if (this.UdpTransport == null)
         {
             this.UdpTransport = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                           .Get<SocketUdpTransport>();
+                                                        .Get<SocketUdpTransport>();
             this.UdpTransport.Attach(this);
             this.UdpTransport.Initialize(ref iPEndPoint);
         }
