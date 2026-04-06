@@ -30,7 +30,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     #region Fields
 
     private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly Lock _lock;
     private readonly ConnectionEventArgs _args;

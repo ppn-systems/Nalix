@@ -36,11 +36,6 @@ public abstract class TransportSession : IDisposable
     /// </summary>
     public abstract bool IsConnected { get; }
 
-    /// <summary>
-    /// Gets or sets the protocol handler used by this session for message transformation and dispatch.
-    /// </summary>
-    public abstract Nalix.Common.Networking.IProtocol? Protocol { get; set; }
-
     #endregion Properties
 
     #region Events

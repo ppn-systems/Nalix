@@ -1,6 +1,6 @@
 # TransportOptions
 
-`TransportOptions` configures client TCP transport behavior in `Nalix.SDK`.
+`TransportOptions` configures client TCP and UDP transport behavior in `Nalix.SDK`.
 
 ## Source mapping
 
@@ -13,7 +13,7 @@
 - reconnect policy
 - keep-alive interval
 - socket buffer sizing
-- max packet size
+- max packet and UDP datagram size
 - compression settings
 - encryption algorithm and shared secret
 

@@ -56,9 +56,6 @@ public class UdpSession : TransportSession
     /// <inheritdoc/>
     public override bool IsConnected => _socket != null && Volatile.Read(ref _disposed) == 0;
 
-    /// <inheritdoc/>
-    public override Nalix.Common.Networking.IProtocol? Protocol { get; set; }
-
     #endregion Properties
 
     #region Events
@@ -179,7 +176,7 @@ public class UdpSession : TransportSession
         }
 
         // Step 1: Serialize the IPacket directly into a leasing buffer
-        packet.Protocol = Nalix.Common.Networking.Protocols.ProtocolType.UDP;
+        packet.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
         using BufferLease src = BufferLease.Rent(packet.Length);
         int written = packet.Serialize(src.Span);
         src.CommitLength(written);

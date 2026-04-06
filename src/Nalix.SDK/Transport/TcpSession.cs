@@ -45,9 +45,6 @@ public class TcpSession : TransportSession
     /// <inheritdoc/>
     public override bool IsConnected => _socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
 
-    /// <inheritdoc/>
-    public override Nalix.Common.Networking.IProtocol? Protocol { get; set; }
-
     #endregion Properties
 
     #region Events
@@ -155,7 +152,7 @@ public class TcpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        packet.Protocol = Nalix.Common.Networking.Protocols.ProtocolType.TCP;
+        packet.Protocol = Common.Networking.Protocols.ProtocolType.TCP;
 
         // Rent a buffer, serialize the packet, and delegate sending to FRAME_SENDER
         using BufferLease lease = BufferLease.Rent(packet.Length);
