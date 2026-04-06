@@ -11,6 +11,8 @@ using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Protocols;
+using Nalix.Network.Connections;
+
 
 #if DEBUG
 using Microsoft.Extensions.Logging;
@@ -40,7 +42,7 @@ internal sealed class ProtocolDecompress : Protocol
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        if (args is not ILeaseReplaceableEventArgs replaceable)
+        if (args is not ConnectionEventArgs replaceable)
         {
             return;
         }
