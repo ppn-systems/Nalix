@@ -165,7 +165,7 @@ public struct ChaCha20
         }
 
         this.EncryptSpanInternal(src, dst, src.Length);
-        return dst.Length;
+        return src.Length;
     }
 
     #endregion Encryption Methods
