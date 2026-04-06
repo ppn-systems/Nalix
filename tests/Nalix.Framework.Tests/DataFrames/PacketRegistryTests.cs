@@ -102,8 +102,18 @@ public sealed class PacketRegistryTests : IDisposable
     [Fact]
     public void HandshakeSerializeThenDeserializePreservesPayload()
     {
-        byte[] payload = [0x01, 0x02, 0x03, 0xDE, 0xAD, 0xBE, 0xEF];
-        Handshake original = new(opCode: 0x0010, data: payload, transport: ProtocolType.TCP);
+        byte[] publicKey = new byte[32];
+        byte[] nonce = new byte[32];
+        byte[] proof = new byte[32];
+
+        Handshake original = new(
+            opCode: 0x0010,
+            stage: HandshakeStage.CLIENT_HELLO,
+            publicKey: publicKey,
+            nonce: nonce,
+            proof: proof,
+            transport: ProtocolType.TCP);
+        original.UpdateTranscriptHash([0x01, 0x02, 0x03, 0xDE, 0xAD, 0xBE, 0xEF]);
 
         byte[] bytes = original.Serialize();
         IPacket packet = _catalog.Deserialize(bytes);
@@ -112,7 +122,11 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.Equal(original.OpCode, result.OpCode);
         Assert.Equal(original.MagicNumber, result.MagicNumber);
         Assert.Equal(original.Protocol, result.Protocol);
-        Assert.Equal(payload, result.Data);
+        Assert.Equal(original.Stage, result.Stage);
+        Assert.Equal(publicKey, result.PublicKey);
+        Assert.Equal(nonce, result.Nonce);
+        Assert.Equal(proof, result.Proof);
+        Assert.Equal(original.TranscriptHash, result.TranscriptHash);
     }
 
     [Fact]
@@ -139,14 +153,26 @@ public sealed class PacketRegistryTests : IDisposable
     [Fact]
     public void HandshakeEmptyPayloadRoundTripsCorrectly()
     {
-        Handshake original = new(opCode: 0x0011, data: [], transport: ProtocolType.UDP);
+        Handshake original = new(
+            opCode: 0x0011,
+            stage: HandshakeStage.CLIENT_HELLO,
+            publicKey: [],
+            nonce: [],
+            proof: [],
+            transport: ProtocolType.UDP);
         byte[] bytes = original.Serialize();
 
         IPacket packet = _catalog.Deserialize(bytes);
 
         Handshake result = Assert.IsType<Handshake>(packet);
-        Assert.NotNull(result.Data);
-        Assert.Empty(result.Data);
+        Assert.NotNull(result.PublicKey);
+        Assert.NotNull(result.Nonce);
+        Assert.NotNull(result.Proof);
+        Assert.NotNull(result.TranscriptHash);
+        Assert.Empty(result.PublicKey);
+        Assert.Empty(result.Nonce);
+        Assert.Empty(result.Proof);
+        Assert.Empty(result.TranscriptHash);
     }
 
     [Fact]
