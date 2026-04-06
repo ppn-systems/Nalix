@@ -2,17 +2,20 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.DataFrames.SignalFrames;
+
 using Xunit;
 
 namespace Nalix.Framework.Tests.DataFrames;
 
 public sealed partial class DataFramesPublicApiTests
 {
+    public enum TextFrameKind
+    {
+    }
 
     public enum PacketRoundTripKind
     {
@@ -21,6 +24,24 @@ public sealed partial class DataFramesPublicApiTests
         Handshake
     }
 
+    public static TheoryData<TextFrameKind, string, ProtocolType, int> TextFrameInitializeValidCases()
+    {
+        return new TheoryData<TextFrameKind, string, ProtocolType, int>
+        {
+        };
+    }
+
+    public static TheoryData<TextFrameKind> TextFrameInitializeOverflowCases()
+        =>
+        [
+        ];
+
+    public static TheoryData<TextFrameKind> TextFrameResetCases()
+    {
+        return
+        [
+        ];
+    }
 
     public static TheoryData<PacketRoundTripKind> PacketRoundTripCases()
     {
@@ -56,6 +77,42 @@ public sealed partial class DataFramesPublicApiTests
 
         yield return [new Handshake(5, HandshakeStage.CLIENT_HELLO, [1, 2, 3], [4, 5, 6], transport: ProtocolType.TCP)];
     }
+
+
+    private static FrameBase CreateAndInitializeTextFrame(TextFrameKind frameKind, string content, ProtocolType protocol)
+    {
+        return frameKind switch
+        {
+            _ => throw new InvalidOperationException("Unexpected text frame kind.")
+        };
+    }
+
+    private static FrameBase InitializeTextFrame(FrameBase frame, string content, ProtocolType protocol)
+    {
+        switch (frame)
+        {
+            default:
+                throw new InvalidOperationException("Unexpected text frame type.");
+        }
+    }
+
+    private static int GetTextFrameDynamicSize(TextFrameKind frameKind)
+        => frameKind switch
+        {
+            _ => throw new InvalidOperationException("Unexpected text frame kind.")
+        };
+
+    private static char GetOverflowFillCharacter(TextFrameKind frameKind)
+        => frameKind switch
+        {
+            _ => throw new InvalidOperationException("Unexpected text frame kind.")
+        };
+
+    private static FrameBase CreateDirtyTextFrame(TextFrameKind frameKind)
+        => frameKind switch
+        {
+            _ => throw new InvalidOperationException("Unexpected text frame kind.")
+        };
 
 
     private static FrameBase CreateRoundTripPacket(PacketRoundTripKind packetKind)

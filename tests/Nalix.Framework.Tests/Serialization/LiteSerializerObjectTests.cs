@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Identifiers;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Serialization;
@@ -19,6 +20,7 @@ public sealed class LiteSerializerObjectTests
             proof: [9, 8, 7, 6],
             transport: ProtocolType.TCP);
         input.UpdateTranscriptHash("nalix-handshake"u8);
+        input.SessionToken = Snowflake.NewId(0x01020304, 0x0506, (Nalix.Common.Identity.SnowflakeType)0x07);
 
         Handshake? output = null;
         _ = LiteSerializerTestHelper.RoundTrip(input, ref output);
@@ -30,6 +32,7 @@ public sealed class LiteSerializerObjectTests
         Assert.Equal(input.Nonce, output.Nonce);
         Assert.Equal(input.Proof, output.Proof);
         Assert.Equal(input.TranscriptHash, output.TranscriptHash);
+        Assert.Equal(input.SessionToken, output.SessionToken);
         Assert.Equal(input.Protocol, output.Protocol);
         Assert.Equal(input.Flags, output.Flags);
         Assert.Equal(input.Priority, output.Priority);
