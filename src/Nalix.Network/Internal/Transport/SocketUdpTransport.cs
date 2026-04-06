@@ -48,6 +48,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
             IPEndPoint ep = remoteEndPoint;
             transport.Initialize(ref ep);
+            transport.MaxUdpSize = Nalix.Network.Listeners.Udp.UdpListenerBase.Config.MaxUdpDatagramSize;
             connection.SetUdpTransport(transport);
         }
     }
@@ -57,6 +58,11 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     private EndPoint? _endPoint;
     private Connection? _outer;
     private Socket? _socket;
+
+    /// <summary>
+    /// The maximum safe size for a UDP datagram to avoid IP fragmentation (Standard MTU is 1500).
+    /// </summary>
+    public int MaxUdpSize { get; set; } = 1400;
 
     /// <summary>
     /// Indicates whether this transport instance owns the lifecycle of its <see cref="_socket"/>.
@@ -153,6 +159,11 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
+        if (message.Length > MaxUdpSize)
+        {
+            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {MaxUdpSize} bytes. Use TCP for large data.");
+        }
+
         try
         {
             int sent = _socket.SendTo(message, SocketFlags.None, _endPoint);
@@ -206,6 +217,11 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         if (message.IsEmpty || _endPoint == null || _socket == null)
         {
             return;
+        }
+
+        if (message.Length > MaxUdpSize)
+        {
+            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {MaxUdpSize} bytes. Use TCP for large data.");
         }
 
         try

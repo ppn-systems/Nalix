@@ -29,8 +29,8 @@ public sealed partial class Connection
 #endif
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void ReleasePendingPacket() => this.Socket.OnPacketProcessed();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

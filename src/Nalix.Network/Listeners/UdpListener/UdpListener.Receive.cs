@@ -72,8 +72,7 @@ public abstract partial class UdpListenerBase
                 // Wrap the buffer into a BufferLease — ownership is transferred,
                 // so the pool return happens when the lease is eventually disposed
                 // by ProcessDatagram or the downstream connection pipeline.
-                BufferLease lease = BufferLease.TakeOwnership(
-                    buffer, start: 0, length: result.ReceivedBytes);
+                BufferLease lease = BufferLease.TakeOwnership(buffer, start: 0, length: result.ReceivedBytes);
 
                 this.ProcessDatagram(lease, result.RemoteEndPoint);
             }
@@ -239,10 +238,7 @@ public abstract partial class UdpListenerBase
     /// <param name="connection">When this method returns <c>true</c>, the resolved connection.</param>
     /// <returns><c>true</c> if a matching connection was found; otherwise <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected virtual bool TryResolveConnection(
-        ConnectionHub hub,
-        ReadOnlySpan<byte> sessionToken,
-        out Connection? connection)
+    protected virtual bool TryResolveConnection(ConnectionHub hub, ReadOnlySpan<byte> sessionToken, out Connection? connection)
     {
         // The session token IS the Snowflake ID — pass it directly to the hub
         // which performs a sharded O(1) lookup via UInt56.

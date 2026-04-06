@@ -78,13 +78,13 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Send and receive buffer size in bytes (64–10,485,760)")]
     [System.ComponentModel.DataAnnotations.Range(64, 10_485_760, ErrorMessage = "BufferSize must be between 512 and 10MiB (10,485,760 bytes).")]
-    public int BufferSize { get; set; } = 2 * 1024;
+    public int BufferSize { get; set; } = 1500;
 
     /// <summary>
     /// Gets or sets a value indicating whether TCP Keep-Alive is enabled.
     /// </summary>
     [IniComment("Enable TCP Keep-Alive probes to detect dead connections")]
-    public bool KeepAlive { get; set; }
+    public bool KeepAlive { get; set; } = true;
 
     /// <summary>
     /// Gets or sets whether the socket can reuse an address in TIME_WAIT state.
@@ -103,7 +103,7 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Tunes the thread pool settings for optimal network performance.
     /// </summary>
     [IniComment("Apply thread pool tuning optimized for high-throughput network workloads")]
-    public bool TuneThreadPool { get; set; }
+    public bool TuneThreadPool { get; set; } = true;
 
     /// <summary>
     /// Gets or sets a value indicating whether the DualMode feature is enabled (for IPv6 sockets).
@@ -125,11 +125,16 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// Default 128 matches the typical TCP backlog.
     /// </para>
     /// </summary>
-    [IniComment("Maximum accepted connections that may queue in the channel while the consumer thread is busy (tune to ~2 × burst rate × ProcessConnection latency in ms, default 128)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ProcessChannelCapacity must be at least 1.")]
-    public int ProcessChannelCapacity { get; set; } = 128;
+    /// <summary>
+    /// Gets or sets the maximum size (in bytes) allowed for a single UDP datagram.
+    /// Default 1400 avoids IP fragmentation.
+    /// </summary>
+    [IniComment("Maximum allowed UDP datagram size in bytes to avoid fragmentation (default 1400)")]
+    [System.ComponentModel.DataAnnotations.Range(64, 65535, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65535.")]
+    public int MaxUdpDatagramSize { get; set; } = 1400;
 
     #endregion Properties
+
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
