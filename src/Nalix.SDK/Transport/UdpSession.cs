@@ -179,6 +179,7 @@ public class UdpSession : TransportSession
         }
 
         // Step 1: Serialize the IPacket directly into a leasing buffer
+        packet.Protocol = Nalix.Common.Networking.Protocols.ProtocolType.UDP;
         using BufferLease src = BufferLease.Rent(packet.Length);
         int written = packet.Serialize(src.Span);
         src.CommitLength(written);

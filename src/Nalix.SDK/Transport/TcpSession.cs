@@ -155,6 +155,8 @@ public class TcpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
+        packet.Protocol = Nalix.Common.Networking.Protocols.ProtocolType.TCP;
+
         // Rent a buffer, serialize the packet, and delegate sending to FRAME_SENDER
         using BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));

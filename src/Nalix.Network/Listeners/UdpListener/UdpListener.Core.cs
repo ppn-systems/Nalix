@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
 
@@ -41,7 +42,7 @@ public abstract partial class UdpListenerBase
 
     private static readonly NetworkSocketOptions s_config;
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private static readonly Nalix.Framework.Memory.Objects.ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<Nalix.Framework.Memory.Objects.ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly ushort _port;
     private readonly IProtocol _protocol;

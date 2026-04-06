@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
+using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
@@ -133,6 +134,23 @@ public abstract partial class UdpListenerBase
 
         ReadOnlySpan<byte> buffer = lease.Span;
         ReadOnlySpan<byte> payload = buffer[SessionTokenSize..];
+
+        // --- 2. Protocol validation gate ---
+        // Ensure the packet explicitly identifies as UDP to prevent bypasses.
+        // Transport field is at PacketHeaderOffset.Transport (index 8 in payload).
+        if (payload.Length <= (int)PacketHeaderOffset.Transport ||
+            payload[(int)PacketHeaderOffset.Transport] != (byte)Common.Networking.Protocols.ProtocolType.UDP)
+        {
+            _ = Interlocked.Increment(ref _dropShort);
+            lease.Dispose();
+
+#if DEBUG
+            s_logger?.Debug(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                $"invalid-protocol mismatch ep={remoteEndPoint}");
+#endif
+            return;
+        }
 
         // ================================================================
         // FAST PATH — endpoint already bound from a previous datagram.
