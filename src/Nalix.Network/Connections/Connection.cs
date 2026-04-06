@@ -198,6 +198,22 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void Disconnect(string? reason = null) => this.Close(force: true);
 
+    /// <summary>
+    /// Manually triggers the receive-path process callback for a given buffer lease.
+    /// This is used exclusively for testing to simulate incoming packets without a real socket.
+    /// </summary>
+    /// <param name="lease">The buffer lease carrying the simulated packet payload.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void InjectIncoming(BufferLease lease)
+    {
+        this.Socket.IncrementPendingCallbacks();
+
+        ConnectionEventArgs args = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<ConnectionEventArgs>();
+        args.Initialize(lease, this);
+
+        AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true);
+    }
+
     #endregion Methods
 
     #region Dispose Pattern
