@@ -18,7 +18,7 @@ namespace Nalix.SDK.Tools.ViewModels;
 public sealed class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly IPacketCatalogService _catalogService;
-    private readonly ITcpClientService _tcpClientService;
+    private readonly INetworkClientService _tcpClientService;
     private readonly PacketToolTextConfig _texts;
     private readonly IAppConfigurationService _configurationService;
     private readonly IThemeService _themeService;
@@ -35,7 +35,7 @@ public sealed class MainWindowViewModel : ViewModelBase, IDisposable
     /// </summary>
     public MainWindowViewModel(
         IPacketCatalogService catalogService,
-        ITcpClientService tcpClientService,
+        INetworkClientService tcpClientService,
         IAppConfigurationService configurationService,
         IThemeService themeService,
         IFileDialogService fileDialogService)

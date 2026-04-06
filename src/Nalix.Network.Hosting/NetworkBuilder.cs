@@ -43,7 +43,7 @@ public sealed class NetworkBuilder : INetworkBuilder
     }
 
     /// <inheritdoc />
-    public INetworkBuilder AddPacketsFromAssembly(Assembly assembly, bool requirePacketAttribute = false)
+    public INetworkBuilder AddPackets(Assembly assembly, bool requirePacketAttribute = false)
     {
         ArgumentNullException.ThrowIfNull(assembly);
 
@@ -52,11 +52,11 @@ public sealed class NetworkBuilder : INetworkBuilder
     }
 
     /// <inheritdoc />
-    public INetworkBuilder AddPacketsFromAssemblyContaining<TMarker>(bool requirePacketAttribute = false)
-        => this.AddPacketsFromAssembly(typeof(TMarker).Assembly, requirePacketAttribute);
+    public INetworkBuilder AddPackets<TMarker>(bool requirePacketAttribute = false)
+        => this.AddPackets(typeof(TMarker).Assembly, requirePacketAttribute);
 
     /// <inheritdoc />
-    public INetworkBuilder AddPacketHandlersFromAssembly(Assembly assembly)
+    public INetworkBuilder AddHandlers(Assembly assembly)
     {
         ArgumentNullException.ThrowIfNull(assembly);
 
@@ -65,11 +65,11 @@ public sealed class NetworkBuilder : INetworkBuilder
     }
 
     /// <inheritdoc />
-    public INetworkBuilder AddPacketHandlersFromAssemblyContaining<TMarker>()
-        => this.AddPacketHandlersFromAssembly(typeof(TMarker).Assembly);
+    public INetworkBuilder AddHandlers<TMarker>()
+        => this.AddHandlers(typeof(TMarker).Assembly);
 
     /// <inheritdoc />
-    public INetworkBuilder AddPacketHandler<THandler>() where THandler : class
+    public INetworkBuilder AddHandler<THandler>() where THandler : class
     {
         _state.HandlerRegistrations.Add(new HandlerRegistration(
             typeof(THandler),
@@ -79,7 +79,7 @@ public sealed class NetworkBuilder : INetworkBuilder
     }
 
     /// <inheritdoc />
-    public INetworkBuilder AddPacketHandler<THandler>(Func<THandler> factory) where THandler : class
+    public INetworkBuilder AddHandler<THandler>(Func<THandler> factory) where THandler : class
     {
         ArgumentNullException.ThrowIfNull(factory);
 
@@ -91,7 +91,7 @@ public sealed class NetworkBuilder : INetworkBuilder
     }
 
     /// <inheritdoc />
-    public INetworkBuilder AddPacketMetadataProvider<TProvider>()
+    public INetworkBuilder AddMetadataProvider<TProvider>()
         where TProvider : class, IPacketMetadataProvider
     {
         _state.MetadataProviderRegistrations.Add(new MetadataProviderRegistration(
@@ -102,7 +102,7 @@ public sealed class NetworkBuilder : INetworkBuilder
     }
 
     /// <inheritdoc />
-    public INetworkBuilder AddPacketMetadataProvider<TProvider>(Func<TProvider> factory)
+    public INetworkBuilder AddMetadataProvider<TProvider>(Func<TProvider> factory)
         where TProvider : class, IPacketMetadataProvider
     {
         ArgumentNullException.ThrowIfNull(factory);
@@ -115,7 +115,7 @@ public sealed class NetworkBuilder : INetworkBuilder
     }
 
     /// <inheritdoc />
-    public INetworkBuilder ConfigurePacketDispatcher(Action<PacketDispatchOptions<Nalix.Common.Networking.Packets.IPacket>> configure)
+    public INetworkBuilder ConfigureDispatcher(Action<PacketDispatchOptions<Nalix.Common.Networking.Packets.IPacket>> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
 
@@ -124,7 +124,7 @@ public sealed class NetworkBuilder : INetworkBuilder
     }
 
     /// <inheritdoc />
-    public INetworkBuilder AddTcpServer<TProtocol>() where TProtocol : class, IProtocol
+    public INetworkBuilder AddTcp<TProtocol>() where TProtocol : class, IProtocol
     {
         _state.TcpServerRegistrations.Add(new TcpServerRegistration(
             typeof(TProtocol),
@@ -134,12 +134,35 @@ public sealed class NetworkBuilder : INetworkBuilder
     }
 
     /// <inheritdoc />
-    public INetworkBuilder AddTcpServer<TProtocol>(Func<IPacketDispatch, TProtocol> factory)
+    public INetworkBuilder AddTcp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)
         where TProtocol : class, IProtocol
     {
         ArgumentNullException.ThrowIfNull(factory);
 
         _state.TcpServerRegistrations.Add(new TcpServerRegistration(
+            typeof(TProtocol),
+            dispatch => factory(dispatch)));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkBuilder AddUdp<TProtocol>() where TProtocol : class, IProtocol
+    {
+        _state.UdpServerRegistrations.Add(new UdpServerRegistration(
+            typeof(TProtocol),
+            dispatch => NetworkHost.CreateProtocol(typeof(TProtocol), dispatch)));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)
+        where TProtocol : class, IProtocol
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+
+        _state.UdpServerRegistrations.Add(new UdpServerRegistration(
             typeof(TProtocol),
             dispatch => factory(dispatch)));
 

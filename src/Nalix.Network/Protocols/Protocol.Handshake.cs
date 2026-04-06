@@ -8,6 +8,7 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Identifiers;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Primitives;
@@ -210,7 +211,8 @@ public sealed class ProtocolX25519 : Protocol
             HandshakeCrypto.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash),
             packet.Protocol)
         {
-            TranscriptHash = state.TranscriptHash
+            TranscriptHash = state.TranscriptHash,
+            SessionToken = (Snowflake)connection.ID
         };
 
         connection.TCP.Send(reply);

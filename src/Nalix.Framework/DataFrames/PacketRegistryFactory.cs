@@ -13,7 +13,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.DataFrames.TextFrames;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Framework.DataFrames;
@@ -40,6 +39,7 @@ namespace Nalix.Framework.DataFrames;
 /// </list>
 /// </para>
 /// </remarks>
+[SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "<Pending>")]
 public sealed class PacketRegistryFactory
 {
     #region Static: Defaults & Utilities
@@ -72,8 +72,7 @@ public sealed class PacketRegistryFactory
     {
         s_builtInNamespaces = FrozenSet.ToFrozenSet(
         [
-            typeof(Text256).Namespace!,
-        typeof(Control).Namespace!
+            typeof(Control).Namespace!
         ],
         StringComparer.Ordinal);
 
@@ -87,11 +86,6 @@ public sealed class PacketRegistryFactory
     /// </summary>
     public PacketRegistryFactory()
     {
-        // Text packets
-        _ = this.RegisterPacket<Text256>()
-                .RegisterPacket<Text512>()
-                .RegisterPacket<Text1024>();
-
         // Control / handshake packets
         _ = this.RegisterPacket<Control>()
                 .RegisterPacket<Handshake>()

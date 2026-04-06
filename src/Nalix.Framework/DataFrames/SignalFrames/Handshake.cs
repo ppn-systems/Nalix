@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Identifiers;
 using Nalix.Framework.Security.Hashing;
 
 namespace Nalix.Framework.DataFrames.SignalFrames;
@@ -97,6 +98,17 @@ public sealed class Handshake : PacketBase<Handshake>
     public byte[] TranscriptHash { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the session token assigned by the server.
+    /// Used primarily for UDP connection mapping.
+    /// </summary>
+    /// <summary>
+    /// Gets or sets the session token assigned by the server.
+    /// Used primarily for UDP connection mapping.
+    /// </summary>
+    [SerializeOrder(5)]
+    public Snowflake SessionToken { get; set; }
+
+    /// <summary>
     /// Initializes a new <see cref="Handshake"/> with default transport metadata.
     /// </summary>
     public Handshake() => this.ResetForPool();
@@ -145,6 +157,7 @@ public sealed class Handshake : PacketBase<Handshake>
         this.Nonce = nonce ?? Array.Empty<byte>();
         this.Proof = proof ?? Array.Empty<byte>();
         this.TranscriptHash = Array.Empty<byte>();
+        this.SessionToken = Snowflake.Empty;
     }
 
     /// <summary>
@@ -169,7 +182,8 @@ public sealed class Handshake : PacketBase<Handshake>
     public override string ToString()
         => $"HANDSHAKE(Stage={this.Stage}, OpCode={this.OpCode}, Length={this.Length}, " +
            $"Flags={this.Flags}, Priority={this.Priority}, Protocol={this.Protocol}, " +
-           $"Pub={this.PublicKey.Length}, Nonce={this.Nonce.Length}, Proof={this.Proof.Length}, Hash={this.TranscriptHash.Length})";
+           $"Pub={this.PublicKey.Length}, Nonce={this.Nonce.Length}, Proof={this.Proof.Length}, " +
+           $"Hash={this.TranscriptHash.Length}, SessionToken={this.SessionToken})";
 
     /// <summary>
     /// Resets this instance for safe pool reuse.
@@ -183,6 +197,7 @@ public sealed class Handshake : PacketBase<Handshake>
         this.Nonce = [];
         this.Proof = [];
         this.TranscriptHash = [];
+        this.SessionToken = Snowflake.Empty;
         this.Priority = PacketPriority.URGENT;
     }
 }
