@@ -164,7 +164,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
         if (value is byte[] b)
         {
-            return b.Length == 0 ? 4 : 4 + b.Length;
+            return sizeof(ushort) + b.Length;
         }
 
         if (value is IPacket p)
@@ -185,11 +185,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             Type? elementType = arr.GetType().GetElementType();
             if (elementType != null && TypeMetadata.IsUnmanaged(elementType))
             {
-                // We use 4 bytes for length prefix + (count * elementSize).
+                // ArrayFormatter<T> writes a 16-bit element count prefix before the payload.
                 // Since we can't call TypeMetadata.UnsafeSizeOf (it's private), 
                 // we'll use a conservative fallback if we can't determine it easily.
                 // However, most packets should use specific types.
-                return 4 + (arr.Length * GetElementSize(elementType));
+                return sizeof(ushort) + (arr.Length * GetElementSize(elementType));
             }
         }
 
