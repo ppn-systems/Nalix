@@ -207,8 +207,7 @@ public static class EnvelopeCipher
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> plaintext,
         Span<byte> ciphertext,
-        ReadOnlySpan<byte> aad, uint? seq, CipherSuiteType algorithm,
-        out int written)
+        ReadOnlySpan<byte> aad, uint? seq, CipherSuiteType algorithm, out int written)
     {
         written = 0;
 
@@ -272,8 +271,7 @@ public static class EnvelopeCipher
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> envelope,
         Span<byte> plaintext,
-        ReadOnlySpan<byte> aad,
-        out int written)
+        ReadOnlySpan<byte> aad, out int written)
     {
         written = 0;
         EnvelopeFormat.Envelope env = EnvelopeFormat.ParseEnvelope(envelope);

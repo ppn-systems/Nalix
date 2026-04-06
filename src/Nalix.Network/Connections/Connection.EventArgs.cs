@@ -72,6 +72,14 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     }
 
     /// <inheritdoc />
+    public IBufferLease? ReplaceLease(IBufferLease? newLease)
+    {
+        IBufferLease? old = this.Lease;
+        _lease = newLease;
+        return old;
+    }
+
+    /// <inheritdoc />
     public void ResetForPool()
     {
         _lease?.Dispose();
