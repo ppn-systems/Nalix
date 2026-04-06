@@ -11,27 +11,39 @@ using Nalix.Framework.Injection;
 namespace Nalix.Network.Internal.Protocols;
 
 /// <summary>
-/// Provides a per-connection protocol pipeline that routes inbound frames through a fixed set of stages:
+/// Routes inbound connection frames through a fixed sequence of protocol stages:
 /// Handshake (X25519) -> Decrypt -> Decompress -> Application.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This type is designed to be allocated per connection. However, it is also safe to reuse via pooling
-/// as long as callers follow the lifecycle contract:
+/// A <see cref="ProtocolPipeline"/> instance is associated with a single connection while it is bound.
+/// The pipeline can be reused via pooling.
+/// </para>
+/// <para>
+/// Pooling contract:
 /// </para>
 /// <list type="number">
-/// <item><description>Create or rent an instance from a pool.</description></item>
+/// <item><description>Rent or create an instance.</description></item>
 /// <item><description>Call <see cref="Initialize(IConnection, IProtocol)"/>.</description></item>
-/// <item><description>Call <see cref="Bind"/> to attach to <see cref="IConnection.OnProcessEvent"/>.</description></item>
-/// <item><description>On connection close: call <see cref="ResetForPool"/> (or at least <see cref="Unbind"/>).</description></item>
-/// <item><description>Before returning to pool: call <see cref="ResetForPool"/>.</description></item>
+/// <item><description>Call <see cref="Bind"/> to subscribe to <see cref="IConnection.OnProcessEvent"/>.</description></item>
+/// <item><description>On connection close: call <see cref="Unbind"/> and then return the instance to the pool.</description></item>
 /// </list>
 /// <para>
-/// Ownership rule: the pipeline owns disposal of <see cref="IConnectEventArgs"/> and its
-/// <see cref="IConnectEventArgs.Lease"/>. Individual stages must not dispose these objects.
+/// Note:
+/// <see cref="ResetForPool"/> is intended to be invoked by the pool implementation during <c>Return(...)</c>.
+/// Callers should not normally call <see cref="ResetForPool"/> directly unless they are implementing a custom pool.
+/// </para>
+/// <para>
+/// Ownership rule:
+/// The pipeline owns disposal of <see cref="IConnectEventArgs"/> and its <see cref="IConnectEventArgs.Lease"/>.
+/// Individual protocol stages must not dispose these objects.
+/// </para>
+/// <para>
+/// Stage instances (<see cref="ProtocolX25519"/>, <see cref="ProtocolDecrypt"/>, <see cref="ProtocolDecompress"/>)
+/// are resolved as shared singletons and must therefore remain stateless and thread-safe.
 /// </para>
 /// </remarks>
-[DebuggerDisplay("Disposed={_disposed != 0}, Bound={_bound != 0}")]
+[DebuggerDisplay("Bound={_bound != 0}")]
 internal sealed class ProtocolPipeline : IPoolable
 {
     #region Static
@@ -48,34 +60,33 @@ internal sealed class ProtocolPipeline : IPoolable
     private IConnection? _connection;
 
     private int _bound;
-    private int _disposed;
 
     #endregion Fields
 
+    #region APIs
+
     /// <summary>
-    /// Initializes this instance for a specific connection and protocol stage set.
+    /// Initializes this pipeline for a specific connection.
     /// </summary>
     /// <param name="connection">
-    /// The connection that owns this pipeline. This instance will subscribe to <see cref="IConnection.OnProcessEvent"/>
-    /// when <see cref="Bind"/> is called.
+    /// The connection that will own this pipeline while it is bound. The pipeline subscribes to
+    /// <see cref="IConnection.OnProcessEvent"/> when <see cref="Bind"/> is called.
     /// </param>
     /// <param name="application">
-    /// The final application protocol stage. This is where your main protocol routes and dispatches messages.
+    /// The final application protocol stage. This stage runs only after handshake is established and
+    /// after decrypt/decompress have been applied (when applicable).
     /// </param>
     /// <exception cref="ArgumentNullException">
-    /// Thrown when any argument is <see langword="null"/>.
+    /// Thrown when <paramref name="connection"/> or <paramref name="application"/> is <see langword="null"/>.
     /// </exception>
-    /// <exception cref="ObjectDisposedException">
-    /// Thrown if the pipeline has been disposed and not reset for pooling.
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if the pipeline is currently bound. Call <see cref="Unbind"/> before reinitializing.
     /// </exception>
     /// <remarks>
-    /// This method must be called before <see cref="Bind"/>. It is intentionally separate from construction
-    /// to allow pooling/reuse.
+    /// This method must be called before <see cref="Bind"/>. It is separate from construction to support pooling.
     /// </remarks>
     public void Initialize(IConnection connection, IProtocol application)
     {
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
-
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(application);
 
@@ -91,21 +102,17 @@ internal sealed class ProtocolPipeline : IPoolable
 
     /// <summary>
     /// Subscribes this pipeline to the connection's <see cref="IConnection.OnProcessEvent"/> event.
-    /// After binding, all inbound frames will be routed through <see cref="ProcessMessage"/>.
     /// </summary>
-    /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
     /// <exception cref="InvalidOperationException">
     /// Thrown if the pipeline has not been initialized, or if it is already bound.
     /// </exception>
     /// <remarks>
-    /// This method is idempotent for callers that respect the contract:
-    /// binding twice is treated as a programming error because it would double-subscribe.
+    /// Callers must ensure <see cref="Initialize(IConnection, IProtocol)"/> has been called before binding.
+    /// Binding twice is treated as a programming error because it would double-subscribe.
     /// </remarks>
     [DebuggerStepThrough]
     public void Bind()
     {
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
-
         if (_connection is null || _application is null)
         {
             throw new InvalidOperationException("ProtocolPipeline must be initialized before binding.");
@@ -124,7 +131,7 @@ internal sealed class ProtocolPipeline : IPoolable
     /// </summary>
     /// <remarks>
     /// This method is safe to call multiple times. It is typically invoked during connection teardown
-    /// (e.g., close/dispose path) to prevent memory leaks and duplicate callbacks.
+    /// to prevent memory leaks and duplicate callbacks.
     /// </remarks>
     [DebuggerStepThrough]
     public void Unbind()
@@ -146,25 +153,28 @@ internal sealed class ProtocolPipeline : IPoolable
     }
 
     /// <summary>
-    /// Routes inbound frames through the pipeline:
-    /// Handshake gate -> Decrypt -> Decompress -> Application.
+    /// Processes an inbound frame by running it through the pipeline stages.
     /// </summary>
-    /// <param name="sender">The sender of the event.</param>
-    /// <param name="args">Event arguments containing the connection and payload buffer lease.</param>
+    /// <param name="sender">The event sender.</param>
+    /// <param name="args">The event arguments that contain the connection and payload lease.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="args"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown if this pipeline instance has been disposed.</exception>
     /// <remarks>
     /// <para>
-    /// This method owns disposal of <paramref name="args"/> and <paramref name="args"/>.<see cref="IConnectEventArgs.Lease"/>.
+    /// Stage behavior:
     /// </para>
+    /// <list type="bullet">
+    /// <item><description>If handshake is not established, only the handshake stage runs.</description></item>
+    /// <item><description>After handshake establishment, decrypt and decompress stages run (when applicable), then the application stage runs.</description></item>
+    /// </list>
     /// <para>
-    /// Individual protocol stages must not dispose the args or lease.
+    /// Disposal:
+    /// This method always disposes <paramref name="args"/> and its <see cref="IConnectEventArgs.Lease"/> in a <c>finally</c> block.
+    /// Individual stages must not dispose them.
     /// </para>
     /// </remarks>
     public void ProcessMessage(object? sender, IConnectEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
 
         // Local copies reduce race risk if ResetForPool is called incorrectly.
         IProtocol? application = _application;
@@ -204,19 +214,15 @@ internal sealed class ProtocolPipeline : IPoolable
     }
 
     /// <summary>
-    /// Clears all references and resets state so that this instance can be safely returned to an object pool.
+    /// Resets this instance so it can be reused by an object pool.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Callers must ensure the pipeline has been unbound before calling this method. The recommended sequence is:
+    /// This method clears references to the connection and application protocol to avoid retaining the connection object graph.
     /// </para>
-    /// <code>
-    /// pipeline.Dispose();
-    /// pipeline.ResetForPool();
-    /// pool.Return(pipeline);
-    /// </code>
     /// <para>
-    /// Failing to reset references may keep the connection (and related object graph) alive longer than intended.
+    /// This method is typically called by the pool implementation as part of returning an object to the pool.
+    /// Most callers should call <c>pool.Return(pipeline)</c> and not invoke <see cref="ResetForPool"/> directly.
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
@@ -229,7 +235,8 @@ internal sealed class ProtocolPipeline : IPoolable
         _application = null;
 
         // Reset flags so the pooled instance can be re-used.
-        _ = Interlocked.Exchange(ref _disposed, 0);
         _ = Interlocked.Exchange(ref _bound, 0);
     }
+
+    #endregion APIs
 }
