@@ -87,6 +87,7 @@ public abstract partial class TcpListenerBase : IListener
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     [DebuggerStepThrough]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "<Pending>")]
     protected TcpListenerBase(ushort port, IProtocol protocol)
     {
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
@@ -100,8 +101,8 @@ public abstract partial class TcpListenerBase : IListener
 
         s_config.Validate();
 
-        _acceptWorkerIds = new(s_config.MaxParallel);
         _lock = new SemaphoreSlim(1, 1);
+        _acceptWorkerIds = new(s_config.MaxParallel);
 
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();

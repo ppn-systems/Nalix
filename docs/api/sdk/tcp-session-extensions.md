@@ -215,4 +215,5 @@ Control reply = await session.RequestAsync<Control>(
 - [Subscriptions](./subscriptions.md)
 - [Request Options](./options/request-options.md)
 - [Cryptography](../security/cryptography.md)
+- [Handshake Protocol](../security/handshake.md)
 - [Built-in Frames](../framework/packets/built-in-frames.md)

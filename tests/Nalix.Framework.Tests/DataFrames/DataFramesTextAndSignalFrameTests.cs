@@ -182,14 +182,21 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void ResetForPoolWhenHandshakeContainsDataClearsPayload()
     {
-        Handshake packet = new(12, [1, 2, 3, 4], ProtocolType.UDP);
+        Handshake packet = new(12, HandshakeStage.CLIENT_HELLO, new byte[32], new byte[32], transport: ProtocolType.UDP);
 
         packet.ResetForPool();
 
-        Assert.NotNull(packet.Data);
-        Assert.Empty(packet.Data);
+        Assert.NotNull(packet.PublicKey);
+        Assert.NotNull(packet.Nonce);
+        Assert.NotNull(packet.Proof);
+        Assert.NotNull(packet.TranscriptHash);
+        Assert.Empty(packet.PublicKey);
+        Assert.Empty(packet.Nonce);
+        Assert.Empty(packet.Proof);
+        Assert.Empty(packet.TranscriptHash);
+        Assert.Equal(HandshakeStage.NONE, packet.Stage);
         Assert.Equal(PacketFlags.NONE, packet.Flags);
-        Assert.Equal(PacketPriority.NONE, packet.Priority);
+        Assert.Equal(PacketPriority.URGENT, packet.Priority);
         Assert.Equal(ProtocolType.NONE, packet.Protocol);
     }
 
@@ -227,17 +234,10 @@ public sealed partial class DataFramesPublicApiTests
     }
 
     [Fact]
-    public void HandshakeLengthWhenAuthPayloadExistsMatchesActualSerializedBytes()
+    public void HandshakeLengthWhenHandshakePayloadExistsMatchesActualSerializedBytes()
     {
-        Handshake packet = new(12, [1, 2, 3, 4], ProtocolType.UDP)
-        {
-            Auth = new Handshake.HandshakeAuth
-            {
-                PublicKey = new byte[32],
-                Signature = new byte[64]
-            },
-            Identity = "client-a"
-        };
+        Handshake packet = new(12, HandshakeStage.SERVER_HELLO, new byte[32], new byte[32], new byte[32], ProtocolType.UDP);
+        packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
 
         byte[] bytes = packet.Serialize();
 
@@ -245,17 +245,10 @@ public sealed partial class DataFramesPublicApiTests
     }
 
     [Fact]
-    public void HandshakeSerializeIntoLengthSizedBufferWhenAuthPayloadExistsSucceeds()
+    public void HandshakeSerializeIntoLengthSizedBufferWhenHandshakePayloadExistsSucceeds()
     {
-        Handshake packet = new(12, [1, 2, 3, 4], ProtocolType.UDP)
-        {
-            Auth = new Handshake.HandshakeAuth
-            {
-                PublicKey = new byte[32],
-                Signature = new byte[64]
-            },
-            Identity = "client-a"
-        };
+        Handshake packet = new(12, HandshakeStage.SERVER_HELLO, new byte[32], new byte[32], new byte[32], ProtocolType.UDP);
+        packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
 
         byte[] buffer = new byte[packet.Length];
         int written = packet.Serialize(buffer);
