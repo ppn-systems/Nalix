@@ -141,8 +141,8 @@ public sealed class ProtocolX25519 : Protocol
 
         byte[] serverNonce = Csprng.GetBytes(Handshake.DynamicSize);
         // Compute the transcript hash to authenticate the handshake state
-        byte[] transcriptHash = Handshake.ComputeTranscriptHash(
-            HandshakeCrypto.ComposeTranscriptBuffer(packet.PublicKey, packet.Nonce, serverKey.PublicKey, serverNonce));
+        byte[] transcriptHash = Handshake.ComputeTranscriptHash(HandshakeCrypto
+                                         .ComposeTranscriptBuffer(packet.PublicKey, packet.Nonce, serverKey.PublicKey, serverNonce));
 
         // Save session context into Connection Attributes to verify at the FINISH stage
         HandshakeSessionState state = new()
