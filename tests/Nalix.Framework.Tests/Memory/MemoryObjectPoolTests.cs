@@ -123,7 +123,7 @@ public sealed partial class MemoryTests
     {
         ObjectPoolManager manager = new() { DefaultMaxPoolSize = 4 };
         _ = manager.Prealloc<TestPoolable>(2);
-        TypedObjectPoolAdapter<TestPoolable> adapter = manager.GetTypedPool<TestPoolable>();
+        TypedObjectPool<TestPoolable> adapter = manager.GetTypedPool<TestPoolable>();
 
         List<TestPoolable> rented = adapter.GetMultiple(2);
         int returned = adapter.ReturnMultiple(rented);
@@ -173,10 +173,10 @@ public sealed partial class MemoryTests
     }
 
     [Fact]
-    public void Return_TypedObjectPoolAdapterNullObject_ThrowsArgumentNullException()
+    public void Return_TypedObjectPoolNullObject_ThrowsArgumentNullException()
     {
         ObjectPoolManager manager = new();
-        TypedObjectPoolAdapter<TestPoolable> adapter = manager.GetTypedPool<TestPoolable>();
+        TypedObjectPool<TestPoolable> adapter = manager.GetTypedPool<TestPoolable>();
 
         _ = Assert.Throws<ArgumentNullException>(() => adapter.Return(null!));
         _ = Assert.Throws<ArgumentNullException>(() => adapter.ReturnMultiple(null!));

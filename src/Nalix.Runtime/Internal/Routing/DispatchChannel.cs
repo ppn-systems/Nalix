@@ -185,7 +185,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
                 });
         }
 
-        int bucketCount = GetBucketCount();
+        int bucketCount = GetBucketCount(_options);
         _stateBuckets = new Node[bucketCount];
         _stateMask = bucketCount - 1;
 
@@ -717,11 +717,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetBucketCount()
+    private static int GetBucketCount(DispatchOptions options)
     {
-        int target = Math.Clamp(Environment.ProcessorCount * 64, 256, 16384);
+        int target = Math.Clamp(Environment.ProcessorCount * options.BucketCountMultiplier, options.MinBucketCount, options.MaxBucketCount);
         uint rounded = BitOperations.RoundUpToPowerOf2((uint)target);
-        return rounded == 0 ? 256 : (int)rounded;
+        return rounded == 0 ? options.MinBucketCount : (int)rounded;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

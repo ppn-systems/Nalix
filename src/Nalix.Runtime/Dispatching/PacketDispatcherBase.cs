@@ -102,14 +102,9 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// If a handler is found, it is invoked asynchronously. Exceptions are caught and logged.
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected ValueTask ExecutePacketHandlerAsync(
-        TPacket packet,
-        IConnection connection,
-        CancellationToken token = default)
+    protected ValueTask ExecutePacketHandlerAsync(TPacket packet, IConnection connection, CancellationToken token = default)
     {
-        if (this.Options.TryResolveHandler(
-            packet.OpCode,
-            out PacketHandler<TPacket> handler))
+        if (this.Options.TryResolveHandler(packet.OpCode, out PacketHandler<TPacket> handler))
         {
             if (this.Logging?.IsEnabled(LogLevel.Trace) == true)
             {
@@ -136,10 +131,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
 
             return AwaitHandlerAsync(this, pending, packet.OpCode);
 
-            static async ValueTask AwaitHandlerAsync(
-                PacketDispatcherBase<TPacket> owner,
-                ValueTask operation,
-                ushort opCode)
+            static async ValueTask AwaitHandlerAsync(PacketDispatcherBase<TPacket> owner, ValueTask operation, ushort opCode)
             {
                 try
                 {

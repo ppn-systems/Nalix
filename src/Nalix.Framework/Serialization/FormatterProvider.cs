@@ -337,7 +337,7 @@ public static class FormatterProvider
 
         Type type = typeof(T);
 
-        if (TypeMetadata.IsUnmanaged<T>() && !type.IsEnum)
+        if (type.IsValueType && !type.IsEnum)
         {
             _ = Interlocked.CompareExchange(ref ComplexTypeCache<T>.Struct, formatter, default);
             return;
@@ -457,7 +457,7 @@ public static class FormatterProvider
                 $"Cannot call GetComplex<T>() on Nullable<T>: {type}");
         }
 
-        if (TypeMetadata.IsUnmanaged<T>() && !type.IsEnum)
+        if (type.IsValueType && !type.IsEnum)
         {
             IFormatter<T> existing = ComplexTypeCache<T>.Struct;
             if (existing is not null)

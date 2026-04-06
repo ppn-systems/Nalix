@@ -46,7 +46,7 @@ public abstract partial class TcpListenerBase
 
         if (s_config.MaxParallel < 1)
         {
-            throw new InternalErrorException("s_config.MaxParallel must be at least 1.");
+            throw new InternalErrorException("s_connectionLimitOptions.MaxParallel must be at least 1.");
         }
 
         if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
@@ -121,16 +121,10 @@ public abstract partial class TcpListenerBase
 
             _acceptWorkerIds.Clear();
 
-            int acceptWorkerCount = Math.Clamp(s_config.MaxParallel, 1, MaxAcceptWorkers);
-            if (acceptWorkerCount != s_config.MaxParallel)
-            {
-                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] capping-accept-workers requested={s_config.MaxParallel} capped={acceptWorkerCount}");
-            }
-
             // Spawn N accept-worker async tasks, where N = MaxParallel.
             // Multiple workers let the listener accept several connections in
             // parallel instead of serializing every accept behind one loop.
-            for (int i = 0; i < acceptWorkerCount; i++)
+            for (int i = 0; i < s_config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{i}",

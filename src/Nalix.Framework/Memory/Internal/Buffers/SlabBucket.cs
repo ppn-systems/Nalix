@@ -55,7 +55,9 @@ internal sealed class SlabBucket : IDisposable
     private bool _disposed;
     private int _isOptimizing;
 
-    /// <summary>Occurs when the bucket needs to resize (expand or shrink).</summary>
+    /// <summary>
+    /// Occurs when the bucket needs to resize (expand or shrink).
+    /// </summary>
     public event Action<SlabBucket, BufferPoolResizeDirection>? ResizeOccurred;
 
     private sealed class ThreadLocalCache

@@ -1,4 +1,3 @@
-using System;
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Memory.Buffers;
@@ -19,7 +18,7 @@ public class BufferPoolBenchmarks : NalixBenchmarkBase
     [GlobalSetup]
     public void Setup()
     {
-        _manager = new BufferPoolManager(new BufferConfig
+        _manager = new BufferPoolManager(new BufferOptions
         {
             EnableMemoryTrimming = false,
             EnableAnalytics = false,
@@ -34,12 +33,12 @@ public class BufferPoolBenchmarks : NalixBenchmarkBase
     [Benchmark]
     public byte[] RentAndReturnArray()
     {
-        byte[] buffer = _manager.Rent(BufferSize);
+        byte[] buffer = _manager.Rent(this.BufferSize);
         _manager.Return(buffer);
         return buffer;
     }
 
 
     [Benchmark]
-    public double QueryAllocationRate() => _manager.GetAllocationForSize(BufferSize);
+    public double QueryAllocationRate() => _manager.GetAllocationForSize(this.BufferSize);
 }
