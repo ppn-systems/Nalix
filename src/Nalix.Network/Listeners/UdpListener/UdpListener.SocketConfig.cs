@@ -4,46 +4,66 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
-using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
 {
     /// <summary>
-    /// Initializes the underlying <see cref="UdpClient"/> and applies the listener socket configuration.
+    /// Creates and binds the underlying <see cref="Socket"/> for UDP datagram reception.
     /// </summary>
     /// <remarks>
     /// Derived types can override this method to customize how the UDP socket is created or bound,
-    /// but should preserve the contract that <see cref="_udpClient"/> is ready for receive operations
+    /// but should preserve the contract that <see cref="_socket"/> is ready for receive operations
     /// when the method returns.
     /// </remarks>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected virtual void Initialize()
     {
-        _udpClient = new UdpClient(_port)
+        // Determine address family from configuration.
+        AddressFamily af = s_config.EnableIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
+        IPAddress bindAddress = s_config.EnableIPv6 ? IPAddress.IPv6Any : IPAddress.Any;
+
+        _socket = new Socket(af, SocketType.Dgram, ProtocolType.Udp);
+
+        // IPv6 dual-mode allows the socket to accept both IPv4 and IPv6 datagrams
+        // on a single binding when the OS supports it.
+        if (af == AddressFamily.InterNetworkV6 && s_config.DualMode)
         {
-            Client = { ExclusiveAddressUse = !s_config.ReuseAddress }
-        };
+            try { _socket.DualMode = true; }
+            catch { /* Not supported on all platforms */ }
+        }
 
-        this.ConfigureHighPerformanceSocket(_udpClient.Client);
+        // Apply socket-level tuning before binding.
+        this.ConfigureSocket(_socket);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] init-ok port={_port} reuse={s_config.ReuseAddress} buf={s_config.BufferSize}");
+        _socket.Bind(new IPEndPoint(bindAddress, _port));
+
+        // Update the reusable endpoint to match the bound address family so that
+        // ReceiveFromAsync can populate it without an address-family mismatch.
+        _anyEndPoint = new IPEndPoint(bindAddress, 0);
+
+        s_logger?.Debug(
+            $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
+            $"init-ok port={_port} af={af} reuse={s_config.ReuseAddress} buf={s_config.BufferSize}");
     }
 
     /// <summary>
-    /// Applies the listener's socket-level performance tuning.
+    /// Applies UDP-relevant socket-level performance tuning to the given socket.
     /// </summary>
     /// <param name="socket">The socket to configure.</param>
     /// <remarks>
     /// Override this method when a derived listener needs a different tuning profile, such as
-    /// platform-specific socket options or custom buffer sizing. Implementations should be careful
-    /// to preserve the non-blocking and buffer configuration expectations of the base receive loop.
+    /// platform-specific socket options or custom buffer sizing.
+    /// <para>
+    /// Note: TCP-specific options (<c>NoDelay</c>, <c>KeepAlive</c>) are intentionally excluded
+    /// because they have no effect on UDP sockets.
+    /// </para>
     /// </remarks>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -51,33 +71,18 @@ public abstract partial class UdpListenerBase
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    protected virtual void ConfigureHighPerformanceSocket(Socket socket)
+    protected virtual void ConfigureSocket(Socket socket)
     {
         ArgumentNullException.ThrowIfNull(socket, nameof(socket));
 
         socket.Blocking = false;
-        socket.NoDelay = s_config.NoDelay;
+        socket.ExclusiveAddressUse = !s_config.ReuseAddress;
         socket.SendBufferSize = s_config.BufferSize;
         socket.ReceiveBufferSize = s_config.BufferSize;
 
-        if (s_config.KeepAlive)
+        if (s_config.ReuseAddress)
         {
-            socket.SetSocketOption(SocketOptionLevel.Socket,
-                                   SocketOptionName.KeepAlive, true);
-
-            if (OperatingSystem.IsWindows())
-            {
-                const int on = 1;
-                const int time = 3_000;
-                const int interval = 1_000;
-
-                Span<byte> keepAlive = stackalloc byte[12];
-                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive[..4], on);
-                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(4, 4), time);
-                System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(keepAlive.Slice(8, 4), interval);
-
-                _ = socket.IOControl(IOControlCode.KeepAliveValues, keepAlive.ToArray(), null);
-            }
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         }
     }
 }

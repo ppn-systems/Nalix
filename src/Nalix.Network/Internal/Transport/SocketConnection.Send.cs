@@ -37,7 +37,7 @@ internal sealed partial class SocketConnection
             throw new ArgumentException("Data must not be empty.", nameof(data));
         }
 
-        if (data.Length >= s_fragmentOptions.ChunkThreshold)
+        if (data.Length >= s_fragmentOptions.MaxChunkSize)
         {
             this.SEND_FRAGMENTED(data);
             return;
@@ -196,7 +196,7 @@ internal sealed partial class SocketConnection
             throw new ArgumentException("Data must not be empty.", nameof(data));
         }
 
-        if (data.Length >= s_fragmentOptions.ChunkThreshold)
+        if (data.Length >= s_fragmentOptions.MaxChunkSize)
         {
             await this.SEND_FRAGMENTED_ASYNC(data, cancellationToken).ConfigureAwait(false);
             return;
@@ -294,7 +294,7 @@ internal sealed partial class SocketConnection
         }
 
         ushort streamId = FragmentStreamId.Next();
-        int chunkBodySize = s_fragmentOptions.ChunkBodySize;
+        int chunkBodySize = s_fragmentOptions.MaxChunkSize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
         if (totalChunks > ushort.MaxValue)
         {
@@ -397,7 +397,7 @@ internal sealed partial class SocketConnection
         }
 
         ushort streamId = FragmentStreamId.Next();
-        int chunkBodySize = s_fragmentOptions.ChunkBodySize;
+        int chunkBodySize = s_fragmentOptions.MaxChunkSize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
         if (totalChunks > ushort.MaxValue)
         {

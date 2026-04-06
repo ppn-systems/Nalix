@@ -5,22 +5,19 @@ using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Results.Primitives;
 
 namespace Nalix.Network.Internal.Transport;
 
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITcp
+internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransport
 {
     private readonly Connection _outer = outer;
 
