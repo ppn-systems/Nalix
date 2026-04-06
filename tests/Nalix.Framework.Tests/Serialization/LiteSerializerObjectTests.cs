@@ -13,15 +13,23 @@ public sealed class LiteSerializerObjectTests
     {
         Handshake input = new(
             opCode: 1,
-            data: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
+            stage: HandshakeStage.CLIENT_HELLO,
+            publicKey: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
+            nonce: [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+            proof: [9, 8, 7, 6],
             transport: ProtocolType.TCP);
+        input.UpdateTranscriptHash("nalix-handshake"u8);
 
         Handshake? output = null;
         _ = LiteSerializerTestHelper.RoundTrip(input, ref output);
 
         Assert.NotNull(output);
         Assert.Equal(input.OpCode, output.OpCode);
-        Assert.Equal(input.Data, output.Data);
+        Assert.Equal(input.Stage, output.Stage);
+        Assert.Equal(input.PublicKey, output.PublicKey);
+        Assert.Equal(input.Nonce, output.Nonce);
+        Assert.Equal(input.Proof, output.Proof);
+        Assert.Equal(input.TranscriptHash, output.TranscriptHash);
         Assert.Equal(input.Protocol, output.Protocol);
         Assert.Equal(input.Flags, output.Flags);
         Assert.Equal(input.Priority, output.Priority);

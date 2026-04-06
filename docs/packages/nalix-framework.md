@@ -117,7 +117,7 @@ flowchart LR
 - `DataReaderExtensions` / `DataWriterExtensions` / `HeaderExtensions` — low-level read/write and header inspection helpers.
 - `PacketRegistryFactory` — scans packet types and binds deserialize function pointers.
 - `PacketRegistry` — frozen catalog of deserializers/transformers.
-- `Handshake` — control frame used to establish shared secret and protocol flags.
+- `Handshake` — default handshake frame used to exchange ephemeral keys, nonces, proofs, and transcript hash.
 - `Control` / `Directive` / `Text256/512/1024` — built-in frame types.
 - `PacketPool<TPacket>` / `PacketLease<TPacket>` — packet pooling helpers for reusable packet instances.
 - `FragmentHeader` / `FragmentAssembler` / `FragmentOptions` — chunk large payloads and reassemble them safely.
@@ -132,7 +132,13 @@ IPacketRegistry registry = factory.CreateCatalog();
 InstanceManager.Instance.Register<IPacketRegistry>(registry);
 
 // Handshake frame
-Handshake hs = new(0, Csprng.GetBytes(32));
+Handshake hs = new(
+    0,
+    HandshakeStage.CLIENT_HELLO,
+    Csprng.GetBytes(32),
+    Csprng.GetBytes(32),
+    transport: ProtocolType.TCP);
+hs.UpdateTranscriptHash("nalix-default-handshake"u8);
 byte[] bytes = hs.Serialize();
 ```
 

@@ -60,19 +60,27 @@ Important public members:
 
 ## Handshake
 
-`Handshake` carries binary handshake payloads such as public keys.
+`Handshake` is the default key-exchange frame. It carries a handshake `Stage`, ephemeral `PublicKey`, `Nonce`, optional `Proof`, and a `TranscriptHash` derived with `Keccak-256`.
 
 ## Basic usage
 
 ```csharp
-var handshake = new Handshake(1, clientPublicKey, ProtocolType.TCP);
-handshake.Initialize(clientPublicKey, ProtocolType.TCP);
+var handshake = new Handshake(
+    1,
+    HandshakeStage.CLIENT_HELLO,
+    clientPublicKey,
+    clientNonce,
+    transport: ProtocolType.TCP);
+
+handshake.UpdateTranscriptHash(transcriptBytes);
 ```
 
 Important public members:
 
-- constructor `(opCode, data, transport)`
-- `Initialize(data, transport)`
+- constructor `(opCode, stage, publicKey, nonce, proof, transport)`
+- `Initialize(opCode, stage, publicKey, nonce, proof, transport)`
+- `ComputeTranscriptHash(...)`
+- `UpdateTranscriptHash(...)`
 - `ResetForPool()`
 - `DynamicSize`
 

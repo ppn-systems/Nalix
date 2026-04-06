@@ -81,10 +81,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     public ISnowflake ID { get; }
 
     /// <inheritdoc/>
-    public IConnection.ITcp TCP { get; }
+    public IConnection.ITransport TCP { get; }
 
     /// <inheritdoc/>
-    public IConnection.IUdp UDP => this.UdpTransport ?? throw new InternalErrorException("UDP transport has not been created yet.");
+    public IConnection.ITransport UDP => this.UdpTransport ?? throw new InternalErrorException("UDP transport has not been created yet.");
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint { get; }
