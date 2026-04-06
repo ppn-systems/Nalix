@@ -24,6 +24,7 @@
 | `DualMode` | Supports IPv4 and IPv6 on one IPv6 socket. | `true` |
 | `ExclusiveAddressUse` | Exclusive bind behavior. | `true` |
 | `ProcessChannelCapacity` | Bounded queue for accepted connections awaiting protocol setup. | `128` |
+| `MaxUdpDatagramSize` | Maximum allowed UDP datagram size in bytes. | `1400` |
 
 ## Where it matters
 

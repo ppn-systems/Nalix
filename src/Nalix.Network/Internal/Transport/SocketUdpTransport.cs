@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
@@ -22,187 +20,253 @@ using Nalix.Network.Connections;
 
 namespace Nalix.Network.Internal.Transport;
 
+/// <summary>
+/// A high-performance UDP transport implementation utilizing <see cref="Socket"/> directly.
+/// Designed for zero-allocation transmission and efficient endpoint-bound communication.
+/// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class SocketUdpTransport : IConnection.IUdp, IPoolable, IDisposable
+internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, IDisposable
 {
-    #region Constants
-
-    private const int UdpReplaySoftLimit = 4_096;
-    private const long UdpReplayCleanupIntervalMs = 5_000;
-
-    #endregion Constants
-
-    #region Fields
-
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-
-    private EndPoint? _endPoint;
-    private Connection? _outer;
-    private Socket _socket = new(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-
-    private long _udpReplayLastCleanupMs;
-    private readonly ConcurrentDictionary<ulong, long> _udpReplayNonces = new();
-
-    #endregion Fields
-
-    internal bool TryAcceptUdpNonce(ulong nonce, long timestamp, long maxReplayWindowMs)
+    /// <summary>
+    /// Gets an existing UDP transport instance or creates one, injecting the provided socket if available.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void CreateUDP(Connection connection, IPEndPoint remoteEndPoint, Socket? socket = null)
     {
-        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        long expiryCutoff = now - maxReplayWindowMs;
-
-        // Keep the nonce only if it is new; duplicates are treated as replayed
-        // packets and rejected before they can be processed.
-        if (!_udpReplayNonces.TryAdd(nonce, timestamp))
+        if (connection.UdpTransport == null)
         {
-            return false;
-        }
+            SocketUdpTransport transport = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                                   .Get<SocketUdpTransport>();
+            transport.Attach(connection);
 
-        // Clean up lazily so the replay map stays small without paying cleanup
-        // cost on every packet.
-        if (_udpReplayNonces.Count >= UdpReplaySoftLimit ||
-            now - Interlocked.Read(ref _udpReplayLastCleanupMs) >= UdpReplayCleanupIntervalMs)
-        {
-            CLEANUP_UDP_REPLAY_NONCES(expiryCutoff, now);
-        }
-
-        return true;
-
-        void CLEANUP_UDP_REPLAY_NONCES(long expiryCutoff, long now)
-        {
-            // Only one thread performs cleanup for a given interval; the exchange
-            // acts as a cheap gate so concurrent packets do not all sweep the map.
-            if (Interlocked.Exchange(ref _udpReplayLastCleanupMs, now) > now - UdpReplayCleanupIntervalMs)
+            if (socket != null)
             {
-                return;
+                transport.SetSocket(socket);
             }
 
-            // Drop entries older than the replay window cutoff. This keeps the
-            // replay dictionary bounded while still rejecting stale packets.
-            foreach (KeyValuePair<ulong, long> entry in _udpReplayNonces)
-            {
-                if (entry.Value < expiryCutoff)
-                {
-                    _ = _udpReplayNonces.TryRemove(entry.Key, out _);
-                }
-            }
+            IPEndPoint ep = remoteEndPoint;
+            transport.Initialize(ref ep);
+            transport.MaxUdpSize = Nalix.Network.Listeners.Udp.UdpListenerBase.Config.MaxUdpDatagramSize;
+            connection.SetUdpTransport(transport);
         }
     }
 
+    #region Fields
+
+    private EndPoint? _endPoint;
+    private Connection? _outer;
+    private Socket? _socket;
+
+    /// <summary>
+    /// The maximum safe size for a UDP datagram to avoid IP fragmentation (Standard MTU is 1500).
+    /// </summary>
+    public int MaxUdpSize { get; set; } = 1400;
+
+    /// <summary>
+    /// Indicates whether this transport instance owns the lifecycle of its <see cref="_socket"/>.
+    /// If <c>false</c>, the socket is provided by a listener and should not be disposed here.
+    /// </summary>
+    private bool _ownsSocket;
+
+    #endregion Fields
+
+    #region Lifecycle
+
+    /// <summary>
+    /// Attaches this transport to a specific connection.
+    /// </summary>
     internal void Attach(Connection outer) => _outer = outer;
 
+    /// <summary>
+    /// Sets an external socket to be used for transmission. 
+    /// Used when the transport should share the listener's socket.
+    /// </summary>
+    internal void SetSocket(Socket socket)
+    {
+        ArgumentNullException.ThrowIfNull(socket);
+
+        if (_socket != null && _ownsSocket)
+        {
+            _socket.Dispose();
+        }
+
+        _socket = socket;
+        _ownsSocket = false;
+    }
+
+    /// <summary>
+    /// Initializes the transport with a target endpoint. 
+    /// If no socket is currently set, a new one is created.
+    /// </summary>
     public void Initialize(ref IPEndPoint iPEndPoint)
     {
         _endPoint = iPEndPoint;
         AddressFamily af = iPEndPoint.AddressFamily;
-        if (_socket.AddressFamily != af)
+
+        if (_socket == null)
         {
-            _socket.Dispose();
             _socket = new Socket(af, SocketType.Dgram, ProtocolType.Udp);
+            _ownsSocket = true;
+
+            if (af == AddressFamily.InterNetworkV6)
+            {
+                try { _socket.DualMode = true; } catch { }
+            }
+
+            const int BufferSize = 1500; // Standard MTU size
+            _socket.SendBufferSize = BufferSize;
+            _socket.ReceiveBufferSize = BufferSize;
         }
-        if (af == AddressFamily.InterNetworkV6)
-        {
-            try { _socket.DualMode = true; } catch { }
-        }
-        const int BufferSize = (int)(1024 * 1.35);
-        _socket.SendBufferSize = BufferSize;
-        _socket.ReceiveBufferSize = BufferSize;
-        _socket.Bind(_endPoint);
     }
 
+    #endregion Lifecycle
+
+    #region Transmission
+
+    /// <inheritdoc/>
     public void Send(IPacket packet)
     {
+        ArgumentNullException.ThrowIfNull(packet);
+
         if (packet.Length == 0)
         {
-            throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
+            return;
         }
 
         if (packet.Length < BufferLease.StackAllocThreshold)
         {
-            // Small datagrams are serialized on the stack to avoid renting a
-            // buffer and to keep the UDP fast path allocation-free.
-            Span<byte> buffer = stackalloc byte[packet.Length * 110 / 100];
+            // Renting memory on the stack for small packets to avoid GC pressure.
+            // Using a safe overhead (10%) for serialization margins.
+            Span<byte> buffer = stackalloc byte[packet.Length + 64];
             int bytesWritten = packet.Serialize(buffer);
             this.Send(buffer[..bytesWritten]);
             return;
         }
+
         using BufferLease lease = BufferLease.Rent(packet.Length);
-        int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(bytesWrittenHeap);
+        int written = packet.Serialize(lease.SpanFull);
+        lease.CommitLength(written);
         this.Send(lease.Span);
     }
 
+    /// <inheritdoc/>
     public void Send(ReadOnlySpan<byte> message)
     {
-        if (message.IsEmpty || _endPoint is null)
+        if (message.IsEmpty || _endPoint == null || _socket == null)
         {
-            throw new NetworkException("Connection endpoint is not available.");
+            return;
         }
 
-        int sent = _socket.SendTo(message, SocketFlags.None, _endPoint);
-        if (sent != message.Length)
+        if (message.Length > MaxUdpSize)
         {
-            throw new NetworkException("The socket did not send the full payload.");
+            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {MaxUdpSize} bytes. Use TCP for large data.");
+        }
+
+        try
+        {
+            int sent = _socket.SendTo(message, SocketFlags.None, _endPoint);
+            if (sent != message.Length)
+            {
+                throw new NetworkException($"Partial send: sent {sent}/{message.Length} bytes.");
+            }
+        }
+        catch (Exception ex) when (ex is not NetworkException)
+        {
+            throw new NetworkException("UDP transmission failed.", ex);
         }
     }
 
+    /// <inheritdoc/>
     public async Task SendAsync(IPacket packet, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(packet);
+
         if (packet.Length == 0)
         {
-            throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
-        }
-
-        if (packet.Length < BufferLease.StackAllocThreshold)
-        {
-            // Small datagrams are serialized into a temporary array instead of
-            // renting pooled memory. This mirrors the sync fast path above while
-            // still avoiding a larger pooled allocation.
-            byte[] buffer = new byte[packet.Length * 110 / 100];
-            int bytesWritten = packet.Serialize(buffer);
-            await this.SendAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesWritten), cancellationToken).ConfigureAwait(false);
             return;
         }
+
+        // --- OPTIMIZATION: Zero-allocation small packet send ---
+        if (packet.Length < BufferLease.StackAllocThreshold)
+        {
+            // Rent a reusable byte array from the shared pool.
+            byte[] arr = BufferLease.ByteArrayPool.Rent(packet.Length + 64);
+            try
+            {
+                int written = packet.Serialize(arr);
+                await this.SendAsync(new ReadOnlyMemory<byte>(arr, 0, written), cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                BufferLease.ByteArrayPool.Return(arr);
+            }
+            return;
+        }
+
         using BufferLease lease = BufferLease.Rent(packet.Length);
         int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
         lease.CommitLength(bytesWrittenHeap);
         await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc/>
     public async Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
-        if (message.IsEmpty)
+        if (message.IsEmpty || _endPoint == null || _socket == null)
         {
-            throw new ArgumentException("Message must not be empty.", nameof(message));
+            return;
         }
 
-        if (_endPoint is null)
+        if (message.Length > MaxUdpSize)
         {
-            throw new NetworkException("Connection endpoint is not available.");
+            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {MaxUdpSize} bytes. Use TCP for large data.");
         }
 
-        int sentBytes = await _socket.SendToAsync(message, _endPoint, cancellationToken).ConfigureAwait(false);
-        if (sentBytes != message.Length)
+        try
         {
-            throw new NetworkException("The socket did not send the full payload.");
+            int sentBytes = await _socket.SendToAsync(message, SocketFlags.None, _endPoint, cancellationToken).ConfigureAwait(false);
+            if (sentBytes != message.Length)
+            {
+                throw new NetworkException($"Partial async send: sent {sentBytes}/{message.Length} bytes.");
+            }
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            throw new NetworkException("Asynchronous UDP transmission failed.", ex);
         }
     }
 
+    /// <inheritdoc/>
     public void BeginReceive(CancellationToken cancellationToken = default)
     {
-        // For UDP, receiving is usually handled by a central listener or 
-        // already active on the bound socket. This is a no-op for the transport
-        // instance itself as it focuses on transmission for a specific connection.
+        // Outbound transport does not handle incoming packets directly.
+        // Reception is managed by UdpListenerBase or similar listener logic.
     }
 
+    #endregion Transmission
+
+    #region Pooling
+
+    /// <inheritdoc/>
     public void ResetForPool()
     {
         _outer = null;
         _endPoint = null;
-        _socket.Dispose();
-        _socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+
+        if (_ownsSocket)
+        {
+            _socket?.Dispose();
+        }
+
+        _socket = null;
+        _ownsSocket = false;
     }
 
-    public void Dispose() { }
+    /// <inheritdoc/>
+    public void Dispose() => this.ResetForPool();
+
+    #endregion Pooling
 }
