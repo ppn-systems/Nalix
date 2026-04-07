@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
@@ -45,9 +46,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// The serialization layout declared on the packet type.
     /// </summary>
     [SerializeIgnore]
-    private static readonly SerializeLayout s_layout =
-        typeof(TSelf).GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout
-        ?? SerializeLayout.Auto;
+    private static readonly SerializeLayout s_layout = typeof(TSelf).GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout ?? SerializeLayout.Auto;
 
     /// <summary>
     /// All serializable properties as pre-compiled PropertyMetadata.
@@ -154,23 +153,43 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         return size;
     }
 
+    /// <summary>
+    /// Cache Func&lt;int&gt; delegate cho Unsafe.SizeOf&lt;T&gt;() theo runtime Type.
+    /// Chỉ được truy cập qua <see cref="GetElementSize"/> — tránh reflection lặp lại.
+    /// </summary>
+    [SerializeIgnore]
+    private static readonly ConcurrentDictionary<Type, Func<int>> s_elementSizeCache = new();
+
+    /// <summary>
+    /// Tính wire-size của một giá trị động, đồng bộ với format của <see cref="LiteSerializer"/>:
+    /// <list type="bullet">
+    ///   <item><see cref="string"/>  — 2-byte prefix + UTF-8 bytes (xác nhận từ <c>GetExactLengthOrThrow</c>)</item>
+    ///   <item><see cref="byte"/>[]  — 4-byte int prefix + raw bytes (xác nhận từ <c>UnmanagedSZArray</c> path)</item>
+    ///   <item><see cref="IPacket"/> — delegate sang <c>p.Length</c>, có guard tự-tham chiếu</item>
+    ///   <item>Unmanaged array       — 4-byte int prefix + elements (cùng path với byte[])</item>
+    /// </list>
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int GetDynamicSize(object value)
     {
+        // string: 2-byte ushort prefix + UTF-8 payload.
+        // Đồng bộ với LiteSerializer.GetExactLengthOrThrow và TypeMetadata.GetDynamicSize.
         if (value is string s)
         {
             return string.IsNullOrEmpty(s) ? 2 : 2 + Encoding.UTF8.GetByteCount(s);
         }
 
+        // byte[]: 4-byte int prefix + raw bytes.
+        // LiteSerializer viết: GC.AllocateUninitializedArray<byte>(dataSize + 4)
+        // Trước đây dùng sizeof(ushort)=2 — SAI, gây tính Length thiếu 2 bytes mỗi byte[].
         if (value is byte[] b)
         {
-            return sizeof(ushort) + b.Length;
+            return sizeof(int) + b.Length;
         }
 
         if (value is IPacket p)
         {
-            // Basic self-recursion guard as warned by the user.
-            // Complex cycle detection would be too expensive for a hot-path Length property.
+            // Guard tự-tham chiếu cơ bản — cycle detection đầy đủ quá tốn kém cho hot path.
             if (ReferenceEquals(p, this))
             {
                 return 0;
@@ -181,45 +200,63 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
         if (value is Array arr)
         {
-            // For other arrays (int[], float[], etc.), we need to know if the element is unmanaged.
+            // Unmanaged array (int[], float[], ...): 4-byte int prefix + elements.
+            // Cùng format với byte[] trong LiteSerializer (UnmanagedSZArray path).
             Type? elementType = arr.GetType().GetElementType();
-            if (elementType != null && TypeMetadata.IsUnmanaged(elementType))
+            if (elementType is not null && TypeMetadata.IsUnmanaged(elementType))
             {
-                // ArrayFormatter<T> writes a 16-bit element count prefix before the payload.
-                // Since we can't call TypeMetadata.UnsafeSizeOf (it's private), 
-                // we'll use a conservative fallback if we can't determine it easily.
-                // However, most packets should use specific types.
-                return sizeof(ushort) + (arr.Length * GetElementSize(elementType));
+                return sizeof(int) + (arr.Length * GetElementSize(elementType));
             }
         }
 
         return 0;
     }
 
+    /// <summary>
+    /// Trả về byte-size của một unmanaged element type.
+    /// Caller đã check <see cref="TypeMetadata.IsUnmanaged"/> — chỉ unmanaged type mới đến đây.
+    /// Với <see cref="TypeCode.Object"/> (struct như <see cref="Guid"/>, custom struct):
+    /// dùng <see cref="Unsafe.SizeOf{T}"/> qua delegate cache thay vì hardcode sai.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetElementSize(Type type)
     {
+        if (type.IsEnum)
+        {
+            return GetElementSize(Enum.GetUnderlyingType(type));
+        }
+
         return Type.GetTypeCode(type) switch
         {
-            TypeCode.Byte => 1,
-            TypeCode.SByte => 1,
-            TypeCode.Boolean => 1,
-            TypeCode.Char => 2,
-            TypeCode.Int16 => 2,
-            TypeCode.UInt16 => 2,
-            TypeCode.Int32 => 4,
-            TypeCode.UInt32 => 4,
-            TypeCode.Single => 4,
-            TypeCode.Int64 => 8,
-            TypeCode.UInt64 => 8,
-            TypeCode.Double => 8,
+            TypeCode.Byte or TypeCode.SByte or TypeCode.Boolean => 1,
+            TypeCode.Char or TypeCode.Int16 or TypeCode.UInt16 => 2,
+            TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Single => 4,
+            TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Double or TypeCode.DateTime => 8,
             TypeCode.Decimal => 16,
-            TypeCode.Empty => 0,
-            TypeCode.Object => 1,
-            TypeCode.DBNull => 2,
-            TypeCode.DateTime => 8,
-            TypeCode.String => 8,
+            TypeCode.Empty => GetUnsafeSizeOf(type),
+            TypeCode.Object => GetUnsafeSizeOf(type),
+            TypeCode.DBNull => GetUnsafeSizeOf(type),
+            TypeCode.String => GetUnsafeSizeOf(type),
             _ => 0
         };
+    }
+
+    /// <summary>
+    /// Gọi <c>Unsafe.SizeOf&lt;T&gt;()</c> với runtime <see cref="Type"/> bằng cách cache delegate
+    /// sau lần đầu — tương tự pattern của <c>TypeMetadata.Core</c>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int GetUnsafeSizeOf(Type type)
+    {
+        return s_elementSizeCache.GetOrAdd(type, static t =>
+        {
+            MethodInfo method =
+                typeof(Unsafe)
+                    .GetMethod(nameof(Unsafe.SizeOf), BindingFlags.Public | BindingFlags.Static)!
+                    .MakeGenericMethod(t);
+
+            return method.CreateDelegate<Func<int>>();
+        })();
     }
 
     #endregion Length
