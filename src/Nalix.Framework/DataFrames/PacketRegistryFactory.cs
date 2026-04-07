@@ -5,6 +5,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -158,6 +159,26 @@ public sealed class PacketRegistryFactory
     }
 
     /// <summary>
+    /// Loads an assembly from <paramref name="assemblyPath"/> and registers all
+    /// concrete packet types it contains.
+    /// </summary>
+    /// <param name="assemblyPath">Absolute or relative path to a .dll assembly.</param>
+    /// <param name="requireAttribute">
+    /// Only register classes with <see cref="PacketAttribute"/> when <see langword="true"/>.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="assemblyPath"/> is null, empty, or whitespace.
+    /// </exception>
+    /// <exception cref="FileNotFoundException">
+    /// Thrown when the assembly file does not exist.
+    /// </exception>
+    public PacketRegistryFactory RegisterPacketAssembly(string assemblyPath, bool requireAttribute = false)
+    {
+        Assembly asm = LOAD_ASSEMBLY_FROM_PATH(assemblyPath);
+        return this.RegisterAllPackets(asm, requireAttribute);
+    }
+
+    /// <summary>
     /// Adds an assembly to be scanned for packet types.
     /// Only types whose namespace is NOT in the built-in set will be considered.
     /// Keeping assembly selection separate lets the caller control the discovery
@@ -174,6 +195,23 @@ public sealed class PacketRegistryFactory
     }
 
     /// <summary>
+    /// Loads an assembly from <paramref name="assemblyPath"/> and adds it to the
+    /// scanning scope used by namespace-based discovery.
+    /// </summary>
+    /// <param name="assemblyPath">Absolute or relative path to a .dll assembly.</param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="assemblyPath"/> is null, empty, or whitespace.
+    /// </exception>
+    /// <exception cref="FileNotFoundException">
+    /// Thrown when the assembly file does not exist.
+    /// </exception>
+    public PacketRegistryFactory IncludeAssembly(string assemblyPath)
+    {
+        Assembly asm = LOAD_ASSEMBLY_FROM_PATH(assemblyPath);
+        return this.IncludeAssembly(asm);
+    }
+
+    /// <summary>
     /// Scans all loaded assemblies in the current <see cref="AppDomain"/>
     /// for packet types.
     /// This is the widest discovery mode and is usually only appropriate when
@@ -184,6 +222,22 @@ public sealed class PacketRegistryFactory
         foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
         {
             _ = this.IncludeAssembly(asm);
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Registers all concrete packet types discovered from currently loaded assemblies.
+    /// </summary>
+    /// <param name="requireAttribute">
+    /// Only register classes with <see cref="PacketAttribute"/> when <see langword="true"/>.
+    /// </param>
+    public PacketRegistryFactory RegisterCurrentDomainPackets(bool requireAttribute = false)
+    {
+        foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            _ = this.RegisterAllPackets(asm, requireAttribute);
         }
 
         return this;
@@ -494,6 +548,36 @@ public sealed class PacketRegistryFactory
         {
             return [];
         }
+    }
+
+    /// <summary>
+    /// Resolves and loads an assembly from a file path while reusing an already loaded
+    /// assembly with the same simple name when available.
+    /// </summary>
+    private static Assembly LOAD_ASSEMBLY_FROM_PATH(string assemblyPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
+
+        string fullPath = Path.GetFullPath(assemblyPath);
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException("The packet assembly file could not be found.", fullPath);
+        }
+
+        AssemblyName expected = AssemblyName.GetAssemblyName(fullPath);
+        string? expectedName = expected.Name;
+        if (!string.IsNullOrWhiteSpace(expectedName))
+        {
+            Assembly? alreadyLoaded = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(asm => string.Equals(asm.GetName().Name, expectedName, StringComparison.OrdinalIgnoreCase));
+
+            if (alreadyLoaded is not null)
+            {
+                return alreadyLoaded;
+            }
+        }
+
+        return Assembly.LoadFrom(fullPath);
     }
 
     /// <summary>

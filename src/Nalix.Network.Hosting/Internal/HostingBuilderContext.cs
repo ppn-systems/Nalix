@@ -35,6 +35,16 @@ internal sealed class HostingBuilderContext
     public List<PacketAssemblyDescriptor> PacketAssemblies { get; } = [];
 
     /// <summary>
+    /// Gets the packet assembly paths used for packet discovery.
+    /// </summary>
+    public List<PacketAssemblyPathDescriptor> PacketAssemblyPaths { get; } = [];
+
+    /// <summary>
+    /// Gets the namespace filters used for packet discovery.
+    /// </summary>
+    public List<PacketNamespaceDescriptor> PacketNamespaces { get; } = [];
+
+    /// <summary>
     /// Gets the assemblies scanned for packet handlers.
     /// </summary>
     public HashSet<Assembly> HandlerAssemblies { get; } = [];
@@ -82,6 +92,12 @@ internal sealed class HostingBuilderContext
     /// Gets or sets the optional path to the server identity certificate.
     /// </summary>
     public string? IdentityCertificatePath { get; set; }
+
+    /// <summary>
+    /// Gets or sets a pre-built packet registry. When provided, hosting skips
+    /// automatic packet discovery and registration.
+    /// </summary>
+    public IPacketRegistry? PacketRegistryOverride { get; set; }
 }
 
 /// <summary>
@@ -108,6 +124,35 @@ internal sealed record OptionsConfiguration(Type OptionsType, Action<object> App
 internal sealed record PacketAssemblyDescriptor(
     Assembly Assembly,
     bool RequirePacketAttribute);
+
+/// <summary>
+/// Describes an assembly path used for packet type discovery.
+/// </summary>
+/// <param name="AssemblyPath">
+/// The path to an assembly containing packet definitions.
+/// </param>
+/// <param name="RequirePacketAttribute">
+/// Indicates whether discovered types must be annotated with a packet attribute
+/// to be considered valid packets.
+/// </param>
+internal sealed record PacketAssemblyPathDescriptor(
+    string AssemblyPath,
+    bool RequirePacketAttribute);
+
+/// <summary>
+/// Describes a packet namespace filter used during packet discovery.
+/// </summary>
+/// <param name="PacketNamespace">The namespace to match.</param>
+/// <param name="Recursive">
+/// Indicates whether sub-namespaces should be included.
+/// </param>
+/// <param name="AssemblyPath">
+/// Optional assembly path scope. When null, currently loaded assemblies are used.
+/// </param>
+internal sealed record PacketNamespaceDescriptor(
+    string PacketNamespace,
+    bool Recursive,
+    string? AssemblyPath = null);
 
 /// <summary>
 /// Describes a packet handler and its creation strategy.
@@ -165,4 +210,3 @@ internal sealed record UdpProtocolBinding(
     Func<IPacketDispatch, IProtocol> Factory,
     ushort? Port = null,
     Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? Authentication = null);
-

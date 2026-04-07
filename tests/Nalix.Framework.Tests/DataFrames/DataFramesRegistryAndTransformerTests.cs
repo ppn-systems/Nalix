@@ -1,6 +1,7 @@
 
 using System;
 using System.Linq;
+using System.Reflection;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -70,7 +71,7 @@ public sealed partial class DataFramesPublicApiTests
     public void CreateCatalogWhenIncludeMethodsAreUsedReturnsRegistryWithBuiltIns(bool recursive)
     {
         PacketRegistryFactory factory = new();
-        PacketRegistryFactory sameFactory = factory.IncludeAssembly(null);
+        PacketRegistryFactory sameFactory = factory.IncludeAssembly((Assembly)null!);
         _ = factory.IncludeCurrentDomain();
 
         _ = recursive
