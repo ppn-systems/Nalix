@@ -225,6 +225,8 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
     #endregion Constructors
 
+    #region Public API
+
     /// <summary>
     /// Assigns a logger instance used by the manager for diagnostic output.
     /// </summary>
@@ -236,8 +238,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         return this;
     }
-
-    #region Public API
 
     /// <summary>
     /// Registers an instance of the specified type in the instance cache.
