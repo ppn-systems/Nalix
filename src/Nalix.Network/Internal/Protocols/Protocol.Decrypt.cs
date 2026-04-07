@@ -10,7 +10,6 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Network.Protocols;
 using Nalix.Network.Connections;
 
 
@@ -25,38 +24,36 @@ namespace Nalix.Network.Internal.Protocols;
 /// Decrypts inbound frames when <see cref="PacketFlags.ENCRYPTED"/> is set.
 /// </summary>
 [DebuggerDisplay("Accepting={IsAccepting}, KeepConnectionOpen={KeepConnectionOpen}")]
-internal sealed class ProtocolDecrypt : Protocol
+internal sealed class ProtocolDecrypt : IProtocolStage
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ProtocolDecrypt"/> class.
     /// </summary>
     public ProtocolDecrypt()
     {
-        this.IsAccepting = true;
-        this.KeepConnectionOpen = true;
     }
 
     /// <inheritdoc />
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public void ProcessMessage(object? sender, IConnectEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
+        IBufferLease? lease = args.Lease;
         // Must be able to replace lease.
         if (args is not ConnectionEventArgs replaceable)
         {
-            return;
+            throw new InvalidCastException("IConnectEventArgs must be ConnectionEventArgs.");
         }
 
-        IBufferLease? lease = args.Lease;
         if (lease is null)
         {
-            return;
+            throw new InvalidOperationException("Event args must have Lease.");
         }
 
         if ((uint)lease.Length <= (int)PacketHeaderOffset.Flags)
         {
-            return;
+            throw new InvalidOperationException("Buffer length is invalid for decryption.");
         }
 
         PacketFlags flags = lease.Span.ReadFlagsLE();
@@ -81,7 +78,7 @@ internal sealed class ProtocolDecrypt : Protocol
             // Encrypted flag but no secret => reject/bypass (your middleware returned null).
             // Here we choose to disconnect as it is a protocol violation.
             args.Connection.Disconnect("Encrypted frame received before session key establishment.");
-            return;
+            throw new InvalidOperationException("Encrypted frame received before session key establishment.");
         }
 
         BufferLease dest;

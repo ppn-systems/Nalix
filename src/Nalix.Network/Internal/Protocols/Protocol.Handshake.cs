@@ -12,7 +12,6 @@ using Nalix.Framework.Identifiers;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Primitives;
-using Nalix.Network.Protocols;
 
 namespace Nalix.Network.Internal.Protocols;
 
@@ -24,7 +23,7 @@ namespace Nalix.Network.Internal.Protocols;
 /// It does not own event subscription or disposal of event args.
 /// </remarks>
 [DebuggerDisplay("Accepting={IsAccepting}, KeepConnectionOpen={KeepConnectionOpen}")]
-internal sealed class ProtocolX25519 : Protocol
+internal sealed class ProtocolX25519 : IProtocolStage
 {
     internal const string StateAttributeKey = "nalix.handshake.state";
     internal const string EstablishedAttributeKey = "nalix.handshake.established";
@@ -34,34 +33,21 @@ internal sealed class ProtocolX25519 : Protocol
     /// </summary>
     public ProtocolX25519()
     {
-        this.IsAccepting = true;
-        this.KeepConnectionOpen = true;
     }
 
     /// <inheritdoc />
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public void ProcessMessage(object? sender, IConnectEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        // If already established, do not process handshake frames anymore.
-        if (IsEstablished(args.Connection))
-        {
-            return;
-        }
-
         if (args.Lease is null)
         {
-            // No payload => nothing to handshake.
-            return;
+            throw new InvalidOperationException("Event args must have Lease for handshake.");
         }
 
-        try
-        {
-            Handshake handshake = Handshake.Deserialize(args.Lease.Span);
-            this.HandleHandshake(args.Connection, handshake);
-        }
-        catch { }
+        Handshake handshake = Handshake.Deserialize(args.Lease.Span);
+        this.HandleHandshake(args.Connection, handshake);
     }
 
     /// <inheritdoc />

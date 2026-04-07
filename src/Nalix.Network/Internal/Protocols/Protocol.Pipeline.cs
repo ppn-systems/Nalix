@@ -4,7 +4,9 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 
@@ -48,9 +50,9 @@ internal sealed class ProtocolPipeline : IPoolable
 {
     #region Static
 
-    private static readonly ProtocolX25519 s_handshake = InstanceManager.Instance.GetOrCreateInstance<ProtocolX25519>();
-    private static readonly ProtocolDecrypt s_decrypt = InstanceManager.Instance.GetOrCreateInstance<ProtocolDecrypt>();
-    private static readonly ProtocolDecompress s_decompress = InstanceManager.Instance.GetOrCreateInstance<ProtocolDecompress>();
+    private static readonly IProtocolStage s_decrypt = InstanceManager.Instance.GetOrCreateInstance<ProtocolDecrypt>();
+    private static readonly IProtocolStage s_handshake = InstanceManager.Instance.GetOrCreateInstance<ProtocolX25519>();
+    private static readonly IProtocolStage s_decompress = InstanceManager.Instance.GetOrCreateInstance<ProtocolDecompress>();
 
     #endregion Static
 
@@ -204,6 +206,31 @@ internal sealed class ProtocolPipeline : IPoolable
 
             // Stage 4: Application stage.
             application.ProcessMessage(sender, args);
+        }
+        catch (CipherException ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(ProtocolPipeline)}:{nameof(ProcessMessage)}] {ex.Message}");
+        }
+        catch (InvalidCastException ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(ProtocolPipeline)}:{nameof(ProcessMessage)}] {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(ProtocolPipeline)}:{nameof(ProcessMessage)}] {ex.Message}");
+        }
+        catch (SerializationFailureException ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Trace($"[{nameof(ProtocolPipeline)}:{nameof(ProcessMessage)}] {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Error(ex, $"[{nameof(ProtocolPipeline)}:{nameof(ProcessMessage)}] Unhandled exception during message processing.");
         }
         finally
         {

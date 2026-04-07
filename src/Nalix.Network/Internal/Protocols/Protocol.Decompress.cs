@@ -10,7 +10,6 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Network.Protocols;
 using Nalix.Network.Connections;
 
 
@@ -25,37 +24,36 @@ namespace Nalix.Network.Internal.Protocols;
 /// Decompresses inbound frames when <see cref="PacketFlags.COMPRESSED"/> is set.
 /// </summary>
 [DebuggerDisplay("Accepting={IsAccepting}, KeepConnectionOpen={KeepConnectionOpen}")]
-internal sealed class ProtocolDecompress : Protocol
+internal sealed class ProtocolDecompress : IProtocolStage
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ProtocolDecompress"/> class.
     /// </summary>
     public ProtocolDecompress()
     {
-        this.IsAccepting = true;
-        this.KeepConnectionOpen = true;
     }
 
     /// <inheritdoc />
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public void ProcessMessage(object? sender, IConnectEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
+        IBufferLease? lease = args.Lease;
+
         if (args is not ConnectionEventArgs replaceable)
         {
-            return;
+            throw new InvalidCastException("IConnectEventArgs must be ConnectionEventArgs.");
         }
 
-        IBufferLease? lease = args.Lease;
         if (lease is null)
         {
-            return;
+            throw new InvalidOperationException("Event args must have Lease.");
         }
 
         if ((uint)lease.Length <= (int)PacketHeaderOffset.Flags)
         {
-            return;
+            throw new InvalidOperationException("Buffer length is invalid for decompression.");
         }
 
         PacketFlags flags = lease.Span.ReadFlagsLE();
