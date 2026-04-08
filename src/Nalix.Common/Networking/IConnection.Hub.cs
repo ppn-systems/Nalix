@@ -14,6 +14,16 @@ namespace Nalix.Common.Networking;
 public interface IConnectionHub
 {
     /// <summary>
+    /// Gets the current number of active connections.
+    /// </summary>
+    int Count { get; }
+
+    /// <summary>
+    /// Raised after a connection is successfully unregistered.
+    /// </summary>
+    event Action<IConnection>? ConnectionUnregistered;
+
+    /// <summary>
     /// Retrieves a client connection by its unique identifier.
     /// </summary>
     /// <param name="id">The unique identifier of the connection to retrieve.</param>

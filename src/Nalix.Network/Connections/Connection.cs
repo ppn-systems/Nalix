@@ -48,6 +48,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     #region Constructor
 
+    static Connection() => InstanceManager.Instance.Register<ConnectionHub>(new ConnectionHub(), registerInterfaces: true);
+
     /// <summary>Initializes a new instance of the <see cref="Connection"/> class.</summary>
     /// <param name="socket">The connected socket used for the connection.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="socket"/> is null.</exception>
