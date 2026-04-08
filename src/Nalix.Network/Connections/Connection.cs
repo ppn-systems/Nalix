@@ -30,7 +30,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 {
     #region Fields
 
-    private static readonly ILogger s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>()!;
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private readonly Lock _lock;
     private readonly ConnectionEventArgs _args;
@@ -47,8 +47,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     #endregion Fields
 
     #region Constructor
-
-    static Connection() => InstanceManager.Instance.Register<ConnectionHub>(new ConnectionHub(), registerInterfaces: true);
 
     /// <summary>Initializes a new instance of the <see cref="Connection"/> class.</summary>
     /// <param name="socket">The connected socket used for the connection.</param>
@@ -73,7 +71,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.TCP = new SocketTcpTransport(this);
         this.Attributes = ObjectMap<string, object>.Rent();
 
-        s_logger.Debug($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
+        s_logger?.Debug($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
     }
 
     #endregion Constructor
@@ -193,7 +191,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
 #if DEBUG
-        s_logger.Debug($"[NW.{nameof(Connection)}:{this.Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
+        s_logger?.Debug($"[NW.{nameof(Connection)}:{this.Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
 #endif
     }
 
@@ -253,7 +251,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         }
         catch (Exception ex)
         {
-            s_logger.Error($"[NW.{nameof(Connection)}:{this.Dispose}] dispose-error msg={ex.Message}");
+            s_logger?.Error($"[NW.{nameof(Connection)}:{this.Dispose}] dispose-error msg={ex.Message}");
         }
 
         GC.SuppressFinalize(this);

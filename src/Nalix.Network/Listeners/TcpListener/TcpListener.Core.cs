@@ -49,6 +49,7 @@ public abstract partial class TcpListenerBase : IListener
 
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly TimingWheel s_timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
+    private static readonly IConnectionHub s_hub = InstanceManager.Instance.GetOrCreateInstance<IConnectionHub>();
     private static readonly NetworkSocketOptions s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
@@ -87,7 +88,6 @@ public abstract partial class TcpListenerBase : IListener
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     [DebuggerStepThrough]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "<Pending>")]
     protected TcpListenerBase(ushort port, IProtocol protocol)
     {
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));

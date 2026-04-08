@@ -42,6 +42,7 @@ public abstract partial class UdpListenerBase
 
     private static readonly NetworkSocketOptions s_config;
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static readonly IConnectionHub s_hub = InstanceManager.Instance.GetOrCreateInstance<IConnectionHub>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly ushort _port;
