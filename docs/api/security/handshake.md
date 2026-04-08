@@ -15,22 +15,28 @@ The handshake process is anonymous and provides mutual authentication of the der
 
 Once the handshake is complete, both sides enable symmetric encryption (typically ChaCha20Poly1305) using the derived session key.
 
-## Server-side Protocol: ProtocolX25519
+## Server-side Protocol: HandshakeStage
 
-The `ProtocolX25519` class implements the server-side logic. It is a sealed class inheriting from `Protocol`.
+The `HandshakeStage` class implements the server-side logic within the `ProtocolPipeline`. It is an internal sealed class that manages the state machine for client hello, server hello, and final verification.
 
 ### Source Mapping
 
-- `src/Nalix.Network/Protocols/Protocol.Handshake.cs`
+- `src/Nalix.Network/Internal/Pipeline/Stages/HandshakeStage.cs`
+- `src/Nalix.Network/Internal/Pipeline/Protocol.Pipeline.cs`
 
 ### Usage
 
+In the modern hosting architecture, `HandshakeStage` is automatically included as the first gate in the `ProtocolPipeline`.
+
 ```csharp
-var protocol = new ProtocolX25519();
-protocol.Bind(connection);
+// Part of the internal pipeline flow
+if (!HandshakeStage.IsEstablished(connection))
+{
+    s_handshake.ProcessMessage(sender, args);
+}
 ```
 
-When a connection is accepted, `ProtocolX25519` handles the incoming `Handshake` packets. Upon successful completion, it automatically unbinds itself and enables encryption on the connection.
+When a connection is accepted, `HandshakeStage` handles the incoming `Handshake` packets. Upon successful completion (SERVER_FINISH), it sets the derived `Secret` and `Algorithm` (ChaCha20Poly1305) on the connection and marks it as established.
 
 ## Client-side Extension: HandshakeAsync
 
@@ -46,7 +52,7 @@ The SDK provides an extension method on `TransportSession` to perform the handsh
 await session.ConnectAsync("localhost", 1234, ct);
 await session.HandshakeAsync(ct);
 
-// Session is now encrypted
+// Session is now encrypted and has a Snowflake SessionToken
 await session.SendAsync(new MyPacket());
 ```
 
@@ -66,5 +72,5 @@ The core cryptographic operations are provided by the `X25519` static class.
 ## Related Topics
 
 - [Cryptography](./cryptography.md)
-- [Protocol](../network/runtime/protocol.md)
+- [Protocol](../network/protocol.md)
 - [TCP Session](../sdk/tcp-session.md)

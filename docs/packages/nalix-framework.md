@@ -84,7 +84,7 @@ Use:
 - `TimingScope` when you need cheap elapsed-time measurement
 - `Snowflake` when you need compact sortable IDs
 
-`TimeSynchronizer` is part of `Nalix.Network`, not `Nalix.Framework`.
+`TimeSynchronizer` is part of `Nalix.Network.Pipeline`, not `Nalix.Framework`.
 
 ## When to add this package
 
@@ -118,7 +118,7 @@ flowchart LR
 - `PacketRegistryFactory` — scans packet types and binds deserialize function pointers.
 - `PacketRegistry` — frozen catalog of deserializers/transformers.
 - `Handshake` — default handshake frame used to exchange ephemeral keys, nonces, proofs, and transcript hash.
-- `Control` / `Directive` / `Text256/512/1024` — built-in frame types.
+- `Control` — built-in frame type.
 - `PacketPool<TPacket>` / `PacketLease<TPacket>` — packet pooling helpers for reusable packet instances.
 - `FragmentHeader` / `FragmentAssembler` / `FragmentOptions` — chunk large payloads and reassemble them safely.
 - `LZ4Codec` — pooled block compression and decompression.

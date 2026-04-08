@@ -8,8 +8,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Nalix.Logging" Version="12.0.3" />
-		<PackageReference Include="Nalix.Network.Hosting" Version="12.0.3" />
+		<PackageReference Include="Nalix.Logging" Version="12.0.4" />
+		<PackageReference Include="Nalix.Network.Hosting" Version="12.0.4" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
 	</ItemGroup>
 

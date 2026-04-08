@@ -49,7 +49,7 @@ client.Dispose();
 - `OnConnected` is raised after a successful socket connect.
 - `OnDisconnected` is raised when the session tears down or encounters a transport error.
 - `OnMessageReceived` receives a leased buffer for each complete frame.
-- `OnMessageAsync` lets you process- connection state through `IsConnected`
+- `OnMessageAsync` allows for asynchronous processing of received raw binary frames.
 - `OnError` reports connection or transport faults.
 
 ## Notes

@@ -58,5 +58,5 @@ var options = new NetworkSocketOptions
 
 ## Related APIs
 
-- [Tcp Listener](../runtime/tcp-listener.md)
-- [Udp Listener](../runtime/udp-listener.md)
+- [Tcp Listener](../tcp-listener.md)
+- [Udp Listener](../udp-listener.md)

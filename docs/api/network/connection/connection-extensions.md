@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Connections/Connection.Extensions.cs`
+- `src/Nalix.Runtime/Extensions/ConnectionExtensions.cs`
 
 ## What it does
 
@@ -36,4 +36,4 @@ Use this helper when the server wants to:
 ## Related APIs
 
 - [Connection](./connection.md)
-- [Protocol](../runtime/protocol.md)
+- [Protocol](../protocol.md)

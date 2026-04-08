@@ -135,6 +135,6 @@ If you know which phase your problem belongs to, you usually know which Nalix co
 
 - [Architecture](./architecture.md)
 - [Middleware](./middleware.md)
-- [Packet Dispatch](../api/routing/packet-dispatch.md)
-- [Packet Metadata](../api/routing/packet-metadata.md)
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
+- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
 - [TCP Request/Response](../guides/tcp-request-response.md)
