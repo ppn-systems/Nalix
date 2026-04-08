@@ -157,14 +157,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     }
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryRegisterConnection(IConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-        return this.TryRegisterCore(connection) == RegisterResult.Success;
-    }
-
-    /// <inheritdoc />
     /// <summary>
     /// Unregisters a connection from the hub.
     /// </summary>
@@ -174,14 +166,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     {
         ArgumentNullException.ThrowIfNull(connection);
         _ = this.TryUnregisterCore(connection);
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryUnregisterConnection(IConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-        return this.TryUnregisterCore(connection);
     }
 
     /// <inheritdoc />

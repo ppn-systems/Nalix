@@ -14,8 +14,8 @@ using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal.Pipeline;
 using Nalix.Network.Internal.Pooling;
-using Nalix.Network.Internal.Protocols;
 using Nalix.Network.Internal.Time;
 
 namespace Nalix.Network.Listeners.Tcp;

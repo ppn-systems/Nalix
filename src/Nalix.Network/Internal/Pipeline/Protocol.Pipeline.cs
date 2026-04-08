@@ -8,9 +8,13 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Pipeline.Stages;
+using Nalix.Network.Options;
 
-namespace Nalix.Network.Internal.Protocols;
+namespace Nalix.Network.Internal.Pipeline;
 
 /// <summary>
 /// Routes inbound connection frames through a fixed sequence of protocol stages:
@@ -41,18 +45,21 @@ namespace Nalix.Network.Internal.Protocols;
 /// Individual protocol stages must not dispose these objects.
 /// </para>
 /// <para>
-/// Stage instances (<see cref="ProtocolX25519"/>, <see cref="ProtocolDecrypt"/>, <see cref="ProtocolDecompress"/>)
+/// Stage instances (<see cref="HandshakeStage"/>, <see cref="DecryptStage"/>, <see cref="DecompressStage"/>)
 /// are resolved as shared singletons and must therefore remain stateless and thread-safe.
 /// </para>
 /// </remarks>
 [DebuggerDisplay("Bound={_bound != 0}")]
-internal sealed class ProtocolPipeline : IPoolable
+internal sealed class ProtocolPipeline : IPoolable, IDisposable
 {
     #region Static
 
-    private static readonly IProtocolStage s_decrypt = InstanceManager.Instance.GetOrCreateInstance<ProtocolDecrypt>();
-    private static readonly IProtocolStage s_handshake = InstanceManager.Instance.GetOrCreateInstance<ProtocolX25519>();
-    private static readonly IProtocolStage s_decompress = InstanceManager.Instance.GetOrCreateInstance<ProtocolDecompress>();
+    private static readonly ConnectionHubOptions s_config = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
+    private static readonly IProtocolStage s_decrypt = InstanceManager.Instance.GetOrCreateInstance<DecryptStage>();
+    private static readonly IProtocolStage s_handshake = InstanceManager.Instance.GetOrCreateInstance<HandshakeStage>();
+    private static readonly IProtocolStage s_decompress = InstanceManager.Instance.GetOrCreateInstance<DecompressStage>();
 
     #endregion Static
 
@@ -64,6 +71,20 @@ internal sealed class ProtocolPipeline : IPoolable
     private int _bound;
 
     #endregion Fields
+
+    #region Constructors
+
+    static ProtocolPipeline()
+    {
+        if (s_config.MaxConnections != -1)
+        {
+            _ = s_pool.SetMaxCapacity<ProtocolPipeline>(s_config.MaxConnections);
+        }
+
+        _ = s_pool.Prealloc<ProtocolPipeline>(64);
+    }
+
+    #endregion Constructors
 
     #region APIs
 
@@ -197,7 +218,7 @@ internal sealed class ProtocolPipeline : IPoolable
         try
         {
             // Stage 1: Handshake gate. Only handshake frames are processed until established.
-            if (!ProtocolX25519.IsEstablished(args.Connection))
+            if (!HandshakeStage.IsEstablished(args.Connection))
             {
                 s_handshake.ProcessMessage(sender, args);
                 return;
@@ -211,6 +232,7 @@ internal sealed class ProtocolPipeline : IPoolable
 
             // Stage 4: Application stage.
             application.ProcessMessage(sender, args);
+            args.Lease?.Retain();
         }
         catch (CipherException ex)
         {
@@ -269,6 +291,8 @@ internal sealed class ProtocolPipeline : IPoolable
         // Reset flags so the pooled instance can be re-used.
         _ = Interlocked.Exchange(ref _bound, 0);
     }
+
+    public void Dispose() => s_pool.Return<ProtocolPipeline>(this);
 
     #endregion APIs
 }

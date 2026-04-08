@@ -12,24 +12,23 @@ using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 
-
 #if DEBUG
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Injection;
 #endif
 
-namespace Nalix.Network.Internal.Protocols;
+namespace Nalix.Network.Internal.Pipeline.Stages;
 
 /// <summary>
 /// Decompresses inbound frames when <see cref="PacketFlags.COMPRESSED"/> is set.
 /// </summary>
 [DebuggerDisplay("Accepting={IsAccepting}, KeepConnectionOpen={KeepConnectionOpen}")]
-internal sealed class ProtocolDecompress : IProtocolStage
+internal sealed class DecompressStage : IProtocolStage
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ProtocolDecompress"/> class.
+    /// Initializes a new instance of the <see cref="DecompressStage"/> class.
     /// </summary>
-    public ProtocolDecompress()
+    public DecompressStage()
     {
     }
 

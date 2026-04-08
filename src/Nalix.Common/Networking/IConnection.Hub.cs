@@ -44,24 +44,10 @@ public interface IConnectionHub
     void RegisterConnection(IConnection connection);
 
     /// <summary>
-    /// Attempts to register a connection without throwing on expected contention paths.
-    /// </summary>
-    /// <param name="connection">The client connection to register.</param>
-    /// <returns><c>true</c> when the connection was registered; otherwise <c>false</c>.</returns>
-    bool TryRegisterConnection(IConnection connection);
-
-    /// <summary>
     /// Unregisters a client connection from the session manager using its unique identifier.
     /// </summary>
     /// <param name="connection">The connection to unregister.</param>
     void UnregisterConnection(IConnection connection);
-
-    /// <summary>
-    /// Attempts to unregister a connection without throwing when it is already absent.
-    /// </summary>
-    /// <param name="connection">The connection to unregister.</param>
-    /// <returns><c>true</c> when the connection was removed; otherwise <c>false</c>.</returns>
-    bool TryUnregisterConnection(IConnection connection);
 
     /// <summary>
     /// Closes all active client connections with an optional reason.

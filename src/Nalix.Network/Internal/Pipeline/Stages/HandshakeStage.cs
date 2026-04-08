@@ -13,7 +13,7 @@ using Nalix.Framework.Random;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Primitives;
 
-namespace Nalix.Network.Internal.Protocols;
+namespace Nalix.Network.Internal.Pipeline.Stages;
 
 /// <summary>
 /// Implements the default server-side X25519 handshake protocol for Nalix.
@@ -23,15 +23,15 @@ namespace Nalix.Network.Internal.Protocols;
 /// It does not own event subscription or disposal of event args.
 /// </remarks>
 [DebuggerDisplay("Accepting={IsAccepting}, KeepConnectionOpen={KeepConnectionOpen}")]
-internal sealed class ProtocolX25519 : IProtocolStage
+internal sealed class HandshakeStage : IProtocolStage
 {
     internal const string StateAttributeKey = "nalix.handshake.state";
     internal const string EstablishedAttributeKey = "nalix.handshake.established";
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ProtocolX25519"/> class.
+    /// Initializes a new instance of the <see cref="HandshakeStage"/> class.
     /// </summary>
-    public ProtocolX25519()
+    public HandshakeStage()
     {
     }
 
@@ -66,21 +66,21 @@ internal sealed class ProtocolX25519 : IProtocolStage
     {
         switch (handshake.Stage)
         {
-            case HandshakeStage.CLIENT_HELLO:
+            case Framework.DataFrames.SignalFrames.HandshakeStage.CLIENT_HELLO:
                 this.HandleClientHello(connection, handshake);
                 return;
 
-            case HandshakeStage.CLIENT_FINISH:
+            case Framework.DataFrames.SignalFrames.HandshakeStage.CLIENT_FINISH:
                 this.HandleClientFinish(connection, handshake);
                 return;
 
-            case HandshakeStage.NONE:
-            case HandshakeStage.SERVER_HELLO:
-            case HandshakeStage.SERVER_FINISH:
+            case Framework.DataFrames.SignalFrames.HandshakeStage.NONE:
+            case Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_HELLO:
+            case Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_FINISH:
                 this.Reject(connection, ProtocolReason.UNEXPECTED_MESSAGE);
                 return;
 
-            case HandshakeStage.ERROR:
+            case Framework.DataFrames.SignalFrames.HandshakeStage.ERROR:
                 connection.Disconnect("Handshake error received from peer.");
                 return;
 
@@ -131,7 +131,7 @@ internal sealed class ProtocolX25519 : IProtocolStage
 
         Handshake reply = new(
             packet.OpCode,
-            HandshakeStage.SERVER_HELLO,
+            Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_HELLO,
             serverKey.PublicKey,
             serverNonce,
             HandshakeCrypto.ComputeServerProof(sharedSecret, transcriptHash),
@@ -179,7 +179,7 @@ internal sealed class ProtocolX25519 : IProtocolStage
 
         Handshake reply = new(
             packet.OpCode,
-            HandshakeStage.SERVER_FINISH,
+            Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_FINISH,
             [],
             [],
             HandshakeCrypto.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash),

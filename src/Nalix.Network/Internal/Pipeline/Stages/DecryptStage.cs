@@ -12,24 +12,23 @@ using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 
-
 #if DEBUG
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Injection;
 #endif
 
-namespace Nalix.Network.Internal.Protocols;
+namespace Nalix.Network.Internal.Pipeline.Stages;
 
 /// <summary>
 /// Decrypts inbound frames when <see cref="PacketFlags.ENCRYPTED"/> is set.
 /// </summary>
 [DebuggerDisplay("Accepting={IsAccepting}, KeepConnectionOpen={KeepConnectionOpen}")]
-internal sealed class ProtocolDecrypt : IProtocolStage
+internal sealed class DecryptStage : IProtocolStage
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ProtocolDecrypt"/> class.
+    /// Initializes a new instance of the <see cref="DecryptStage"/> class.
     /// </summary>
-    public ProtocolDecrypt()
+    public DecryptStage()
     {
     }
 
