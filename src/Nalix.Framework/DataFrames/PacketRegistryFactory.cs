@@ -39,7 +39,6 @@ namespace Nalix.Framework.DataFrames;
 /// </list>
 /// </para>
 /// </remarks>
-[SuppressMessage("Style", "IDE0028:Simplify collection initialization", Justification = "<Pending>")]
 public sealed class PacketRegistryFactory
 {
     #region Static: Defaults & Utilities
@@ -58,8 +57,8 @@ public sealed class PacketRegistryFactory
 
     #region Fields
 
-    private readonly HashSet<Type> _explicitPacketTypes = [];
     private readonly HashSet<Assembly> _assemblies = [];
+    private readonly HashSet<Type> _explicitPacketTypes = [];
     private readonly HashSet<string> _exactNamespaces = new(StringComparer.Ordinal);
     private readonly HashSet<string> _recursiveNamespaces = new(StringComparer.Ordinal);
 

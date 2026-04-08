@@ -57,6 +57,12 @@ public sealed class AsyncCallbackDispatchTests
 
         await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
+        // Wait for the dispatcher's finally block to release the pending packet slot.
+        for (int i = 0; i < 100 && connection.Socket.PendingPackets > 0; i++)
+        {
+            await Task.Delay(1);
+        }
+
         (int pendingNormal, long dropped, long total) = TransportAsyncCallback.GetStatistics();
         _ = pendingNormal.Should().Be(0);
         _ = dropped.Should().Be(0);
@@ -95,6 +101,12 @@ public sealed class AsyncCallbackDispatchTests
         _ = bytesRead.Should().BeGreaterThan(0);
 
         await postObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Wait for the dispatcher's finally block to release the pending packet slot.
+        for (int i = 0; i < 100 && connection.Socket.PendingPackets > 0; i++)
+        {
+            await Task.Delay(1);
+        }
 
         (int pendingNormal, long dropped, long total) = TransportAsyncCallback.GetStatistics();
         _ = pendingNormal.Should().Be(0);

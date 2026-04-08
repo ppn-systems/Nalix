@@ -52,7 +52,7 @@ public enum HandshakeStage : byte
 /// Represents the default protocol handshake packet for key exchange and transcript verification.
 /// </summary>
 [ExcludeFromCodeCoverage]
-[SerializePackable(SerializeLayout.Explicit)]
+[SerializePackable(SerializeLayout.Sequential)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
 {
@@ -109,10 +109,6 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     [SerializeDynamicSize(DynamicSize)]
     public byte[] TranscriptHash { get; set; } = [];
 
-    /// <summary>
-    /// Gets or sets the session token assigned by the server.
-    /// Used primarily for UDP connection mapping.
-    /// </summary>
     /// <summary>
     /// Gets or sets the session token assigned by the server.
     /// Used primarily for UDP connection mapping.
