@@ -129,8 +129,10 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         foreach (PropertyMetadata meta in s_metadata.Value)
         {
             object? value = meta.GetValue(this);
+
             if (value is null)
             {
+                size += 1;
                 continue;
             }
 
@@ -163,10 +165,10 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// <summary>
     /// Tính wire-size của một giá trị động, đồng bộ với format của <see cref="LiteSerializer"/>:
     /// <list type="bullet">
-    ///   <item><see cref="string"/>  — 2-byte prefix + UTF-8 bytes (xác nhận từ <c>GetExactLengthOrThrow</c>)</item>
-    ///   <item><see cref="byte"/>[]  — 4-byte int prefix + raw bytes (xác nhận từ <c>UnmanagedSZArray</c> path)</item>
+    ///   <item><see cref="string"/>  — 2-byte prefix + UTF-8 bytes</item>
+    ///   <item><see cref="byte"/>[]  — 4-byte int prefix + raw bytes</item>
     ///   <item><see cref="IPacket"/> — delegate sang <c>p.Length</c>, có guard tự-tham chiếu</item>
-    ///   <item>Unmanaged array       — 4-byte int prefix + elements (cùng path với byte[])</item>
+    ///   <item>Unmanaged array       — 4-byte int prefix + elements</item>
     /// </list>
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -228,15 +230,14 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
         return Type.GetTypeCode(type) switch
         {
-            TypeCode.Byte or TypeCode.SByte or TypeCode.Boolean => 1,
-            TypeCode.Char or TypeCode.Int16 or TypeCode.UInt16 => 2,
-            TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Single => 4,
-            TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Double or TypeCode.DateTime => 8,
             TypeCode.Decimal => 16,
-            TypeCode.Empty => GetUnsafeSizeOf(type),
             TypeCode.Object => GetUnsafeSizeOf(type),
             TypeCode.DBNull => GetUnsafeSizeOf(type),
             TypeCode.String => GetUnsafeSizeOf(type),
+            TypeCode.Char or TypeCode.Int16 or TypeCode.UInt16 => 2,
+            TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Single => 4,
+            TypeCode.Byte or TypeCode.SByte or TypeCode.Boolean or TypeCode.Empty => 1,
+            TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Double or TypeCode.DateTime => 8,
             _ => 0
         };
     }
