@@ -19,6 +19,7 @@ Nalix.Network.Hosting provides Microsoft-style host and builder APIs for Nalix.N
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Network\Nalix.Network.csproj" />
+		<ProjectReference Include="..\Nalix.Runtime\Nalix.Runtime.csproj" />
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
 
