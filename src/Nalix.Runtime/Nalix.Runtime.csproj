@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -10,18 +10,18 @@
 		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
 
 		<Description><![CDATA[
-Nalix.Network.Pipeline provides reusable middleware, throttling, and timekeeping components for the Nalix networking stack. It includes inbound packet middleware for permissions, rate limiting, concurrency control, and timeout handling, along with supporting primitives for traffic shaping and clock coordination.
+Nalix.Runtime provides the core packet processing and middleware infrastructure for the Nalix ecosystem. It includes the middleware pipeline orchestration, packet dispatching channels, and execution management needed to handle message-oriented traffic with high efficiency and low latency.
 
-This package is intended for applications and infrastructure that want finer control over request processing pipelines without taking a dependency on the full networking runtime surface.
+It serves as the foundation for building complex message-processing workflows, offering a modular and extensible architecture that decouples transport logic from application-level packet handling.
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Added inbound middleware for permission checks, rate limiting, concurrency gates, and timeout enforcement.
-- Introduced reusable throttling primitives including TokenBucketLimiter, PolicyRateLimiter, and ConcurrencyGate.
-- Added configurable token-bucket options to simplify traffic-shaping setup.
-- Included TimeSynchronizer for clock coordination in distributed networking scenarios.
-- Improved modularity so pipeline and throttling features can be consumed independently from the broader transport runtime.
-- General cleanup, packaging polish, and documentation improvements.
+- Initial release of the Nalix core runtime infrastructure.
+- Implemented high-performance MiddlewarePipeline for asynchronous packet processing and orchestration.
+- Introduced PacketDispatchChannel for reliable, observable packet routing and execution management.
+- Optimized PacketContext for low-allocation metadata and state propagation through pipelines.
+- Added support for NetworkBufferMiddlewarePipeline to streamline low-level buffer manipulations.
+- Refined PacketDispatchOptions with granular concurrency and synchronization controls.
 		]]></PackageReleaseNotes>
 
 	</PropertyGroup>
@@ -40,4 +40,3 @@ This package is intended for applications and infrastructure that want finer con
 		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
 	</ItemGroup>
 </Project>
-
