@@ -508,7 +508,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     Type packetType = parms[0].ParameterType;
                     Type connType = parms[1].ParameterType;
 
-                    Expression pktArg = System.Linq.Expressions.Expression.Convert(packetExpr, packetType);
+                    Expression pktArg = Expression.Convert(packetExpr, packetType);
 
                     Expression connArg = connType == typeof(IConnection)
                         ? connectionExpr
@@ -523,7 +523,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     Type packetType = parms[0].ParameterType;
                     Type connType = parms[1].ParameterType;
 
-                    Expression pktArg = System.Linq.Expressions.Expression.Convert(packetExpr, packetType);
+                    Expression pktArg = Expression.Convert(packetExpr, packetType);
 
                     Expression connArg = connType == typeof(IConnection)
                         ? connectionExpr
