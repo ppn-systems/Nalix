@@ -26,7 +26,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
 {
     private static string DebuggerDisplay => "StringFormatter<SYSTEM.String[]>";
 
-    private static readonly IFormatter<ushort> s_uInt16Formatter = FormatterProvider.Get<ushort>();
+    private static readonly IFormatter<int> s_uInt16Formatter = FormatterProvider.Get<int>();
     private static readonly IFormatter<string> s_stringFormatterInstance = FormatterProvider.Get<string>();
 
     /// <summary>
@@ -59,12 +59,12 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         }
 
         // Reserve the sentinel value for null, so valid arrays must stay below it.
-        if (value.Length > ushort.MaxValue - 1)
+        if (value.Length > SerializerBounds.MaxString)
         {
             throw new SerializationFailureException("The string array exceeds the maximum encodable length.");
         }
 
-        s_uInt16Formatter.Serialize(ref writer, (ushort)value.Length);
+        s_uInt16Formatter.Serialize(ref writer, value.Length);
 
         for (int i = 0; i < value.Length; i++)
         {
@@ -88,7 +88,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public string[] Deserialize(ref DataReader reader)
     {
-        ushort length = s_uInt16Formatter.Deserialize(ref reader);
+        int length = s_uInt16Formatter.Deserialize(ref reader);
 
         // Zero means an empty array, not a null array.
         if (length == 0)
