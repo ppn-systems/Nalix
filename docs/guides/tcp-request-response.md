@@ -139,6 +139,6 @@ Use this style when:
 
 ## Related pages
 
-- [Packet Dispatch](../api/routing/packet-dispatch.md)
-- [Handler Return Types](../api/routing/handler-results.md)
-- [TCP Listener](../api/network/runtime/tcp-listener.md)
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
+- [Handler Return Types](../api/runtime/routing/handler-results.md)
+- [TCP Listener](../api/network/tcp-listener.md)

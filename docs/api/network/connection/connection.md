@@ -127,7 +127,7 @@ Use this helper for throttle, fail, timeout, or other control replies.
 
 ## Transport implementation details
 
-If you want the lower-level TCP framing, receive loop, callback wiring, fragmentation, and send-path behavior behind `connection.TCP`, see [Socket Connection](../runtime/socket-connection.md).
+If you want the lower-level TCP framing, receive loop, callback wiring, fragmentation, and send-path behavior behind `connection.TCP`, see [Socket Connection](../socket-connection.md).
 
 ## Basic usage
 
@@ -148,10 +148,10 @@ Typical flow:
 
 ## Related APIs
 
-- [TcpListener](../runtime/tcp-listener.md)
+- [TcpListener](../tcp-listener.md)
 - [Connection Hub](./connection-hub.md)
 - [Connection Events](./connection-events.md)
 - [Connection Extensions](./connection-extensions.md)
-- [Socket Connection](../runtime/socket-connection.md)
+- [Socket Connection](../socket-connection.md)
 - [Connection Contracts](../../common/connection-contracts.md)
-- [Packet Dispatch](../../routing/packet-dispatch.md)
+- [Packet Dispatch](../../runtime/routing/packet-dispatch.md)

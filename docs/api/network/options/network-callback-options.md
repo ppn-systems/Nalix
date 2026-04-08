@@ -27,5 +27,5 @@ options.Validate();
 
 ## Related APIs
 
-- [Connection Limiter](../../middleware/connection-limiter.md)
-- [TCP Listener](../runtime/tcp-listener.md)
+- [Connection Limiter](../connection/connection-limiter.md)
+- [TCP Listener](../tcp-listener.md)

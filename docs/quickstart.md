@@ -112,9 +112,8 @@ public sealed class PingResponse : PacketBase<PingResponse>
 ### `PingHandlers.cs`
 
 ```csharp
-using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 using QuickStart.Contracts.Packets;
 
 namespace QuickStart.Server.Handlers;
@@ -123,7 +122,7 @@ namespace QuickStart.Server.Handlers;
 public sealed class PingHandlers
 {
     [PacketOpcode(PingRequest.OpCodeValue)]
-    public PingResponse Handle(PacketContext<PingRequest> request)
+    public PingResponse Handle(IPacketContext<PingRequest> request)
     {
         return new PingResponse { Message = $"pong: {request.Packet.Message}" };
     }
@@ -134,8 +133,8 @@ public sealed class PingHandlers
 
 ```csharp
 using Nalix.Common.Networking;
-using Nalix.Network.Protocols;
-using Nalix.Network.Routing;
+using Nalix.Common.Networking.Packets;
+using QuickStart.Server.Protocols;
 
 namespace QuickStart.Server.Protocols;
 
@@ -157,6 +156,7 @@ public sealed class QuickStartProtocol : Protocol
 ### `Program.cs`
 
 ```csharp
+using Microsoft.Extensions.Logging;
 using Nalix.Logging;
 using Nalix.Network.Hosting;
 using Nalix.Network.Options;
@@ -168,17 +168,16 @@ const ushort Port = 57206;
 
 ILogger logger = NLogix.Host.Instance;
 
-using NetworkHost host = NetworkHost.CreateBuilder()
-    .UseLogger(logger)
+using NetworkApplication app = NetworkApplication.CreateBuilder()
+    .ConfigureLogging(logger)
     .Configure<NetworkSocketOptions>(options =>
     {
         options.Port = Port;
         options.Backlog = 512;
     })
-    .AddPacketsFromAssemblyContaining<PingRequest>()
-    .AddPacketsFromAssemblyContaining<PingResponse>()
-    .AddPacketHandlersFromAssemblyContaining<PingHandlers>()
-    .AddTcpServer<QuickStartProtocol>()
+    .AddPacketAssembly<PingRequest>()
+    .AddHandlers<PingHandlers>()
+    .AddTcp<QuickStartProtocol>()
     .Build();
 
 using CancellationTokenSource shutdown = new();
@@ -192,7 +191,7 @@ Console.CancelKeyPress += (_, eventArgs) =>
 Console.WriteLine($"Server running on tcp://127.0.0.1:{Port}");
 Console.WriteLine("Press Ctrl+C to stop.");
 
-await host.RunAsync(shutdown.Token);
+await app.RunAsync(shutdown.Token);
 ```
 
 ## 3. Client Test

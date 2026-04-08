@@ -2,33 +2,27 @@
 
 Use these packages together or separately depending on whether you are building the server, the client, or shared contracts.
 
-!!! info "Version note"
-    Latest verified public package version on 2026-03-27:
-
-    - `Nalix.Network`: `12.0.0`
-    - `Nalix.SDK`: `12.0.0`
-
 !!! tip "Safe default package choice"
-    If you are building a server, start with `Nalix.Network`, `Nalix.Common`, and `Nalix.Framework`.
+    If you are building a server, start with `Nalix.Network.Hosting` which brings in the core networking and runtime.
     If you are building a client, start with `Nalix.SDK`, `Nalix.Common`, and `Nalix.Framework`.
 
 | Package | Use it for | Key types |
 | --- | --- | --- |
-| Nalix.SDK | Client transport sessions, request helpers, and control/directive flows | `TransportSession`, `TcpSession`, `TransportOptions`, `RequestOptions` |
-| Nalix.Network | Listeners, connections, dispatch pipeline, and connection guarding | `TcpListenerBase`, `UdpListenerBase`, `Protocol`, `ConnectionHub`, `PacketDispatchChannel`, `ConnectionGuard` |
-| Nalix.Network.Hosting | Fluent server bootstrap, packet discovery, handler registration, and host lifecycle | `NetworkHost`, `INetworkBuilder`, `NetworkBuilder` |
-| Nalix.Network.Pipeline | Packet middleware, throttling, and time synchronization helpers | `ConcurrencyGate`, `PolicyRateLimiter`, `TokenBucketLimiter`, `TimeSynchronizer`, `TokenBucketOptions` |
-| Nalix.Common | Shared contracts, packet attributes, middleware contracts | `IPacket`, `IConnection`, `PacketControllerAttribute`, `PacketOpcodeAttribute` |
+| Nalix.SDK | Client transport sessions, request helpers, and control flows | `TransportSession`, `TcpSession`, `UdpSession`, `TransportOptions` |
+| Nalix.Network | Listeners, connections, protocol flow, and connection guarding | `TcpListenerBase`, `UdpListenerBase`, `Protocol`, `ConnectionHub`, `SocketConnection` |
+| Nalix.Runtime | Request dispatching, middleware execution, and handler compilation | `PacketDispatchChannel`, `MiddlewarePipeline`, `PacketContext`, `PacketMetadata` |
+| Nalix.Network.Hosting | Fluent server bootstrap, packet discovery, and host lifecycle | `NetworkApplication`, `INetworkApplicationBuilder`, `NetworkApplicationBuilder` |
+| Nalix.Network.Pipeline | Packet middleware, throttling, and time synchronization helpers | `ConcurrencyGate`, `PolicyRateLimiter`, `TokenBucketLimiter`, `TimeSynchronizer` |
+| Nalix.Common | Shared abstractions, packet attributes, and networking primitives | `IPacket`, `IConnection`, `PacketOpcodeAttribute`, `PacketControllerAttribute` |
 | Nalix.Logging | Structured logging and targets | `NLogix`, `NLogixOptions`, `INLogixTarget` |
-| Nalix.Framework | Configuration, service registry, scheduling, IDs, timing helpers, built-in frames, registry, serializer helpers | `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, `Clock`, `PacketRegistryFactory`, `PacketRegistry`, `Handshake`, `Control`, `Directive`, `Text256/512/1024`, `FrameBase`, `PacketBase<TSelf>`, `FrameTransformer`, `FragmentAssembler`, `FragmentOptions`, `DataReaderExtensions`, `DataWriterExtensions`, `HeaderExtensions` |
-| Nalix.Analyzers | Compile-time diagnostics and code fixes for packet, serialization, middleware, configuration, and SDK usage | `NalixUsageAnalyzer`, `DiagnosticDescriptors`, code fix providers |
+| Nalix.Framework | Configuration, service registry, scheduling, IDs, timing, and serialization | `ConfigurationManager`, `InstanceManager`, `TaskManager`, `Snowflake`, `Clock`, `PacketRegistryFactory` |
+| Nalix.Analyzers | Compile-time diagnostics and code fixes | `NalixUsageAnalyzer`, `DiagnosticDescriptors` |
 
 ## Minimal wiring map
 
-- Client-only: `Nalix.SDK` + `Nalix.Common` and optionally `Nalix.Framework` if you want `ConfigurationManager` / `InstanceManager`.
-- Server-only: `Nalix.Network` + `Nalix.Common` + `Nalix.Framework`.
-- Hosted server bootstrap: add `Nalix.Network.Hosting` when you want a fluent builder and managed runtime lifecycle on top of the normal server package set.
-- Full stack: all packages, with one shared packet catalog shape on both sides.
+- **Client-only:** `Nalix.SDK` + `Nalix.Common` and optionally `Nalix.Framework`.
+- **Server core:** `Nalix.Network` + `Nalix.Runtime` + `Nalix.Common`.
+- **Hosted server (Recommended):** `Nalix.Network.Hosting`, which simplifies the composition of all server components.
 
 ## Quick example
 
@@ -37,8 +31,14 @@ flowchart TD
     SDK --> Common["Nalix.Common"]
     SDK --> Framework["Nalix.Framework"]
 
+    Hosting["Nalix.Network.Hosting"] --> Network["Nalix.Network"]
+    Hosting --> Runtime["Nalix.Runtime"]
+    
     Network --> Common
     Network --> Framework
+    
+    Runtime --> Common
+    Runtime --> Framework
 
     Logging["Nalix.Logging"] --> Common
 ```

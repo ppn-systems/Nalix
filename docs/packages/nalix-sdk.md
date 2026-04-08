@@ -1,6 +1,6 @@
 # Nalix.SDK
 
-`Nalix.SDK` is the client-side transport package for connecting .NET applications to a Nalix server over TCP.
+`Nalix.SDK` is the client-side transport package for connecting .NET applications to a Nalix server over TCP or UDP.
 
 !!! tip "Start with `TcpSession`"
     `TcpSession` is the main client transport in the current source tree. It already exposes the shared transport lifecycle and the packet send / receive flow that most client applications need.
@@ -9,7 +9,7 @@
 
 ```mermaid
 flowchart LR
-    A["TransportOptions"] --> B["TransportSession / TcpSession"]
+    A["TransportOptions"] --> B["TransportSession / TcpSession / UdpSession"]
     B --> C["ConnectAsync"]
     C --> D["Packet send / receive"]
     D --> E["Request matching / subscriptions"]
@@ -19,15 +19,16 @@ flowchart LR
 
 - `TransportSession`
 - `TcpSession`
+- `UdpSession` (with 7-byte session token support)
 - `TransportOptions`
 - `RequestOptions`
-- transport extensions such as `ControlExtensions`, `DirectiveClientExtensions`, `RequestExtensions`, and `TcpSessionSubscriptions`
+- transport extensions such as `ControlExtensions`, `RequestExtensions`, `TcpSessionSubscriptions`, and `TcpSessionX25519Extensions`
 - thread dispatching helpers such as `IThreadDispatcher` and `InlineDispatcher`
 - protocol string helpers such as `ProtocolStringExtensions`
 
 ## Sessions
 
-Use `TransportSession` as the shared abstraction when you are writing code that should not depend on the concrete TCP client.
+Use `TransportSession` as the shared abstraction when you are writing code that should not depend on the concrete transport (TCP/UDP).
 
 Use `TcpSession` for the normal client runtime. It includes:
 
@@ -48,6 +49,7 @@ client.OnConnected += (_, _) => { };
 client.OnDisconnected += (_, ex) => { };
 
 await client.ConnectAsync(options.Address, options.Port);
+await client.HandshakeAsync(); // X25519 handshake
 await client.SendAsync(myPacket);
 await client.DisconnectAsync();
 client.Dispose();
@@ -57,14 +59,14 @@ client.Dispose();
 
 The extension layer covers the common client flows:
 
-- `PingAsync`
+- X25519 cryptographic handshakes
 - `RequestAsync<TResponse>(...)`
-- directive handling such as throttle, redirect, and notice packets
+- `AwaitControlAsync(...)` and `SendControlAsync(...)`
 
 ### Quick example
 
 ```csharp
-var pong = await client.PingAsync(opCode: 0, timeoutMs: 3000);
+await client.HandshakeAsync(ct);
 
 Control request = client.NewControl(opCode: 1, type: ControlType.NOTICE).Build();
 Control reply = await client.RequestAsync<Control>(

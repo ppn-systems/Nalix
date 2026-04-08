@@ -134,7 +134,7 @@ For a simple deployment:
 
 ## Related pages
 
-- [UDP Listener](../api/network/runtime/udp-listener.md)
+- [UDP Listener](../api/network/udp-listener.md)
 - [UDP Session](../api/sdk/udp-session.md)
 - [Connection Hub](../api/network/connection/connection-hub.md)
 - [Network Options](../api/network/options/options.md)

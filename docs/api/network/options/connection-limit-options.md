@@ -45,5 +45,5 @@ var options = new ConnectionLimitOptions
 
 ## Related APIs
 
-- [Connection Limiter](../../middleware/connection-limiter.md)
-- [Tcp Listener](../runtime/tcp-listener.md)
+- [Connection Limiter](../connection/connection-limiter.md)
+- [Tcp Listener](../tcp-listener.md)

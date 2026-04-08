@@ -17,7 +17,6 @@ using Nalix.Common.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Connections;
 using Nalix.Network.Internal.Time;
 
 namespace Nalix.Network.Listeners.Tcp;
@@ -216,8 +215,7 @@ public abstract partial class TcpListenerBase
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
                                          .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}"));
 
-            InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?
-                                    .CloseAllConnections();
+            s_hub.CloseAllConnections();
 
             if (s_config.EnableTimeout)
             {
@@ -286,7 +284,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Connections:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ActiveConnections   : {s_hub?.Count}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LimiterEnabled      : {true}");
         _ = sb.AppendLine();
 
@@ -338,7 +336,7 @@ public abstract partial class TcpListenerBase
             },
             ["Connections"] = new Dictionary<string, object>
             {
-                ["ActiveConnections"] = InstanceManager.Instance.GetExistingInstance<ConnectionHub>()?.Count ?? 0,
+                ["ActiveConnections"] = s_hub?.Count ?? 0,
                 ["LimiterEnabled"] = true
             },
             ["Threading"] = new Dictionary<string, object>

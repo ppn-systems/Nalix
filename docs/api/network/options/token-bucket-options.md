@@ -38,5 +38,5 @@ options.Validate();
 
 ## Related APIs
 
-- [Token Bucket Limiter](../../middleware/token-bucket-limiter.md)
-- [Policy Rate Limiter](../../middleware/policy-rate-limiter.md)
+- [Token Bucket Limiter](../../runtime/middleware/token-bucket-limiter.md)
+- [Policy Rate Limiter](../../runtime/middleware/policy-rate-limiter.md)

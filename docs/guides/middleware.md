@@ -116,4 +116,4 @@ For internal traffic, you can stay lighter:
 - [Custom Middleware End-to-End](./custom-middleware-end-to-end.md)
 - [Custom Metadata Provider](./custom-metadata-provider.md)
 - [Middleware](../concepts/middleware.md)
-- [Middleware Pipeline](../api/middleware/pipeline.md)
+- [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
