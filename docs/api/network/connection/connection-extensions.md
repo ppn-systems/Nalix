@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Runtime/Extentions/ConnectionExtensions.cs`
+- `src/Nalix.Runtime/Extensions/ConnectionExtensions.cs`
 
 ## What it does
 
