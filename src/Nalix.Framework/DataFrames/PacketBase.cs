@@ -209,7 +209,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int GetDynamicSize(object value)
     {
-        // string: 4-byte ushort prefix + UTF-8 payload.
+        // string: 4-byte int prefix + UTF-8 payload.
         if (value is string s)
         {
             return string.IsNullOrEmpty(s) ? 4 : 4 + Encoding.UTF8.GetByteCount(s);
@@ -243,7 +243,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             }
         }
 
-        return 0;
+        throw new SerializationFailureException($"Unsupported dynamic property type: {value.GetType().FullName}");
     }
 
     /// <summary>
