@@ -22,8 +22,6 @@ namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
-    private const string PipelineAttributeKey = "nalix.pipeline.instance";
-
     /// <summary>
     /// Finalizes the acceptance of an incoming connection by invoking the protocol handler
     /// and recording the accepted metric.
@@ -97,12 +95,13 @@ public abstract partial class TcpListenerBase
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
         // Unwire pipeline (instead of unwiring _protocol.ProcessMessage).
-        if (args.Connection.Attributes.TryGetValue(PipelineAttributeKey, out object? boxed) && boxed is ProtocolPipeline pipeline)
+        if (args.Connection.Attributes.TryGetValue(ProtocolPipeline.AttributeKey, out object? boxed)
+            && boxed is ProtocolPipeline pipeline)
         {
             // Unbind the pipeline from the connection to stop processing any new messages.
             s_pool.Return(pipeline);
 
-            _ = args.Connection.Attributes.Remove(PipelineAttributeKey);
+            _ = args.Connection.Attributes.Remove(ProtocolPipeline.AttributeKey);
         }
 
         // Keep unwiring post-process as before (if you subscribed it).
@@ -174,7 +173,7 @@ public abstract partial class TcpListenerBase
         pipeline.Initialize(connection, _protocol);
 
         // 2) Store pipeline on connection so close handler can unbind/dispose.
-        connection.Attributes[PipelineAttributeKey] = pipeline;
+        connection.Attributes[ProtocolPipeline.AttributeKey] = pipeline;
 
         // 3) Wire pipeline as the ONLY OnProcessEvent handler for inbound frames.
         pipeline.Bind();

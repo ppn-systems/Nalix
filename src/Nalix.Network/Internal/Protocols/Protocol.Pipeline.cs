@@ -68,6 +68,11 @@ internal sealed class ProtocolPipeline : IPoolable
     #region APIs
 
     /// <summary>
+    /// Key used to store the pipeline instance in the connection's attributes dictionary.
+    /// </summary>
+    public const string AttributeKey = "nalix.pipeline.instance";
+
+    /// <summary>
     /// Initializes this pipeline for a specific connection.
     /// </summary>
     /// <param name="connection">
